@@ -41,7 +41,7 @@ import java.util.List;
 /**
  * A class to launch any service by name.
  * It is assumed that the service starts 
- * 
+ *
  * Workflow
  * <ol>
  *   <li>An instance of the class is created</li>
@@ -49,7 +49,7 @@ import java.util.List;
  *   <li></li>
  * </ol>
  */
-public class ServiceLauncher 
+public class ServiceLauncher
   implements LauncherExitCodes, IrqHandler.Interrupted {
   private static final Log LOG = LogFactory.getLog(ServiceLauncher.class);
   protected static final int PRIORITY = 30;
@@ -88,7 +88,7 @@ public class ServiceLauncher
   /**
    * Get the service. Null until and unless
    * {@link #launchService(Configuration, String[], boolean)} has completed
-   * @return
+   * @return the service
    */
   public Service getService() {
     return service;
@@ -113,21 +113,21 @@ public class ServiceLauncher
 
   @Override
   public String toString() {
-    return "ServiceLauncher for " + serviceClassName ;
+    return "ServiceLauncher for " + serviceClassName;
   }
 
   /**
    * Launch the service, by creating it, initing it, starting it and then
    * maybe running it. {@link RunService#setArgs(String[])} is invoked
    * on the service between creation and init.
-   * 
+   *
    * All exceptions that occur are propagated upwards.
    *
    * If the method returns a status code, it means that it got as far starting
    * the service, and if it implements {@link RunService}, that the 
    * method {@link RunService#runService()} has completed. 
    *
-   * At this point, the service returned by {@link #get}
+   * At this point, the service is returned by {@link #getService()}.
    *
    * @param conf configuration
    * @param processedArgs arguments after the configuration parameters
@@ -157,13 +157,13 @@ public class ServiceLauncher
         shutdownHook, PRIORITY);
     }
     RunService runService = null;
-    
+
     if (service instanceof RunService) {
       //if its a runService, pass in the arguments (hopefully before init)
       runService = (RunService) service;
       runService.setArgs(processedArgs);
     }
-    
+
     //some class constructors init; here this is picked up on.
     if (!service.isInState(Service.STATE.INITED)) {
       service.init(configuration);
@@ -194,9 +194,9 @@ public class ServiceLauncher
    * @throws IllegalAccessException no access rights
    */
   public Service instantiateService(Configuration conf) throws
-                                                     ClassNotFoundException,
-                                                     InstantiationException,
-                                                     IllegalAccessException {
+                                                        ClassNotFoundException,
+                                                        InstantiationException,
+                                                        IllegalAccessException {
     configuration = conf;
 
     //Instantiate the class -this requires the service to have a public
@@ -282,7 +282,7 @@ public class ServiceLauncher
    * launch the service and wait for it to finish. finally, exit
    * passing the status code to the {@link #exit(int)} method.
    * @param args arguments to the service. arg[0] is 
- * assumed to be the service classname and is automatically
+   * assumed to be the service classname and is automatically
    */
   public void launchServiceAndExit(String[] args) {
 
@@ -302,7 +302,7 @@ public class ServiceLauncher
    * @return the processed list.
    */
   public static String[] extractConfigurationArgs(Configuration conf,
-                                              String[] args) {
+                                                  String[] args) {
     //convert args to a list
     List<String> argsList = new ArrayList<String>(args.length - 1);
     for (int index = 1; index < args.length; index++) {
@@ -373,8 +373,10 @@ public class ServiceLauncher
     } catch (Throwable thrown) {
       LOG.error("While running " + getServiceName() + ":" + thrown, thrown);
       if (thrown instanceof GetExceptionExitCode) {
-        exitCode = ((GetExceptionExitCode)thrown).getExitCode();
-      } else exitCode = EXIT_EXCEPTION_THROWN;
+        exitCode = ((GetExceptionExitCode) thrown).getExitCode();
+      } else {
+        exitCode = EXIT_EXCEPTION_THROWN;
+      }
     }
     return exitCode;
   }
@@ -386,21 +388,21 @@ public class ServiceLauncher
    * @param args arguments
    */
   public static String startupShutdownMessage(String classname,
-                                            String[] args) {
+                                              String[] args) {
     final String hostname = NetUtils.getHostname();
-    
+
     return toStartupShutdownString("STARTUP_MSG: ", new String[]{
-        "Starting " + classname,
-        "  host = " + hostname,
-        "  args = " + Arrays.asList(args),
-        "  version = " + VersionInfo.getVersion(),
-        "  classpath = " + System.getProperty("java.class.path"),
-        "  build = " + VersionInfo.getUrl() + " -r "
-        + VersionInfo.getRevision()
-        + "; compiled by '" + VersionInfo.getUser()
-        + "' on " + VersionInfo.getDate(),
-        "  java = " + System.getProperty("java.version")
-      });
+      "Starting " + classname,
+      "  host = " + hostname,
+      "  args = " + Arrays.asList(args),
+      "  version = " + VersionInfo.getVersion(),
+      "  classpath = " + System.getProperty("java.class.path"),
+      "  build = " + VersionInfo.getUrl() + " -r "
+      + VersionInfo.getRevision()
+      + "; compiled by '" + VersionInfo.getUser()
+      + "' on " + VersionInfo.getDate(),
+      "  java = " + System.getProperty("java.version")
+    });
   }
 
   /**
@@ -412,7 +414,7 @@ public class ServiceLauncher
     System.err.println(message);
     ExitUtil.terminate(status);
   }
-  
+
   private static String toStartupShutdownString(String prefix, String[] msg) {
     StringBuilder b = new StringBuilder(prefix);
     b.append("\n/************************************************************");
@@ -422,6 +424,7 @@ public class ServiceLauncher
     b.append("\n************************************************************/");
     return b.toString();
   }
+
   /**
    * forced shutdown runnable.
    */

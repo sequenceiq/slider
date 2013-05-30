@@ -72,7 +72,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   public ApplicationId applicationId;
 
   /**
-   * 
+   * Entry point from the service launcher
    */
   HoyaClient() {
     super()
@@ -87,7 +87,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * @param args argument list to be treated as both raw and processed
    * arguments.
    */
-  HoyaClient(String[] args) {
+  HoyaClient(String...args) {
     setArgs(args)
   }
 
@@ -97,27 +97,29 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   }
 
   @Override
-  void setArgs(String[] args) {
+  void setArgs(String...args) {
     this.argv = args;
     serviceArgs = new ClientArgs(args)
     serviceArgs.parse()
     serviceArgs.postProcess()
   }
 
+  /**
+   * Just before the configuration is set, the args-supplied config is set
+   * This is a way to sneak in config changes without subclassing init()
+   * (so work with pre/post YARN-117 code)
+   * @param conf new configuration.
+   */
   @Override
-  protected void serviceInit(Configuration conf) throws Exception {
-    //before calling the superclass, propagate some values to it from
-    //the command line arguments
-    //all the -D declarations
-    serviceArgs.applyDefinitions(conf)
-    super.serviceInit(conf)
+  protected void setConfig(Configuration conf) {
+    serviceArgs.applyDefinitions(conf);
+    super.setConfig(conf)
   }
 
-  
 /**
    * this is where the work is done.
    * @return the exit code
-   * @throws Throwable
+   * @throws Throwable anything that went wrong
    */
   @Override
   int runService() throws Throwable {

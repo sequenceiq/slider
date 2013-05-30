@@ -20,9 +20,14 @@ package org.apache.hadoop.yarn.service.launcher;
 
 import org.apache.hadoop.yarn.YarnException;
 
-public class ServiceLaunchException extends YarnException implements
-                                                          GetExceptionExitCode {
-  
+/**
+ * A service launch exception that includes an exit code;
+ * when caught by the ServiceLauncher, it will convert that
+ * into a process exit code.
+ */
+public class ServiceLaunchException extends YarnException
+  implements GetExceptionExitCode, LauncherExitCodes {
+
   private final int exitCode;
   
   public ServiceLaunchException(int exitCode, Throwable cause) {
@@ -40,7 +45,7 @@ public class ServiceLaunchException extends YarnException implements
     this.exitCode = exitCode;
   }
 
-  
+  //@Override
   public int getExitCode() {
     return exitCode;
   }

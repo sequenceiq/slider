@@ -38,6 +38,7 @@ import org.apache.hadoop.yarn.api.records.Priority
 import org.apache.hadoop.yarn.api.records.Resource
 import org.apache.hadoop.yarn.client.AMRMClient
 import org.apache.hadoop.yarn.client.AMRMClientAsync
+import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.exceptions.YarnRemoteException
 import org.apache.hadoop.yarn.ipc.YarnRPC
 import org.apache.hadoop.yarn.service.CompositeService
@@ -58,7 +59,7 @@ implements AMRMClientAsync.CallbackHandler, RunService {
   // YARN RPC to communicate with the Resource Manager or Node Manager
   private YarnRPC rpc;
   // Handle to communicate with the Resource Manager
-  private AMRMClientAsync rmClient;
+  private AMRMClientAsync resourceManager;
   // Hostname of the container
   private String appMasterHostname = "";
   // Port on which the app master listens for status updates from clients
@@ -102,20 +103,23 @@ implements AMRMClientAsync.CallbackHandler, RunService {
   }
 
   @Override
-  void setArgs(String[] args) {
+  void setArgs(String...args) {
     this.argv = args;
     serviceArgs = new HoyaMasterServiceArgs(argv)
     serviceArgs.parse()
     serviceArgs.postProcess()
   }
 
+  /**
+   * Just before the configuration is set, the args-supplied config is set
+   * This is a way to sneak in config changes without subclassing init()
+   * (so work with pre/post YARN-117 code)
+   * @param conf new configuration.
+   */
   @Override
-  protected void serviceInit(Configuration conf) throws Exception {
-    //before calling the superclass, propagate some values to it from
-    //the command line arguments
-    //all the -D declarations
-    serviceArgs.applyDefinitions(conf)
-    super.serviceInit(conf)
+  protected void setConfig(Configuration conf) {
+    serviceArgs.applyDefinitions(conf);
+    super.setConfig(conf)
   }
 
 /**
@@ -148,11 +152,12 @@ implements AMRMClientAsync.CallbackHandler, RunService {
   
   /**
    * Actual work
-   * @return
-   * @throws Throwable
+   * @return exit code
+   * @throws Throwable on a failure
    */
   int createAndRunCluster(String clustername) throws Throwable {
-
+    YarnConfiguration conf = new YarnConfiguration(config);
+    rpc = YarnRPC.create(conf);
     ContainerId containerId = ConverterUtils.toContainerId(
         Env.mandatory(ApplicationConstants.Environment.CONTAINER_ID.name()));
     appAttemptID = containerId.applicationAttemptId;
@@ -160,7 +165,7 @@ implements AMRMClientAsync.CallbackHandler, RunService {
     String nmHost = Env.mandatory(ApplicationConstants.Environment.NM_HOST.name())
     String nmPort = Env.mandatory(ApplicationConstants.Environment.NM_PORT.name())
     String nmHttpPort = Env.mandatory(ApplicationConstants.Environment.NM_HTTP_PORT.name())
-    String jobUserName = Env.mandatory(ApplicationConstants.Environment.USER
+    String UserName = Env.mandatory(ApplicationConstants.Environment.USER
                                                            .key());
 
     log.info("Hoya AM for app," +
@@ -169,11 +174,12 @@ implements AMRMClientAsync.CallbackHandler, RunService {
              " attemptId=$appAttemptID.attemptId");
 
 
-    rmClient = new AMRMClientAsync(appAttemptID, 1000, this);
+    int heartbeatInterval = 1000
+    resourceManager = new AMRMClientAsync(appAttemptID, heartbeatInterval, this);
     //add to the list of things to terminate
-    addService(rmClient)
-    rmClient.init(config);
-    rmClient.start();
+    addService(resourceManager)
+    resourceManager.init(conf);
+    resourceManager.start();
 
     // Setup local RPC Server to accept status requests directly from clients
     // TODO need to setup a protocol for client to be able to communicate to
@@ -183,11 +189,14 @@ implements AMRMClientAsync.CallbackHandler, RunService {
 
     // Register self with ResourceManager
     // This will start heartbeating to the RM
-    RegisterApplicationMasterResponse response = rmClient
+    log.info("Connecting to RM at $appMasterHostname:$appMasterRpcPort tracking $appMasterTrackingUrl")
+/*
+    RegisterApplicationMasterResponse response = resourceManager
         .registerApplicationMaster(appMasterHostname,
                                    appMasterRpcPort,
                                    appMasterTrackingUrl);
     configureContainerMemory(response)
+*/
 
     // Setup ask for containers from RM
     // Send request for containers to RM
@@ -196,7 +205,7 @@ implements AMRMClientAsync.CallbackHandler, RunService {
     // Keep looping until all the containers are launched and shell script
     // executed on them ( regardless of success/failure).
     AMRMClient.ContainerRequest containerAsk = setupContainerAskForRM(numTotalContainers);
-    rmClient.addContainerRequest(containerAsk);
+    resourceManager.addContainerRequest(containerAsk);
     numRequestedContainers.set(numTotalContainers);
 
     while (!done) {
@@ -240,7 +249,7 @@ implements AMRMClientAsync.CallbackHandler, RunService {
     }
     try {
       log.info("Unregistering AM")
-      rmClient.unregisterApplicationMaster(appStatus, appMessage, null);
+      resourceManager.unregisterApplicationMaster(appStatus, appMessage, null);
     } catch (YarnRemoteException e) {
       log.error("Failed to unregister application: $e", e);
     } catch (IOException e) {
@@ -308,6 +317,10 @@ implements AMRMClientAsync.CallbackHandler, RunService {
     return request;
   }
 
+  /**
+   * Callback event when a container is allocated
+   * @param allocatedContainers list of containers
+   */
   @Override
   void onContainersAllocated(List<Container> allocatedContainers) {
     log.info("Got response from RM for container ask, allocatedCnt="
@@ -381,27 +394,34 @@ implements AMRMClientAsync.CallbackHandler, RunService {
 
     if (askCount > 0) {
       AMRMClient.ContainerRequest containerAsk = setupContainerAskForRM(askCount);
-      rmClient.addContainerRequest(containerAsk);
+      resourceManager.addContainerRequest(containerAsk);
     }
 
     // set progress to deliver to RM on next heartbeat
     float progress = (float) numCompletedContainers.get() / numTotalContainers;
-    rmClient.setProgress(progress);
+    resourceManager.setProgress(progress);
 
     if (numCompletedContainers.get() == numTotalContainers) {
       done = true;
     }
   }
 
-
+  /**
+   * RM wants to reboot the AM
+   */
   @Override
   void onRebootRequest() {
     log.info("Reboot requested")
   }
 
+  /**
+   * Monitored nodes have been changed
+   * @param updatedNodes list of updated notes
+   */
   @Override
   void onNodesUpdated(List<NodeReport> updatedNodes) {
-    log.info("Nodes updated")
+    log.info("Nodes updated: " +
+             (updatedNodes*.getNodeId()).join(" "))
 
   }
 }
