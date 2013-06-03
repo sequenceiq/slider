@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.tools
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.commons.io.IOUtils
 import org.apache.commons.logging.Log
@@ -29,6 +30,8 @@ import org.apache.hadoop.util.ExitUtil.ExitException
  * Utility methods primarily used in setting up and executing tools
  */
 @Commons
+@CompileStatic
+
 class HoyaUtils {
 
   static void dumpArguments(String[] args) {
@@ -39,7 +42,7 @@ class HoyaUtils {
   static void dumpConf(Configuration conf) {
     TreeSet<String> keys = sortedConfigKeys(conf);
     keys.each { key ->
-      println("$key = ${conf.get(key)}")
+      println("$key = ${conf.get((String)key)}")
     }
   }
 
@@ -61,7 +64,7 @@ class HoyaUtils {
       return -1;
     }
     int size = 0;
-    dir.eachFile { file ->
+    dir.eachFile { File file->
       long l = dumpFile(dumpLog, file)
       if (file.name.startsWith(pattern)) {
         size += l
@@ -85,7 +88,7 @@ class HoyaUtils {
       if (dir.isDirectory()) {
         log.info("Cleaning up $dir")
         //delete the children
-        dir.eachFile { file ->
+        dir.eachFile { File file ->
           log.info("deleting $file")
           file.delete()
         }
@@ -169,7 +172,7 @@ class HoyaUtils {
 
   public static TreeSet<String> sortedConfigKeys(Configuration conf) {
     TreeSet<String> sorted = new TreeSet<String>();
-    conf.each { entry ->
+    conf.each { Map.Entry<String, String> entry ->
       sorted.add(entry.key)
     }
     sorted;

@@ -21,7 +21,9 @@
 package org.apache.hadoop.hoya.tools
 
 import com.beust.jcommander.IStringConverter
+import groovy.transform.CompileStatic
 
+@CompileStatic
 class URLArgumentConverter implements IStringConverter<URL> {
   @Override
   public URL convert(String value) {

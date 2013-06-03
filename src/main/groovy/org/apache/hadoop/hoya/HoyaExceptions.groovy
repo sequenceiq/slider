@@ -18,13 +18,16 @@
 
 package org.apache.hadoop.hoya
 
+import groovy.transform.CompileStatic
 import org.apache.hadoop.yarn.service.launcher.ServiceLaunchException
+
+@CompileStatic
 
 class HoyaExceptions {
   
-  static class HoyaException extends ServiceLaunchException {
+  static class HoyaException extends ServiceLaunchException implements HoyaExitCodes{
     HoyaException() {
-      super(HoyaExitCodes.EXIT_EXCEPTION_THROWN,"HoyaException")
+      super(EXIT_EXCEPTION_THROWN,"HoyaException")
     }
     
     HoyaException(int code, String message) {
@@ -32,15 +35,15 @@ class HoyaExceptions {
     }
 
     HoyaException(String s) {
-      super(HoyaExitCodes.EXIT_EXCEPTION_THROWN, s)
+      super(EXIT_EXCEPTION_THROWN, s)
     }
 
     HoyaException(String s, Throwable throwable) {
-      super(HoyaExitCodes.EXIT_EXCEPTION_THROWN, s, throwable)
+      super(EXIT_EXCEPTION_THROWN, s, throwable)
     }
     
     HoyaException(int code, String s, Throwable throwable) {
-      super(HoyaExitCodes.EXIT_EXCEPTION_THROWN, s, throwable)
+      super(EXIT_EXCEPTION_THROWN, s, throwable)
     }
 
     
@@ -48,28 +51,28 @@ class HoyaExceptions {
   static class BadConfig extends HoyaException {
 
     BadConfig(String s) {
-      super(HoyaExitCodes.EXIT_COMMAND_ARGUMENT_ERROR, s)
+      super(EXIT_COMMAND_ARGUMENT_ERROR, s)
     }
 
   };
   
   static class BadCommandArguments extends HoyaException {
     BadCommandArguments(String s) {
-      super(HoyaExitCodes.EXIT_COMMAND_ARGUMENT_ERROR, s)
+      super(EXIT_COMMAND_ARGUMENT_ERROR, s)
     }
 
     BadCommandArguments(String s, Throwable throwable) {
-      super(HoyaExitCodes.EXIT_COMMAND_ARGUMENT_ERROR, s, throwable)
+      super(EXIT_COMMAND_ARGUMENT_ERROR, s, throwable)
     }
   };
   
   static class InternalError extends HoyaException {
     InternalError(String s) {
-      super(HoyaExitCodes.EXIT_INTERNAL_ERROR, s)
+      super(EXIT_INTERNAL_ERROR, s)
     }
 
     InternalError(String s, Throwable throwable) {
-      super(HoyaExitCodes.EXIT_INTERNAL_ERROR, s, throwable)
+      super(EXIT_INTERNAL_ERROR, s, throwable)
     }
   };
   

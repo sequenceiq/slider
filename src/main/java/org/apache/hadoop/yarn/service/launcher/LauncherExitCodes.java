@@ -47,7 +47,7 @@ public interface LauncherExitCodes {
    */
   int EXIT_USAGE = EXIT_EXCEPTION_THROWN + 1;
   /**
-   * Exit code when a usage message was printed: {@value}
+   * Exit code when something happened but we can't be specific: {@value}
    */
   int EXIT_OTHER_FAILURE = EXIT_EXCEPTION_THROWN + 2;
   /**

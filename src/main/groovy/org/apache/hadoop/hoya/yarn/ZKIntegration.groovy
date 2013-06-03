@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.yarn
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.tools.ZKCallback
 import org.apache.zookeeper.CreateMode
@@ -35,6 +36,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * ZK logic exists here, including the location of various services
  */
 @Commons
+@CompileStatic
 class ZKIntegration implements Watcher {
 
 /**
@@ -137,7 +139,7 @@ class ZKIntegration implements Watcher {
   }
 
   Stat stat(String path) {
-    return zookeeper.exists(path, null)
+    return zookeeper.exists(path, false)
   }
 
   /**
@@ -205,7 +207,7 @@ class ZKIntegration implements Watcher {
                      CreateMode createMode) {
     String history = "/";
     paths.each { entry ->
-      createPath(history, entry, acl, createMode)
+      createPath(history, ((String)entry), acl, createMode)
       history += entry
       history += "/"
     }
@@ -216,7 +218,7 @@ class ZKIntegration implements Watcher {
  * @return an unordered list of clusters under a user
  */
   List<String> getClusters() throws KeeperException, InterruptedException {
-    zookeeper.getChildren(userPath, null)
+    zookeeper.getChildren(userPath, (Watcher) null)
   }
 
   /**
@@ -224,7 +226,7 @@ class ZKIntegration implements Watcher {
    * @param path
    */
   void recursiveDelete(String path) {
-    List<String> children = zookeeper.getChildren(path, null)
+    List<String> children = zookeeper.getChildren(path,(Watcher) null)
     children.each {
     }
   }

@@ -16,7 +16,7 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya;
+package org.apache.hadoop.yarn.service.launcher;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher;

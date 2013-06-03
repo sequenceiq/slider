@@ -20,7 +20,9 @@ package org.apache.hadoop.hoya.tools
 
 import com.beust.jcommander.JCommander
 import com.beust.jcommander.ParameterException
+import groovy.transform.CompileStatic
 
+@CompileStatic
 class CommanderHelper {
   
   public void parse(JCommander commander, String[] args) {

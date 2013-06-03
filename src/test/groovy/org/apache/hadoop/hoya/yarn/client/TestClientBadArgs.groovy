@@ -19,10 +19,8 @@
 package org.apache.hadoop.hoya.yarn.client
 
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.hoya.ServiceLauncherBaseTest
+import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
 import org.apache.hadoop.hoya.yarn.CommonArgs
-import org.apache.hadoop.hoya.yarn.client.ClientArgs
-import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.junit.Test
 
 /**

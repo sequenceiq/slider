@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.tools
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.fs.FileStatus
 import org.apache.hadoop.fs.FileSystem as FS
@@ -34,6 +35,7 @@ import org.apache.hadoop.yarn.util.ConverterUtils
 import org.apache.hadoop.yarn.util.Records
 
 @Commons
+@CompileStatic
 class YarnUtils {
 
   /**

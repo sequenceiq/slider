@@ -18,6 +18,8 @@
 
 package org.apache.hadoop.hoya.tools
 
+import groovy.transform.CompileStatic
+
 /**
  * A class that provides array access to system properties.
  *
@@ -27,6 +29,8 @@ package org.apache.hadoop.hoya.tools
  *   Sysprops['timeout'] = 24
  * <code>
  */
+@CompileStatic
+
 final class Env {
 
   static String getAt(String k) {

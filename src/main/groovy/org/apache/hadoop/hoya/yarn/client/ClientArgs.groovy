@@ -19,6 +19,7 @@
 package org.apache.hadoop.hoya.yarn.client
 
 import com.beust.jcommander.Parameter
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
@@ -31,6 +32,8 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
  * Args list for JCommanderification
  */
 @Commons
+@CompileStatic
+
 class ClientArgs extends CommonArgs {
 
   /**
@@ -109,7 +112,7 @@ class ClientArgs extends CommonArgs {
    * map of actions -> (explanation, min #of entries [, max no.])
    * If the max no is not given it is assumed to be the same as the min no.
    */
-  static final Map<String,List> ACTIONS = [
+  static final Map<String, List<Object>> ACTIONS = [
       (ACTION_CREATE): ["create cluster", 1],
       (ACTION_PREFLIGHT): ["Perform preflight checks", 0],
       (ACTION_LIST): ["List running cluster", 0],
@@ -131,7 +134,7 @@ class ClientArgs extends CommonArgs {
   }
 
   @Override
-  Map<String, List> getActions() {
+  Map<String, List<Object>> getActions() {
     return ACTIONS
   }
   

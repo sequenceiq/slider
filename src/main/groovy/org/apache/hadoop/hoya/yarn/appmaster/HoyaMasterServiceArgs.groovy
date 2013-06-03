@@ -51,7 +51,7 @@ class HoyaMasterServiceArgs extends HoyaServiceCommonArgs {
    * The only action you can do in the MasterService (apart from ask for help)
    * Is the create a cluster of size min to max
    */
-  static final Map<String, List> ACTIONS = [
+  static final Map<String, List<Object>> ACTIONS = [
       (ACTION_CREATE): ["create cluster", 1],
       (ACTION_HELP): ["Print Help information", 0],
   ]
@@ -65,7 +65,7 @@ class HoyaMasterServiceArgs extends HoyaServiceCommonArgs {
   }
 
   @Override
-  Map<String, List> getActions() {
+  Map<String, List<Object>> getActions() {
     return ACTIONS
   }
 }

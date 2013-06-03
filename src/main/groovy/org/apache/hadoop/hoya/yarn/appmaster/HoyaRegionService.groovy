@@ -18,12 +18,16 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
+import org.apache.hadoop.hoya.HoyaApp
 import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.yarn.service.AbstractService
 import org.apache.hadoop.yarn.service.launcher.RunService
 
 @Commons
+@CompileStatic
+
 class HoyaRegionService extends AbstractService
     implements RunService {
 
@@ -31,7 +35,7 @@ class HoyaRegionService extends AbstractService
 
   HoyaRegionService() {
     super("HoyaRegionService")
-    new ConfigHelper()
+    new HoyaApp("HoyaRegionService")
   }
 
   @Override

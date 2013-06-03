@@ -26,9 +26,7 @@ import org.apache.hadoop.util.ExitUtil;
 import org.apache.hadoop.util.ShutdownHookManager;
 import org.apache.hadoop.util.VersionInfo;
 import org.apache.hadoop.yarn.YarnUncaughtExceptionHandler;
-import org.apache.hadoop.yarn.service.IrqHandler;
 import org.apache.hadoop.yarn.service.Service;
-import org.apache.hadoop.yarn.service.ServiceOperations;
 import org.apache.hadoop.yarn.service.ServiceStateException;
 
 import java.io.File;
@@ -151,8 +149,8 @@ public class ServiceLauncher
     registerInterruptHandler();
     //and the shutdown hook
     if (addShutdownHook) {
-      ServiceOperations.ServiceShutdownHook shutdownHook =
-        new ServiceOperations.ServiceShutdownHook(service);
+      ServiceShutdownHook shutdownHook =
+        new ServiceShutdownHook(service);
       ShutdownHookManager.get().addShutdownHook(
         shutdownHook, PRIORITY);
     }

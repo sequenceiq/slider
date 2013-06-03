@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.tools.Env
 import org.apache.hadoop.net.NetUtils
@@ -41,6 +42,8 @@ import org.apache.hadoop.yarn.util.Records
  * The class just needs to be set up with its binding info
  */
 @Commons
+@CompileStatic
+
 class HoyaRegionServiceLauncher implements Runnable {
   HoyaMasterService owner
   
@@ -65,7 +68,7 @@ class HoyaRegionServiceLauncher implements Runnable {
 
     String jobUserName = Env.mandatory(ApplicationConstants.Environment.USER
                                                            .key());
-    ctx.setUser(jobUserName);
+//    ctx.setUser(jobUserName);
     log.info("Setting user in ContainerLaunchContext to: $jobUserName");
 
     // Set the environment
@@ -92,7 +95,7 @@ class HoyaRegionServiceLauncher implements Runnable {
     StartContainerRequest startReq = Records
         .newRecord(StartContainerRequest.class);
     startReq.containerLaunchContext = ctx;
-    startReq.container = container;
+//    startReq.container = container;
     try {
       containerManager.startContainer(startReq);
     } catch (YarnRemoteException e) {

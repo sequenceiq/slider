@@ -19,11 +19,13 @@
 package org.apache.hadoop.hoya.yarn.appmaster
 
 import com.beust.jcommander.Parameter
+import groovy.transform.CompileStatic
 import org.apache.hadoop.hoya.yarn.CommonArgs
 
 /**
  * Any arguments common to all the services but not the client
  */
+@CompileStatic
 class HoyaServiceCommonArgs extends CommonArgs {
 
   /**

@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.yarn
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.zookeeper.MiniZooKeeperCluster
@@ -32,6 +33,8 @@ import org.junit.Test
 import java.util.concurrent.atomic.AtomicBoolean
 
 @Commons
+@CompileStatic
+
 class TestZKIntegration extends Assert implements KeysForTests {
 
   

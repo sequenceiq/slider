@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.tools
 
+import groovy.transform.CompileStatic
 import org.apache.hadoop.conf.Configuration
 
 /**
@@ -30,6 +31,8 @@ import org.apache.hadoop.conf.Configuration
  * 
  * To use, create an instance -this triggers method injection
  */
+@CompileStatic
+
 class ConfigHelper {
 
   static def setConfigEntry(Configuration self, def key, def value) {

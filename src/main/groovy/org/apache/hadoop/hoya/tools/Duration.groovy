@@ -18,6 +18,9 @@
 
 package org.apache.hadoop.hoya.tools
 
+import groovy.transform.CompileStatic
+
+@CompileStatic
 class Duration {
   long start,finish
   final long limit;

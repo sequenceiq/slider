@@ -16,7 +16,25 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya
+package org.apache.hadoop.conf;
 
-class ClusterSpec {
+/**
+ * Represents a cluster specification
+ */
+public class ClusterSpecification {
+  
+  public String state;
+  public String name;
+  public int minNodes;
+  public int maxNodes;
+  public String zkConnection;
+  public String hbaseURL;
+  public ClusterNode[] nodes;
+
+  /**
+   * Describe a specific node in the cluster
+   */
+  public static class ClusterNode {
+    String name;
+  }
 }

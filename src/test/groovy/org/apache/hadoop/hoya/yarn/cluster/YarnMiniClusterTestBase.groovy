@@ -18,9 +18,10 @@
 
 package org.apache.hadoop.hoya.yarn.cluster
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.hoya.ServiceLauncherBaseTest
+import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
 import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.yarn.conf.YarnConfiguration
@@ -38,6 +39,8 @@ import org.junit.Before
  * mini yarn cluster
  */
 @Commons
+@CompileStatic
+
 class YarnMiniClusterTestBase extends ServiceLauncherBaseTest
 implements KeysForTests {
 

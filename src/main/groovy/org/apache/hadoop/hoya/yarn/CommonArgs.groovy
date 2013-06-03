@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn
 import com.beust.jcommander.JCommander
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.ParameterException
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.HoyaExceptions
@@ -32,6 +33,8 @@ import org.apache.hadoop.hoya.HoyaExceptions
  * in the range allowed
  */
 @Commons
+@CompileStatic
+
 class CommonArgs {
   public static final String ARG_ACTION = '--action'
   public static final String ARG_CONFDIR = '--confdir'
@@ -155,7 +158,7 @@ class CommonArgs {
    * </pre>
    * @return
    */
-  Map<String, List> getActions() {
+  Map<String, List<Object>> getActions() {
     return [:]
   }
   
@@ -165,8 +168,10 @@ class CommonArgs {
  */
   public void postProcess() {
     validate();
+    String s=""
+    
     definitions.each { prop ->
-      String[] keyval = prop.split("=", 2);
+      String[] keyval = ((String)prop).split("=", 2);
       if (keyval.length == 2) {
         definitionMap[keyval[0]] = keyval[1]
       }
@@ -181,8 +186,8 @@ class CommonArgs {
     }
     action = parameters[0]
     log.debug("action=$action")
-    Map<String, List> actionMap = getActions()
-    List actionOpts = actionMap[action]
+    Map<String, List<Object>> actionMap = getActions()
+    List<Object> actionOpts = actionMap[action]
     if (!actionOpts) {
       throw new HoyaExceptions.BadCommandArguments(ERROR_UNKNOWN_ACTION
                                                        + action
@@ -192,7 +197,7 @@ class CommonArgs {
     assert actionOpts.size() >= 2
     actionArgs = parameters.subList(1, parameters.size())
 
-    int minArgs = actionOpts[1]
+    int minArgs = (Integer)actionOpts[1]
     int actionArgSize = actionArgs.size()
     log.debug("Action $action expected #args=$minArgs actual #args=${actionArgSize}")
     if (minArgs > actionArgSize) {
@@ -200,7 +205,7 @@ class CommonArgs {
                                                        + " in " + args.join(" ")
       )
     }
-    int maxArgs = (actionOpts.size() == 3) ? actionOpts[2] : minArgs
+    int maxArgs = (actionOpts.size() == 3) ? ((Integer)actionOpts[2]) : minArgs
     if (actionArgSize > maxArgs) {
       throw new HoyaExceptions.BadCommandArguments(ERROR_TOO_MANY_ARGUMENTS + action
                                                        + " in " + args.join(" "))
@@ -209,7 +214,7 @@ class CommonArgs {
 
   public void applyDefinitions(Configuration conf) {
     definitionMap.each { key, val ->
-      conf.set(key, val, "command line")
+      conf.set(key.toString(), val.toString(), "command line")
     }
 
   }

@@ -18,6 +18,9 @@
 
 package org.apache.hadoop.hoya.tools
 
+import groovy.transform.CompileStatic
+
+@CompileStatic
 class MissingArgException extends RuntimeException {
   MissingArgException(String s) {
     super(s)

@@ -19,8 +19,10 @@
 package org.apache.hadoop.hoya.tools
 
 import com.beust.jcommander.IStringConverter
+import groovy.transform.CompileStatic
 import org.apache.hadoop.fs.Path
 
+@CompileStatic
 class PathArgumentConverter  implements IStringConverter<Path> {
   @Override
   public Path convert(String value) {

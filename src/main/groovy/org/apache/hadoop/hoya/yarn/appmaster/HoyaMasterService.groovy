@@ -18,12 +18,19 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.hoya.HoyaApp
 import org.apache.hadoop.hoya.HoyaExceptions
-import org.apache.hadoop.hoya.tools.ConfigHelper
+import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.hoya.api.HoyaAppMasterActions
 import org.apache.hadoop.hoya.tools.Env
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
+import org.apache.hadoop.ipc.ProtocolSignature
+import org.apache.hadoop.ipc.RPC;
+import org.apache.hadoop.ipc.Server
+import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.yarn.api.ApplicationConstants
 import org.apache.hadoop.yarn.api.ContainerExitStatus
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse
@@ -43,7 +50,6 @@ import org.apache.hadoop.yarn.exceptions.YarnRemoteException
 import org.apache.hadoop.yarn.ipc.YarnRPC
 import org.apache.hadoop.yarn.service.CompositeService
 import org.apache.hadoop.yarn.service.launcher.RunService
-import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.util.ConverterUtils
 import org.apache.hadoop.yarn.util.Records
 
@@ -53,13 +59,22 @@ import java.util.concurrent.atomic.AtomicInteger
  * The AM for Hoya
  */
 @Commons
+@CompileStatic
+
 class HoyaMasterService extends CompositeService
-implements AMRMClientAsync.CallbackHandler, RunService {
+    implements AMRMClientAsync.CallbackHandler,
+      RunService,
+      HoyaExitCodes,
+      HoyaAppMasterActions {
 
   // YARN RPC to communicate with the Resource Manager or Node Manager
+  private static final boolean VERBOSE_RPC = false
   private YarnRPC rpc;
   // Handle to communicate with the Resource Manager
-  private AMRMClientAsync resourceManager;
+  private AMRMClientAsync asyncRMClient;
+  
+  //RPC server
+  private Server server; 
   // Hostname of the container
   private String appMasterHostname = "";
   // Port on which the app master listens for status updates from clients
@@ -71,7 +86,7 @@ implements AMRMClientAsync.CallbackHandler, RunService {
   private ApplicationAttemptId appAttemptID;
   // App Master configuration
   // No. of containers to run shell command on
-  private int numTotalContainers = 1;
+  private int numTotalContainers = 0;
   // Memory to request for the container on which the shell command will run
   private int containerMemory = 10;
   // Priority of the request
@@ -97,13 +112,13 @@ implements AMRMClientAsync.CallbackHandler, RunService {
   private HoyaMasterServiceArgs serviceArgs;
 
 
-  HoyaMasterService() {
+  public HoyaMasterService() {
     super("HoyaMasterService")
-    new ConfigHelper()
+    new HoyaApp("HoyaMasterService")
   }
 
   @Override
-  void setArgs(String...args) {
+  public void setArgs(String...args) {
     this.argv = args;
     serviceArgs = new HoyaMasterServiceArgs(argv)
     serviceArgs.parse()
@@ -122,18 +137,20 @@ implements AMRMClientAsync.CallbackHandler, RunService {
     super.setConfig(conf)
   }
 
+  
+  
 /**
  * this is where the work is done.
  * @return the exit code
  * @throws Throwable
  */
   @Override
-  int runService() throws Throwable {
+  public int runService() throws Throwable {
 
     //choose the action
     String action = serviceArgs.action
     List<String> actionArgs = serviceArgs.actionArgs
-    int exitCode = ServiceLauncher.EXIT_SUCCESS
+    int exitCode = EXIT_SUCCESS
     switch (action) {
 
       case ClientArgs.ACTION_HELP:
@@ -155,7 +172,7 @@ implements AMRMClientAsync.CallbackHandler, RunService {
    * @return exit code
    * @throws Throwable on a failure
    */
-  int createAndRunCluster(String clustername) throws Throwable {
+  public int createAndRunCluster(String clustername) throws Throwable {
     YarnConfiguration conf = new YarnConfiguration(config);
     rpc = YarnRPC.create(conf);
     ContainerId containerId = ConverterUtils.toContainerId(
@@ -175,11 +192,14 @@ implements AMRMClientAsync.CallbackHandler, RunService {
 
 
     int heartbeatInterval = 1000
-    resourceManager = new AMRMClientAsync(appAttemptID, heartbeatInterval, this);
+    //add the RM client -this brings the callbacks in
+    asyncRMClient = new AMRMClientAsync(appAttemptID, heartbeatInterval, this);
     //add to the list of things to terminate
-    addService(resourceManager)
-    resourceManager.init(conf);
-    resourceManager.start();
+    addService(asyncRMClient)
+    //now bring it up
+    asyncRMClient.init(conf);
+    asyncRMClient.start();
+    appMasterHostname
 
     // Setup local RPC Server to accept status requests directly from clients
     // TODO need to setup a protocol for client to be able to communicate to
@@ -190,13 +210,11 @@ implements AMRMClientAsync.CallbackHandler, RunService {
     // Register self with ResourceManager
     // This will start heartbeating to the RM
     log.info("Connecting to RM at $appMasterHostname:$appMasterRpcPort tracking $appMasterTrackingUrl")
-/*
-    RegisterApplicationMasterResponse response = resourceManager
+    RegisterApplicationMasterResponse response = asyncRMClient
         .registerApplicationMaster(appMasterHostname,
                                    appMasterRpcPort,
                                    appMasterTrackingUrl);
     configureContainerMemory(response)
-*/
 
     // Setup ask for containers from RM
     // Send request for containers to RM
@@ -205,7 +223,7 @@ implements AMRMClientAsync.CallbackHandler, RunService {
     // Keep looping until all the containers are launched and shell script
     // executed on them ( regardless of success/failure).
     AMRMClient.ContainerRequest containerAsk = setupContainerAskForRM(numTotalContainers);
-    resourceManager.addContainerRequest(containerAsk);
+    asyncRMClient.addContainerRequest(containerAsk);
     numRequestedContainers.set(numTotalContainers);
 
     while (!done) {
@@ -215,7 +233,7 @@ implements AMRMClientAsync.CallbackHandler, RunService {
     }
     finish();
 
-    return success ? ServiceLauncher.EXIT_SUCCESS : 1;
+    return success ? EXIT_SUCCESS : EXIT_TASK_LAUNCH_FAILURE;
   }
 
   private void finish() {
@@ -249,17 +267,17 @@ implements AMRMClientAsync.CallbackHandler, RunService {
     }
     try {
       log.info("Unregistering AM")
-      resourceManager.unregisterApplicationMaster(appStatus, appMessage, null);
+      asyncRMClient.unregisterApplicationMaster(appStatus, appMessage, null);
     } catch (YarnRemoteException e) {
       log.error("Failed to unregister application: $e", e);
     } catch (IOException e) {
       log.error("Failed to unregister application: $e", e);
     }
-
+    server?.stop()
     done = true;
   }
 
-  def void configureContainerMemory(RegisterApplicationMasterResponse response) {
+  private void configureContainerMemory(RegisterApplicationMasterResponse response) {
     int minMem = response.minimumResourceCapability.memory;
     int maxMem = response.maximumResourceCapability.memory;
     log.info("Min mem capability of resources in this cluster $minMem");
@@ -283,10 +301,29 @@ implements AMRMClientAsync.CallbackHandler, RunService {
     }
   }
 
-  def getProxy(Class protocol, InetSocketAddress addr) {
+  private getProxy(Class protocol, InetSocketAddress addr) {
     rpc.getProxy(protocol, addr, config);
   }
 
+  /**
+   * Register self as a server
+   * @return the new server
+   */
+  private Server startAMActionsServer() {
+    server = new RPC.Builder(config)
+        .setProtocol(HoyaAppMasterActions.class)
+        .setInstance(this)
+//        .setBindAddress(ADDRESS)
+        .setPort(0)
+        .setNumHandlers(5)
+        .setVerbose(true)
+//        .setSecretManager(sm)
+        .build();
+    server.start();
+    InetSocketAddress address = NetUtils.getConnectAddress(server);
+    server
+  }
+  
   /**
    * Setup the request that will be sent to the RM for the container ask.
    *
@@ -322,11 +359,12 @@ implements AMRMClientAsync.CallbackHandler, RunService {
    * @param allocatedContainers list of containers
    */
   @Override
-  void onContainersAllocated(List<Container> allocatedContainers) {
+  public void onContainersAllocated(List<Container> allocatedContainers) {
     log.info("Got response from RM for container ask, allocatedCnt="
                  + allocatedContainers.size());
     numAllocatedContainers.addAndGet(allocatedContainers.size());
-    allocatedContainers.each { container ->
+    allocatedContainers.each { cont ->
+      Container container = (Container) cont;
       log.info("Launching shell command on a new container.," +
                " containerId=$container.id," +
                " containerNode=$container.nodeId.host:$container.nodeId.port," +
@@ -394,12 +432,12 @@ implements AMRMClientAsync.CallbackHandler, RunService {
 
     if (askCount > 0) {
       AMRMClient.ContainerRequest containerAsk = setupContainerAskForRM(askCount);
-      resourceManager.addContainerRequest(containerAsk);
+      asyncRMClient.addContainerRequest(containerAsk);
     }
 
     // set progress to deliver to RM on next heartbeat
     float progress = (float) numCompletedContainers.get() / numTotalContainers;
-    resourceManager.setProgress(progress);
+//    resourceManager.setProgress(progress);
 
     if (numCompletedContainers.get() == numTotalContainers) {
       done = true;
@@ -410,7 +448,7 @@ implements AMRMClientAsync.CallbackHandler, RunService {
    * RM wants to reboot the AM
    */
   @Override
-  void onRebootRequest() {
+  public void onRebootRequest() {
     log.info("Reboot requested")
   }
 
@@ -419,9 +457,46 @@ implements AMRMClientAsync.CallbackHandler, RunService {
    * @param updatedNodes list of updated notes
    */
   @Override
-  void onNodesUpdated(List<NodeReport> updatedNodes) {
+  public void onNodesUpdated(List<NodeReport> updatedNodes) {
     log.info("Nodes updated: " +
              (updatedNodes*.getNodeId()).join(" "))
 
+  }
+
+  @Override
+  public float getProgress() {
+    return 0.50f
+  }
+
+  @Override
+  public void onError(Exception e) {
+    //callback says it's time to finish
+    log.error("onError received $e",e)
+    done = true;
+  }
+
+  @Override
+  void stopCluster() throws IOException {
+
+  }
+
+  @Override
+  void addNodes(int nodes) throws IOException {
+
+  }
+
+  @Override
+  void rmNodes(int nodes) throws IOException {
+
+  }
+
+  @Override
+  long getProtocolVersion(String protocol, long clientVersion) throws IOException {
+    return 0
+  }
+
+  @Override
+  ProtocolSignature getProtocolSignature(String protocol, long clientVersion, int clientMethodsHash) throws IOException {
+    return null
   }
 }

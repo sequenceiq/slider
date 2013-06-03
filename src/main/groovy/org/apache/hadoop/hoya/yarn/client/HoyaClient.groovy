@@ -19,10 +19,12 @@
 package org.apache.hadoop.hoya.yarn.client
 
 import com.beust.jcommander.JCommander
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem as FS
 import org.apache.hadoop.fs.Path
+import org.apache.hadoop.hoya.HoyaApp
 import org.apache.hadoop.hoya.HoyaExceptions
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.tools.ConfigHelper
@@ -59,6 +61,8 @@ import java.nio.ByteBuffer
  * Client service for Hoya
  */
 @Commons
+@CompileStatic
+
 class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   // App master priority
   private int amPriority = 0;
@@ -67,7 +71,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   // Amt. of memory resource to request for to run the App Master
   private int amMemory = 10;
 
-  String[] argv
+  private String[] argv
   private ClientArgs serviceArgs
   public ApplicationId applicationId;
 
@@ -75,9 +79,8 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * Entry point from the service launcher
    */
   HoyaClient() {
-    super()
-    //create a config helper to trigger method injection into Config
-    new ConfigHelper()
+    //any app-wide actions
+    new HoyaApp("HoyaClient")
   }
 
   /**
@@ -87,17 +90,17 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * @param args argument list to be treated as both raw and processed
    * arguments.
    */
-  HoyaClient(String...args) {
+  public HoyaClient(String...args) {
     setArgs(args)
   }
 
   @Override
-  String getName() {
+  public String getName() {
     return "HoyaClient"
   }
 
   @Override
-  void setArgs(String...args) {
+  public void setArgs(String...args) {
     this.argv = args;
     serviceArgs = new ClientArgs(args)
     serviceArgs.parse()
@@ -122,7 +125,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * @throws Throwable anything that went wrong
    */
   @Override
-  int runService() throws Throwable {
+  public int runService() throws Throwable {
 
     //choose the action
     String action = serviceArgs.action
@@ -153,7 +156,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   /**
    * Create the AM
    */
-  def int createAM(String clustername) {
+  private int createAM(String clustername) {
     verifyValidClusterSize(serviceArgs.min)
     
     log.info("Setting up application submission context for ASM");
@@ -180,7 +183,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
     if (!usingMiniMRCluster) {
 
-      log.info("Copy JARs from local filesystem and add to local environment");
+      log.info("Copying JARs from local filesystem and add to local environment");
       // Copy the application master jar to the filesystem 
       // Create a local resource to point to the destination jar path 
       String subdir = "";
@@ -256,8 +259,10 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     commands << HoyaMasterServiceArgs.ARG_DEBUG
     commands << HoyaMasterServiceArgs.ACTION_CREATE
     commands << clustername
-    commands << HoyaMasterServiceArgs.ARG_MIN << serviceArgs.min
-    commands << HoyaMasterServiceArgs.ARG_MAX << serviceArgs.max
+    commands << HoyaMasterServiceArgs.ARG_MIN
+    commands << serviceArgs.min
+    commands << HoyaMasterServiceArgs.ARG_MAX
+    commands << (Integer)serviceArgs.max
     //zk details
     if (serviceArgs.zookeeper) {
       commands << HoyaMasterServiceArgs.ARG_ZOOKEEPER << serviceArgs.zookeeper
@@ -312,7 +317,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
     //submit the application
     applicationId = submitApplication(appContext)
-    int exitCode = ServiceLauncher.EXIT_SUCCESS
+    int exitCode = EXIT_SUCCESS
 
     if (serviceArgs.waittime != 0) {
       //waiting for state to change
@@ -323,11 +328,11 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     return exitCode
   }
 
-  String getUsername() {
+  private String getUsername() {
     return serviceArgs.user
   }
 
-  LocalResource submitJarWithClass(Class clazz, String appPath, String subdir, String jarName) {
+  private LocalResource submitJarWithClass(Class clazz, String appPath, String subdir, String jarName) {
     File localFile = HoyaUtils.findContainingJar(clazz);
     if (!localFile) {
       throw new HoyaExceptions.HoyaException("Could not find JAR containing "
@@ -337,7 +342,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     resource
   }
 
-  LocalResource submitFile(File localFile, String appPath, String subdir, String destFileName) {
+  private LocalResource submitFile(File localFile, String appPath, String subdir, String destFileName) {
     FS hdfs = clusterFS;
     Path src = new Path(localFile.toString());
     String pathSuffix = appPath + "${subdir}$destFileName";
@@ -367,7 +372,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * Get the filesystem of this cluster
    * @return the FS of the config
    */
-  FS getClusterFS() {
+  private FS getClusterFS() {
     FS.get(config)
   }
 
@@ -376,7 +381,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * @param requiredNumber required # of nodes
    * @throws HoyaExceptions#BadConfig if the config is wrong
    */
-  void verifyValidClusterSize(int requiredNumber) {
+  private void verifyValidClusterSize(int requiredNumber) {
     int nodeManagers = yarnClusterMetrics.numNodeManagers
     if (nodeManagers < requiredNumber) {
       throw new HoyaExceptions.BadConfig("Not enough nodes in the cluster:" +
@@ -385,7 +390,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     }
   }
 
-  def String buildClasspath() {
+  private String buildClasspath() {
 // Add AppMaster.jar location to classpath
     // At some point we should not be required to add 
     // the hadoop specific classpaths to the env. 
@@ -401,7 +406,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     } else {
       classPathEnv.append(ApplicationConstants.Environment.CLASSPATH.$())
           .append(File.pathSeparatorChar).append("./*");
-      for (String c : conf.getStrings(
+      for (String c : config.getStrings(
           YarnConfiguration.YARN_APPLICATION_CLASSPATH,
           YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH)) {
         classPathEnv.append(File.pathSeparatorChar);
@@ -414,19 +419,12 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     return classPathEnv.toString()
   }
 
-  def boolean getUsingMiniMRCluster() {
+  private boolean getUsingMiniMRCluster() {
     return config.getBoolean(YarnConfiguration.IS_MINI_YARN_CLUSTER, false)
   }
 
-  def String appName() {
+  private String appName() {
     "hoya"
-  }
-  
-  def bondToZookeeper() {
-    ZKCallback watcher =  ZKCallback() { event -> 
-      log.info("evented $event")
-    }
-    ZooKeeper zk = new ZooKeeper(serviceArgs.zookeeper, 3000, watcher);
   }
 
 /**

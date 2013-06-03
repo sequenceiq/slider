@@ -16,23 +16,19 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.appmaster
+package org.apache.hadoop.hoya.api;
 
-import groovy.transform.CompileStatic
+import org.apache.hadoop.ipc.VersionedProtocol;
 
-/**
- * Args for the region service
+import java.io.IOException;
+
+/** 
+ * API for AM operations
  */
-@CompileStatic
-
-class HoyaRegionServiceArgs extends HoyaServiceCommonArgs {
-  /**
-   * Name of entry class: {@value}
-   */
-  public static final String CLASSNAME = "org.apache.hadoop.hoya.yarn.appmaster.HoyaRegionService"
-
-
-  HoyaRegionServiceArgs(String[] args) {
-    super(args)
-  }
+public interface HoyaAppMasterActions extends VersionedProtocol {
+  public static final long versionID = 0x01;
+  
+  public void stopCluster() throws IOException;
+  public void addNodes(int nodes) throws IOException;
+  public void rmNodes(int nodes) throws IOException;
 }

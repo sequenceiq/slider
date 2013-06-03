@@ -16,18 +16,33 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.appmaster;
+package org.apache.hadoop.hoya
 
-import org.apache.hadoop.yarn.service.AbstractService;
+import groovy.util.logging.Commons
+import org.apache.hadoop.hoya.tools.ConfigHelper
 
-public class HoyaExecService extends AbstractService {
+import java.util.concurrent.atomic.AtomicBoolean
 
-  public HoyaExecService(String name) {
-    super(name);
+/**
+ * This initiates any VM-wide init actions
+ */
+@Commons
+public class HoyaApp {
+
+  AtomicBoolean started = new AtomicBoolean(false)
+  /**
+   * start any Hoya-specific init-actions
+   * @param name name
+   */
+  public HoyaApp(String name) {
+    log.info("Starting Hoya component $name")
+    if (started.getAndSet(true)) {
+      oneOffInitActions();
+    }
   }
-
-  public HoyaExecService() {
-    this("HoyaExecService");
+  
+  private void oneOffInitActions() {
+    new ConfigHelper()
   }
-
+  
 }
