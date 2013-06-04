@@ -20,17 +20,16 @@ package org.apache.hadoop.hoya.tools
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
+import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileStatus
 import org.apache.hadoop.fs.FileSystem as FS
+import org.apache.hadoop.fs.FileUtil
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.yarn.api.records.ApplicationId
-import org.apache.hadoop.yarn.api.records.ApplicationReport
-import org.apache.hadoop.yarn.api.records.FinalApplicationStatus
+import org.apache.hadoop.io.IOUtils
 import org.apache.hadoop.yarn.api.records.LocalResource
 import org.apache.hadoop.yarn.api.records.LocalResourceType
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility
-import org.apache.hadoop.yarn.api.records.YarnApplicationState
-import org.apache.hadoop.yarn.exceptions.YarnRemoteException
+import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.util.ConverterUtils
 import org.apache.hadoop.yarn.util.Records
 
@@ -46,7 +45,7 @@ class YarnUtils {
    * @return the resource set up wih application-level visibility and the
    * timestamp & size set from the file stats.
    */
-  static LocalResource createAmResource(FS hdfs,
+  public static LocalResource createAmResource(FS hdfs,
                                         Path destPath,
                                         LocalResourceType resourceType) {
     FileStatus destStatus = hdfs.getFileStatus(destPath);
@@ -63,8 +62,29 @@ class YarnUtils {
     // resource the client intended to use with the application
     amResource.timestamp = destStatus.modificationTime;
     amResource.size = destStatus.len;
-    amResource
+    return amResource;
+  }
+
+  public static InetSocketAddress getRmAddress(Configuration conf) {
+    return conf.getSocketAddr(YarnConfiguration.RM_ADDRESS,
+                              YarnConfiguration.DEFAULT_RM_ADDRESS,
+                              YarnConfiguration.DEFAULT_RM_PORT);
   }
   
-  
+  public static setRmAddress(Configuration conf, String rmAddr) {
+    conf.set(YarnConfiguration.RM_ADDRESS, rmAddr);
+  }
+  public static setRmAddressGlobal(String rmAddr) {
+    Configuration rmResource = new Configuration(false);
+    setRmAddress(rmResource, rmAddr);
+    File f = File.createTempFile("config","xml");
+    FileOutputStream fof = new FileOutputStream(f);
+    try {
+      rmResource.writeXml(fof);
+    } finally {
+      IOUtils.closeStream(fof);
+    }
+    Configuration.addDefaultResource(f.getAbsolutePath());
+    
+  }
 }

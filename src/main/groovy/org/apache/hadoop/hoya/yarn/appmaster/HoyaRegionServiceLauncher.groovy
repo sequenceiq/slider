@@ -30,7 +30,7 @@ import org.apache.hadoop.yarn.api.protocolrecords.StartContainerRequest
 import org.apache.hadoop.yarn.api.records.Container
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext
 import org.apache.hadoop.yarn.api.records.LocalResource
-import org.apache.hadoop.yarn.exceptions.YarnRemoteException
+import org.apache.hadoop.yarn.exceptions.YarnException
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.util.Records
 
@@ -45,14 +45,14 @@ import org.apache.hadoop.yarn.util.Records
 @CompileStatic
 
 class HoyaRegionServiceLauncher implements Runnable {
-  HoyaMasterService owner
+  HoyaAppMaster owner
   
   // Allocated container
   Container container;
   // Handle to communicate with ContainerManager
   ContainerManager containerManager;
 
-  HoyaRegionServiceLauncher(HoyaMasterService owner, Container container) {
+  HoyaRegionServiceLauncher(HoyaAppMaster owner, Container container) {
     this.owner = owner
     this.container = container
   }
@@ -98,7 +98,7 @@ class HoyaRegionServiceLauncher implements Runnable {
 //    startReq.container = container;
     try {
       containerManager.startContainer(startReq);
-    } catch (YarnRemoteException e) {
+    } catch (YarnException e) {
       log.error("Start container failed for :" +
                 " containerId=${container.getId()} : $e", e);
       // TODO do we need to release this container?

@@ -35,11 +35,11 @@ import org.apache.hadoop.conf.Configuration
 
 class ConfigHelper {
 
-  static def setConfigEntry(Configuration self, def key, def value) {
+  public static def setConfigEntry(Configuration self, def key, def value) {
     self.set(key.toString(), value.toString())
   }
 
-  static String getConfigEntry(Configuration self, def key) {
+  public static String getConfigEntry(Configuration self, def key) {
     self.get(key.toString())
   }
 
@@ -48,32 +48,9 @@ class ConfigHelper {
    * @param map map
    * @return nothing
    */
-  static def addConfigMap(Configuration self,Map map) {
-    map.each { mapEntry ->
+  public static def addConfigMap(Configuration self, Map map) {
+    map.each { Map.Entry mapEntry ->
       setConfigEntry(self, mapEntry.key, mapEntry.value)  
     }
-  }
-
-  static {
-    /** array assignment for confs */
-    Configuration.metaClass.setAt = { key, val ->
-      set(key.toString(), val.toString())
-    }
-
-    Configuration.metaClass.getAt = { key ->
-      get(key)
-    }
-
-    /**
-     * Add an entire map
-     */
-    Configuration.metaClass.add = { map ->
-      map.each { elt ->
-        set((elt.key).toString(),
-            (elt.value).toString())
-      }
-    }
-
-
   }
 }

@@ -16,42 +16,14 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.appmaster
+package org.apache.hadoop.hoya.exceptions;
 
-import groovy.transform.CompileStatic
-import groovy.util.logging.Commons
-import org.apache.hadoop.hoya.HoyaApp
-import org.apache.hadoop.yarn.service.AbstractService
-import org.apache.hadoop.yarn.service.launcher.RunService
-
-@Commons
-@CompileStatic
-
-class HoyaRegionService extends AbstractService
-    implements RunService {
-
-  String[] argv;
-
-  HoyaRegionService() {
-    super("HoyaRegionService")
-    new HoyaApp("HoyaRegionService")
+public class BadCommandArgumentsException extends HoyaException {
+  public BadCommandArgumentsException(String s) {
+    super(EXIT_COMMAND_ARGUMENT_ERROR, s);
   }
 
-  @Override
-  void setArgs(String[] args) {
-    this.argv = args;
-  }
-
-
-  @Override
-  int runService() throws Throwable {
-    HoyaRegionServiceArgs serviceArgs = new HoyaRegionServiceArgs(argv)
-    serviceArgs.parse()
-    serviceArgs.postProcess()
-
-    //TODO: Install and run HBase
-    return 0
+  public BadCommandArgumentsException(String s, Throwable throwable) {
+    super(EXIT_COMMAND_ARGUMENT_ERROR, s, throwable);
   }
 }
-
-

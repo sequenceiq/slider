@@ -16,38 +16,32 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.yarn.service.launcher;
+package org.apache.hadoop.hoya.exceptions;
 
+import org.apache.hadoop.hoya.HoyaExitCodes;
+import org.apache.hadoop.yarn.service.launcher.ServiceLaunchException;
 
-import org.apache.hadoop.yarn.exceptions.YarnException;
-
-/**
- * A service launch exception that includes an exit code;
- * when caught by the ServiceLauncher, it will convert that
- * into a process exit code.
- */
-public class ServiceLaunchException extends YarnException
-  implements GetExceptionExitCode, LauncherExitCodes {
-
-  private final int exitCode;
-  
-  public ServiceLaunchException(int exitCode, Throwable cause) {
-    super(cause);
-    this.exitCode = exitCode;
+public class HoyaException extends ServiceLaunchException implements
+                                                          HoyaExitCodes {
+  public HoyaException() {
+    super(EXIT_EXCEPTION_THROWN, "HoyaException");
   }
 
-  public ServiceLaunchException(int exitCode, String message) {
-    super(message);
-    this.exitCode = exitCode;
+  public HoyaException(int code, String message) {
+    super(code, message);
   }
 
-  public ServiceLaunchException(int exitCode, String message, Throwable cause) {
-    super(message, cause);
-    this.exitCode = exitCode;
+  public HoyaException(String s) {
+    super(EXIT_EXCEPTION_THROWN, s);
   }
 
-  //@Override
-  public int getExitCode() {
-    return exitCode;
+  public HoyaException(String s, Throwable throwable) {
+    super(EXIT_EXCEPTION_THROWN, s, throwable);
   }
+
+  public HoyaException(int code, String s, Throwable throwable) {
+    super(EXIT_EXCEPTION_THROWN, s, throwable);
+  }
+
+
 }

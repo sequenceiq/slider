@@ -24,7 +24,7 @@ import com.beust.jcommander.ParameterException
 import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.hoya.HoyaExceptions
+import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
 
 /**
  * This class contains the common argument set for all tne entry points,
@@ -33,9 +33,8 @@ import org.apache.hadoop.hoya.HoyaExceptions
  * in the range allowed
  */
 @Commons
-@CompileStatic
 
-class CommonArgs {
+public class CommonArgs {
   public static final String ARG_ACTION = '--action'
   public static final String ARG_CONFDIR = '--confdir'
   public static final String ARG_DEBUG = '--debug'
@@ -61,40 +60,40 @@ class CommonArgs {
    * Only some of these are supported by specific Hoya Services; they
    * are listed in the common args to ensure the names are consistent
    */
-  static final String ACTION_ADDNODE = "addnode"
-  static final String ACTION_CREATE = "create"
-  static final String ACTION_GETSIZE = "getsize"
-  static final String ACTION_HELP = "help"
-  static final String ACTION_ISLIVE = "islive"
-  static final String ACTION_LIST = "list"
-  static final String ACTION_MIGRATE = "migrate"
-  static final String ACTION_PREFLIGHT = "preflight"
-  static final String ACTION_RECONFIGURE = "reconfigure"
-  static final String ACTION_REIMAGE = "reimage"
-  static final String ACTION_RMNODE = "rmnode"
-  static final String ACTION_START = "start"
-  static final String ACTION_STATUS = "status"
-  static final String ACTION_STOP = "stop"
+  public static final String ACTION_ADDNODE = "addnode"
+  public static final String ACTION_CREATE = "create"
+  public static final String ACTION_GETSIZE = "getsize"
+  public static final String ACTION_HELP = "help"
+  public static final String ACTION_ISLIVE = "islive"
+  public static final String ACTION_LIST = "list"
+  public static final String ACTION_MIGRATE = "migrate"
+  public static final String ACTION_PREFLIGHT = "preflight"
+  public static final String ACTION_RECONFIGURE = "reconfigure"
+  public static final String ACTION_REIMAGE = "reimage"
+  public static final String ACTION_RMNODE = "rmnode"
+  public static final String ACTION_START = "start"
+  public static final String ACTION_STATUS = "status"
+  public static final String ACTION_STOP = "stop"
 
   @Parameter
-  List<String> parameters = new ArrayList<String>();
+  public List<String> parameters = new ArrayList<String>();
 
   @Parameter(names = '--debug', description = "Debug mode")
-  boolean debug = false;
+  public boolean debug = false;
 
   @Parameter(names = '--help', help = true)
-  private boolean help;
+  public boolean help;
 
   @Parameter(names = '--Xtest', description = "Test mode")
-  boolean testmode = false;
+  public boolean testmode = false;
 
   @Parameter(names = "--user",
       description = "username if not self")
-  String user = "unknown";
+  public String user = "unknown";
   
   @Parameter(names = "--zookeeper",
       description = "Zookeeper connection string")
-  String zookeeper;
+  public String zookeeper;
   
  
   /*
@@ -108,15 +107,16 @@ class CommonArgs {
    */
 
   @Parameter(names = "-D", description = "Definitions")
-  List<String> definitions = new ArrayList<String>();
-  Map<String, String> definitionMap = [:]
+  public List<String> definitions = new ArrayList<String>();
+  public Map<String, String> definitionMap = [:]
 
   @Parameter(names = "--min", description = "Minimum number of nodes")
-  int min = 0;
+  public int min = 0;
 
   @Parameter(names = "--max",
       description = "Maximum number of nodes")
-  int max = -1
+  public int max = -1
+  
   /**
    * fields
    */
@@ -125,12 +125,12 @@ class CommonArgs {
   List<String> actionArgs
   final String[] args
 
-  CommonArgs(String[] args) {
-    commander = new JCommander(this)
+  public CommonArgs(String[] args) {
     this.args = args
+    commander = new JCommander(this)
   }
 
-  String usage() {
+  public String usage() {
     StringBuilder builder = new StringBuilder("\n")
     commander.usage(builder, "  ")
     builder.append("\nactions: ")
@@ -140,11 +140,11 @@ class CommonArgs {
     return builder.toString();
   }
 
-  void parse() {
+  public void parse() {
     try {
       commander.parse(args)
     } catch (ParameterException e) {
-      throw new HoyaExceptions.BadCommandArguments(e.toString()
+      throw new BadCommandArgumentsException(e.toString()
                                                        + " with " + args.join(" ")
                                                    , e)
     }
@@ -158,7 +158,7 @@ class CommonArgs {
    * </pre>
    * @return
    */
-  Map<String, List<Object>> getActions() {
+  public Map<String, List<Object>> getActions() {
     return [:]
   }
   
@@ -180,7 +180,7 @@ class CommonArgs {
 
   public void validate() {
     if (!parameters.size()) {
-      throw new HoyaExceptions.BadCommandArguments(ERROR_NO_ACTION
+      throw new BadCommandArgumentsException(ERROR_NO_ACTION
                                                        + " in " + args.join(" ")
                                                        + usage())
     }
@@ -189,7 +189,7 @@ class CommonArgs {
     Map<String, List<Object>> actionMap = getActions()
     List<Object> actionOpts = actionMap[action]
     if (!actionOpts) {
-      throw new HoyaExceptions.BadCommandArguments(ERROR_UNKNOWN_ACTION
+      throw new BadCommandArgumentsException(ERROR_UNKNOWN_ACTION
                                                        + action
           + " in " + args.join(" ")
                                                        + usage())
@@ -201,13 +201,13 @@ class CommonArgs {
     int actionArgSize = actionArgs.size()
     log.debug("Action $action expected #args=$minArgs actual #args=${actionArgSize}")
     if (minArgs > actionArgSize) {
-      throw new HoyaExceptions.BadCommandArguments(ERROR_NOT_ENOUGH_ARGUMENTS + action
+      throw new BadCommandArgumentsException(ERROR_NOT_ENOUGH_ARGUMENTS + action
                                                        + " in " + args.join(" ")
       )
     }
     int maxArgs = (actionOpts.size() == 3) ? ((Integer)actionOpts[2]) : minArgs
     if (actionArgSize > maxArgs) {
-      throw new HoyaExceptions.BadCommandArguments(ERROR_TOO_MANY_ARGUMENTS + action
+      throw new BadCommandArgumentsException(ERROR_TOO_MANY_ARGUMENTS + action
                                                        + " in " + args.join(" "))
     }
   }

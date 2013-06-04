@@ -25,16 +25,15 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem as FS
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.HoyaApp
-import org.apache.hadoop.hoya.HoyaExceptions
 import org.apache.hadoop.hoya.HoyaExitCodes
-import org.apache.hadoop.hoya.tools.ConfigHelper
+import org.apache.hadoop.hoya.exceptions.BadConfigException
+import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.tools.HoyaUtils
-import org.apache.hadoop.hoya.tools.Sysprops
 import org.apache.hadoop.hoya.tools.YarnUtils
-import org.apache.hadoop.hoya.tools.ZKCallback
 import org.apache.hadoop.hoya.yarn.ZKIntegration
 import org.apache.hadoop.hoya.yarn.appmaster.HoyaMasterServiceArgs
+import org.apache.hadoop.net.NetUtils
 import org.apache.hadoop.yarn.api.ApplicationConstants
 import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse
 import org.apache.hadoop.yarn.api.records.ApplicationId
@@ -49,11 +48,10 @@ import org.apache.hadoop.yarn.api.records.Resource
 import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.hadoop.yarn.client.YarnClientImpl
 import org.apache.hadoop.yarn.conf.YarnConfiguration
-import org.apache.hadoop.yarn.exceptions.YarnRemoteException
+import org.apache.hadoop.yarn.exceptions.YarnException
 import org.apache.hadoop.yarn.service.launcher.RunService
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.util.Records
-import org.apache.zookeeper.ZooKeeper
 
 import java.nio.ByteBuffer
 
@@ -142,11 +140,11 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
         break;
       
       case ClientArgs.ACTION_START:
-        //throw new HoyaExceptions.HoyaException("Start: " + actionArgs[0])
+        //throw new HoyaException("Start: " + actionArgs[0])
 
       default:
-        throw new HoyaExceptions.HoyaException(EXIT_UNIMPLEMENTED,
-                                               "Unimplemented: " + action)
+        throw new HoyaException(EXIT_UNIMPLEMENTED,
+                               "Unimplemented: " + action)
     }
 
     return exitCode
@@ -250,6 +248,8 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
     amContainer.environment = env;
 
+    String rmAddr = NetUtils.getHostPortString(YarnUtils.getRmAddress(config))
+
     //build up the args list, intially as anyting
     List commands = []
     commands << ApplicationConstants.Environment.JAVA_HOME.$() + "/bin/java"
@@ -263,15 +263,25 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     commands << serviceArgs.min
     commands << HoyaMasterServiceArgs.ARG_MAX
     commands << (Integer)serviceArgs.max
-    //zk details
+    
+    //spec out the RM address
+    commands << HoyaMasterServiceArgs.ARG_RM_ADDR;
+    commands << rmAddr;
+        
+    //zk details -HBASE needs fs.default.name
+    //hbase needs path inside ZK; skip ZK connect
+    // use env variables & have that picked up and template it. ${env.SYZ}
     if (serviceArgs.zookeeper) {
-      commands << HoyaMasterServiceArgs.ARG_ZOOKEEPER << serviceArgs.zookeeper
+      commands << HoyaMasterServiceArgs.ARG_ZOOKEEPER
+      commands << serviceArgs.zookeeper
     }
-    commands << HoyaMasterServiceArgs.ARG_ZK_PATH << zkPath
+    commands << HoyaMasterServiceArgs.ARG_ZK_PATH
+    commands << zkPath
     
     
     //path in FS can be unqualified
-    commands << HoyaMasterServiceArgs.ARG_PATH << "services/hoya/"
+    commands << HoyaMasterServiceArgs.ARG_PATH
+    commands << "services/hoya/"
     commands << "1>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/hoya.stdout";
     commands << "2>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/hoya.stderr";
     StringBuilder cmd = new StringBuilder();
@@ -335,7 +345,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   private LocalResource submitJarWithClass(Class clazz, String appPath, String subdir, String jarName) {
     File localFile = HoyaUtils.findContainingJar(clazz);
     if (!localFile) {
-      throw new HoyaExceptions.HoyaException("Could not find JAR containing "
+      throw new HoyaException("Could not find JAR containing "
                                                  + clazz);
     }
     LocalResource resource = submitFile(localFile, appPath, subdir, jarName)
@@ -379,12 +389,12 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   /**
    * Verify that there are enough nodes in the cluster
    * @param requiredNumber required # of nodes
-   * @throws HoyaExceptions#BadConfig if the config is wrong
+   * @throws BadConfigException if the config is wrong
    */
   private void verifyValidClusterSize(int requiredNumber) {
     int nodeManagers = yarnClusterMetrics.numNodeManagers
     if (nodeManagers < requiredNumber) {
-      throw new HoyaExceptions.BadConfig("Not enough nodes in the cluster:" +
+      throw new BadConfigException("Not enough nodes in the cluster:" +
                                          " need $requiredNumber" +
                                          " -but there are only $nodeManagers nodes");
     }
@@ -402,7 +412,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     if (getUsingMiniMRCluster()) {
       //for mini cluster we pass down the java CP properties
       //and nothing else
-      classPathEnv.append(Sysprops["java.class.path"]);
+      classPathEnv.append(System.getProperty("java.class.path"));
     } else {
       classPathEnv.append(ApplicationConstants.Environment.CLASSPATH.$())
           .append(File.pathSeparatorChar).append("./*");
@@ -432,12 +442,12 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
  * Kill application if time expires. 
  * @param appId Application Id of application to be monitored
  * @return true if application completed successfully
- * @throws YarnRemoteException
+ * @throws YarnException
  * @throws IOException
  */
   private int monitorApplication(ApplicationId appId,
       Duration duration)
-  throws YarnRemoteException, IOException {
+  throws YarnException, IOException {
 
     while (true) {
 
@@ -485,11 +495,11 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   /**
    * Kill a submitted application by sending a call to the ASM
    * @param appId Application Id to be killed. 
-   * @throws YarnRemoteException
+   * @throws YarnException
    * @throws IOException
    */
   private void forceKillApplication(ApplicationId appId)
-  throws YarnRemoteException, IOException {
+  throws YarnException, IOException {
     // TODO clarify whether multiple jobs with the same app id can be submitted and be running at 
     // the same time. 
     // If yes, can we kill a particular attempt only?

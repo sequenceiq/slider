@@ -22,7 +22,6 @@ package org.apache.hadoop.hoya.yarn.cluster
 
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.yarn.CommonArgs
-import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.yarn.conf.YarnConfiguration
@@ -37,7 +36,7 @@ class TestClusterAMCreation extends YarnMiniClusterTestBase {
 
   @Test
   public void testAMCreation() throws Throwable {
-    createCluster("testYARNClusterCreation",new YarnConfiguration(), 1)
+    createCluster("testYARNClusterCreation", new YarnConfiguration(), 1)
     String rmAddr = getRMAddr();
     log.info("RM address = $rmAddr")
     ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
@@ -52,8 +51,8 @@ class TestClusterAMCreation extends YarnMiniClusterTestBase {
         ClientArgs.ARG_WAIT, WAIT_TIME_ARG
     )
     assert launcher.serviceExitCode == 0
-    HoyaClient hoyaClient = (HoyaClient)launcher.service
-    
+    HoyaClient hoyaClient = (HoyaClient) launcher.service
+
   }
-  
+
 }

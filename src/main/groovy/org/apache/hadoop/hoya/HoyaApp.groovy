@@ -19,7 +19,6 @@
 package org.apache.hadoop.hoya
 
 import groovy.util.logging.Commons
-import org.apache.hadoop.hoya.tools.ConfigHelper
 
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -41,8 +40,8 @@ public class HoyaApp {
     }
   }
   
-  private void oneOffInitActions() {
-    new ConfigHelper()
+  private static oneOffInitActions() {
+   
   }
   
 }

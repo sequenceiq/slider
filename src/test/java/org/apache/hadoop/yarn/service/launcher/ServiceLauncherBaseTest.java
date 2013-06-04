@@ -36,13 +36,13 @@ public class ServiceLauncherBaseTest extends Assert {
    * contain any exit code; its <code>service</code> field
    * the service itself.
    */
-  public ServiceLauncher launch(Class serviceClass,
+  protected ServiceLauncher launch(Class serviceClass,
                                 Configuration conf,
                                 String... args) throws
                                     Throwable {
     ServiceLauncher serviceLauncher =
       new ServiceLauncher(serviceClass.getName());
-      serviceLauncher.launchService(conf, args, false);
+    serviceLauncher.launchService(conf, args, false);
     return serviceLauncher;
   }
 
@@ -52,7 +52,7 @@ public class ServiceLauncherBaseTest extends Assert {
    * @param conf configuration
    * @param args list of args to hand down (as both raw and processed)
    */
-  public void launchExpectingException(Class serviceClass,
+  protected void launchExpectingException(Class serviceClass,
                                        Configuration conf,
                                        String expectedText,
                                        String... args) throws

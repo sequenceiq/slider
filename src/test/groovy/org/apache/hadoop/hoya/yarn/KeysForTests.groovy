@@ -27,6 +27,6 @@ public interface KeysForTests {
    */
   String USERNAME = "bigdataborat"
 
-  int WAIT_TIME = 150000;
+  int WAIT_TIME = 10000;
   String WAIT_TIME_ARG = WAIT_TIME.toString()
 }

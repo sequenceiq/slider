@@ -29,7 +29,7 @@ class HoyaMasterServiceArgs extends HoyaServiceCommonArgs {
   /**
    * Name of entry class: {@value}
    */
-  public static final String CLASSNAME = "org.apache.hadoop.hoya.yarn.appmaster.HoyaMasterService"
+  public static final String CLASSNAME = "org.apache.hadoop.hoya.yarn.appmaster.HoyaAppMaster"
 
 
   public static final List<String> params = 
@@ -38,13 +38,13 @@ class HoyaMasterServiceArgs extends HoyaServiceCommonArgs {
   
 
   @Parameter(names = "--confdir", description = "Conf path", required = false)
-  String conf;
+  public String conf;
 
   @Parameter(names = "--path", description = "FileSystem path", required = true)
-  String path;
+  public String path;
 
   @Parameter(names = "--image", description = "image", required = false)
-  String image;
+  public String image;
 
 
   /**
@@ -60,12 +60,12 @@ class HoyaMasterServiceArgs extends HoyaServiceCommonArgs {
    * map of actions -> (explanation, min #of entries [, max no.])
    * If the max no is not given it is assumed to be the same as the min no.
    */
-  HoyaMasterServiceArgs(String[] args) {
+  public HoyaMasterServiceArgs(String[] args) {
     super(args)
   }
 
   @Override
-  Map<String, List<Object>> getActions() {
+  public Map<String, List<Object>> getActions() {
     return ACTIONS
   }
 }

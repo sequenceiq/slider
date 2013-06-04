@@ -18,19 +18,19 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster
 
-import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.HoyaApp
-import org.apache.hadoop.hoya.HoyaExceptions
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.api.HoyaAppMasterActions
+import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.tools.Env
+import org.apache.hadoop.hoya.tools.YarnUtils
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.ipc.ProtocolSignature
-import org.apache.hadoop.ipc.RPC;
+import org.apache.hadoop.ipc.RPC
 import org.apache.hadoop.ipc.Server
-import org.apache.hadoop.net.NetUtils;
+import org.apache.hadoop.net.NetUtils
 import org.apache.hadoop.yarn.api.ApplicationConstants
 import org.apache.hadoop.yarn.api.ContainerExitStatus
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse
@@ -46,7 +46,7 @@ import org.apache.hadoop.yarn.api.records.Resource
 import org.apache.hadoop.yarn.client.AMRMClient
 import org.apache.hadoop.yarn.client.AMRMClientAsync
 import org.apache.hadoop.yarn.conf.YarnConfiguration
-import org.apache.hadoop.yarn.exceptions.YarnRemoteException
+import org.apache.hadoop.yarn.exceptions.YarnException
 import org.apache.hadoop.yarn.ipc.YarnRPC
 import org.apache.hadoop.yarn.service.CompositeService
 import org.apache.hadoop.yarn.service.launcher.RunService
@@ -59,9 +59,8 @@ import java.util.concurrent.atomic.AtomicInteger
  * The AM for Hoya
  */
 @Commons
-@CompileStatic
 
-class HoyaMasterService extends CompositeService
+class HoyaAppMaster extends CompositeService
     implements AMRMClientAsync.CallbackHandler,
       RunService,
       HoyaExitCodes,
@@ -112,7 +111,7 @@ class HoyaMasterService extends CompositeService
   private HoyaMasterServiceArgs serviceArgs;
 
 
-  public HoyaMasterService() {
+  public HoyaAppMaster() {
     super("HoyaMasterService")
     new HoyaApp("HoyaMasterService")
   }
@@ -125,7 +124,15 @@ class HoyaMasterService extends CompositeService
     serviceArgs.postProcess()
   }
 
-  /**
+  @Override
+  synchronized void init(Configuration conf) {
+    //sort out the location of the AM
+    String rmAddress = serviceArgs.rmAddress
+    YarnUtils.setRmAddress(conf, rmAddress)
+    YarnUtils.setRmAddressGlobal(rmAddress);
+    super.init(conf)
+  }
+/**
    * Just before the configuration is set, the args-supplied config is set
    * This is a way to sneak in config changes without subclassing init()
    * (so work with pre/post YARN-117 code)
@@ -162,7 +169,7 @@ class HoyaMasterService extends CompositeService
         break;
 
       default:
-        throw new HoyaExceptions.HoyaException("Unimplemented: " + action)
+        throw new HoyaException("Unimplemented: " + action)
     }
     return exitCode
   }
@@ -174,6 +181,9 @@ class HoyaMasterService extends CompositeService
    */
   public int createAndRunCluster(String clustername) throws Throwable {
     YarnConfiguration conf = new YarnConfiguration(config);
+
+    InetSocketAddress address = YarnUtils.getRmAddress(conf)
+    log.info("RM is at $address")
     rpc = YarnRPC.create(conf);
     ContainerId containerId = ConverterUtils.toContainerId(
         Env.mandatory(ApplicationConstants.Environment.CONTAINER_ID.name()));
@@ -192,6 +202,7 @@ class HoyaMasterService extends CompositeService
 
 
     int heartbeatInterval = 1000
+
     //add the RM client -this brings the callbacks in
     asyncRMClient = new AMRMClientAsync(appAttemptID, heartbeatInterval, this);
     //add to the list of things to terminate
@@ -199,7 +210,12 @@ class HoyaMasterService extends CompositeService
     //now bring it up
     asyncRMClient.init(conf);
     asyncRMClient.start();
-    appMasterHostname
+    
+    //set up the hostname & port details
+    //initially: blank
+    appMasterHostname = "localhost";
+    appMasterRpcPort = 22;
+    appMasterTrackingUrl = null;
 
     // Setup local RPC Server to accept status requests directly from clients
     // TODO need to setup a protocol for client to be able to communicate to
@@ -209,7 +225,8 @@ class HoyaMasterService extends CompositeService
 
     // Register self with ResourceManager
     // This will start heartbeating to the RM
-    log.info("Connecting to RM at $appMasterHostname:$appMasterRpcPort tracking $appMasterTrackingUrl")
+    address = YarnUtils.getRmAddress(asyncRMClient.config)
+    log.info("Connecting to RM at $address")
     RegisterApplicationMasterResponse response = asyncRMClient
         .registerApplicationMaster(appMasterHostname,
                                    appMasterRpcPort,
@@ -268,7 +285,7 @@ class HoyaMasterService extends CompositeService
     try {
       log.info("Unregistering AM")
       asyncRMClient.unregisterApplicationMaster(appStatus, appMessage, null);
-    } catch (YarnRemoteException e) {
+    } catch (YarnException e) {
       log.error("Failed to unregister application: $e", e);
     } catch (IOException e) {
       log.error("Failed to unregister application: $e", e);
@@ -301,7 +318,7 @@ class HoyaMasterService extends CompositeService
     }
   }
 
-  private getProxy(Class protocol, InetSocketAddress addr) {
+  public getProxy(Class protocol, InetSocketAddress addr) {
     rpc.getProxy(protocol, addr, config);
   }
 

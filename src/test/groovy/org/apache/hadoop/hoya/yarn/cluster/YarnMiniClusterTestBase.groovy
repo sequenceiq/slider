@@ -41,7 +41,7 @@ import org.junit.Before
 @Commons
 @CompileStatic
 
-class YarnMiniClusterTestBase extends ServiceLauncherBaseTest
+public class YarnMiniClusterTestBase extends ServiceLauncherBaseTest
 implements KeysForTests {
 
   /**
@@ -114,7 +114,7 @@ implements KeysForTests {
     return launch(HoyaClient, conf, args);
   }
 
-  String getRMAddr() {
+  protected String getRMAddr() {
     assert miniCluster != null
     String addr = miniCluster.config.get(YarnConfiguration.RM_ADDRESS)
     assert addr != null;

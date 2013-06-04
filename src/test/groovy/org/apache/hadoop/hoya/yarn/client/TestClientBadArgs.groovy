@@ -29,35 +29,40 @@ import org.junit.Test
 class TestClientBadArgs extends ServiceLauncherBaseTest {
   @Test
   public void testNoAction() throws Throwable {
-    launchExpectingException(HoyaClient, new Configuration(),
+    launchExpectingException(HoyaClient,
+                             new Configuration(),
                              CommonArgs.ERROR_NO_ACTION)
 
   }
 
   @Test
   public void testUnknownAction() throws Throwable {
-    launchExpectingException(HoyaClient, new Configuration(),
+    launchExpectingException(HoyaClient,
+                             new Configuration(),
                              CommonArgs.ERROR_UNKNOWN_ACTION,
                              "not-a-known-action")
   }
 
   @Test
   public void testActionWithoutEnoughArgs() throws Throwable {
-    launchExpectingException(HoyaClient, new Configuration(),
+    launchExpectingException(HoyaClient,
+                             new Configuration(),
                              CommonArgs.ERROR_NOT_ENOUGH_ARGUMENTS,
                              ClientArgs.ACTION_START)
   }
 
   @Test
   public void testActionWithoutTooManyArgs() throws Throwable {
-    launchExpectingException(HoyaClient, new Configuration(),
+    launchExpectingException(HoyaClient,
+                             new Configuration(),
                              CommonArgs.ERROR_TOO_MANY_ARGUMENTS,
                              ClientArgs.ACTION_HELP,
                              "hello, world")
   }
   @Test
   public void testBadImageArg() throws Throwable {
-    launchExpectingException(HoyaClient, new Configuration(),
+    launchExpectingException(HoyaClient,
+                             new Configuration(),
                              "Expected a value after parameter",
                              ClientArgs.ACTION_HELP,
                              CommonArgs.ARG_IMAGE)

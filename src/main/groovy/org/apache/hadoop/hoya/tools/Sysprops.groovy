@@ -17,9 +17,6 @@
  */
 
 package org.apache.hadoop.hoya.tools
-
-import groovy.transform.CompileStatic
-
 /**
  * A class that provides array access to system properties.
  *
@@ -29,7 +26,7 @@ import groovy.transform.CompileStatic
  *   Sysprops['timeout'] = 24
  * <code>
  */
-@CompileStatic
+
 final class Sysprops {
 
   static String getAt(String k) {
@@ -54,14 +51,5 @@ final class Sysprops {
     v
   }
 
-  /**
-   * Get the system properties as a list of [key, value] pairs
-   * @return all the system properties
-   */
-  static def getSystemPropertyList() {
-    return System.getProperties().collect { entry ->
-      [entry.key, entry.value]
-    }
-  }
 
 }

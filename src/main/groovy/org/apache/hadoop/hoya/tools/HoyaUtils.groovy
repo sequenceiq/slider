@@ -63,7 +63,7 @@ class HoyaUtils {
       dumpLog.warn("Not a directory: ${dir}");
       return -1;
     }
-    int size = 0;
+    long size = 0;
     dir.eachFile { File file->
       long l = dumpFile(dumpLog, file)
       if (file.name.startsWith(pattern)) {
@@ -157,9 +157,9 @@ class HoyaUtils {
       socket = new Socket();
       socket.connect(address, connectTimeout);
     } catch (Exception e) {
-      throw new IOException("Failed to connect to $name at $address"
-                                + " after $connectTimeout millisconds"
-                                + ": " + e).initCause(e);
+      throw new IOException("Failed to connect to $name at $address" +
+                                 " after $connectTimeout millisconds" +
+                                 ": $e" ,e);
     } finally {
       IOUtils.closeQuietly(socket)
     }
