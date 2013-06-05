@@ -18,10 +18,12 @@
 
 package org.apache.hadoop.hoya.yarn
 
+import org.apache.hadoop.hoya.HoyaKeys
+
 /**
  * Keys shared across tests
  */
-public interface KeysForTests {
+public interface KeysForTests extends HoyaKeys {
   /**
    * Username for all clusters, ZK, etc
    */
@@ -29,4 +31,7 @@ public interface KeysForTests {
 
   int WAIT_TIME = 30000;
   String WAIT_TIME_ARG = WAIT_TIME.toString()
+
+  String HOYA_TEST_HBASE_HOME = "hoya.test.hbase_home";
+  public String HOYA_TEST = "hoya-test.xml"
 }

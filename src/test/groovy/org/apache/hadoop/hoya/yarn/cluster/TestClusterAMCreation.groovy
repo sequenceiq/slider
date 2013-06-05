@@ -48,6 +48,8 @@ class TestClusterAMCreation extends YarnMiniClusterTestBase {
         CommonArgs.ARG_MAX, "1",
         ClientArgs.ARG_MANAGER, getRMAddr(),
         CommonArgs.ARG_USER, USERNAME,
+        CommonArgs.ARG_HBASE_HOME, getHBaseHome(),
+        CommonArgs.ARG_HBASE_ZKPATH, "/test/TestClusterAMCreation",
         ClientArgs.ARG_WAIT, WAIT_TIME_ARG
     )
     assert launcher.serviceExitCode == 0

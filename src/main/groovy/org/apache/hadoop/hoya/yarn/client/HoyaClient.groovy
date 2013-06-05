@@ -199,6 +199,10 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
                                                             appPath,
                                                             libdir,
                                                             "jcommander.jar")
+      localResources["ant.jar"] = submitJarWithClass(JCommander.class,
+                                                            appPath,
+                                                            libdir,
+                                                            "ant.jar")
     }
 
     // Set the log4j properties if needed 
@@ -275,6 +279,15 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
       commands << HoyaMasterServiceArgs.ARG_ZOOKEEPER
       commands << serviceArgs.zookeeper
     }
+    if (serviceArgs.hbasehome) {
+      commands << HoyaMasterServiceArgs.ARG_HBASE_HOME
+      commands << serviceArgs.hbasehome
+    }
+    if (serviceArgs.hbasezkpath) {
+      commands << HoyaMasterServiceArgs.ARG_HBASE_ZKPATH
+      commands << serviceArgs.hbasezkpath
+    }
+  
     commands << HoyaMasterServiceArgs.ARG_ZK_PATH
     commands << zkPath
     

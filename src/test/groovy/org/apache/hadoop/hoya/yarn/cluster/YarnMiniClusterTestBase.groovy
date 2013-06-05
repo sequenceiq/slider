@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.cluster
 import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.hoya.yarn.MicroZKCluster
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
 import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
@@ -48,6 +49,7 @@ implements KeysForTests {
    * Mini YARN cluster only
    */
   protected MiniYARNCluster miniCluster;
+  protected MicroZKCluster microZKCluster
 
   @Before
   public void setup() {
@@ -57,6 +59,7 @@ implements KeysForTests {
   @After
   public void teardown() {
     ServiceOperations.stopQuietly(log, miniCluster)
+    microZKCluster?.close();
   }
 
   /**
@@ -67,7 +70,8 @@ implements KeysForTests {
    * @param numLocalDirs #of local dirs
    * @param numLogDirs #of log dirs
    */
-  protected void createCluster(String name, YarnConfiguration conf,
+  protected void createCluster(String name,
+                               YarnConfiguration conf,
                                int noOfNodeManagers,
                                int numLocalDirs, int numLogDirs) {
     conf.setInt(YarnConfiguration.RM_SCHEDULER_MINIMUM_ALLOCATION_MB, 64);
@@ -76,6 +80,10 @@ implements KeysForTests {
     miniCluster = new MiniYARNCluster(name, noOfNodeManagers, numLocalDirs, numLogDirs)
     miniCluster.init(conf)
     miniCluster.start();
+    //now the ZK cluster
+    microZKCluster = new MicroZKCluster(new Configuration(conf))
+    microZKCluster.createCluster();
+    
   }
 
   /**
@@ -114,6 +122,19 @@ implements KeysForTests {
     return launch(HoyaClient, conf, args);
   }
 
+
+  public String getHBaseHome() {
+    YarnConfiguration conf = getTestConfiguration()
+    String hbaseHome = conf.getTrimmed(HOYA_TEST_HBASE_HOME)
+    return hbaseHome
+  }
+
+  public YarnConfiguration getTestConfiguration() {
+    YarnConfiguration conf = new YarnConfiguration()
+
+    conf.addResource(HOYA_TEST)
+    return conf
+  }
   protected String getRMAddr() {
     assert miniCluster != null
     String addr = miniCluster.config.get(YarnConfiguration.RM_ADDRESS)

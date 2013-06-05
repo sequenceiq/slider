@@ -37,26 +37,23 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class TestZKIntegration extends Assert implements KeysForTests {
 
-  
+  protected MicroZKCluster microZKCluster
   protected MiniZooKeeperCluster zkCluster
   protected File baseDir
-  private GString zkBindingString
+  private String zkBindingString
 
   @Before
   void createCluster() {
     Configuration conf = new Configuration()
-    zkCluster = new MiniZooKeeperCluster(conf)
-    baseDir = File.createTempFile("zookeeper", ".dir")
-    baseDir.delete()
-    baseDir.mkdirs()
-    log.info("ZK cluster with base dir $baseDir")
-    int port = zkCluster.startup(baseDir)
-    zkBindingString = "127.0.0.1:$port"
+    microZKCluster = new MicroZKCluster(conf)
+    microZKCluster.createCluster()
+    zkCluster = microZKCluster.zkCluster
+    zkBindingString = microZKCluster.zkBindingString
   }
 
   @After
   void teardown() {
-    baseDir?.deleteDir()
+    microZKCluster?.close()
   }
 
   @Test
@@ -64,7 +61,7 @@ class TestZKIntegration extends Assert implements KeysForTests {
     ZKIntegration zki = createZKIntegrationInstance("cluster1")
     String userPath = ZKIntegration.mkHoyaUserPath(USERNAME)
     Stat stat = zki.stat(userPath)
-    assert stat!=null
+    assert stat != null
     log.info("User path $userPath has stat $stat")
   }
 
@@ -106,17 +103,17 @@ class TestZKIntegration extends Assert implements KeysForTests {
     List<String> clusters = zki.clusters
     assert clusters.empty
   }
-  
+
   @Test
   public void testListUserClustersWithOneCluster() throws Throwable {
     ZKIntegration zki = createZKIntegrationInstance("")
     String userPath = ZKIntegration.mkHoyaUserPath(USERNAME)
-    String fullPath= zki.createPath(userPath, "/cluster-",
-                   ZooDefs.Ids.OPEN_ACL_UNSAFE,
-                   CreateMode.EPHEMERAL_SEQUENTIAL)
+    String fullPath = zki.createPath(userPath, "/cluster-",
+                                     ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                                     CreateMode.EPHEMERAL_SEQUENTIAL)
     log.info("Ephemeral path $fullPath")
     List<String> clusters = zki.clusters
-    assert clusters.size()==1
+    assert clusters.size() == 1
     assert fullPath.endsWith(clusters[0])
   }
 
@@ -130,8 +127,8 @@ class TestZKIntegration extends Assert implements KeysForTests {
     log.info("Ephemeral path $c2")
     List<String> clusters = zki.clusters
     assert clusters.size() == 2
-    assert (c1.endsWith(clusters[0]) && c1.endsWith(clusters[1]))  ||
-         (c1.endsWith(clusters[1]) && c2.endsWith(clusters[0]))
+    assert (c1.endsWith(clusters[0]) && c1.endsWith(clusters[1])) ||
+           (c1.endsWith(clusters[1]) && c2.endsWith(clusters[0]))
   }
 
   def String createEphemeralChild(ZKIntegration zki, String userPath) {

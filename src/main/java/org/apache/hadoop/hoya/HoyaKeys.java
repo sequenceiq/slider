@@ -18,5 +18,7 @@
 
 package org.apache.hadoop.hoya;
 
-public class HoyaKeys {
+public interface HoyaKeys {
+
+  String HBASE_SITE = "hbase-site.xml";
 }

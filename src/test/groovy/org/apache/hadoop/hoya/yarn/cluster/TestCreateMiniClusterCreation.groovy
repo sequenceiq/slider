@@ -26,14 +26,31 @@ import org.junit.Test
  * Test of RM creation. This is so the later test's prereq's can be met
  */
 @Commons
-class TestCreateRM extends YarnMiniClusterTestBase {
+class TestCreateMiniClusterCreation extends YarnMiniClusterTestBase {
+
+  @Test
+  public void testHoyaTestConfigFound() throws Throwable {
+    String hbaseHome = getHBaseHome()
+
+    assert hbaseHome != null && !hbaseHome.isEmpty()
+    File hbaseHomeDir = new File(hbaseHome)
+    assert hbaseHomeDir.exists()
+    assert hbaseHomeDir.isDirectory()
+    File hbaseBinDir = new File(hbaseHomeDir, "bin")
+    assert hbaseBinDir.exists() && hbaseHomeDir.isDirectory()
+    File hbaseShell = new File(hbaseBinDir, "hbase")
+    assert hbaseShell.exists()
+    File hbaseSite = new File(hbaseHomeDir, "conf/" + HBASE_SITE);
+    assert hbaseSite.exists()
+
+  }
+
 
   @Test
   public void testYARNClusterCreation() throws Throwable {
-    createCluster("testYARNClusterCreation",new YarnConfiguration(), 1)
+    createCluster("testYARNClusterCreation", new YarnConfiguration(), 1)
     String rmAddr = getRMAddr();
-    
+
     log.info("RM address = $rmAddr")
   }
-  
 }

@@ -21,7 +21,6 @@ package org.apache.hadoop.hoya.yarn
 import com.beust.jcommander.JCommander
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.ParameterException
-import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
@@ -38,6 +37,9 @@ public class CommonArgs {
   public static final String ARG_ACTION = '--action'
   public static final String ARG_CONFDIR = '--confdir'
   public static final String ARG_DEBUG = '--debug'
+  public static final String ARG_FILESYSTEM = '--filesystem'
+  public static final String ARG_HBASE_HOME = '--hbasehome'
+  public static final String ARG_HBASE_ZKPATH = '--hbasezkpath'
   public static final String ARG_IMAGE = '--image'
   public static final String ARG_MAX = '--max'
   public static final String ARG_MIN = '--min'
@@ -47,6 +49,8 @@ public class CommonArgs {
   public static final String ARG_USER = '--user'
 
   public static final String ARG_ZOOKEEPER = '--zookeeper'
+
+
   public static final String ERROR_NO_ACTION = "No action specified"
   public static final String ERROR_UNKNOWN_ACTION = "Unknown command: "
   public static final String ERROR_NOT_ENOUGH_ARGUMENTS = "Not enough arguments for action: "
@@ -83,6 +87,15 @@ public class CommonArgs {
 
   @Parameter(names = '--help', help = true)
   public boolean help;
+  
+  @Parameter(names = "--hbasehome",
+      description = "HBase home dir for starting pre-installed binaries")
+  public String hbasehome;
+
+  @Parameter(names = "--hbasezkpath",
+      description = "HBase Zookeeper path")
+  public String hbasezkpath;
+
 
   @Parameter(names = '--Xtest', description = "Test mode")
   public boolean testmode = false;
