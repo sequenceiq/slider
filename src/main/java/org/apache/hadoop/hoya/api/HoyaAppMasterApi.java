@@ -25,7 +25,7 @@ import java.io.IOException;
 /** 
  * API for AM operations
  */
-public interface HoyaAppMasterActions extends VersionedProtocol {
+public interface HoyaAppMasterApi extends VersionedProtocol {
   public static final long versionID = 0x01;
   
   public void stopCluster() throws IOException;

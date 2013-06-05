@@ -248,7 +248,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
     amContainer.environment = env;
 
-    String rmAddr = NetUtils.getHostPortString(YarnUtils.getRmAddress(config))
+    String rmAddr = NetUtils.getHostPortString(YarnUtils.getRmSchedulerAddress(config))
 
     //build up the args list, intially as anyting
     List commands = []
@@ -260,7 +260,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     commands << HoyaMasterServiceArgs.ACTION_CREATE
     commands << clustername
     commands << HoyaMasterServiceArgs.ARG_MIN
-    commands << serviceArgs.min
+    commands << (Integer)serviceArgs.min
     commands << HoyaMasterServiceArgs.ARG_MAX
     commands << (Integer)serviceArgs.max
     
@@ -282,8 +282,8 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     //path in FS can be unqualified
     commands << HoyaMasterServiceArgs.ARG_PATH
     commands << "services/hoya/"
-    commands << "1>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/hoya.stdout";
-    commands << "2>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/hoya.stderr";
+    commands << "1>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/out.txt";
+    commands << "2>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/err.txt";
     StringBuilder cmd = new StringBuilder();
 
     String cmdStr = commands.join(" ")

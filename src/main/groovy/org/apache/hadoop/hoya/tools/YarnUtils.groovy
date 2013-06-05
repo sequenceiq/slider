@@ -71,9 +71,20 @@ class YarnUtils {
                               YarnConfiguration.DEFAULT_RM_PORT);
   }
   
+  public static InetSocketAddress getRmSchedulerAddress(Configuration conf) {
+    return conf.getSocketAddr(YarnConfiguration.RM_SCHEDULER_ADDRESS,
+                              YarnConfiguration.DEFAULT_RM_SCHEDULER_ADDRESS,
+                              YarnConfiguration.DEFAULT_RM_SCHEDULER_PORT);
+  }
+  
   public static setRmAddress(Configuration conf, String rmAddr) {
     conf.set(YarnConfiguration.RM_ADDRESS, rmAddr);
   }
+  
+  public static setRmSchedulerAddress(Configuration conf, String rmAddr) {
+    conf.set(YarnConfiguration.RM_SCHEDULER_ADDRESS, rmAddr);
+  }
+  
   public static setRmAddressGlobal(String rmAddr) {
     Configuration rmResource = new Configuration(false);
     setRmAddress(rmResource, rmAddr);

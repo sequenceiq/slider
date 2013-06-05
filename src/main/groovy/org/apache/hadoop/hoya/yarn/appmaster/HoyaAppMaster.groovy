@@ -22,7 +22,7 @@ import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.HoyaApp
 import org.apache.hadoop.hoya.HoyaExitCodes
-import org.apache.hadoop.hoya.api.HoyaAppMasterActions
+import org.apache.hadoop.hoya.api.HoyaAppMasterApi
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.tools.Env
 import org.apache.hadoop.hoya.tools.YarnUtils
@@ -31,6 +31,7 @@ import org.apache.hadoop.ipc.ProtocolSignature
 import org.apache.hadoop.ipc.RPC
 import org.apache.hadoop.ipc.Server
 import org.apache.hadoop.net.NetUtils
+import org.apache.hadoop.yarn.api.AMRMProtocol
 import org.apache.hadoop.yarn.api.ApplicationConstants
 import org.apache.hadoop.yarn.api.ContainerExitStatus
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse
@@ -45,6 +46,7 @@ import org.apache.hadoop.yarn.api.records.Priority
 import org.apache.hadoop.yarn.api.records.Resource
 import org.apache.hadoop.yarn.client.AMRMClient
 import org.apache.hadoop.yarn.client.AMRMClientAsync
+import org.apache.hadoop.yarn.client.AMRMClientImpl
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.exceptions.YarnException
 import org.apache.hadoop.yarn.ipc.YarnRPC
@@ -64,7 +66,7 @@ class HoyaAppMaster extends CompositeService
     implements AMRMClientAsync.CallbackHandler,
       RunService,
       HoyaExitCodes,
-      HoyaAppMasterActions {
+      HoyaAppMasterApi {
 
   // YARN RPC to communicate with the Resource Manager or Node Manager
   private static final boolean VERBOSE_RPC = false
@@ -108,7 +110,8 @@ class HoyaAppMaster extends CompositeService
   private volatile boolean success;
 
   String[] argv
-  private HoyaMasterServiceArgs serviceArgs;
+  private HoyaMasterServiceArgs serviceArgs
+  private float progressCounter = 0.0f;
 
 
   public HoyaAppMaster() {
@@ -127,24 +130,13 @@ class HoyaAppMaster extends CompositeService
   @Override
   synchronized void init(Configuration conf) {
     //sort out the location of the AM
+    serviceArgs.applyDefinitions(conf);
     String rmAddress = serviceArgs.rmAddress
-    YarnUtils.setRmAddress(conf, rmAddress)
-    YarnUtils.setRmAddressGlobal(rmAddress);
+    YarnUtils.setRmSchedulerAddress(conf, rmAddress)
+//    YarnUtils.setRmAddressGlobal(rmAddress);
     super.init(conf)
   }
-/**
-   * Just before the configuration is set, the args-supplied config is set
-   * This is a way to sneak in config changes without subclassing init()
-   * (so work with pre/post YARN-117 code)
-   * @param conf new configuration.
-   */
-  @Override
-  protected void setConfig(Configuration conf) {
-    serviceArgs.applyDefinitions(conf);
-    super.setConfig(conf)
-  }
 
-  
   
 /**
  * this is where the work is done.
@@ -182,9 +174,11 @@ class HoyaAppMaster extends CompositeService
   public int createAndRunCluster(String clustername) throws Throwable {
     YarnConfiguration conf = new YarnConfiguration(config);
 
-    InetSocketAddress address = YarnUtils.getRmAddress(conf)
+    InetSocketAddress address = YarnUtils.getRmSchedulerAddress(conf)
     log.info("RM is at $address")
     rpc = YarnRPC.create(conf);
+    def proxy = rpc.getProxy(AMRMProtocol.class, address, conf);
+
     ContainerId containerId = ConverterUtils.toContainerId(
         Env.mandatory(ApplicationConstants.Environment.CONTAINER_ID.name()));
     appAttemptID = containerId.applicationAttemptId;
@@ -202,9 +196,13 @@ class HoyaAppMaster extends CompositeService
 
 
     int heartbeatInterval = 1000
-
+    AMRMClient<AMRMClient.ContainerRequest> rmClient =
+      new AMRMClientImpl<AMRMClient.ContainerRequest>(appAttemptID) 
     //add the RM client -this brings the callbacks in
-    asyncRMClient = new AMRMClientAsync(appAttemptID, heartbeatInterval, this);
+    asyncRMClient = new AMRMClientAsync<AMRMClient.ContainerRequest>(rmClient,
+                                                                     heartbeatInterval,
+                                                                     this);
+
     //add to the list of things to terminate
     addService(asyncRMClient)
     //now bring it up
@@ -225,7 +223,7 @@ class HoyaAppMaster extends CompositeService
 
     // Register self with ResourceManager
     // This will start heartbeating to the RM
-    address = YarnUtils.getRmAddress(asyncRMClient.config)
+    address = YarnUtils.getRmSchedulerAddress(rmClient.config)
     log.info("Connecting to RM at $address")
     RegisterApplicationMasterResponse response = asyncRMClient
         .registerApplicationMaster(appMasterHostname,
@@ -243,6 +241,9 @@ class HoyaAppMaster extends CompositeService
     asyncRMClient.addContainerRequest(containerAsk);
     numRequestedContainers.set(numTotalContainers);
 
+    //if we get here: success
+    success = true;
+    
     while (!done) {
       try {
         Thread.sleep(200);
@@ -274,6 +275,7 @@ class HoyaAppMaster extends CompositeService
     success = true;
     if (numFailedContainers.get() == 0) {
       appStatus = FinalApplicationStatus.SUCCEEDED;
+      appMessage = "completed"
     } else {
       appStatus = FinalApplicationStatus.FAILED;
       appMessage = "Diagnostics., total=$numTotalContainers," +
@@ -283,7 +285,7 @@ class HoyaAppMaster extends CompositeService
       success = false;
     }
     try {
-      log.info("Unregistering AM")
+      log.info("Unregistering AM status=$appStatus message=$appMessage")
       asyncRMClient.unregisterApplicationMaster(appStatus, appMessage, null);
     } catch (YarnException e) {
       log.error("Failed to unregister application: $e", e);
@@ -328,7 +330,7 @@ class HoyaAppMaster extends CompositeService
    */
   private Server startAMActionsServer() {
     server = new RPC.Builder(config)
-        .setProtocol(HoyaAppMasterActions.class)
+        .setProtocol(HoyaAppMasterApi.class)
         .setInstance(this)
 //        .setBindAddress(ADDRESS)
         .setPort(0)
@@ -375,7 +377,7 @@ class HoyaAppMaster extends CompositeService
    * Callback event when a container is allocated
    * @param allocatedContainers list of containers
    */
-  @Override
+  @Override //AMRMClientAsync
   public void onContainersAllocated(List<Container> allocatedContainers) {
     log.info("Got response from RM for container ask, allocatedCnt="
                  + allocatedContainers.size());
@@ -403,7 +405,7 @@ class HoyaAppMaster extends CompositeService
 
   }
 
-  @Override
+  @Override //AMRMClientAsync
   public void onContainersCompleted(List<ContainerStatus> completedContainers) {
     log.info("Got response from RM for container ask, completedCnt="
                  + completedContainers.size());
@@ -464,56 +466,65 @@ class HoyaAppMaster extends CompositeService
   /**
    * RM wants to reboot the AM
    */
-  @Override
+  @Override //AMRMClientAsync
   public void onRebootRequest() {
     log.info("Reboot requested")
+    done = true;
   }
 
   /**
    * Monitored nodes have been changed
    * @param updatedNodes list of updated notes
    */
-  @Override
+  @Override //AMRMClientAsync
   public void onNodesUpdated(List<NodeReport> updatedNodes) {
     log.info("Nodes updated: " +
              (updatedNodes*.getNodeId()).join(" "))
 
   }
 
-  @Override
+  @Override //AMRMClientAsync
   public float getProgress() {
-    return 0.50f
+    float f = progressCounter;
+    progressCounter +=10.0f
+    log.info("AMRMClientAsync.getProgress()=$f")
+    if (progressCounter>=100) {
+      log.info("Completed")
+      done = true;
+    }
+    return f
   }
 
-  @Override
+  @Override //AMRMClientAsync
   public void onError(Exception e) {
     //callback says it's time to finish
-    log.error("onError received $e",e)
+    log.error("AMRMClientAsync.onError() received $e",e)
     done = true;
   }
 
   @Override
   void stopCluster() throws IOException {
-
+    log.info("HoyaAppMasterApi.stopCluster()")
   }
 
-  @Override
+  @Override   //HoyaAppMasterApi
   void addNodes(int nodes) throws IOException {
-
+    log.info("HoyaAppMasterApi.addNodes($nodes)")
   }
 
-  @Override
+  @Override   //HoyaAppMasterApi
   void rmNodes(int nodes) throws IOException {
-
+    log.info("HoyaAppMasterApi.rmNodes($nodes)")
   }
 
-  @Override
+  @Override   //HoyaAppMasterApi
   long getProtocolVersion(String protocol, long clientVersion) throws IOException {
-    return 0
+    return versionID
   }
 
-  @Override
+  @Override   //HoyaAppMasterApi
   ProtocolSignature getProtocolSignature(String protocol, long clientVersion, int clientMethodsHash) throws IOException {
-    return null
+    return ProtocolSignature.getProtocolSignature(
+        this, protocol, clientVersion, clientMethodsHash);
   }
 }
