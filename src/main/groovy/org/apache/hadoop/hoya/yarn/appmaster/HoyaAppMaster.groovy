@@ -24,6 +24,7 @@ import org.apache.hadoop.hoya.HoyaApp
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.api.HoyaAppMasterApi
 import org.apache.hadoop.hoya.exceptions.HoyaException
+import org.apache.hadoop.hoya.exec.RunLongLivedApp
 import org.apache.hadoop.hoya.tools.Env
 import org.apache.hadoop.hoya.tools.YarnUtils
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
@@ -111,7 +112,8 @@ class HoyaAppMaster extends CompositeService
 
   String[] argv
   private HoyaMasterServiceArgs serviceArgs
-  private float progressCounter = 0.0f;
+  private float progressCounter = 0.0f
+  private RunLongLivedApp hbaseMaster;
 
 
   public HoyaAppMaster() {
@@ -241,6 +243,9 @@ class HoyaAppMaster extends CompositeService
     asyncRMClient.addContainerRequest(containerAsk);
     numRequestedContainers.set(numTotalContainers);
 
+    //start hbase command
+    launchHBaseServer(["version"]);
+    
     //if we get here: success
     success = true;
     
@@ -482,7 +487,7 @@ class HoyaAppMaster extends CompositeService
              (updatedNodes*.getNodeId()).join(" "))
 
   }
-
+/*
   @Override //AMRMClientAsync
   public float getProgress() {
     float f = progressCounter;
@@ -493,6 +498,25 @@ class HoyaAppMaster extends CompositeService
       done = true;
     }
     return f
+  }*/
+
+  /**
+   * Use this as a generic heartbeater: 
+   * 0 = not started, 50 = live, 100 = finished
+   * @return
+   */
+  @Override //AMRMClientAsync
+  public float getProgress() {
+    if (!hbaseMaster) {
+      return 0f;
+    }
+    //hbase is running or finished
+    if (hbaseMaster.running) {
+      return 50f;
+    } else {
+      done = true;
+      return 100f;
+    }
   }
 
   @Override //AMRMClientAsync
@@ -526,5 +550,21 @@ class HoyaAppMaster extends CompositeService
   ProtocolSignature getProtocolSignature(String protocol, long clientVersion, int clientMethodsHash) throws IOException {
     return ProtocolSignature.getProtocolSignature(
         this, protocol, clientVersion, clientMethodsHash);
+  }
+  
+  protected File buildHBaseBinPath() {
+    File hbaseScript = new File(serviceArgs.hbasehome, "bin/hbase");
+    return hbaseScript;
+  }
+ 
+
+  protected void launchHBaseServer(List<String> commands) throws IOException {
+    commands.add(0, buildHBaseBinPath().absolutePath);
+    hbaseMaster = new RunLongLivedApp(commands);
+    hbaseMaster.spawnApplication()
+  }
+  
+  protected void stopHBase() {
+    hbaseMaster?.stop();
   }
 }
