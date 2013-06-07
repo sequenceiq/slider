@@ -126,11 +126,15 @@ public class RunLongLivedApp implements Runnable {
       exitCode = process.waitFor();
     } catch (InterruptedException e) {
       LOG.debug("Process wait interrupted -exiting thread");
+    } finally {
+      //here the process has finished
+      LOG.info("process has finished");
+      //tell the logger it has to finish too
+      done = true;
+      try {
+        logThread.join();
+      } catch (InterruptedException ie){}
     }
-    //here the process has finished
-    LOG.info("process has finished");
-    //tell the logger it has to finish too
-    done = true;
   }
 
   /**
@@ -246,13 +250,17 @@ public class RunLongLivedApp implements Runnable {
         //get here, done time
         streamLog.error(errorLine);
         String line= errReader.readLine();
-        while ((line != null) && !Thread.interrupted()) {
+        while (line != null) {
           streamLog.error(line);
+          if(Thread.interrupted()) break;
           line = errReader.readLine();
         }
+
         streamLog.info(outLine);
-        while ((line != null) && !Thread.interrupted()) {
+        line = outReader.readLine();
+        while (line != null) {
           streamLog.info(line);
+          if(Thread.interrupted()) break;
           line = outReader.readLine();
         }
 

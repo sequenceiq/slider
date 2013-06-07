@@ -24,9 +24,9 @@ import com.beust.jcommander.IStringConverter
 import groovy.transform.CompileStatic
 
 @CompileStatic
-class URIArgumentConverter implements IStringConverter<URI> {
+class URLArgumentConverter implements IStringConverter<URL> {
   @Override
-  public URI convert(String value) {
-    return new URI(value);
+  public URL convert(String value) {
+    return new URL(value);
   }
 }

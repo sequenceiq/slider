@@ -20,6 +20,8 @@ package org.apache.hadoop.hoya.tools
 
 import groovy.transform.CompileStatic
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.hbase.HBaseConfiguration
+import org.apache.hadoop.fs.*
 
 /**
  * This is a set of static helper methods to work on configurations, 
@@ -52,5 +54,12 @@ class ConfigHelper {
     map.each { Map.Entry mapEntry ->
       setConfigEntry(self, mapEntry.key, mapEntry.value)  
     }
+  }
+  public static def generateConfig(Map map, String appId, Path outputDirectory) {
+    Configuration conf = HBaseConfiguration.create();
+    addConfigMap(conf, map)
+    FSDataOutputStream fos = FileSystem.get(conf).create(new Path(outputDirectory, appId+"/hbase-site.xml"));
+    conf.writeXml(fos);
+    fos.close();
   }
 }

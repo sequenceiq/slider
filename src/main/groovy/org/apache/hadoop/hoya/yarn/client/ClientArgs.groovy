@@ -25,6 +25,7 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.tools.PathArgumentConverter
 import org.apache.hadoop.hoya.tools.URLArgumentConverter
+import org.apache.hadoop.hoya.tools.URIArgumentConverter
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
@@ -56,13 +57,9 @@ class ClientArgs extends CommonArgs {
   @Parameter(names = "--amqueue", description = "Application Manager Queue Name")
   String amqueue = "default";
 
-  @Parameter(names = "--ampriority", description = "YARN Scheduling priority for the Application Manager")
-  int ampriority = 0;
-
-
   @Parameter(names = "--fs", description = "filesystem URI",
-      converter = URLArgumentConverter)
-  URL filesystemURL;
+      converter = URIArgumentConverter)
+  URI filesystemURL;
 
   //--format 
   @Parameter(names = "--format", description = "format for a response text|xml|json|properties")
@@ -91,7 +88,16 @@ class ClientArgs extends CommonArgs {
       converter = PathArgumentConverter)
   Path confdir
 
-  @Parameter(names = ["--m","--manager"],
+  /**
+   *    Declare the image configuration directory to use when creating or reconfiguring a hoya cluster. The path must be on a filesystem visible to all nodes in the YARN cluster.
+   Only one configuration directory can be specified.
+   */
+  @Parameter(names = "--generated_confdir",
+          description = "path to directory where the generated configuration file should be written",
+          converter = PathArgumentConverter)
+  Path generatedConfdir
+
+    @Parameter(names = ["--m","--manager"],
       description = "hostname:port of the YARN resource manager")
   String manager;
 

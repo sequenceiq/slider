@@ -20,6 +20,7 @@ package org.apache.hadoop.hoya.yarn.appmaster
 
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.security.UserGroupInformation
 import org.apache.hadoop.hoya.HoyaApp
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.api.HoyaAppMasterApi
@@ -244,7 +245,12 @@ class HoyaAppMaster extends CompositeService
     numRequestedContainers.set(numTotalContainers);
 
     //start hbase command
-    launchHBaseServer(["version"]);
+    String logdir = System.getenv("LOGDIR");
+    if (logdir == null) {
+      logdir =  "/tmp/hoya-" + UserGroupInformation.getCurrentUser().getShortUserName();
+    }
+    launchHBaseServer(["--config", "/Users/ddas/workspace/confYarnHBase", "start", "master"],
+            ["HBASE_LOG_DIR":logdir]);
     
     //if we get here: success
     success = true;
@@ -553,14 +559,15 @@ class HoyaAppMaster extends CompositeService
   }
   
   protected File buildHBaseBinPath() {
-    File hbaseScript = new File(serviceArgs.hbasehome, "bin/hbase");
+    File hbaseScript = new File(serviceArgs.hbasehome, "bin/hbase-daemon.sh");
     return hbaseScript;
   }
  
 
-  protected void launchHBaseServer(List<String> commands) throws IOException {
+  protected void launchHBaseServer(List<String> commands, Map<String, String>env) throws IOException {
     commands.add(0, buildHBaseBinPath().absolutePath);
     hbaseMaster = new RunLongLivedApp(commands);
+    hbaseMaster.setEnv(env);
     hbaseMaster.spawnApplication()
   }
   

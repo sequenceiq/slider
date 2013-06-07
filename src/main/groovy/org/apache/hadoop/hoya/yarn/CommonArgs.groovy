@@ -102,7 +102,7 @@ public class CommonArgs {
 
   @Parameter(names = "--user",
       description = "username if not self")
-  public String user = "unknown";
+  public String user = null;
   
   @Parameter(names = "--zookeeper",
       description = "Zookeeper connection string")

@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.client
 import com.beust.jcommander.JCommander
 import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem as FS
 import org.apache.hadoop.fs.Path
@@ -28,6 +29,7 @@ import org.apache.hadoop.hoya.HoyaApp
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.exceptions.BadConfigException
 import org.apache.hadoop.hoya.exceptions.HoyaException
+import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.tools.YarnUtils
@@ -203,6 +205,28 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
                                                             appPath,
                                                             libdir,
                                                             "ant.jar")
+      String appRoot = "/yarnapps/$appName/${appId.id}/"
+      String zookeeperRoot = appRoot
+      if (serviceArgs.hbasezkpath == null) {
+       zookeeperRoot = "/yarnapps/$appName/${appId.id}/"
+      }
+      URI hdfsRootDir
+      if (serviceArgs.filesystemURL != null) {
+        hdfsRootDir = new URI(serviceArgs.filesystemURL.getScheme(), serviceArgs.filesystemURL.getAuthority(),
+                appRoot); //TODO: error checks
+      } else {
+        hdfsRootDir = new URI("hdfs://" + appRoot);
+      }
+      Path generatedConfDir = new Path("/tmp");
+      if (serviceArgs.generatedConfdir != null) {
+        generatedConfDir = serviceArgs.generatedConfdir;
+      }
+      String subDirName = appName + "-" + getUsername() + "/" + "${appId.id}";
+      ConfigHelper.generateConfig(["hdfs.rootdir":hdfsRootDir.toString(),
+              "zookeeper.znode.parent":zookeeperRoot],
+              subDirName, generatedConfDir);
+      // Send the above generated config file to Yarn. This will be the config
+      // for HBase
     }
 
     // Set the log4j properties if needed 
@@ -352,7 +376,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   }
 
   private String getUsername() {
-    return serviceArgs.user
+    return UserGroupInformation.getCurrentUser().getShortUserName();
   }
 
   private LocalResource submitJarWithClass(Class clazz, String appPath, String subdir, String jarName) {
