@@ -50,8 +50,9 @@ public class CommonArgs {
   public static final String ARG_ZOOKEEPER = '--zookeeper'
 
   /** for testing only: {@value} */
-  public static final String ARG_XTEST = '--Xtest'
-  public static final String ARG_XHBASE_COMMAND = "--Xhbase-command"
+  public static final String ARG_X_HBASE_COMMAND = '--Xhbase-command'
+  public static final String ARG_X_NO_MASTER = '--Xnomaster'
+  public static final String ARG_X_TEST = '--Xtest'
 
 
   public static final String ERROR_NO_ACTION = "No action specified"
@@ -71,7 +72,7 @@ public class CommonArgs {
   public static final String ACTION_CREATE = "create"
   public static final String ACTION_GETSIZE = "getsize"
   public static final String ACTION_HELP = "help"
-  public static final String ACTION_ISLIVE = "islive"
+  public static final String ACTION_EXISTS = "exists"
   public static final String ACTION_LIST = "list"
   public static final String ACTION_MIGRATE = "migrate"
   public static final String ACTION_PREFLIGHT = "preflight"
@@ -105,7 +106,7 @@ public class CommonArgs {
 
   @Parameter(names = "--user",
       description = "username if not self")
-  public String user = null;
+  public String user = System.getProperty("user.name");
   
   @Parameter(names = "--zookeeper",
       description = "Zookeeper connection string")
@@ -138,6 +139,12 @@ public class CommonArgs {
       description = "testing only: hbase command to exec")
   public String hbaseCommand="master";
 
+  @Parameter(names = '--Xnomaster',
+      description = "testing only: no master at all")
+  public boolean xNoMaster = false;
+
+  
+  
   /**
    * fields
    */
@@ -145,6 +152,14 @@ public class CommonArgs {
   String action
   List<String> actionArgs
   final String[] args
+  //
+  /**
+   * get the name: relies on arg 1 being the cluster name in all operations 
+   * @return the name argument, null if there is none
+   */
+  String getName() {
+    return actionArgs.isEmpty()? null: args[0] 
+  }
 
   public CommonArgs(String[] args) {
     this.args = args
@@ -189,7 +204,6 @@ public class CommonArgs {
  */
   public void postProcess() {
     validate();
-    String s=""
     
     definitions.each { prop ->
       String[] keyval = ((String)prop).split("=", 2);

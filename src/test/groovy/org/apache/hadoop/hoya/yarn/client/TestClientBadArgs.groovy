@@ -31,7 +31,8 @@ class TestClientBadArgs extends ServiceLauncherBaseTest {
   public void testNoAction() throws Throwable {
     launchExpectingException(HoyaClient,
                              new Configuration(),
-                             CommonArgs.ERROR_NO_ACTION)
+                             CommonArgs.ERROR_NO_ACTION,
+                             [])
 
   }
 
@@ -40,7 +41,7 @@ class TestClientBadArgs extends ServiceLauncherBaseTest {
     launchExpectingException(HoyaClient,
                              new Configuration(),
                              CommonArgs.ERROR_UNKNOWN_ACTION,
-                             "not-a-known-action")
+                             ["not-a-known-action"])
   }
 
   @Test
@@ -48,7 +49,7 @@ class TestClientBadArgs extends ServiceLauncherBaseTest {
     launchExpectingException(HoyaClient,
                              new Configuration(),
                              CommonArgs.ERROR_NOT_ENOUGH_ARGUMENTS,
-                             ClientArgs.ACTION_START)
+                             [ClientArgs.ACTION_START])
   }
 
   @Test
@@ -56,16 +57,16 @@ class TestClientBadArgs extends ServiceLauncherBaseTest {
     launchExpectingException(HoyaClient,
                              new Configuration(),
                              CommonArgs.ERROR_TOO_MANY_ARGUMENTS,
-                             ClientArgs.ACTION_HELP,
-                             "hello, world")
+                             [ClientArgs.ACTION_HELP,
+                             "hello, world"])
   }
   @Test
   public void testBadImageArg() throws Throwable {
     launchExpectingException(HoyaClient,
                              new Configuration(),
                              "Expected a value after parameter",
-                             ClientArgs.ACTION_HELP,
-                             CommonArgs.ARG_IMAGE)
+                            [ ClientArgs.ACTION_HELP,
+                             CommonArgs.ARG_IMAGE])
   }
 
 }

@@ -22,6 +22,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher;
 import org.junit.Assert;
 
+import java.util.List;
+
 /**
  * Base class for tests that use the service launcher
  */
@@ -38,12 +40,18 @@ public class ServiceLauncherBaseTest extends Assert {
    */
   protected ServiceLauncher launch(Class serviceClass,
                                 Configuration conf,
-                                String... args) throws
+                                List<String> args) throws
                                     Throwable {
     ServiceLauncher serviceLauncher =
       new ServiceLauncher(serviceClass.getName());
-    serviceLauncher.launchService(conf, args, false);
+    serviceLauncher.launchService(conf,
+                                  toArray(args),
+                                  false);
     return serviceLauncher;
+  }
+
+  protected static String[] toArray(List<String> args) {
+    return args.toArray(new String[args.size()]);
   }
 
   /**
@@ -55,12 +63,12 @@ public class ServiceLauncherBaseTest extends Assert {
   protected void launchExpectingException(Class serviceClass,
                                        Configuration conf,
                                        String expectedText,
-                                       String... args) throws
+                                       List<String> args) throws
                                                        Throwable {
     ServiceLauncher serviceLauncher =
       new ServiceLauncher(serviceClass.getName());
     try {
-      int result = serviceLauncher.launchService(conf, args, false);
+      int result = serviceLauncher.launchService(conf, toArray(args), false);
       fail("Expected an exception with text containing " + expectedText
            + " -but the service completed with exit code " + result);
     } catch (Throwable thrown) {

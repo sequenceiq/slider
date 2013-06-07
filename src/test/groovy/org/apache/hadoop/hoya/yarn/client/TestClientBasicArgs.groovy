@@ -37,7 +37,7 @@ class TestClientBasicArgs extends ServiceLauncherBaseTest {
   public void testHelp() throws Throwable {
     ServiceLauncher launcher = launch(HoyaClient,
                                       new Configuration(),
-                                      ClientArgs.ACTION_HELP)
+                                      [ClientArgs.ACTION_HELP])
     assert 0 == launcher.serviceExitCode
   }
   /**
@@ -47,10 +47,12 @@ class TestClientBasicArgs extends ServiceLauncherBaseTest {
   @Test
   public void testHelpWithHyphenArgs() throws Throwable {
     ServiceLauncher launcher = launch(HoyaClient, new Configuration(),
+                       [
                        ClientArgs.ACTION_HELP,
                        CommonArgs.ARG_DEBUG,
                        CommonArgs.ARG_IMAGE, "hdfs://users/bob/hbase0.94.tar.gz",
-                       CommonArgs.ARG_CONFDIR, "hdfs://users/bob/hoya/conf1")
+                       CommonArgs.ARG_CONFDIR, "hdfs://users/bob/hoya/conf1"
+                       ])
     assert 0 == launcher.serviceExitCode
 
   }

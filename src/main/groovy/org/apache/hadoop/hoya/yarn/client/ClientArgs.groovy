@@ -24,7 +24,6 @@ import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.tools.PathArgumentConverter
-import org.apache.hadoop.hoya.tools.URLArgumentConverter
 import org.apache.hadoop.hoya.tools.URIArgumentConverter
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
@@ -84,7 +83,7 @@ class ClientArgs extends CommonArgs {
    Only one configuration directory can be specified.
    */
   @Parameter(names = "--confdir",
-      description = "path cluster configuration directory",
+      description = "path cluster configuration directory in HDFS",
       converter = PathArgumentConverter)
   Path confdir
 
@@ -106,27 +105,26 @@ class ClientArgs extends CommonArgs {
 
 
 
-
-
   /**
    * map of actions -> (explanation, min #of entries [, max no.])
    * If the max no is not given it is assumed to be the same as the min no.
    */
   static final Map<String, List<Object>> ACTIONS = [
-      (ACTION_CREATE): ["create cluster", 1],
+      (ACTION_ADDNODE):   ["add nodes", 1],
+      (ACTION_CREATE):    ["create cluster", 1],
+      (ACTION_GETSIZE):   ["get the size of a cluster", 1],
+      (ACTION_EXISTS):    ["probe for a cluster being live", 1],
+      (ACTION_HELP):      ["Print Help information", 0],
+      (ACTION_LIST):      ["List running cluster", 0],
+      (ACTION_MIGRATE):   ["migrate cluster to a new HBase version", 1],
+      (ACTION_ADDNODE):   ["add nodes", 1],
       (ACTION_PREFLIGHT): ["Perform preflight checks", 0],
-      (ACTION_LIST): ["List running cluster", 0],
-      (ACTION_STATUS): ["Get the status of a cluster", 1],
-      (ACTION_STOP): ["stop a cluster", 1],
-      (ACTION_START): ["start a cluster", 1],
-      (ACTION_ISLIVE): ["probe for a cluster being live", 1],
-      (ACTION_ADDNODE): ["add nodes", 1],
-      (ACTION_GETSIZE): ["get the size of a cluster", 1],
-      (ACTION_RMNODE): ["remove nodes", 1],
       (ACTION_RECONFIGURE): ["change the configuration of a cluser", 1],
-      (ACTION_REIMAGE): ["change the image a cluster uses", 1],
-      (ACTION_MIGRATE): ["migrate cluster to a new HBase version", 1],
-      (ACTION_HELP): ["Print Help information", 0],
+      (ACTION_RMNODE):    ["remove nodes", 1],
+      (ACTION_REIMAGE):   ["change the image a cluster uses", 1],
+      (ACTION_START):     ["start a cluster", 1],
+      (ACTION_STATUS):    ["Get the status of a cluster", 1],
+      (ACTION_STOP):      ["stop a cluster", 1],
   ]
 
   ClientArgs(String[] args) {
@@ -136,16 +134,6 @@ class ClientArgs extends CommonArgs {
   @Override
   Map<String, List<Object>> getActions() {
     return ACTIONS
-  }
-
-  @Override
-  void validate() {
-    super.validate()
-  }
-
-  @Override
-  void postProcess() {
-    super.postProcess()
   }
 
   @Override

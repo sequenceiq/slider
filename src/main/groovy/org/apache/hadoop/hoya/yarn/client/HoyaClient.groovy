@@ -98,7 +98,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
   @Override
   public String getName() {
-    return "HoyaClient"
+    return serviceArgs.name
   }
 
   @Override
@@ -133,22 +133,34 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     String action = serviceArgs.action
     List<String> actionArgs = serviceArgs.actionArgs
     int exitCode = EXIT_SUCCESS
+    String clusterName = getName();
+    //actions
     switch(action) {
-      
+
+      case ClientArgs.ACTION_CREATE:
+        exitCode = createAM(clusterName)
+        break;
+
+      case CommonArgs.ACTION_EXISTS:
+        exitCode = actionExists(clusterName)
+        break;
+
       case ClientArgs.ACTION_HELP:
         log.info("HoyaClient" + serviceArgs.usage())
         break;
-      
-      case ClientArgs.ACTION_CREATE:
-        exitCode = createAM(actionArgs[0])
+
+      case CommonArgs.ACTION_LIST:
+        exitCode = actionList()
         break;
-      
+
       case ClientArgs.ACTION_START:
         //throw new HoyaException("Start: " + actionArgs[0])
 
+      case ClientArgs.ACTION_STOP:
+
       default:
         throw new HoyaException(EXIT_UNIMPLEMENTED,
-                               "Unimplemented: " + action)
+                                "Unimplemented: " + action)
     }
 
     return exitCode
@@ -315,11 +327,14 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
       commands << serviceArgs.hbasezkpath
     }
     if (serviceArgs.hbaseCommand) {
-      commands << CommonArgs.ARG_XHBASE_COMMAND 
+      commands << CommonArgs.ARG_X_HBASE_COMMAND 
       commands << serviceArgs.hbaseCommand
     }
     if (serviceArgs.xTest) {
-      commands << CommonArgs.ARG_XTEST 
+      commands << CommonArgs.ARG_X_TEST 
+    }
+    if (serviceArgs.xNoMaster) {
+      commands << CommonArgs.ARG_X_NO_MASTER 
     }
   
     commands << HoyaMasterServiceArgs.ARG_ZK_PATH
@@ -557,13 +572,58 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * @throws IOException
    */
   private void forceKillApplication(ApplicationId appId)
-  throws YarnException, IOException {
-    // TODO clarify whether multiple jobs with the same app id can be submitted and be running at 
-    // the same time. 
-    // If yes, can we kill a particular attempt only?
-
-    // Response can be ignored as it is non-null on success or 
-    // throws an exception in case of failures
+      throws YarnException, IOException {
     super.killApplication(appId);
+  }
+
+  /**
+   * List Hoya instances belonging to a specific user
+   * @param user user: "" means all users
+   * @return a possibly empty list of Hoya AMs
+   */
+  private List<ApplicationReport> listHoyaInstances(String user)
+    throws YarnException, IOException {
+    List<ApplicationReport> allApps = applicationList;
+    List<ApplicationReport> results = []
+    allApps.each { ApplicationReport report ->
+      if (   report.applicationType == HoyaKeys.APP_TYPE
+          && (!user || user == report.user)) {
+        results << report;
+      }
+    }
+    return results;
+  }
+
+  /**
+   * Implement the list action: list all nodes
+   * @return exit code of 0 if a list was created
+   */
+  private int actionList() {
+    String user = serviceArgs.user
+    List<ApplicationReport> instances = listHoyaInstances(user);
+    log.info("Hoya instances for ${user?user:'all users'} : ${instances.size()} ");
+    instances.each { ApplicationReport report ->
+      log.info("Name        : ${report.name}")
+      log.info("YARN status : ${report.yarnApplicationState}")
+      log.info("Start Time  : ${report.startTime}")
+      log.info("Finish Time : ${report.startTime}")
+      log.info("RPC         : ${report.host}:${report.rpcPort}")
+      log.info("Diagnostics : ${report.diagnostics}")
+    }
+    return EXIT_SUCCESS;
+  }
+  
+  /**
+   * Implement the islive action: probe for a cluster of the given name existing
+   * 
+   * @return exit code
+   */
+  private int actionExists(String name) {
+    String user = serviceArgs.user
+    List<ApplicationReport> instances = listHoyaInstances(user);
+    ApplicationReport instance = instances.find { ApplicationReport report ->
+      report.name == name 
+    }
+    return (instance != null) ? EXIT_SUCCESS : EXIT_FALSE;
   }
 }
