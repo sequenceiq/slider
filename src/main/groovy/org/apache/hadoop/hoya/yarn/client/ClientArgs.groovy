@@ -89,29 +89,23 @@ class ClientArgs extends CommonArgs {
   Path confdir
 
   /**
-   *    Declare the image configuration directory to use when creating or reconfiguring a hoya cluster. The path must be on a filesystem visible to all nodes in the YARN cluster.
-   Only one configuration directory can be specified.
+   *    Declare the image configuration directory to use when creating
+   *    or reconfiguring a hoya cluster.
+   *    The path must be on a filesystem visible to all nodes in the
+   *    YARN cluster.
+   *    Only one configuration directory can be specified.
    */
   @Parameter(names = "--generated_confdir",
           description = "path to directory where the generated configuration file should be written",
           converter = PathArgumentConverter)
   Path generatedConfdir
 
-    @Parameter(names = ["--m","--manager"],
+  @Parameter(names = ["--m","--manager"],
       description = "hostname:port of the YARN resource manager")
   String manager;
 
-/*
-  @Parameter(names = "--", description = "")
-  @Parameter(names = "--", description = "")
-*/
 
-  /**
 
-   -m, --manager url
-   URL of the YARN resource manager
-   This could just be kept in ZK at a well-known place, though that implies an init process to set it.
-*/
 
 
   /**
@@ -143,7 +137,7 @@ class ClientArgs extends CommonArgs {
   Map<String, List<Object>> getActions() {
     return ACTIONS
   }
-  
+
   @Override
   void validate() {
     super.validate()

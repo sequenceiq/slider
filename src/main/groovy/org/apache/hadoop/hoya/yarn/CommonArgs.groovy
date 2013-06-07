@@ -45,10 +45,13 @@ public class CommonArgs {
   public static final String ARG_MIN = '--min'
   public static final String ARG_NAME = '--name'
   public static final String ARG_PATH = '--path'
-  public static final String ARG_TEST = '--Xtest'
   public static final String ARG_USER = '--user'
 
   public static final String ARG_ZOOKEEPER = '--zookeeper'
+
+  /** for testing only: {@value} */
+  public static final String ARG_XTEST = '--Xtest'
+  public static final String ARG_XHBASE_COMMAND = "--Xhbase-command"
 
 
   public static final String ERROR_NO_ACTION = "No action specified"
@@ -98,7 +101,7 @@ public class CommonArgs {
 
 
   @Parameter(names = '--Xtest', description = "Test mode")
-  public boolean testmode = false;
+  public boolean xTest = false;
 
   @Parameter(names = "--user",
       description = "username if not self")
@@ -129,7 +132,12 @@ public class CommonArgs {
   @Parameter(names = "--max",
       description = "Maximum number of nodes")
   public int max = -1
-  
+
+
+  @Parameter(names = "--Xhbase-command",
+      description = "testing only: hbase command to exec")
+  public String hbaseCommand="master";
+
   /**
    * fields
    */

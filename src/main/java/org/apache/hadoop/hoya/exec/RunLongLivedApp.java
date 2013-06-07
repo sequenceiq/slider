@@ -56,7 +56,10 @@ public class RunLongLivedApp implements Runnable {
     return builder;
   }
 
-  public void setEnv(String key, String val) {
+  public void putEnv(String key, String val) {
+    if (val == null) {
+      throw new RuntimeException("Null value for key " +key);
+    }
     builder.environment().put(key, val);
   }
 
@@ -66,9 +69,11 @@ public class RunLongLivedApp implements Runnable {
    * entries.
    * @param map map to add
    */
-  public void setEnv(Map<String, String> map) {
+  public void putEnvMap(Map<String, String> map) {
     for (Map.Entry<String, String> entry : map.entrySet()) {
-      setEnv(entry.getKey(), entry.getValue());
+      String val = entry.getValue();
+      String key = entry.getKey();
+      putEnv(key, val);
     }
   }
 

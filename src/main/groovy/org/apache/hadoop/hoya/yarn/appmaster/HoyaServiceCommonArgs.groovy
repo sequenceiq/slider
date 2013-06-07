@@ -33,6 +33,7 @@ class HoyaServiceCommonArgs extends CommonArgs {
    */
   public static final String ARG_ZK_PATH = "--zkpath"
   public static final String ARG_RM_ADDR = "--rm"
+  public static final String ARG_FILESYSTEM = "--filesystem"
 
 
   @Parameter(names = "--zkpath",
@@ -45,7 +46,10 @@ class HoyaServiceCommonArgs extends CommonArgs {
       required = true)
   public String rmAddress;
 
-  
+  @Parameter(names = "--filesystem",
+      description = "HBase filesystem name",
+      required = true)
+  public String filesystem;
   
   public HoyaServiceCommonArgs(String[] args) {
     super(args)

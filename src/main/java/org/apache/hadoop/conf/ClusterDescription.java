@@ -21,7 +21,7 @@ package org.apache.hadoop.conf;
 /**
  * Represents a cluster specification
  */
-public class ClusterSpecification {
+public class ClusterDescription {
   
   public String state;
   public String name;

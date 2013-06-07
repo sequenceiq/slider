@@ -16,11 +16,12 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya;
+package org.apache.hadoop.hoya.yarn.appmaster
 
-public interface HoyaKeys {
+class EnvMappings {
+  
+  public static final String ENV_FS_DEFAULT_NAME = "env.FS.DEFAULT.NAME";
+  public static final String ENV_ZOOKEEPER_PATH = "env.ZOOKEEPER.PATH";
+  public static final String ENV_ZOOKEEPER_CONNECTION = "env.ZOOKEEPER.CONNECTION";
 
-  String HBASE_SITE = "hbase-site.xml";
-
-  String APP_TYPE = "HOYA-HBASE";
 }

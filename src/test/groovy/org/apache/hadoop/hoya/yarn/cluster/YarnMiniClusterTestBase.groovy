@@ -118,6 +118,7 @@ implements KeysForTests {
    */
   protected ServiceLauncher launchHoyaClientAgainstMiniMR(Configuration conf, String... args) {
     ResourceManager rm = miniCluster.resourceManager
+    log.info("Connecting to rm at ${rm}")
 
     return launch(HoyaClient, conf, args);
   }

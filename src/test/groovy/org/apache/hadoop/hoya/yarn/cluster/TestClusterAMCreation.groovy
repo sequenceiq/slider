@@ -42,6 +42,7 @@ class TestClusterAMCreation extends YarnMiniClusterTestBase {
     ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
         //config includes RM binding info
         new YarnConfiguration(miniCluster.getConfig()),
+        //varargs list of command line params
         ClientArgs.ACTION_CREATE,
         "testAMCreations",
         CommonArgs.ARG_MIN, "1",
@@ -49,8 +50,11 @@ class TestClusterAMCreation extends YarnMiniClusterTestBase {
         ClientArgs.ARG_MANAGER, getRMAddr(),
         CommonArgs.ARG_USER, USERNAME,
         CommonArgs.ARG_HBASE_HOME, getHBaseHome(),
+        CommonArgs.ARG_ZOOKEEPER, microZKCluster.zkBindingString,
         CommonArgs.ARG_HBASE_ZKPATH, "/test/TestClusterAMCreation",
-        ClientArgs.ARG_WAIT, WAIT_TIME_ARG
+        ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
+        CommonArgs.ARG_XTEST,
+        CommonArgs.ARG_XHBASE_COMMAND, "version"
     )
     assert launcher.serviceExitCode == 0
     HoyaClient hoyaClient = (HoyaClient) launcher.service

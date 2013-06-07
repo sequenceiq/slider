@@ -106,6 +106,11 @@ class HoyaAppMaster extends CompositeService
   // Only request for more if the original requirement changes.
   private final AtomicInteger numRequestedContainers = new AtomicInteger();
 
+  /**
+   * Command to launch
+   */
+  private String hbaseCommand = "master"
+
   // Launch threads
   private final List<Thread> launchThreads = new ArrayList<Thread>();
   private volatile boolean done;
@@ -246,11 +251,19 @@ class HoyaAppMaster extends CompositeService
 
     //start hbase command
     String logdir = System.getenv("LOGDIR");
-    if (logdir == null) {
+    if (!logdir) {
       logdir =  "/tmp/hoya-" + UserGroupInformation.getCurrentUser().getShortUserName();
     }
-    launchHBaseServer(["--config", "/Users/ddas/workspace/confYarnHBase", "start", "master"],
-            ["HBASE_LOG_DIR":logdir]);
+    serviceArgs.hbaseCommand
+    List<String> launchSequence = ["start", serviceArgs.hbaseCommand];
+    
+    if (hbaseCommand=="version") {
+      launchSequence = [serviceArgs.hbaseCommand];
+    }
+    String confDir = "/Users/ddas/workspace/confYarnHBase";
+    launchSequence = ["--config", confDir] + launchSequence;
+    launchHBaseServer(launchSequence,
+                      ["HBASE_LOG_DIR": logdir]);
     
     //if we get here: success
     success = true;
@@ -535,6 +548,7 @@ class HoyaAppMaster extends CompositeService
   @Override
   void stopCluster() throws IOException {
     log.info("HoyaAppMasterApi.stopCluster()")
+    done = true;
   }
 
   @Override   //HoyaAppMasterApi
@@ -564,10 +578,18 @@ class HoyaAppMaster extends CompositeService
   }
  
 
-  protected void launchHBaseServer(List<String> commands, Map<String, String>env) throws IOException {
+  protected void launchHBaseServer(List<String> commands, Map<String, String> env) throws IOException {
     commands.add(0, buildHBaseBinPath().absolutePath);
     hbaseMaster = new RunLongLivedApp(commands);
-    hbaseMaster.setEnv(env);
+    hbaseMaster.putEnvMap(env);
+    //set the env variable mapping
+    hbaseMaster.putEnvMap(
+     [
+         (EnvMappings.ENV_FS_DEFAULT_NAME): serviceArgs.filesystem,
+         (EnvMappings.ENV_ZOOKEEPER_CONNECTION): serviceArgs.zookeeper,
+         (EnvMappings.ENV_ZOOKEEPER_PATH): serviceArgs.hbasezkpath,
+     ]   
+    )
     hbaseMaster.spawnApplication()
   }
   

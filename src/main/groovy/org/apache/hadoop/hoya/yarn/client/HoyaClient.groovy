@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.client
 import com.beust.jcommander.JCommander
 import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
+import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem as FS
@@ -33,6 +34,7 @@ import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.tools.YarnUtils
+import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.ZKIntegration
 import org.apache.hadoop.hoya.yarn.appmaster.HoyaMasterServiceArgs
 import org.apache.hadoop.net.NetUtils
@@ -297,6 +299,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     commands << rmAddr;
         
     //zk details -HBASE needs fs.default.name
+    
     //hbase needs path inside ZK; skip ZK connect
     // use env variables & have that picked up and template it. ${env.SYZ}
     if (serviceArgs.zookeeper) {
@@ -311,11 +314,20 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
       commands << HoyaMasterServiceArgs.ARG_HBASE_ZKPATH
       commands << serviceArgs.hbasezkpath
     }
+    if (serviceArgs.hbaseCommand) {
+      commands << CommonArgs.ARG_XHBASE_COMMAND 
+      commands << serviceArgs.hbaseCommand
+    }
+    if (serviceArgs.xTest) {
+      commands << CommonArgs.ARG_XTEST 
+    }
   
     commands << HoyaMasterServiceArgs.ARG_ZK_PATH
     commands << zkPath
-    
-    
+
+    commands << HoyaMasterServiceArgs.ARG_FILESYSTEM
+    commands << config.get(FS.FS_DEFAULT_NAME_KEY);
+
     //path in FS can be unqualified
     commands << HoyaMasterServiceArgs.ARG_PATH
     commands << "services/hoya/"
@@ -346,6 +358,12 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     // amContainer.setContainerId(containerId);
 
     appContext.AMContainerSpec = amContainer;
+    
+    //check for debug mode
+    if (serviceArgs.debug) {
+      appContext.maxAppAttempts = 1
+    }
+    appContext.applicationType = HoyaKeys.APP_TYPE
 
     // Set the priority for the application master
     Priority pri = Records.newRecord(Priority.class);
@@ -429,6 +447,9 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * @throws BadConfigException if the config is wrong
    */
   private void verifyValidClusterSize(int requiredNumber) {
+    if (requiredNumber==0) {
+      return
+    }
     int nodeManagers = yarnClusterMetrics.numNodeManagers
     if (nodeManagers < requiredNumber) {
       throw new BadConfigException("Not enough nodes in the cluster:" +
