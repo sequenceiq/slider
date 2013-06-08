@@ -18,47 +18,65 @@
 
 
 
-package org.apache.hadoop.hoya.yarn.cluster
+
+
+
+
+package org.apache.hadoop.hoya.yarn.cluster.actions
 
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
+import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
+import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
+import org.junit.Before
 import org.junit.Test
 
 /**
  * Test of RM creation. This is so the later test's prereq's can be met
  */
 @Commons
-class TestClusterAMCreation extends YarnMiniClusterTestBase {
+class TestActionStatus extends YarnMiniClusterTestBase {
 
+  @Before
+  public void setup() {
+    createMiniCluster("TestActionStatus", new YarnConfiguration(), 1, false)
+  }
+  
   @Test
-  public void testClusterAMCreation() throws Throwable {
-    createMiniCluster("testClusterAMCreation", new YarnConfiguration(), 1, true)
-    log.info("RM address = ${RMAddr}")
-    ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
+  public void testStatusLiveCluster() throws Throwable {
+    //launch fake master
+    String clustername = "testStatusLiveCluster"
+    
+    //launch the cluster
+    ServiceLauncher launcher = createMasterlessAM(clustername, 0)
+    
+    //now list
+    launcher = launchHoyaClientAgainstMiniMR(
         //config includes RM binding info
         new YarnConfiguration(miniCluster.config),
         //varargs list of command line params
         [
-            ClientArgs.ACTION_CREATE, "testAMCreations",
-            CommonArgs.ARG_MIN, "1",
-            CommonArgs.ARG_MAX, "1",
+            ClientArgs.ACTION_STATUS,
+            clustername,
             ClientArgs.ARG_MANAGER, RMAddr,
-            CommonArgs.ARG_USER, USERNAME,
-            CommonArgs.ARG_HBASE_HOME, HBaseHome,
-            CommonArgs.ARG_ZOOKEEPER, microZKCluster.zkBindingString,
-            CommonArgs.ARG_HBASE_ZKPATH, "/test/TestClusterAMCreation",
-            ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
-            CommonArgs.ARG_X_TEST,
-            CommonArgs.ARG_X_HBASE_COMMAND, "version"
+            CommonArgs.ARG_USER, USERNAME
         ]
+        
     )
     assert launcher.serviceExitCode == 0
+    //now look for the explicit sevice
+    
+    //do the low level operations to get a better view of what is going on 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
+    ApplicationReport instance = hoyaClient.actionStatus()
+    assert instance != null
+    log.info(instance.toString())
 
   }
+
 
 }

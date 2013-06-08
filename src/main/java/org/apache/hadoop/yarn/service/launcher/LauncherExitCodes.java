@@ -56,11 +56,11 @@ public interface LauncherExitCodes {
   /**
    * Exit code when something happened but we can't be specific: {@value}
    */
-  int EXIT_OTHER_FAILURED = EXIT_USAGE + 2;
+  int EXIT_OTHER_FAILURE = EXIT_USAGE + 2;
   /**
    * Exit code when a control-C, kill -3, signal was picked up: {@value}
    */
-  int EXIT_INTERRUPTED = EXIT_OTHER_FAILURED + 1;
+  int EXIT_INTERRUPTED = EXIT_OTHER_FAILURE + 1;
   /**
    * Exit code when the command line doesn't parse: {@value}, or
    * when it is otherwise invalid.
@@ -70,5 +70,11 @@ public interface LauncherExitCodes {
    * Exit code when the configurations in valid/incomplete: {@value}
    */
   int EXIT_BAD_CONFIGURATION  = EXIT_COMMAND_ARGUMENT_ERROR + 1;
+ 
+  /**
+   * Exit code when the configurations in valid/incomplete: {@value}
+   */
+  int EXIT_CONNECTIVTY_PROBLEM  = EXIT_BAD_CONFIGURATION + 1;
+ 
   
 }

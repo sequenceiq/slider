@@ -19,9 +19,12 @@
 package org.apache.hadoop.hoya.yarn.client
 
 import com.beust.jcommander.JCommander
+import com.google.common.annotations.VisibleForTesting
 import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.HoyaKeys
+import org.apache.hadoop.hoya.api.HoyaAppMasterProtocol
+import org.apache.hadoop.ipc.RPC
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem as FS
@@ -156,6 +159,9 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
       case ClientArgs.ACTION_START:
         //throw new HoyaException("Start: " + actionArgs[0])
 
+      case ClientArgs.ACTION_STATUS:
+        //throw new HoyaException("Start: " + actionArgs[0])
+
       case ClientArgs.ACTION_STOP:
 
       default:
@@ -181,8 +187,15 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     // set the application id 
     appContext.applicationId = appId;
     // set the application name
-    String appName = appName()
-    appContext.applicationName = appName;
+    // set the application name
+    String appName = getAppName()
+    //appContext.applicationName = clustername;
+    appContext.applicationType = HoyaKeys.APP_TYPE
+
+    //check for debug mode
+    if (serviceArgs.debug) {
+      appContext.maxAppAttempts = 1
+    }
     String zkPath = ZKIntegration.mkClusterPath(getUsername(), clustername)
 
     // Set up the container launch context for the application master
@@ -236,9 +249,13 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
         generatedConfDir = serviceArgs.generatedConfdir;
       }
       String subDirName = appName + "-" + getUsername() + "/" + "${appId.id}";
-      ConfigHelper.generateConfig(["hdfs.rootdir":hdfsRootDir.toString(),
-              "zookeeper.znode.parent":zookeeperRoot],
-              subDirName, generatedConfDir);
+      Configuration config = ConfigHelper.generateConfig(
+          [
+              "hdfs.rootdir": hdfsRootDir.toString(),
+              "zookeeper.znode.parent": zookeeperRoot
+          ],
+          subDirName,
+          generatedConfDir);
       // Send the above generated config file to Yarn. This will be the config
       // for HBase
     }
@@ -373,12 +390,6 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     // amContainer.setContainerId(containerId);
 
     appContext.AMContainerSpec = amContainer;
-    
-    //check for debug mode
-    if (serviceArgs.debug) {
-      appContext.maxAppAttempts = 1
-    }
-    appContext.applicationType = HoyaKeys.APP_TYPE
 
     // Set the priority for the application master
     Priority pri = Records.newRecord(Priority.class);
@@ -436,7 +447,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     LocalResource resource = YarnUtils.createAmResource(hdfs,
                                                         destPath,
                                                         LocalResourceType.FILE)
-    resource
+    return resource
   }
 
   /**
@@ -497,8 +508,6 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
       }
       classPathEnv.append(File.pathSeparatorChar).append("./log4j.properties");
     }
-
-
     return classPathEnv.toString()
   }
 
@@ -506,7 +515,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     return config.getBoolean(YarnConfiguration.IS_MINI_YARN_CLUSTER, false)
   }
 
-  private String appName() {
+  private String getAppName() {
     "hoya"
   }
 
@@ -581,7 +590,8 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * @param user user: "" means all users
    * @return a possibly empty list of Hoya AMs
    */
-  private List<ApplicationReport> listHoyaInstances(String user)
+  @VisibleForTesting
+  public List<ApplicationReport> listHoyaInstances(String user)
     throws YarnException, IOException {
     List<ApplicationReport> allApps = applicationList;
     List<ApplicationReport> results = []
@@ -598,7 +608,8 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * Implement the list action: list all nodes
    * @return exit code of 0 if a list was created
    */
-  private int actionList() {
+  @VisibleForTesting
+  public int actionList() {
     String user = serviceArgs.user
     List<ApplicationReport> instances = listHoyaInstances(user);
     log.info("Hoya instances for ${user?user:'all users'} : ${instances.size()} ");
@@ -618,12 +629,61 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * 
    * @return exit code
    */
-  private int actionExists(String name) {
-    String user = serviceArgs.user
+  @VisibleForTesting
+  public int actionExists(String name) {
+    ApplicationReport instance = findInstance(serviceArgs.user, name)
+    return (instance != null) ? EXIT_SUCCESS : EXIT_FALSE;
+  }
+
+  @VisibleForTesting
+  public ApplicationReport findInstance(String user, String name) {
     List<ApplicationReport> instances = listHoyaInstances(user);
     ApplicationReport instance = instances.find { ApplicationReport report ->
-      report.name == name 
+      report.name == name
     }
-    return (instance != null) ? EXIT_SUCCESS : EXIT_FALSE;
+    return instance
+  }
+
+  @VisibleForTesting
+  public HoyaAppMasterProtocol connect(ApplicationReport report) {
+    String host = report.host
+    int port = report.rpcPort
+    String address= report.host + ":" + port;
+    if (!host || !port ) {
+      throw new HoyaException(EXIT_CONNECTIVTY_PROBLEM,
+                              "Hoya instance $report.name isn't" +
+                              " providing a valid address for the" +
+                              " Hoya RPC protocol: <$address>")
+    }
+    InetSocketAddress addr = NetUtils.createSocketAddrForHost(host, port);
+    log.debug("Connecting to Hoya Server at " + addr);
+    HoyaAppMasterProtocol hoyaServer = (HoyaAppMasterProtocol) RPC.getProxy(
+        HoyaAppMasterProtocol,
+        HoyaAppMasterProtocol.versionID,
+        addr,
+        getConfig());
+    return hoyaServer;
+  }
+  /**
+   * Status operation; 'name' arg defines cluster name.
+   * @return
+   */
+  @VisibleForTesting
+  public int actionStatus() {
+    String status = getClusterStatus()
+    log.info(status);
+    return EXIT_SUCCESS
+  }
+
+  @VisibleForTesting
+  public String getClusterStatus() {
+    ApplicationReport instance = findInstance(serviceArgs.user, name)
+    if (!instance) {
+      throw new HoyaException(EXIT_CONNECTIVTY_PROBLEM,
+                              "Hoya cluster not found: '$name' ")
+    }
+    HoyaAppMasterProtocol appMaster = connect(instance);
+    String status = appMaster.getClusterStatus();
+    return status
   }
 }

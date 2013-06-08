@@ -40,7 +40,7 @@ public class HoyaException extends ServiceLaunchException implements
   }
 
   public HoyaException(int code, String s, Throwable throwable) {
-    super(EXIT_EXCEPTION_THROWN, s, throwable);
+    super(code, s, throwable);
   }
 
 

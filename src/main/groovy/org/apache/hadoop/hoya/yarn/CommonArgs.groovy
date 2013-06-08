@@ -49,10 +49,11 @@ public class CommonArgs {
 
   public static final String ARG_ZOOKEEPER = '--zookeeper'
 
+  public static final String ARG_X_TEST = '--Xtest'
   /** for testing only: {@value} */
   public static final String ARG_X_HBASE_COMMAND = '--Xhbase-command'
   public static final String ARG_X_NO_MASTER = '--Xnomaster'
-  public static final String ARG_X_TEST = '--Xtest'
+
 
 
   public static final String ERROR_NO_ACTION = "No action specified"
@@ -92,11 +93,11 @@ public class CommonArgs {
   @Parameter(names = '--help', help = true)
   public boolean help;
   
-  @Parameter(names = "--hbasehome",
+  @Parameter(names = '--hbasehome',
       description = "HBase home dir for starting pre-installed binaries")
   public String hbasehome;
 
-  @Parameter(names = "--hbasezkpath",
+  @Parameter(names = '--hbasezkpath',
       description = "HBase Zookeeper path")
   public String hbasezkpath;
 
@@ -104,11 +105,11 @@ public class CommonArgs {
   @Parameter(names = '--Xtest', description = "Test mode")
   public boolean xTest = false;
 
-  @Parameter(names = "--user",
+  @Parameter(names = '--user',
       description = "username if not self")
   public String user = System.getProperty("user.name");
   
-  @Parameter(names = "--zookeeper",
+  @Parameter(names = '--zookeeper',
       description = "Zookeeper connection string")
   public String zookeeper;
   
@@ -123,26 +124,25 @@ public class CommonArgs {
 
    */
 
-  @Parameter(names = "-D", description = "Definitions")
+  @Parameter(names = '-D', description = "Definitions")
   public List<String> definitions = new ArrayList<String>();
   public Map<String, String> definitionMap = [:]
 
-  @Parameter(names = "--min", description = "Minimum number of nodes")
+  @Parameter(names = '--min', description = "Minimum number of nodes")
   public int min = 0;
 
-  @Parameter(names = "--max",
+  @Parameter(names = '--max',
       description = "Maximum number of nodes")
   public int max = -1
 
 
-  @Parameter(names = "--Xhbase-command",
+  @Parameter(names = '--Xhbase-command',
       description = "testing only: hbase command to exec")
-  public String hbaseCommand="master";
+  public String hbaseCommand = "master";
 
   @Parameter(names = '--Xnomaster',
       description = "testing only: no master at all")
   public boolean xNoMaster = false;
-
   
   
   /**

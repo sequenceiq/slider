@@ -20,77 +20,48 @@
 
 
 
-package org.apache.hadoop.hoya.yarn.cluster
+package org.apache.hadoop.hoya.yarn.cluster.actions
 
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
+import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
-import org.junit.Before
 import org.junit.Test
 
 /**
  * Test of RM creation. This is so the later test's prereq's can be met
  */
 @Commons
-class TestActionList extends YarnMiniClusterTestBase {
+class TestHBaseVersionCommand extends YarnMiniClusterTestBase {
 
-  @Before
-  public void setup() {
-    createCluster("TestActionList", new YarnConfiguration(), 1, false)
-  }
-  
   @Test
-  public void testListThisUserNoClusters() throws Throwable {
+  public void testHBaseVersionCommand() throws Throwable {
+    createMiniCluster("TestHBaseVersionCommand", new YarnConfiguration(), 1, true)
     log.info("RM address = ${RMAddr}")
     ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
         //config includes RM binding info
         new YarnConfiguration(miniCluster.config),
         //varargs list of command line params
-        [ClientArgs.ACTION_LIST,
-        ClientArgs.ARG_MANAGER, RMAddr]
+        [
+            ClientArgs.ACTION_CREATE, "TestHBaseVersionCommand",
+            CommonArgs.ARG_MIN, "1",
+            CommonArgs.ARG_MAX, "1",
+            ClientArgs.ARG_MANAGER, RMAddr,
+            CommonArgs.ARG_USER, USERNAME,
+            CommonArgs.ARG_HBASE_HOME, HBaseHome,
+            CommonArgs.ARG_ZOOKEEPER, microZKCluster.zkBindingString,
+            CommonArgs.ARG_HBASE_ZKPATH, "/test/TestClusterAMCreation",
+            ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
+            CommonArgs.ARG_X_TEST,
+            CommonArgs.ARG_X_HBASE_COMMAND, "version"
+        ]
     )
     assert launcher.serviceExitCode == 0
     HoyaClient hoyaClient = (HoyaClient) launcher.service
-  }
-  
-  @Test
-  public void testListAllUsersNoClusters() throws Throwable {
-    log.info("RM address = ${RMAddr}")
-    ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
-        //config includes RM binding info
-        new YarnConfiguration(miniCluster.config),
-        //varargs list of command line params
-        [ClientArgs.ACTION_LIST,
-        ClientArgs.ARG_MANAGER, RMAddr,
-        ClientArgs.ARG_USER,""]
-    )
-    assert launcher.serviceExitCode == 0
-  }
-
-  @Test
-  public void testListLiveCluster() throws Throwable {
-    //launch fake master
-    String name = "testListLiveCluster"
-    
-    //launch the cluster
-    ServiceLauncher launcher = createMasterlessAM(name, 0)
-    
-    //now list
-    launcher = launchHoyaClientAgainstMiniMR(
-        //config includes RM binding info
-        new YarnConfiguration(miniCluster.config),
-        //varargs list of command line params
-        [ClientArgs.ACTION_LIST,
-        ClientArgs.ARG_MANAGER, RMAddr,
-        CommonArgs.ARG_USER, USERNAME]
-        
-    )
-    HoyaClient hoyaClient = (HoyaClient) launcher.service
 
   }
-
 
 }

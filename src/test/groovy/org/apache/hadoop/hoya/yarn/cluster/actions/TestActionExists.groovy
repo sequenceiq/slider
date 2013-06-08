@@ -16,41 +16,49 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.cluster
+
+
+
+
+
+
+package org.apache.hadoop.hoya.yarn.cluster.actions
 
 import groovy.util.logging.Commons
+import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.hoya.yarn.client.ClientArgs
+import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.conf.YarnConfiguration
+import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
+import org.junit.Before
 import org.junit.Test
 
 /**
  * Test of RM creation. This is so the later test's prereq's can be met
  */
 @Commons
-class TestCreateMiniClusterCreation extends YarnMiniClusterTestBase {
+class TestActionExists extends YarnMiniClusterTestBase {
 
-  @Test
-  public void testHoyaTestConfigFound() throws Throwable {
-    String hbaseHome = getHBaseHome()
-
-    assert hbaseHome != null && !hbaseHome.isEmpty()
-    File hbaseHomeDir = new File(hbaseHome)
-    assert hbaseHomeDir.exists()
-    assert hbaseHomeDir.isDirectory()
-    File hbaseBinDir = new File(hbaseHomeDir, "bin")
-    assert hbaseBinDir.exists() && hbaseHomeDir.isDirectory()
-    File hbaseShell = new File(hbaseBinDir, "hbase")
-    assert hbaseShell.exists()
-    File hbaseSite = new File(hbaseHomeDir, "conf/" + HBASE_SITE);
-    assert hbaseSite.exists()
-
+  @Before
+  public void setup() {
+    createMiniCluster("TestActionListNoInstances", new YarnConfiguration(), 1, false)
   }
-
-
+  
   @Test
-  public void testYARNClusterCreation() throws Throwable {
-    createMiniCluster("testYARNClusterCreation", new YarnConfiguration(), 1, true)
-    String rmAddr = getRMAddr();
-
-    log.info("RM address = $rmAddr")
+  public void testExistsFailsWithNoClusters() throws Throwable {
+    log.info("RM address = ${RMAddr}")
+    ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
+        //config includes RM binding info
+        new YarnConfiguration(miniCluster.config),
+        //varargs list of command line params
+        [
+        ClientArgs.ACTION_EXISTS,
+        "unknown-cluster",
+        ClientArgs.ARG_MANAGER, RMAddr
+        ],
+    )
+    assert launcher.serviceExitCode == HoyaExitCodes.EXIT_FALSE;
   }
+  
+
 }

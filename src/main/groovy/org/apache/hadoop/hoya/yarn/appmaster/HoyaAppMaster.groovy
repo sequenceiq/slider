@@ -23,7 +23,7 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.hadoop.hoya.HoyaApp
 import org.apache.hadoop.hoya.HoyaExitCodes
-import org.apache.hadoop.hoya.api.HoyaAppMasterApi
+import org.apache.hadoop.hoya.api.HoyaAppMasterProtocol
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.exec.RunLongLivedApp
 import org.apache.hadoop.hoya.tools.Env
@@ -68,7 +68,7 @@ class HoyaAppMaster extends CompositeService
     implements AMRMClientAsync.CallbackHandler,
       RunService,
       HoyaExitCodes,
-      HoyaAppMasterApi {
+      HoyaAppMasterProtocol {
 
   // YARN RPC to communicate with the Resource Manager or Node Manager
   private static final boolean VERBOSE_RPC = false
@@ -185,7 +185,7 @@ class HoyaAppMaster extends CompositeService
     InetSocketAddress address = YarnUtils.getRmSchedulerAddress(conf)
     log.info("RM is at $address")
     rpc = YarnRPC.create(conf);
-    def proxy = rpc.getProxy(AMRMProtocol.class, address, conf);
+//    AMRMProtocol proxy = (AMRMProtocol)rpc.getProxy(AMRMProtocol, address, conf);
 
     ContainerId containerId = ConverterUtils.toContainerId(
         Env.mandatory(ApplicationConstants.Environment.CONTAINER_ID.name()));
@@ -262,8 +262,12 @@ class HoyaAppMaster extends CompositeService
     }
     String confDir = "/Users/ddas/workspace/confYarnHBase";
     launchSequence = ["--config", confDir] + launchSequence;
-    launchHBaseServer(launchSequence,
-                      ["HBASE_LOG_DIR": logdir]);
+    if (serviceArgs.xNoMaster) {
+      log.info "skipping master launch as xNoMaster is set"
+    } else {
+      launchHBaseServer(launchSequence,
+                        ["HBASE_LOG_DIR": logdir]);
+    }
     
     //if we get here: success
     success = true;
@@ -354,7 +358,7 @@ class HoyaAppMaster extends CompositeService
    */
   private Server startAMActionsServer() {
     server = new RPC.Builder(config)
-        .setProtocol(HoyaAppMasterApi.class)
+        .setProtocol(HoyaAppMasterProtocol.class)
         .setInstance(this)
 //        .setBindAddress(ADDRESS)
         .setPort(0)
@@ -526,6 +530,9 @@ class HoyaAppMaster extends CompositeService
    */
   @Override //AMRMClientAsync
   public float getProgress() {
+    if (serviceArgs.xNoMaster) {
+      return 25f;
+    }
     if (!hbaseMaster) {
       return 0f;
     }
@@ -557,13 +564,18 @@ class HoyaAppMaster extends CompositeService
   }
 
   @Override   //HoyaAppMasterApi
-  void rmNodes(int nodes) throws IOException {
+  void deleteNodes(int nodes) throws IOException {
     log.info("HoyaAppMasterApi.rmNodes($nodes)")
   }
 
   @Override   //HoyaAppMasterApi
   long getProtocolVersion(String protocol, long clientVersion) throws IOException {
     return versionID
+  }
+
+  @Override
+  String getClusterStatus() throws IOException {
+    return "{'live':true}";
   }
 
   @Override   //HoyaAppMasterApi

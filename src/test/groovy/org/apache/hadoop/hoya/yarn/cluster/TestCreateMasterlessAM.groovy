@@ -25,9 +25,10 @@
 package org.apache.hadoop.hoya.yarn.cluster
 
 import groovy.util.logging.Commons
-import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
+import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Before
@@ -37,28 +38,51 @@ import org.junit.Test
  * Test of RM creation. This is so the later test's prereq's can be met
  */
 @Commons
-class TestActionExists extends YarnMiniClusterTestBase {
+class TestCreateMasterlessAM extends YarnMiniClusterTestBase {
 
   @Before
   public void setup() {
-    createCluster("TestActionListNoInstances", new YarnConfiguration(), 1, false)
   }
-  
+
   @Test
-  public void testExistsFailsWithNoClusters() throws Throwable {
-    log.info("RM address = ${RMAddr}")
-    ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
+  public void testCreateMasterlessAM() throws Throwable {
+    createMiniCluster("TestCreateMasterlessAM", new YarnConfiguration(), 1, true)
+
+    //launch fake master
+    String clustername = "TestCreateMasterlessAM"
+    String zk = microZKCluster.zkBindingString
+    String hbaseHome = HBaseHome
+    String rmAddr = RMAddr
+    ServiceLauncher launcher
+    launcher = launchHoyaClientAgainstMiniMR(
         //config includes RM binding info
         new YarnConfiguration(miniCluster.config),
         //varargs list of command line params
         [
-        ClientArgs.ACTION_EXISTS,
-        "unknown-cluster",
-        ClientArgs.ARG_MANAGER, RMAddr
-        ],
+            ClientArgs.ACTION_CREATE, "testAMCreations",
+            CommonArgs.ARG_MIN, "1",
+            CommonArgs.ARG_MAX, "1",
+            ClientArgs.ARG_MANAGER, rmAddr,
+            CommonArgs.ARG_USER, USERNAME,
+            CommonArgs.ARG_HBASE_HOME, hbaseHome,
+            CommonArgs.ARG_ZOOKEEPER, zk,
+            CommonArgs.ARG_HBASE_ZKPATH, "/test/TestClusterAMCreation",
+//            ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
+            CommonArgs.ARG_X_TEST,
+            CommonArgs.ARG_X_HBASE_COMMAND, "version"
+        ]
     )
-    assert launcher.serviceExitCode == HoyaExitCodes.EXIT_FALSE;
+    assert launcher.serviceExitCode == 0
+    Thread.sleep(30000)
+    //launch the cluster
+//    launcher = createMasterlessAM(clustername, 0)
+    HoyaClient hoyaClient = (HoyaClient) launcher.service
+    ApplicationReport instance = hoyaClient.findInstance(USERNAME, clustername)
+    assert instance != null
+
+    log.info(instance.toString())
+
   }
-  
+
 
 }

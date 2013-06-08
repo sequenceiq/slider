@@ -25,10 +25,11 @@ import java.io.IOException;
 /** 
  * API for AM operations
  */
-public interface HoyaAppMasterApi extends VersionedProtocol {
+public interface HoyaAppMasterProtocol extends VersionedProtocol {
   public static final long versionID = 0x01;
   
   public void stopCluster() throws IOException;
   public void addNodes(int nodes) throws IOException;
-  public void rmNodes(int nodes) throws IOException;
+  public void deleteNodes(int nodes) throws IOException;
+  public String getClusterStatus() throws IOException;
 }

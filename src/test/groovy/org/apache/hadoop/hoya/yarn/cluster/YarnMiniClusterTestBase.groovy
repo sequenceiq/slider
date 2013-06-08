@@ -22,18 +22,18 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.yarn.CommonArgs
+import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.MicroZKCluster
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
-import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
-import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.server.MiniYARNCluster
 import org.apache.hadoop.yarn.server.resourcemanager.ResourceManager
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.ResourceScheduler
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fifo.FifoScheduler
-import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.service.ServiceOperations
+import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
+import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
 import org.junit.After
 import org.junit.Before
 
@@ -72,7 +72,7 @@ implements KeysForTests {
    * @param numLocalDirs #of local dirs
    * @param numLogDirs #of log dirs
    */
-  protected void createCluster(String name,
+  protected void createMiniCluster(String name,
                                YarnConfiguration conf,
                                int noOfNodeManagers,
                                int numLocalDirs,
@@ -89,7 +89,7 @@ implements KeysForTests {
       microZKCluster = new MicroZKCluster(new Configuration(conf))
       microZKCluster.createCluster();
     }
-    
+
   }
 
   /**
@@ -100,8 +100,8 @@ implements KeysForTests {
    * @param numLocalDirs #of local dirs
    * @param numLogDirs #of log dirs
    */
-  protected void createCluster(String name, YarnConfiguration conf, int noOfNodeManagers, boolean startZK) {
-    createCluster(name, conf, noOfNodeManagers, 1, 1, startZK)
+  protected void createMiniCluster(String name, YarnConfiguration conf, int noOfNodeManagers, boolean startZK) {
+    createMiniCluster(name, conf, noOfNodeManagers, 1, 1, startZK)
   }
 
   /**
@@ -142,7 +142,7 @@ implements KeysForTests {
     conf.addResource(HOYA_TEST)
     return conf
   }
-  
+
   protected String getRMAddr() {
     assert miniCluster != null
     String addr = miniCluster.config.get(YarnConfiguration.RM_ADDRESS)
@@ -150,7 +150,7 @@ implements KeysForTests {
     assert addr != "";
     return addr
   }
-  
+
   protected String getZKBinding() {
     if (!microZKCluster) {
       return "localhost:1"
@@ -168,6 +168,7 @@ implements KeysForTests {
   public ServiceLauncher createMasterlessAM(String name, int size) {
     assert name != null
     assert miniCluster != null
+    assert microZKCluster != null
     List<String> args = [
         ClientArgs.ACTION_CREATE, name,
         CommonArgs.ARG_MIN, Integer.toString(size),
@@ -176,14 +177,12 @@ implements KeysForTests {
         CommonArgs.ARG_USER, USERNAME,
         CommonArgs.ARG_HBASE_HOME, HBaseHome,
         CommonArgs.ARG_ZOOKEEPER, ZKBinding,
-        CommonArgs.ARG_HBASE_ZKPATH, "/test/"+ name,
+        CommonArgs.ARG_HBASE_ZKPATH, "/test/" + name,
         CommonArgs.ARG_X_TEST,
         CommonArgs.ARG_X_NO_MASTER
     ]
     ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
-        //config includes RM binding info
         new YarnConfiguration(miniCluster.config),
-        //list of command line params
         args
     )
     assert launcher.serviceExitCode == 0

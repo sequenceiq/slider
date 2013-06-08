@@ -55,11 +55,12 @@ class ConfigHelper {
       setConfigEntry(self, mapEntry.key, mapEntry.value)  
     }
   }
-  public static def generateConfig(Map map, String appId, Path outputDirectory) {
+  public static Configuration generateConfig(Map map, String appId, Path outputDirectory) {
     Configuration conf = HBaseConfiguration.create();
     addConfigMap(conf, map)
     FSDataOutputStream fos = FileSystem.get(conf).create(new Path(outputDirectory, appId+"/hbase-site.xml"));
     conf.writeXml(fos);
     fos.close();
+    return conf
   }
 }
