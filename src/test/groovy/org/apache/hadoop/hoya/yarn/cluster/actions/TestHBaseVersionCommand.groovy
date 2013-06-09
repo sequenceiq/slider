@@ -23,6 +23,7 @@
 package org.apache.hadoop.hoya.yarn.cluster.actions
 
 import groovy.util.logging.Commons
+import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
@@ -61,7 +62,7 @@ class TestHBaseVersionCommand extends YarnMiniClusterTestBase {
     )
     assert launcher.serviceExitCode == 0
     HoyaClient hoyaClient = (HoyaClient) launcher.service
-
+    hoyaClient.monitorAppToCompletion(new Duration(30000))
   }
 
 }
