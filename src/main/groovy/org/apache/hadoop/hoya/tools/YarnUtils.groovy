@@ -26,9 +26,11 @@ import org.apache.hadoop.fs.FileSystem as FS
 import org.apache.hadoop.fs.FileUtil
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.IOUtils
+import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.api.records.LocalResource
 import org.apache.hadoop.yarn.api.records.LocalResourceType
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility
+import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.util.ConverterUtils
 import org.apache.hadoop.yarn.util.Records
@@ -97,5 +99,18 @@ class YarnUtils {
     }
     Configuration.addDefaultResource(f.getAbsolutePath());
     
+  }
+
+  public static boolean hasAppFinished(ApplicationReport report) {
+    return report==null || report.yarnApplicationState >= YarnApplicationState.FINISHED
+  }
+
+  public static String reportToString(ApplicationReport report) {
+    if (!report) {
+      return "Null application report"
+    }
+    return "App {${report.name}}/{$report.applicationType} user ${report.user}" +
+           " is in state ${report.yarnApplicationState}  " +
+           "RPC: ${report.host}:${report.rpcPort}"
   }
 }

@@ -24,6 +24,7 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.api.HoyaAppMasterProtocol
+import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
 import org.apache.hadoop.ipc.RPC
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.conf.Configuration
@@ -101,7 +102,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
   @Override
   public String getName() {
-    return serviceArgs.name
+    return serviceArgs.clusterName
   }
 
   @Override
@@ -136,15 +137,17 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     String action = serviceArgs.action
     List<String> actionArgs = serviceArgs.actionArgs
     int exitCode = EXIT_SUCCESS
-    String clusterName = getName();
+    String clusterName = serviceArgs.clusterName;
     //actions
     switch(action) {
 
       case ClientArgs.ACTION_CREATE:
+        validateClusterName(clusterName)
         exitCode = createAM(clusterName)
         break;
 
       case CommonArgs.ACTION_EXISTS:
+        validateClusterName(clusterName)
         exitCode = actionExists(clusterName)
         break;
 
@@ -157,12 +160,15 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
         break;
 
       case ClientArgs.ACTION_START:
-        //throw new HoyaException("Start: " + actionArgs[0])
+        validateClusterName(clusterName)
+    //throw new HoyaException("Start: " + actionArgs[0])
 
       case ClientArgs.ACTION_STATUS:
-        //throw new HoyaException("Start: " + actionArgs[0])
+        validateClusterName(clusterName)
+    //throw new HoyaException("Start: " + actionArgs[0])
 
       case ClientArgs.ACTION_STOP:
+        validateClusterName(clusterName)
 
       default:
         throw new HoyaException(EXIT_UNIMPLEMENTED,
@@ -172,6 +178,11 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     return exitCode
   }
 
+  protected void validateClusterName(String clustername) {
+    if (!HoyaUtils.isClusternameValid(clustername)) {
+      throw new BadCommandArgumentsException("Illegal cluster name: `$clustername`")
+    }
+  }
   
   /**
    * Create the AM
@@ -187,16 +198,15 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     // set the application id 
     appContext.applicationId = appId;
     // set the application name
-    // set the application name
-    String appName = getAppName()
-    //appContext.applicationName = clustername;
+    appContext.applicationName = clustername
     appContext.applicationType = HoyaKeys.APP_TYPE
 
     //check for debug mode
     if (serviceArgs.debug) {
       appContext.maxAppAttempts = 1
     }
-    String zkPath = ZKIntegration.mkClusterPath(getUsername(), clustername)
+    String username = getUsername()
+    String zkPath = ZKIntegration.mkClusterPath(username, clustername)
 
     // Set up the container launch context for the application master
     ContainerLaunchContext amContainer =
@@ -248,7 +258,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
       if (serviceArgs.generatedConfdir != null) {
         generatedConfDir = serviceArgs.generatedConfdir;
       }
-      String subDirName = appName + "-" + getUsername() + "/" + "${appId.id}";
+      String subDirName = appName + "-" + username + "/" + "${appId.id}";
       Configuration config = ConfigHelper.generateConfig(
           [
               "hdfs.rootdir": hdfsRootDir.toString(),
@@ -365,7 +375,6 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     commands << "services/hoya/"
     commands << "1>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/out.txt";
     commands << "2>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/err.txt";
-    StringBuilder cmd = new StringBuilder();
 
     String cmdStr = commands.join(" ")
     log.info("Completed setting up app master command $cmdStr");
@@ -408,18 +417,37 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
     //submit the application
     applicationId = submitApplication(appContext)
-    int exitCode = EXIT_SUCCESS
 
-    if (serviceArgs.waittime != 0) {
-      //waiting for state to change
-      Duration duration = new Duration(serviceArgs.waittime)
-      duration.start()
-      exitCode = monitorApplication(applicationId, duration)
+    int exitCode
+    //wait for the submit state to be reached
+    ApplicationReport report = monitorAppToState(new Duration(60000),
+                                                 YarnApplicationState.ACCEPTED);
+    
+    //may have failed, so check that
+    if (YarnUtils.hasAppFinished(report)) {
+      exitCode = buildExitCode(appId, report)
+    } else {
+      //exit unless there is a wait
+      exitCode = EXIT_SUCCESS
+
+      if (serviceArgs.waittime != 0) {
+        //waiting for state to change
+        Duration duration = new Duration(serviceArgs.waittime)
+        duration.start()
+        report = monitorAppToState(duration,
+                                   YarnApplicationState.RUNNING);
+        if (report.yarnApplicationState== YarnApplicationState.RUNNING) {
+          exitCode = EXIT_SUCCESS
+        } else {
+          exitCode = buildExitCode(appId, report)
+        }
+      }
     }
     return exitCode
   }
 
-  private String getUsername() {
+
+  public String getUsername() {
     return UserGroupInformation.getCurrentUser().getShortUserName();
   }
 
@@ -520,34 +548,38 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   }
 
 /**
- * Monitor the submitted application for completion. 
- * Kill application if time expires. 
+ * Monitor the submitted application for reaching the requested state.
+ * Will also report if the app reaches a later state (failed, killed, etc)
+ * Kill application if duration!= null & time expires. 
  * @param appId Application Id of application to be monitored
+ * @param duration how long to wait
+ * @param desiredState desired state.
  * @return true if application completed successfully
  * @throws YarnException
  * @throws IOException
  */
-  private int monitorApplication(ApplicationId appId,
-      Duration duration)
+  @VisibleForTesting
+  public int monitorAppToCompletion(Duration duration)
   throws YarnException, IOException {
 
-    while (true) {
 
-      // Check app status every 1 second.
-      try {
-        Thread.sleep(1000);
-      } catch (InterruptedException ignored) {
-        log.debug("Thread sleep in monitoring loop interrupted");
-      }
+    ApplicationReport report = monitorAppToState(duration,
+                                                 YarnApplicationState.FINISHED)
 
-      // Get application report for the appId we are interested in 
-      ApplicationReport report = getApplicationReport(appId);
+    return buildExitCode(applicationId, report)
+  }
 
-      log.info("Got application report from ASM for, appId=${report.applicationId.id}, clientToken=${report.clientToken}, appDiagnostics=${report.diagnostics}, appMasterHost=${report.host}, appQueue=${report.queue}, appMasterRpcPort=${report.rpcPort}, appStartTime=${report.startTime}, yarnAppState=${report.yarnApplicationState}, distributedFinalState=${report.finalApplicationStatus}, appTrackingUrl=${report.trackingUrl}, appUser=${report.user}");
+  private int buildExitCode(ApplicationId appId, ApplicationReport report) {
+    if (!report) {
+      log.info("Reached client specified timeout for application. Killing application");
+      forceKillApplication();
+      return EXIT_TIMED_OUT;
+    }
 
-      YarnApplicationState state = report.yarnApplicationState;
-      FinalApplicationStatus dsStatus = report.finalApplicationStatus;
-      if (YarnApplicationState.FINISHED == state) {
+    YarnApplicationState state = report.yarnApplicationState
+    FinalApplicationStatus dsStatus = report.finalApplicationStatus;
+    switch (state) {
+      case YarnApplicationState.FINISHED:
         if (FinalApplicationStatus.SUCCEEDED == dsStatus) {
           log.info("Application has completed successfully");
           return EXIT_SUCCESS;
@@ -557,32 +589,70 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
                    ". Breaking monitoring loop");
           return EXIT_YARN_SERVICE_FINISHED_WITH_ERROR;
         }
-      } else if (YarnApplicationState.KILLED == state ) {
+
+      case YarnApplicationState.KILLED:
         log.info("Application did not finish. YarnState=$state, DSFinalStatus=$dsStatus");
         return EXIT_YARN_SERVICE_KILLED;
-      } else if (YarnApplicationState.FAILED == state) {
+
+      case YarnApplicationState.FAILED:
         log.info("Application Failed. YarnState=$state, DSFinalStatus=$dsStatus");
         return EXIT_YARN_SERVICE_FAILED;
+      default:
+        //not in any of these states
+        return EXIT_SUCCESS;
+    }
+  }
+/**
+ * Monitor the submitted application for reaching the requested state.
+ * Will also report if the app reaches a later state (failed, killed, etc)
+ * Kill application if duration!= null & time expires. 
+ * @param appId Application Id of application to be monitored
+ * @param duration how long to wait
+ * @param desiredState desired state.
+ * @return the application report -null on a timeout
+ * @throws YarnException
+ * @throws IOException
+ */
+  @VisibleForTesting
+  public ApplicationReport monitorAppToState(
+      Duration duration, YarnApplicationState desiredState)
+  throws YarnException, IOException {
+
+    while (true) {
+
+
+      // Get application report for the appId we are interested in 
+      ApplicationReport report = getApplicationReport(applicationId);
+
+      log.info("Got application report from ASM for, appId=${applicationId}, clientToken=${report.clientToken}, appDiagnostics=${report.diagnostics}, appMasterHost=${report.host}, appQueue=${report.queue}, appMasterRpcPort=${report.rpcPort}, appStartTime=${report.startTime}, yarnAppState=${report.yarnApplicationState}, distributedFinalState=${report.finalApplicationStatus}, appTrackingUrl=${report.trackingUrl}, appUser=${report.user}");
+
+      YarnApplicationState state = report.yarnApplicationState;
+      if (state>=desiredState) {
+        return report;
+      }
+      if (duration.limitExceeded) {
+        return null;
       }
 
-        if (duration.limitExceeded) {
-        log.info("Reached client specified timeout for application. Killing application");
-        forceKillApplication(appId);
-        return EXIT_TIMED_OUT;
+      // sleep 1s.
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException ignored) {
+        log.debug("Thread sleep in monitoring loop interrupted");
       }
     }
-
   }
 
   /**
-   * Kill a submitted application by sending a call to the ASM
-   * @param appId Application Id to be killed. 
+   * Kill the submitted application by sending a call to the ASM
    * @throws YarnException
    * @throws IOException
    */
-  private void forceKillApplication(ApplicationId appId)
-      throws YarnException, IOException {
-    super.killApplication(appId);
+  public void forceKillApplication()
+  throws YarnException, IOException {
+    if (applicationId != null) {
+      killApplication(applicationId);
+    }
   }
 
   /**
@@ -631,17 +701,24 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    */
   @VisibleForTesting
   public int actionExists(String name) {
-    ApplicationReport instance = findInstance(serviceArgs.user, name)
+    ApplicationReport instance = findInstance(getUsername(), name)
     return (instance != null) ? EXIT_SUCCESS : EXIT_FALSE;
   }
 
   @VisibleForTesting
-  public ApplicationReport findInstance(String user, String name) {
+  public ApplicationReport findInstance(String user, String appname) {
+    log.debug("Looing for instances of user $user")
     List<ApplicationReport> instances = listHoyaInstances(user);
-    ApplicationReport instance = instances.find { ApplicationReport report ->
-      report.name == name
+    log.debug("Found $instances of user $user")
+    ApplicationReport found = null;
+    instances.each { ApplicationReport report ->
+      log.info("Report named ${report.name}")
+      if (report.name == appname) {
+        log.info("match!")
+        found = report;
+      }
     }
-    return instance
+    return found;
   }
 
   @VisibleForTesting
@@ -677,7 +754,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
   @VisibleForTesting
   public String getClusterStatus() {
-    ApplicationReport instance = findInstance(serviceArgs.user, name)
+    ApplicationReport instance = findInstance(getUsername(), name)
     if (!instance) {
       throw new HoyaException(EXIT_CONNECTIVTY_PROBLEM,
                               "Hoya cluster not found: '$name' ")
@@ -686,4 +763,5 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     String status = appMaster.getClusterStatus();
     return status
   }
+
 }

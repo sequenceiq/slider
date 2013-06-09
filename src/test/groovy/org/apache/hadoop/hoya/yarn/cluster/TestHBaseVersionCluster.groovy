@@ -21,9 +21,12 @@
 package org.apache.hadoop.hoya.yarn.cluster
 
 import groovy.util.logging.Commons
+import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
+import org.apache.hadoop.yarn.api.records.ApplicationReport
+import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
@@ -32,10 +35,12 @@ import org.junit.Test
  * Test of RM creation. This is so the later test's prereq's can be met
  */
 @Commons
-class TestClusterAMCreation extends YarnMiniClusterTestBase {
+class TestHBaseVersionCluster extends YarnMiniClusterTestBase {
 
   @Test
-  public void testClusterAMCreation() throws Throwable {
+  public void testClusterAMrunningVersionCommand() throws Throwable {
+    describe "create a cluster, exec the version command"
+    
     createMiniCluster("testClusterAMCreation", new YarnConfiguration(), 1, true)
     log.info("RM address = ${RMAddr}")
     ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
@@ -43,7 +48,7 @@ class TestClusterAMCreation extends YarnMiniClusterTestBase {
         new YarnConfiguration(miniCluster.config),
         //varargs list of command line params
         [
-            ClientArgs.ACTION_CREATE, "testAMCreations",
+            ClientArgs.ACTION_CREATE, "testAMversion",
             CommonArgs.ARG_MIN, "1",
             CommonArgs.ARG_MAX, "1",
             ClientArgs.ARG_MANAGER, RMAddr,
@@ -58,6 +63,8 @@ class TestClusterAMCreation extends YarnMiniClusterTestBase {
     )
     assert launcher.serviceExitCode == 0
     HoyaClient hoyaClient = (HoyaClient) launcher.service
+    hoyaClient.monitorAppToCompletion(new Duration(30000))
+
 
   }
 

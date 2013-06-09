@@ -25,13 +25,15 @@
 package org.apache.hadoop.hoya.yarn.cluster
 
 import groovy.util.logging.Commons
+import org.apache.hadoop.hoya.tools.Duration
+import org.apache.hadoop.hoya.tools.YarnUtils
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.yarn.api.records.ApplicationReport
+import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
-import org.junit.Before
 import org.junit.Test
 
 /**
@@ -40,16 +42,16 @@ import org.junit.Test
 @Commons
 class TestCreateMasterlessAM extends YarnMiniClusterTestBase {
 
-  @Before
-  public void setup() {
-  }
+
 
   @Test
-  public void testCreateMasterlessAM() throws Throwable {
-    createMiniCluster("TestCreateMasterlessAM", new YarnConfiguration(), 1, true)
+  public void testHoyaMasterRMLookup() throws Throwable {
+    createMiniCluster("testHoyaMasterRMLookup", new YarnConfiguration(), 1, true)
+    
+    describe "create a masteress AM then get the service and look it up via the AM"
 
     //launch fake master
-    String clustername = "TestCreateMasterlessAM"
+    String clustername = "testHoyaMasterRMLookup"
     String zk = microZKCluster.zkBindingString
     String hbaseHome = HBaseHome
     String rmAddr = RMAddr
@@ -57,32 +59,41 @@ class TestCreateMasterlessAM extends YarnMiniClusterTestBase {
     launcher = launchHoyaClientAgainstMiniMR(
         //config includes RM binding info
         new YarnConfiguration(miniCluster.config),
-        //varargs list of command line params
+        // list of command line params
         [
-            ClientArgs.ACTION_CREATE, "testAMCreations",
+            ClientArgs.ACTION_CREATE, clustername,
             CommonArgs.ARG_MIN, "1",
             CommonArgs.ARG_MAX, "1",
             ClientArgs.ARG_MANAGER, rmAddr,
             CommonArgs.ARG_USER, USERNAME,
             CommonArgs.ARG_HBASE_HOME, hbaseHome,
             CommonArgs.ARG_ZOOKEEPER, zk,
-            CommonArgs.ARG_HBASE_ZKPATH, "/test/TestClusterAMCreation",
-//            ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
+            CommonArgs.ARG_HBASE_ZKPATH, "/test/$clustername",
+            ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
             CommonArgs.ARG_X_TEST,
-            CommonArgs.ARG_X_HBASE_COMMAND, "version"
         ]
     )
-    assert launcher.serviceExitCode == 0
-    Thread.sleep(30000)
     //launch the cluster
 //    launcher = createMasterlessAM(clustername, 0)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
-    ApplicationReport instance = hoyaClient.findInstance(USERNAME, clustername)
+
+    ApplicationReport report = hoyaClient.monitorAppToState(new Duration(30000),
+                                                            YarnApplicationState.RUNNING)
+    assert report != null;
+    logReport(report)
+    List<ApplicationReport> apps = hoyaClient.applicationList;
+    String username = hoyaClient.username
+    describe("list of all applications")
+    logApplications(apps)
+    describe("apps of user $username")
+    logApplications(hoyaClient.listHoyaInstances(username))
+    describe("named app $clustername")
+    ApplicationReport instance = hoyaClient.findInstance(username, clustername)
+    logReport(instance)
     assert instance != null
 
-    log.info(instance.toString())
-
   }
+
 
 
 }

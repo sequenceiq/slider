@@ -21,11 +21,13 @@ package org.apache.hadoop.hoya.yarn.cluster
 import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.hoya.tools.YarnUtils
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.MicroZKCluster
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
+import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.server.MiniYARNCluster
 import org.apache.hadoop.yarn.server.resourcemanager.ResourceManager
@@ -60,8 +62,22 @@ implements KeysForTests {
 
   @After
   public void teardown() {
+    describe("teardown")
     ServiceOperations.stopQuietly(log, miniCluster)
     microZKCluster?.close();
+  }
+
+  /**
+   * Print a description with some markers to
+   * indicate this is the test description
+   * @param s
+   */
+  protected void describe(String s) {
+    log.info("");
+    log.info("===============================");
+    log.info(s);
+    log.info("===============================");
+    log.info("");
   }
 
   /**
@@ -111,22 +127,25 @@ implements KeysForTests {
    * @return the service launcher that launched it, containing exit codes
    * and the service itself
    */
-  protected ServiceLauncher launchHoyaClient(Configuration conf, List<String> args) {
+  protected ServiceLauncher launchHoyaClient(Configuration conf, List args) {
     return launch(HoyaClient, conf, args);
   }
 
   /**
-   * Launch the hoya client with the specific args
+   * Launch the hoya client with the specific args against the MiniMR cluster
+   * launcher ie expected to have successfully completed
    * @param conf configuration
    * @param args arg list
    * @return the return code
    */
   protected ServiceLauncher launchHoyaClientAgainstMiniMR(Configuration conf,
-                                                          List<String> args) {
+                                                          List args) {
     ResourceManager rm = miniCluster.resourceManager
     log.info("Connecting to rm at ${rm}")
 
-    return launch(HoyaClient, conf, args);
+    ServiceLauncher launcher = launch(HoyaClient, conf, args)
+    assert launcher.serviceExitCode == 0
+    return launcher;
   }
 
 
@@ -187,5 +206,15 @@ implements KeysForTests {
     )
     assert launcher.serviceExitCode == 0
     return launcher
+  }
+
+
+  public void logReport(ApplicationReport report) {
+    log.info(YarnUtils.reportToString(report))
+  }
+
+
+  public void logApplications(List<ApplicationReport> apps) {
+    apps.each { ApplicationReport r -> logReport(r) }
   }
 }

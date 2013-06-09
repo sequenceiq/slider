@@ -39,10 +39,10 @@ class HoyaUtils {
     println(convertArgsToString(args));
   }
 
-  static void dumpConf(Configuration conf) {
+  public static void dumpConf(Configuration conf) {
     TreeSet<String> keys = sortedConfigKeys(conf);
     keys.each { key ->
-      println("$key = ${conf.get((String)key)}")
+      println("$key = ${conf.get((String) key)}")
     }
   }
 
@@ -54,7 +54,7 @@ class HoyaUtils {
     builder.toString();
   }
 
-  static long dumpDir(Log dumpLog, File dir, String pattern) {
+  public static long dumpDir(Log dumpLog, File dir, String pattern) {
     if (!dir.exists()) {
       dumpLog.warn("Not found: ${dir}");
       return -1;
@@ -64,7 +64,7 @@ class HoyaUtils {
       return -1;
     }
     long size = 0;
-    dir.eachFile { File file->
+    dir.eachFile { File file ->
       long l = dumpFile(dumpLog, file)
       if (file.name.startsWith(pattern)) {
         size += l
@@ -73,17 +73,17 @@ class HoyaUtils {
     size;
   }
 
-  static long dumpFile(Log dumpLog, File file) {
+  public static long dumpFile(Log dumpLog, File file) {
     long length = file.length()
     dumpLog.info("File : ${file} of size ${length}")
     length
   }
 
-  static String convertToUrl(File file) {
+  public static String convertToUrl(File file) {
     return file.toURI().toString();
   }
 
-  static def deleteDirectoryTree(File dir) {
+  public static def deleteDirectoryTree(File dir) {
     if (dir.exists()) {
       if (dir.isDirectory()) {
         log.info("Cleaning up $dir")
@@ -158,8 +158,8 @@ class HoyaUtils {
       socket.connect(address, connectTimeout);
     } catch (Exception e) {
       throw new IOException("Failed to connect to $name at $address" +
-                                 " after $connectTimeout millisconds" +
-                                 ": $e" ,e);
+                            " after $connectTimeout millisconds" +
+                            ": $e", e);
     } finally {
       IOUtils.closeQuietly(socket)
     }
@@ -216,7 +216,40 @@ class HoyaUtils {
         throw new ExitException(-1, "Not a directory: " + dir.canonicalPath)
       }
     }
-    dir
+    return dir
   }
 
+  /**
+   * Normalize a cluster name then verify that it is valid
+   * @param name proposed cluster name
+   * @return true iff it is valid
+   */
+  public static boolean isClusternameValid(String name) {
+    if (!name) {
+      return false
+    };
+    name = normalizeClusterName(name)
+    int first = name.charAt(0)
+    if (!Character.isLetter(first)) {
+      return false;
+    }
+
+    for (int i = 0; i < name.length(); i++) {
+      int elt = (int) name.charAt(i)
+      if (!Character.isLetterOrDigit(elt) && elt != '-') {
+        return false
+      } 
+    }
+    return true;
+  }
+
+  /**
+   * Perform whatever operations are needed to make different
+   * case cluster names consistent
+   * @param name cluster name
+   * @return the normalized one (currently: the lower case name)
+   */
+  public static String normalizeClusterName(String name) {
+    return name.toLowerCase(Locale.ENGLISH)
+  }
 }

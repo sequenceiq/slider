@@ -40,7 +40,7 @@ public class ServiceLauncherBaseTest extends Assert {
    */
   protected ServiceLauncher launch(Class serviceClass,
                                 Configuration conf,
-                                List<String> args) throws
+                                List<Object> args) throws
                                     Throwable {
     ServiceLauncher serviceLauncher =
       new ServiceLauncher(serviceClass.getName());
@@ -50,8 +50,12 @@ public class ServiceLauncherBaseTest extends Assert {
     return serviceLauncher;
   }
 
-  protected static String[] toArray(List<String> args) {
-    return args.toArray(new String[args.size()]);
+  protected static String[] toArray(List args) {
+    String[] converted= new String[args.size()];
+    for (int i=0;i<args.size();i++) {
+      converted[i] = args.get(i).toString();
+    }
+    return converted;
   }
 
   /**
@@ -63,7 +67,7 @@ public class ServiceLauncherBaseTest extends Assert {
   protected void launchExpectingException(Class serviceClass,
                                        Configuration conf,
                                        String expectedText,
-                                       List<String> args) throws
+                                       List args) throws
                                                        Throwable {
     ServiceLauncher serviceLauncher =
       new ServiceLauncher(serviceClass.getName());

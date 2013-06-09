@@ -150,6 +150,7 @@ public class CommonArgs {
    */
   JCommander commander;
   String action
+  //action arguments; 
   List<String> actionArgs
   final String[] args
   //
@@ -157,8 +158,8 @@ public class CommonArgs {
    * get the name: relies on arg 1 being the cluster name in all operations 
    * @return the name argument, null if there is none
    */
-  String getName() {
-    return actionArgs.isEmpty()? null: args[0] 
+  String getClusterName() {
+    return (actionArgs.isEmpty() || args.length<2 )? null : args[1] 
   }
 
   public CommonArgs(String[] args) {

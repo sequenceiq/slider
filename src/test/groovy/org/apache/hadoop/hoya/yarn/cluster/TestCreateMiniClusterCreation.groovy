@@ -30,6 +30,7 @@ class TestCreateMiniClusterCreation extends YarnMiniClusterTestBase {
 
   @Test
   public void testHoyaTestConfigFound() throws Throwable {
+    describe("verify that hbase home points to a cluster configuration dir")
     String hbaseHome = getHBaseHome()
 
     assert hbaseHome != null && !hbaseHome.isEmpty()
@@ -48,6 +49,7 @@ class TestCreateMiniClusterCreation extends YarnMiniClusterTestBase {
 
   @Test
   public void testYARNClusterCreation() throws Throwable {
+    describe "Create a mini cluster"
     createMiniCluster("testYARNClusterCreation", new YarnConfiguration(), 1, true)
     String rmAddr = getRMAddr();
 
