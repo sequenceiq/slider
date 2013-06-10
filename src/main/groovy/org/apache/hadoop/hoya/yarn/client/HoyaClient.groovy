@@ -156,16 +156,21 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
         break;
 
       case CommonArgs.ACTION_LIST:
-        exitCode = actionList()
+        if (clusterName != null) {
+          validateClusterName(clusterName)
+        }
+
+        exitCode = actionList(clusterName)
         break;
 
       case ClientArgs.ACTION_START:
         validateClusterName(clusterName)
-    //throw new HoyaException("Start: " + actionArgs[0])
+        throw new HoyaException("Start: " + actionArgs[0])
 
       case ClientArgs.ACTION_STATUS:
         validateClusterName(clusterName)
-    //throw new HoyaException("Start: " + actionArgs[0])
+        exitCode = actionStatus();
+        break;
 
       case ClientArgs.ACTION_STOP:
         validateClusterName(clusterName)
@@ -436,7 +441,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
         duration.start()
         report = monitorAppToState(duration,
                                    YarnApplicationState.RUNNING);
-        if (report.yarnApplicationState== YarnApplicationState.RUNNING) {
+        if (report.yarnApplicationState == YarnApplicationState.RUNNING) {
           exitCode = EXIT_SUCCESS
         } else {
           exitCode = buildExitCode(appId, report)
@@ -627,10 +632,12 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
       log.info("Got application report from ASM for, appId=${applicationId}, clientToken=${report.clientToken}, appDiagnostics=${report.diagnostics}, appMasterHost=${report.host}, appQueue=${report.queue}, appMasterRpcPort=${report.rpcPort}, appStartTime=${report.startTime}, yarnAppState=${report.yarnApplicationState}, distributedFinalState=${report.finalApplicationStatus}, appTrackingUrl=${report.trackingUrl}, appUser=${report.user}");
 
       YarnApplicationState state = report.yarnApplicationState;
-      if (state>=desiredState) {
+      if (state >= desiredState) {
+        log.debug("App in desired state (or higher) : $state")
         return report;
       }
       if (duration.limitExceeded) {
+        log.debug("Time limit exceeded")
         return null;
       }
 
@@ -679,21 +686,37 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * @return exit code of 0 if a list was created
    */
   @VisibleForTesting
-  public int actionList() {
+  public int actionList(String clustername) {
     String user = serviceArgs.user
     List<ApplicationReport> instances = listHoyaInstances(user);
-    log.info("Hoya instances for ${user?user:'all users'} : ${instances.size()} ");
-    instances.each { ApplicationReport report ->
-      log.info("Name        : ${report.name}")
-      log.info("YARN status : ${report.yarnApplicationState}")
-      log.info("Start Time  : ${report.startTime}")
-      log.info("Finish Time : ${report.startTime}")
-      log.info("RPC         : ${report.host}:${report.rpcPort}")
-      log.info("Diagnostics : ${report.diagnostics}")
+
+    if (!clustername) {
+      log.info("Hoya instances for ${user ? user : 'all users'} : ${instances.size()} ");
+      instances.each { ApplicationReport report ->
+        logAppReport(report)
+      }
+      return EXIT_SUCCESS;
+    } else {
+      log.debug("Listing cluster named $clustername")
+      ApplicationReport report = findClusterInInstanceList(instances, clustername)
+      if (report) {
+        logAppReport(report)
+        return EXIT_SUCCESS;
+      } else {
+        throw unknownClusterException(clustername)
+      }
     }
-    return EXIT_SUCCESS;
   }
-  
+
+  public void logAppReport(ApplicationReport report) {
+    log.info("Name        : ${report.name}")
+    log.info("YARN status : ${report.yarnApplicationState}")
+    log.info("Start Time  : ${report.startTime}")
+    log.info("Finish Time : ${report.startTime}")
+    log.info("RPC         : ${report.host}:${report.rpcPort}")
+    log.info("Diagnostics : ${report.diagnostics}")
+  }
+
   /**
    * Implement the islive action: probe for a cluster of the given name existing
    * 
@@ -702,19 +725,25 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   @VisibleForTesting
   public int actionExists(String name) {
     ApplicationReport instance = findInstance(getUsername(), name)
-    return (instance != null) ? EXIT_SUCCESS : EXIT_FALSE;
+    if (!instance) {
+      throw unknownClusterException(name)
+    }
+    return EXIT_SUCCESS;
   }
 
   @VisibleForTesting
   public ApplicationReport findInstance(String user, String appname) {
-    log.debug("Looing for instances of user $user")
+    log.debug("Looking for instances of user $user")
     List<ApplicationReport> instances = listHoyaInstances(user);
     log.debug("Found $instances of user $user")
+    return findClusterInInstanceList(instances, appname)
+  }
+
+  public ApplicationReport findClusterInInstanceList(List<ApplicationReport> instances, String appname) {
     ApplicationReport found = null;
     instances.each { ApplicationReport report ->
-      log.info("Report named ${report.name}")
+      log.debug("Report named ${report.name}")
       if (report.name == appname) {
-        log.info("match!")
         found = report;
       }
     }
@@ -747,21 +776,25 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    */
   @VisibleForTesting
   public int actionStatus() {
-    String status = getClusterStatus()
+    String status = getClusterStatus(name)
     log.info(status);
     return EXIT_SUCCESS
   }
 
   @VisibleForTesting
-  public String getClusterStatus() {
-    ApplicationReport instance = findInstance(getUsername(), name)
+  public String getClusterStatus(String clustername) {
+    ApplicationReport instance = findInstance(getUsername(), clustername)
     if (!instance) {
-      throw new HoyaException(EXIT_CONNECTIVTY_PROBLEM,
-                              "Hoya cluster not found: '$name' ")
+      throw unknownClusterException(clustername)
     }
     HoyaAppMasterProtocol appMaster = connect(instance);
     String status = appMaster.getClusterStatus();
     return status
+  }
+
+  public HoyaException unknownClusterException(String clustername) {
+    return new HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER,
+                            "Hoya cluster not found: '${clustername}' ")
   }
 
 }

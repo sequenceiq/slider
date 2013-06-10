@@ -77,9 +77,7 @@ class TestCreateMasterlessAM extends YarnMiniClusterTestBase {
 //    launcher = createMasterlessAM(clustername, 0)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
 
-    ApplicationReport report = hoyaClient.monitorAppToState(new Duration(30000),
-                                                            YarnApplicationState.RUNNING)
-    assert report != null;
+    ApplicationReport report = waitForClusterLive(hoyaClient)
     logReport(report)
     List<ApplicationReport> apps = hoyaClient.applicationList;
     String username = hoyaClient.username
@@ -93,7 +91,6 @@ class TestCreateMasterlessAM extends YarnMiniClusterTestBase {
     assert instance != null
 
   }
-
 
 
 }

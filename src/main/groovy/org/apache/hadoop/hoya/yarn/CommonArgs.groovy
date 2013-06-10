@@ -167,6 +167,13 @@ public class CommonArgs {
     commander = new JCommander(this)
   }
 
+  public CommonArgs(Collection args) {
+    List<String> argsAsStrings = args*.toString();
+    this.args = argsAsStrings.toArray(new String[argsAsStrings.size()])
+    commander = new JCommander(this)
+  }
+  
+
   public String usage() {
     StringBuilder builder = new StringBuilder("\n")
     commander.usage(builder, "  ")
@@ -181,9 +188,9 @@ public class CommonArgs {
     try {
       commander.parse(args)
     } catch (ParameterException e) {
-      throw new BadCommandArgumentsException(e.toString()
-                                                       + " with " + args.join(" ")
-                                                   , e)
+      throw new BadCommandArgumentsException(e.toString() +
+                           " with " + args.join(" "),
+                           e)
     }
   }
 
@@ -226,9 +233,9 @@ public class CommonArgs {
     List<Object> actionOpts = actionMap[action]
     if (!actionOpts) {
       throw new BadCommandArgumentsException(ERROR_UNKNOWN_ACTION
-                                                       + action
-          + " in " + args.join(" ")
-                                                       + usage())
+                                                 + action
+                                                 + " in " + args.join(" ")
+                                                 + usage())
     }
     assert actionOpts.size() >= 2
     actionArgs = parameters.subList(1, parameters.size())

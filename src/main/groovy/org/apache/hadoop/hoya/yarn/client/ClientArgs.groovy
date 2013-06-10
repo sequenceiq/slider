@@ -115,7 +115,7 @@ class ClientArgs extends CommonArgs {
       (ACTION_GETSIZE):   ["get the size of a cluster", 1],
       (ACTION_EXISTS):    ["probe for a cluster being live", 1],
       (ACTION_HELP):      ["Print Help information", 0],
-      (ACTION_LIST):      ["List running cluster", 0],
+      (ACTION_LIST):      ["List running cluster", 0, 1],
       (ACTION_MIGRATE):   ["migrate cluster to a new HBase version", 1],
       (ACTION_ADDNODE):   ["add nodes", 1],
       (ACTION_PREFLIGHT): ["Perform preflight checks", 0],
@@ -128,6 +128,10 @@ class ClientArgs extends CommonArgs {
   ]
 
   ClientArgs(String[] args) {
+    super(args)
+  }
+
+  ClientArgs(Collection args) {
     super(args)
   }
 

@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.cluster
 import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.tools.YarnUtils
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.KeysForTests
@@ -28,6 +29,7 @@ import org.apache.hadoop.hoya.yarn.MicroZKCluster
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.yarn.api.records.ApplicationReport
+import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.server.MiniYARNCluster
 import org.apache.hadoop.yarn.server.resourcemanager.ResourceManager
@@ -37,6 +39,7 @@ import org.apache.hadoop.yarn.service.ServiceOperations
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
 import org.junit.After
+import org.junit.Assert
 import org.junit.Before
 
 /**
@@ -52,6 +55,7 @@ implements KeysForTests {
   /**
    * Mini YARN cluster only
    */
+  public static final int CLUSTER_GO_LIVE_TIME = 60000
   protected MiniYARNCluster miniCluster;
   protected MicroZKCluster microZKCluster
 
@@ -143,6 +147,9 @@ implements KeysForTests {
     ResourceManager rm = miniCluster.resourceManager
     log.info("Connecting to rm at ${rm}")
 
+    if (!args.contains(ClientArgs.ARG_MANAGER)) {
+      args += [ClientArgs.ARG_MANAGER, RMAddr]
+    }
     ServiceLauncher launcher = launch(HoyaClient, conf, args)
     assert launcher.serviceExitCode == 0
     return launcher;
@@ -187,7 +194,6 @@ implements KeysForTests {
   public ServiceLauncher createMasterlessAM(String name, int size) {
     assert name != null
     assert miniCluster != null
-    assert microZKCluster != null
     List<String> args = [
         ClientArgs.ACTION_CREATE, name,
         CommonArgs.ARG_MIN, Integer.toString(size),
@@ -198,6 +204,7 @@ implements KeysForTests {
         CommonArgs.ARG_ZOOKEEPER, ZKBinding,
         CommonArgs.ARG_HBASE_ZKPATH, "/test/" + name,
         CommonArgs.ARG_X_TEST,
+        ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
         CommonArgs.ARG_X_NO_MASTER
     ]
     ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
@@ -217,4 +224,17 @@ implements KeysForTests {
   public void logApplications(List<ApplicationReport> apps) {
     apps.each { ApplicationReport r -> logReport(r) }
   }
+
+  /**
+   * Wait for the cluster live; fail if it isn't within the (standard) timeout
+   * @param hoyaClient client
+   * @return the app report of the live cluster
+   */
+  public ApplicationReport waitForClusterLive(HoyaClient hoyaClient) {
+    ApplicationReport report = hoyaClient.monitorAppToState(new Duration(CLUSTER_GO_LIVE_TIME),
+                                                            YarnApplicationState.RUNNING)
+    assertNotNull("Cluster did not go live in the time $CLUSTER_GO_LIVE_TIME", report);
+    return report
+  }
+
 }

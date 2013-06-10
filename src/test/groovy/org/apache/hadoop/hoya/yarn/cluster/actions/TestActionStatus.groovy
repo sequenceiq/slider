@@ -25,6 +25,8 @@
 package org.apache.hadoop.hoya.yarn.cluster.actions
 
 import groovy.util.logging.Commons
+import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
@@ -45,16 +47,43 @@ class TestActionStatus extends YarnMiniClusterTestBase {
   public void setup() {
     createMiniCluster("TestActionStatus", new YarnConfiguration(), 1, false)
   }
+
+  @Test
+  public void testStatusMissingCluster() throws Throwable {
+    describe("create exec the status command against an unknown cluster")
+    //launch fake master
+    //launch the cluster
+    //exec the status command
+    try {
+      launcher = launchHoyaClientAgainstMiniMR(
+          //config includes RM binding info
+          new YarnConfiguration(miniCluster.config),
+          //varargs list of command line params
+          [
+              ClientArgs.ACTION_STATUS,
+              "testStatusMissingCluster",
+              ClientArgs.ARG_MANAGER, RMAddr,
+              CommonArgs.ARG_USER, USERNAME
+          ]
+      )
+      fail("expected an exception, got a status code " + launcher.serviceExitCode)
+    } catch (HoyaException e) {
+      assert e.exitCode == HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER
+    }
+  }
   
   @Test
   public void testStatusLiveCluster() throws Throwable {
+    describe("create a live cluster then exec the status command")
     //launch fake master
     String clustername = "testStatusLiveCluster"
     
     //launch the cluster
     ServiceLauncher launcher = createMasterlessAM(clustername, 0)
-    
-    //now list
+
+    ApplicationReport report = waitForClusterLive((HoyaClient)launcher.service)
+
+    //now exec the status command
     launcher = launchHoyaClientAgainstMiniMR(
         //config includes RM binding info
         new YarnConfiguration(miniCluster.config),

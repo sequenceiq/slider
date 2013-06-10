@@ -56,4 +56,10 @@ public interface HoyaExitCodes extends LauncherExitCodes {
   int EXIT_YARN_SERVICE_FINISHED_WITH_ERROR = _EXIT_CODE_BASE + 5;
 
 
+  /**
+   * the cluster is unknown: {@value}
+   */
+  int EXIT_UNKNOWN_HOYA_CLUSTER = _EXIT_CODE_BASE + 6;
+
+
 }

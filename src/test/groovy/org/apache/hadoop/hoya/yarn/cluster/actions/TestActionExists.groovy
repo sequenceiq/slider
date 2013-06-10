@@ -26,6 +26,7 @@ package org.apache.hadoop.hoya.yarn.cluster.actions
 
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.conf.YarnConfiguration
@@ -45,19 +46,23 @@ class TestActionExists extends YarnMiniClusterTestBase {
   }
   
   @Test
-  public void testExistsFailsWithNoClusters() throws Throwable {
+  public void testExistsFailsWithUnknownCluster() throws Throwable {
     log.info("RM address = ${RMAddr}")
-    ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
-        //config includes RM binding info
-        new YarnConfiguration(miniCluster.config),
-        //varargs list of command line params
-        [
-        ClientArgs.ACTION_EXISTS,
-        "unknown-cluster",
-        ClientArgs.ARG_MANAGER, RMAddr
-        ],
-    )
-    assert launcher.serviceExitCode == HoyaExitCodes.EXIT_FALSE;
+    try {
+      ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
+          //config includes RM binding info
+          new YarnConfiguration(miniCluster.config),
+          //varargs list of command line params
+          [
+          ClientArgs.ACTION_EXISTS,
+          "unknown-cluster",
+          ClientArgs.ARG_MANAGER, RMAddr
+          ],
+      )
+      fail("expected an exception, got a status code "+ launcher.serviceExitCode)
+    } catch (HoyaException e) {
+      assert e.exitCode == HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER
+    }
   }
   
 

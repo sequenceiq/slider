@@ -23,6 +23,8 @@
 package org.apache.hadoop.hoya.yarn.cluster.actions
 
 import groovy.util.logging.Commons
+import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
@@ -89,10 +91,9 @@ class TestActionList extends YarnMiniClusterTestBase {
         //config includes RM binding info
         new YarnConfiguration(miniCluster.config),
         //varargs list of command line params
-        [ClientArgs.ACTION_LIST,
-        ClientArgs.ARG_MANAGER, RMAddr,
-        CommonArgs.ARG_USER, USERNAME]
-        
+        [
+            ClientArgs.ACTION_LIST,
+        ]
     )
     assert launcher.serviceExitCode == 0
     //now look for the explicit sevice
@@ -104,6 +105,40 @@ class TestActionList extends YarnMiniClusterTestBase {
     assert instance != null
     log.info(instance.toString())
 
+    //now list with the named cluster
+    launcher = launchHoyaClientAgainstMiniMR(
+        //config includes RM binding info
+        new YarnConfiguration(miniCluster.config),
+        //varargs list of command line params
+        [
+            ClientArgs.ACTION_LIST, clustername
+        ]
+    )
+
+  }
+
+
+
+  @Test
+  public void testListMissingCluster() throws Throwable {
+    describe("create exec the status command against an unknown cluster")
+    //launch fake master
+    //launch the cluster
+    //exec the status command
+    try {
+      launcher = launchHoyaClientAgainstMiniMR(
+          //config includes RM binding info
+          new YarnConfiguration(miniCluster.config),
+          //varargs list of command line params
+          [
+              ClientArgs.ACTION_LIST,
+              "testStatusMissingCluster"
+          ]
+      )
+      fail("expected an exception, got a status code " + launcher.serviceExitCode)
+    } catch (HoyaException e) {
+      assert e.exitCode == HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER
+    }
   }
 
 
