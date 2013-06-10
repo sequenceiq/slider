@@ -49,7 +49,6 @@ class ClientArgs extends CommonArgs {
   public static final String ARG_FILESYSTEM = "--fs"
   public static final String ARG_FORMAT = "--format"
   public static final String ARG_IMAGE = "--image"
-  public static final String ARG_MANAGER = "--manager"
   public static final String ARG_WAIT = "--wait"
 
 
@@ -99,9 +98,6 @@ class ClientArgs extends CommonArgs {
           converter = PathArgumentConverter)
   Path generatedConfdir
 
-  @Parameter(names = ["--m","--manager"],
-      description = "hostname:port of the YARN resource manager")
-  String manager;
 
 
 

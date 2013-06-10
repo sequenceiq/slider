@@ -23,4 +23,6 @@ public interface HoyaKeys {
   String HBASE_SITE = "hbase-site.xml";
 
   String APP_TYPE = "HOYA-HBASE";
+
+  String JAVA_FORCE_IPV4 = "-Djava.net.preferIPv4Stack=true";
 }

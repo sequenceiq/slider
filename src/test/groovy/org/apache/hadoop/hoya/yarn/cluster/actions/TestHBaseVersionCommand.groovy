@@ -62,7 +62,7 @@ class TestHBaseVersionCommand extends YarnMiniClusterTestBase {
     )
     assert launcher.serviceExitCode == 0
     HoyaClient hoyaClient = (HoyaClient) launcher.service
-    hoyaClient.monitorAppToCompletion(new Duration(30000))
+    hoyaClient.monitorAppToCompletion(new Duration(WAIT_TIME))
   }
 
 }

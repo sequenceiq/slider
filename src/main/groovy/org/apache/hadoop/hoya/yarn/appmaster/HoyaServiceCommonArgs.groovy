@@ -31,15 +31,9 @@ class HoyaServiceCommonArgs extends CommonArgs {
   /**
    * Path for the ZK instance (required)
    */
-  public static final String ARG_ZK_PATH = "--zkpath"
   public static final String ARG_RM_ADDR = "--rm"
   public static final String ARG_FILESYSTEM = "--filesystem"
 
-
-  @Parameter(names = "--zkpath",
-      description = "Zookeeper cluster path",
-      required = true)
-  public String zkPath;
 
   @Parameter(names = "--rm",
       description = "Resource manager hostname:port ",

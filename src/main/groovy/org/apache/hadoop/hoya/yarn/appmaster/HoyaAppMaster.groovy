@@ -20,6 +20,7 @@ package org.apache.hadoop.hoya.yarn.appmaster
 
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.hadoop.hoya.HoyaApp
 import org.apache.hadoop.hoya.HoyaExitCodes
@@ -33,7 +34,6 @@ import org.apache.hadoop.ipc.ProtocolSignature
 import org.apache.hadoop.ipc.RPC
 import org.apache.hadoop.ipc.Server
 import org.apache.hadoop.net.NetUtils
-import org.apache.hadoop.yarn.api.AMRMProtocol
 import org.apache.hadoop.yarn.api.ApplicationConstants
 import org.apache.hadoop.yarn.api.ContainerExitStatus
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse
@@ -119,6 +119,8 @@ class HoyaAppMaster extends CompositeService
   String[] argv
   private HoyaMasterServiceArgs serviceArgs
   private float progressCounter = 0.0f
+  private ClusterDescription clusterDescription = new ClusterDescription();
+  //hbase command
   private RunLongLivedApp hbaseMaster;
 
 
@@ -180,6 +182,12 @@ class HoyaAppMaster extends CompositeService
    * @throws Throwable on a failure
    */
   public int createAndRunCluster(String clustername) throws Throwable {
+    clusterDescription.name = clustername;
+    clusterDescription.state = ClusterDescription.STATE_CREATED;
+    clusterDescription.startTime = System.currentTimeMillis();
+    clusterDescription.zkConnection = serviceArgs.zookeeper
+    clusterDescription.zkPath = serviceArgs.hbasezkpath
+    
     YarnConfiguration conf = new YarnConfiguration(config);
 
     InetSocketAddress address = YarnUtils.getRmSchedulerAddress(conf)
@@ -220,9 +228,9 @@ class HoyaAppMaster extends CompositeService
     //set up the hostname & port details
     //initially: blank
     RPC.Builder rpcBuilder = new RPC.Builder(conf)
-    rpcBuilder.protocol=HoyaAppMasterProtocol
-    rpcBuilder.instance=this
-    rpcBuilder.numHandlers=1
+    rpcBuilder.protocol = HoyaAppMasterProtocol
+    rpcBuilder.instance = this
+    rpcBuilder.numHandlers = 1
     if (serviceArgs.xTest) {
       rpcBuilder.verbose = true
     }
@@ -230,7 +238,8 @@ class HoyaAppMaster extends CompositeService
     server.start();
     
     
-    appMasterHostname = server.listenerAddress.hostName
+    String hostname = NetUtils.getConnectAddress(server).hostName
+    appMasterHostname = hostname ;
     appMasterRpcPort = server.port;
     appMasterTrackingUrl = null;
     log.info("Server is at $appMasterHostname:$appMasterRpcPort")
@@ -283,6 +292,11 @@ class HoyaAppMaster extends CompositeService
     
     //if we get here: success
     success = true;
+    clusterDescription.state= ClusterDescription.STATE_STARTED;
+    clusterDescription.maxMasterNodes = clusterDescription.minMasterNodes = 1;
+    clusterDescription.masterNodes = [
+        new ClusterDescription.ClusterNode(hostname)
+    ]
     
     while (!done) {
       try {
@@ -504,15 +518,15 @@ class HoyaAppMaster extends CompositeService
   }
 
   /**
-   * RM wants to reboot the AM
+   * RM wants to shut down the AM
    */
   @Override //AMRMClientAsync
-  public void onRebootRequest() {
-    log.info("Reboot requested")
+  void onShutdownRequest() {
+    log.info("Shutdown requested")
     done = true;
-  }
 
-  /**
+  }
+/**
    * Monitored nodes have been changed
    * @param updatedNodes list of updated notes
    */
@@ -587,7 +601,7 @@ class HoyaAppMaster extends CompositeService
 
   @Override
   String getClusterStatus() throws IOException {
-    return "{'live':true}";
+    return clusterDescription.toJsonString();
   }
 
   @Override   //HoyaAppMasterApi

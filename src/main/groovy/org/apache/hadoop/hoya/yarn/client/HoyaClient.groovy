@@ -23,6 +23,7 @@ import com.google.common.annotations.VisibleForTesting
 import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.HoyaKeys
+import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.HoyaAppMasterProtocol
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
 import org.apache.hadoop.ipc.RPC
@@ -327,7 +328,11 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     //build up the args list, intially as anyting
     List commands = []
     commands << ApplicationConstants.Environment.JAVA_HOME.$() + "/bin/java"
+    //insert any JVM options
+    commands << HoyaKeys.JAVA_FORCE_IPV4;
+    //add the generic sevice entry point
     commands << ServiceLauncher.ENTRY_POINT
+    //immeiately followed by the classname
     commands << HoyaMasterServiceArgs.CLASSNAME
     //now the app specific args
     commands << HoyaMasterServiceArgs.ARG_DEBUG
@@ -351,27 +356,30 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
       commands << serviceArgs.zookeeper
     }
     if (serviceArgs.hbasehome) {
+      //HBase home
       commands << HoyaMasterServiceArgs.ARG_HBASE_HOME
       commands << serviceArgs.hbasehome
     }
     if (serviceArgs.hbasezkpath) {
+      //HBase ZK path
       commands << HoyaMasterServiceArgs.ARG_HBASE_ZKPATH
       commands << serviceArgs.hbasezkpath
     }
     if (serviceArgs.hbaseCommand) {
+      //explicit hbase command set
       commands << CommonArgs.ARG_X_HBASE_COMMAND 
       commands << serviceArgs.hbaseCommand
     }
     if (serviceArgs.xTest) {
+      //test flag set
       commands << CommonArgs.ARG_X_TEST 
     }
     if (serviceArgs.xNoMaster) {
+      //server is not to create the master, just come up.
+      //purely for test purposes
       commands << CommonArgs.ARG_X_NO_MASTER 
     }
   
-    commands << HoyaMasterServiceArgs.ARG_ZK_PATH
-    commands << zkPath
-
     commands << HoyaMasterServiceArgs.ARG_FILESYSTEM
     commands << config.get(FS.FS_DEFAULT_NAME_KEY);
 
@@ -612,7 +620,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
  * Will also report if the app reaches a later state (failed, killed, etc)
  * Kill application if duration!= null & time expires. 
  * @param appId Application Id of application to be monitored
- * @param duration how long to wait
+ * @param duration how long to wait -must be more than 0
  * @param desiredState desired state.
  * @return the application report -null on a timeout
  * @throws YarnException
@@ -623,6 +631,10 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
       Duration duration, YarnApplicationState desiredState)
   throws YarnException, IOException {
 
+    duration.start();
+    if (duration.limit <= 0) {
+      throw new YarnException("Invalid duration of monitoring");
+    }
     while (true) {
 
 
@@ -637,7 +649,6 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
         return report;
       }
       if (duration.limitExceeded) {
-        log.debug("Time limit exceeded")
         return null;
       }
 
@@ -781,20 +792,22 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    */
   @VisibleForTesting
   public int actionStatus() {
-    String status = getClusterStatus(name)
-    log.info(status);
+    ClusterDescription status = getClusterStatus(name)
+    log.info(status.toJsonString());
     return EXIT_SUCCESS
   }
 
   @VisibleForTesting
-  public String getClusterStatus(String clustername) {
+  public ClusterDescription getClusterStatus(String clustername) {
     ApplicationReport instance = findInstance(getUsername(), clustername)
     if (!instance) {
       throw unknownClusterException(clustername)
     }
     HoyaAppMasterProtocol appMaster = connect(instance);
-    String status = appMaster.getClusterStatus();
-    return status
+    String statusJson = appMaster.getClusterStatus()
+    log.info(statusJson)
+    ClusterDescription cd = ClusterDescription.fromJson(statusJson)
+    return cd
   }
 
   public HoyaException unknownClusterException(String clustername) {

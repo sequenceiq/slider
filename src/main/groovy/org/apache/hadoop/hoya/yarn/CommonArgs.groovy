@@ -75,6 +75,8 @@ public class CommonArgs {
   public static final String ACTION_HELP = "help"
   public static final String ACTION_EXISTS = "exists"
   public static final String ACTION_LIST = "list"
+  public static final String ARG_MANAGER = "--manager"
+
   public static final String ACTION_MIGRATE = "migrate"
   public static final String ACTION_PREFLIGHT = "preflight"
   public static final String ACTION_RECONFIGURE = "reconfigure"
@@ -131,6 +133,11 @@ public class CommonArgs {
   @Parameter(names = '--min', description = "Minimum number of nodes")
   public int min = 0;
 
+
+  @Parameter(names = ["--m", "--manager"],
+      description = "hostname:port of the YARN resource manager")
+  String manager;
+  
   @Parameter(names = '--max',
       description = "Maximum number of nodes")
   public int max = -1
