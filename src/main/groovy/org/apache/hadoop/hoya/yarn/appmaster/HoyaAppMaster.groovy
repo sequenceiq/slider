@@ -219,9 +219,21 @@ class HoyaAppMaster extends CompositeService
     
     //set up the hostname & port details
     //initially: blank
-    appMasterHostname = "localhost";
-    appMasterRpcPort = 22;
+    RPC.Builder rpcBuilder = new RPC.Builder(conf)
+    rpcBuilder.protocol=HoyaAppMasterProtocol
+    rpcBuilder.instance=this
+    rpcBuilder.numHandlers=1
+    if (serviceArgs.xTest) {
+      rpcBuilder.verbose = true
+    }
+    server = rpcBuilder.build()
+    server.start();
+    
+    
+    appMasterHostname = server.listenerAddress.hostName
+    appMasterRpcPort = server.port;
     appMasterTrackingUrl = null;
+    log.info("Server is at $appMasterHostname:$appMasterRpcPort")
 
     // Setup local RPC Server to accept status requests directly from clients
     // TODO need to setup a protocol for client to be able to communicate to

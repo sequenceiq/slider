@@ -763,11 +763,16 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     }
     InetSocketAddress addr = NetUtils.createSocketAddrForHost(host, port);
     log.debug("Connecting to Hoya Server at " + addr);
-    HoyaAppMasterProtocol hoyaServer = (HoyaAppMasterProtocol) RPC.getProxy(
-        HoyaAppMasterProtocol,
-        HoyaAppMasterProtocol.versionID,
-        addr,
-        getConfig());
+    def protoProxy = RPC.getProtocolProxy(HoyaAppMasterProtocol,
+                        HoyaAppMasterProtocol.versionID,
+                        addr,
+                        UserGroupInformation.getCurrentUser(),
+                        getConfig(),
+                        NetUtils.getDefaultSocketFactory(getConfig()),
+                        15000,
+                        null)
+    HoyaAppMasterProtocol hoyaServer = protoProxy.proxy
+    log.debug("Connected to Hoya Server at " + addr);
     return hoyaServer;
   }
   /**
