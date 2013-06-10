@@ -268,8 +268,15 @@ public class ServiceLauncher
    */
   public String getServiceName() {
     Service s = service;
+    String name = null;
     if (s != null) {
-      return "service " + s.getName();
+      try {
+        name = s.getName();
+      } catch (Exception ignored) {
+      }
+    }
+    if (name != null) {
+      return "service " + name;
     } else {
       return "service classname " + serviceClassName;
     }
