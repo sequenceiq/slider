@@ -101,9 +101,9 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     setArgs(args)
   }
 
-  @Override
+  @Override //Service
   public String getName() {
-    return serviceArgs.clusterName
+    return "Hoya"
   }
 
   @Override
@@ -170,7 +170,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
       case ClientArgs.ACTION_STATUS:
         validateClusterName(clusterName)
-        exitCode = actionStatus();
+        exitCode = actionStatus(clusterName);
         break;
 
       case ClientArgs.ACTION_STOP:
@@ -791,8 +791,8 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * @return
    */
   @VisibleForTesting
-  public int actionStatus() {
-    ClusterDescription status = getClusterStatus(name)
+  public int actionStatus(String clustername) {
+    ClusterDescription status = getClusterStatus(clustername)
     log.info(status.toJsonString());
     return EXIT_SUCCESS
   }

@@ -166,7 +166,8 @@ public class CommonArgs {
    * @return the name argument, null if there is none
    */
   String getClusterName() {
-    return (actionArgs.isEmpty() || args.length<2 )? null : args[1] 
+    return (actionArgs== null || actionArgs.isEmpty() || args.length<2 )? null
+    : args[1] 
   }
 
   public CommonArgs(String[] args) {
