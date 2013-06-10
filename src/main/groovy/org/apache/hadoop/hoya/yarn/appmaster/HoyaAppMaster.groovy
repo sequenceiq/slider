@@ -71,7 +71,7 @@ class HoyaAppMaster extends CompositeService
       HoyaAppMasterProtocol {
 
   // YARN RPC to communicate with the Resource Manager or Node Manager
-  private static final boolean VERBOSE_RPC = false
+  public static final int LAUNCHER_THREAD_SHUTDOWN_TIME = 10000
   private YarnRPC rpc;
   // Handle to communicate with the Resource Manager
   private AMRMClientAsync asyncRMClient;
@@ -110,6 +110,7 @@ class HoyaAppMaster extends CompositeService
    * Command to launch
    */
   private String hbaseCommand = "master"
+  private String hbaseRegionServer = "regionserver"
 
   // Launch threads
   private final List<Thread> launchThreads = new ArrayList<Thread>();
@@ -119,7 +120,7 @@ class HoyaAppMaster extends CompositeService
   String[] argv
   private HoyaMasterServiceArgs serviceArgs
   private float progressCounter = 0.0f
-  private ClusterDescription clusterDescription = new ClusterDescription();
+  private final ClusterDescription clusterDescription = new ClusterDescription();
   //hbase command
   private RunLongLivedApp hbaseMaster;
 
@@ -225,18 +226,8 @@ class HoyaAppMaster extends CompositeService
     asyncRMClient.init(conf);
     asyncRMClient.start();
     
-    //set up the hostname & port details
-    //initially: blank
-    RPC.Builder rpcBuilder = new RPC.Builder(conf)
-    rpcBuilder.protocol = HoyaAppMasterProtocol
-    rpcBuilder.instance = this
-    rpcBuilder.numHandlers = 1
-    if (serviceArgs.xTest) {
-      rpcBuilder.verbose = true
-    }
-    server = rpcBuilder.build()
-    server.start();
-    
+
+    startAMActionsServer();
     
     String hostname = NetUtils.getConnectAddress(server).hostName
     appMasterHostname = hostname ;
@@ -276,11 +267,12 @@ class HoyaAppMaster extends CompositeService
       logdir =  "/tmp/hoya-" + UserGroupInformation.getCurrentUser().getShortUserName();
     }
     serviceArgs.hbaseCommand
-    List<String> launchSequence = ["start", serviceArgs.hbaseCommand];
+    List<String> launchSequence = [serviceArgs.hbaseCommand];
     
-    if (hbaseCommand=="version") {
-      launchSequence = [serviceArgs.hbaseCommand];
+    if (hbaseCommand !="version") {
+      launchSequence << "start";
     }
+    
     String confDir = "/Users/ddas/workspace/confYarnHBase";
     launchSequence = ["--config", confDir] + launchSequence;
     if (serviceArgs.xNoMaster) {
@@ -308,13 +300,27 @@ class HoyaAppMaster extends CompositeService
     return success ? EXIT_SUCCESS : EXIT_TASK_LAUNCH_FAILURE;
   }
 
+  /**
+   * shut down the cluster 
+   */
   private void finish() {
+    //stop the daemon
+    if (hbaseMaster) {
+      hbaseMaster.process?.destroy()
+      try {
+        int exitCode = hbaseMaster.process?.exitValue()
+        log.info("HBase master exit code=$exitCode")
+      } catch (IllegalThreadStateException e) {
+        log.warn("Master process has not yet finished", e)
+      }
+    }
+    
     // Join all launched threads
     // needed for when we time out
     // and we need to release containers
     for (Thread launchThread : launchThreads) {
       try {
-        launchThread.join(10000);
+        launchThread.join(LAUNCHER_THREAD_SHUTDOWN_TIME);
       } catch (InterruptedException e) {
         log.info("Exception thrown in thread join: $e", e);
       }
@@ -389,11 +395,11 @@ class HoyaAppMaster extends CompositeService
 //        .setBindAddress(ADDRESS)
         .setPort(0)
         .setNumHandlers(5)
-        .setVerbose(true)
+        .setVerbose(serviceArgs.xTest)
 //        .setSecretManager(sm)
         .build();
     server.start();
-    InetSocketAddress address = NetUtils.getConnectAddress(server);
+    
     server
   }
   
@@ -518,6 +524,15 @@ class HoyaAppMaster extends CompositeService
   }
 
   /**
+   * Update the cluster description with anything interesting
+   */
+  private void updateClusterDescription() {
+    synchronized (clusterDescription) {
+      //TODO
+    }
+  }
+  
+  /**
    * RM wants to shut down the AM
    */
   @Override //AMRMClientAsync
@@ -601,7 +616,9 @@ class HoyaAppMaster extends CompositeService
 
   @Override
   String getClusterStatus() throws IOException {
-    return clusterDescription.toJsonString();
+    synchronized (clusterDescription){
+      return clusterDescription.toJsonString(); 
+    }
   }
 
   @Override   //HoyaAppMasterApi

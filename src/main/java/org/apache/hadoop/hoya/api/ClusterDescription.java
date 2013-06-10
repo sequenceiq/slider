@@ -59,6 +59,7 @@ public class ClusterDescription {
    */
   public static class ClusterNode {
     public String name;
+    public String state;
 
     public ClusterNode(String name) {
       this.name = name;
@@ -67,115 +68,12 @@ public class ClusterDescription {
     public ClusterNode() {
     }
 
-    public String getName() {
-      return name;
-    }
-
-    public void setName(String name) {
-      this.name = name;
-    }
-
     @Override
     public String toString() {
-      return name;
+      return name + " - " + state;
     }
   }
 
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  public String getState() {
-    return state;
-  }
-
-  public void setState(String state) {
-    this.state = state;
-  }
-
-  public int getMinRegionNodes() {
-    return minRegionNodes;
-  }
-
-  public void setMinRegionNodes(int minRegionNodes) {
-    this.minRegionNodes = minRegionNodes;
-  }
-
-  public int getMaxRegionNodes() {
-    return maxRegionNodes;
-  }
-
-  public void setMaxRegionNodes(int maxRegionNodes) {
-    this.maxRegionNodes = maxRegionNodes;
-  }
-
-  public int getMinMasterNodes() {
-    return minMasterNodes;
-  }
-
-  public void setMinMasterNodes(int minMasterNodes) {
-    this.minMasterNodes = minMasterNodes;
-  }
-
-  public int getMaxMasterNodes() {
-    return maxMasterNodes;
-  }
-
-  public void setMaxMasterNodes(int maxMasterNodes) {
-    this.maxMasterNodes = maxMasterNodes;
-  }
-
-  public String getZkConnection() {
-    return zkConnection;
-  }
-
-  public void setZkConnection(String zkConnection) {
-    this.zkConnection = zkConnection;
-  }
-
-  public String getZkPath() {
-    return zkPath;
-  }
-
-  public void setZkPath(String zkPath) {
-    this.zkPath = zkPath;
-  }
-
-  public List<ClusterNode> getRegionNodes() {
-    return regionNodes;
-  }
-
-  public void setRegionNodes(List<ClusterNode> regionNodes) {
-    this.regionNodes = regionNodes;
-  }
-
-  public List<ClusterNode> getMasterNodes() {
-    return masterNodes;
-  }
-
-  public void setMasterNodes(List<ClusterNode> masterNodes) {
-    this.masterNodes = masterNodes;
-  }
-
-  public long getStartTime() {
-    return startTime;
-  }
-
-  public void setStartTime(long startTime) {
-    this.startTime = startTime;
-  }
-
-  public long getStopTime() {
-    return stopTime;
-  }
-
-  public void setStopTime(long stopTime) {
-    this.stopTime = stopTime;
-  }
 
   @Override
   public String toString() {

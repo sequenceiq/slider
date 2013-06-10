@@ -43,7 +43,6 @@ import org.apache.hadoop.yarn.util.Records
  */
 @Commons
 @CompileStatic
-
 class HoyaRegionServiceLauncher implements Runnable {
   HoyaAppMaster owner
   
@@ -84,8 +83,8 @@ class HoyaRegionServiceLauncher implements Runnable {
     command << HoyaMasterServiceArgs.ARG_ACTION << "create"
     //path can be unqualified
     command << HoyaMasterServiceArgs.ARG_PATH << "services/hoya/"
-    command << "1>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/hoya-region.stdout";
-    command << "2>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/hoya-region.stderr";
+    command << "1>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/out.txt";
+    command << "2>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/err.txt";
     StringBuilder cmd = new StringBuilder();
 
     String cmdStr = command.join(" ")
