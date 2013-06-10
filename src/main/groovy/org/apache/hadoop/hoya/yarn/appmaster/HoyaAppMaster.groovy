@@ -267,14 +267,13 @@ class HoyaAppMaster extends CompositeService
       logdir =  "/tmp/hoya-" + UserGroupInformation.getCurrentUser().getShortUserName();
     }
     serviceArgs.hbaseCommand
-    List<String> launchSequence = [serviceArgs.hbaseCommand];
-    
+
+    String confDir = "/Users/ddas/workspace/confYarnHBase";
+    List<String> launchSequence = ["--config", confDir];
     if (hbaseCommand !="version") {
       launchSequence << "start";
     }
-    
-    String confDir = "/Users/ddas/workspace/confYarnHBase";
-    launchSequence = ["--config", confDir] + launchSequence;
+    launchSequence <<  serviceArgs.hbaseCommand
     if (serviceArgs.xNoMaster) {
       log.info "skipping master launch as xNoMaster is set"
     } else {
