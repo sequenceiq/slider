@@ -50,10 +50,10 @@ import java.security.PrivilegedAction;
 @Commons
 @CompileStatic
 class HoyaRegionServiceLauncher implements Runnable {
-  HoyaAppMaster owner
+  final HoyaAppMaster owner
   
   // Allocated container
-  Container container;
+  final Container container;
   // Handle to communicate with ContainerManager
   ContainerManager containerManager;
 
@@ -62,6 +62,22 @@ class HoyaRegionServiceLauncher implements Runnable {
     this.container = container
   }
 
+  /**
+   * Implement privileged connection to the CM
+   */
+  private class PrivilegedConnectToCM implements PrivilegedAction<ContainerManager> {
+    final InetSocketAddress cmAddress;
+
+    PrivilegedConnectToCM(InetSocketAddress cmAddress) {
+      this.cmAddress = cmAddress
+    }
+
+    @Override
+    ContainerManager run() {
+      return connectToCM(cmAddress)
+    }
+  }
+  
   @Override
   void run() {
     UserGroupInformation user =
@@ -74,11 +90,8 @@ class HoyaRegionServiceLauncher implements Runnable {
     user.addToken(token);
 
       // Connect to ContainerManager
-    ContainerManager c = user.doAs(new PrivilegedAction<ContainerManager>() {
-            ContainerManager run() {
-              connectToCM(cmAddress)
-
-          }})
+    ContainerManager c = user.doAs(new PrivilegedConnectToCM(cmAddress))
+    
     //connectToCM(cmAddress);
     log.debug("Setting up container launch container for containerid=$container.id");
 
@@ -105,7 +118,6 @@ class HoyaRegionServiceLauncher implements Runnable {
     command << HoyaMasterServiceArgs.ARG_PATH << "services/hoya/"
     command << "1>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/out.txt";
     command << "2>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/err.txt";
-    StringBuilder cmd = new StringBuilder();
 
     String cmdStr = command.join(" ")
     log.info("Completed setting up region service command $cmdStr");
