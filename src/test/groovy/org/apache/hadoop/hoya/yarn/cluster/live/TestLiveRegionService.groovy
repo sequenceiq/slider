@@ -92,11 +92,15 @@ class TestLiveRegionService extends YarnMiniClusterTestBase {
       workerCount = status.regionNodes.size()
       if (workerCount == 0) {
         assert !duration.limitExceeded
-        Thread.sleep(1000)
+        Thread.sleep(5000)
       }
     }
+    //here there is >1 worker
+    //sleep for a bit to let the RM do its thing
+    Thread.sleep(10000)
+    ClusterDescription status = hoyaClient.getClusterStatus(clustername)
+    log.info(status)
 
-    
   }
 
 

@@ -804,7 +804,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   public ApplicationReport findClusterInInstanceList(List<ApplicationReport> instances, String appname) {
     ApplicationReport found = null;
     instances.each { ApplicationReport report ->
-      log.debug("Report named ${report.name}")
+//      log.debug("Report named ${report.name}")
       if (report.name == appname) {
         found = report;
       }
@@ -834,7 +834,6 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
                         15000,
                         null)
     HoyaAppMasterProtocol hoyaServer = protoProxy.proxy
-    log.debug("Connected to Hoya Server at " + addr);
     return hoyaServer;
   }
   /**

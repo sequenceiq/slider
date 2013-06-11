@@ -36,9 +36,7 @@ import org.apache.hadoop.yarn.util.Records
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.security.ContainerTokenIdentifier;
-import org.apache.hadoop.yarn.util.ProtoUtils;
-import java.security.PrivilegedAction;
-
+import org.apache.hadoop.yarn.util.ProtoUtils
 
 /**
  * Thread that runs on the AM to launch a region server.
@@ -62,21 +60,7 @@ class HoyaRegionServiceLauncher implements Runnable {
     this.container = container
   }
 
-  /**
-   * Implement privileged connection to the CM
-   */
-  private class PrivilegedConnectToCM implements PrivilegedAction<ContainerManager> {
-    final InetSocketAddress cmAddress;
 
-    PrivilegedConnectToCM(InetSocketAddress cmAddress) {
-      this.cmAddress = cmAddress
-    }
-
-    @Override
-    ContainerManager run() {
-      return connectToCM(cmAddress)
-    }
-  }
   
   @Override
   void run() {
@@ -90,8 +74,10 @@ class HoyaRegionServiceLauncher implements Runnable {
     user.addToken(token);
 
       // Connect to ContainerManager
-    ContainerManager c = user.doAs(new PrivilegedConnectToCM(cmAddress))
-    
+    PrivilegedConnectToCM action = new PrivilegedConnectToCM(owner,
+                                                             cmAddress)
+    ContainerManager c = (ContainerManager) user.doAs(action)
+    containerManager =c; 
     //connectToCM(cmAddress);
     log.debug("Setting up container launch container for containerid=$container.id");
 
@@ -150,13 +136,6 @@ class HoyaRegionServiceLauncher implements Runnable {
     }
   }
 
-  private ContainerManager connectToCM(final InetSocketAddress cmAddress) {
-    
-    log.debug("Connecting to ContainerManager for containerid=$container.id");
-    log.info("Connecting to ContainerManager at " + cmAddress);
-    this.containerManager = ((ContainerManager) owner.getProxy(ContainerManager.class,
-                                               cmAddress));
-    containerManager
-  }
+
 
 }
