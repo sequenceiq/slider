@@ -45,10 +45,8 @@ class ClientArgs extends CommonArgs {
    */
   public static final String ARG_AMQUEUE = "--amqueue"
   public static final String ARG_AMPRIORITY = "--ampriority"
-  public static final String ARG_CONFDIR = "--confdir"
-  public static final String ARG_FILESYSTEM = "--fs"
+  //public static final String ARG_FILESYSTEM = "--fs"
   public static final String ARG_FORMAT = "--format"
-  public static final String ARG_IMAGE = "--image"
   public static final String ARG_WAIT = "--wait"
 
 

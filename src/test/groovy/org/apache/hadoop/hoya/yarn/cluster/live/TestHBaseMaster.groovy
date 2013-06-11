@@ -16,11 +16,7 @@
  *  limitations under the License.
  */
 
-
-
-
-
-package org.apache.hadoop.hoya.yarn.cluster.actions
+package org.apache.hadoop.hoya.yarn.cluster.live
 
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.api.ClusterDescription
@@ -37,13 +33,12 @@ import org.junit.Test
  * Test of RM creation. This is so the later test's prereq's can be met
  */
 @Commons
-class TestHBaseVersionCommand extends YarnMiniClusterTestBase {
+class TestHBaseMaster extends YarnMiniClusterTestBase {
 
   @Test
-  public void testHBaseVersionCommand() throws Throwable {
+  public void testHBaseMaster() throws Throwable {
     String clustername = "TestHBaseVersionCommand"
     createMiniCluster(clustername, new YarnConfiguration(), 1, true)
-    log.info("RM address = ${RMAddr}")
     ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
         //config includes RM binding info
         new YarnConfiguration(miniCluster.config),
@@ -53,21 +48,21 @@ class TestHBaseVersionCommand extends YarnMiniClusterTestBase {
             CommonArgs.ARG_MIN, "0",
             CommonArgs.ARG_MAX, "0",
             ClientArgs.ARG_MANAGER, RMAddr,
-            CommonArgs.ARG_USER, USERNAME,
             CommonArgs.ARG_HBASE_HOME, HBaseHome,
             CommonArgs.ARG_ZOOKEEPER, microZKCluster.zkBindingString,
-            CommonArgs.ARG_HBASE_ZKPATH, "/test/TestHBaseVersionCommand",
+            CommonArgs.ARG_HBASE_ZKPATH, "/test/TestClusterAMCreation",
             ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
             CommonArgs.ARG_X_TEST,
-            CommonArgs.ARG_X_HBASE_COMMAND, "version"
         ]
     )
     assert launcher.serviceExitCode == 0
     HoyaClient hoyaClient = (HoyaClient) launcher.service
-    hoyaClient.monitorAppToRunning(new Duration(CLUSTER_GO_LIVE_TIME))
+    hoyaClient.monitorAppToRunning(
+        new Duration(CLUSTER_GO_LIVE_TIME))
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)
     log.info("Status $status")
-    waitForAppToFinish(hoyaClient)
+    //stop the cluster
+    hoyaClient.stop()
   }
 
 }

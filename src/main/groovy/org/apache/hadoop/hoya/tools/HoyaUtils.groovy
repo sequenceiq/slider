@@ -46,6 +46,32 @@ class HoyaUtils {
     }
   }
 
+  /**
+   * Quote any argument passed in that doesn't start with a single or double quote
+   * in the first place
+   * @param arg argument, may be null but not empty
+   * @return a quoted argument
+   */
+  public static String quoteArg(String arg) {
+    if (arg.length() == 0) {
+      return "";
+    }
+    if (arg[0]=='"' || arg[0] == '\'') {
+      return arg;
+    } else {
+      return '"' + arg + '"'
+    }
+  }
+
+  /**
+   * convert a file to a string and quote it
+   * @param f file
+   * @return a quoted filename
+   */
+  public static String quoteArg(File f) {
+    return quoteArg(f.absolutePath)
+  }
+
   public static String convertArgsToString(String... args) {
     StringBuilder builder = new StringBuilder();
     args.each { arg ->

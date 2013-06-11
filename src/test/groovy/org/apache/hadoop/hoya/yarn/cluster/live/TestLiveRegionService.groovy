@@ -16,54 +16,88 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.cluster.actions
 
+
+
+
+
+
+
+
+package org.apache.hadoop.hoya.yarn.cluster.live
+
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
+import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
+import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.conf.YarnConfiguration
+import org.apache.hadoop.yarn.service.launcher.LauncherExitCodes
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
+import org.junit.Before
 import org.junit.Test
 
 /**
  * Test of RM creation. This is so the later test's prereq's can be met
  */
 @Commons
-class TestHBaseMaster extends YarnMiniClusterTestBase {
+class TestLiveRegionService extends YarnMiniClusterTestBase {
+
 
   @Test
-  public void testHBaseMaster() throws Throwable {
-    String clustername = "TestHBaseVersionCommand"
+  public void testLiveRegionService() throws Throwable {
+    describe("create a cluster with only region service; spin" +
+             " waiting for the RS node to come up")
+
+    //launch fake master
+    String clustername = "TestLiveRegionService"
     createMiniCluster(clustername, new YarnConfiguration(), 1, true)
-    log.info("RM address = ${RMAddr}")
+    
+    //launch the cluster
     ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
         //config includes RM binding info
         new YarnConfiguration(miniCluster.config),
         //varargs list of command line params
         [
             ClientArgs.ACTION_CREATE, clustername,
-            CommonArgs.ARG_MIN, "0",
-            CommonArgs.ARG_MAX, "0",
+            CommonArgs.ARG_MIN, "1",
+            CommonArgs.ARG_MAX, "1",
             ClientArgs.ARG_MANAGER, RMAddr,
             CommonArgs.ARG_HBASE_HOME, HBaseHome,
             CommonArgs.ARG_ZOOKEEPER, microZKCluster.zkBindingString,
-            CommonArgs.ARG_HBASE_ZKPATH, "/test/TestClusterAMCreation",
+            CommonArgs.ARG_HBASE_ZKPATH, "/test/${clustername}",
             ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
             CommonArgs.ARG_X_TEST,
+            CommonArgs.ARG_X_NO_MASTER,
         ]
     )
-    assert launcher.serviceExitCode == 0
+
+
+    //now look for the explicit sevice
+    //do the low level operations to get a better view of what is going on 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
-    hoyaClient.monitorAppToRunning(
-        new Duration(CLUSTER_GO_LIVE_TIME))
-    ClusterDescription status = hoyaClient.getClusterStatus(clustername)
-    log.info("Status $status")
-    //stop the cluster
-    hoyaClient.stop()
+
+    Duration duration = new Duration(60000);
+    duration.start()
+    int workerCount = 0;
+    while (workerCount == 0) {
+      ClusterDescription status = hoyaClient.getClusterStatus(clustername)
+      //log.info("Status $status")
+      workerCount = status.regionNodes.size()
+      if (workerCount == 0) {
+        assert !duration.limitExceeded
+        Thread.sleep(1000)
+      }
+    }
+
+    
   }
+
 
 }

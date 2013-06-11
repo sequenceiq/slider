@@ -79,12 +79,11 @@ class TestActionList extends YarnMiniClusterTestBase {
 
   @Test
   public void testListLiveCluster() throws Throwable {
-    //launch fake master
-    String clustername = "testListLiveCluster"
-    
     //launch the cluster
+    String clustername = "testListLiveCluster"
     ServiceLauncher launcher = createMasterlessAM(clustername, 0)
-    
+    ApplicationReport report = waitForClusterLive((HoyaClient) launcher.service)
+
     //now list
     launcher = launchHoyaClientAgainstMiniMR(
         //config includes RM binding info

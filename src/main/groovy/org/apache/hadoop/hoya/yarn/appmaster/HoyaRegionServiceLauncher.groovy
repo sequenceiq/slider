@@ -20,6 +20,7 @@ package org.apache.hadoop.hoya.yarn.appmaster
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
+import org.apache.hadoop.hoya.HBaseCommands
 import org.apache.hadoop.hoya.tools.Env
 import org.apache.hadoop.net.NetUtils
 import org.apache.hadoop.yarn.api.ApplicationConstants
@@ -31,7 +32,6 @@ import org.apache.hadoop.yarn.api.records.Container
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext
 import org.apache.hadoop.yarn.api.records.LocalResource
 import org.apache.hadoop.yarn.exceptions.YarnException
-import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.util.Records
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
@@ -104,32 +104,28 @@ class HoyaRegionServiceLauncher implements Runnable {
     log.info("Setting user in ContainerLaunchContext to: $jobUserName");
 
     // Set the environment
-    Map<String, String> env = owner.buildEnvMap();
+    Map<String, String> env = owner.buildEnvMapFromServiceArguments();
+    env["HBASE_LOG_DIR"] = owner.buildHBaseContainerLogdir();
+    
     ctx.setEnvironment(env);
     //local resources
     Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
     def command = []
-    command << ApplicationConstants.Environment.JAVA_HOME.$() + "/bin/java"
-    command << ServiceLauncher.ENTRY_POINT
-    command << HoyaRegionServiceArgs.CLASSNAME
-    command << HoyaRegionServiceArgs.ARG_DEBUG
-    command << HoyaMasterServiceArgs.ARG_NAME << "name"
-    command << HoyaMasterServiceArgs.ARG_ACTION << "create"
-    //path can be unqualified
-    command << HoyaMasterServiceArgs.ARG_PATH << "services/hoya/"
+    command << owner.buildHBaseBinPath().absolutePath
+    command << HBaseCommands.ARG_CONFIG
+    command << owner.buildConfDir()
+    command << HBaseCommands.REGION_SERVER
+    command << HBaseCommands.ACTION_START
     command << "1>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/out.txt";
     command << "2>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/err.txt";
 
     String cmdStr = command.join(" ")
-    log.info("Completed setting up region service command $cmdStr");
 
     ctx.commands = [cmdStr]
-    StartContainerRequest startReq = StartContainerRequest.newInstance(ctx, container.getContainerToken())
-    //StartContainerRequest startReq = Records
-    //    .newRecord(StartContainerRequest.class);
-    //startReq.containerLaunchContext = ctx;
-  //  startReq.
-//    startReq.container = container;
+    StartContainerRequest startReq = StartContainerRequest.newInstance(ctx,
+                           container.getContainerToken())
+    log.info("Starting container with command: $cmdStr");
+
     try {
       containerManager.startContainer(startReq);
     } catch (YarnException e) {

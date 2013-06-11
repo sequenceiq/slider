@@ -28,7 +28,9 @@ import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
+import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
+import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Before
@@ -42,7 +44,7 @@ class TestActionExists extends YarnMiniClusterTestBase {
 
   @Before
   public void setup() {
-    createMiniCluster("TestActionListNoInstances", new YarnConfiguration(), 1, false)
+    createMiniCluster("TestActionExists", new YarnConfiguration(), 1, false)
   }
   
   @Test
@@ -63,6 +65,26 @@ class TestActionExists extends YarnMiniClusterTestBase {
     } catch (HoyaException e) {
       assert e.exitCode == HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER
     }
+  }
+    
+  @Test
+  public void testExistsLiveCluster() throws Throwable {
+    //launch the cluster
+    String clustername = "testExistsLiveCluster"
+    ServiceLauncher launcher = createMasterlessAM(clustername, 0)
+    ApplicationReport report = waitForClusterLive((HoyaClient) launcher.service)
+
+    launcher = launchHoyaClientAgainstMiniMR(
+          //config includes RM binding info
+          new YarnConfiguration(miniCluster.config),
+          //varargs list of command line params
+          [
+          ClientArgs.ACTION_EXISTS,
+          clustername,
+          ClientArgs.ARG_MANAGER, RMAddr
+          ],
+      )
+    assert launcher.serviceExitCode == 0
   }
   
 

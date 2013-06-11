@@ -38,7 +38,7 @@ class HoyaMasterServiceArgs extends HoyaServiceCommonArgs {
   
 
   @Parameter(names = "--confdir", description = "Conf path", required = false)
-  public String conf;
+  public String confdir;
 
   @Parameter(names = "--path", description = "FileSystem path", required = true)
   public String path;
@@ -68,4 +68,5 @@ class HoyaMasterServiceArgs extends HoyaServiceCommonArgs {
   public Map<String, List<Object>> getActions() {
     return ACTIONS
   }
+
 }

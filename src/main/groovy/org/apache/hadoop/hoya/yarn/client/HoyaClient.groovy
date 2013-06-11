@@ -162,7 +162,6 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
         if (clusterName != null) {
           validateClusterName(clusterName)
         }
-
         exitCode = actionList(clusterName)
         break;
 
@@ -177,12 +176,13 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
       case ClientArgs.ACTION_STOP:
         validateClusterName(clusterName)
+        exitCode = actionStop(clusterName)
+        break;
 
       default:
         throw new HoyaException(EXIT_UNIMPLEMENTED,
                                 "Unimplemented: " + action)
     }
-
     return exitCode
   }
 
@@ -447,7 +447,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
       if (serviceArgs.waittime != 0) {
         //waiting for state to change
-        Duration duration = new Duration(serviceArgs.waittime)
+        Duration duration = new Duration(serviceArgs.waittime* 1000)
         duration.start()
         report = monitorAppToState(duration,
                                    YarnApplicationState.RUNNING);
@@ -848,18 +848,36 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     return EXIT_SUCCESS
   }
 
+  /**
+   * Stop the cluster
+   * @param clustername cluster name
+   * @return the cluster name
+   */
+  public int actionStop(String clustername) {
+    HoyaAppMasterProtocol appMaster = bondToCluster(clustername)
+    appMaster.stopCluster();
+    return EXIT_SUCCESS
+  }
+
   @VisibleForTesting
   public ClusterDescription getClusterStatus(String clustername) {
+    HoyaAppMasterProtocol appMaster = bondToCluster(clustername)
+    String statusJson = appMaster.getClusterStatus()
+//    log.info(statusJson)
+    ClusterDescription cd = ClusterDescription.fromJson(statusJson)
+    return cd
+  }
+
+  private HoyaAppMasterProtocol bondToCluster(String clustername) {
     ApplicationReport instance = findInstance(getUsername(), clustername)
     if (!instance) {
       throw unknownClusterException(clustername)
     }
     HoyaAppMasterProtocol appMaster = connect(instance);
-    String statusJson = appMaster.getClusterStatus()
-    log.info(statusJson)
-    ClusterDescription cd = ClusterDescription.fromJson(statusJson)
-    return cd
+    return appMaster
   }
+
+
 
   public HoyaException unknownClusterException(String clustername) {
     return new HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER,

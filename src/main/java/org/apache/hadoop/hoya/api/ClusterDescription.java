@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.hoya.api;
 
-import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import java.io.IOException;
@@ -37,12 +36,23 @@ public class ClusterDescription {
 
   public String name;
   public String state;
-  public static final String STATE_CREATED = "started";
+  public static final String STATE_CREATED = "created";
   public static final String STATE_STARTED = "started";
   public static final String STATE_STOPPED = "stopped";
-  
+  public static final String STATE_UNSTARTED = "unstarted";
+  /**
+   * When was the cluster last started?
+   */
   public long startTime;
+
+  /**
+   * When was the cluster last stopped: should be 0 if the cluster is live
+   */
   public long stopTime;
+  /**
+   * when was this status document created
+   */
+  public long statusTime;
 
   public int minRegionNodes;
   public int maxRegionNodes;
@@ -58,9 +68,22 @@ public class ClusterDescription {
    * Describe a specific node in the cluster
    */
   public static class ClusterNode {
+    /**
+     * server name
+     */
     public String name;
+    /**
+     * state (Currently arbitrary text)
+     */
     public String state;
+    /**
+     * what was the command executed?
+     */
     public String command;
+    /**
+     * What is the tail output from the executed process (or [] if not started
+     * or the log cannot be picked up
+     */
     public String[] output;
 
     public ClusterNode(String name) {
@@ -74,7 +97,8 @@ public class ClusterDescription {
     public String toString() {
       StringBuilder builder = new StringBuilder();
       builder.append(name).append(": ").append(state).append("\n");
-      for (String line:output) {
+      builder.append(command).append("\n");
+      for (String line : output) {
         builder.append(line).append("\n");
       }
       return builder.toString();

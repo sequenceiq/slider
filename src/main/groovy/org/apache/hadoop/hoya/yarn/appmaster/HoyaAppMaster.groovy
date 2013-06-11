@@ -18,10 +18,13 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.hoya.HBaseCommands
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException
+import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.hadoop.hoya.HoyaApp
 import org.apache.hadoop.hoya.HoyaExitCodes
@@ -66,6 +69,7 @@ import java.util.concurrent.locks.ReentrantLock
  * The AM for Hoya
  */
 @Commons
+//@CompileStatic
 
 class HoyaAppMaster extends CompositeService
     implements AMRMClientAsync.CallbackHandler,
@@ -112,18 +116,18 @@ class HoyaAppMaster extends CompositeService
   /**
    * Command to launch
    */
-  private String hbaseCommand = "master"
-  private String hbaseRegionServer = "regionserver"
+  private String hbaseCommand = HBaseCommands.MASTER
 
   // Launch threads
   private final List<Thread> launchThreads = new ArrayList<Thread>();
+  final ThreadGroup launcherThreadGroup = new ThreadGroup("launcher");
 
   /**
    * model the state using locks and conditions
    */
   private final ReentrantLock AMExecutionStateLock = new ReentrantLock()
   final Condition isAMCompleted = AMExecutionStateLock.newCondition();
-  private volatile boolean success;
+  private volatile boolean success; 
 
   String[] argv
   private HoyaMasterServiceArgs serviceArgs
@@ -187,7 +191,7 @@ class HoyaAppMaster extends CompositeService
   }
   
   /**
-   * Actual work
+   * Create and run the cluster
    * @return exit code
    * @throws Throwable on a failure
    */
@@ -272,24 +276,21 @@ class HoyaAppMaster extends CompositeService
     numRequestedContainers.set(numTotalContainers);
 
     //start hbase command
-    String logdir = System.getenv("LOGDIR");
-    if (!logdir) {
-      logdir =  "/tmp/hoya-" + UserGroupInformation.getCurrentUser().getShortUserName();
+    //pull out the command line argument if set
+    if (serviceArgs.hbaseCommand != null) {
+      hbaseCommand = serviceArgs.hbaseCommand;
     }
-    hbaseCommand = serviceArgs.hbaseCommand
 
-    String confDir = "/Users/ddas/workspace/confYarnHBase";
-    List<String> launchSequence = ["--config", confDir];
-      launchSequence << hbaseCommand
-    if (!["version", "help"].contains(hbaseCommand)) {
-      launchSequence << "start";
-    }
+    List<String> launchSequence = [HBaseCommands.ARG_CONFIG, buildConfDir()];
+    launchSequence << hbaseCommand
+    launchSequence << HBaseCommands.ACTION_START;
+    
     //launchSequence <<  serviceArgs.hbaseCommand
     if (serviceArgs.xNoMaster) {
       log.info "skipping master launch as xNoMaster is set"
     } else {
       launchHBaseServer(launchSequence,
-                        ["HBASE_LOG_DIR": logdir]);
+                        ["HBASE_LOG_DIR": buildHBaseLogdir()]);
     }
     
     //if we get here: success
@@ -305,6 +306,35 @@ class HoyaAppMaster extends CompositeService
     finish();
 
     return success ? EXIT_SUCCESS : EXIT_TASK_LAUNCH_FAILURE;
+  }
+
+  public String buildConfDir() {
+    String confdir = new File(serviceArgs.hbasehome, "/conf").absolutePath;
+    if (serviceArgs.confdir) {
+      confdir = serviceArgs.confdir
+      //"/Users/ddas/workspace/confYarnHBase";
+    }
+    return HoyaUtils.quoteArg(confdir)
+  }
+
+  /**
+   * build the log directory
+   * @return
+   */
+  public String buildHBaseLogdir() {
+    String logdir = System.getenv("LOGDIR");
+    if (!logdir) {
+      logdir = "/tmp/hoya-" + UserGroupInformation.getCurrentUser().getShortUserName();
+    }
+    return logdir
+  }
+
+  /**
+   * Build the log dir env variable for the containers
+   * @return
+   */
+  public String buildHBaseContainerLogdir() {
+    return buildHBaseLogdir();
   }
 
   /**
@@ -341,7 +371,7 @@ class HoyaAppMaster extends CompositeService
    * shut down the cluster 
    */
   private void finish() {
-    //stop the daemon
+    //stop the daemon & grab its exit code
     Integer exitCode
     if (hbaseMaster) {
       hbaseMaster.stop();
@@ -353,7 +383,14 @@ class HoyaAppMaster extends CompositeService
     // Join all launched threads
     // needed for when we time out
     // and we need to release containers
-    for (Thread launchThread : launchThreads) {
+    
+    //first: take a snapshot of the thread list
+    List<Thread> liveThreads
+    synchronized (launchThreads) {
+      liveThreads = new ArrayList<Thread>(launchThreads)
+    }
+    log.info("Waiting for the completion of ${liveThreads.size()} threads")
+    for (Thread launchThread : liveThreads) {
       try {
         launchThread.join(LAUNCHER_THREAD_SHUTDOWN_TIME);
       } catch (InterruptedException e) {
@@ -390,7 +427,6 @@ class HoyaAppMaster extends CompositeService
       log.error("Failed to unregister application: $e", e);
     }
     server?.stop()
-    signalAMComplete();
   }
 
   private void configureContainerMemory(RegisterApplicationMasterResponse response) {
@@ -453,12 +489,12 @@ class HoyaAppMaster extends CompositeService
     String[] racks = null
     Priority pri = Records.newRecord(Priority.class);
     // TODO - what is the range for priority? how to decide?
-    pri.setPriority(requestPriority);
+    pri.priority = requestPriority;
 
     // Set up resource type requirements
     // For now, only memory is supported so we set memory requirements
     Resource capability = Records.newRecord(Resource.class);
-    capability.setMemory(containerMemory);
+    capability.memory = containerMemory;
 
     AMRMClient.ContainerRequest request
     request = new AMRMClient.ContainerRequest(capability,
@@ -479,8 +515,7 @@ class HoyaAppMaster extends CompositeService
     log.info("Got response from RM for container ask, allocatedCnt="
                  + allocatedContainers.size());
     numAllocatedContainers.addAndGet(allocatedContainers.size());
-    allocatedContainers.each { cont ->
-      Container container = (Container) cont;
+    allocatedContainers.each { Container container ->
       log.info("Launching shell command on a new container.," +
                " containerId=$container.id," +
                " containerNode=$container.nodeId.host:$container.nodeId.port," +
@@ -488,19 +523,21 @@ class HoyaAppMaster extends CompositeService
                " containerResourceMemory$container.resource.memory");
       // + ", containerToken"
       // +container.getContainerToken().getIdentifier().toString());
-/*
 
       HoyaRegionServiceLauncher launcher =
         new HoyaRegionServiceLauncher(this, container)
-      Thread launchThread = new Thread(launcher);
+      Thread launchThread = new Thread(launcherThreadGroup,
+               launcher,
+               "container-${container.nodeId.host}:${container.nodeId.port},");
 
       // launch and start the container on a separate thread to keep
       // the main thread unblocked
       // as all containers may not be allocated at one go.
-      launchThreads.add(launchThread);
+      synchronized (launchThreads) {
+        launchThreads.add(launchThread);
+      }
       launchThread.start();
       
-*/
     }
 
   }
@@ -569,12 +606,13 @@ class HoyaAppMaster extends CompositeService
   private synchronized void updateClusterDescription() {
     if (hbaseMaster) {
       masterNode.command = hbaseMaster.commands.join(" ");
-      masterNode.state = hbaseMaster.running ? "running" : "stopped"
+      masterNode.state = hbaseMaster.running ?
+        ClusterDescription.STATE_STARTED: ClusterDescription.STATE_STOPPED 
       //pull in recent lines of output from the HBase master
       List<String> output = hbaseMaster.recentOutput
       masterNode.output = output.toArray(new String[output.size()])
     } else {
-      masterNode.state = "not running"
+      masterNode.state = ClusterDescription.STATE_UNSTARTED
       masterNode.output = new String[0];
     }
   }
@@ -588,6 +626,7 @@ class HoyaAppMaster extends CompositeService
     log.info("Shutdown requested")
     signalAMComplete();
   }
+  
 /**
    * Monitored nodes have been changed
    * @param updatedNodes list of updated notes
@@ -596,7 +635,6 @@ class HoyaAppMaster extends CompositeService
   public void onNodesUpdated(List<NodeReport> updatedNodes) {
     log.info("Nodes updated: " +
              (updatedNodes*.getNodeId()).join(" "))
-
   }
 /*
   @Override //AMRMClientAsync
@@ -665,7 +703,7 @@ class HoyaAppMaster extends CompositeService
   public synchronized String getClusterStatus() throws IOException {
     updateClusterDescription()
     String status = clusterDescription.toJsonString()
-    log.debug(status)
+//    log.debug(status)
     return status; 
   }
 
@@ -674,12 +712,7 @@ class HoyaAppMaster extends CompositeService
     return ProtocolSignature.getProtocolSignature(
         this, protocol, clientVersion, clientMethodsHash);
   }
-  
-  protected File buildHBaseBinPath() {
-    File hbaseScript = new File(serviceArgs.hbasehome, "bin/hbase");
-    return hbaseScript;
-  }
- 
+
 
   protected synchronized void launchHBaseServer(List<String> commands, Map<String, String> env) throws IOException {
     if (hbaseMaster != null) {
@@ -690,17 +723,25 @@ class HoyaAppMaster extends CompositeService
     hbaseMaster = new RunLongLivedApp(commands);
     hbaseMaster.putEnvMap(env);
     //set the env variable mapping
-    hbaseMaster.putEnvMap(
-        buildEnvMap()   
-    )
+    hbaseMaster.putEnvMap(buildEnvMapFromServiceArguments())
     hbaseMaster.spawnApplication()
   }
 
   /**
-   * Build the environment map
-   * @return
+   * Get the path to hbase home
+   * @return the hbase home path
    */
-  public Map<String, String> buildEnvMap() {
+  public File buildHBaseBinPath() {
+    File hbaseScript = new File(serviceArgs.hbasehome,
+                                "bin/hbase");
+    return hbaseScript;
+  }
+
+  /**
+   * Build the environment map from service arguments passed down
+   * @return an env map to merge with the rest of the envirionment
+   */
+  public Map<String, String> buildEnvMapFromServiceArguments() {
     return [
         (EnvMappings.ENV_FS_DEFAULT_NAME):      serviceArgs.filesystem,
         (EnvMappings.ENV_ZOOKEEPER_CONNECTION): serviceArgs.zookeeper,

@@ -145,7 +145,7 @@ public class CommonArgs {
 
   @Parameter(names = '--Xhbase-command',
       description = "testing only: hbase command to exec")
-  public String hbaseCommand = "master";
+  public String hbaseCommand = null;
 
   @Parameter(names = '--Xnomaster',
       description = "testing only: no master at all")

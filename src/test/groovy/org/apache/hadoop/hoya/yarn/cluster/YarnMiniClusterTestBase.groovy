@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.cluster
 import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.tools.YarnUtils
 import org.apache.hadoop.hoya.yarn.CommonArgs

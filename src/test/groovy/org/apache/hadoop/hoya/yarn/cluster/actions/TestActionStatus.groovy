@@ -24,10 +24,10 @@
 
 package org.apache.hadoop.hoya.yarn.cluster.actions
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.exceptions.HoyaException
-import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
@@ -55,20 +55,19 @@ class TestActionStatus extends YarnMiniClusterTestBase {
     //launch the cluster
     //exec the status command
     try {
-      launcher = launchHoyaClientAgainstMiniMR(
+      ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
           //config includes RM binding info
           new YarnConfiguration(miniCluster.config),
           //varargs list of command line params
           [
               ClientArgs.ACTION_STATUS,
               "testStatusMissingCluster",
-              ClientArgs.ARG_MANAGER, RMAddr,
-              CommonArgs.ARG_USER, USERNAME
+              ClientArgs.ARG_MANAGER, RMAddr
           ]
       )
       fail("expected an exception, got a status code " + launcher.serviceExitCode)
     } catch (HoyaException e) {
-      assert e.exitCode == HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER
+      assert e.exitCode == EXIT_UNKNOWN_HOYA_CLUSTER
     }
   }
   
@@ -92,7 +91,6 @@ class TestActionStatus extends YarnMiniClusterTestBase {
             ClientArgs.ACTION_STATUS,
             clustername,
             ClientArgs.ARG_MANAGER, RMAddr,
-            CommonArgs.ARG_USER, USERNAME
         ]
         
     )
@@ -101,7 +99,7 @@ class TestActionStatus extends YarnMiniClusterTestBase {
     
     //do the low level operations to get a better view of what is going on 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
-    int status = hoyaClient.actionStatus()
+    int status = hoyaClient.actionStatus(clustername)
     assert status == HoyaExitCodes.EXIT_SUCCESS
   }
 
