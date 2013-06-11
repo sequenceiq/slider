@@ -33,6 +33,12 @@ import org.apache.hadoop.yarn.api.records.LocalResource
 import org.apache.hadoop.yarn.exceptions.YarnException
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.util.Records
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.yarn.security.ContainerTokenIdentifier;
+import org.apache.hadoop.yarn.util.ProtoUtils;
+import java.security.PrivilegedAction;
+
 
 /**
  * Thread that runs on the AM to launch a region server.
@@ -58,8 +64,22 @@ class HoyaRegionServiceLauncher implements Runnable {
 
   @Override
   void run() {
-    // Connect to ContainerManager
-    connectToCM();
+    UserGroupInformation user =
+        UserGroupInformation.createRemoteUser(container.getId().toString());
+    String cmIpPortStr = "$container.nodeId.host:$container.nodeId.port";
+    final InetSocketAddress cmAddress = NetUtils.createSocketAddr(cmIpPortStr);
+
+    Token<ContainerTokenIdentifier> token =
+        ProtoUtils.convertFromProtoFormat(container.getContainerToken(), cmAddress);
+    user.addToken(token);
+
+      // Connect to ContainerManager
+    ContainerManager c = user.doAs(new PrivilegedAction<ContainerManager>() {
+            ContainerManager run() {
+              connectToCM(cmAddress)
+
+          }})
+    //connectToCM(cmAddress);
     log.debug("Setting up container launch container for containerid=$container.id");
 
     ContainerLaunchContext ctx = Records
@@ -91,9 +111,11 @@ class HoyaRegionServiceLauncher implements Runnable {
     log.info("Completed setting up region service command $cmdStr");
 
     ctx.commands = [cmdStr]
-    StartContainerRequest startReq = Records
-        .newRecord(StartContainerRequest.class);
-    startReq.containerLaunchContext = ctx;
+    StartContainerRequest startReq = StartContainerRequest.newInstance(ctx, container.getContainerToken())
+    //StartContainerRequest startReq = Records
+    //    .newRecord(StartContainerRequest.class);
+    //startReq.containerLaunchContext = ctx;
+  //  startReq.
 //    startReq.container = container;
     try {
       containerManager.startContainer(startReq);
@@ -119,12 +141,10 @@ class HoyaRegionServiceLauncher implements Runnable {
     }
   }
 
-  private ContainerManager connectToCM() {
+  private ContainerManager connectToCM(final InetSocketAddress cmAddress) {
     
     log.debug("Connecting to ContainerManager for containerid=$container.id");
-    String cmIpPortStr = "$container.nodeId.host:$container.nodeId.port";
-    InetSocketAddress cmAddress = NetUtils.createSocketAddr(cmIpPortStr);
-    log.info("Connecting to ContainerManager at $cmIpPortStr");
+    log.info("Connecting to ContainerManager at " + cmAddress);
     this.containerManager = ((ContainerManager) owner.getProxy(ContainerManager.class,
                                                cmAddress));
     containerManager

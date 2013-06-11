@@ -89,7 +89,7 @@ class HoyaAppMaster extends CompositeService
   private ApplicationAttemptId appAttemptID;
   // App Master configuration
   // No. of containers to run shell command on
-  private int numTotalContainers = 0;
+  private int numTotalContainers = 1; //HACK to test
   // Memory to request for the container on which the shell command will run
   private int containerMemory = 10;
   // Priority of the request
@@ -250,6 +250,7 @@ class HoyaAppMaster extends CompositeService
                                    appMasterRpcPort,
                                    appMasterTrackingUrl);
     configureContainerMemory(response)
+    log.info("Total containers in this app " + numTotalContainers)
 
     // Setup ask for containers from RM
     // Send request for containers to RM
@@ -270,10 +271,11 @@ class HoyaAppMaster extends CompositeService
 
     String confDir = "/Users/ddas/workspace/confYarnHBase";
     List<String> launchSequence = ["--config", confDir];
+      launchSequence <<  serviceArgs.hbaseCommand
     if (hbaseCommand !="version") {
       launchSequence << "start";
     }
-    launchSequence <<  serviceArgs.hbaseCommand
+    //launchSequence <<  serviceArgs.hbaseCommand
     if (serviceArgs.xNoMaster) {
       log.info "skipping master launch as xNoMaster is set"
     } else {
@@ -627,7 +629,7 @@ class HoyaAppMaster extends CompositeService
   }
   
   protected File buildHBaseBinPath() {
-    File hbaseScript = new File(serviceArgs.hbasehome, "bin/hbase-daemon.sh");
+    File hbaseScript = new File(serviceArgs.hbasehome, "bin/hbase");
     return hbaseScript;
   }
  
