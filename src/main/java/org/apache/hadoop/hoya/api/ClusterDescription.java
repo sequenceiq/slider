@@ -60,6 +60,8 @@ public class ClusterDescription {
   public static class ClusterNode {
     public String name;
     public String state;
+    public String command;
+    public String[] output;
 
     public ClusterNode(String name) {
       this.name = name;
@@ -70,7 +72,12 @@ public class ClusterDescription {
 
     @Override
     public String toString() {
-      return name + " - " + state;
+      StringBuilder builder = new StringBuilder();
+      builder.append(name).append(": ").append(state).append("\n");
+      for (String line:output) {
+        builder.append(line).append("\n");
+      }
+      return builder.toString();
     }
   }
 

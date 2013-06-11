@@ -29,7 +29,6 @@ import org.apache.hadoop.hoya.yarn.MicroZKCluster
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.yarn.api.records.ApplicationReport
-import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.server.MiniYARNCluster
 import org.apache.hadoop.yarn.server.resourcemanager.ResourceManager
@@ -39,7 +38,6 @@ import org.apache.hadoop.yarn.service.ServiceOperations
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
 import org.junit.After
-import org.junit.Assert
 import org.junit.Before
 
 /**
@@ -231,10 +229,21 @@ implements KeysForTests {
    * @return the app report of the live cluster
    */
   public ApplicationReport waitForClusterLive(HoyaClient hoyaClient) {
-    ApplicationReport report = hoyaClient.monitorAppToState(new Duration(CLUSTER_GO_LIVE_TIME),
-                                                            YarnApplicationState.RUNNING)
+    ApplicationReport report = hoyaClient.monitorAppToRunning(
+        new Duration(CLUSTER_GO_LIVE_TIME))
     assertNotNull("Cluster did not go live in the time $CLUSTER_GO_LIVE_TIME", report);
     return report
   }
 
+  /**
+   * force kill the application after waiting {@link #WAIT_TIME} for
+   * it to shut down cleanly
+   * @param hoyaClient client to talk to
+   */
+  public void waitForAppToFinish(HoyaClient hoyaClient) {
+    if (!hoyaClient.monitorAppToCompletion(new Duration(WAIT_TIME))) {
+      log.info("Forcibly killing application")
+      hoyaClient.forceKillApplication();
+    }
+  }
 }

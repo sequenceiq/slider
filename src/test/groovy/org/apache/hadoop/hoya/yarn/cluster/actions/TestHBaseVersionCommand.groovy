@@ -23,6 +23,7 @@
 package org.apache.hadoop.hoya.yarn.cluster.actions
 
 import groovy.util.logging.Commons
+import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
@@ -40,21 +41,22 @@ class TestHBaseVersionCommand extends YarnMiniClusterTestBase {
 
   @Test
   public void testHBaseVersionCommand() throws Throwable {
-    createMiniCluster("TestHBaseVersionCommand", new YarnConfiguration(), 1, true)
+    String clustername = "TestHBaseVersionCommand"
+    createMiniCluster(clustername, new YarnConfiguration(), 1, true)
     log.info("RM address = ${RMAddr}")
     ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
         //config includes RM binding info
         new YarnConfiguration(miniCluster.config),
         //varargs list of command line params
         [
-            ClientArgs.ACTION_CREATE, "TestHBaseVersionCommand",
+            ClientArgs.ACTION_CREATE, clustername,
             CommonArgs.ARG_MIN, "1",
             CommonArgs.ARG_MAX, "1",
             ClientArgs.ARG_MANAGER, RMAddr,
             CommonArgs.ARG_USER, USERNAME,
             CommonArgs.ARG_HBASE_HOME, HBaseHome,
             CommonArgs.ARG_ZOOKEEPER, microZKCluster.zkBindingString,
-            CommonArgs.ARG_HBASE_ZKPATH, "/test/TestClusterAMCreation",
+            CommonArgs.ARG_HBASE_ZKPATH, "/test/TestHBaseVersionCommand",
             ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
             CommonArgs.ARG_X_TEST,
             CommonArgs.ARG_X_HBASE_COMMAND, "version"
@@ -62,7 +64,10 @@ class TestHBaseVersionCommand extends YarnMiniClusterTestBase {
     )
     assert launcher.serviceExitCode == 0
     HoyaClient hoyaClient = (HoyaClient) launcher.service
-    hoyaClient.monitorAppToCompletion(new Duration(WAIT_TIME))
+    hoyaClient.monitorAppToRunning(new Duration(CLUSTER_GO_LIVE_TIME))
+    ClusterDescription status = hoyaClient.getClusterStatus(clustername)
+    log.info("Status $status")
+    waitForAppToFinish(hoyaClient)
   }
 
 }

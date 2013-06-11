@@ -35,7 +35,11 @@ class TestClusterDescriptionMapping extends YarnMiniClusterTestBase {
     cd.name = "test"
     cd.state = ClusterDescription.STATE_STARTED;
     cd.maxMasterNodes = cd.minMasterNodes = 1;
-    cd.masterNodes = [new ClusterDescription.ClusterNode("this")]
+    ClusterDescription.ClusterNode node = new ClusterDescription.ClusterNode("masternode")
+    node.state="live"
+    node.output = ["line1","line2"]
+    cd.masterNodes = [node]
+    
     cd.startTime = System.currentTimeMillis()
 
     return cd;
@@ -66,6 +70,10 @@ class TestClusterDescriptionMapping extends YarnMiniClusterTestBase {
 
   @Test
   public void testRTrip() throws Throwable {
-    roundTrip(createCD())
+    ClusterDescription original = createCD()
+    ClusterDescription received = roundTrip(original)
+    assert received.masterNodes.size()>0
+    ClusterDescription.ClusterNode node = received.masterNodes[0]
+    assert node.output.length == 2;
   }
 }

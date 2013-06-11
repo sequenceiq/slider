@@ -104,8 +104,9 @@ class HoyaRegionServiceLauncher implements Runnable {
     log.info("Setting user in ContainerLaunchContext to: $jobUserName");
 
     // Set the environment
-    def env = [:];
+    Map<String, String> env = owner.buildEnvMap();
     ctx.setEnvironment(env);
+    //local resources
     Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
     def command = []
     command << ApplicationConstants.Environment.JAVA_HOME.$() + "/bin/java"

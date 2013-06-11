@@ -45,6 +45,8 @@ import org.apache.hadoop.hoya.yarn.appmaster.HoyaMasterServiceArgs
 import org.apache.hadoop.net.NetUtils
 import org.apache.hadoop.yarn.api.ApplicationConstants
 import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse
+import org.apache.hadoop.yarn.api.protocolrecords.KillApplicationRequest
+import org.apache.hadoop.yarn.api.protocolrecords.KillApplicationResponse
 import org.apache.hadoop.yarn.api.records.ApplicationId
 import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext
@@ -449,9 +451,10 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
         duration.start()
         report = monitorAppToState(duration,
                                    YarnApplicationState.RUNNING);
-        if (report.yarnApplicationState == YarnApplicationState.RUNNING) {
+        if (report && report.yarnApplicationState == YarnApplicationState.RUNNING) {
           exitCode = EXIT_SUCCESS
         } else {
+          killRunningApplication(appId);
           exitCode = buildExitCode(appId, report)
         }
       }
@@ -568,20 +571,49 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
  * @param duration how long to wait
  * @param desiredState desired state.
  * @return true if application completed successfully
- * @throws YarnException
- * @throws IOException
+ * @throws YarnException YARN or app issues
+ * @throws IOException IO problems
  */
   @VisibleForTesting
   public int monitorAppToCompletion(Duration duration)
-  throws YarnException, IOException {
+      throws YarnException, IOException {
 
 
     ApplicationReport report = monitorAppToState(duration,
-                                                 YarnApplicationState.FINISHED)
+                                       YarnApplicationState.FINISHED)
 
     return buildExitCode(applicationId, report)
   }
 
+  /**
+   * Wait for the app to start running (or go past that state)
+   * @param duration time to wait
+   * @return the app report; null if the duration turned out
+   * @throws YarnException YARN or app issues
+   * @throws IOException IO problems
+   */
+  @VisibleForTesting
+  public ApplicationReport monitorAppToRunning(Duration duration)
+      throws YarnException, IOException {
+    return monitorAppToState(duration,
+                             YarnApplicationState.RUNNING)
+
+  }
+
+  private boolean maybeKillApp(ApplicationReport report) {
+    if (!report) {
+      log.debug("Reached client specified timeout for application. Killing application");
+      forceKillApplication();
+    }
+    return false;
+  }
+  /**
+   * Build an exit code for an application Id and its report.
+   * If the report parameter is null, the app is killed
+   * @param appId app
+   * @param report report
+   * @return the exit code
+   */
   private int buildExitCode(ApplicationId appId, ApplicationReport report) {
     if (!report) {
       log.info("Reached client specified timeout for application. Killing application");
@@ -633,7 +665,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
     duration.start();
     if (duration.limit <= 0) {
-      throw new YarnException("Invalid duration of monitoring");
+      throw new HoyaException("Invalid duration of monitoring");
     }
     while (true) {
 
@@ -666,11 +698,30 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * @throws YarnException
    * @throws IOException
    */
-  public void forceKillApplication()
-  throws YarnException, IOException {
+  public boolean forceKillApplication()
+        throws YarnException, IOException {
     if (applicationId != null) {
-      killApplication(applicationId);
+      killRunningApplication(applicationId);
+      return true;
     }
+    return false;
+  }
+
+  /**
+   * Kill a running application
+   * @param applicationId
+   * @return the response
+   * @throws YarnException YARN problems
+   * @throws IOException IO problems
+   */
+  private KillApplicationResponse killRunningApplication(ApplicationId applicationId) throws
+      YarnException,
+      IOException {
+    log.info("Killing application " + applicationId);
+    KillApplicationRequest request =
+      Records.newRecord(KillApplicationRequest.class);
+    request.setApplicationId(applicationId);
+    return rmClient.forceKillApplication(request);
   }
 
   /**

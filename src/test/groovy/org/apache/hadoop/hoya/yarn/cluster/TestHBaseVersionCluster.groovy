@@ -21,12 +21,10 @@
 package org.apache.hadoop.hoya.yarn.cluster
 
 import groovy.util.logging.Commons
-import org.apache.hadoop.hoya.tools.Duration
+import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
-import org.apache.hadoop.yarn.api.records.ApplicationReport
-import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
@@ -43,12 +41,13 @@ class TestHBaseVersionCluster extends YarnMiniClusterTestBase {
     
     createMiniCluster("testClusterAMCreation", new YarnConfiguration(), 1, true)
     log.info("RM address = ${RMAddr}")
+    String clustername = "testAMversion"
     ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
         //config includes RM binding info
         new YarnConfiguration(miniCluster.config),
         //varargs list of command line params
         [
-            ClientArgs.ACTION_CREATE, "testAMversion",
+            ClientArgs.ACTION_CREATE, clustername,
             CommonArgs.ARG_MIN, "1",
             CommonArgs.ARG_MAX, "1",
             ClientArgs.ARG_MANAGER, RMAddr,
@@ -63,9 +62,9 @@ class TestHBaseVersionCluster extends YarnMiniClusterTestBase {
     )
     assert launcher.serviceExitCode == 0
     HoyaClient hoyaClient = (HoyaClient) launcher.service
-    hoyaClient.monitorAppToCompletion(new Duration(WAIT_TIME))
-
-
+    ClusterDescription status = hoyaClient.getClusterStatus(clustername)
+    log.info("Status $status")
+    waitForAppToFinish(hoyaClient)
   }
 
 }

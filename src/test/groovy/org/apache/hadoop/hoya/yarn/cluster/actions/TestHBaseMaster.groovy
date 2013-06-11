@@ -25,7 +25,6 @@ import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
-import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
@@ -59,8 +58,8 @@ class TestHBaseMaster extends YarnMiniClusterTestBase {
     )
     assert launcher.serviceExitCode == 0
     HoyaClient hoyaClient = (HoyaClient) launcher.service
-    hoyaClient.monitorAppToState(new Duration(WAIT_TIME),
-                                 YarnApplicationState.RUNNING)
+    hoyaClient.monitorAppToRunning(
+        new Duration(CLUSTER_GO_LIVE_TIME))
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)
     log.info("Status $status")
     //stop the cluster

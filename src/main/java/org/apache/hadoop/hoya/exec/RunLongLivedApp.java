@@ -20,11 +20,16 @@ package org.apache.hadoop.hoya.exec;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.hoya.exceptions.HoyaException;
+import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hadoop.io.IOUtils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -35,6 +40,8 @@ import java.util.Map;
  * a short lived application: 
  */
 public class RunLongLivedApp implements Runnable {
+  public static final int STREAM_READER_SLEEP_TIME = 200;
+  public static final int RECENT_LINE_LOG_LIMIT = 64;
   Log LOG = LogFactory.getLog(RunLongLivedApp.class);
   private final ProcessBuilder builder;
   private Process process;
@@ -43,15 +50,26 @@ public class RunLongLivedApp implements Runnable {
   volatile boolean done;
   private Thread execThread;
   private Thread logThread;
+  private ProcessStreamReader processStreamReader;
+  //list of recent lines, recorded for extraction into reports
+  private final List<String> recentLines = new LinkedList<String>();
+  private final int recentLineLimit = RECENT_LINE_LOG_LIMIT;
+
 
   public RunLongLivedApp(String... commands) {
     builder = new ProcessBuilder(commands);
+    initBuilder();
   }
 
   public RunLongLivedApp(List<String> commands) {
     builder = new ProcessBuilder(commands);
+    initBuilder();
   }
-
+  
+  private void initBuilder() {
+    builder.redirectErrorStream(false);
+  }
+  
   public ProcessBuilder getBuilder() {
     return builder;
   }
@@ -97,25 +115,35 @@ public class RunLongLivedApp implements Runnable {
     return getCommands().get(0);
   }
 
+  
   public boolean isRunning() {
-    return process!=null && !done;
+    return process != null && !done;
+  }
+
+  /**
+   * Get the exit code: null until the process has finished
+   * @return the exit code or null
+   */
+  public Integer getExitCode() {
+    return exitCode;
   }
 
   public void stop() {
-    if (process == null) {
+    if (!isRunning()) {
       return;
     }
     process.destroy();
   }
+  
   
   /**
    * Exec the process
    * @return the process
    * @throws IOException
    */
-  public Process spawnChildProcess() throws IOException {
+  public Process spawnChildProcess() throws IOException, HoyaException {
     if (process != null) {
-      throw new IllegalStateException("Process already started");
+      throw new HoyaInternalStateException("Process already started");
     }
     process = builder.start();
     return process;
@@ -138,7 +166,9 @@ public class RunLongLivedApp implements Runnable {
       done = true;
       try {
         logThread.join();
-      } catch (InterruptedException ie){}
+      } catch (InterruptedException ignored){
+        //ignored
+      }
     }
   }
 
@@ -148,20 +178,56 @@ public class RunLongLivedApp implements Runnable {
    * @return the thread
    * @throws IOException Execution problems
    */
-  public Thread spawnIntoThread() throws IOException {
+  public Thread spawnIntoThread() throws IOException, HoyaException {
     spawnChildProcess();
-    Thread execThread = new Thread(this, getCommand());
-    return execThread;
+    return new Thread(this, getCommand());
   }
-  
-  public void spawnApplication() throws IOException {
+
+  /**
+   * Spawn the application
+   * @throws IOException IO problems
+   * @throws HoyaException internal state of this class is wrong
+   */
+  public void spawnApplication() throws IOException, HoyaException {
     execThread = spawnIntoThread();
     execThread.start();
-    logThread = new Thread(new ProcessStreamReader(LOG, 200));
+    processStreamReader = new ProcessStreamReader(LOG, STREAM_READER_SLEEP_TIME);
+    logThread = new Thread(processStreamReader);
     logThread.start();
   }
-  
 
+  /**
+   * Get the lines of recent output
+   * @return the last few lines of output; an empty list if there are none
+   * or the process is not actually running
+   */
+  public List<String> getRecentOutput() {
+    return new ArrayList<String>(recentLines);
+  }
+
+
+  /**
+   * add the recent line to the list of recent lines; deleting
+   * an earlier on if the limit is reached.
+   *
+   * Implementation note: yes, a circular array would be more
+   * efficient, especially with some power of two as the modulo,
+   * but is it worth the complexity and risk of errors for
+   * something that is only called once per line of IO?
+   * @param line line to record
+   * @param isErrorStream is the line from the error stream
+   */
+  private synchronized void recordRecentLine(String line,
+                                             boolean isErrorStream) {
+    if (line == null) {
+      return;
+    }
+    String entry = (isErrorStream ? "[ERR] " : "[OUT] ") + line;
+    recentLines.add(entry);
+    if (recentLines.size() > recentLineLimit) {
+      recentLines.remove(0);
+    }
+  }
   /**
    * Class to read data from the two process streams, and, when run in a thread
    * to keep running until the <code>done</code> flag is set. 
@@ -172,7 +238,7 @@ public class RunLongLivedApp implements Runnable {
   private class ProcessStreamReader implements Runnable {
     private final Log streamLog;
     private final int sleepTime;
-
+    
     private ProcessStreamReader(Log streamLog, int sleepTime) {
       this.streamLog = streamLog;
       this.sleepTime = sleepTime;
@@ -222,7 +288,7 @@ public class RunLongLivedApp implements Runnable {
     //@Override //Runnable
     @SuppressWarnings("IOResourceOpenedButNotSafelyClosed")
     public void run() {
-      BufferedReader errReader =null;
+      BufferedReader errReader = null;
       BufferedReader outReader = null;
       StringBuilder outLine = new StringBuilder(256);
       StringBuilder errorLine = new StringBuilder(256);
@@ -231,45 +297,55 @@ public class RunLongLivedApp implements Runnable {
                                                    .getErrorStream()));
         outReader = new BufferedReader(new InputStreamReader(process
                                                    .getInputStream()));
-          while (!done) {
-            boolean processed = false;
-            if (readAnyLine(errReader, errorLine, 256)) {
-              streamLog.error(errorLine);
-              errorLine.setLength(0);
-              processed = true;
-            }
-            if (readAnyLine(outReader, outLine, 256)) {
-              streamLog.info(outLine);
-              errorLine.setLength(0);
-              processed |= true;
-            }
-            if(!processed) {
-              try {
-                Thread.sleep(sleepTime);
-              } catch (InterruptedException e) {
-                //ignore this, rely on the done flag
-                LOG.debug("Ignoring ", e);
-              }
+        while (!done) {
+          boolean processed = false;
+          if (readAnyLine(errReader, errorLine, 256)) {
+            String line = errorLine.toString();
+            recordRecentLine(line, true);
+            streamLog.error(line);
+            errorLine.setLength(0);
+            processed = true;
+          }
+          if (readAnyLine(outReader, outLine, 256)) {
+            String line = outLine.toString();
+            recordRecentLine(line, false);
+            streamLog.info(line);
+            outLine.setLength(0);
+            processed |= true;
+          }
+          if (!processed) {
+            //nothing processed: wait a bit for data.
+            try {
+              Thread.sleep(sleepTime);
+            } catch (InterruptedException e) {
+              //ignore this, rely on the done flag
+              LOG.debug("Ignoring ", e);
             }
           }
+        }
         //get here, done time
+        
+        //print the current error line then stream through the rest
         streamLog.error(errorLine);
         String line= errReader.readLine();
         while (line != null) {
           streamLog.error(line);
           if(Thread.interrupted()) break;
           line = errReader.readLine();
+          recordRecentLine(line, true);
         }
-
+        //now do the info line
         streamLog.info(outLine);
         line = outReader.readLine();
         while (line != null) {
           streamLog.info(line);
           if(Thread.interrupted()) break;
           line = outReader.readLine();
+          recordRecentLine(line, false);
         }
 
       } catch (Exception e) {
+        //process connection has been torn down
         LOG.debug("End of ProcessStreamReader ", e);
       } finally {
         IOUtils.closeStream(errReader);

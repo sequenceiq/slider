@@ -18,12 +18,12 @@
 
 package org.apache.hadoop.hoya.exceptions;
 
-public class InternalError extends HoyaException {
-  public InternalError(String s) {
+public class HoyaInternalStateException extends HoyaException {
+  public HoyaInternalStateException(String s) {
     super(EXIT_INTERNAL_ERROR, s);
   }
 
-  public InternalError(String s, Throwable throwable) {
+  public HoyaInternalStateException(String s, Throwable throwable) {
     super(EXIT_INTERNAL_ERROR, s, throwable);
   }
 }
