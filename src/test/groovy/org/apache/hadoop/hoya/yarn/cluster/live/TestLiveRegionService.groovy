@@ -74,7 +74,6 @@ class TestLiveRegionService extends YarnMiniClusterTestBase {
             CommonArgs.ARG_HBASE_ZKPATH, "/test/${clustername}",
             ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
             CommonArgs.ARG_X_TEST,
-            CommonArgs.ARG_X_NO_MASTER,
         ]
     )
 
