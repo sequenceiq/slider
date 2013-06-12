@@ -595,7 +595,7 @@ class HoyaAppMaster extends CompositeService
     float progress = (float) numCompletedContainers.get() / numTotalContainers;
 //    resourceManager.setProgress(progress);
 
-    if (numCompletedContainers.get() == numTotalContainers) {
+    if (numCompletedContainers.get() == numTotalContainers && serviceArgs.xNoMaster) {
       signalAMComplete();
     }
   }
