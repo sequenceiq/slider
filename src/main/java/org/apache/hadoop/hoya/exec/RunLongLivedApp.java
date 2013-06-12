@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Execute an application.
@@ -76,7 +77,7 @@ public class RunLongLivedApp implements Runnable {
 
   public void putEnv(String key, String val) {
     if (val == null) {
-      throw new RuntimeException("Null value for key " +key);
+      throw new RuntimeException("Null value for key " + key);
     }
     builder.environment().put(key, val);
   }
@@ -134,8 +135,27 @@ public class RunLongLivedApp implements Runnable {
     }
     process.destroy();
   }
-  
-  
+
+  /**
+   * Get a text description of the builder suitable for log output
+   * @return a multiline string 
+   */
+  protected String describeBuilder() {
+    StringBuilder buffer = new StringBuilder();
+    for (String arg : builder.command()) {
+      buffer.append(arg).append('\n');
+    }
+    buffer.append("Environment\n");
+    Map<String, String> env = builder.environment();
+    Set<String> keys = env.keySet();
+    List<String> sortedKeys = new ArrayList<String>(keys);
+    Collections.sort(sortedKeys);
+    for (String key : sortedKeys) {
+      buffer.append(key).append("=").append(env.get(key)).append('\n');
+    }
+    return buffer.toString();
+  }
+
   /**
    * Exec the process
    * @return the process
@@ -144,6 +164,9 @@ public class RunLongLivedApp implements Runnable {
   public Process spawnChildProcess() throws IOException, HoyaException {
     if (process != null) {
       throw new HoyaInternalStateException("Process already started");
+    }
+    if(LOG.isDebugEnabled()) {
+      LOG.debug("Spawning process:\n " + describeBuilder());
     }
     process = builder.start();
     return process;
@@ -344,9 +367,8 @@ public class RunLongLivedApp implements Runnable {
           recordRecentLine(line, false);
         }
 
-      } catch (Exception e) {
+      } catch (Exception ignored) {
         //process connection has been torn down
-        LOG.debug("End of ProcessStreamReader ", e);
       } finally {
         IOUtils.closeStream(errReader);
         IOUtils.closeStream(outReader);

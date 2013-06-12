@@ -27,5 +27,6 @@ class EnvMappings {
   public static final String ENV_FS_DEFAULT_NAME = 'env.FS.DEFAULT.NAME';
   public static final String ENV_ZOOKEEPER_PATH = 'env.ZOOKEEPER.PATH';
   public static final String ENV_ZOOKEEPER_CONNECTION = 'env.ZOOKEEPER.CONNECTION';
+  public static final String ENV_HBASE_OPTS = "HBASE_OPTS";
 
 }

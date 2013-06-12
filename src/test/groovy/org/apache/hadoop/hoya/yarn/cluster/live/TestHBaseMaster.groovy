@@ -21,8 +21,6 @@ package org.apache.hadoop.hoya.yarn.cluster.live
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.tools.Duration
-import org.apache.hadoop.hoya.yarn.CommonArgs
-import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.conf.YarnConfiguration
@@ -37,32 +35,22 @@ class TestHBaseMaster extends YarnMiniClusterTestBase {
 
   @Test
   public void testHBaseMaster() throws Throwable {
-    String clustername = "TestHBaseVersionCommand"
+    String clustername = "TestHBaseMaster"
     createMiniCluster(clustername, new YarnConfiguration(), 1, true)
-    ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
-        //config includes RM binding info
-        new YarnConfiguration(miniCluster.config),
-        //varargs list of command line params
-        [
-            ClientArgs.ACTION_CREATE, clustername,
-            CommonArgs.ARG_MIN, "0",
-            CommonArgs.ARG_MAX, "0",
-            ClientArgs.ARG_MANAGER, RMAddr,
-            CommonArgs.ARG_HBASE_HOME, HBaseHome,
-            CommonArgs.ARG_ZOOKEEPER, microZKCluster.zkBindingString,
-            CommonArgs.ARG_HBASE_ZKPATH, "/test/TestClusterAMCreation",
-            ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
-            CommonArgs.ARG_X_TEST,
-        ]
-    )
-    assert launcher.serviceExitCode == 0
+    ServiceLauncher launcher = createHoyaCluster(clustername, 0, [], true) 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
-    hoyaClient.monitorAppToRunning(
-        new Duration(CLUSTER_GO_LIVE_TIME))
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)
     log.info("Status $status")
+    int hbaseState = hoyaClient.waitForHBaseMasterLive(clustername, CLUSTER_GO_LIVE_TIME);
+    assert hbaseState == ClusterDescription.STATE_LIVE
+    log.info(statusToString(getHBaseClusterStatus(hoyaClient, clustername)))
+
     //stop the cluster
     hoyaClient.stop()
+    hoyaClient.monitorAppToCompletion(
+        new Duration(CLUSTER_GO_LIVE_TIME))
+
   }
+
 
 }

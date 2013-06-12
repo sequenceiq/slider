@@ -71,7 +71,7 @@ class TestActionExists extends YarnMiniClusterTestBase {
   public void testExistsLiveCluster() throws Throwable {
     //launch the cluster
     String clustername = "testExistsLiveCluster"
-    ServiceLauncher launcher = createMasterlessAM(clustername, 0)
+    ServiceLauncher launcher = createMasterlessAM(clustername, 0, false)
     ApplicationReport report = waitForClusterLive((HoyaClient) launcher.service)
 
     launcher = launchHoyaClientAgainstMiniMR(

@@ -18,68 +18,41 @@
 
 
 
-
-
-
-
-
-
 package org.apache.hadoop.hoya.yarn.cluster.live
 
-import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
-import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.api.ClusterDescription
-import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.tools.Duration
-import org.apache.hadoop.hoya.yarn.CommonArgs
-import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
-import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.conf.YarnConfiguration
-import org.apache.hadoop.yarn.service.launcher.LauncherExitCodes
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
-import org.junit.Before
 import org.junit.Test
 
 /**
  * Test of RM creation. This is so the later test's prereq's can be met
  */
 @Commons
-class TestLiveRegionService extends YarnMiniClusterTestBase {
-
+class TestHBaseMasterOnHDFS extends YarnMiniClusterTestBase {
 
   @Test
-  public void testLiveRegionService() throws Throwable {
-    describe("create a cluster with only region service; spin" +
-             " waiting for the RS node to come up")
-
-    //launch fake master
-    String clustername = "TestLiveRegionService"
-    createMiniCluster(clustername, new YarnConfiguration(), 1, true)
-    ServiceLauncher launcher = createHoyaCluster(clustername, 1, [], true)
-    //now look for the explicit sevice
-    //do the low level operations to get a better view of what is going on 
+  public void testHBaseMasteOnHDFSr() throws Throwable {
+    String clustername = "TestHBaseMasterOnHDFS"
+    createMiniCluster(clustername, new YarnConfiguration(), 1, 1, 1, true, true)
+    log.info("HDFS is at $fsDefaultName")
+    assert fsDefaultName.startsWith("hdfs://")
+    ServiceLauncher launcher = createHoyaCluster(clustername, 0, [], true) 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
-
-    Duration duration = new Duration(60000);
-    duration.start()
-    int workerCount = 0;
-    while (workerCount == 0) {
-      ClusterDescription status = hoyaClient.getClusterStatus(clustername)
-      //log.info("Status $status")
-      workerCount = status.regionNodes.size()
-      if (workerCount == 0) {
-        assert !duration.limitExceeded
-        Thread.sleep(5000)
-      }
-    }
-    //here there is >1 worker
-    //sleep for a bit to let the RM do its thing
-    Thread.sleep(10000)
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)
-    log.info(status)
+    log.info("Status $status")
+    assertHBaseMasterNotStopped(hoyaClient, clustername)
+    //stop the cluster
+    hoyaClient.stop()
+    hoyaClient.monitorAppToCompletion(
+        new Duration(CLUSTER_GO_LIVE_TIME))
+    int hbaseState = hoyaClient.waitForHBaseMasterLive(clustername, CLUSTER_GO_LIVE_TIME);
+    assert hbaseState == ClusterDescription.STATE_LIVE
+    log.info(statusToString(getHBaseClusterStatus(hoyaClient, clustername)))
 
   }
 

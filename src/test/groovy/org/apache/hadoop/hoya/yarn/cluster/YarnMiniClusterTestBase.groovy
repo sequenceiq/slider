@@ -21,7 +21,16 @@ package org.apache.hadoop.hoya.yarn.cluster
 import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.fs.FileUtil
+import org.apache.hadoop.hbase.ClusterStatus
+import org.apache.hadoop.hbase.HBaseConfiguration
+import org.apache.hadoop.hbase.HConstants
+import org.apache.hadoop.hbase.ServerName
+import org.apache.hadoop.hbase.client.HBaseAdmin
+import org.apache.hadoop.hbase.client.HConnection
+import org.apache.hadoop.hbase.client.HConnectionManager
+import org.apache.hadoop.hdfs.MiniDFSCluster
+import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.tools.YarnUtils
 import org.apache.hadoop.hoya.yarn.CommonArgs
@@ -41,6 +50,11 @@ import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
 import org.junit.After
 import org.junit.Before
 
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.SynchronousQueue
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
+
 /**
  * Base class for mini cluster tests -creates a field for the
  * mini yarn cluster
@@ -55,6 +69,7 @@ implements KeysForTests {
    * Mini YARN cluster only
    */
   public static final int CLUSTER_GO_LIVE_TIME = 60000
+  protected MiniDFSCluster hdfsCluster
   protected MiniYARNCluster miniCluster;
   protected MicroZKCluster microZKCluster
 
@@ -68,6 +83,7 @@ implements KeysForTests {
     describe("teardown")
     ServiceOperations.stopQuietly(log, miniCluster)
     microZKCluster?.close();
+    hdfsCluster?.shutdown();
   }
 
   /**
@@ -91,12 +107,7 @@ implements KeysForTests {
    * @param numLocalDirs #of local dirs
    * @param numLogDirs #of log dirs
    */
-  protected void createMiniCluster(String name,
-                               YarnConfiguration conf,
-                               int noOfNodeManagers,
-                               int numLocalDirs,
-                               int numLogDirs,
-                               boolean startZK) {
+  protected void createMiniCluster(String name, YarnConfiguration conf, int noOfNodeManagers, int numLocalDirs, int numLogDirs, boolean startZK, boolean startHDFS) {
     conf.setInt(YarnConfiguration.RM_SCHEDULER_MINIMUM_ALLOCATION_MB, 64);
     conf.setClass(YarnConfiguration.RM_SCHEDULER,
                   FifoScheduler.class, ResourceScheduler.class);
@@ -107,6 +118,14 @@ implements KeysForTests {
     if (startZK) {
       microZKCluster = new MicroZKCluster(new Configuration(conf))
       microZKCluster.createCluster();
+    }
+    if (startHDFS) {
+      File baseDir = new File("./target/hdfs/$name").absoluteFile;
+      //use file: to rm it recursively
+      FileUtil.fullyDelete(baseDir)
+      conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, baseDir.absolutePath)
+      MiniDFSCluster.Builder builder = new MiniDFSCluster.Builder(conf)
+      hdfsCluster = builder.build()
     }
 
   }
@@ -120,7 +139,7 @@ implements KeysForTests {
    * @param numLogDirs #of log dirs
    */
   protected void createMiniCluster(String name, YarnConfiguration conf, int noOfNodeManagers, boolean startZK) {
-    createMiniCluster(name, conf, noOfNodeManagers, 1, 1, startZK)
+    createMiniCluster(name, conf, noOfNodeManagers, 1, 1, startZK, false)
   }
 
   /**
@@ -185,33 +204,74 @@ implements KeysForTests {
   }
 
   /**
+   * return the default filesystem, which is HDFS if the miniDFS cluster is
+   * up, file:// if not
+   * @return a filesystem string to pass down
+   */
+  protected String getFsDefaultName() {
+    if (hdfsCluster) {
+      return "hdfs://localhost:${hdfsCluster.nameNodePort}/"
+    } else {
+      return "file:///"
+    }
+  }
+
+  /**
    * Create an AM without a master
-   * @param name AM name
+   * @param clustername AM name
    * @param size # of nodes
+   * @param blockUntilRunning block until the AM is running
    * @return launcher which will have executed the command.
    */
-  public ServiceLauncher createMasterlessAM(String name, int size) {
-    assert name != null
+  public ServiceLauncher createMasterlessAM(String clustername,
+                                            int size,
+                                            boolean blockUntilRunning) {
+    return createHoyaCluster(clustername, size, 
+                         [CommonArgs.ARG_X_NO_MASTER],
+                         blockUntilRunning)
+  }
+
+  /**
+   * Create a full cluster with a master & the requested no. of region servers
+   * @param clustername cluster name
+   * @param size # of nodes
+   * @param extraArgs list of extra args to add to the creation command
+   * @param blockUntilRunning block until the AM is running
+   * @return launcher which will have executed the command.
+   */
+  public ServiceLauncher createHoyaCluster(String clustername,
+                                  int size,
+                                  List<String> extraArgs,
+                                  boolean blockUntilRunning) {
+    assert clustername != null
     assert miniCluster != null
-    List<String> args = [
-        ClientArgs.ACTION_CREATE, name,
+    List<String> argsList = [
+        ClientArgs.ACTION_CREATE, clustername,
         CommonArgs.ARG_MIN, Integer.toString(size),
         CommonArgs.ARG_MAX, Integer.toString(size),
         ClientArgs.ARG_MANAGER, RMAddr,
-        CommonArgs.ARG_USER, USERNAME,
         CommonArgs.ARG_HBASE_HOME, HBaseHome,
         CommonArgs.ARG_ZOOKEEPER, ZKBinding,
-        CommonArgs.ARG_HBASE_ZKPATH, "/test/" + name,
-        CommonArgs.ARG_X_TEST,
+        CommonArgs.ARG_HBASE_ZKPATH, "/test/" + clustername,
         ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
-        CommonArgs.ARG_X_NO_MASTER
+        ClientArgs.ARG_FILESYSTEM, fsDefaultName,
+        CommonArgs.ARG_X_TEST,
     ]
+    if (extraArgs != null) {
+      argsList += extraArgs;
+    }
     ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
+        //config includes RM binding info
         new YarnConfiguration(miniCluster.config),
-        args
+        //varargs list of command line params
+        argsList
     )
     assert launcher.serviceExitCode == 0
-    return launcher
+    HoyaClient hoyaClient = (HoyaClient) launcher.service
+    if (blockUntilRunning) {
+      hoyaClient.monitorAppToRunning(new Duration(CLUSTER_GO_LIVE_TIME))
+    }
+    return launcher;
   }
 
 
@@ -247,4 +307,96 @@ implements KeysForTests {
       hoyaClient.forceKillApplication();
     }
   }
+
+  public void assertHBaseMasterNotStopped(HoyaClient hoyaClient,
+                                          String clustername) {
+    ClusterDescription status = hoyaClient.getClusterStatus(clustername);
+    ClusterDescription.ClusterNode node = status.masterNodes[0];
+    assert node != null;
+    if (node.state >= ClusterDescription.STATE_STOPPED) {
+      //stopped, not what is wanted
+      log.error("HBase master has stopped")
+      log.error(node.toString())
+      fail("HBase master has stopped " + node.diagnostics)
+    }
+  }
+
+  /**
+   * Create an HBase config to work with
+   * @param hoyaClient hoya client
+   * @param clustername cluster
+   * @return an hbase config extended with the custom properties from the
+   * cluster, including the binding to the HBase cluster
+   */
+  public Configuration createHBaseConfiguration(HoyaClient hoyaClient,
+                                                     String clustername) {
+    Configuration conf = HBaseConfiguration.create();
+    ClusterDescription status = hoyaClient.getClusterStatus(clustername);
+    status.hBaseClientProperties.each {String key, String val ->
+      conf.set(key, val,"hoya cluster");
+    }
+    conf.setInt(HConstants.HBASE_CLIENT_RETRIES_NUMBER, 0);
+    conf.setInt("zookeeper.recovery.retry", 0)
+
+    return conf
+  }
+
+  /**
+   * Create an (unshared) HConnection talking to the hbase service that
+   * Hoya should be running
+   * @param hoyaClient hoya client
+   * @param clustername the name of the Hoya cluster
+   * @return the connection
+   */
+  public HConnection createHConnection(HoyaClient hoyaClient,
+                                       String clustername) {
+    Configuration clientConf = createHBaseConfiguration(hoyaClient, clustername)
+    HConnection hbaseConnection = HConnectionManager.createConnection(clientConf)
+    return hbaseConnection;
+  }
+  
+  public ExecutorService createExecutorService() {
+    ThreadPoolExecutor pool =  new ThreadPoolExecutor(1, 1,
+                                       1000L,
+                                       TimeUnit.SECONDS,
+                                       new SynchronousQueue<Runnable>());
+   pool.allowCoreThreadTimeOut(true);
+   return pool;
+  }
+
+  /**
+   * get a string representation of an HBase cluster status
+   * @param status cluster status
+   * @return a summary for printing
+   */
+  String statusToString(ClusterStatus status) {
+    StringBuilder builder = new StringBuilder();
+    status.with {
+      builder << "Cluster " << clusterId
+      builder << " @ " << master << " version " << getHBaseVersion()
+      builder << "\n"
+      status.servers.each() { ServerName name ->
+        builder << name << ":" << getLoad(name) << "\n"
+      }
+    }
+    return builder.toString()
+  }
+
+
+  public ClusterStatus getHBaseClusterStatus(HoyaClient hoyaClient, String clustername) {
+    HConnection hbaseConnection = createHConnection(hoyaClient, clustername)
+
+    HBaseAdmin hBaseAdmin = new HBaseAdmin(hbaseConnection)
+    ClusterStatus hBaseClusterStatus = hBaseAdmin.clusterStatus
+    return hBaseClusterStatus
+  }
+  
+  /*
+      byte[] tableName = Bytes.toBytes("hoya-test")
+    ExecutorService executor = createExecutorService()
+    HTable table = new HTable(tableName, 
+                              hbaseConnection,
+                              executor)
+    table.
+   */
 }

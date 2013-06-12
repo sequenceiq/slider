@@ -37,7 +37,7 @@ public class CommonArgs {
   public static final String ARG_ACTION = '--action'
   public static final String ARG_CONFDIR = '--confdir'
   public static final String ARG_DEBUG = '--debug'
-  public static final String ARG_FILESYSTEM = '--filesystem'
+  public static final String ARG_FILESYSTEM = '--fs'
   public static final String ARG_HBASE_HOME = '--hbasehome'
   public static final String ARG_HBASE_ZKPATH = '--hbasezkpath'
   public static final String ARG_IMAGE = '--image'

@@ -862,11 +862,10 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   public ClusterDescription getClusterStatus(String clustername) {
     HoyaAppMasterProtocol appMaster = bondToCluster(clustername)
     String statusJson = appMaster.getClusterStatus()
-//    log.info(statusJson)
     ClusterDescription cd = ClusterDescription.fromJson(statusJson)
     return cd
   }
-
+  
   private HoyaAppMasterProtocol bondToCluster(String clustername) {
     ApplicationReport instance = findInstance(getUsername(), clustername)
     if (!instance) {
@@ -876,6 +875,39 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     return appMaster
   }
 
+  /**
+   * Wait for the hbase master to be live (or past it in the lifecycle)
+   * @param clustername cluster
+   * @param timeout time to wait
+   * @return the state. If still in CREATED, the cluster didn't come up
+   * in the time period. If LIVE, all is well. If >LIVE, it has shut for a reason
+   * @throws IOException
+   * @throws HoyaException
+   */
+  public int waitForHBaseMasterLive(String clustername, long timeout)
+      throws IOException, HoyaException {
+    Duration duration = new Duration(timeout);
+    duration.start()
+    boolean live = false;
+    int state = ClusterDescription.STATE_CREATED
+    while (!live) {
+      ClusterDescription cd = getClusterStatus(clustername)
+      if (cd.masterNodes.size() == 0) {
+        throw new HoyaException("No master node running");
+      }
+      ClusterDescription.ClusterNode master = cd.masterNodes[0];
+      state = master.state
+      live = state >= ClusterDescription.STATE_LIVE
+      if (!live && !duration.limitExceeded) {
+        try {
+          Thread.sleep(1000);
+        } catch (InterruptedException ignored) {
+          //ignored
+        }
+      }
+    }
+    return state;
+  }
 
 
   public HoyaException unknownClusterException(String clustername) {

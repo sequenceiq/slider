@@ -23,7 +23,9 @@ import org.codehaus.jackson.map.ObjectMapper;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Represents a cluster specification; designed to be sendable over the wire
@@ -35,11 +37,16 @@ import java.util.List;
 public class ClusterDescription {
 
   public String name;
-  public String state;
-  public static final String STATE_CREATED = "created";
-  public static final String STATE_STARTED = "started";
-  public static final String STATE_STOPPED = "stopped";
-  public static final String STATE_UNSTARTED = "unstarted";
+  public int state;
+  
+  /*
+   State list for both clusters and nodes in them. Ordered so that destroyed follows
+   stopped
+   */
+  public static final int STATE_CREATED = 0;
+  public static final int STATE_LIVE = 1;
+  public static final int STATE_STOPPED = 2;
+  public static final int STATE_DESTROYED = 3;
   /**
    * When was the cluster last started?
    */
@@ -61,8 +68,17 @@ public class ClusterDescription {
 
   public String zkConnection;
   public String zkPath;
-  public List<ClusterNode> regionNodes = new ArrayList<ClusterNode>();
+  /**
+   * Master node
+   */
   public List<ClusterNode> masterNodes = new ArrayList<ClusterNode>();
+  /** Worker nodes */
+  public List<ClusterNode> regionNodes = new ArrayList<ClusterNode>();
+
+  /**
+   * List of key-value pairs to add to an HBase config to set up the client
+   */
+  public Map<String,String> hBaseClientProperties = new HashMap<String, String>();
 
   /**
    * Describe a specific node in the cluster
@@ -75,11 +91,16 @@ public class ClusterDescription {
     /**
      * state (Currently arbitrary text)
      */
-    public String state;
+    public int state;
     /**
      * what was the command executed?
      */
     public String command;
+
+    /**
+     * Any diagnostics
+     */
+    public String diagnostics;
     /**
      * What is the tail output from the executed process (or [] if not started
      * or the log cannot be picked up
@@ -101,10 +122,12 @@ public class ClusterDescription {
       for (String line : output) {
         builder.append(line).append("\n");
       }
+      if (diagnostics != null) {
+        builder.append(diagnostics).append("\n");
+      }
       return builder.toString();
     }
   }
-
 
   @Override
   public String toString() {

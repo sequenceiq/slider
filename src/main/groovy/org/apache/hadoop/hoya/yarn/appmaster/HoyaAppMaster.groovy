@@ -18,13 +18,11 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster
 
-import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.HBaseCommands
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException
-import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.hadoop.hoya.HoyaApp
 import org.apache.hadoop.hoya.HoyaExitCodes
@@ -69,6 +67,9 @@ import java.util.concurrent.locks.ReentrantLock
  * The AM for Hoya
  */
 @Commons
+
+//turning static compilation on causes signature verification errors
+// -assume a bug in the groovy compiler
 //@CompileStatic
 
 class HoyaAppMaster extends CompositeService
@@ -78,7 +79,17 @@ class HoyaAppMaster extends CompositeService
       HoyaAppMasterProtocol {
 
   // YARN RPC to communicate with the Resource Manager or Node Manager
+
+  /**
+   * How long to expect launcher threads to shut down on AM termination:
+   * {@value}
+   */
   public static final int LAUNCHER_THREAD_SHUTDOWN_TIME = 10000
+  /**
+   * time to wait from shutdown signal being rx'd to telling
+   * the AM: {@value}
+   */
+  public static final int TERMINATION_SIGNAL_PROPAGATION_DELAY = 1000
   private YarnRPC rpc;
   // Handle to communicate with the Resource Manager
   private AMRMClientAsync asyncRMClient;
@@ -96,7 +107,7 @@ class HoyaAppMaster extends CompositeService
   private ApplicationAttemptId appAttemptID;
   // App Master configuration
   // No. of containers to run shell command on
-  private int numTotalContainers = 1; //HACK to test
+  private int numTotalContainers = 0; //HACK to test
   // Memory to request for the container on which the shell command will run
   private int containerMemory = 10;
   // Priority of the request
@@ -131,7 +142,6 @@ class HoyaAppMaster extends CompositeService
 
   String[] argv
   private HoyaMasterServiceArgs serviceArgs
-  private float progressCounter = 0.0f
   private final ClusterDescription clusterDescription = new ClusterDescription();
   //hbase command
   private RunLongLivedApp hbaseMaster
@@ -143,22 +153,30 @@ class HoyaAppMaster extends CompositeService
     new HoyaApp("HoyaMasterService")
   }
 
-  @Override
-  public void setArgs(String...args) {
-    this.argv = args;
-    serviceArgs = new HoyaMasterServiceArgs(argv)
-    serviceArgs.parse()
-    serviceArgs.postProcess()
-  }
+/* =================================================================== */
+/* service lifecycle methods */
+/* =================================================================== */
 
-  @Override
+  @Override //Service
   synchronized void init(Configuration conf) {
     //sort out the location of the AM
     serviceArgs.applyDefinitions(conf);
     String rmAddress = serviceArgs.rmAddress
     YarnUtils.setRmSchedulerAddress(conf, rmAddress)
-//    YarnUtils.setRmAddressGlobal(rmAddress);
     super.init(conf)
+  }
+  
+/* =================================================================== */
+/* RunService methods called from ServiceLauncher */
+/* =================================================================== */
+
+  // pick up the args from the service launcher
+  @Override // RunService
+  public void setArgs(String...args) {
+    this.argv = args;
+    serviceArgs = new HoyaMasterServiceArgs(argv)
+    serviceArgs.parse()
+    serviceArgs.postProcess()
   }
 
   
@@ -189,7 +207,9 @@ class HoyaAppMaster extends CompositeService
     }
     return exitCode
   }
-  
+
+/* =================================================================== */
+
   /**
    * Create and run the cluster
    * @return exit code
@@ -207,7 +227,6 @@ class HoyaAppMaster extends CompositeService
     InetSocketAddress address = YarnUtils.getRmSchedulerAddress(conf)
     log.info("RM is at $address")
     rpc = YarnRPC.create(conf);
-//    AMRMProtocol proxy = (AMRMProtocol)rpc.getProxy(AMRMProtocol, address, conf);
 
     ContainerId containerId = ConverterUtils.toContainerId(
         Env.mandatory(ApplicationConstants.Environment.CONTAINER_ID.name()));
@@ -233,14 +252,14 @@ class HoyaAppMaster extends CompositeService
                                                                      heartbeatInterval,
                                                                      this);
 
-    //add to the list of things to terminate
+    //add to the list of things to terminate in service stop
     addService(asyncRMClient)
     //now bring it up
     asyncRMClient.init(conf);
     asyncRMClient.start();
     
 
-    startAMActionsServer();
+    startHoyaRPCServer();
     
     String hostname = NetUtils.getConnectAddress(server).hostName
     appMasterHostname = hostname ;
@@ -271,7 +290,9 @@ class HoyaAppMaster extends CompositeService
     // containers
     // Keep looping until all the containers are launched and shell script
     // executed on them ( regardless of success/failure).
-    AMRMClient.ContainerRequest containerAsk = setupContainerAskForRM(numTotalContainers);
+    numTotalContainers = serviceArgs.max
+    AMRMClient.ContainerRequest containerAsk =
+      setupContainerAskForRM(numTotalContainers);
     asyncRMClient.addContainerRequest(containerAsk);
     numRequestedContainers.set(numTotalContainers);
 
@@ -290,17 +311,18 @@ class HoyaAppMaster extends CompositeService
       log.info "skipping master launch as xNoMaster is set"
     } else {
       launchHBaseServer(launchSequence,
-                        ["HBASE_LOG_DIR": buildHBaseLogdir()]);
+                        [('HBASE_LOG_DIR'): buildHBaseLogdir()]);
     }
     
     //if we get here: success
     success = true;
-    clusterDescription.state= ClusterDescription.STATE_STARTED;
+    clusterDescription.state= ClusterDescription.STATE_LIVE;
     clusterDescription.maxMasterNodes = clusterDescription.minMasterNodes = 1;
     masterNode = new ClusterDescription.ClusterNode(hostname)
-    clusterDescription.masterNodes = [
+    clusterDescription.masterNodes = 
+      [
         masterNode
-    ]
+      ]
 
     waitForAMCompletionSignal()
     finish();
@@ -308,13 +330,16 @@ class HoyaAppMaster extends CompositeService
     return success ? EXIT_SUCCESS : EXIT_TASK_LAUNCH_FAILURE;
   }
 
+  /**
+   * Build the configuration directory
+   * @return
+   */
   public String buildConfDir() {
     String confdir = new File(serviceArgs.hbasehome, "/conf").absolutePath;
     if (serviceArgs.confdir) {
       confdir = serviceArgs.confdir
-      //"/Users/ddas/workspace/confYarnHBase";
     }
-    return HoyaUtils.quoteArg(confdir)
+    return confdir
   }
 
   /**
@@ -348,9 +373,10 @@ class HoyaAppMaster extends CompositeService
       AMExecutionStateLock.unlock()
     }
     //add a sleep here for about a second. Why? it
-    //stops RPC calls breaking so dramatically
+    //stops RPC calls breaking so dramatically when the cluster
+    //is torn down mid-RPC
     try {
-      Thread.sleep(1000)
+      Thread.sleep(TERMINATION_SIGNAL_PROPAGATION_DELAY)
     } catch (InterruptedException ignored) {
     }
   }
@@ -370,15 +396,9 @@ class HoyaAppMaster extends CompositeService
   /**
    * shut down the cluster 
    */
-  private void finish() {
+  private synchronized void finish() {
     //stop the daemon & grab its exit code
-    Integer exitCode
-    if (hbaseMaster) {
-      hbaseMaster.stop();
-      exitCode = hbaseMaster.exitCode
-    } else {
-      exitCode = null;
-    }
+    Integer exitCode = stopHBase()
     
     // Join all launched threads
     // needed for when we time out
@@ -461,7 +481,7 @@ class HoyaAppMaster extends CompositeService
    * Register self as a server
    * @return the new server
    */
-  private Server startAMActionsServer() {
+  private Server startHoyaRPCServer() {
     server = new RPC.Builder(config)
         .setProtocol(HoyaAppMasterProtocol.class)
         .setInstance(this)
@@ -506,6 +526,10 @@ class HoyaAppMaster extends CompositeService
     return request;
   }
 
+/* =================================================================== */
+/* AMRMClientAsync callbacks */
+/* =================================================================== */
+
   /**
    * Callback event when a container is allocated
    * @param allocatedContainers list of containers
@@ -537,7 +561,6 @@ class HoyaAppMaster extends CompositeService
         launchThreads.add(launchThread);
       }
       launchThread.start();
-      
     }
 
   }
@@ -600,23 +623,6 @@ class HoyaAppMaster extends CompositeService
     }
   }
 
-  /**
-   * Update the cluster description with anything interesting
-   */
-  private synchronized void updateClusterDescription() {
-    if (hbaseMaster) {
-      masterNode.command = hbaseMaster.commands.join(" ");
-      masterNode.state = hbaseMaster.running ?
-        ClusterDescription.STATE_STARTED: ClusterDescription.STATE_STOPPED 
-      //pull in recent lines of output from the HBase master
-      List<String> output = hbaseMaster.recentOutput
-      masterNode.output = output.toArray(new String[output.size()])
-    } else {
-      masterNode.state = ClusterDescription.STATE_UNSTARTED
-      masterNode.output = new String[0];
-    }
-  }
-  
   
   /**
    * RM wants to shut down the AM
@@ -636,18 +642,6 @@ class HoyaAppMaster extends CompositeService
     log.info("Nodes updated: " +
              (updatedNodes*.getNodeId()).join(" "))
   }
-/*
-  @Override //AMRMClientAsync
-  public float getProgress() {
-    float f = progressCounter;
-    progressCounter +=10.0f
-    log.info("AMRMClientAsync.getProgress()=$f")
-    if (progressCounter>=100) {
-      log.info("Completed")
-      done = true;
-    }
-    return f
-  }*/
 
   /**
    * Use this as a generic heartbeater: 
@@ -678,7 +672,18 @@ class HoyaAppMaster extends CompositeService
     signalAMComplete();
   }
 
-  @Override
+/* =================================================================== */
+/* HoyaAppMasterApi */
+/* =================================================================== */
+  
+  @Override   //HoyaAppMasterApi
+  ProtocolSignature getProtocolSignature(String protocol, long clientVersion, int clientMethodsHash) throws IOException {
+    return ProtocolSignature.getProtocolSignature(
+        this, protocol, clientVersion, clientMethodsHash);
+  }
+
+
+  @Override   //HoyaAppMasterApi
   void stopCluster() throws IOException {
     log.info("HoyaAppMasterApi.stopCluster()")
     signalAMComplete();
@@ -703,28 +708,66 @@ class HoyaAppMaster extends CompositeService
   public synchronized String getClusterStatus() throws IOException {
     updateClusterDescription()
     String status = clusterDescription.toJsonString()
-//    log.debug(status)
     return status; 
   }
 
-  @Override   //HoyaAppMasterApi
-  ProtocolSignature getProtocolSignature(String protocol, long clientVersion, int clientMethodsHash) throws IOException {
-    return ProtocolSignature.getProtocolSignature(
-        this, protocol, clientVersion, clientMethodsHash);
+/* =================================================================== */
+/* END */
+/* =================================================================== */
+
+  /**
+   * Update the cluster description with anything interesting
+   */
+  private synchronized void updateClusterDescription() {
+    if (hbaseMaster) {
+      masterNode.command = hbaseMaster.commands.join(" ");
+      if (hbaseMaster.running) {
+        masterNode.state = ClusterDescription.STATE_LIVE
+      }
+      else {
+        masterNode.state = ClusterDescription.STATE_STOPPED
+        masterNode.diagnostics = "Exit code = ${hbaseMaster.exitCode}";
+      }  
+      //pull in recent lines of output from the HBase master
+      List<String> output = hbaseMaster.recentOutput
+      masterNode.output = output.toArray(new String[output.size()])
+    } else {
+      masterNode.state = ClusterDescription.STATE_DESTROYED
+      masterNode.output = new String[0];
+    }
   }
 
-
-  protected synchronized void launchHBaseServer(List<String> commands, Map<String, String> env) throws IOException {
+  /**
+   * Launch the hbase server
+   * @param commands list of commands -bin/hbase is inserted on the front
+   * @param env environment variables above those generated by
+   * {@link #buildEnvMapFromServiceArguments()} 
+   * @throws IOException IO problems
+   * @throws HoyaException anything internal
+   */
+  protected synchronized void launchHBaseServer(List<String> commands,
+                                                Map<String, String> env)
+                        throws IOException, HoyaException {
     if (hbaseMaster != null) {
       throw new HoyaInternalStateException("trying to launch hbase server" +
-                                           " when it is already running")
+                                           " when one is already running")
     }
     commands.add(0, buildHBaseBinPath().absolutePath);
     hbaseMaster = new RunLongLivedApp(commands);
-    hbaseMaster.putEnvMap(env);
     //set the env variable mapping
-    hbaseMaster.putEnvMap(buildEnvMapFromServiceArguments())
+    Map<String, String> arguments = buildEnvMapFromServiceArguments()
+    hbaseMaster.putEnvMap(env)
+    hbaseMaster.putEnvMap(arguments)
+    hbaseMaster.putEnv(EnvMappings.ENV_HBASE_OPTS,
+                       build_JVM_opts(arguments))
     hbaseMaster.spawnApplication()
+    //now add properties to the cluster 
+    noteHBaseClientProperty("hbase.zookeeper.quorum",
+                            serviceArgs.zookeeper)
+    
+    noteHBaseClientProperty("zookeeper.znode.parent",
+                            serviceArgs.hbasezkpath)
+    
   }
 
   /**
@@ -738,8 +781,9 @@ class HoyaAppMaster extends CompositeService
   }
 
   /**
-   * Build the environment map from service arguments passed down
-   * @return an env map to merge with the rest of the envirionment
+   * Build the environment map from service arguments passed down.
+   * This map is intended to be valid on the AM and on any of the Containers
+   * @return an env map to merge with the rest of the environment
    */
   public Map<String, String> buildEnvMapFromServiceArguments() {
     return [
@@ -749,12 +793,38 @@ class HoyaAppMaster extends CompositeService
     ]
   }
 
+  public String build_JVM_opts(Map<String,String> properties) {
+    StringBuilder builder = new StringBuilder()
+    properties.each { String k, String v ->
+      builder << "-D$k=$v "
+    }
+    return builder.toString();
+  }
+  
   /**
    * stop hbase process if it the running process var is not null
+   * @return the hbase exit code -null if it is not running
    */
-  protected synchronized void stopHBase() {
-    hbaseMaster?.stop();
-    //nullidy the variable
-    hbaseMaster = null;
+  protected synchronized Integer stopHBase() {
+    Integer exitCode
+    if (hbaseMaster) {
+      hbaseMaster.stop();
+      exitCode = hbaseMaster.exitCode
+      hbaseMaster = null
+    } else {
+      exitCode = null;
+    }
+    return exitCode
   }
+
+  /**
+   * Add a property to the hbase client properties list in the
+   * cluster description
+   * @param key property key
+   * @param val property value
+   */
+  public void noteHBaseClientProperty(String key, String val) {
+    clusterDescription.hBaseClientProperties[key] = val;
+  }
+
 }

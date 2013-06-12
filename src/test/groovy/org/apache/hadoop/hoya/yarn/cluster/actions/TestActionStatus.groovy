@@ -24,7 +24,6 @@
 
 package org.apache.hadoop.hoya.yarn.cluster.actions
 
-import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.exceptions.HoyaException
@@ -67,7 +66,7 @@ class TestActionStatus extends YarnMiniClusterTestBase {
       )
       fail("expected an exception, got a status code " + launcher.serviceExitCode)
     } catch (HoyaException e) {
-      assert e.exitCode == EXIT_UNKNOWN_HOYA_CLUSTER
+      assert e.exitCode == HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER
     }
   }
   
@@ -78,7 +77,7 @@ class TestActionStatus extends YarnMiniClusterTestBase {
     String clustername = "testStatusLiveCluster"
     
     //launch the cluster
-    ServiceLauncher launcher = createMasterlessAM(clustername, 0)
+    ServiceLauncher launcher = createMasterlessAM(clustername, 0, false)
 
     ApplicationReport report = waitForClusterLive((HoyaClient)launcher.service)
 

@@ -28,7 +28,7 @@
  </property>
  <property>
    <name>hbase.rootdir</name>
-   <value>hdfs://${env.FS.DEFAULT.NAME}/${hbase.root}</value>
+   <value>${env.FS.DEFAULT.NAME}/${hbase.root}</value>
  </property>
  <property>
    <name>hbase.tmp.dir</name>

@@ -22,6 +22,7 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.HBaseCommands
 import org.apache.hadoop.hoya.tools.Env
+import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.net.NetUtils
 import org.apache.hadoop.yarn.api.ApplicationConstants
 import org.apache.hadoop.yarn.api.ContainerManager
@@ -91,6 +92,7 @@ class HoyaRegionServiceLauncher implements Runnable {
 
     // Set the environment
     Map<String, String> env = owner.buildEnvMapFromServiceArguments();
+    env[EnvMappings.ENV_HBASE_OPTS] = owner.build_JVM_opts(env);
     env["HBASE_LOG_DIR"] = owner.buildHBaseContainerLogdir();
     
     ctx.setEnvironment(env);
@@ -111,6 +113,9 @@ class HoyaRegionServiceLauncher implements Runnable {
     StartContainerRequest startReq = StartContainerRequest.newInstance(ctx,
                            container.getContainerToken())
     log.info("Starting container with command: $cmdStr");
+    env.each{ String k, String v ->
+      log.info("$k=$v")
+    }
 
     try {
       containerManager.startContainer(startReq);
