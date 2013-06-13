@@ -19,17 +19,27 @@
 package org.apache.hadoop.hoya.tools
 
 import groovy.transform.CompileStatic
+import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.FSDataOutputStream
+import org.apache.hadoop.fs.Path
+import org.apache.hadoop.fs.permission.FsAction
+import org.apache.hadoop.fs.permission.FsPermission
+import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.hbase.HBaseConfiguration
-import org.apache.hadoop.fs.*
+import org.apache.hadoop.io.IOUtils
 
 /**
  * Methods to aid in config, both in the Configuration class and
  * with other parts of setting up Hoya-initated processes
  */
 @CompileStatic
-
+@Commons
 class ConfigHelper {
+
+  public static final FsPermission CONF_DIR_PERMISSION = new FsPermission(FsAction.ALL,
+                                                                          FsAction.READ_EXECUTE,
+                                                                          FsAction.NONE)
 
   public static def setConfigEntry(Configuration self, def key, def value) {
     self.set(key.toString(), value.toString())
@@ -51,13 +61,58 @@ class ConfigHelper {
                      mapEntry.value.toString())  
     }
   }
-  public static Configuration generateConfig(Map map, String appId, Path outputDirectory) {
-    Configuration conf = HBaseConfiguration.create();
-    addConfigMap(conf, map)
-    FSDataOutputStream fos = FileSystem.get(conf).create(new Path(outputDirectory, appId+"/hbase-site.xml"));
-    conf.writeXml(fos);
-    fos.close();
-    return conf
+  
+  public static Path generateConfigDir(Configuration conf, String appId, Path outputDirectory) {
+    
+    Path confdir = new Path(outputDirectory, appId + "/conf");
+    HadoopFS fs = HadoopFS.get(confdir.toUri(), conf);
+    FsPermission perms = CONF_DIR_PERMISSION
+    fs.mkdirs(confdir, perms)
+    return confdir;
+  }
+
+  /**
+   * Generate a config file in a destination directory on a given filesystem
+   * @param systemConf system conf used for creating filesystems
+   * @param confdir the directory path where the file is to go
+   * @param filename the filename
+   * @return the destination path
+   */
+  public static Path generateConfig(Configuration systemConf,
+                                    Configuration generatingConf,
+                                    Path confdir,
+                                    String filename) {
+    HadoopFS fs = HadoopFS.get(confdir.toUri(), systemConf);
+
+    Path destPath = new Path(confdir, filename)
+    FSDataOutputStream fos = fs.create(destPath);
+    try {
+      generatingConf.writeXml(fos);
+    } finally {
+      IOUtils.closeStream(fos);
+    }
+    return destPath
+  }
+  
+  /**
+   * Generate a config file in a destination directory on the local filesystem
+   * @param confdir the directory path where the file is to go
+   * @param filename the filename
+   * @return the destination path
+   */
+  public static File generateConfig(Configuration generatingConf,
+                                    File confdir,
+                                    String filename) {
+    
+
+    File destPath = new File(confdir, filename)
+    OutputStream fos = new FileOutputStream(destPath)
+    try {
+      generatingConf.writeXml(fos);
+    } finally {
+      IOUtils.closeStream(fos);
+    }
+    return destPath
   }
 
   /**
@@ -97,13 +152,38 @@ class ConfigHelper {
     }
     return definitions
   }
-  
+
+  /**
+   * Sanity check: make sure everything in the list
+   * really is a string.
+   * @param list of string objects
+   */
   public static void verifyAllStringType(List list) {
     list.each { k ->
       if (!(k instanceof String)) {
         throw new IllegalArgumentException("${k} is not a string")
       }
     }
-
   }
+  
+  /**
+   * looks for the config under confdir/templateFile; if not there
+   * loads it from /conf/templateFile . 
+   */
+  public static Configuration loadTemplateConfiguration(File confDir,
+                                                 String templateFilename,
+                                                 String resource) {
+    File templateFile = new File(confDir, templateFilename)
+    Configuration conf = new Configuration(false)
+    if (templateFile.exists()) {
+      log.debug("Loading template $templateFile");
+      conf.addResource(new FileInputStream(templateFile));
+    } else {
+      log.debug("Template  file $templateFile not found" +
+                " -reverting to classpath resource $resource");
+      conf.addResource(resource)
+    }
+    return conf
+  }
+
 }
