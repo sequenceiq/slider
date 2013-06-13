@@ -39,7 +39,29 @@ class ConfigHelper {
 
   public static final FsPermission CONF_DIR_PERMISSION = new FsPermission(FsAction.ALL,
                                                                           FsAction.READ_EXECUTE,
+                                    
                                                                           FsAction.NONE)
+
+  /**
+   * Dump the (sorted) configuration
+   * @param conf config
+   * @return the sorted keyset
+   */
+  public static TreeSet<String> dumpConf(Configuration conf) {
+    TreeSet<String> keys = sortedConfigKeys(conf);
+    keys.each { key ->
+      log.info("$key=\"${conf.get((String) key)}\"")
+    }
+    return keys
+  }
+
+  public static TreeSet<String> sortedConfigKeys(Configuration conf) {
+    TreeSet<String> sorted = new TreeSet<String>();
+    conf.each { Map.Entry<String, String> entry ->
+      sorted.add(entry.key)
+    }
+    sorted;
+  }
 
   public static def setConfigEntry(Configuration self, def key, def value) {
     self.set(key.toString(), value.toString())
@@ -61,7 +83,8 @@ class ConfigHelper {
                      mapEntry.value.toString())  
     }
   }
-  
+
+
   public static Path generateConfigDir(Configuration conf, String appId, Path outputDirectory) {
     
     Path confdir = new Path(outputDirectory, appId + "/conf");
@@ -115,6 +138,35 @@ class ConfigHelper {
     return destPath
   }
 
+  public static Configuration loadConfFromFile(File file) {
+    Configuration conf = new Configuration(false)
+    conf.addResource(file.toURI().toURL());
+    return conf;
+  }
+  
+  /**
+   * looks for the config under confdir/templateFile; if not there
+   * loads it from /conf/templateFile . 
+   */
+  public static Configuration loadTemplateConfiguration(Configuration systemConf,
+                                                        Path confdir,
+                                                        String templateFilename,
+                                                        String resource) {
+    HadoopFS fs = HadoopFS.get(confdir.toUri(), systemConf);
+
+    Path templatePath = new Path(confdir, templateFilename)
+    Configuration conf = new Configuration(false)
+    if (fs.exists(templatePath)) {
+      log.debug("Loading template $templatePath");
+      conf.addResource(templatePath);
+    } else {
+      log.debug("Template $templatePath not found" +
+                " -reverting to classpath resource $resource");
+      conf.addResource(resource)
+    }
+    return conf
+  }
+  
   /**
    * Take a list of definitions for HBase and create [-D,name=value] 
    * entries on a list, ready for appending to the command list
@@ -166,24 +218,6 @@ class ConfigHelper {
     }
   }
   
-  /**
-   * looks for the config under confdir/templateFile; if not there
-   * loads it from /conf/templateFile . 
-   */
-  public static Configuration loadTemplateConfiguration(File confDir,
-                                                 String templateFilename,
-                                                 String resource) {
-    File templateFile = new File(confDir, templateFilename)
-    Configuration conf = new Configuration(false)
-    if (templateFile.exists()) {
-      log.debug("Loading template $templateFile");
-      conf.addResource(new FileInputStream(templateFile));
-    } else {
-      log.debug("Template  file $templateFile not found" +
-                " -reverting to classpath resource $resource");
-      conf.addResource(resource)
-    }
-    return conf
-  }
+
 
 }

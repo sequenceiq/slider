@@ -22,7 +22,6 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.HBaseCommands
 import org.apache.hadoop.hoya.tools.Env
-import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.net.NetUtils
 import org.apache.hadoop.yarn.api.ApplicationConstants
 import org.apache.hadoop.yarn.api.ContainerManager
@@ -92,7 +91,7 @@ class HoyaRegionServiceLauncher implements Runnable {
 
     // Set the environment
     Map<String, String> env = owner.buildEnvMapFromServiceArguments();
-    env[EnvMappings.ENV_HBASE_OPTS] = owner.build_JVM_opts(env);
+//    env[EnvMappings.ENV_HBASE_OPTS] = ConfigHelper.build_JVM_opts(env);
     env["HBASE_LOG_DIR"] = owner.buildHBaseContainerLogdir();
     
     ctx.setEnvironment(env);
@@ -101,7 +100,7 @@ class HoyaRegionServiceLauncher implements Runnable {
     def command = []
     command << owner.buildHBaseBinPath().absolutePath
     command << HBaseCommands.ARG_CONFIG
-    command << owner.buildConfDir()
+    command << owner.buildGeneratedConfDir().toString()
     command << HBaseCommands.REGION_SERVER
     command << HBaseCommands.ACTION_START
     command << "1>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/out.txt";

@@ -23,7 +23,10 @@ import com.beust.jcommander.Parameter
 import com.beust.jcommander.ParameterException
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
+import org.apache.hadoop.hoya.tools.PathArgumentConverter
+import org.apache.hadoop.hoya.tools.URIArgumentConverter
 
 /**
  * This class contains the common argument set for all tne entry points,
@@ -38,8 +41,10 @@ public class CommonArgs {
   public static final String ARG_CONFDIR = '--confdir'
   public static final String ARG_DEBUG = '--debug'
   public static final String ARG_FILESYSTEM = '--fs'
+  public static final String ARG_GENERATED_CONFDIR = '--generated_confdir'
   public static final String ARG_HBASE_HOME = '--hbasehome'
   public static final String ARG_HBASE_ZKPATH = '--hbasezkpath'
+  public static final String ARG_HELP = '--help'
   public static final String ARG_IMAGE = '--image'
   public static final String ARG_MAX = '--max'
   public static final String ARG_MIN = '--min'
@@ -92,8 +97,31 @@ public class CommonArgs {
   @Parameter(names = '--debug', description = "Debug mode")
   public boolean debug = false;
 
-  @Parameter(names = '--help', help = true)
-  public boolean help;
+  /**
+   *    Declare the image configuration directory to use when creating or reconfiguring a hoya cluster. The path must be on a filesystem visible to all nodes in the YARN cluster.
+   Only one configuration directory can be specified.
+   */
+  @Parameter(names = '--confdir',
+      description = "path cluster configuration directory in HDFS",
+      converter = PathArgumentConverter)
+  Path confdir
+
+
+  @Parameter(names = "--fs", description = "filesystem URI",
+      converter = URIArgumentConverter)
+  URI filesystemURL;
+
+  /**
+   *    Declare the image configuration directory to use when creating
+   *    or reconfiguring a hoya cluster.
+   *    The path must be on a filesystem visible to all nodes in the
+   *    YARN cluster.
+   *    Only one configuration directory can be specified.
+   */
+  @Parameter(names = '--generated_confdir',
+      description = "generated configuration directory")
+  String generatedConfdir
+
   
   @Parameter(names = '--hbasehome',
       description = "HBase home dir for starting pre-installed binaries")
@@ -103,6 +131,8 @@ public class CommonArgs {
       description = "HBase Zookeeper path")
   public String hbasezkpath;
 
+  @Parameter(names = '--help', help = true)
+  public boolean help;
 
   @Parameter(names = '--Xtest', description = "Test mode")
   public boolean xTest = false;

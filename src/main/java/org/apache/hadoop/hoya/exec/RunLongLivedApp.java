@@ -145,6 +145,11 @@ public class RunLongLivedApp implements Runnable {
     for (String arg : builder.command()) {
       buffer.append('"').append(arg).append("\" ");
     }
+//    dumpEnv(buffer);
+    return buffer.toString();
+  }
+
+  private void dumpEnv(StringBuilder buffer) {
     buffer.append("\nEnvironment\n-----------");
     Map<String, String> env = builder.environment();
     Set<String> keys = env.keySet();
@@ -153,7 +158,6 @@ public class RunLongLivedApp implements Runnable {
     for (String key : sortedKeys) {
       buffer.append(key).append("=").append(env.get(key)).append('\n');
     }
-    return buffer.toString();
   }
 
   /**
@@ -171,7 +175,6 @@ public class RunLongLivedApp implements Runnable {
     process = builder.start();
     return process;
   }
-
 
   /**
    * Entry point for waiting for the program to finish

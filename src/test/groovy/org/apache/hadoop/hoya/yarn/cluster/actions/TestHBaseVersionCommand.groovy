@@ -43,25 +43,11 @@ class TestHBaseVersionCommand extends YarnMiniClusterTestBase {
   public void testHBaseVersionCommand() throws Throwable {
     String clustername = "TestHBaseVersionCommand"
     createMiniCluster(clustername, new YarnConfiguration(), 1, true)
-    log.info("RM address = ${RMAddr}")
-    ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
-        //config includes RM binding info
-        new YarnConfiguration(miniCluster.config),
-        //varargs list of command line params
-        [
-            ClientArgs.ACTION_CREATE, clustername,
-            CommonArgs.ARG_MIN, "0",
-            CommonArgs.ARG_MAX, "0",
-            ClientArgs.ARG_MANAGER, RMAddr,
-            CommonArgs.ARG_USER, USERNAME,
-            CommonArgs.ARG_HBASE_HOME, HBaseHome,
-            CommonArgs.ARG_ZOOKEEPER, microZKCluster.zkBindingString,
-            CommonArgs.ARG_HBASE_ZKPATH, "/test/TestHBaseVersionCommand",
-            ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
-            CommonArgs.ARG_X_TEST,
-            CommonArgs.ARG_X_HBASE_COMMAND, "version"
-        ]
-    )
+    ServiceLauncher launcher = createHoyaCluster(clustername, 0,
+          [
+          CommonArgs.ARG_X_HBASE_COMMAND, "version",
+          ],
+          true)
     assert launcher.serviceExitCode == 0
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     hoyaClient.monitorAppToRunning(new Duration(CLUSTER_GO_LIVE_TIME))

@@ -41,22 +41,12 @@ class HoyaMasterServiceArgs extends CommonArgs {
    * Path for the ZK instance (required)
    */
   public static final String ARG_RM_ADDR = "--rm"
-  public static final String ARG_FILESYSTEM = "--filesystem"
 
 
   @Parameter(names = "--rm",
       description = "Resource manager hostname:port ",
       required = true)
   public String rmAddress;
-
-  @Parameter(names = "--filesystem",
-      description = "HBase filesystem name",
-      required = true)
-  public String filesystem;
-
-
-  @Parameter(names = "--confdir", description = "Conf path", required = false)
-  public String confdir;
 
   @Parameter(names = "--path", description = "FileSystem path", required = true)
   public String path;

@@ -21,7 +21,9 @@ package org.apache.hadoop.hoya.yarn.appmaster
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.HBaseCommands
+import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
 import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException
 import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.security.UserGroupInformation
@@ -158,13 +160,13 @@ class HoyaAppMaster extends CompositeService
 /* service lifecycle methods */
 /* =================================================================== */
 
-  @Override //Service
-  synchronized void init(Configuration conf) {
+  @Override //AbstractService
+  synchronized void serviceInit(Configuration conf) throws Exception {
     //sort out the location of the AM
     serviceArgs.applyDefinitions(conf);
     String rmAddress = serviceArgs.rmAddress
     YarnUtils.setRmSchedulerAddress(conf, rmAddress)
-    super.init(conf)
+    super.serviceInit(conf)
   }
   
 /* =================================================================== */
@@ -220,8 +222,6 @@ class HoyaAppMaster extends CompositeService
     clusterDescription.name = clustername;
     clusterDescription.state = ClusterDescription.STATE_CREATED;
     clusterDescription.startTime = System.currentTimeMillis();
-    clusterDescription.zkConnection = serviceArgs.zookeeper
-    clusterDescription.zkPath = serviceArgs.hbasezkpath
     
     YarnConfiguration conf = new YarnConfiguration(config);
 
@@ -285,6 +285,59 @@ class HoyaAppMaster extends CompositeService
     configureContainerMemory(response)
     log.info("Total containers in this app " + numTotalContainers)
 
+    //before bothering to start the containers, bring up the
+    //hbase master.
+    //This ensures that if the master doesn't come up, less
+    //cluster resources get wasted
+
+    //start hbase command
+    //pull out the command line argument if set
+    if (serviceArgs.hbaseCommand != null) {
+      hbaseCommand = serviceArgs.hbaseCommand;
+    }
+
+    File hBaseConfDir = buildGeneratedConfDir()
+    if (!hBaseConfDir.exists() || !hBaseConfDir.isDirectory()) {
+      
+      throw new BadCommandArgumentsException("Configuration directory $hBaseConfDir" +
+                                             " (argument ${serviceArgs.generatedConfdir}" +
+                                             " doesn't exist")
+    }
+    
+    //now validate the dir by loading in a hadoop-site.xml file from it
+    File hBaseSiteXML = new File(hBaseConfDir, HoyaKeys.HBASE_SITE)
+    if (!hBaseSiteXML.exists()) {
+      StringBuilder builder = new StringBuilder()
+      hBaseConfDir.list().each{ String entry -> builder << entry << '\n'} 
+      throw new FileNotFoundException("Conf dir $hBaseConfDir doesn't contain $HoyaKeys.HBASE_SITE \n$builder");
+    }
+    
+    //now read it in
+    Configuration siteConf = ConfigHelper.loadConfFromFile(hBaseSiteXML)
+    log.info(" Contents of $hBaseSiteXML")
+    TreeSet<String> confKeys = ConfigHelper.dumpConf(siteConf)
+    //update the values
+    clusterDescription.hBaseRootPath = siteConf.get(EnvMappings.KEY_HBASE_ROOTDIR)
+    clusterDescription.zkConnection = siteConf.get(EnvMappings.KEY_ZOOKEEPER_QUORUM)
+    clusterDescription.zkPath = siteConf.get(EnvMappings.KEY_ZNODE_PARENT)
+
+    confKeys.each { key ->
+      clusterDescription.hBaseClientProperties[key] = siteConf.get(key)
+    }
+    
+    List<String> launchSequence = [
+        HBaseCommands.ARG_CONFIG, hBaseConfDir.absolutePath
+      ];
+    launchSequence << hbaseCommand
+    launchSequence << HBaseCommands.ACTION_START;
+    
+    if (serviceArgs.xNoMaster) {
+      log.info "skipping master launch as xNoMaster is set"
+    } else {
+      launchHBaseServer(launchSequence,
+                        [('HBASE_LOG_DIR'): buildHBaseLogdir()]);
+    }
+    
     // Setup ask for containers from RM
     // Send request for containers to RM
     // Until we get our fully allocated quota, we keep on polling RM for
@@ -297,24 +350,7 @@ class HoyaAppMaster extends CompositeService
     asyncRMClient.addContainerRequest(containerAsk);
     numRequestedContainers.set(numTotalContainers);
 
-    //start hbase command
-    //pull out the command line argument if set
-    if (serviceArgs.hbaseCommand != null) {
-      hbaseCommand = serviceArgs.hbaseCommand;
-    }
 
-    List<String> launchSequence = [HBaseCommands.ARG_CONFIG, buildConfDir()];
-    launchSequence << hbaseCommand
-    launchSequence << HBaseCommands.ACTION_START;
-    
-    //launchSequence <<  serviceArgs.hbaseCommand
-    if (serviceArgs.xNoMaster) {
-      log.info "skipping master launch as xNoMaster is set"
-    } else {
-      launchHBaseServer(launchSequence,
-                        [('HBASE_LOG_DIR'): buildHBaseLogdir()],
-                        serviceArgs.definitionMap);
-    }
     
     //if we get here: success
     success = true;
@@ -333,13 +369,13 @@ class HoyaAppMaster extends CompositeService
   }
 
   /**
-   * Build the configuration directory
-   * @return
+   * Build the configuration directory passed in or of the target FS
+   * @return the file
    */
-  public String buildConfDir() {
-    String confdir = new File(serviceArgs.hbasehome, "/conf").absolutePath;
-    if (serviceArgs.confdir) {
-      confdir = serviceArgs.confdir
+  public File buildGeneratedConfDir() {
+    File confdir = new File(serviceArgs.hbasehome, "/conf").absoluteFile;
+    if (serviceArgs.generatedConfdir) {
+      confdir = new File(serviceArgs.generatedConfdir).absoluteFile
     }
     return confdir
   }
@@ -748,8 +784,7 @@ class HoyaAppMaster extends CompositeService
    * @throws HoyaException anything internal
    */
   protected synchronized void launchHBaseServer(List<String> commands,
-                                                Map<String, String> env,
-                                      Map<String, String> hBaseDefinitions)
+                                                Map<String, String> env)
                         throws IOException, HoyaException {
     if (hbaseMaster != null) {
       throw new HoyaInternalStateException("trying to launch hbase server" +
@@ -757,47 +792,24 @@ class HoyaAppMaster extends CompositeService
     }
     //prepend the hbase command itself
     commands.add(0, buildHBaseBinPath().absolutePath);
-    //get the env mappings
-    Map<String, String> envMap = buildEnvMapFromServiceArguments()
-    //add the method-supplied definitions (which should have come from
-    //service definition)
-//    commands += ConfigHelper.buildHadoopCommandLineDefinitions("", hBaseDefinitions)
-    //convert the env map to hadoop command definitions & append
-//    commands += ConfigHelper.buildHadoopCommandLineDefinitions("", envMap)
-    //make sure all args have been expanded -fail if not
-    List < String > bashCommands = []
-
-    env[EnvMappings.ENV_HBASE_OPTS] = build_JVM_opts(envMap)
-
-    bashCommands << ConfigHelper.buildBashExportCommands(env).join(" &&  ")
-    if (env.size()>0) {
-      bashCommands << "&&"
-    }
-    bashCommands << ConfigHelper.buildBashExportCommands(envMap).join(" && ")
-    bashCommands << "&&"
-    bashCommands += commands
-    String bashCommandString = bashCommands.join(" ")
-
-    hbaseMaster = new RunLongLivedApp([
-        "/bin/bash",
-        "-c",
-        "'" + bashCommandString+ "'"
-      ]);
+    hbaseMaster = new RunLongLivedApp(commands);
     //set the env variable mapping
-/*
     hbaseMaster.putEnvMap(env)
-    hbaseMaster.putEnvMap(envMap)
-    hbaseMaster.putEnv(EnvMappings.ENV_HBASE_OPTS,
-                       build_JVM_opts(envMap))
+/*
+    Map<String, String> arguments = buildEnvMapFromServiceArguments()
+    hbaseMaster.putEnvMap(arguments)
 */
     hbaseMaster.spawnApplication()
     //now add properties to the cluster 
+/*
+
     noteHBaseClientProperty("hbase.zookeeper.quorum",
                             serviceArgs.zookeeper)
     
     noteHBaseClientProperty("zookeeper.znode.parent",
                             serviceArgs.hbasezkpath)
     
+*/
   }
 
   /**
@@ -817,15 +829,17 @@ class HoyaAppMaster extends CompositeService
    */
   public Map<String, String> buildEnvMapFromServiceArguments() {
     return [
-        (EnvMappings.ENV_FS_DEFAULT_NAME):      serviceArgs.filesystem,
+        (EnvMappings.ENV_FS_DEFAULT_NAME):      serviceArgs.filesystemURL.toString(),
         (EnvMappings.ENV_ZOOKEEPER_CONNECTION): serviceArgs.zookeeper,
         (EnvMappings.ENV_ZOOKEEPER_PATH):       serviceArgs.hbasezkpath,
     ]
   }
 
-  public String build_JVM_opts(Map<String,String> properties) {
-    return ConfigHelper.build_JVM_opts(properties);
-  }
+
+  
+
+  
+
   
   /**
    * stop hbase process if it the running process var is not null

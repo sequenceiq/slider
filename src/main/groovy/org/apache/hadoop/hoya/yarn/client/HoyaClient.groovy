@@ -22,14 +22,16 @@ import com.beust.jcommander.JCommander
 import com.google.common.annotations.VisibleForTesting
 import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
+import org.apache.hadoop.fs.FileStatus
 import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.HoyaAppMasterProtocol
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
+import org.apache.hadoop.hoya.yarn.appmaster.EnvMappings
 import org.apache.hadoop.ipc.RPC
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.FileSystem as FS
+import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.HoyaApp
 import org.apache.hadoop.hoya.HoyaExitCodes
@@ -74,6 +76,7 @@ import java.nio.ByteBuffer
 
 class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   // App master priority
+  public static final int ACCEPT_TIME = 60000
   private int amPriority = 0;
   // Queue for App master
   private String amQueue = "default";
@@ -88,6 +91,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * Entry point from the service launcher
    */
   HoyaClient() {
+    super("HoyaClient", null)
     //any app-wide actions
     new HoyaApp("HoyaClient")
   }
@@ -116,19 +120,13 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     serviceArgs.postProcess()
   }
 
-  /**
-   * Just before the configuration is set, the args-supplied config is set
-   * This is a way to sneak in config changes without subclassing init()
-   * (so work with pre/post YARN-117 code)
-   * @param conf new configuration.
-   */
   @Override
-  protected void setConfig(Configuration conf) {
+  protected void serviceInit(Configuration conf) throws Exception {
     serviceArgs.applyDefinitions(conf);
-    super.setConfig(conf)
+    super.serviceInit(conf)
   }
 
-/**
+  /**
    * this is where the work is done.
    * @return the exit code
    * @throws Throwable anything that went wrong
@@ -207,6 +205,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     appContext.applicationId = appId;
     // set the application name
     appContext.applicationName = clustername
+    //app type used in service enum
     appContext.applicationType = HoyaKeys.APP_TYPE
 
     //check for debug mode
@@ -225,18 +224,20 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     // In this scenario, the jar file for the application master is part of the local resources			
     Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
 
+    String appPath = "$appName/${appId.id}/"
 
     if (!usingMiniMRCluster) {
+      //the assumption here is that minimr cluster => this is a test run
+      //and the classpath can look after itself
 
       log.info("Copying JARs from local filesystem and add to local environment");
       // Copy the application master jar to the filesystem 
       // Create a local resource to point to the destination jar path 
-      String subdir = "";
-      String appPath = "$appName/${appId.id}/"
+      String bindir = "";
       //add this class
-      localResources["hoya.jar"] = submitJarWithClass(this.class, appPath, subdir, "hoya.jar")
+      localResources["hoya.jar"] = submitJarWithClass(this.class, appPath, bindir, "hoya.jar")
       //add lib classes that don't come automatically with YARN AM classpath
-      String libdir = "lib/"
+      String libdir = bindir + "lib/"
       localResources["groovayll.jar"] = submitJarWithClass(GroovyObject.class,
                                                            appPath,
                                                            libdir,
@@ -250,32 +251,93 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
                                                             appPath,
                                                             libdir,
                                                             "ant.jar")
-      String appRoot = "/yarnapps/$appName/${appId.id}/"
-      String zookeeperRoot = appRoot
-      if (serviceArgs.hbasezkpath == null) {
-       zookeeperRoot = "/yarnapps/$appName/${appId.id}/"
+    }
+
+    //build up the configuration
+    
+    if (serviceArgs.filesystemURL == null) {
+      throw new BadCommandArgumentsException("Required argument "
+                                                 + CommonArgs.ARG_FILESYSTEM
+                                                 + " missing")
+    }
+
+
+    String confDirName = HoyaKeys.PROPAGATED_CONF_DIR_NAME +"/"
+    String relativeConfPath = appPath + confDirName
+    Path generatedConfPath = new Path(clusterFS.homeDirectory, relativeConfPath);
+    //build up the path for the generated conf dir argument
+    String finalConfDir;
+
+    boolean publishViaYarn;
+    if (serviceArgs.generatedConfdir == null) {
+      if (!serviceArgs.confdir) {
+        throw new BadCommandArgumentsException("Missing argument ${CommonArgs.ARG_CONFDIR}")
       }
-      URI hdfsRootDir
-      if (serviceArgs.filesystemURL != null) {
-        hdfsRootDir = new URI(serviceArgs.filesystemURL.getScheme(), serviceArgs.filesystemURL.getAuthority(),
-                appRoot); //TODO: error checks
-      } else {
-        hdfsRootDir = new URI("hdfs://" + appRoot);
+      //bulk copy
+      HoyaUtils.copyDirectory(config, serviceArgs.confdir, generatedConfPath)
+      publishViaYarn = true
+      finalConfDir = confDirName
+    } else {
+      generatedConfPath = new Path(serviceArgs.generatedConfdir);
+      finalConfDir = serviceArgs.generatedConfdir;
+      publishViaYarn = false;
+    }
+
+    
+    //now load the template configuration and build the site
+    Configuration templateConf = ConfigHelper.loadTemplateConfiguration(config,
+                                        generatedConfPath,
+                                        HoyaKeys.HBASE_TEMPLATE,
+                                        HoyaKeys.HBASE_TEMPLATE_RESOURCE)
+    //load the mappings
+    String zookeeperRoot = serviceArgs.hbasezkpath
+    if (serviceArgs.hbasezkpath == null) {
+      zookeeperRoot = "/yarnapps/$appName/${appId.id}/"
+    }
+    HadoopFS targetFS = HadoopFS.get(serviceArgs.filesystemURL, config)
+    
+    String hbaseDir = "yarnapps/$appName/${clustername}";
+    Path relativeHBaseRootPath = new Path(hbaseDir)
+    Path hBaseRootPath = relativeHBaseRootPath.makeQualified(targetFS)
+    log.debug("hBaseRootPath=$hBaseRootPath") 
+    Map<String, String> clusterConfMap = buildConfMapFromServiceArguments(
+                                            zookeeperRoot,
+                                            hBaseRootPath);
+    //merge them
+    ConfigHelper.addConfigMap(templateConf, clusterConfMap)
+    
+    //dump them @info
+    if (log.debugEnabled) {
+      ConfigHelper.dumpConf(templateConf);
+    }
+
+    //save the config
+    //this is the path for the site configuration
+
+    Path sitePath = ConfigHelper.generateConfig(config,
+                                                templateConf,
+                                                generatedConfPath,
+                                                HoyaKeys.HBASE_SITE);
+    log.debug("Saving the config to $sitePath")
+
+    
+    if (publishViaYarn) {
+      //now register each of the files in the directory to be
+      //copied to the destination
+      FileStatus[] fileset = clusterFS.listStatus(generatedConfPath)
+      fileset.each { FileStatus entry ->
+
+        LocalResource resource = YarnUtils.createAmResource(clusterFS,
+                                            entry.path,
+                                            LocalResourceType.FILE)
+        String relativePath = confDirName + entry.path.name
+        localResources[relativePath] = resource
       }
-      Path generatedConfDir = new Path("/tmp");
-      if (serviceArgs.generatedConfdir != null) {
-        generatedConfDir = serviceArgs.generatedConfdir;
-      }
-      String subDirName = appName + "-" + username + "/" + "${appId.id}";
-      Configuration config = ConfigHelper.generateConfig(
-          [
-              "hdfs.rootdir": hdfsRootDir.toString(),
-              "zookeeper.znode.parent": zookeeperRoot
-          ],
-          subDirName,
-          generatedConfDir);
-      // Send the above generated config file to Yarn. This will be the config
-      // for HBase
+    } else {
+      // generated conf dir, hope it is visible
+      log.debug("All files are in $generatedConfPath -assuming visible across" +
+                "the cluster")
+      
     }
 
     // Set the log4j properties if needed 
@@ -295,28 +357,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     }
 
 */
-    // The shell script has to be made available on the final container(s)
-    // where it will be executed. 
-    // To do this, we need to first copy into the filesystem that is visible 
-    // to the yarn framework. 
-    // We do not need to set this as a local resource for the application 
-    // master as the application master does not need it. 		
-/*
-    String hdfsShellScriptLocation = "";
-    long hdfsShellScriptLen = 0;
-    long hdfsShellScriptTimestamp = 0;
-    if (!shellScriptPath.isEmpty()) {
-      Path shellSrc = new Path(shellScriptPath);
-      String shellPathSuffix = appName + "/" + appId.getId() + "/ExecShellScript.sh";
-      Path shellDst = new Path(fs.getHomeDirectory(), shellPathSuffix);
-      fs.copyFromLocalFile(false, true, shellSrc, shellDst);
-      hdfsShellScriptLocation = shellDst.toUri().toString();
-      FileStatus shellFileStatus = fs.getFileStatus(shellDst);
-      hdfsShellScriptLen = shellFileStatus.getLen();
-      hdfsShellScriptTimestamp = shellFileStatus.getModificationTime();
-    }
-*/
-
+    
     // Set local resource info into app master container launch context
     amContainer.localResources = localResources;
     def env = [:]
@@ -349,23 +390,14 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     commands << HoyaMasterServiceArgs.ARG_RM_ADDR;
     commands << rmAddr;
         
-    //zk details -HBASE needs fs.default.name
+    //now conf dir path
+    commands << HoyaMasterServiceArgs.ARG_GENERATED_CONFDIR
+    commands << finalConfDir
     
-    //hbase needs path inside ZK; skip ZK connect
-    // use env variables & have that picked up and template it. ${env.SYZ}
-    if (serviceArgs.zookeeper) {
-      commands << HoyaMasterServiceArgs.ARG_ZOOKEEPER
-      commands << serviceArgs.zookeeper
-    }
     if (serviceArgs.hbasehome) {
       //HBase home
       commands << HoyaMasterServiceArgs.ARG_HBASE_HOME
       commands << serviceArgs.hbasehome
-    }
-    if (serviceArgs.hbasezkpath) {
-      //HBase ZK path
-      commands << HoyaMasterServiceArgs.ARG_HBASE_ZKPATH
-      commands << serviceArgs.hbasezkpath
     }
     if (serviceArgs.hbaseCommand) {
       //explicit hbase command set
@@ -383,7 +415,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     }
   
     commands << HoyaMasterServiceArgs.ARG_FILESYSTEM
-    commands << config.get(FS.FS_DEFAULT_NAME_KEY);
+    commands << config.get(HadoopFS.FS_DEFAULT_NAME_KEY);
 
     //path in FS can be unqualified
     commands << HoyaMasterServiceArgs.ARG_PATH
@@ -435,7 +467,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
     int exitCode
     //wait for the submit state to be reached
-    ApplicationReport report = monitorAppToState(new Duration(60000),
+    ApplicationReport report = monitorAppToState(new Duration(ACCEPT_TIME),
                                                  YarnApplicationState.ACCEPTED);
     
     //may have failed, so check that
@@ -467,21 +499,46 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     return UserGroupInformation.getCurrentUser().getShortUserName();
   }
 
-  private LocalResource submitJarWithClass(Class clazz, String appPath, String subdir, String jarName) {
+  /**
+   * Submit a JAR containing a specific class.
+   * @param clazz class to look for
+   * @param appPath app path
+   * @param subdir subdirectory  (expected to end in a "/")
+   * @param jarName <i>At the destination</i>
+   * @return the local resource ref
+   * @throws IOException trouble copying to HDFS
+   */
+  private LocalResource submitJarWithClass(Class clazz,
+                               String appPath,
+                               String subdir,
+                               String jarName)
+        throws IOException, HoyaException{
     File localFile = HoyaUtils.findContainingJar(clazz);
     if (!localFile) {
-      throw new HoyaException("Could not find JAR containing "
-                                                 + clazz);
+      throw new FileNotFoundException("Could not find JAR containing " + clazz);
     }
     LocalResource resource = submitFile(localFile, appPath, subdir, jarName)
-    resource
+    return resource
   }
 
-  private LocalResource submitFile(File localFile, String appPath, String subdir, String destFileName) {
-    FS hdfs = clusterFS;
+  /**
+   * Submit a local file to the filesystem references by the instance's cluster
+   * filesystem
+   * @param localFile filename
+   * @param appPath application path
+   * @param subdir subdirectory (expected to end in a "/")
+   * @param destFileName destination filename
+   * @return the local resource ref
+   * @throws IOException trouble copying to HDFS
+   */
+  private LocalResource submitFile(File localFile,
+                                   String appPath,
+                                   String subdir,
+                                   String destFileName) throws IOException {
+    HadoopFS hdfs = clusterFS;
     Path src = new Path(localFile.toString());
-    String pathSuffix = appPath + "${subdir}$destFileName";
-    Path destPath = new Path(hdfs.homeDirectory, pathSuffix);
+    String subPath = appPath + "${subdir}$destFileName";
+    Path destPath = new Path(hdfs.homeDirectory, subPath);
 
     hdfs.copyFromLocalFile(false, true, src, destPath);
 
@@ -489,8 +546,8 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     // archives are untarred at destination
     // we don't need the jar file to be untarred for now
     LocalResource resource = YarnUtils.createAmResource(hdfs,
-                                                        destPath,
-                                                        LocalResourceType.FILE)
+                               destPath,
+                               LocalResourceType.FILE)
     return resource
   }
 
@@ -507,8 +564,8 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * Get the filesystem of this cluster
    * @return the FS of the config
    */
-  private FS getClusterFS() {
-    FS.get(config)
+  private HadoopFS getClusterFS() {
+    HadoopFS.get(config)
   }
 
   /**
@@ -517,14 +574,14 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * @throws BadConfigException if the config is wrong
    */
   private void verifyValidClusterSize(int requiredNumber) {
-    if (requiredNumber==0) {
+    if (requiredNumber == 0) {
       return
     }
     int nodeManagers = yarnClusterMetrics.numNodeManagers
     if (nodeManagers < requiredNumber) {
       throw new BadConfigException("Not enough nodes in the cluster:" +
-                                         " need $requiredNumber" +
-                                         " -but there are only $nodeManagers nodes");
+                                   " need $requiredNumber" +
+                                   " -but there are only $nodeManagers nodes");
     }
   }
 
@@ -555,6 +612,10 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     return classPathEnv.toString()
   }
 
+  /**
+   * ask if the client is using a mini MR cluster
+   * @return
+   */
   private boolean getUsingMiniMRCluster() {
     return config.getBoolean(YarnConfiguration.IS_MINI_YARN_CLUSTER, false)
   }
@@ -563,17 +624,34 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     "hoya"
   }
 
-/**
- * Monitor the submitted application for reaching the requested state.
- * Will also report if the app reaches a later state (failed, killed, etc)
- * Kill application if duration!= null & time expires. 
- * @param appId Application Id of application to be monitored
- * @param duration how long to wait
- * @param desiredState desired state.
- * @return true if application completed successfully
- * @throws YarnException YARN or app issues
- * @throws IOException IO problems
- */
+  /**
+   * Build the conf dir from the service arguments, adding the hbase root
+   * to the FS root dir
+   * @param hbaseRoot
+   * @return a map of the dynamic bindings for this Hoya instance
+   */
+  @VisibleForTesting
+  public Map<String, String> buildConfMapFromServiceArguments(String hbaseRoot, Path hBaseRootPath) {
+    String hbaseDir = new URL(serviceArgs.filesystemURL.toURL(),
+                              hbaseRoot).toString();
+    return [
+        (EnvMappings.KEY_HBASE_ROOTDIR): hbaseDir,
+        (EnvMappings.KEY_ZOOKEEPER_QUORUM): serviceArgs.zookeeper,
+        (EnvMappings.KEY_ZNODE_PARENT): serviceArgs.hbasezkpath,
+    ]
+  }
+
+  /**
+   * Monitor the submitted application for reaching the requested state.
+   * Will also report if the app reaches a later state (failed, killed, etc)
+   * Kill application if duration!= null & time expires. 
+   * @param appId Application Id of application to be monitored
+   * @param duration how long to wait
+   * @param desiredState desired state.
+   * @return true if application completed successfully
+   * @throws YarnException YARN or app issues
+   * @throws IOException IO problems
+   */
   @VisibleForTesting
   public int monitorAppToCompletion(Duration duration)
       throws YarnException, IOException {

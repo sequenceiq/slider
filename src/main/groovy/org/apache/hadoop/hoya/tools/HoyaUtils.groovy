@@ -23,8 +23,15 @@ import groovy.util.logging.Commons
 import org.apache.commons.io.IOUtils
 import org.apache.commons.logging.Log
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.FileContext
+import org.apache.hadoop.fs.FileStatus
+import org.apache.hadoop.fs.FileUtil
+import org.apache.hadoop.fs.Path
+import org.apache.hadoop.hoya.exceptions.HoyaException
+import org.apache.hadoop.hoya.yarn.appmaster.EnvMappings
 import org.apache.hadoop.net.NetUtils
 import org.apache.hadoop.util.ExitUtil.ExitException
+import org.apache.hadoop.fs.FileSystem as HadoopFS
 
 /**
  * Utility methods primarily used in setting up and executing tools
@@ -32,19 +39,18 @@ import org.apache.hadoop.util.ExitUtil.ExitException
 @Commons
 @CompileStatic
 
+/**
+ * This contains general utility methods -including some that
+ * are HoyaSpecific
+ */
 class HoyaUtils {
 
-  static void dumpArguments(String[] args) {
+
+  public static void dumpArguments(String[] args) {
     println("Arguments");
     println(convertArgsToString(args));
   }
 
-  public static void dumpConf(Configuration conf) {
-    TreeSet<String> keys = sortedConfigKeys(conf);
-    keys.each { key ->
-      println("$key = ${conf.get((String) key)}")
-    }
-  }
 
   /**
    * Quote any argument passed in that doesn't start with a single or double quote
@@ -127,7 +133,7 @@ class HoyaUtils {
       log.debug("No output dir yet")
     }
   }
-
+  
   /**
    * Find a containing JAR
    * @param my_class class to find
@@ -194,14 +200,6 @@ class HoyaUtils {
   public static void checkURL(String name, String url, int timeout) {
     InetSocketAddress address = NetUtils.createSocketAddr(url)
     checkPort(name, address, timeout)
-  }
-
-  public static TreeSet<String> sortedConfigKeys(Configuration conf) {
-    TreeSet<String> sorted = new TreeSet<String>();
-    conf.each { Map.Entry<String, String> entry ->
-      sorted.add(entry.key)
-    }
-    sorted;
   }
 
   /**
@@ -278,4 +276,38 @@ class HoyaUtils {
   public static String normalizeClusterName(String name) {
     return name.toLowerCase(Locale.ENGLISH)
   }
+
+  /**
+   * Copy a directory to a new FS -both paths must be qualified
+   * @param conf conf file
+   * @param srcDirPath src dir
+   * @param destDirPath dest dir
+   * @return #of files copies
+   */
+  public static int copyDirectory(Configuration conf, Path srcDirPath, Path destDirPath) {
+    HadoopFS srcFS = HadoopFS.get(srcDirPath.toUri(), conf)
+    HadoopFS destFS = HadoopFS.get(destDirPath.toUri(), conf)
+    //list all paths in the src.
+    FileStatus[] entries = srcFS.listStatus(srcDirPath)
+    int srcFileCount = entries.size()
+    if (!srcFileCount) {
+      return 0;
+    }
+    if (!destFS.exists(destDirPath)) {
+      destFS.mkdirs(destDirPath);
+    }
+    Path[] sourcePaths = new Path[srcFileCount]
+    entries.eachWithIndex { FileStatus e , int i ->
+      Path srcFile = e.path
+      if (srcFS.isDirectory(srcFile)) {
+        throw new HoyaException("Configuration dir $srcDirPath contains a directory");
+      }
+      log.debug("copying src conf file $srcFile")
+      sourcePaths[i] = srcFile
+    }
+    log.debug("Copying $srcFileCount files to dest dir $destDirPath")
+    FileUtil.copy(srcFS, sourcePaths, destFS, destDirPath, false, true, conf)
+    return sourcePaths.size();
+  }
+
 }

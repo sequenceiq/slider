@@ -29,4 +29,7 @@ class EnvMappings {
   public static final String ENV_ZOOKEEPER_CONNECTION = 'ZOOKEEPER_CONNECTION';
   public static final String ENV_HBASE_OPTS = 'HBASE_OPTS';
 
+  public static final String KEY_HBASE_ROOTDIR = "hbase.rootdir";
+  public static final String KEY_ZOOKEEPER_QUORUM = "hbase.zookeeper.quorum";
+  public static final String KEY_ZNODE_PARENT = "zookeeper.znode.parent";
 }

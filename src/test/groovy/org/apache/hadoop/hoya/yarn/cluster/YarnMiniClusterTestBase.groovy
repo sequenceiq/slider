@@ -231,6 +231,12 @@ implements KeysForTests {
                          blockUntilRunning)
   }
 
+  public File getResourceConfDir() {
+    File f= new File("src/main/resources/conf").absoluteFile
+    assert f.exists()
+    return f
+  }
+  
   /**
    * Create a full cluster with a master & the requested no. of region servers
    * @param clustername cluster name
@@ -256,6 +262,7 @@ implements KeysForTests {
         ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
         ClientArgs.ARG_FILESYSTEM, fsDefaultName,
         CommonArgs.ARG_X_TEST,
+        CommonArgs.ARG_CONFDIR, getResourceConfDir().absolutePath
     ]
     if (extraArgs != null) {
       argsList += extraArgs;

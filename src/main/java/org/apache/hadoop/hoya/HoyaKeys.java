@@ -21,8 +21,16 @@ package org.apache.hadoop.hoya;
 public interface HoyaKeys {
 
   String HBASE_SITE = "hbase-site.xml";
-
+  String HBASE_TEMPLATE = "hbase-site-template.xml";
+  String HBASE_TEMPLATE_RESOURCE = "/conf/" + HBASE_TEMPLATE;
   String APP_TYPE = "HOYA-HBASE";
 
   String JAVA_FORCE_IPV4 = "-Djava.net.preferIPv4Stack=true";
+
+
+  /**
+   * This is the name of the dir/subdir containing
+   * the hbase conf that is propagated via YARN
+   */
+  String PROPAGATED_CONF_DIR_NAME = "conf";
 }

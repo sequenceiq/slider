@@ -42,36 +42,18 @@ class TestCreateMasterlessAM extends YarnMiniClusterTestBase {
 
 
   @Test
-  public void testHoyaMasterRMLookup() throws Throwable {
-    createMiniCluster("testHoyaMasterRMLookup", new YarnConfiguration(), 1, true)
+  public void testCreateMasterlessAM() throws Throwable {
+    createMiniCluster("TestCreateMasterlessAM", new YarnConfiguration(), 1, true)
     
     describe "create a masteress AM then get the service and look it up via the AM"
 
     //launch fake master
-    String clustername = "testHoyaMasterRMLookup"
+    String clustername = "TestCreateMasterlessAM"
     String zk = microZKCluster.zkBindingString
     String hbaseHome = HBaseHome
     String rmAddr = RMAddr
     ServiceLauncher launcher
-    launcher = launchHoyaClientAgainstMiniMR(
-        //config includes RM binding info
-        new YarnConfiguration(miniCluster.config),
-        // list of command line params
-        [
-            ClientArgs.ACTION_CREATE, clustername,
-            CommonArgs.ARG_MIN, "1",
-            CommonArgs.ARG_MAX, "1",
-            ClientArgs.ARG_MANAGER, rmAddr,
-            CommonArgs.ARG_USER, USERNAME,
-            CommonArgs.ARG_HBASE_HOME, hbaseHome,
-            CommonArgs.ARG_ZOOKEEPER, zk,
-            CommonArgs.ARG_HBASE_ZKPATH, "/test/$clustername",
-            ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
-            CommonArgs.ARG_X_TEST,
-        ]
-    )
-    //launch the cluster
-//    launcher = createMasterlessAM(clustername, 0)
+    launcher = createMasterlessAM(clustername, 0, true) 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
 
     ApplicationReport report = waitForClusterLive(hoyaClient)

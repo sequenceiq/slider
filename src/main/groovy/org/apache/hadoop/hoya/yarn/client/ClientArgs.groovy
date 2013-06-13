@@ -53,10 +53,6 @@ class ClientArgs extends CommonArgs {
   @Parameter(names = "--amqueue", description = "Application Manager Queue Name")
   String amqueue = "default";
 
-  @Parameter(names = "--fs", description = "filesystem URI",
-      converter = URIArgumentConverter)
-  URI filesystemURL;
-
   //--format 
   @Parameter(names = "--format", description = "format for a response text|xml|json|properties")
   String format;
@@ -75,27 +71,7 @@ class ClientArgs extends CommonArgs {
       converter = PathArgumentConverter)
   Path image
 
-  /**
-   *    Declare the image configuration directory to use when creating or reconfiguring a hoya cluster. The path must be on a filesystem visible to all nodes in the YARN cluster.
-   Only one configuration directory can be specified.
-   */
-  @Parameter(names = "--confdir",
-      description = "path cluster configuration directory in HDFS",
-      converter = PathArgumentConverter)
-  Path confdir
-
-  /**
-   *    Declare the image configuration directory to use when creating
-   *    or reconfiguring a hoya cluster.
-   *    The path must be on a filesystem visible to all nodes in the
-   *    YARN cluster.
-   *    Only one configuration directory can be specified.
-   */
-  @Parameter(names = "--generated_confdir",
-          description = "path to directory where the generated configuration file should be written",
-          converter = PathArgumentConverter)
-  Path generatedConfdir
-
+ 
 
 
 

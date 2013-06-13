@@ -68,6 +68,7 @@ public class ClusterDescription {
 
   public String zkConnection;
   public String zkPath;
+  public String hBaseRootPath;
   /**
    * Master node
    */
