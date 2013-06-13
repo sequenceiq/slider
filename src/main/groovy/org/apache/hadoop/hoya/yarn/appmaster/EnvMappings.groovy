@@ -24,9 +24,9 @@ package org.apache.hadoop.hoya.yarn.appmaster
  */
 class EnvMappings {
   
-  public static final String ENV_FS_DEFAULT_NAME = 'env.FS.DEFAULT.NAME';
-  public static final String ENV_ZOOKEEPER_PATH = 'env.ZOOKEEPER.PATH';
-  public static final String ENV_ZOOKEEPER_CONNECTION = 'env.ZOOKEEPER.CONNECTION';
+  public static final String ENV_FS_DEFAULT_NAME = 'FS_DEFAULT_NAME';
+  public static final String ENV_ZOOKEEPER_PATH = 'ZOOKEEPER_PATH';
+  public static final String ENV_ZOOKEEPER_CONNECTION = 'ZOOKEEPER_CONNECTION';
   public static final String ENV_HBASE_OPTS = 'HBASE_OPTS';
 
 }

@@ -765,17 +765,31 @@ class HoyaAppMaster extends CompositeService
     //convert the env map to hadoop command definitions & append
 //    commands += ConfigHelper.buildHadoopCommandLineDefinitions("", envMap)
     //make sure all args have been expanded -fail if not
-    commands.each {k ->
-      if (!(k instanceof String)) {
-        throw new IllegalArgumentException("command arg ${k} is not a string")
-      }
+    List < String > bashCommands = []
+
+    env[EnvMappings.ENV_HBASE_OPTS] = build_JVM_opts(envMap)
+
+    bashCommands << ConfigHelper.buildBashExportCommands(env).join(" &&  ")
+    if (env.size()>0) {
+      bashCommands << "&&"
     }
-    hbaseMaster = new RunLongLivedApp(commands);
+    bashCommands << ConfigHelper.buildBashExportCommands(envMap).join(" && ")
+    bashCommands << "&&"
+    bashCommands += commands
+    String bashCommandString = bashCommands.join(" ")
+
+    hbaseMaster = new RunLongLivedApp([
+        "/bin/bash",
+        "-c",
+        "'" + bashCommandString+ "'"
+      ]);
     //set the env variable mapping
+/*
     hbaseMaster.putEnvMap(env)
     hbaseMaster.putEnvMap(envMap)
     hbaseMaster.putEnv(EnvMappings.ENV_HBASE_OPTS,
                        build_JVM_opts(envMap))
+*/
     hbaseMaster.spawnApplication()
     //now add properties to the cluster 
     noteHBaseClientProperty("hbase.zookeeper.quorum",

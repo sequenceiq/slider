@@ -27,10 +27,6 @@
    <value>true</value>
  </property>
  <property>
-   <name>hbase.rootdir</name>
-   <value>${env.FS.DEFAULT.NAME}/${hbase.root}</value>
- </property>
- <property>
    <name>hbase.tmp.dir</name>
    <value>./hbase-tmp</value>
  </property>
@@ -38,12 +34,16 @@
    <name>hbase.regionserver.hlog.tolerable.lowreplication</name>
    <value>1</value>
  </property>
- <property>
+  <property>
+    <name>hbase.rootdir</name>
+    <value>${FS_DEFAULT_NAME}/${hbase.root}</value>
+  </property>
+  <property>
    <name>hbase.zookeeper.quorum</name>
-   <value>${env.ZOOKEEPER.CONNECTION}</value>
+   <value>${ZOOKEEPER_CONNECTION}</value>
  </property>
  <property>
    <name>zookeeper.znode.parent</name>
-   <value>${env.ZOOKEEPER.PATH}</value>
+   <value>${ZOOKEEPER_PATH}</value>
  </property>
 </configuration>

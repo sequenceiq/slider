@@ -143,7 +143,7 @@ public class RunLongLivedApp implements Runnable {
   protected String describeBuilder() {
     StringBuilder buffer = new StringBuilder();
     for (String arg : builder.command()) {
-      buffer.append(arg).append(' ');
+      buffer.append('"').append(arg).append("\" ");
     }
     buffer.append("\nEnvironment\n-----------");
     Map<String, String> env = builder.environment();

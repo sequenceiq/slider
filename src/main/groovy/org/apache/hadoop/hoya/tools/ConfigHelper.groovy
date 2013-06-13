@@ -82,4 +82,28 @@ class ConfigHelper {
     }
     return builder.toString();
   }
+
+  /**
+   * build a list of export strings for bash to handle as export name=value.
+   * If this is to be handed to a bash -v command, the env vars still
+   * need to be joined into a single line
+   * @param properties env variables to build up
+   * @return the export commands.
+   */
+  public static List<String> buildBashExportCommands(Map<String, String> properties) {
+    List<String> definitions = []
+    properties.each { String k, String v ->
+      definitions << "export ${k}=\"${v}\"".toString()
+    }
+    return definitions
+  }
+  
+  public static void verifyAllStringType(List list) {
+    list.each { k ->
+      if (!(k instanceof String)) {
+        throw new IllegalArgumentException("${k} is not a string")
+      }
+    }
+
+  }
 }
