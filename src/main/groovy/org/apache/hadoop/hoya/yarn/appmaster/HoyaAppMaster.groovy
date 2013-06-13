@@ -23,6 +23,7 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.HBaseCommands
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException
+import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.hadoop.hoya.HoyaApp
 import org.apache.hadoop.hoya.HoyaExitCodes
@@ -311,7 +312,8 @@ class HoyaAppMaster extends CompositeService
       log.info "skipping master launch as xNoMaster is set"
     } else {
       launchHBaseServer(launchSequence,
-                        [('HBASE_LOG_DIR'): buildHBaseLogdir()]);
+                        [('HBASE_LOG_DIR'): buildHBaseLogdir()],
+                        serviceArgs.definitionMap);
     }
     
     //if we get here: success
@@ -746,20 +748,34 @@ class HoyaAppMaster extends CompositeService
    * @throws HoyaException anything internal
    */
   protected synchronized void launchHBaseServer(List<String> commands,
-                                                Map<String, String> env)
+                                                Map<String, String> env,
+                                      Map<String, String> hBaseDefinitions)
                         throws IOException, HoyaException {
     if (hbaseMaster != null) {
       throw new HoyaInternalStateException("trying to launch hbase server" +
                                            " when one is already running")
     }
+    //prepend the hbase command itself
     commands.add(0, buildHBaseBinPath().absolutePath);
+    //get the env mappings
+    Map<String, String> envMap = buildEnvMapFromServiceArguments()
+    //add the method-supplied definitions (which should have come from
+    //service definition)
+//    commands += ConfigHelper.buildHadoopCommandLineDefinitions("", hBaseDefinitions)
+    //convert the env map to hadoop command definitions & append
+//    commands += ConfigHelper.buildHadoopCommandLineDefinitions("", envMap)
+    //make sure all args have been expanded -fail if not
+    commands.each {k ->
+      if (!(k instanceof String)) {
+        throw new IllegalArgumentException("command arg ${k} is not a string")
+      }
+    }
     hbaseMaster = new RunLongLivedApp(commands);
     //set the env variable mapping
-    Map<String, String> arguments = buildEnvMapFromServiceArguments()
     hbaseMaster.putEnvMap(env)
-    hbaseMaster.putEnvMap(arguments)
+    hbaseMaster.putEnvMap(envMap)
     hbaseMaster.putEnv(EnvMappings.ENV_HBASE_OPTS,
-                       build_JVM_opts(arguments))
+                       build_JVM_opts(envMap))
     hbaseMaster.spawnApplication()
     //now add properties to the cluster 
     noteHBaseClientProperty("hbase.zookeeper.quorum",
@@ -794,11 +810,7 @@ class HoyaAppMaster extends CompositeService
   }
 
   public String build_JVM_opts(Map<String,String> properties) {
-    StringBuilder builder = new StringBuilder()
-    properties.each { String k, String v ->
-      builder << "-D$k=$v "
-    }
-    return builder.toString();
+    return ConfigHelper.build_JVM_opts(properties);
   }
   
   /**

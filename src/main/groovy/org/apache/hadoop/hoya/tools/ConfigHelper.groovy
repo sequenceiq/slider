@@ -24,14 +24,8 @@ import org.apache.hadoop.hbase.HBaseConfiguration
 import org.apache.hadoop.fs.*
 
 /**
- * This is a set of static helper methods to work on configurations, 
- * available with the <code>use</code> method.
- * 
- * The only one that adds anything new to the normal use is the 
- * addConfigMap() operation; the others are only there to simplify
- * metaprogramming operations.
- * 
- * To use, create an instance -this triggers method injection
+ * Methods to aid in config, both in the Configuration class and
+ * with other parts of setting up Hoya-initated processes
  */
 @CompileStatic
 
@@ -50,9 +44,11 @@ class ConfigHelper {
    * @param map map
    * @return nothing
    */
-  public static def addConfigMap(Configuration self, Map map) {
+  public static void addConfigMap(Configuration self, Map map) {
     map.each { Map.Entry mapEntry ->
-      setConfigEntry(self, mapEntry.key, mapEntry.value)  
+      setConfigEntry(self,
+                     mapEntry.key.toString(),
+                     mapEntry.value.toString())  
     }
   }
   public static Configuration generateConfig(Map map, String appId, Path outputDirectory) {
@@ -62,5 +58,28 @@ class ConfigHelper {
     conf.writeXml(fos);
     fos.close();
     return conf
+  }
+
+  /**
+   * Take a list of definitions for HBase and create [-D,name=value] 
+   * entries on a list, ready for appending to the command list
+   * @param properties properties
+   * @return
+   */
+  public static List<String> buildHadoopCommandLineDefinitions(String prefix, Map<String, String> properties) {
+    List<String> definitions = []
+    properties.each { String k, String v ->
+      definitions << "-D" << "${k}=${v}".toString()
+    }
+    return definitions
+  }
+
+
+  public static String build_JVM_opts(Map<String, String> properties) {
+    StringBuilder builder = new StringBuilder()
+    properties.each { String k, String v ->
+      builder << "-D${k}=${v}".toString() << ' '
+    }
+    return builder.toString();
   }
 }

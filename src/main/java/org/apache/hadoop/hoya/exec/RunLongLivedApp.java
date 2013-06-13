@@ -143,9 +143,9 @@ public class RunLongLivedApp implements Runnable {
   protected String describeBuilder() {
     StringBuilder buffer = new StringBuilder();
     for (String arg : builder.command()) {
-      buffer.append(arg).append('\n');
+      buffer.append(arg).append(' ');
     }
-    buffer.append("Environment\n");
+    buffer.append("\nEnvironment\n-----------");
     Map<String, String> env = builder.environment();
     Set<String> keys = env.keySet();
     List<String> sortedKeys = new ArrayList<String>(keys);
