@@ -661,10 +661,11 @@ class HoyaAppMaster extends CompositeService
     }
 
     // set progress to deliver to RM on next heartbeat
-    float progress = (float) numCompletedContainers.get() / numTotalContainers;
+    int completedContainerCount = numCompletedContainers.get()
+    float progress = (float) completedContainerCount / numTotalContainers;
 //    resourceManager.setProgress(progress);
 
-    if (numCompletedContainers.get() == numTotalContainers && serviceArgs.xNoMaster) {
+    if (completedContainerCount == numTotalContainers && serviceArgs.xNoMaster) {
       signalAMComplete();
     }
   }
@@ -701,13 +702,8 @@ class HoyaAppMaster extends CompositeService
     }
     if (!hbaseMaster) {
       return 0f;
-    }
-    //hbase is running or finished
-    if (hbaseMaster.running) {
-      return 50f;
     } else {
-      signalAMComplete();
-      return 100f;
+      return 50f
     }
   }
 
@@ -806,18 +802,10 @@ class HoyaAppMaster extends CompositeService
     //set the env variable mapping
     hbaseMaster.putEnvMap(env)
 
-    //now spawn the process -expect CD updates via callbacks
+    //now spawn the process -expect  updates via callbacks
     
     hbaseMaster.spawnApplication()
-/*
 
-    noteHBaseClientProperty("hbase.zookeeper.quorum",
-                            serviceArgs.zookeeper)
-    
-    noteHBaseClientProperty("zookeeper.znode.parent",
-                            serviceArgs.hbasezkpath)
-    
-*/
   }
 
   @Override // ApplicationEventHandler
@@ -839,6 +827,8 @@ class HoyaAppMaster extends CompositeService
       masterNode.exitCode = exitCode
       masterNode.state = ClusterDescription.STATE_STOPPED;
     }
+    //tell the AM the cluster is complete 
+    signalAMComplete();
   }
   
 /**

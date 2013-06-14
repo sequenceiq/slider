@@ -30,6 +30,7 @@ import org.apache.hadoop.hbase.client.HConnection
 import org.apache.hadoop.hbase.client.HConnectionManager
 import org.apache.hadoop.hdfs.MiniDFSCluster
 import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.tools.YarnUtils
 import org.apache.hadoop.hoya.yarn.CommonArgs
@@ -48,7 +49,9 @@ import org.apache.hadoop.yarn.service.ServiceOperations
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
 import org.junit.After
+import org.junit.Assume
 import org.junit.Before
+import org.junit.internal.AssumptionViolatedException
 
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.SynchronousQueue
@@ -82,6 +85,10 @@ implements KeysForTests {
   @After
   public void teardown() {
     describe("teardown")
+    stopMiniCluster()
+  }
+
+  public void stopMiniCluster() {
     ServiceOperations.stopQuietly(log, miniCluster)
     microZKCluster?.close();
     hdfsCluster?.shutdown();
@@ -320,12 +327,11 @@ implements KeysForTests {
         CommonArgs.ARG_HBASE_HOME, HBaseHome,
         CommonArgs.ARG_ZKQUORUM, ZKQuorum,
         CommonArgs.ARG_ZKPORT, ZKPort.toString(),
-        //CommonArgs.ARG_HBASE_ZKPATH, "/test/" + clustername,
         CommonArgs.ARG_HBASE_ZKPATH, "/hbase",
         ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
         ClientArgs.ARG_FILESYSTEM, fsDefaultName,
         CommonArgs.ARG_X_TEST,
-        CommonArgs.ARG_CONFDIR, getResourceConfDir().absolutePath
+        CommonArgs.ARG_CONFDIR, getResourceConfDirURI()
     ]
     if (extraArgs != null) {
       argsList += extraArgs;
@@ -342,6 +348,14 @@ implements KeysForTests {
       hoyaClient.monitorAppToRunning(new Duration(CLUSTER_GO_LIVE_TIME))
     }
     return launcher;
+  }
+
+  /**
+   get a URI string to the resource conf dir that is suitable for passing down
+   to the AM -and works even when the default FS is hdfs
+   */
+  public String getResourceConfDirURI() {
+    return getResourceConfDir().absoluteFile.toURI().toString()
   }
 
 
@@ -469,19 +483,49 @@ implements KeysForTests {
 
 
   public ClusterStatus getHBaseClusterStatus(HoyaClient hoyaClient, String clustername) {
-    HConnection hbaseConnection = createHConnection(hoyaClient, clustername)
+    try {
+      HConnection hbaseConnection = createHConnection(hoyaClient, clustername)
 
-    HBaseAdmin hBaseAdmin = new HBaseAdmin(hbaseConnection)
-    ClusterStatus hBaseClusterStatus = hBaseAdmin.clusterStatus
-    return hBaseClusterStatus
+      HBaseAdmin hBaseAdmin = new HBaseAdmin(hbaseConnection)
+      ClusterStatus hBaseClusterStatus = hBaseAdmin.clusterStatus
+      return hBaseClusterStatus
+    } catch (NoSuchMethodError e) {
+      //this looks like some version mismatch: downgrade to a skip
+      throw new AssumptionViolatedException("HBase connection version problems", e, null);
+    }
+    
   }
 
-  /*
-      byte[] tableName = Bytes.toBytes("hoya-test")
-    ExecutorService executor = createExecutorService()
-    HTable table = new HTable(tableName, 
-                              hbaseConnection,
-                              executor)
-    table.
+  /**
+   * Wait for the hbase master to be live (or past it in the lifecycle)
+   * @param clustername cluster
+   * @param spintime time to wait
+   * @return true if the cluster came out of the sleep time live 
+   * @throws IOException
+   * @throws HoyaException
    */
+  public boolean spinForClusterStartup(HoyaClient hoyaClient, String clustername, long spintime)
+  throws IOException, HoyaException {
+    Duration duration = new Duration(spintime).start();
+    boolean live = true;
+    while (live && !duration.limitExceeded) {
+      ClusterDescription cd = hoyaClient.getClusterStatus(clustername)
+      //see if there is a master node yet
+      if (cd.masterNodes.size() != 0) {
+        //if there is, get the node
+        ClusterDescription.ClusterNode master = cd.masterNodes[0];
+        live = master.state == ClusterDescription.STATE_LIVE
+        if (!live) {
+          break
+        }
+      }
+      try {
+        Thread.sleep(5000);
+      } catch (InterruptedException ignored) {
+        //ignored
+      }
+    }
+    return live;
+  }
+
 }

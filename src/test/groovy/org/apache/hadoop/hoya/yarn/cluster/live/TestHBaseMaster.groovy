@@ -58,7 +58,7 @@ class TestHBaseMaster extends YarnMiniClusterTestBase {
     log.info("Site configuration from AM")
     ConfigHelper.dumpConf(siteConf)
     //sleep for a bit to give things a chance to go live
-    Thread.sleep(20000)
+    assert spinForClusterStartup(hoyaClient, clustername, 20000)
     Configuration hbaseConf = createHBaseConfiguration(hoyaClient, clustername)
 
     //grab the conf from the status and verify the ZK binding matches
@@ -67,10 +67,12 @@ class TestHBaseMaster extends YarnMiniClusterTestBase {
 
     //stop the cluster
     hoyaClient.stop()
-    hoyaClient.monitorAppToCompletion(
+    int exitCode = hoyaClient.monitorAppToCompletion(
         new Duration(CLUSTER_GO_LIVE_TIME))
-
+    assert exitCode == 0
+    stopMiniCluster()
   }
 
+  
 
 }

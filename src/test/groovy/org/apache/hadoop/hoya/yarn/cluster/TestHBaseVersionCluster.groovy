@@ -39,28 +39,13 @@ class TestHBaseVersionCluster extends YarnMiniClusterTestBase {
   public void testClusterAMrunningVersionCommand() throws Throwable {
     describe "create a cluster, exec the version command"
     
-    createMiniCluster("testClusterAMCreation", new YarnConfiguration(), 1, true)
+    createMiniCluster("TestHBaseVersionCluster", new YarnConfiguration(), 1, true)
     log.info("RM address = ${RMAddr}")
-    String clustername = "testAMversion"
-    ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
-        //config includes RM binding info
-        new YarnConfiguration(miniCluster.config),
-        //varargs list of command line params
-        [
-            ClientArgs.ACTION_CREATE, clustername,
-            CommonArgs.ARG_MIN, "1",
-            CommonArgs.ARG_MAX, "1",
-            ClientArgs.ARG_MANAGER, RMAddr,
-            CommonArgs.ARG_USER, USERNAME,
-            CommonArgs.ARG_HBASE_HOME, HBaseHome,
-            CommonArgs.ARG_ZKQUORUM, ZKQuorum,
-            CommonArgs.ARG_ZKPORT, ZKPort.toString(),
-            CommonArgs.ARG_HBASE_ZKPATH, "/test/TestClusterAMCreation",
-            ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
-            CommonArgs.ARG_X_TEST,
-            CommonArgs.ARG_X_HBASE_COMMAND, "version"
-        ]
-    )
+    String clustername = "TestHBaseVersionCluster"
+    ServiceLauncher launcher = createHoyaCluster(clustername,
+         0, 
+        [CommonArgs.ARG_X_HBASE_COMMAND, "version"],
+        true)
     assert launcher.serviceExitCode == 0
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)
