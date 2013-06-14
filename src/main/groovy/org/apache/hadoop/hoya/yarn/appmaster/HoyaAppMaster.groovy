@@ -298,11 +298,10 @@ class HoyaAppMaster extends CompositeService
       hbaseCommand = serviceArgs.hbaseCommand;
     }
 
-    File hBaseConfDir = buildGeneratedConfDir()
+    File hBaseConfDir = localConfDir
     if (!hBaseConfDir.exists() || !hBaseConfDir.isDirectory()) {
       
       throw new BadCommandArgumentsException("Configuration directory $hBaseConfDir" +
-                                             " (argument ${serviceArgs.generatedConfdir}" +
                                              " doesn't exist")
     }
     
@@ -321,7 +320,7 @@ class HoyaAppMaster extends CompositeService
     //update the values
     clusterDescription.hBaseRootPath = siteConf.get(EnvMappings.KEY_HBASE_ROOTDIR)
     clusterDescription.zkQuorum = siteConf.get(EnvMappings.KEY_ZOOKEEPER_QUORUM)
-    clusterDescription.zkPort = siteConf.getInt(EnvMappings.KEY_ZOOKEEPER_PORT,0)
+    clusterDescription.zkPort = siteConf.getInt(EnvMappings.KEY_ZOOKEEPER_PORT, 0)
     clusterDescription.zkPath = siteConf.get(EnvMappings.KEY_ZNODE_PARENT)
 
     confKeys.each { key ->
@@ -330,7 +329,7 @@ class HoyaAppMaster extends CompositeService
       clusterDescription.hBaseClientProperties[key] = val
     }
     if (clusterDescription.zkPort == 0) {
-      throw new BadCommandArgumentsException("ZK port property not provided at $EnvMappings.KEY_ZOOKEEPER_PORT in configuration file ")
+      throw new BadCommandArgumentsException("ZK port property not provided at $EnvMappings.KEY_ZOOKEEPER_PORT in configuration file $hBaseSiteXML")
     }
 
     List<String> launchSequence = [
@@ -380,12 +379,13 @@ class HoyaAppMaster extends CompositeService
    * Build the configuration directory passed in or of the target FS
    * @return the file
    */
-  public File buildGeneratedConfDir() {
-    File confdir = new File(serviceArgs.hbasehome, "/conf").absoluteFile;
-    if (serviceArgs.generatedConfdir) {
-      confdir = new File(serviceArgs.generatedConfdir).absoluteFile
-    }
+  public File getLocalConfDir() {
+    File confdir = new File(HoyaKeys.PROPAGATED_CONF_DIR_NAME).absoluteFile;
     return confdir
+  }
+
+  public String getDFSConfDir() {
+    return serviceArgs.generatedConfdir;
   }
 
   /**

@@ -38,18 +38,28 @@ class HoyaMasterServiceArgs extends CommonArgs {
    */
   public static final String ARG_RM_ADDR = "--rm"
 
+  /**
+   *    Declare the image configuration directory to use when creating
+   *    or reconfiguring a hoya cluster.
+   *    The path must be on a filesystem visible to all nodes in the
+   *    YARN cluster.
+   *    Only one configuration directory can be specified.
+   */
+  @Parameter(names = '--generated_confdir',
+      description = "generated configuration directory")
+  String generatedConfdir
 
-  @Parameter(names = "--rm",
+  @Parameter(names = '--image', description = "image", required = false)
+  public String image;
+
+  @Parameter(names = '--path', description = "FileSystem path", required = true)
+  public String path;
+
+  //TODO: do we need this?
+  @Parameter(names = '--rm',
       description = "Resource manager hostname:port ",
       required = true)
   public String rmAddress;
-
-  @Parameter(names = "--path", description = "FileSystem path", required = true)
-  public String path;
-
-  @Parameter(names = "--image", description = "image", required = false)
-  public String image;
-
 
   /**
    * The only action you can do in the MasterService (apart from ask for help)

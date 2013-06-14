@@ -100,7 +100,7 @@ class HoyaRegionServiceLauncher implements Runnable {
     def command = []
     command << owner.buildHBaseBinPath().absolutePath
     command << HBaseCommands.ARG_CONFIG
-    command << owner.buildGeneratedConfDir().toString()
+    command << owner.getLocalConfDir().toString()
     command << HBaseCommands.REGION_SERVER
     command << HBaseCommands.ACTION_START
     command << "1>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/out.txt";

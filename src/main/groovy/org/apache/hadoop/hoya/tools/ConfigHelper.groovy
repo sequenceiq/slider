@@ -106,7 +106,6 @@ class ConfigHelper {
                                     Path confdir,
                                     String filename) {
     HadoopFS fs = HadoopFS.get(confdir.toUri(), systemConf);
-
     Path destPath = new Path(confdir, filename)
     FSDataOutputStream fos = fs.create(destPath);
     try {

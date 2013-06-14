@@ -109,21 +109,9 @@ public class CommonArgs {
   Path confdir
 
 
-  @Parameter(names = "--fs", description = "filesystem URI",
+  @Parameter(names = '--fs', description = "filesystem URI",
       converter = URIArgumentConverter)
   URI filesystemURL;
-
-  /**
-   *    Declare the image configuration directory to use when creating
-   *    or reconfiguring a hoya cluster.
-   *    The path must be on a filesystem visible to all nodes in the
-   *    YARN cluster.
-   *    Only one configuration directory can be specified.
-   */
-  @Parameter(names = '--generated_confdir',
-      description = "generated configuration directory")
-  String generatedConfdir
-
   
   @Parameter(names = '--hbasehome',
       description = "HBase home dir for starting pre-installed binaries")

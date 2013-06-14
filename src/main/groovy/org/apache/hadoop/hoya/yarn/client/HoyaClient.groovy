@@ -270,23 +270,12 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     String confDirName = HoyaKeys.PROPAGATED_CONF_DIR_NAME +"/"
     String relativeConfPath = appPath + confDirName
     Path generatedConfPath = new Path(clusterFS.homeDirectory, relativeConfPath);
-    //build up the path for the generated conf dir argument
-    String finalConfDir;
 
-    boolean publishViaYarn;
-    if (serviceArgs.generatedConfdir == null) {
-      if (!serviceArgs.confdir) {
-        throw new BadCommandArgumentsException("Missing argument ${CommonArgs.ARG_CONFDIR}")
-      }
-      //bulk copy
-      HoyaUtils.copyDirectory(config, serviceArgs.confdir, generatedConfPath)
-      publishViaYarn = true
-      finalConfDir = confDirName
-    } else {
-      generatedConfPath = new Path(serviceArgs.generatedConfdir);
-      finalConfDir = serviceArgs.generatedConfdir;
-      publishViaYarn = false;
+    if (!serviceArgs.confdir) {
+      throw new BadCommandArgumentsException("Missing argument ${CommonArgs.ARG_CONFDIR}")
     }
+    //bulk copy
+    HoyaUtils.copyDirectory(config, serviceArgs.confdir, generatedConfPath)
 
     
     //now load the template configuration and build the site
@@ -320,29 +309,19 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     //this is the path for the site configuration
 
     Path sitePath = ConfigHelper.generateConfig(config,
-                                                templateConf,
-                                                generatedConfPath,
-                                                HoyaKeys.HBASE_SITE);
+                                      templateConf,
+                                      generatedConfPath,
+                                      HoyaKeys.HBASE_SITE);
     log.debug("Saving the config to $sitePath")
-
-    
-    if (publishViaYarn) {
-      //now register each of the files in the directory to be
-      //copied to the destination
-      FileStatus[] fileset = clusterFS.listStatus(generatedConfPath)
-      fileset.each { FileStatus entry ->
-
-        LocalResource resource = YarnUtils.createAmResource(clusterFS,
-                                            entry.path,
-                                            LocalResourceType.FILE)
-        String relativePath = confDirName + entry.path.name
-        localResources[relativePath] = resource
+    Map<String, LocalResource> confResources;
+    confResources = YarnUtils.submitDirectory(clusterFS,
+                                    generatedConfPath,
+                                    HoyaKeys.PROPAGATED_CONF_DIR_NAME)
+    localResources.putAll(confResources)
+    if (log.isDebugEnabled()) {
+      localResources.each { String key, LocalResource val ->
+        log.debug("$key=${YarnUtils.stringify(val.resource)}")
       }
-    } else {
-      // generated conf dir, hope it is visible
-      log.debug("All files are in $generatedConfPath -assuming visible across" +
-                "the cluster")
-      
     }
 
     // Set the log4j properties if needed 
@@ -395,9 +374,9 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     commands << HoyaMasterServiceArgs.ARG_RM_ADDR;
     commands << rmAddr;
         
-    //now conf dir path
+    //now conf dir path -fileset in the DFS
     commands << HoyaMasterServiceArgs.ARG_GENERATED_CONFDIR
-    commands << finalConfDir
+    commands << generatedConfPath
     
     if (serviceArgs.hbasehome) {
       //HBase home

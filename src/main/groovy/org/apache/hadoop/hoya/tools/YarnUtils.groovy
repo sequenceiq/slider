@@ -34,6 +34,7 @@ import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.util.ConverterUtils
 import org.apache.hadoop.yarn.util.Records
+import org.apache.hadoop.fs.FileSystem as HadoopFS
 
 @Commons
 @CompileStatic
@@ -112,5 +113,35 @@ class YarnUtils {
     return "App {${report.name}}/{$report.applicationType} user ${report.user}" +
            " is in state ${report.yarnApplicationState}  " +
            "RPC: ${report.host}:${report.rpcPort}"
+  }
+
+  /**
+   * Register all files under a fs path as a directory to push out 
+   * @param clusterFS cluster filesystem
+   * @param srcDir src dir
+   * @param destRelativeDir dest dir (no trailing /)
+   * @return the list of entries
+   */
+  public static Map<String, LocalResource> submitDirectory(HadoopFS clusterFS,
+                                      Path srcDir,
+                                      String destRelativeDir) {
+    //now register each of the files in the directory to be
+    //copied to the destination
+    FileStatus[] fileset = clusterFS.listStatus(srcDir)
+    Map<String, LocalResource> localResources = [:]
+    fileset.each { FileStatus entry ->
+
+      LocalResource resource = createAmResource(clusterFS,
+                                                entry.path,
+                                                LocalResourceType.FILE)
+      String relativePath = destRelativeDir + "/" +entry.path.name
+      localResources[relativePath] = resource
+    }
+    return localResources
+  }
+
+
+  public static String stringify(org.apache.hadoop.yarn.api.records.URL url) {
+    return "//$url.scheme/$url.host/${url.file}"
   }
 }
