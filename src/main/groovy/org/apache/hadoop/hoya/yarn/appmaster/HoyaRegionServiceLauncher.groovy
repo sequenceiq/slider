@@ -90,7 +90,7 @@ class HoyaRegionServiceLauncher implements Runnable {
     log.info("Setting user in ContainerLaunchContext to: $jobUserName");
 
     // Set the environment
-    Map<String, String> env = owner.buildEnvMapFromServiceArguments();
+    Map<String, String> env = [:]
 //    env[EnvMappings.ENV_HBASE_OPTS] = ConfigHelper.build_JVM_opts(env);
     env["HBASE_LOG_DIR"] = owner.buildHBaseContainerLogdir();
     

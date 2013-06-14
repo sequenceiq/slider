@@ -56,6 +56,7 @@ public class RunLongLivedApp implements Runnable {
   private final List<String> recentLines = new LinkedList<String>();
   private final int recentLineLimit = RECENT_LINE_LOG_LIMIT;
 
+  private ApplicationEventHandler applicationEventHandler;
 
   public RunLongLivedApp(String... commands) {
     builder = new ProcessBuilder(commands);
@@ -73,6 +74,14 @@ public class RunLongLivedApp implements Runnable {
   
   public ProcessBuilder getBuilder() {
     return builder;
+  }
+
+  /**
+   * Set an optional application exit callback
+   * @param applicationEventHandler callback to notify on application exit
+   */
+  public void setApplicationEventHandler(ApplicationEventHandler applicationEventHandler) {
+    this.applicationEventHandler = applicationEventHandler;
   }
 
   public void putEnv(String key, String val) {
@@ -165,7 +174,7 @@ public class RunLongLivedApp implements Runnable {
    * @return the process
    * @throws IOException
    */
-  public Process spawnChildProcess() throws IOException, HoyaException {
+  private Process spawnChildProcess() throws IOException, HoyaException {
     if (process != null) {
       throw new HoyaInternalStateException("Process already started");
     }
@@ -181,6 +190,10 @@ public class RunLongLivedApp implements Runnable {
    */
   //@Override // Runnable
   public void run() {
+    //notify the callback that the process has started
+    if (applicationEventHandler != null) {
+      applicationEventHandler.onApplicationStarted(this);
+    }
     try {
       exitCode = process.waitFor();
     } catch (InterruptedException e) {
@@ -190,6 +203,11 @@ public class RunLongLivedApp implements Runnable {
       LOG.info("process has finished");
       //tell the logger it has to finish too
       done = true;
+      
+      //now call the callback if it is set
+      if (applicationEventHandler != null) {
+        applicationEventHandler.onApplicationExited(this, exitCode);
+      }
       try {
         logThread.join();
       } catch (InterruptedException ignored){
@@ -204,7 +222,7 @@ public class RunLongLivedApp implements Runnable {
    * @return the thread
    * @throws IOException Execution problems
    */
-  public Thread spawnIntoThread() throws IOException, HoyaException {
+  private Thread spawnIntoThread() throws IOException, HoyaException {
     spawnChildProcess();
     return new Thread(this, getCommand());
   }

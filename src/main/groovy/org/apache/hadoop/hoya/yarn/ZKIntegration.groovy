@@ -69,29 +69,31 @@ class ZKIntegration implements Watcher {
  it is not already there
  */
   final AtomicBoolean toInit = new AtomicBoolean(false)
+  final boolean createClusterPath
   final Closure watchEventHandler
-  private final String connection
+  private final String zkConnection
   private final boolean canBeReadOnly;
 
-  protected ZKIntegration(
-      String zkConnection,
+  protected ZKIntegration(String zkConnection,
       String username,
       String clustername,
       boolean canBeReadOnly,
+      boolean createClusterPath,
       Closure watchEventHandler
   ) throws IOException {
     this.username = username
     this.clustername = clustername
     this.watchEventHandler = watchEventHandler
-    connection = zkConnection
+    this.zkConnection = zkConnection
     this.canBeReadOnly = canBeReadOnly
-    this.userPath =mkHoyaUserPath(username)
+    this.createClusterPath = createClusterPath
+    this.userPath = mkHoyaUserPath(username)
   }
 
   public void init() {
     assert zookeeper == null
-    log.debug("Binding ZK client to " + connection)
-    zookeeper = new ZooKeeper(connection, sessionTimeout, this, canBeReadOnly);
+    log.debug("Binding ZK client to " + zkConnection)
+    zookeeper = new ZooKeeper(zkConnection, sessionTimeout, this, canBeReadOnly);
   }
 
   /**
@@ -104,14 +106,14 @@ class ZKIntegration implements Watcher {
    * @return
    * @throws IOException
    */
-  public static newInstance(
-      String zkConnection,
-      String username,
-      String clustername,
-      boolean canBeReadOnly,
-      Closure watchEventHandler
-  ) throws IOException {
-    return new ZKIntegration(zkConnection, username, clustername, canBeReadOnly, watchEventHandler)
+  public static newInstance(String zkConnection, String username, String clustername, boolean createClusterPath, boolean canBeReadOnly, Closure watchEventHandler) throws IOException {
+    
+    return new ZKIntegration(zkConnection,
+                             username,
+                             clustername,
+                             canBeReadOnly,
+                             createClusterPath,
+                             watchEventHandler)
   }
 
   String getClusterPath() {
@@ -142,7 +144,11 @@ class ZKIntegration implements Watcher {
     return zookeeper.exists(path, false)
   }
 
-  /**
+  @Override
+  String toString() {
+    return "ZK integration bound @ $zkConnection: - $zookeeper}"
+  }
+/**
    * Event handler to notify of state events
    * @param event
    */
@@ -154,7 +160,7 @@ class ZKIntegration implements Watcher {
   }
 
   private void maybeInit() {
-    if (!toInit.getAndSet(true)) {
+    if (!toInit.getAndSet(true) && createClusterPath) {
       log.debug('initing')
       //create the user path
       mkPath(ZK_USERS_PATH_LIST, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT)
@@ -267,11 +273,12 @@ class ZKIntegration implements Watcher {
     return SVC_HOYA_USERS + "/" + username
   }
 
-/**
- * Create a ZK watcher callback
- * @param closure
- * @return
- */
+  /**
+   * Create a ZK watcher callback that forwards the event to the
+   * specific closure
+   * @param closure closure to invoke
+   * @return a callback which can be registered
+   */
   static ZKCallback watcher(Closure closure) {
     return new ZKCallback() {
       @Override

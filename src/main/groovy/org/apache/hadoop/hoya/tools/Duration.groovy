@@ -33,8 +33,9 @@ class Duration {
     this.limit = limit
   }
 
-  void start() {
+  Duration start() {
     start = System.currentTimeMillis();
+    return this
   }
   
   void finish() {

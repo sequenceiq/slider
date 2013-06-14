@@ -212,9 +212,21 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     if (serviceArgs.debug) {
       appContext.maxAppAttempts = 1
     }
-    String username = getUsername()
-    String zkPath = ZKIntegration.mkClusterPath(username, clustername)
 
+    //check for arguments that are mandatory with this action
+
+    if (serviceArgs.filesystemURL == null) {
+      throw new BadCommandArgumentsException("Required argument "
+                                                 + CommonArgs.ARG_FILESYSTEM
+                                                 + " missing")
+    }
+
+    if (serviceArgs.zkquorum == null) {
+      throw new BadCommandArgumentsException("Required argument "
+                                                 + CommonArgs.ARG_ZKQUORUM
+                                                 + " missing")
+    }
+    
     // Set up the container launch context for the application master
     ContainerLaunchContext amContainer =
       Records.newRecord(ContainerLaunchContext.class);
@@ -254,13 +266,6 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     }
 
     //build up the configuration
-    
-    if (serviceArgs.filesystemURL == null) {
-      throw new BadCommandArgumentsException("Required argument "
-                                                 + CommonArgs.ARG_FILESYSTEM
-                                                 + " missing")
-    }
-
 
     String confDirName = HoyaKeys.PROPAGATED_CONF_DIR_NAME +"/"
     String relativeConfPath = appPath + confDirName
@@ -296,7 +301,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     }
     HadoopFS targetFS = HadoopFS.get(serviceArgs.filesystemURL, config)
     
-    String hbaseDir = "yarnapps/$appName/${clustername}";
+    String hbaseDir = "target/yarnapps/$appName/${clustername}";
     Path relativeHBaseRootPath = new Path(hbaseDir)
     Path hBaseRootPath = relativeHBaseRootPath.makeQualified(targetFS)
     log.debug("hBaseRootPath=$hBaseRootPath") 
@@ -631,13 +636,12 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * @return a map of the dynamic bindings for this Hoya instance
    */
   @VisibleForTesting
-  public Map<String, String> buildConfMapFromServiceArguments(String hbaseRoot, Path hBaseRootPath) {
-    String hbaseDir = new URL(serviceArgs.filesystemURL.toURL(),
-                              hbaseRoot).toString();
+  public Map<String, String> buildConfMapFromServiceArguments(String zkroot, Path hBaseRootPath) {
     return [
-        (EnvMappings.KEY_HBASE_ROOTDIR): hbaseDir,
-        (EnvMappings.KEY_ZOOKEEPER_QUORUM): serviceArgs.zookeeper,
-        (EnvMappings.KEY_ZNODE_PARENT): serviceArgs.hbasezkpath,
+        (EnvMappings.KEY_ZOOKEEPER_PORT): serviceArgs.zkport.toString(),
+        (EnvMappings.KEY_ZOOKEEPER_QUORUM): serviceArgs.zkquorum,
+        (EnvMappings.KEY_HBASE_ROOTDIR): hBaseRootPath.toUri().toString(),
+        (EnvMappings.KEY_ZNODE_PARENT):zkroot ,
     ]
   }
 
@@ -964,18 +968,18 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    */
   public int waitForHBaseMasterLive(String clustername, long timeout)
       throws IOException, HoyaException {
-    Duration duration = new Duration(timeout);
-    duration.start()
+    Duration duration = new Duration(timeout).start();
     boolean live = false;
     int state = ClusterDescription.STATE_CREATED
     while (!live) {
       ClusterDescription cd = getClusterStatus(clustername)
-      if (cd.masterNodes.size() == 0) {
-        throw new HoyaException("No master node running");
-      }
-      ClusterDescription.ClusterNode master = cd.masterNodes[0];
-      state = master.state
-      live = state >= ClusterDescription.STATE_LIVE
+      //see if there is a master node yet
+      if (cd.masterNodes.size() != 0) {
+        //if there is, get the node
+        ClusterDescription.ClusterNode master = cd.masterNodes[0];
+        state = master.state
+        live = state >= ClusterDescription.STATE_LIVE
+        }
       if (!live && !duration.limitExceeded) {
         try {
           Thread.sleep(1000);

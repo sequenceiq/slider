@@ -16,24 +16,14 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.appmaster
-
-import org.apache.hadoop.hbase.HConstants
+package org.apache.hadoop.hoya.exec;
 
 /**
- * Mappings of config params to env variables for
- * custom -site.xml files to pick up
+ * Callback when a long-lived application exits
  */
-class EnvMappings {
+public interface ApplicationEventHandler {
   
-  public static final String ENV_FS_DEFAULT_NAME = 'FS_DEFAULT_NAME';
-  public static final String ENV_ZOOKEEPER_PATH = 'ZOOKEEPER_PATH';
-  public static final String ENV_ZOOKEEPER_CONNECTION = 'ZOOKEEPER_CONNECTION';
-  public static final String ENV_HBASE_OPTS = 'HBASE_OPTS';
-
-  public static final String KEY_HBASE_ROOTDIR = "hbase.rootdir";
+  void onApplicationStarted(RunLongLivedApp application);
   
-  public static final String KEY_ZOOKEEPER_QUORUM = HConstants.ZOOKEEPER_QUORUM;
-  public static final String KEY_ZOOKEEPER_PORT = HConstants.ZOOKEEPER_CLIENT_PORT;
-  public static final String KEY_ZNODE_PARENT = "zookeeper.znode.parent";
+  void onApplicationExited(RunLongLivedApp application, int exitCode);
 }

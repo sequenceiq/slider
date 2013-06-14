@@ -66,7 +66,8 @@ public class ClusterDescription {
   public int minMasterNodes;
   public int maxMasterNodes;
 
-  public String zkConnection;
+  public String zkQuorum;
+  public int zkPort;
   public String zkPath;
   public String hBaseRootPath;
   /**
@@ -93,11 +94,15 @@ public class ClusterDescription {
      * state (Currently arbitrary text)
      */
     public int state;
+
+    /**
+     * Exit code: only valid if the state >= STOPPED
+     */
+    public int exitCode;
     /**
      * what was the command executed?
      */
     public String command;
-
     /**
      * Any diagnostics
      */
@@ -148,7 +153,8 @@ public class ClusterDescription {
            .append('-')
            .append(maxRegionNodes)
            .append('\n');
-    builder.append("ZK cluster: ").append(zkConnection).append('\n');
+    builder.append("ZK cluster: ").append(zkQuorum).
+      append(" : ").append(zkPort).append('\n');
     builder.append("ZK path: ").append(zkPath).append('\n');
     builder.append(String.format("HBase Master count %d", masterNodes.size()));
     for (ClusterNode node : masterNodes) {

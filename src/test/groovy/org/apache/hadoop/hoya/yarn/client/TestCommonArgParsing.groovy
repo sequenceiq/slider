@@ -19,6 +19,7 @@
 package org.apache.hadoop.hoya.yarn.client
 
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
+import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.junit.Assert
 import org.junit.Test
 
@@ -96,6 +97,9 @@ class TestCommonArgParsing {
    * @return the base arguments
    */
   private def baseArgs() {
-    return [ClientArgs.ARG_ZOOKEEPER, "localhost:8080"]
+    return [
+        CommonArgs.ARG_ZKQUORUM, "localhost",
+        CommonArgs.ARG_ZKPORT, "8080",
+    ]
   }
 }

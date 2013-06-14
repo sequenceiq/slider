@@ -24,7 +24,6 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileUtil
 import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hbase.HBaseConfiguration
-import org.apache.hadoop.hbase.HConstants
 import org.apache.hadoop.hbase.ServerName
 import org.apache.hadoop.hbase.client.HBaseAdmin
 import org.apache.hadoop.hbase.client.HConnection
@@ -36,6 +35,7 @@ import org.apache.hadoop.hoya.tools.YarnUtils
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.MicroZKCluster
+import org.apache.hadoop.hoya.yarn.ZKIntegration
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.yarn.api.records.ApplicationReport
@@ -54,6 +54,7 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.SynchronousQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Base class for mini cluster tests -creates a field for the
@@ -99,6 +100,46 @@ implements KeysForTests {
     log.info("");
   }
 
+  public ZKIntegration createZKIntegrationInstance(String zkQuorum, String clusterName, boolean createClusterPath, boolean canBeReadOnly, int timeout) {
+    AtomicBoolean connectedFlag = new AtomicBoolean(false)
+    ZKIntegration zki = ZKIntegration.newInstance(zkQuorum,
+                                                  USERNAME,
+                                                  clusterName,
+                                                  createClusterPath,
+                                                  canBeReadOnly) {
+      //connection callback
+      synchronized (connectedFlag) {
+        log.info("ZK binding callback received")
+        connectedFlag.set(true)
+        connectedFlag.notify()
+      }
+    }
+    zki.init()
+    //here the callback may or may not have occurred.
+    //optionally wait for it
+    if (timeout > 0) {
+      waitForZKConnection(connectedFlag, timeout)
+    }
+    //if we get here, the binding worked
+    log.info("Connected: ${zki}")
+    return zki
+  }
+
+  /**
+   * Wait for a flag to go true
+   * @param connectedFlag
+   */
+  public void waitForZKConnection(AtomicBoolean connectedFlag, int timeout) {
+    synchronized (connectedFlag) {
+      if (!connectedFlag.get()) {
+        log.info("waiting for ZK event")
+        //wait a bit
+        connectedFlag.wait(timeout)
+      }
+    }
+    assert connectedFlag.get()
+  }
+
   /**
    * Create and start a minicluster
    * @param name cluster/test name
@@ -106,6 +147,8 @@ implements KeysForTests {
    * @param noOfNodeManagers #of NMs
    * @param numLocalDirs #of local dirs
    * @param numLogDirs #of log dirs
+   * @param startZK create a ZK micro cluster
+   * @param startHDFS create an HDFS mini cluster
    */
   protected void createMiniCluster(String name, YarnConfiguration conf, int noOfNodeManagers, int numLocalDirs, int numLogDirs, boolean startZK, boolean startHDFS) {
     conf.setInt(YarnConfiguration.RM_SCHEDULER_MINIMUM_ALLOCATION_MB, 64);
@@ -116,8 +159,7 @@ implements KeysForTests {
     miniCluster.start();
     //now the ZK cluster
     if (startZK) {
-      microZKCluster = new MicroZKCluster(new Configuration(conf))
-      microZKCluster.createCluster();
+      createMicroZKCluster(conf)
     }
     if (startHDFS) {
       File baseDir = new File("./target/hdfs/$name").absoluteFile;
@@ -130,6 +172,11 @@ implements KeysForTests {
 
   }
 
+  public void createMicroZKCluster(Configuration conf) {
+    microZKCluster = new MicroZKCluster(new Configuration(conf))
+    microZKCluster.createCluster();
+  }
+
   /**
    * Create and start a minicluster
    * @param name cluster/test name
@@ -137,6 +184,8 @@ implements KeysForTests {
    * @param noOfNodeManagers #of NMs
    * @param numLocalDirs #of local dirs
    * @param numLogDirs #of log dirs
+   * @param startZK create a ZK micro cluster
+   * @param startHDFS create an HDFS mini cluster
    */
   protected void createMiniCluster(String name, YarnConfiguration conf, int noOfNodeManagers, boolean startZK) {
     createMiniCluster(name, conf, noOfNodeManagers, 1, 1, startZK, false)
@@ -195,12 +244,24 @@ implements KeysForTests {
     return addr
   }
 
+  void assertHasZKCluster() {
+    assert microZKCluster != null
+  }
+
   protected String getZKBinding() {
     if (!microZKCluster) {
       return "localhost:1"
     } else {
       return microZKCluster.zkBindingString
     }
+  }
+
+  protected int getZKPort() {
+    return microZKCluster ? microZKCluster.port : HBASE_ZK_PORT
+  }
+
+  protected String getZKQuorum() {
+    return MicroZKCluster.QUORUM;
   }
 
   /**
@@ -226,17 +287,17 @@ implements KeysForTests {
   public ServiceLauncher createMasterlessAM(String clustername,
                                             int size,
                                             boolean blockUntilRunning) {
-    return createHoyaCluster(clustername, size, 
-                         [CommonArgs.ARG_X_NO_MASTER],
-                         blockUntilRunning)
+    return createHoyaCluster(clustername, size,
+                             [CommonArgs.ARG_X_NO_MASTER],
+                             blockUntilRunning)
   }
 
   public File getResourceConfDir() {
-    File f= new File("src/main/resources/conf").absoluteFile
+    File f = new File("src/main/resources/conf").absoluteFile
     assert f.exists()
     return f
   }
-  
+
   /**
    * Create a full cluster with a master & the requested no. of region servers
    * @param clustername cluster name
@@ -246,9 +307,9 @@ implements KeysForTests {
    * @return launcher which will have executed the command.
    */
   public ServiceLauncher createHoyaCluster(String clustername,
-                                  int size,
-                                  List<String> extraArgs,
-                                  boolean blockUntilRunning) {
+                                           int size,
+                                           List<String> extraArgs,
+                                           boolean blockUntilRunning) {
     assert clustername != null
     assert miniCluster != null
     List<String> argsList = [
@@ -257,8 +318,10 @@ implements KeysForTests {
         CommonArgs.ARG_MAX, Integer.toString(size),
         ClientArgs.ARG_MANAGER, RMAddr,
         CommonArgs.ARG_HBASE_HOME, HBaseHome,
-        CommonArgs.ARG_ZOOKEEPER, ZKBinding,
-        CommonArgs.ARG_HBASE_ZKPATH, "/test/" + clustername,
+        CommonArgs.ARG_ZKQUORUM, ZKQuorum,
+        CommonArgs.ARG_ZKPORT, ZKPort.toString(),
+        //CommonArgs.ARG_HBASE_ZKPATH, "/test/" + clustername,
+        CommonArgs.ARG_HBASE_ZKPATH, "/hbase",
         ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
         ClientArgs.ARG_FILESYSTEM, fsDefaultName,
         CommonArgs.ARG_X_TEST,
@@ -336,16 +399,31 @@ implements KeysForTests {
    * cluster, including the binding to the HBase cluster
    */
   public Configuration createHBaseConfiguration(HoyaClient hoyaClient,
-                                                     String clustername) {
-    Configuration conf = HBaseConfiguration.create();
-    ClusterDescription status = hoyaClient.getClusterStatus(clustername);
-    status.hBaseClientProperties.each {String key, String val ->
-      conf.set(key, val,"hoya cluster");
-    }
+                                                String clustername) {
+    Configuration siteConf = fetchHBaseSiteConfig(hoyaClient, clustername)
+    Configuration conf = HBaseConfiguration.create(siteConf);
+/*
+    
     conf.setInt(HConstants.HBASE_CLIENT_RETRIES_NUMBER, 0);
     conf.setInt("zookeeper.recovery.retry", 0)
 
+*/
     return conf
+  }
+
+  /**
+   * Fetch the current hbase site config from the Hoya AM
+   * @param hoyaClient client
+   * @param clustername name of the cluster
+   * @return the site config
+   */
+  public Configuration fetchHBaseSiteConfig(HoyaClient hoyaClient, String clustername) {
+    ClusterDescription status = hoyaClient.getClusterStatus(clustername);
+    Configuration siteConf = new Configuration(false)
+    status.hBaseClientProperties.each { String key, String val ->
+      siteConf.set(key, val, "hoya cluster");
+    }
+    return siteConf
   }
 
   /**
@@ -361,14 +439,14 @@ implements KeysForTests {
     HConnection hbaseConnection = HConnectionManager.createConnection(clientConf)
     return hbaseConnection;
   }
-  
+
   public ExecutorService createExecutorService() {
-    ThreadPoolExecutor pool =  new ThreadPoolExecutor(1, 1,
-                                       1000L,
-                                       TimeUnit.SECONDS,
-                                       new SynchronousQueue<Runnable>());
-   pool.allowCoreThreadTimeOut(true);
-   return pool;
+    ThreadPoolExecutor pool = new ThreadPoolExecutor(1, 1,
+                                                     1000L,
+                                                     TimeUnit.SECONDS,
+                                                     new SynchronousQueue<Runnable>());
+    pool.allowCoreThreadTimeOut(true);
+    return pool;
   }
 
   /**
@@ -397,7 +475,7 @@ implements KeysForTests {
     ClusterStatus hBaseClusterStatus = hBaseAdmin.clusterStatus
     return hBaseClusterStatus
   }
-  
+
   /*
       byte[] tableName = Bytes.toBytes("hoya-test")
     ExecutorService executor = createExecutorService()

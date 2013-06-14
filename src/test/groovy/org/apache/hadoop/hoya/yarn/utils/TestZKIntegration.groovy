@@ -25,11 +25,11 @@ import org.apache.hadoop.hbase.zookeeper.MiniZooKeeperCluster
 import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.MicroZKCluster
 import org.apache.hadoop.hoya.yarn.ZKIntegration
+import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.zookeeper.CreateMode
 import org.apache.zookeeper.ZooDefs
 import org.apache.zookeeper.data.Stat
 import org.junit.After
-import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
 
@@ -38,70 +38,31 @@ import java.util.concurrent.atomic.AtomicBoolean
 @Commons
 @CompileStatic
 
-class TestZKIntegration extends Assert implements KeysForTests {
+class TestZKIntegration extends YarnMiniClusterTestBase implements KeysForTests {
 
-  protected MicroZKCluster microZKCluster
-  protected MiniZooKeeperCluster zkCluster
-  protected File baseDir
-  private String zkBindingString
 
   @Before
   void createCluster() {
     Configuration conf = new Configuration()
-    microZKCluster = new MicroZKCluster(conf)
-    microZKCluster.createCluster()
-    zkCluster = microZKCluster.zkCluster
-    zkBindingString = microZKCluster.zkBindingString
+    createMicroZKCluster(conf)
   }
 
-  @After
-  void teardown() {
-    microZKCluster?.close()
-  }
 
   @Test
   public void testIntegrationCreate() throws Throwable {
-    ZKIntegration zki = createZKIntegrationInstance("cluster1")
+    assertHasZKCluster()
+    ZKIntegration zki = createZKIntegrationInstance(ZKBinding, "cluster1", true, false, 5000)
     String userPath = ZKIntegration.mkHoyaUserPath(USERNAME)
     Stat stat = zki.stat(userPath)
     assert stat != null
     log.info("User path $userPath has stat $stat")
   }
 
-  def ZKIntegration createZKIntegrationInstance(String clusterName) {
-    AtomicBoolean connectedFlag = new AtomicBoolean(false)
-    ZKIntegration zki = ZKIntegration.newInstance(zkBindingString,
-                                                  USERNAME,
-                                                  clusterName,
-                                                  false) {
-      //connection callback
-      synchronized (connectedFlag) {
-        log.info("ZK binding callback received")
-        connectedFlag.set(true)
-        connectedFlag.notify()
-      }
-    }
-    zki.init()
-    //here the callback may or may not have occurred.
-    waitForConnection(connectedFlag)
-    log.info("ZK binding completed")
-    return zki
-  }
-
-  public void waitForConnection(AtomicBoolean connectedFlag) {
-    synchronized (connectedFlag) {
-      if (!connectedFlag.get()) {
-        log.info("waiting for ZK event")
-        //wait a bit
-        connectedFlag.wait(5000)
-      }
-    }
-    assert connectedFlag.get()
-  }
-
   @Test
   public void testListUserClustersWithoutAnyClusters() throws Throwable {
-    ZKIntegration zki = createZKIntegrationInstance("")
+    assertHasZKCluster()
+
+    ZKIntegration zki = createZKIntegrationInstance(ZKBinding, "", true, false, 5000)
     String userPath = ZKIntegration.mkHoyaUserPath(USERNAME)
     List<String> clusters = zki.clusters
     assert clusters.empty
@@ -109,7 +70,9 @@ class TestZKIntegration extends Assert implements KeysForTests {
 
   @Test
   public void testListUserClustersWithOneCluster() throws Throwable {
-    ZKIntegration zki = createZKIntegrationInstance("")
+    assertHasZKCluster()
+
+    ZKIntegration zki = createZKIntegrationInstance(ZKBinding, "", true, false, 5000)
     String userPath = ZKIntegration.mkHoyaUserPath(USERNAME)
     String fullPath = zki.createPath(userPath, "/cluster-",
                                      ZooDefs.Ids.OPEN_ACL_UNSAFE,
@@ -122,7 +85,7 @@ class TestZKIntegration extends Assert implements KeysForTests {
 
   @Test
   public void testListUserClustersWithTwoCluster() throws Throwable {
-    ZKIntegration zki = createZKIntegrationInstance("")
+    ZKIntegration zki = createZKIntegrationInstance(ZKBinding, "", true, false, 5000)
     String userPath = ZKIntegration.mkHoyaUserPath(USERNAME)
     String c1 = createEphemeralChild(zki, userPath)
     log.info("Ephemeral path $c1")
@@ -134,7 +97,7 @@ class TestZKIntegration extends Assert implements KeysForTests {
            (c1.endsWith(clusters[1]) && c2.endsWith(clusters[0]))
   }
 
-  def String createEphemeralChild(ZKIntegration zki, String userPath) {
+  public String createEphemeralChild(ZKIntegration zki, String userPath) {
     return zki.createPath(userPath, "/cluster-",
                           ZooDefs.Ids.OPEN_ACL_UNSAFE,
                           CreateMode.EPHEMERAL_SEQUENTIAL)

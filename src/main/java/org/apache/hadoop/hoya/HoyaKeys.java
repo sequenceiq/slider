@@ -18,6 +18,11 @@
 
 package org.apache.hadoop.hoya;
 
+import org.apache.hadoop.hbase.HConstants;
+
+/**
+ * Keys and various constants for Hoya
+ */
 public interface HoyaKeys {
 
   String HBASE_SITE = "hbase-site.xml";
@@ -33,4 +38,6 @@ public interface HoyaKeys {
    * the hbase conf that is propagated via YARN
    */
   String PROPAGATED_CONF_DIR_NAME = "conf";
+  
+  int HBASE_ZK_PORT = HConstants.DEFAULT_ZOOKEPER_CLIENT_PORT;
 }

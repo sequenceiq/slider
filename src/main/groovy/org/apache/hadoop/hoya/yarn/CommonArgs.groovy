@@ -24,6 +24,7 @@ import com.beust.jcommander.ParameterException
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
+import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
 import org.apache.hadoop.hoya.tools.PathArgumentConverter
 import org.apache.hadoop.hoya.tools.URIArgumentConverter
@@ -52,7 +53,8 @@ public class CommonArgs {
   public static final String ARG_PATH = '--path'
   public static final String ARG_USER = '--user'
 
-  public static final String ARG_ZOOKEEPER = '--zookeeper'
+  public static final String ARG_ZKPORT = '--zkport'
+  public static final String ARG_ZKQUORUM = '--zkquorum'
 
   public static final String ARG_X_TEST = '--Xtest'
   /** for testing only: {@value} */
@@ -140,12 +142,15 @@ public class CommonArgs {
   @Parameter(names = '--user',
       description = "username if not self")
   public String user = System.getProperty("user.name");
-  
-  @Parameter(names = '--zookeeper',
+
+  @Parameter(names = '--zkquorum',
       description = "Zookeeper connection string")
-  public String zookeeper;
-  
- 
+  public String zkquorum;
+
+  @Parameter(names = '--zkport',
+      description = "Zookeeper port")
+  public int zkport = HoyaKeys.HBASE_ZK_PORT;
+
   /*
    -D name=value
 

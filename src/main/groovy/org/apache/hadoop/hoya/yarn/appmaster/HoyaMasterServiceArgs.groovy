@@ -33,10 +33,6 @@ class HoyaMasterServiceArgs extends CommonArgs {
   public static final String CLASSNAME = "org.apache.hadoop.hoya.yarn.appmaster.HoyaAppMaster"
 
 
-  public static final List<String> params = 
-    [ARG_MIN, ARG_MAX, ARG_ACTION, ARG_NAME, ARG_IMAGE, ARG_NAME,
-        ARG_CONFDIR, ARG_PATH, ARG_ZOOKEEPER, ARG_DEBUG]
-
   /**
    * Path for the ZK instance (required)
    */

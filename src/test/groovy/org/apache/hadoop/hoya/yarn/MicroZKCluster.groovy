@@ -27,10 +27,12 @@ import org.apache.hadoop.hbase.zookeeper.MiniZooKeeperCluster
 @CompileStatic
 class MicroZKCluster implements Closeable {
 
+  public static final String QUORUM = "127.0.0.1"
   MiniZooKeeperCluster zkCluster
   File baseDir
   String zkBindingString
   Configuration conf
+  int port
 
   MicroZKCluster() {
     this(new Configuration())
@@ -45,8 +47,8 @@ class MicroZKCluster implements Closeable {
     baseDir = File.createTempFile("zookeeper", ".dir")
     baseDir.delete()
     baseDir.mkdirs()
-    int port = zkCluster.startup(baseDir)
-    zkBindingString = "127.0.0.1:$port"
+    port = zkCluster.startup(baseDir)
+    zkBindingString = QUORUM +":"+port
     log.info("Created $this")
   }
 
