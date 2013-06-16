@@ -65,6 +65,7 @@ import org.apache.hadoop.yarn.exceptions.YarnException
 import org.apache.hadoop.yarn.service.launcher.RunService
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.util.Records
+import org.apache.hadoop.hbase.HConstants
 
 import java.nio.ByteBuffer
 
@@ -243,7 +244,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
       //and the classpath can look after itself
 
       log.info("Copying JARs from local filesystem and add to local environment");
-      // Copy the application master jar to the filesystem 
+      // Copy the application master jar to the filesystem
       // Create a local resource to point to the destination jar path 
       String bindir = "";
       //add this class
@@ -263,6 +264,10 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
                                                             appPath,
                                                             libdir,
                                                             "ant.jar")
+      localResources["hbase.jar"] = submitJarWithClass(HConstants.class,
+                                                     appPath,
+                                                     libdir,
+                                                     "hbase.jar")
     }
 
     //build up the configuration
