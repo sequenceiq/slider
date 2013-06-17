@@ -291,7 +291,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     //load the mappings
     String zookeeperRoot = serviceArgs.hbasezkpath
     if (serviceArgs.hbasezkpath == null) {
-      zookeeperRoot = "/yarnapps/$appName/${appId.id}/"
+      zookeeperRoot = "/yarnapps_$appName${appId.id}"
     }
     HadoopFS targetFS = HadoopFS.get(serviceArgs.filesystemURL, config)
     
@@ -621,12 +621,17 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    */
   @VisibleForTesting
   public Map<String, String> buildConfMapFromServiceArguments(String zkroot, Path hBaseRootPath) {
-    return [
-        (EnvMappings.KEY_ZOOKEEPER_PORT): serviceArgs.zkport.toString(),
-        (EnvMappings.KEY_ZOOKEEPER_QUORUM): serviceArgs.zkquorum,
-        (EnvMappings.KEY_HBASE_ROOTDIR): hBaseRootPath.toUri().toString(),
-        (EnvMappings.KEY_ZNODE_PARENT):zkroot ,
+    Map <String, String> envMap = [
+         (EnvMappings.KEY_ZOOKEEPER_PORT): serviceArgs.zkport.toString(),
+         (EnvMappings.KEY_ZOOKEEPER_QUORUM): serviceArgs.zkquorum,
+         (EnvMappings.KEY_HBASE_ROOTDIR): hBaseRootPath.toUri().toString(),
+         (EnvMappings.KEY_ZNODE_PARENT):zkroot ,
+
     ]
+    if (!getUsingMiniMRCluster()) {
+      envMap.put("hbase.cluster.distributed", "true")
+    }
+    envMap
   }
 
   /**
