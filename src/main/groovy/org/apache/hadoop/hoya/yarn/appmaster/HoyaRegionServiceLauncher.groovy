@@ -114,6 +114,7 @@ class HoyaRegionServiceLauncher implements Runnable {
                                               generatedConfPath,
                                               HoyaKeys.PROPAGATED_CONF_DIR_NAME)
     localResources.putAll(confResources)
+    ctx.setLocalResources(localResources)
     
     //TODO: add binaries
 
