@@ -304,7 +304,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     if (serviceArgs.hbasezkpath == null) {
       zookeeperRoot = "/yarnapps_$appName${appId.id}"
     }
-    HadoopFS targetFS = HadoopFS.get(serviceArgs.filesystemURL, config)
+    HadoopFS targetFS = clusterFS
     
     String hbaseDir = "target/yarnapps/$appName/${clustername}";
     Path relativeHBaseRootPath = new Path(hbaseDir)
@@ -571,7 +571,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * @return the FS of the config
    */
   private HadoopFS getClusterFS() {
-    HadoopFS.get(config)
+    return HadoopFS.get(serviceArgs.filesystemURL, config)
   }
 
   /**
