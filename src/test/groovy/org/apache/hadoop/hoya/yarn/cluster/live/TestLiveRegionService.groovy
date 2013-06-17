@@ -27,8 +27,11 @@
 package org.apache.hadoop.hoya.yarn.cluster.live
 
 import groovy.util.logging.Commons
+import org.apache.hadoop.hbase.ClusterStatus
+import org.apache.hadoop.hbase.ServerName
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.tools.Duration
+import org.apache.hadoop.hoya.yarn.ZKIntegration
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.conf.YarnConfiguration
@@ -43,41 +46,38 @@ class TestLiveRegionService extends YarnMiniClusterTestBase {
 
 
   @Test
-  public void testLiveRegionService() throws Throwable {
-    describe("create a cluster with only region service; spin" +
-             " waiting for the RS node to come up")
-
-    //launch fake master
+  public void testLiveRegionServiceTwoNodes() throws Throwable {
     String clustername = "TestLiveRegionService"
-    createMiniCluster(clustername, new YarnConfiguration(), 1, true)
-    ServiceLauncher launcher = createHoyaCluster(clustername, 1, 
-                                                 [
-//                                                     CommonArgs.ARG_X_NO_MASTER
-                                                 ],
-                                                 true)
-    //now look for the explicit sevice
-    //do the low level operations to get a better view of what is going on 
+    int regionServerCount = 2
+    createMiniCluster(clustername, new YarnConfiguration(), regionServerCount+1, true)
+    //make sure that ZK is up and running at the binding string
+    ZKIntegration zki = createZKIntegrationInstance(ZKBinding, clustername, false, false, 5000)
+    log.info("ZK up at $zki");
+    //now launch the cluster
+    ServiceLauncher launcher = createHoyaCluster(clustername, regionServerCount, [], true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
-
-    Duration duration = new Duration(HBASE_CLUSTER_STARTUP_TIME);
-    duration.start()
-    int workerCount = 0;
-    while (workerCount == 0) {
-      ClusterDescription status = hoyaClient.getClusterStatus(clustername)
-      //log.info("Status $status")
-      workerCount = status.regionNodes.size()
-      if (workerCount == 0) {
-        assert !duration.limitExceeded
-        Thread.sleep(5000)
-      }
-    }
-    //here there is >1 worker
-    //sleep for a bit to let the RM do its thing
-    Thread.sleep(10000)
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)
-    log.info(status)
+    log.info("${status.toJsonString()}")
+    assert ZKHosts == status.zkHosts
+    assert ZKPort == status.zkPort
 
+    dumpFullHBaseConf(hoyaClient, clustername)
+
+    ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient, clustername)
+
+    waitForRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+    clustat = getHBaseClusterStatus(hoyaClient, clustername)
+
+    Collection<ServerName> servers = clustat.servers
+    if (servers.size() != regionServerCount) {
+      log.warn("Server size is not $regionServerCount in " + statusToString(clustat))
+    }
+    
+
+    clusterActionStop(hoyaClient, clustername)
   }
+
+
 
 
 }

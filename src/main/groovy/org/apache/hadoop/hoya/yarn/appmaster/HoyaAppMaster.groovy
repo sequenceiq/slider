@@ -21,20 +21,18 @@ package org.apache.hadoop.hoya.yarn.appmaster
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem as HadoopFS
-
 import org.apache.hadoop.hoya.HBaseCommands
-import org.apache.hadoop.hoya.HoyaKeys
-import org.apache.hadoop.hoya.api.ClusterDescription
-import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
-import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException
-import org.apache.hadoop.hoya.exec.ApplicationEventHandler
-import org.apache.hadoop.hoya.tools.ConfigHelper
-import org.apache.hadoop.security.UserGroupInformation
 import org.apache.hadoop.hoya.HoyaApp
 import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.hoya.HoyaKeys
+import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.HoyaAppMasterProtocol
+import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
 import org.apache.hadoop.hoya.exceptions.HoyaException
+import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException
+import org.apache.hadoop.hoya.exec.ApplicationEventHandler
 import org.apache.hadoop.hoya.exec.RunLongLivedApp
+import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.hoya.tools.Env
 import org.apache.hadoop.hoya.tools.YarnUtils
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
@@ -42,12 +40,13 @@ import org.apache.hadoop.ipc.ProtocolSignature
 import org.apache.hadoop.ipc.RPC
 import org.apache.hadoop.ipc.Server
 import org.apache.hadoop.net.NetUtils
+import org.apache.hadoop.security.UserGroupInformation
 import org.apache.hadoop.service.CompositeService
 import org.apache.hadoop.yarn.api.ApplicationConstants
-import org.apache.hadoop.yarn.api.records.ContainerExitStatus
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId
 import org.apache.hadoop.yarn.api.records.Container
+import org.apache.hadoop.yarn.api.records.ContainerExitStatus
 import org.apache.hadoop.yarn.api.records.ContainerId
 import org.apache.hadoop.yarn.api.records.ContainerState
 import org.apache.hadoop.yarn.api.records.ContainerStatus
@@ -153,6 +152,11 @@ class HoyaAppMaster extends CompositeService
   //hbase command
   private RunLongLivedApp hbaseMaster
   private ClusterDescription.ClusterNode masterNode;
+
+  /**
+   * Map of containerID -> cluster nodes, for status reports
+   */
+  private final Map<ContainerId, ClusterDescription.ClusterNode> containerMap = [:]
 
 
   public HoyaAppMaster() {
@@ -353,17 +357,24 @@ class HoyaAppMaster extends CompositeService
     // containers
     // Keep looping until all the containers are launched and shell script
     // executed on them ( regardless of success/failure).
+    if (serviceArgs.max < serviceArgs.min) {
+      throw new BadCommandArgumentsException("Maximum #of nodes (${serviceArgs.max}} is higher than the minimum (${serviceArgs.min}) ")
+    }
     numTotalContainers = serviceArgs.max
+    
     AMRMClient.ContainerRequest containerAsk =
       setupContainerAskForRM(numTotalContainers);
-    asyncRMClient.addContainerRequest(containerAsk);
     numRequestedContainers.set(numTotalContainers);
+    asyncRMClient.addContainerRequest(containerAsk);
+    clusterDescription.minRegionNodes = serviceArgs.min
+    clusterDescription.maxRegionNodes = numTotalContainers
 
 
     
     //if we get here: success
     success = true;
-    clusterDescription.state= ClusterDescription.STATE_LIVE;
+    clusterDescription.statusTime = System.currentTimeMillis()
+    clusterDescription.state = ClusterDescription.STATE_LIVE;
     clusterDescription.maxMasterNodes = clusterDescription.minMasterNodes = 1;
     masterNode = new ClusterDescription.ClusterNode(hostname)
     clusterDescription.masterNodes = 
@@ -395,8 +406,8 @@ class HoyaAppMaster extends CompositeService
    * Get the filesystem of this cluster
    * @return the FS of the config
    */
-  public org.apache.hadoop.fs.FileSystem getClusterFS() {
-    org.apache.hadoop.fs.FileSystem.get(config)
+  public HadoopFS getClusterFS() {
+    HadoopFS.get(config)
   }
   /**
    * build the log directory
@@ -618,7 +629,9 @@ class HoyaAppMaster extends CompositeService
 
       // non complete containers should not be here
       assert (status.state == ContainerState.COMPLETE);
-
+      //record the complete node's details for the status report
+      addCompletedNodeToCD(status)
+      
       // increment counters for completed/failed containers
       int exitStatus = status.exitStatus;
       if (0 != exitStatus) {
@@ -660,6 +673,7 @@ class HoyaAppMaster extends CompositeService
 //    resourceManager.setProgress(progress);
 
     if (completedContainerCount == numTotalContainers && serviceArgs.xNoMaster) {
+      log.info("All containers have completed and there is no running master -stopping")
       signalAMComplete();
     }
   }
@@ -718,7 +732,6 @@ class HoyaAppMaster extends CompositeService
         this, protocol, clientVersion, clientMethodsHash);
   }
 
-
   @Override   //HoyaAppMasterApi
   void stopCluster() throws IOException {
     log.info("HoyaAppMasterApi.stopCluster()")
@@ -754,8 +767,16 @@ class HoyaAppMaster extends CompositeService
   /**
    * Update the cluster description with anything interesting
    */
-  private synchronized void updateClusterDescription() {
+  private void updateClusterDescription() {
+    
+    List<ClusterDescription.ClusterNode> nodes = []
+    
+    synchronized (containerMap) {
+      nodes  = containerMap.values().toList()  
+    }
+    
     synchronized (clusterDescription) {
+      clusterDescription.statusTime = System.currentTimeMillis()
       if (masterNode) {
         if (hbaseMaster) {
           masterNode.command = hbaseMaster.commands.join(" ");
@@ -773,6 +794,33 @@ class HoyaAppMaster extends CompositeService
           masterNode.output = new String[0];
         }
       }
+      clusterDescription.regionNodes = nodes;
+    }
+  }
+
+  /**
+   * Add a completed node to the list
+   * @param completed the node that has just completed
+   */
+  private void addCompletedNodeToCD(ContainerStatus completed) {
+    ClusterDescription.ClusterNode node = new ClusterDescription.ClusterNode()
+    node.name = completed.containerId.toString()
+    node.state = ClusterDescription.STATE_DESTROYED
+    node.exitCode = completed.exitStatus
+    node.diagnostics = completed.diagnostics
+    synchronized (clusterDescription) {
+      clusterDescription.completedNodes.add(node)
+    }
+  }
+
+  /**
+   * add a launched container to the node map for status responss
+   * @param id id
+   * @param node node details
+   */
+  public void addLaunchedContainerToCD(ContainerId id, ClusterDescription.ClusterNode node) {
+    synchronized (containerMap) {
+      containerMap[id] = node
     }
   }
 

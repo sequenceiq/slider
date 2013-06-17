@@ -74,9 +74,17 @@ public class ClusterDescription {
    * Master node
    */
   public List<ClusterNode> masterNodes = new ArrayList<ClusterNode>();
-  /** Worker nodes */
+  /**
+   *  Worker nodes
+   */
   public List<ClusterNode> regionNodes = new ArrayList<ClusterNode>();
 
+  /**
+   *  Completed nodes
+   */
+  public List<ClusterNode> completedNodes = new ArrayList<ClusterNode>();
+
+  
   /**
    * List of key-value pairs to add to an HBase config to set up the client
    */

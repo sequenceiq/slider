@@ -23,15 +23,13 @@ import groovy.util.logging.Commons
 import org.apache.commons.io.IOUtils
 import org.apache.commons.logging.Log
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.FileContext
 import org.apache.hadoop.fs.FileStatus
+import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.FileUtil
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.exceptions.HoyaException
-import org.apache.hadoop.hoya.yarn.appmaster.EnvMappings
 import org.apache.hadoop.net.NetUtils
 import org.apache.hadoop.util.ExitUtil.ExitException
-import org.apache.hadoop.fs.FileSystem as HadoopFS
 
 /**
  * Utility methods primarily used in setting up and executing tools

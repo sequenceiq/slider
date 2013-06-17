@@ -19,7 +19,6 @@
 package org.apache.hadoop.hoya.yarn.cluster.live
 
 import groovy.util.logging.Commons
-import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.yarn.ZKIntegration
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
@@ -42,7 +41,8 @@ class TestHBaseMaster extends YarnMiniClusterTestBase {
     ZKIntegration zki = createZKIntegrationInstance(ZKBinding, clustername, false, false, 5000)
     log.info("ZK up at $zki");
     //now launch the cluster
-    ServiceLauncher launcher = createHoyaCluster(clustername, 1, [], true) 
+    int regionServerCount = 1
+    ServiceLauncher launcher = createHoyaCluster(clustername, regionServerCount, [], true) 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)
     log.info("${status.toJsonString()}")
@@ -52,6 +52,12 @@ class TestHBaseMaster extends YarnMiniClusterTestBase {
     dumpFullHBaseConf(hoyaClient, clustername)
 
     basicHBaseClusterStartupSequence(hoyaClient, clustername)
+    
+    //verify the #of region servers is as expected
+    status = hoyaClient.getClusterStatus(clustername)
+    //log.info("Status $status")
+    int workerCount = status.regionNodes.size()
+    assert workerCount > 0;
 
     clusterActionStop(hoyaClient, clustername)
   }

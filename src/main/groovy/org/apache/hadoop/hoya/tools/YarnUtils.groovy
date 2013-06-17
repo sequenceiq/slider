@@ -23,7 +23,7 @@ import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileStatus
 import org.apache.hadoop.fs.FileSystem as FS
-import org.apache.hadoop.fs.FileUtil
+import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.IOUtils
 import org.apache.hadoop.yarn.api.ContainerManagementProtocol
@@ -37,7 +37,6 @@ import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.util.ConverterUtils
 import org.apache.hadoop.yarn.util.Records
-import org.apache.hadoop.fs.FileSystem as HadoopFS
 
 @Commons
 @CompileStatic

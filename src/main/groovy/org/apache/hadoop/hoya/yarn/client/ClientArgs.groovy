@@ -24,9 +24,8 @@ import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.tools.PathArgumentConverter
-import org.apache.hadoop.hoya.tools.URIArgumentConverter
 import org.apache.hadoop.hoya.yarn.CommonArgs
-import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.conf.YarnConfiguration
 
 /**
  * Args list for JCommanderification

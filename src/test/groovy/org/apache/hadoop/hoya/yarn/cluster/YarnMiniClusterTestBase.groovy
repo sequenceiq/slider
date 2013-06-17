@@ -580,7 +580,7 @@ implements KeysForTests {
   }
 
 
-  public void basicHBaseClusterStartupSequence(HoyaClient hoyaClient, String clustername) {
+  public ClusterStatus basicHBaseClusterStartupSequence(HoyaClient hoyaClient, String clustername) {
     int hbaseState = hoyaClient.waitForHBaseMasterLive(clustername,
                                                        HBASE_CLUSTER_STARTUP_TIME);
     assert hbaseState == ClusterDescription.STATE_LIVE
@@ -592,6 +592,32 @@ implements KeysForTests {
 
     ClusterStatus clustat = getHBaseClusterStatus(hoyaClient, clustername)
     describe("HBASE CLUSTER STATUS \n " + statusToString(clustat));
+    return clustat
   }
-
+  /**
+   * Spin waiting for the RS count to match expected
+   * @param hoyaClient client
+   * @param clustername cluster name
+   * @param regionServerCount RS count
+   * @param timeout timeout
+   */
+  public void waitForRegionServerCount(HoyaClient hoyaClient, String clustername, int regionServerCount, int timeout) {
+    ClusterDescription status
+    Duration duration = new Duration(timeout);
+    duration.start()
+    int workerCount = 0;
+    while (workerCount == 0) {
+      status = hoyaClient.getClusterStatus(clustername)
+      //log.info("Status $status")
+      workerCount = status.regionNodes.size()
+      if (workerCount == 0) {
+        if (duration.limitExceeded) {
+          describe("Cluster region server count of $regionServerCount not reached")
+          log.info(status.toJsonString())
+          assert regionServerCount == workerCount;
+        }
+        Thread.sleep(5000)
+      }
+    }
+  }
 }

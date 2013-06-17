@@ -24,7 +24,6 @@ import com.beust.jcommander.ParameterException
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
 import org.apache.hadoop.hoya.tools.PathArgumentConverter
 import org.apache.hadoop.hoya.tools.URIArgumentConverter

@@ -22,18 +22,15 @@ import com.beust.jcommander.JCommander
 import com.google.common.annotations.VisibleForTesting
 import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
-import org.apache.hadoop.hoya.HoyaKeys
-import org.apache.hadoop.hoya.api.ClusterDescription
-import org.apache.hadoop.hoya.api.HoyaAppMasterProtocol
-import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
-import org.apache.hadoop.hoya.yarn.appmaster.EnvMappings
-import org.apache.hadoop.ipc.RPC
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.HoyaApp
 import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.hoya.HoyaKeys
+import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.api.HoyaAppMasterProtocol
+import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
 import org.apache.hadoop.hoya.exceptions.BadConfigException
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.tools.ConfigHelper
@@ -41,8 +38,11 @@ import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.tools.YarnUtils
 import org.apache.hadoop.hoya.yarn.CommonArgs
+import org.apache.hadoop.hoya.yarn.appmaster.EnvMappings
 import org.apache.hadoop.hoya.yarn.appmaster.HoyaMasterServiceArgs
+import org.apache.hadoop.ipc.RPC
 import org.apache.hadoop.net.NetUtils
+import org.apache.hadoop.security.UserGroupInformation
 import org.apache.hadoop.yarn.api.ApplicationConstants
 import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse
 import org.apache.hadoop.yarn.api.protocolrecords.KillApplicationRequest
@@ -142,7 +142,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
       case ClientArgs.ACTION_CREATE:
         validateClusterName(clusterName)
-        exitCode = createAM(clusterName)
+        exitCode = actionCreate(clusterName)
         break;
 
       case CommonArgs.ACTION_EXISTS:
@@ -191,10 +191,9 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   /**
    * Create the AM
    */
-  private int createAM(String clustername) {
+  private int actionCreate(String clustername) {
     verifyValidClusterSize(serviceArgs.min)
     
-    log.info("Setting up application submission context for ASM");
     ApplicationSubmissionContext appContext =
       Records.newRecord(ApplicationSubmissionContext.class);
     GetNewApplicationResponse newApp = super.getNewApplication();
@@ -207,7 +206,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     appContext.applicationType = HoyaKeys.APP_TYPE
 
     //check for debug mode
-    if (serviceArgs.debug) {
+    if (serviceArgs.xTest) {
       appContext.maxAppAttempts = 1
     }
 
@@ -370,10 +369,13 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     commands << HoyaMasterServiceArgs.ARG_DEBUG
     commands << HoyaMasterServiceArgs.ACTION_CREATE
     commands << clustername
+    //min #of nodes
     commands << HoyaMasterServiceArgs.ARG_MIN
     commands << (Integer)serviceArgs.min
+    
+    //max # is defined by the min no, or, if higher, any specified maximum
     commands << HoyaMasterServiceArgs.ARG_MAX
-    commands << (Integer)serviceArgs.max
+    commands << (Integer)Math.max(serviceArgs.max, serviceArgs.min)
     commands << HoyaMasterServiceArgs.ARG_REGIONSERVER_HEAP
     commands << (Integer)serviceArgs.regionserverHeap
     

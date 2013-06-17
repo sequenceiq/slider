@@ -23,8 +23,11 @@ import groovy.util.logging.Commons
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.HBaseCommands
 import org.apache.hadoop.hoya.HoyaKeys
+import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.tools.YarnUtils
 import org.apache.hadoop.net.NetUtils
+import org.apache.hadoop.security.UserGroupInformation
+import org.apache.hadoop.security.token.Token
 import org.apache.hadoop.yarn.api.ApplicationConstants
 import org.apache.hadoop.yarn.api.ContainerManagementProtocol
 import org.apache.hadoop.yarn.api.protocolrecords.GetContainerStatusRequest
@@ -32,20 +35,21 @@ import org.apache.hadoop.yarn.api.protocolrecords.GetContainerStatusResponse
 import org.apache.hadoop.yarn.api.protocolrecords.StartContainerRequest
 import org.apache.hadoop.yarn.api.records.Container
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext
+import org.apache.hadoop.yarn.api.records.ContainerStatus
 import org.apache.hadoop.yarn.api.records.LocalResource
 import org.apache.hadoop.yarn.exceptions.YarnException
-import org.apache.hadoop.yarn.util.Records
-import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.security.token.Token;
-import org.apache.hadoop.yarn.security.ContainerTokenIdentifier;
+import org.apache.hadoop.yarn.security.ContainerTokenIdentifier
 import org.apache.hadoop.yarn.util.ProtoUtils
+import org.apache.hadoop.yarn.util.Records
 
 /**
  * Thread that runs on the AM to launch a region server.
  * In the Java examples these are usually non-static nested classes
  * of the AM. Groovy doesn't like non-static nested classes
  * -so this is isolated.
- * The class just needs to be set up with its binding info
+ * 
+ * This could be brought back in to the AM by having a single method in the owner
+ * to do everything, and have the runnable call it. For now: isolating things
  */
 @Commons
 @CompileStatic
@@ -140,31 +144,38 @@ class HoyaRegionServiceLauncher implements Runnable {
 
     try {
       containerManager.startContainer(startReq);
-      GetContainerStatusRequest statusReq =
-        Records.newRecord(GetContainerStatusRequest.class);
-      statusReq.containerId = container.id;
-      GetContainerStatusResponse statusResp;
-      try {
-        statusResp = containerManager.getContainerStatus(statusReq);
-        log.info("Container Status, id=${container.id}," +
-                 " status=${statusResp.status}");
-      } catch (Exception e) {
-        log.error("Failed to get status $e", e);
-
-      }
-
     } catch (YarnException e) {
       log.error("Start container failed for :" +
                 " containerId=${container.getId()} : $e", e);
       // TODO do we need to release this container?
       YarnUtils.stopContainer(containerManager, container.id)
+      return
     } catch (IOException e) {
       log.error("Start container failed for :" +
                 " containerId=${container.getId()} : $e", e);
       YarnUtils.stopContainer(containerManager, container.id)
-
+      return
     }
 
+    //here all is well. Build up a description
+    ClusterDescription.ClusterNode node = new ClusterDescription.ClusterNode()
+    node.command = cmdStr;
+    node.name= container.id
+
+    GetContainerStatusRequest statusReq =
+      Records.newRecord(GetContainerStatusRequest.class);
+    statusReq.containerId = container.id;
+    GetContainerStatusResponse statusResp;
+    try {
+      statusResp = containerManager.getContainerStatus(statusReq);
+      ContainerStatus containerStatus = statusResp.getStatus()
+      node.diagnostics = containerStatus.diagnostics
+      node.exitCode = containerStatus.exitStatus
+    } catch (Exception e) {
+      log.error("Failed to get status $e", e);
+    }
+    owner.addLaunchedContainerToCD(container.id ,node)
+    
 
   }
 

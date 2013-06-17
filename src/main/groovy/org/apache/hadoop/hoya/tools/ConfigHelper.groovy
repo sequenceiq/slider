@@ -22,11 +22,10 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FSDataOutputStream
+import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.fs.permission.FsAction
 import org.apache.hadoop.fs.permission.FsPermission
-import org.apache.hadoop.fs.FileSystem as HadoopFS
-import org.apache.hadoop.hbase.HBaseConfiguration
 import org.apache.hadoop.io.IOUtils
 
 /**
