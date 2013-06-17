@@ -20,8 +20,10 @@ package org.apache.hadoop.hoya.yarn.appmaster
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
+import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.HBaseCommands
-import org.apache.hadoop.hoya.tools.Env
+import org.apache.hadoop.hoya.HoyaKeys
+import org.apache.hadoop.hoya.tools.YarnUtils
 import org.apache.hadoop.net.NetUtils
 import org.apache.hadoop.yarn.api.ApplicationConstants
 import org.apache.hadoop.yarn.api.ContainerManagementProtocol
@@ -59,48 +61,70 @@ class HoyaRegionServiceLauncher implements Runnable {
     this.owner = owner
     this.container = container
   }
-  
+
   @Override
   void run() {
+    
     UserGroupInformation user =
-        UserGroupInformation.createRemoteUser(container.getId().toString());
+      UserGroupInformation.createRemoteUser(container.getId().toString());
     String cmIpPortStr = "$container.nodeId.host:$container.nodeId.port";
     final InetSocketAddress cmAddress = NetUtils.createSocketAddr(cmIpPortStr);
 
     Token<ContainerTokenIdentifier> token =
-        ProtoUtils.convertFromProtoFormat(container.getContainerToken(), cmAddress);
+      ProtoUtils.convertFromProtoFormat(container.getContainerToken(), cmAddress);
     user.addToken(token);
 
-      // Connect to ContainerManager
+    // Connect to ContainerManager
     PrivilegedConnectToCM action = new PrivilegedConnectToCM(owner,
                                                              cmAddress)
     ContainerManagementProtocol c = (ContainerManagementProtocol) user.doAs(action)
-    containerManager =c; 
-    //connectToCM(cmAddress);
+    containerManager = c;
     log.debug("Setting up container launch container for containerid=$container.id");
 
     ContainerLaunchContext ctx = Records
         .newRecord(ContainerLaunchContext.class);
+/*
 
     String jobUserName = Env.mandatory(ApplicationConstants.Environment.USER
                                                            .key());
 //    ctx.setUser(jobUserName);
     log.info("Setting user in ContainerLaunchContext to: $jobUserName");
 
+*/
+    //now build up the configuration data    
+    
     // Set the environment
     Map<String, String> env = [:]
 //    env[EnvMappings.ENV_HBASE_OPTS] = ConfigHelper.build_JVM_opts(env);
     env["HBASE_LOG_DIR"] = owner.buildHBaseContainerLogdir();
-    
+
     ctx.setEnvironment(env);
     //local resources
-    Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
+    Map<String, LocalResource> localResources = [:];
+
+
+    //add the configuration resources
+    Path generatedConfPath = new Path(owner.getDFSConfDir())
+    Map<String, LocalResource> confResources;
+    confResources = YarnUtils.submitDirectory(owner.getClusterFS(),
+                                              generatedConfPath,
+                                              HoyaKeys.PROPAGATED_CONF_DIR_NAME)
+    localResources.putAll(confResources)
+    
+    //TODO: add binaries
+
+
     def command = []
     command << owner.buildHBaseBinPath().absolutePath
+
+    //config dir is relative to the generated file
     command << HBaseCommands.ARG_CONFIG
-    command << owner.getLocalConfDir().toString()
+    command << HoyaKeys.PROPAGATED_CONF_DIR_NAME;
+    //role is region server
     command << HBaseCommands.REGION_SERVER
     command << HBaseCommands.ACTION_START
+    
+    //log details
     command << "1>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/out.txt";
     command << "2>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/err.txt";
 
@@ -108,34 +132,40 @@ class HoyaRegionServiceLauncher implements Runnable {
 
     ctx.commands = [cmdStr]
     StartContainerRequest startReq = StartContainerRequest.newInstance(ctx,
-                           container.getContainerToken())
+                                                 container.getContainerToken())
     log.info("Starting container with command: $cmdStr");
-    env.each{ String k, String v ->
+    env.each { String k, String v ->
       log.info("$k=$v")
     }
 
     try {
       containerManager.startContainer(startReq);
+      GetContainerStatusRequest statusReq =
+        Records.newRecord(GetContainerStatusRequest.class);
+      statusReq.containerId = container.id;
+      GetContainerStatusResponse statusResp;
+      try {
+        statusResp = containerManager.getContainerStatus(statusReq);
+        log.info("Container Status, id=${container.id}," +
+                 " status=${statusResp.status}");
+      } catch (Exception e) {
+        log.error("Failed to get status $e", e);
+
+      }
+
     } catch (YarnException e) {
       log.error("Start container failed for :" +
                 " containerId=${container.getId()} : $e", e);
       // TODO do we need to release this container?
+      YarnUtils.stopContainer(containerManager, container.id)
     } catch (IOException e) {
       log.error("Start container failed for :" +
                 " containerId=${container.getId()} : $e", e);
+      YarnUtils.stopContainer(containerManager, container.id)
+
     }
 
-    GetContainerStatusRequest statusReq =
-      Records.newRecord(GetContainerStatusRequest.class);
-    statusReq.containerId = container.id;
-    GetContainerStatusResponse statusResp;
-    try {
-      statusResp = containerManager.getContainerStatus(statusReq);
-      log.info("Container Status, id=${container.id}," +
-               " status=${statusResp.status}");
-    } catch (Exception e) {
-      log.error("Failed to get status $e", e);
-    }
+
   }
 
 

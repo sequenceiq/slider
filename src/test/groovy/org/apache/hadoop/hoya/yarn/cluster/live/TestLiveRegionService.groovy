@@ -29,7 +29,6 @@ package org.apache.hadoop.hoya.yarn.cluster.live
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.tools.Duration
-import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.conf.YarnConfiguration
@@ -52,13 +51,15 @@ class TestLiveRegionService extends YarnMiniClusterTestBase {
     String clustername = "TestLiveRegionService"
     createMiniCluster(clustername, new YarnConfiguration(), 1, true)
     ServiceLauncher launcher = createHoyaCluster(clustername, 1, 
-                                                 [CommonArgs.ARG_X_NO_MASTER],
+                                                 [
+//                                                     CommonArgs.ARG_X_NO_MASTER
+                                                 ],
                                                  true)
     //now look for the explicit sevice
     //do the low level operations to get a better view of what is going on 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
 
-    Duration duration = new Duration(60000);
+    Duration duration = new Duration(HBASE_CLUSTER_STARTUP_TIME);
     duration.start()
     int workerCount = 0;
     while (workerCount == 0) {

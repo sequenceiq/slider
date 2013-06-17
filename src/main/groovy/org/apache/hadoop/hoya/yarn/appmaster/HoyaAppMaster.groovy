@@ -20,6 +20,8 @@ package org.apache.hadoop.hoya.yarn.appmaster
 
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.FileSystem as HadoopFS
+
 import org.apache.hadoop.hoya.HBaseCommands
 import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.api.ClusterDescription
@@ -389,6 +391,13 @@ class HoyaAppMaster extends CompositeService
     return serviceArgs.generatedConfdir;
   }
 
+  /**
+   * Get the filesystem of this cluster
+   * @return the FS of the config
+   */
+  public org.apache.hadoop.fs.FileSystem getClusterFS() {
+    org.apache.hadoop.fs.FileSystem.get(config)
+  }
   /**
    * build the log directory
    * @return
@@ -800,8 +809,10 @@ class HoyaAppMaster extends CompositeService
       masterNode.state = ClusterDescription.STATE_LIVE
     }
   }
-/**
-   * This is the callback on the hBaseMasterState
+
+  /**
+   * This is the callback on the HBaseMaster process 
+   * -it's raised when that process terminates
    * @param application application
    * @param exitCode exit code
    */
@@ -815,8 +826,8 @@ class HoyaAppMaster extends CompositeService
     //tell the AM the cluster is complete 
     signalAMComplete();
   }
-  
-/**
+
+  /**
    * Get the path to hbase home
    * @return the hbase home path
    */

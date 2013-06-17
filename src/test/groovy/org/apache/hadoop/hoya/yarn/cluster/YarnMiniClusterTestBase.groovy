@@ -31,6 +31,7 @@ import org.apache.hadoop.hbase.client.HConnectionManager
 import org.apache.hadoop.hdfs.MiniDFSCluster
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.exceptions.HoyaException
+import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.tools.YarnUtils
 import org.apache.hadoop.hoya.yarn.CommonArgs
@@ -72,7 +73,16 @@ implements KeysForTests {
   /**
    * Mini YARN cluster only
    */
-  public static final int CLUSTER_GO_LIVE_TIME = 60000
+  public static final int CLUSTER_GO_LIVE_TIME = 1 * 60 * 1000
+  public static final int HBASE_CLUSTER_STARTUP_TIME = 2 * 60 * 1000
+  public static final int HBASE_CLUSTER_STOP_TIME = 1 * 60 * 1000
+  
+  /**
+   * The time to sleep before trying to talk to the HBase Master and
+   * expect meaningful results.
+   */
+  public static final int HBASE_CLUSTER_STARTUP_TO_LIVE_TIME = 20000
+  
   protected MiniDFSCluster hdfsCluster
   protected MiniYARNCluster miniCluster;
   protected MicroZKCluster microZKCluster
@@ -267,8 +277,8 @@ implements KeysForTests {
     return microZKCluster ? microZKCluster.port : EnvMappings.HBASE_ZK_PORT
   }
 
-  protected String getZKQuorum() {
-    return MicroZKCluster.QUORUM;
+  protected String getZKHosts() {
+    return MicroZKCluster.HOSTS;
   }
 
   /**
@@ -325,7 +335,7 @@ implements KeysForTests {
         CommonArgs.ARG_MAX, Integer.toString(size),
         ClientArgs.ARG_MANAGER, RMAddr,
         CommonArgs.ARG_HBASE_HOME, HBaseHome,
-        CommonArgs.ARG_ZKQUORUM, ZKQuorum,
+        CommonArgs.ARG_ZKQUORUM, ZKHosts,
         CommonArgs.ARG_ZKPORT, ZKPort.toString(),
         CommonArgs.ARG_HBASE_ZKPATH, "/hbase",
         ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
@@ -414,7 +424,7 @@ implements KeysForTests {
    */
   public Configuration createHBaseConfiguration(HoyaClient hoyaClient,
                                                 String clustername) {
-    Configuration siteConf = fetchHBaseSiteConfig(hoyaClient, clustername)
+    Configuration siteConf = fetchHBaseClientSiteConfig(hoyaClient, clustername)
     Configuration conf = HBaseConfiguration.create(siteConf);
 /*
     
@@ -426,12 +436,14 @@ implements KeysForTests {
   }
 
   /**
-   * Fetch the current hbase site config from the Hoya AM
+   * Fetch the current hbase site config from the Hoya AM, from the 
+   * <code>hBaseClientProperties</code> field of the ClusterDescription
    * @param hoyaClient client
    * @param clustername name of the cluster
    * @return the site config
    */
-  public Configuration fetchHBaseSiteConfig(HoyaClient hoyaClient, String clustername) {
+  public Configuration fetchHBaseClientSiteConfig(HoyaClient hoyaClient,
+                                                  String clustername) {
     ClusterDescription status = hoyaClient.getClusterStatus(clustername);
     Configuration siteConf = new Configuration(false)
     status.hBaseClientProperties.each { String key, String val ->
@@ -526,6 +538,60 @@ implements KeysForTests {
       }
     }
     return live;
+  }
+
+  /**
+   * stop the cluster via the stop action 
+   * @param hoyaClient client
+   * @param clustername cluster
+   */
+  public void clusterActionStop(HoyaClient hoyaClient, String clustername) {
+
+    hoyaClient.actionStop(clustername);
+    int exitCode = hoyaClient.monitorAppToCompletion(
+        new Duration(HBASE_CLUSTER_STOP_TIME))
+    if (exitCode != 0) {
+      log.warn("HBase app shutdown failed with error code $exitCode")
+    }
+  }
+
+  /**
+   * Ask the AM for the site configuration -then dump it
+   * @param hoyaClient
+   * @param clustername
+   */
+  public void dumpHBaseClientConf(HoyaClient hoyaClient, String clustername) {
+    Configuration conf = fetchHBaseClientSiteConfig(hoyaClient, clustername)
+    describe("AM-generated site configuration")
+    ConfigHelper.dumpConf(conf)
+  }
+
+  /**
+   * Create a full HBase configuration by merging the AM data with
+   * the rest of the local settings. This is the config that would
+   * be used by any clients
+   * @param hoyaClient hoya client
+   * @param clustername name of the cluster
+   */
+  public void dumpFullHBaseConf(HoyaClient hoyaClient, String clustername) {
+    Configuration conf = createHBaseConfiguration(hoyaClient, clustername)
+    describe("HBase site configuration from AM")
+    ConfigHelper.dumpConf(conf)
+  }
+
+
+  public void basicHBaseClusterStartupSequence(HoyaClient hoyaClient, String clustername) {
+    int hbaseState = hoyaClient.waitForHBaseMasterLive(clustername,
+                                                       HBASE_CLUSTER_STARTUP_TIME);
+    assert hbaseState == ClusterDescription.STATE_LIVE
+    dumpHBaseClientConf(hoyaClient, clustername)
+    //sleep for a bit to give things a chance to go live
+    assert spinForClusterStartup(hoyaClient, clustername, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+
+    //grab the conf from the status and verify the ZK binding matches
+
+    ClusterStatus clustat = getHBaseClusterStatus(hoyaClient, clustername)
+    describe("HBASE CLUSTER STATUS \n " + statusToString(clustat));
   }
 
 }

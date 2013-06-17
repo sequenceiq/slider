@@ -290,7 +290,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     //load the mappings
     String zookeeperRoot = serviceArgs.hbasezkpath
     if (serviceArgs.hbasezkpath == null) {
-      zookeeperRoot = "/yarnapps/$appName/${appId.id}/"
+      zookeeperRoot = "/yarnapps_$appName${appId.id}"
     }
     HadoopFS targetFS = HadoopFS.get(serviceArgs.filesystemURL, config)
     
@@ -309,7 +309,8 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
       ConfigHelper.dumpConf(templateConf);
     }
 
-    //save the config
+    //save the -site.xml config to the visible-to-all DFS
+    //that generatedConfPath is in
     //this is the path for the site configuration
 
     Path sitePath = ConfigHelper.generateConfig(config,
@@ -623,11 +624,13 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   @VisibleForTesting
   public Map<String, String> buildConfMapFromServiceArguments(String zkroot, Path hBaseRootPath) {
     Map<String, String> envMap = [
+        (EnvMappings.KEY_HBASE_MASTER_PORT): "0",
+        (EnvMappings.KEY_HBASE_ROOTDIR): hBaseRootPath.toUri().toString(),
+        (EnvMappings.KEY_REGIONSERVER_PORT):"0",
+        (EnvMappings.KEY_ZNODE_PARENT):zkroot ,
         (EnvMappings.KEY_ZOOKEEPER_PORT): serviceArgs.zkport.toString(),
         (EnvMappings.KEY_ZOOKEEPER_QUORUM): serviceArgs.zkhosts,
-        (EnvMappings.KEY_HBASE_ROOTDIR): hBaseRootPath.toUri().toString(),
-        (EnvMappings.KEY_ZNODE_PARENT):zkroot ,
-  ]
+      ]
     if (!getUsingMiniMRCluster()) {
       envMap.put("hbase.cluster.distributed", "true")
     }
@@ -739,7 +742,6 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
       throw new HoyaException("Invalid duration of monitoring");
     }
     while (true) {
-
 
       // Get application report for the appId we are interested in 
       ApplicationReport report = getApplicationReport(applicationId);

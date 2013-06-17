@@ -26,7 +26,10 @@ import org.apache.hadoop.fs.FileSystem as FS
 import org.apache.hadoop.fs.FileUtil
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.IOUtils
+import org.apache.hadoop.yarn.api.ContainerManagementProtocol
+import org.apache.hadoop.yarn.api.protocolrecords.StopContainerRequest
 import org.apache.hadoop.yarn.api.records.ApplicationReport
+import org.apache.hadoop.yarn.api.records.ContainerId
 import org.apache.hadoop.yarn.api.records.LocalResource
 import org.apache.hadoop.yarn.api.records.LocalResourceType
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility
@@ -143,5 +146,12 @@ class YarnUtils {
 
   public static String stringify(org.apache.hadoop.yarn.api.records.URL url) {
     return "//$url.scheme/$url.host/${url.file}"
+  }
+
+
+  public static void stopContainer(ContainerManagementProtocol manager, ContainerId id) {
+    StopContainerRequest stopContainerMessage = StopContainerRequest.newInstance()
+    stopContainerMessage.containerId = id;
+    manager.stopContainer(stopContainerMessage)
   }
 }

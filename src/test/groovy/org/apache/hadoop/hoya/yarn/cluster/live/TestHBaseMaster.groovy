@@ -19,10 +19,8 @@
 package org.apache.hadoop.hoya.yarn.cluster.live
 
 import groovy.util.logging.Commons
-import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hoya.api.ClusterDescription
-import org.apache.hadoop.hoya.tools.ConfigHelper
-import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.yarn.ZKIntegration
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
@@ -44,34 +42,18 @@ class TestHBaseMaster extends YarnMiniClusterTestBase {
     ZKIntegration zki = createZKIntegrationInstance(ZKBinding, clustername, false, false, 5000)
     log.info("ZK up at $zki");
     //now launch the cluster
-    ServiceLauncher launcher = createHoyaCluster(clustername, 0, [], true) 
+    ServiceLauncher launcher = createHoyaCluster(clustername, 1, [], true) 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)
     log.info("${status.toJsonString()}")
-    assert ZKQuorum == status.zkHosts
+    assert ZKHosts == status.zkHosts
     assert ZKPort == status.zkPort
-    int hbaseState = hoyaClient.waitForHBaseMasterLive(clustername, CLUSTER_GO_LIVE_TIME);
-    assert hbaseState == ClusterDescription.STATE_LIVE
-
-    Configuration siteConf = fetchHBaseSiteConfig(hoyaClient, clustername)
-    log.info("Site configuration from AM")
-    ConfigHelper.dumpConf(siteConf)
-    //sleep for a bit to give things a chance to go live
-    assert spinForClusterStartup(hoyaClient, clustername, 20000)
-    Configuration hbaseConf = createHBaseConfiguration(hoyaClient, clustername)
-
-    //grab the conf from the status and verify the ZK binding matches
     
-    log.info(statusToString(getHBaseClusterStatus(hoyaClient, clustername)))
+    dumpFullHBaseConf(hoyaClient, clustername)
 
-    //stop the cluster
-    hoyaClient.stop()
-    int exitCode = hoyaClient.monitorAppToCompletion(
-        new Duration(CLUSTER_GO_LIVE_TIME))
-    assert exitCode == 0
-    stopMiniCluster()
+    basicHBaseClusterStartupSequence(hoyaClient, clustername)
+
+    clusterActionStop(hoyaClient, clustername)
   }
-
-  
 
 }

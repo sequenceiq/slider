@@ -22,7 +22,6 @@ package org.apache.hadoop.hoya.yarn.cluster.live
 
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.api.ClusterDescription
-import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.conf.YarnConfiguration
@@ -41,21 +40,14 @@ class TestHBaseMasterOnHDFS extends YarnMiniClusterTestBase {
     createMiniCluster(clustername, new YarnConfiguration(), 1, 1, 1, true, true)
     log.info("HDFS is at $fsDefaultName")
     assert fsDefaultName.startsWith("hdfs://")
-    ServiceLauncher launcher = createHoyaCluster(clustername, 0, [], true) 
+    ServiceLauncher launcher = createHoyaCluster(clustername, 1, [], true) 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)
     log.info("Status $status")
-    assertHBaseMasterNotStopped(hoyaClient, clustername)
     
-    int hbaseState = hoyaClient.waitForHBaseMasterLive(clustername, CLUSTER_GO_LIVE_TIME);
-    assert hbaseState == ClusterDescription.STATE_LIVE
-    //sleep for a bit to give things a chance to go live
-    assert spinForClusterStartup(hoyaClient, clustername, 20000)
+    basicHBaseClusterStartupSequence(hoyaClient, clustername)
 
-    //stop the cluster
-    hoyaClient.stop()
-    hoyaClient.monitorAppToCompletion(
-        new Duration(CLUSTER_GO_LIVE_TIME))
+    clusterActionStop(hoyaClient, clustername)
 
   }
 
