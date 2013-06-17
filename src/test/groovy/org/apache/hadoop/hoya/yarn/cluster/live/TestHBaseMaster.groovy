@@ -54,7 +54,7 @@ class TestHBaseMaster extends YarnMiniClusterTestBase {
     
     //verify the #of region servers is as expected
     status = hoyaClient.getClusterStatus(clustername)
-    log("post-hbase-boot status",status)
+    log("post-hbase-boot status", status)
     int workerCount = status.regionNodes.size()
     assert workerCount > 0;
     
