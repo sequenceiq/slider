@@ -892,11 +892,18 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
   public ApplicationReport findClusterInInstanceList(List<ApplicationReport> instances, String appname) {
     ApplicationReport found = null;
+    ApplicationReport foundAndLive = null;
+    
     instances.each { ApplicationReport report ->
-//      log.debug("Report named ${report.name}")
       if (report.name == appname) {
         found = report;
+        if (report.yarnApplicationState<=YarnApplicationState.RUNNING) {
+          foundAndLive = report
+        }
       }
+    }
+    if (!foundAndLive) {
+      foundAndLive = found
     }
     return found;
   }
