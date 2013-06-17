@@ -374,6 +374,8 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     commands << (Integer)serviceArgs.min
     commands << HoyaMasterServiceArgs.ARG_MAX
     commands << (Integer)serviceArgs.max
+    commands << HoyaMasterServiceArgs.ARG_REGIONSERVER_HEAP
+    commands << (Integer)serviceArgs.regionserverHeap
     
     //spec out the RM address
     commands << HoyaMasterServiceArgs.ARG_RM_ADDR;

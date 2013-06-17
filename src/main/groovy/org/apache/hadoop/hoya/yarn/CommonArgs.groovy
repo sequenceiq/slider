@@ -49,6 +49,7 @@ public class CommonArgs {
   public static final String ARG_IMAGE = '--image'
   public static final String ARG_MAX = '--max'
   public static final String ARG_MIN = '--min'
+  public static final String ARG_REGIONSERVER_HEAP = '--regionserverheap'
   public static final String ARG_NAME = '--name'
   public static final String ARG_PATH = '--path'
   public static final String ARG_USER = '--user'
@@ -165,6 +166,9 @@ public class CommonArgs {
       description = "Maximum number of nodes")
   public int max = -1
 
+  @Parameter(names = '--regionserverheap',
+      description = "RegionServer heap size")
+  public int regionserverHeap = 256;
 
   @Parameter(names = '--Xhbase-command',
       description = "testing only: hbase command to exec")
