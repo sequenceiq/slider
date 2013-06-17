@@ -902,8 +902,8 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
         }
       }
     }
-    if (!foundAndLive) {
-      foundAndLive = found
+    if (foundAndLive) {
+      found = foundAndLive
     }
     return found;
   }
