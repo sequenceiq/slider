@@ -24,7 +24,7 @@ import org.apache.hadoop.hoya.HBaseCommands
 import org.apache.hadoop.hoya.tools.Env
 import org.apache.hadoop.net.NetUtils
 import org.apache.hadoop.yarn.api.ApplicationConstants
-import org.apache.hadoop.yarn.api.ContainerManager
+import org.apache.hadoop.yarn.api.ContainerManagementProtocol
 import org.apache.hadoop.yarn.api.protocolrecords.GetContainerStatusRequest
 import org.apache.hadoop.yarn.api.protocolrecords.GetContainerStatusResponse
 import org.apache.hadoop.yarn.api.protocolrecords.StartContainerRequest
@@ -53,14 +53,12 @@ class HoyaRegionServiceLauncher implements Runnable {
   // Allocated container
   final Container container;
   // Handle to communicate with ContainerManager
-  ContainerManager containerManager;
+  ContainerManagementProtocol containerManager;
 
   HoyaRegionServiceLauncher(HoyaAppMaster owner, Container container) {
     this.owner = owner
     this.container = container
   }
-
-
   
   @Override
   void run() {
@@ -76,7 +74,7 @@ class HoyaRegionServiceLauncher implements Runnable {
       // Connect to ContainerManager
     PrivilegedConnectToCM action = new PrivilegedConnectToCM(owner,
                                                              cmAddress)
-    ContainerManager c = (ContainerManager) user.doAs(action)
+    ContainerManagementProtocol c = (ContainerManagementProtocol) user.doAs(action)
     containerManager =c; 
     //connectToCM(cmAddress);
     log.debug("Setting up container launch container for containerid=$container.id");

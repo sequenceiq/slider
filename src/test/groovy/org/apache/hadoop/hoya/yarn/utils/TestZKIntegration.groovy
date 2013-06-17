@@ -21,19 +21,14 @@ package org.apache.hadoop.hoya.yarn.utils
 import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.hbase.zookeeper.MiniZooKeeperCluster
 import org.apache.hadoop.hoya.yarn.KeysForTests
-import org.apache.hadoop.hoya.yarn.MicroZKCluster
 import org.apache.hadoop.hoya.yarn.ZKIntegration
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.zookeeper.CreateMode
 import org.apache.zookeeper.ZooDefs
 import org.apache.zookeeper.data.Stat
-import org.junit.After
 import org.junit.Before
 import org.junit.Test
-
-import java.util.concurrent.atomic.AtomicBoolean
 
 @Commons
 @CompileStatic

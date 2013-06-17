@@ -24,7 +24,6 @@ import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.yarn.ZKIntegration
-import org.apache.hadoop.hoya.yarn.appmaster.EnvMappings
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.conf.YarnConfiguration
@@ -49,7 +48,7 @@ class TestHBaseMaster extends YarnMiniClusterTestBase {
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)
     log.info("${status.toJsonString()}")
-    assert ZKQuorum == status.zkQuorum
+    assert ZKQuorum == status.zkHosts
     assert ZKPort == status.zkPort
     int hbaseState = hoyaClient.waitForHBaseMasterLive(clustername, CLUSTER_GO_LIVE_TIME);
     assert hbaseState == ClusterDescription.STATE_LIVE

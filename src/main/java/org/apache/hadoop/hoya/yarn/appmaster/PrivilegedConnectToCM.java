@@ -18,7 +18,8 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster;
 
-import org.apache.hadoop.yarn.api.ContainerManager;
+
+import org.apache.hadoop.yarn.api.ContainerManagementProtocol;
 
 import java.net.InetSocketAddress;
 import java.security.PrivilegedAction;
@@ -30,7 +31,7 @@ import java.security.PrivilegedAction;
  * when trying to run <code>doAs()</code> operations
  * in groovy.
  */
-public class PrivilegedConnectToCM implements PrivilegedAction<ContainerManager> {
+public class PrivilegedConnectToCM implements PrivilegedAction<ContainerManagementProtocol> {
   final HoyaAppMaster appMaster;
   final InetSocketAddress cmAddress;
 
@@ -42,8 +43,9 @@ public class PrivilegedConnectToCM implements PrivilegedAction<ContainerManager>
 
   
 //  @Override
-  public ContainerManager run() {
-    return ((ContainerManager) appMaster.getProxy(ContainerManager.class,
-                                                  cmAddress));
+  public ContainerManagementProtocol run() {
+    return ((ContainerManagementProtocol) appMaster.getProxy(
+          ContainerManagementProtocol.class,
+          cmAddress));
   }
 }

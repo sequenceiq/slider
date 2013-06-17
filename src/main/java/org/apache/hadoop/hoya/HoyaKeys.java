@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.hoya;
 
-import org.apache.hadoop.hbase.HConstants;
 
 /**
  * Keys and various constants for Hoya
@@ -39,5 +38,5 @@ public interface HoyaKeys {
    */
   String PROPAGATED_CONF_DIR_NAME = "conf";
   
-  int HBASE_ZK_PORT = HConstants.DEFAULT_ZOOKEPER_CLIENT_PORT;
+  int HBASE_ZK_PORT = 2181; // HConstants.DEFAULT_ZOOKEPER_CLIENT_PORT;
 }

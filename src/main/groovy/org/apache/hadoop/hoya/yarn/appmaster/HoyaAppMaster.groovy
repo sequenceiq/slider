@@ -40,6 +40,7 @@ import org.apache.hadoop.ipc.ProtocolSignature
 import org.apache.hadoop.ipc.RPC
 import org.apache.hadoop.ipc.Server
 import org.apache.hadoop.net.NetUtils
+import org.apache.hadoop.service.CompositeService
 import org.apache.hadoop.yarn.api.ApplicationConstants
 import org.apache.hadoop.yarn.api.records.ContainerExitStatus
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse
@@ -58,7 +59,6 @@ import org.apache.hadoop.yarn.client.AMRMClientImpl
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.exceptions.YarnException
 import org.apache.hadoop.yarn.ipc.YarnRPC
-import org.apache.hadoop.yarn.service.CompositeService
 import org.apache.hadoop.yarn.service.launcher.RunService
 import org.apache.hadoop.yarn.util.ConverterUtils
 import org.apache.hadoop.yarn.util.Records
@@ -319,7 +319,7 @@ class HoyaAppMaster extends CompositeService
     TreeSet<String> confKeys = ConfigHelper.sortedConfigKeys(siteConf)
     //update the values
     clusterDescription.hBaseRootPath = siteConf.get(EnvMappings.KEY_HBASE_ROOTDIR)
-    clusterDescription.zkQuorum = siteConf.get(EnvMappings.KEY_ZOOKEEPER_QUORUM)
+    clusterDescription.zkHosts = siteConf.get(EnvMappings.KEY_ZOOKEEPER_QUORUM)
     clusterDescription.zkPort = siteConf.getInt(EnvMappings.KEY_ZOOKEEPER_PORT, 0)
     clusterDescription.zkPath = siteConf.get(EnvMappings.KEY_ZNODE_PARENT)
 
@@ -369,6 +369,7 @@ class HoyaAppMaster extends CompositeService
         masterNode
       ]
 
+    //now block waiting to be told to exit the process
     waitForAMCompletionSignal()
     finish();
 
@@ -496,9 +497,7 @@ class HoyaAppMaster extends CompositeService
   }
 
   private void configureContainerMemory(RegisterApplicationMasterResponse response) {
-    int minMem = response.minimumResourceCapability.memory;
     int maxMem = response.maximumResourceCapability.memory;
-    log.info("Min mem capability of resources in this cluster $minMem");
     log.info("Max mem capability of resources in this cluster $maxMem");
 
     // A resource ask has to be atleast the minimum of the capability of the
@@ -506,12 +505,7 @@ class HoyaAppMaster extends CompositeService
     // exceed the max.
     // If it is not an exact multiple of min, the RM will allocate to the
     // nearest multiple of min
-    if (containerMemory < minMem) {
-      log.info("Container memory specified below min threshold of cluster."
-                   + " Using min value." + ", specified=" + containerMemory + ", min="
-                   + minMem);
-      containerMemory = minMem;
-    } else if (containerMemory > maxMem) {
+    if (containerMemory > maxMem) {
       log.info("Container memory specified above max threshold of cluster."
                    + " Using max value." + ", specified=" + containerMemory + ", max="
                    + maxMem);

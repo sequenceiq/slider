@@ -22,12 +22,12 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.net.NetUtils;
+import org.apache.hadoop.service.Service;
+import org.apache.hadoop.service.ServiceStateException;
 import org.apache.hadoop.util.ExitUtil;
 import org.apache.hadoop.util.ShutdownHookManager;
 import org.apache.hadoop.util.VersionInfo;
 import org.apache.hadoop.yarn.YarnUncaughtExceptionHandler;
-import org.apache.hadoop.yarn.service.Service;
-import org.apache.hadoop.yarn.service.ServiceStateException;
 
 import java.io.File;
 import java.io.IOException;

@@ -66,7 +66,7 @@ public class ClusterDescription {
   public int minMasterNodes;
   public int maxMasterNodes;
 
-  public String zkQuorum;
+  public String zkHosts;
   public int zkPort;
   public String zkPath;
   public String hBaseRootPath;
@@ -153,7 +153,7 @@ public class ClusterDescription {
            .append('-')
            .append(maxRegionNodes)
            .append('\n');
-    builder.append("ZK cluster: ").append(zkQuorum).
+    builder.append("ZK cluster: ").append(zkHosts).
       append(" : ").append(zkPort).append('\n');
     builder.append("ZK path: ").append(zkPath).append('\n');
     builder.append(String.format("HBase Master count %d", masterNodes.size()));

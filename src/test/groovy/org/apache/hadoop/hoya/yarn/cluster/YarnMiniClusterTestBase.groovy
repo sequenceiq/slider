@@ -37,19 +37,19 @@ import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.MicroZKCluster
 import org.apache.hadoop.hoya.yarn.ZKIntegration
+import org.apache.hadoop.hoya.yarn.appmaster.EnvMappings
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
+import org.apache.hadoop.service.ServiceOperations
 import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.server.MiniYARNCluster
 import org.apache.hadoop.yarn.server.resourcemanager.ResourceManager
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.ResourceScheduler
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fifo.FifoScheduler
-import org.apache.hadoop.yarn.service.ServiceOperations
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
 import org.junit.After
-import org.junit.Assume
 import org.junit.Before
 import org.junit.internal.AssumptionViolatedException
 
@@ -264,7 +264,7 @@ implements KeysForTests {
   }
 
   protected int getZKPort() {
-    return microZKCluster ? microZKCluster.port : HBASE_ZK_PORT
+    return microZKCluster ? microZKCluster.port : EnvMappings.HBASE_ZK_PORT
   }
 
   protected String getZKQuorum() {

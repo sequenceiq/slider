@@ -20,10 +20,8 @@ package org.apache.hadoop.yarn.service.launcher;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.service.Service;
 import org.apache.hadoop.util.ShutdownHookManager;
-import org.apache.hadoop.yarn.service.AbstractService;
-import org.apache.hadoop.yarn.service.Service;
-import org.apache.hadoop.yarn.service.ServiceOperations;
 
 import java.lang.ref.WeakReference;
 

@@ -21,9 +21,7 @@
 package org.apache.hadoop.hoya.yarn.cluster.live
 
 import groovy.util.logging.Commons
-import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.api.ClusterDescription
-import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase

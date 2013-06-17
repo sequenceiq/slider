@@ -26,21 +26,14 @@
 
 package org.apache.hadoop.hoya.yarn.cluster.live
 
-import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
-import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.api.ClusterDescription
-import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.yarn.CommonArgs
-import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
-import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.conf.YarnConfiguration
-import org.apache.hadoop.yarn.service.launcher.LauncherExitCodes
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
-import org.junit.Before
 import org.junit.Test
 
 /**
@@ -58,7 +51,9 @@ class TestLiveRegionService extends YarnMiniClusterTestBase {
     //launch fake master
     String clustername = "TestLiveRegionService"
     createMiniCluster(clustername, new YarnConfiguration(), 1, true)
-    ServiceLauncher launcher = createHoyaCluster(clustername, 1, [], true)
+    ServiceLauncher launcher = createHoyaCluster(clustername, 1, 
+                                                 [CommonArgs.ARG_X_NO_MASTER],
+                                                 true)
     //now look for the explicit sevice
     //do the low level operations to get a better view of what is going on 
     HoyaClient hoyaClient = (HoyaClient) launcher.service

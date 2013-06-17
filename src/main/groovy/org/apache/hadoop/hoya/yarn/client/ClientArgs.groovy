@@ -50,6 +50,10 @@ class ClientArgs extends CommonArgs {
   public static final String ARG_WAIT = "--wait"
 
 
+
+  public static final String FORMAT_XML = 'xml'
+  public static final String FORMAT_PROPERTIES = 'properties'
+
   @Parameter(names = "--amqueue", description = "Application Manager Queue Name")
   String amqueue = "default";
 

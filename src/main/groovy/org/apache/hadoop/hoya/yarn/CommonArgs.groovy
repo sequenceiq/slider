@@ -28,6 +28,7 @@ import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
 import org.apache.hadoop.hoya.tools.PathArgumentConverter
 import org.apache.hadoop.hoya.tools.URIArgumentConverter
+import org.apache.hadoop.hoya.yarn.appmaster.EnvMappings
 
 /**
  * This class contains the common argument set for all tne entry points,
@@ -50,11 +51,12 @@ public class CommonArgs {
   public static final String ARG_MAX = '--max'
   public static final String ARG_MIN = '--min'
   public static final String ARG_NAME = '--name'
+  public static final String ARG_OUTPUT = '--output'
   public static final String ARG_PATH = '--path'
   public static final String ARG_USER = '--user'
 
   public static final String ARG_ZKPORT = '--zkport'
-  public static final String ARG_ZKQUORUM = '--zkquorum'
+  public static final String ARG_ZKQUORUM = '--zkhosts'
 
   public static final String ARG_X_TEST = '--Xtest'
   /** for testing only: {@value} */
@@ -63,40 +65,41 @@ public class CommonArgs {
 
 
 
-  public static final String ERROR_NO_ACTION = "No action specified"
-  public static final String ERROR_UNKNOWN_ACTION = "Unknown command: "
-  public static final String ERROR_NOT_ENOUGH_ARGUMENTS = "Not enough arguments for action: "
+  public static final String ERROR_NO_ACTION = 'No action specified'
+  public static final String ERROR_UNKNOWN_ACTION = 'Unknown command: '
+  public static final String ERROR_NOT_ENOUGH_ARGUMENTS = 'Not enough arguments for action: '
   /**
    * All the remaining values after argument processing
    */
-  public static final String ERROR_TOO_MANY_ARGUMENTS = "Too many arguments for action: "
+  public static final String ERROR_TOO_MANY_ARGUMENTS = 'Too many arguments for action: '
 
   /**
    * Actions.
    * Only some of these are supported by specific Hoya Services; they
    * are listed in the common args to ensure the names are consistent
    */
-  public static final String ACTION_ADDNODE = "addnode"
-  public static final String ACTION_CREATE = "create"
-  public static final String ACTION_GETSIZE = "getsize"
-  public static final String ACTION_HELP = "help"
-  public static final String ACTION_EXISTS = "exists"
-  public static final String ACTION_LIST = "list"
-  public static final String ARG_MANAGER = "--manager"
+  public static final String ACTION_ADDNODE = 'addnode'
+  public static final String ACTION_CREATE = 'create'
+  public static final String ACTION_GETSIZE = 'getsize'
+  public static final String ACTION_GETCONF = 'getconf'
+  public static final String ACTION_HELP = 'help'
+  public static final String ACTION_EXISTS = 'exists'
+  public static final String ACTION_LIST = 'list'
+  public static final String ARG_MANAGER = '--manager'
 
-  public static final String ACTION_MIGRATE = "migrate"
-  public static final String ACTION_PREFLIGHT = "preflight"
-  public static final String ACTION_RECONFIGURE = "reconfigure"
-  public static final String ACTION_REIMAGE = "reimage"
-  public static final String ACTION_RMNODE = "rmnode"
-  public static final String ACTION_START = "start"
-  public static final String ACTION_STATUS = "status"
-  public static final String ACTION_STOP = "stop"
+  public static final String ACTION_MIGRATE = 'migrate'
+  public static final String ACTION_PREFLIGHT = 'preflight'
+  public static final String ACTION_RECONFIGURE = 'reconfigure'
+  public static final String ACTION_REIMAGE = 'reimage'
+  public static final String ACTION_RMNODE = 'rmnode'
+  public static final String ACTION_START = 'start'
+  public static final String ACTION_STATUS = 'status'
+  public static final String ACTION_STOP = 'stop'
 
   @Parameter
   public List<String> parameters = new ArrayList<String>();
 
-  @Parameter(names = '--debug', description = "Debug mode")
+  @Parameter(names = '--debug', description = 'Debug mode')
   public boolean debug = false;
 
   /**
@@ -104,40 +107,39 @@ public class CommonArgs {
    Only one configuration directory can be specified.
    */
   @Parameter(names = '--confdir',
-      description = "path cluster configuration directory in HDFS",
+      description = 'path cluster configuration directory in HDFS',
       converter = PathArgumentConverter)
   Path confdir
 
-
-  @Parameter(names = '--fs', description = "filesystem URI",
+  @Parameter(names = '--fs', description = 'filesystem URI',
       converter = URIArgumentConverter)
   URI filesystemURL;
   
   @Parameter(names = '--hbasehome',
-      description = "HBase home dir for starting pre-installed binaries")
+      description = 'HBase home dir for starting pre-installed binaries')
   public String hbasehome;
 
   @Parameter(names = '--hbasezkpath',
-      description = "HBase Zookeeper path")
+      description = 'HBase Zookeeper path')
   public String hbasezkpath;
 
   @Parameter(names = '--help', help = true)
   public boolean help;
 
-  @Parameter(names = '--Xtest', description = "Test mode")
+  @Parameter(names = '--Xtest', description = 'Test mode')
   public boolean xTest = false;
 
   @Parameter(names = '--user',
-      description = "username if not self")
-  public String user = System.getProperty("user.name");
+      description = 'username if not self')
+  public String user = System.getProperty('user.name');
 
-  @Parameter(names = '--zkquorum',
-      description = "Zookeeper connection string")
-  public String zkquorum;
+  @Parameter(names = '--zkhosts',
+      description = 'Zookeeper connection string')
+  public String zkhosts;
 
   @Parameter(names = '--zkport',
-      description = "Zookeeper port")
-  public int zkport = HoyaKeys.HBASE_ZK_PORT;
+      description = 'Zookeeper port')
+  public int zkport = EnvMappings.HBASE_ZK_PORT;
 
   /*
    -D name=value
@@ -149,29 +151,33 @@ public class CommonArgs {
 
    */
 
-  @Parameter(names = '-D', description = "Definitions")
+  @Parameter(names = '-D', description = 'Definitions')
   public List<String> definitions = new ArrayList<String>();
   public Map<String, String> definitionMap = [:]
 
-  @Parameter(names = '--min', description = "Minimum number of nodes")
+  @Parameter(names = '--min', description = 'Minimum number of nodes')
   public int min = 0;
 
 
-  @Parameter(names = ["--m", "--manager"],
-      description = "hostname:port of the YARN resource manager")
+  @Parameter(names = ['--m', '--manager'],
+      description = 'hostname:port of the YARN resource manager')
   String manager;
   
   @Parameter(names = '--max',
-      description = "Maximum number of nodes")
+      description = 'Maximum number of nodes')
   public int max = -1
+
+  @Parameter(names = ['-o', '--output'],
+      description = 'output file for the configuration data')
+  String output;
 
 
   @Parameter(names = '--Xhbase-command',
-      description = "testing only: hbase command to exec")
+      description = 'testing only: hbase command to exec')
   public String hbaseCommand = null;
 
   @Parameter(names = '--Xnomaster',
-      description = "testing only: no master at all")
+      description = 'testing only: no master at all')
   public boolean xNoMaster = false;
   
   

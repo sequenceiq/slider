@@ -25,8 +25,6 @@
 package org.apache.hadoop.hoya.yarn.cluster
 
 import groovy.util.logging.Commons
-import org.apache.hadoop.hoya.yarn.CommonArgs
-import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.conf.YarnConfiguration

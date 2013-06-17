@@ -22,7 +22,6 @@ import com.beust.jcommander.JCommander
 import com.google.common.annotations.VisibleForTesting
 import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
-import org.apache.hadoop.fs.FileStatus
 import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.HoyaAppMasterProtocol
@@ -42,7 +41,6 @@ import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.tools.YarnUtils
 import org.apache.hadoop.hoya.yarn.CommonArgs
-import org.apache.hadoop.hoya.yarn.ZKIntegration
 import org.apache.hadoop.hoya.yarn.appmaster.HoyaMasterServiceArgs
 import org.apache.hadoop.net.NetUtils
 import org.apache.hadoop.yarn.api.ApplicationConstants
@@ -221,7 +219,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
                                                  + " missing")
     }
 
-    if (serviceArgs.zkquorum == null) {
+    if (serviceArgs.zkhosts == null) {
       throw new BadCommandArgumentsException("Required argument "
                                                  + CommonArgs.ARG_ZKQUORUM
                                                  + " missing")
@@ -618,7 +616,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   public Map<String, String> buildConfMapFromServiceArguments(String zkroot, Path hBaseRootPath) {
     return [
         (EnvMappings.KEY_ZOOKEEPER_PORT): serviceArgs.zkport.toString(),
-        (EnvMappings.KEY_ZOOKEEPER_QUORUM): serviceArgs.zkquorum,
+        (EnvMappings.KEY_ZOOKEEPER_QUORUM): serviceArgs.zkhosts,
         (EnvMappings.KEY_HBASE_ROOTDIR): hBaseRootPath.toUri().toString(),
         (EnvMappings.KEY_ZNODE_PARENT):zkroot ,
     ]
