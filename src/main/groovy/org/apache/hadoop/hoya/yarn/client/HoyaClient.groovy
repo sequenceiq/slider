@@ -241,7 +241,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
       //and the classpath can look after itself
 
       log.info("Copying JARs from local filesystem and add to local environment");
-      // Copy the application master jar to the filesystem 
+      // Copy the application master jar to the filesystem
       // Create a local resource to point to the destination jar path 
       String bindir = "";
       //add this class
@@ -261,6 +261,12 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
                                                             appPath,
                                                             libdir,
                                                             "ant.jar")
+/*
+      localResources["hbase.jar"] = submitJarWithClass(HConstants.class,
+                                                     appPath,
+                                                     libdir,
+                                                     "hbase.jar")
+*/
     }
 
     //build up the configuration
@@ -367,6 +373,8 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     commands << (Integer)serviceArgs.min
     commands << HoyaMasterServiceArgs.ARG_MAX
     commands << (Integer)serviceArgs.max
+    commands << HoyaMasterServiceArgs.ARG_REGIONSERVER_HEAP
+    commands << (Integer)serviceArgs.regionserverHeap
     
     //spec out the RM address
     commands << HoyaMasterServiceArgs.ARG_RM_ADDR;
@@ -614,12 +622,16 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    */
   @VisibleForTesting
   public Map<String, String> buildConfMapFromServiceArguments(String zkroot, Path hBaseRootPath) {
-    return [
+    Map<String, String> envMap = [
         (EnvMappings.KEY_ZOOKEEPER_PORT): serviceArgs.zkport.toString(),
         (EnvMappings.KEY_ZOOKEEPER_QUORUM): serviceArgs.zkhosts,
         (EnvMappings.KEY_HBASE_ROOTDIR): hBaseRootPath.toUri().toString(),
         (EnvMappings.KEY_ZNODE_PARENT):zkroot ,
-    ]
+  ]
+    if (!getUsingMiniMRCluster()) {
+      envMap.put("hbase.cluster.distributed", "true")
+    }
+    envMap
   }
 
   /**

@@ -497,20 +497,11 @@ class HoyaAppMaster extends CompositeService
   }
 
   private void configureContainerMemory(RegisterApplicationMasterResponse response) {
-    int maxMem = response.maximumResourceCapability.memory;
-    log.info("Max mem capability of resources in this cluster $maxMem");
-
-    // A resource ask has to be atleast the minimum of the capability of the
-    // cluster, the value has to be a multiple of the min value and cannot
-    // exceed the max.
-    // If it is not an exact multiple of min, the RM will allocate to the
-    // nearest multiple of min
-    if (containerMemory > maxMem) {
-      log.info("Container memory specified above max threshold of cluster."
-                   + " Using max value." + ", specified=" + containerMemory + ", max="
-                   + maxMem);
-      containerMemory = maxMem;
+    containerMemory = response.maximumResourceCapability.memory;
+    if (serviceArgs.regionserverHeap != null) {
+      containerMemory = serviceArgs.regionserverHeap
     }
+    log.info("Setting container ask to $containerMemory");
   }
 
   public getProxy(Class protocol, InetSocketAddress addr) {
