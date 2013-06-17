@@ -50,6 +50,7 @@ class EnvMappings {
 
 
   public static final String KEY_REGIONSERVER_PORT = "hbase.regionserver.port";
+  public static final String KEY_REGIONSERVER_INFO_PORT = "hbase.regionserver.info.port";
   
 
 }

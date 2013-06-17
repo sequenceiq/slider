@@ -28,7 +28,7 @@ import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
 /**
- * Test of RM creation. This is so the later test's prereq's can be met
+ * Create a master against the File:// fs
  */
 @Commons
 class TestHBaseMaster extends YarnMiniClusterTestBase {
@@ -45,7 +45,6 @@ class TestHBaseMaster extends YarnMiniClusterTestBase {
     ServiceLauncher launcher = createHoyaCluster(clustername, regionServerCount, [], true) 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)
-    log.info("${status.toJsonString()}")
     assert ZKHosts == status.zkHosts
     assert ZKPort == status.zkPort
     
@@ -55,9 +54,12 @@ class TestHBaseMaster extends YarnMiniClusterTestBase {
     
     //verify the #of region servers is as expected
     status = hoyaClient.getClusterStatus(clustername)
-    //log.info("Status $status")
+    log("post-hbase-boot status",status)
     int workerCount = status.regionNodes.size()
     assert workerCount > 0;
+    
+    //get the hbase status
+    
 
     clusterActionStop(hoyaClient, clustername)
   }

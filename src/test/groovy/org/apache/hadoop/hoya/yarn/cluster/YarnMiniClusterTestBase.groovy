@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.yarn.cluster
 
+import groovy.json.JsonOutput
 import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
@@ -601,8 +602,8 @@ implements KeysForTests {
    * @param regionServerCount RS count
    * @param timeout timeout
    */
-  public void waitForRegionServerCount(HoyaClient hoyaClient, String clustername, int regionServerCount, int timeout) {
-    ClusterDescription status
+  public ClusterDescription waitForRegionServerCount(HoyaClient hoyaClient, String clustername, int regionServerCount, int timeout) {
+    ClusterDescription status = null
     Duration duration = new Duration(timeout);
     duration.start()
     int workerCount = 0;
@@ -619,5 +620,17 @@ implements KeysForTests {
         Thread.sleep(5000)
       }
     }
+    return status
   }
+
+  String prettyPrint(String json) {
+    JsonOutput.prettyPrint(json)
+  }
+  
+  String log(String text, ClusterDescription status) {
+    describe(text)
+    log.info(prettyPrint(status.toJsonString()))
+  }
+  
+  
 }

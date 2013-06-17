@@ -121,6 +121,11 @@ public class ClusterDescription {
      */
     public String[] output;
 
+    /**
+     * Any environment details
+     */
+    public String[] environment; 
+    
     public ClusterNode(String name) {
       this.name = name;
     }

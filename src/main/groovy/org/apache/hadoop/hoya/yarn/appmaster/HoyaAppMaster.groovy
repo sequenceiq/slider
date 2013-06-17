@@ -154,7 +154,8 @@ class HoyaAppMaster extends CompositeService
   private ClusterDescription.ClusterNode masterNode;
 
   /**
-   * Map of containerID -> cluster nodes, for status reports
+   * Map of containerID -> cluster nodes, for status reports.
+   * Access to this should be synchronized on the clusterDescription
    */
   private final Map<ContainerId, ClusterDescription.ClusterNode> containerMap = [:]
 
@@ -630,7 +631,7 @@ class HoyaAppMaster extends CompositeService
       // non complete containers should not be here
       assert (status.state == ContainerState.COMPLETE);
       //record the complete node's details for the status report
-      addCompletedNodeToCD(status)
+      updateCompletedNode(status)
       
       // increment counters for completed/failed containers
       int exitStatus = status.exitStatus;
@@ -771,11 +772,8 @@ class HoyaAppMaster extends CompositeService
     
     List<ClusterDescription.ClusterNode> nodes = []
     
-    synchronized (containerMap) {
-      nodes  = containerMap.values().toList()  
-    }
-    
     synchronized (clusterDescription) {
+      nodes  = containerMap.values().toList()  
       clusterDescription.statusTime = System.currentTimeMillis()
       if (masterNode) {
         if (hbaseMaster) {
@@ -799,16 +797,23 @@ class HoyaAppMaster extends CompositeService
   }
 
   /**
-   * Add a completed node to the list
+   * handle  completed node in the CD -move something from the live
+   * server list to the completed server list
    * @param completed the node that has just completed
    */
-  private void addCompletedNodeToCD(ContainerStatus completed) {
-    ClusterDescription.ClusterNode node = new ClusterDescription.ClusterNode()
-    node.name = completed.containerId.toString()
-    node.state = ClusterDescription.STATE_DESTROYED
-    node.exitCode = completed.exitStatus
-    node.diagnostics = completed.diagnostics
+  private void updateCompletedNode(ContainerStatus completed) {
+    ClusterDescription.ClusterNode node
+    
+    //add the node
     synchronized (clusterDescription) {
+      node = containerMap.remove(completed.containerId)
+      if (node==null) {
+        node = new ClusterDescription.ClusterNode()
+        node.name = completed.containerId.toString()
+      }
+      node.state = ClusterDescription.STATE_DESTROYED
+      node.exitCode = completed.exitStatus
+      node.diagnostics = completed.diagnostics
       clusterDescription.completedNodes.add(node)
     }
   }
@@ -819,7 +824,7 @@ class HoyaAppMaster extends CompositeService
    * @param node node details
    */
   public void addLaunchedContainerToCD(ContainerId id, ClusterDescription.ClusterNode node) {
-    synchronized (containerMap) {
+    synchronized (clusterDescription) {
       containerMap[id] = node
     }
   }

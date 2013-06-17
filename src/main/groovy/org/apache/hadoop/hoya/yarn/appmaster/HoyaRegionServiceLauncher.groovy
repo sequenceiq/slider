@@ -123,7 +123,13 @@ class HoyaRegionServiceLauncher implements Runnable {
 
     //config dir is relative to the generated file
     command << HBaseCommands.ARG_CONFIG
+
+
+    //TODO: get propagation to work
     command << HoyaKeys.PROPAGATED_CONF_DIR_NAME;
+//    command << owner.getLocalConfDir()
+    
+    
     //role is region server
     command << HBaseCommands.REGION_SERVER
     command << HBaseCommands.ACTION_START
@@ -159,8 +165,13 @@ class HoyaRegionServiceLauncher implements Runnable {
 
     //here all is well. Build up a description
     ClusterDescription.ClusterNode node = new ClusterDescription.ClusterNode()
-    node.command = cmdStr;
-    node.name= container.id
+    List<String> nodeEnv=[]
+    localResources.each {String key, LocalResource val ->
+      nodeEnv << "$key=${YarnUtils.stringify(val.resource)}".toString()
+    }
+    node.command = cmdStr
+    node.name = container.id
+    node.environment = nodeEnv.toArray(new String[nodeEnv.size()])
 
     GetContainerStatusRequest statusReq =
       Records.newRecord(GetContainerStatusRequest.class);

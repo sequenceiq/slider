@@ -20,6 +20,7 @@ package org.apache.hadoop.hoya.yarn.client
 
 import com.beust.jcommander.JCommander
 import com.google.common.annotations.VisibleForTesting
+import groovy.json.JsonOutput
 import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
@@ -150,6 +151,18 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
         exitCode = actionExists(clusterName)
         break;
 
+      
+      case CommonArgs.ACTION_GETCONF:
+        validateClusterName(clusterName)
+        File outfile = null;
+        if (serviceArgs.output != null) {
+          outfile = new File(serviceArgs.output)
+        }
+        exitCode = actionGetConf(clusterName,
+                                 serviceArgs.format,
+                                 outfile)
+        break;
+
       case ClientArgs.ACTION_HELP:
         log.info("HoyaClient" + serviceArgs.usage())
         break;
@@ -231,7 +244,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     // set local resources for the application master
     // local files or archives as needed
     // In this scenario, the jar file for the application master is part of the local resources			
-    Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
+    Map<String, LocalResource> localResources = [:]
 
     String appPath = "$appName/${appId.id}/"
 
@@ -628,6 +641,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     Map<String, String> envMap = [
         (EnvMappings.KEY_HBASE_MASTER_PORT): "0",
         (EnvMappings.KEY_HBASE_ROOTDIR): hBaseRootPath.toUri().toString(),
+        (EnvMappings.KEY_REGIONSERVER_INFO_PORT):"0",
         (EnvMappings.KEY_REGIONSERVER_PORT):"0",
         (EnvMappings.KEY_ZNODE_PARENT):zkroot ,
         (EnvMappings.KEY_ZOOKEEPER_PORT): serviceArgs.zkport.toString(),
@@ -918,7 +932,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   @VisibleForTesting
   public int actionStatus(String clustername) {
     ClusterDescription status = getClusterStatus(clustername)
-    log.info(status.toJsonString());
+    log.info(JsonOutput.prettyPrint(status.toJsonString()));
     return EXIT_SUCCESS
   }
 
@@ -930,6 +944,49 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   public int actionStop(String clustername) {
     HoyaAppMasterProtocol appMaster = bondToCluster(clustername)
     appMaster.stopCluster();
+    return EXIT_SUCCESS
+  }
+
+  /**
+   * get the cluster configuration
+   * @param clustername cluster name
+   * @return the cluster name
+   */
+  public int actionGetConf(String clustername, String format, File outputfile) {
+    ClusterDescription status = getClusterStatus(clustername)
+    Writer writer
+    boolean toPrint
+    if (outputfile != null) {
+      writer = new FileWriter(outputfile)
+      toPrint = false
+    } else {
+      writer = new StringWriter()
+      toPrint = true
+    }
+    String description = "HBase cluster $clustername"
+    //extract the config
+    if ("xml" == format) {
+      Configuration siteConf = new Configuration(false)
+      status.hBaseClientProperties.each { String key, String val ->
+        siteConf.set(key, val, description);
+      }
+      siteConf.writeXml(writer)
+    } else if ("property" ==format) {
+      Properties props = new Properties()
+      status.hBaseClientProperties.each { String key, String val ->
+        props[key] = val
+      }
+      props.store(writer, description)
+    } else {
+      throw new BadCommandArgumentsException("Unknown format: $format")
+    }
+    //data is written.
+    //close the file
+    writer.close();
+    //then, if this is not a file write, print it
+    if (toPrint) {
+      System.out.println(writer.toString())
+    } 
     return EXIT_SUCCESS
   }
 

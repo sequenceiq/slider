@@ -144,7 +144,7 @@ class YarnUtils {
 
 
   public static String stringify(org.apache.hadoop.yarn.api.records.URL url) {
-    return "//$url.scheme/$url.host/${url.file}"
+    return "$url.scheme:/${url.host!=null?url.host:""}/${url.file}"
   }
 
 
