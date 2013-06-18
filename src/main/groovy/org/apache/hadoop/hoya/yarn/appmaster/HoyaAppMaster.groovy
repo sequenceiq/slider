@@ -96,6 +96,10 @@ class HoyaAppMaster extends CompositeService
    * the AM: {@value}
    */
   public static final int TERMINATION_SIGNAL_PROPAGATION_DELAY = 1000
+  /**
+   * Max failures to tolerate for the containers
+   */
+  public static final int MAX_TOLERABLE_FAILURES = 10
   private YarnRPC rpc;
   // Handle to communicate with the Resource Manager
   private AMRMClientAsync asyncRMClient;
@@ -594,8 +598,15 @@ class HoyaAppMaster extends CompositeService
   public void onContainersAllocated(List<Container> allocatedContainers) {
     log.info("Got response from RM for container ask, allocatedCnt="
                  + allocatedContainers.size());
-    numAllocatedContainers.addAndGet(allocatedContainers.size());
     allocatedContainers.each { Container container ->
+      synchronized (numAllocatedContainers) { //only one thread must enter this at once
+        if (numAllocatedContainers.get() == numTotalContainers) {
+          log.info("Releasing unneeded containers " + container.getId())
+          asyncRMClient.releaseAssignedContainer(container.getId());
+          return
+        }
+        numAllocatedContainers.incrementAndGet();
+      }
       log.info("Launching shell command on a new container.," +
                " containerId=$container.id," +
                " containerNode=$container.nodeId.host:$container.nodeId.port," +
@@ -636,33 +647,25 @@ class HoyaAppMaster extends CompositeService
       assert (status.state == ContainerState.COMPLETE);
       //record the complete node's details for the status report
       updateCompletedNode(status)
-      
-      // increment counters for completed/failed containers
-      int exitStatus = status.exitStatus;
-      if (0 != exitStatus) {
-        // container failed
-        if (ContainerExitStatus.ABORTED != exitStatus) {
-          // exec failed
-          // counts as completed
-          numCompletedContainers.incrementAndGet();
-          numFailedContainers.incrementAndGet();
-        } else {
-          // container was killed by framework, possibly preempted
-          // we should re-try as the container was lost for some reason
-          numAllocatedContainers.decrementAndGet();
-          numRequestedContainers.decrementAndGet();
-          // we do not need to release the container as it would be done
-          // by the RM
-        }
-      } else {
-        // nothing to do
-        // container completed successfully
-        numCompletedContainers.incrementAndGet();
-        log.info("Container completed successfully.," +
-                 " containerId=$status.containerId");
+      if (status.exitStatus != ContainerExitStatus.ABORTED) {
+        numAllocatedContainers.decrementAndGet();
+        numRequestedContainers.decrementAndGet();
       }
     }
 
+    // ask for more containers if any failed
+    // In the case of Hoya, we don't expect containers to complete since
+    // Hoya is a long running application. Keep track of how many containers
+    // are completing. If too many complete, abort the application
+    // TODO: this needs to be better thought about (and maybe something to
+    // better handle in Yarn for long running apps)
+    if ((numCompletedContainers.addAndGet(completedContainers.size())
+            >= MAX_TOLERABLE_FAILURES) &&
+        numCompletedContainers.get() == numTotalContainers) {
+      log.info("Too many containers " +numCompletedContainers.get() +
+              "  completed unexpectedly -stopping")
+      signalAMComplete();
+    }
     // ask for more containers if any failed
     int askCount = numTotalContainers - numRequestedContainers.get();
     numRequestedContainers.addAndGet(askCount);
