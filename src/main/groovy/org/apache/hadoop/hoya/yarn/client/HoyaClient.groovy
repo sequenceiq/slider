@@ -242,8 +242,14 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     clusterSpec.maxRegionNodes = maxRegionServers
     clusterSpec.regionServerHeap = regionServerHeap;
 
-    //make sure it is valid
-    verifyValidClusterSize(minRegionServers)
+    //set up the ZK binding
+    String zookeeperRoot = serviceArgs.hbasezkpath
+    if (serviceArgs.hbasezkpath == null) {
+      zookeeperRoot = "/yarnapps_${appName}_${username}_${clustername}"
+    }
+    clusterSpec.zkPath = zookeeperRoot
+    clusterSpec.zkPort = serviceArgs.zkport
+    clusterSpec.zkHosts = serviceArgs.zkhosts
 
     //build up the paths in the DFS
 
@@ -265,8 +271,48 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
                               clustername + ": " + E_ALREADY_EXISTS + " :" + clusterSpecPath,
                               e)
     }
-    
 
+
+
+    //bulk copy
+    //first the original from wherever to the DFS
+    HoyaUtils.copyDirectory(config, serviceArgs.confdir, origConfPath)
+    //then build up the generated path
+    HoyaUtils.copyDirectory(config, origConfPath, generatedConfPath)
+
+    //HBase
+    Path hBaseRootPath = new Path(clusterDirectory, HoyaKeys.HBASE_DATA_DIR_NAME);
+
+    log.debug("hBaseRootPath=$hBaseRootPath")
+    clusterSpec.hbaseRootPath = hBaseRootPath.toUri().toString();
+
+    //HBase home
+    clusterSpec.hbaseHome = serviceArgs.hbasehome
+    //explicit hbase command set
+    clusterSpec.hbaseCommand = serviceArgs.hbaseCommand
+  
+    
+    //check for debug mode
+    if (serviceArgs.xTest) {
+      clusterSpec.flags[CommonArgs.ARG_X_TEST] = "true";
+    }
+    
+    if (serviceArgs.xNoMaster) {
+      clusterSpec.flags[CommonArgs.ARG_X_NO_MASTER] = "true";
+    }
+    
+    //here the configuration is set up. Mark the 
+    clusterSpec.state = ClusterDescription.STATE_SUBMITTED;
+    clusterSpec.save(clusterFS, clusterSpecPath, true)
+    //here is where all the work is done
+    
+    //make sure it is valid
+    verifyValidClusterSize(minRegionServers)
+    
+    return executeClusterCreation(clusterSpec)
+  }
+ 
+ public int executeClusterCreation(ClusterDescription clusterSpec) {   
     ApplicationSubmissionContext appContext =
       Records.newRecord(ApplicationSubmissionContext.class);
     GetNewApplicationResponse newApp = super.getNewApplication();
@@ -274,18 +320,18 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     // set the application id 
     appContext.applicationId = appId;
     // set the application name
-    appContext.applicationName = clustername
+    appContext.applicationName = clusterSpec.name
     //app type used in service enum
     appContext.applicationType = HoyaKeys.APP_TYPE
 
-    
-    //check for debug mode
-    if (serviceArgs.xTest) {
+    if (clusterSpec.flags[CommonArgs.ARG_X_TEST]) {
+      //test flag set
       appContext.maxAppAttempts = 1
     }
 
+
     Path tempPath = HoyaUtils.createHoyaAppInstanceTempPath(clusterFS,
-                                                            clustername,
+                                                            clusterSpec.name,
                                                             appId.toString())
 
     // Set up the container launch context for the application master
@@ -339,37 +385,17 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
 
 
-    //bulk copy
-    //first the original from wherever to the DFS
-    HoyaUtils.copyDirectory(config, serviceArgs.confdir, origConfPath)
-    //then build up the generated path
-    HoyaUtils.copyDirectory(config, origConfPath, generatedConfPath)
-
     
     //now load the template configuration and build the site
+    Path genConfPath = new Path(clusterSpec.generatedConfigurationPath) 
     Configuration templateConf = ConfigHelper.loadTemplateConfiguration(config,
-                                        generatedConfPath,
+                                                                        genConfPath,
                                         HoyaKeys.HBASE_TEMPLATE,
                                         HoyaKeys.HBASE_TEMPLATE_RESOURCE)
-    //set up the ZK binding
-    String zookeeperRoot = serviceArgs.hbasezkpath
-    if (serviceArgs.hbasezkpath == null) {
-      zookeeperRoot = "/yarnapps_$appName${appId.id}"
-    }
-    clusterSpec.zkPath = zookeeperRoot
-    clusterSpec.zkPort= serviceArgs.zkport
-    clusterSpec.zkHosts= serviceArgs.zkhosts
-    
-    //HBase
-    Path hBaseRootPath = new Path(clusterDirectory, HoyaKeys.HBASE_DATA_DIR_NAME);
 
-    log.debug("hBaseRootPath=$hBaseRootPath") 
-    clusterSpec.hBaseRootPath=hBaseRootPath.toUri().toString();
     
     //construct the cluster configuration values
-    Map<String, String> clusterConfMap = buildConfMapFromServiceArguments(
-                                            zookeeperRoot,
-                                            hBaseRootPath);
+    Map<String, String> clusterConfMap = buildConfMapFromServiceArguments(clusterSpec);
     //merge them
     ConfigHelper.addConfigMap(templateConf, clusterConfMap)
     
@@ -378,9 +404,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
       ConfigHelper.dumpConf(templateConf);
     }
 
-    //here the configuration is set up. Mark the 
-    clusterSpec.state = ClusterDescription.STATE_SUBMITTED;
-    clusterSpec.save(clusterFS, clusterSpecPath, true)
+
 
     //save the -site.xml config to the visible-to-all DFS
     //that generatedConfPath is in
@@ -388,13 +412,13 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
     Path sitePath = ConfigHelper.generateConfig(config,
                                       templateConf,
-                                      generatedConfPath,
+                                      genConfPath,
                                       HoyaKeys.HBASE_SITE);
     
     log.debug("Saving the config to $sitePath")
     Map<String, LocalResource> confResources;
     confResources = YarnUtils.submitDirectory(clusterFS,
-                                    generatedConfPath,
+                                              genConfPath,
                                     HoyaKeys.PROPAGATED_CONF_DIR_NAME)
     localResources.putAll(confResources)
     if (log.isDebugEnabled()) {
@@ -443,16 +467,16 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     //now the app specific args
     commands << HoyaMasterServiceArgs.ARG_DEBUG
     commands << HoyaMasterServiceArgs.ACTION_CREATE
-    commands << clustername
+    commands << clusterSpec.name
     //min #of nodes
     commands << HoyaMasterServiceArgs.ARG_MIN
-    commands << (Integer) minRegionServers
+    commands << (Integer) clusterSpec.minRegionNodes
     
     //max # is defined by the min no, or, if higher, any specified maximum
     commands << HoyaMasterServiceArgs.ARG_MAX
-    commands << (Integer)Math.max(maxRegionServers, minRegionServers)
+    commands << (Integer)Math.max(clusterSpec.maxRegionNodes, clusterSpec.minRegionNodes)
     commands << HoyaMasterServiceArgs.ARG_REGIONSERVER_HEAP
-    commands << (Integer) regionServerHeap
+    commands << (Integer) clusterSpec.regionServerHeap
     
     //spec out the RM address
     commands << HoyaMasterServiceArgs.ARG_RM_ADDR;
@@ -460,23 +484,25 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
         
     //now conf dir path -fileset in the DFS
     commands << HoyaMasterServiceArgs.ARG_GENERATED_CONFDIR
-    commands << generatedConfPath
-    
-    if (serviceArgs.hbasehome) {
+    commands << clusterSpec.generatedConfigurationPath
+
+    String hbaseHome = clusterSpec.hbaseHome
+    if (hbaseHome) {
       //HBase home
       commands << HoyaMasterServiceArgs.ARG_HBASE_HOME
-      commands << serviceArgs.hbasehome
+      commands << hbaseHome
     }
-    if (serviceArgs.hbaseCommand) {
+    String hbaseCommand = clusterSpec.hbaseCommand
+    if (hbaseCommand) {
       //explicit hbase command set
       commands << CommonArgs.ARG_X_HBASE_COMMAND 
-      commands << serviceArgs.hbaseCommand
+      commands << hbaseCommand
     }
-    if (serviceArgs.xTest) {
+    if (clusterSpec.flags[CommonArgs.ARG_X_TEST]) {
       //test flag set
       commands << CommonArgs.ARG_X_TEST 
     }
-    if (serviceArgs.xNoMaster) {
+    if (clusterSpec.flags[CommonArgs.ARG_X_NO_MASTER]) {
       //server is not to create the master, just come up.
       //purely for test purposes
       commands << CommonArgs.ARG_X_NO_MASTER 
@@ -706,15 +732,15 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * @return a map of the dynamic bindings for this Hoya instance
    */
   @VisibleForTesting
-  public Map<String, String> buildConfMapFromServiceArguments(String zkroot, Path hBaseRootPath) {
+  public Map<String, String> buildConfMapFromServiceArguments(ClusterDescription clusterSpec) {
     Map<String, String> envMap = [
         (EnvMappings.KEY_HBASE_MASTER_PORT): "0",
-        (EnvMappings.KEY_HBASE_ROOTDIR): hBaseRootPath.toUri().toString(),
+        (EnvMappings.KEY_HBASE_ROOTDIR): clusterSpec.hbaseRootPath,
         (EnvMappings.KEY_REGIONSERVER_INFO_PORT): "0",
         (EnvMappings.KEY_REGIONSERVER_PORT): "0",
-        (EnvMappings.KEY_ZNODE_PARENT): zkroot,
-        (EnvMappings.KEY_ZOOKEEPER_PORT): serviceArgs.zkport.toString(),
-        (EnvMappings.KEY_ZOOKEEPER_QUORUM): serviceArgs.zkhosts,
+        (EnvMappings.KEY_ZNODE_PARENT): clusterSpec.zkPath,
+        (EnvMappings.KEY_ZOOKEEPER_PORT): clusterSpec.zkPort.toString(),
+        (EnvMappings.KEY_ZOOKEEPER_QUORUM): clusterSpec.zkHosts,
     ]
     if (!getUsingMiniMRCluster()) {
       envMap.put("hbase.cluster.distributed", "true")

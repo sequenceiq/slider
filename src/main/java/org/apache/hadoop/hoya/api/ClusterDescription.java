@@ -118,7 +118,19 @@ public class ClusterDescription {
   public String zkHosts;
   public int zkPort;
   public String zkPath;
-  public String hBaseRootPath;
+  public String hbaseRootPath;
+  public String hbaseHome;
+  public String hbaseCommand;
+
+  /**
+   * Extra flags that can be used to communicate
+   * between client & server; and across versions.
+   * Presence of a value is seen as marking the flag as true
+   */
+  public Map<String, String> flags =
+    new HashMap<String, String>();
+
+
   /**
    * Master node
    */

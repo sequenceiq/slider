@@ -329,7 +329,7 @@ class HoyaAppMaster extends CompositeService
     log.info(" Contents of $hBaseSiteXML")
     TreeSet<String> confKeys = ConfigHelper.sortedConfigKeys(siteConf)
     //update the values
-    clusterDescription.hBaseRootPath = siteConf.get(EnvMappings.KEY_HBASE_ROOTDIR)
+    clusterDescription.hbaseRootPath = siteConf.get(EnvMappings.KEY_HBASE_ROOTDIR)
     clusterDescription.zkHosts = siteConf.get(EnvMappings.KEY_ZOOKEEPER_QUORUM)
     clusterDescription.zkPort = siteConf.getInt(EnvMappings.KEY_ZOOKEEPER_PORT, 0)
     clusterDescription.zkPath = siteConf.get(EnvMappings.KEY_ZNODE_PARENT)
