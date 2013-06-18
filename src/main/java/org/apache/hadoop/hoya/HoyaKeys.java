@@ -69,4 +69,6 @@ public interface HoyaKeys {
   String ORIG_CONF_DIR_NAME = "original";
   String HBASE_DATA_DIR_NAME = "hbase";
   String CLUSTER_SPECIFICATION_FILE = "cluster.json";
+
+  int MIN_HEAP_SIZE = 0;
 }

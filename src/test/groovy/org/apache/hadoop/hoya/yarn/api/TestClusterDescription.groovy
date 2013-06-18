@@ -26,6 +26,7 @@ import org.apache.hadoop.fs.FileSystem as HadoopFS
 
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.junit.Test
 
@@ -40,8 +41,8 @@ class TestClusterDescription extends YarnMiniClusterTestBase {
     ClusterDescription cd = new ClusterDescription();
     cd.name = "test"
     cd.state = ClusterDescription.STATE_LIVE;
-    cd.maxMasterNodes = cd.minMasterNodes = 1;
-    ClusterDescription.ClusterNode node = new ClusterDescription.ClusterNode("masternode")
+    cd.masters = 1;
+    ClusterNode node = new ClusterNode("masternode")
     node.state = ClusterDescription.STATE_LIVE
     node.output = ["line1","line2"]
     cd.masterNodes = [node]
@@ -79,7 +80,7 @@ class TestClusterDescription extends YarnMiniClusterTestBase {
     ClusterDescription original = createCD()
     ClusterDescription received = roundTrip(original)
     assert received.masterNodes.size() > 0
-    ClusterDescription.ClusterNode node = received.masterNodes[0]
+    ClusterNode node = received.masterNodes[0]
     assert node.output.length == 2;
   }
 

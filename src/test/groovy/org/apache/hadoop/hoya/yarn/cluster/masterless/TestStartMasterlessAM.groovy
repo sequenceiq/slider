@@ -19,8 +19,11 @@
 package org.apache.hadoop.hoya.yarn.cluster.masterless
 
 import groovy.util.logging.Commons
+import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.exceptions.HoyaException
+import org.apache.hadoop.hoya.yarn.CommonArgs
+import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.conf.YarnConfiguration
@@ -52,5 +55,24 @@ class TestStartMasterlessAM extends YarnMiniClusterTestBase {
     newCluster.getClusterStatus(clustername);
   }
 
+  @Test
+  public void testStartUnknownCluster() throws Throwable {
+    String clustername = "TestStartMasterlessAM"
+    createMiniCluster(clustername, new YarnConfiguration(), 1, true)
+    try {
+      ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
+          new Configuration(),
+          [
+              CommonArgs.ACTION_START,
+              "no-cluster-of-this-name",
+              ClientArgs.ARG_FILESYSTEM, fsDefaultName,
+          ])
+      launcher.serviceExitCode == HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER
+    } catch (HoyaException e) {
+      assertExceptionDetails(e,
+                             HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER,
+                             HoyaClient.E_UNKNOWN_CLUSTER)
+    }
+  }
 
 }

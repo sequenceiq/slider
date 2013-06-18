@@ -48,20 +48,21 @@ public class CommonArgs {
   public static final String ARG_HELP = '--help'
   public static final String ARG_IMAGE = '--image'
   public static final String ARG_MAX = '--max'
-  public static final String ARG_MIN = '--min'
-  public static final String ARG_REGIONSERVER_HEAP = '--regionserverheap'
+  public static final String ARG_MASTERS = '--masters'
+  public static final String ARG_MASTER_HEAP = '--masterheap'
   public static final String ARG_NAME = '--name'
   public static final String ARG_OUTPUT = '--output'
   public static final String ARG_PATH = '--path'
   public static final String ARG_USER = '--user'
+  public static final String ARG_WORKERS = '--min'
+  public static final String ARG_WORKER_HEAP = '--workerheap'
 
   public static final String ARG_ZKPORT = '--zkport'
   public static final String ARG_ZKQUORUM = '--zkhosts'
 
   public static final String ARG_X_TEST = '--Xtest'
   /** for testing only: {@value} */
-  public static final String ARG_X_HBASE_COMMAND = '--Xhbase-command'
-  public static final String ARG_X_NO_MASTER = '--Xnomaster'
+  public static final String ARG_X_HBASE_MASTER_COMMAND = '--Xhbase-master-command'
 
 
 
@@ -80,6 +81,7 @@ public class CommonArgs {
    */
   public static final String ACTION_ADDNODE = 'addnode'
   public static final String ACTION_CREATE = 'create'
+  public static final String ACTION_DESTROY = 'destroy'
   public static final String ACTION_GETSIZE = 'getsize'
   public static final String ACTION_GETCONF = 'getconf'
   public static final String ACTION_HELP = 'help'
@@ -155,34 +157,37 @@ public class CommonArgs {
   public List<String> definitions = new ArrayList<String>();
   public Map<String, String> definitionMap = [:]
 
-  @Parameter(names = '--min', description = 'Minimum number of nodes')
-  public int min = 0;
 
 
   @Parameter(names = ['--m', '--manager'],
       description = 'hostname:port of the YARN resource manager')
   String manager;
-  
+
+  @Parameter(names = ['--workers', '--min'], description = 'number of worker nodes')
+  public int workers = 0;
+
+  @Parameter(names = ['--masters'], description = 'number of master nodes')
+  public int masters = 1;
+
+  @Parameter(names = ['--masterheap'],
+      description = "Master heap size in MB")
+  public int masterHeap = 128;
+
   @Parameter(names = '--max',
-      description = 'Maximum number of nodes')
+      description = '(ignored argument)')
   public int max = -1
 
   @Parameter(names = ['-o', '--output'],
       description = 'output file for the configuration data')
-  String output;
+  public String output;
 
-  @Parameter(names = '--regionserverheap',
-      description = "RegionServer heap size")
-  public int regionserverHeap = 256;
+  @Parameter(names = ['--workerheap', '--regionserverheap'],
+      description = "Worker heap size in MB")
+  public int workerHeap = 256;
 
-  @Parameter(names = '--Xhbase-command',
-      description = 'testing only: hbase command to exec')
-  public String hbaseCommand = null;
-
-  @Parameter(names = '--Xnomaster',
-      description = 'testing only: no master at all')
-  public boolean xNoMaster = false;
-  
+  @Parameter(names = '--Xhbase-master-command',
+      description = 'testing only: hbase command to exec on the master')
+  public String xHBaseMasterCommand = null;
   
   /**
    * fields

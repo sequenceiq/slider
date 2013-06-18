@@ -33,6 +33,7 @@ import org.apache.hadoop.hbase.client.HConnection
 import org.apache.hadoop.hbase.client.HConnectionManager
 import org.apache.hadoop.hdfs.MiniDFSCluster
 import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.hoya.tools.Duration
@@ -52,11 +53,11 @@ import org.apache.hadoop.yarn.server.MiniYARNCluster
 import org.apache.hadoop.yarn.server.resourcemanager.ResourceManager
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.ResourceScheduler
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fifo.FifoScheduler
+import org.apache.hadoop.yarn.service.launcher.ServiceLaunchException
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
 import org.junit.After
 import org.junit.Before
-import org.junit.internal.AssumptionViolatedException
 
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.SynchronousQueue
@@ -85,7 +86,7 @@ implements KeysForTests {
    * The time to sleep before trying to talk to the HBase Master and
    * expect meaningful results.
    */
-  public static final int HBASE_CLUSTER_STARTUP_TO_LIVE_TIME = 20000
+  public static final int HBASE_CLUSTER_STARTUP_TO_LIVE_TIME = HBASE_CLUSTER_STARTUP_TIME
   
   protected MiniDFSCluster hdfsCluster
   protected MiniYARNCluster miniCluster;
@@ -232,6 +233,7 @@ implements KeysForTests {
    */
   protected ServiceLauncher launchHoyaClientAgainstMiniMR(Configuration conf,
                                                           List args) {
+    assert miniCluster != null
     ResourceManager rm = miniCluster.resourceManager
     log.info("Connecting to rm at ${rm}")
 
@@ -309,7 +311,7 @@ implements KeysForTests {
   public ServiceLauncher createMasterlessAM(String clustername, int size, boolean deleteExistingData, boolean blockUntilRunning) {
     return createHoyaCluster(clustername,
                              size,
-                             [CommonArgs.ARG_X_NO_MASTER],
+                             [CommonArgs.ARG_MASTERS, "0"],
                              deleteExistingData,
                              blockUntilRunning)
   }
@@ -339,8 +341,7 @@ implements KeysForTests {
 
     List<String> argsList = [
         ClientArgs.ACTION_CREATE, clustername,
-        CommonArgs.ARG_MIN, Integer.toString(size),
-        CommonArgs.ARG_MAX, Integer.toString(size),
+        CommonArgs.ARG_WORKERS, Integer.toString(size),
         ClientArgs.ARG_MANAGER, RMAddr,
         CommonArgs.ARG_HBASE_HOME, HBaseHome,
         CommonArgs.ARG_ZKQUORUM, ZKHosts,
@@ -458,7 +459,7 @@ implements KeysForTests {
   public void assertHBaseMasterNotStopped(HoyaClient hoyaClient,
                                           String clustername) {
     ClusterDescription status = hoyaClient.getClusterStatus(clustername);
-    ClusterDescription.ClusterNode node = status.masterNodes[0];
+    ClusterNode node = status.masterNodes[0];
     assert node != null;
     if (node.state >= ClusterDescription.STATE_STOPPED) {
       //stopped, not what is wanted
@@ -550,13 +551,11 @@ implements KeysForTests {
   public ClusterStatus getHBaseClusterStatus(HoyaClient hoyaClient, String clustername) {
     try {
       HConnection hbaseConnection = createHConnection(hoyaClient, clustername)
-
       HBaseAdmin hBaseAdmin = new HBaseAdmin(hbaseConnection)
       ClusterStatus hBaseClusterStatus = hBaseAdmin.clusterStatus
       return hBaseClusterStatus
     } catch (NoSuchMethodError e) {
-      //this looks like some version mismatch: downgrade to a skip
-      throw new AssumptionViolatedException("HBase connection version problems", e, null);
+      throw new Exception("Using an incompatible version of HBase!", e)
     }
     
   }
@@ -578,7 +577,7 @@ implements KeysForTests {
       //see if there is a master node yet
       if (cd.masterNodes.size() != 0) {
         //if there is, get the node
-        ClusterDescription.ClusterNode master = cd.masterNodes[0];
+        ClusterNode master = cd.masterNodes[0];
         live = master.state == ClusterDescription.STATE_LIVE
         if (!live) {
           break
@@ -648,6 +647,8 @@ implements KeysForTests {
     describe("HBASE CLUSTER STATUS \n " + statusToString(clustat));
     return clustat
   }
+  
+  
   /**
    * Spin waiting for the RS count to match expected
    * @param hoyaClient client
@@ -655,7 +656,39 @@ implements KeysForTests {
    * @param regionServerCount RS count
    * @param timeout timeout
    */
-  public ClusterDescription waitForRegionServerCount(HoyaClient hoyaClient, String clustername, int regionServerCount, int timeout) {
+  public ClusterDescription waitForHBaseWorkerCount(HoyaClient hoyaClient,
+                                                     String clustername,
+                                                     int regionServerCount,
+                                                     int timeout) {
+    ClusterDescription status = null
+    Duration duration = new Duration(timeout);
+    duration.start()
+    int workerCount = 0;
+    while (workerCount != regionServerCount) {
+      ClusterStatus clustat = getHBaseClusterStatus(hoyaClient, clustername)
+      workerCount = clustat.servers.size()
+      if (duration.limitExceeded) {
+        describe("Cluster region server count of $regionServerCount not reached: $clustat")
+        log.info(clustat)
+        fail("Expected $regionServerCount YARN region servers, but saw $workerCount in $clustat")
+      }
+      Thread.sleep(1000)
+    }
+    return status
+  }
+ 
+  
+  /**
+   * Spin waiting for the RS count to match expected
+   * @param hoyaClient client
+   * @param clustername cluster name
+   * @param regionServerCount RS count
+   * @param timeout timeout
+   */
+  public ClusterDescription waitForRegionServerCount(HoyaClient hoyaClient,
+                                                    String clustername,
+                                                    int regionServerCount,
+                                                    int timeout) {
     ClusterDescription status = null
     Duration duration = new Duration(timeout);
     duration.start()
@@ -663,14 +696,14 @@ implements KeysForTests {
     while (workerCount == 0) {
       status = hoyaClient.getClusterStatus(clustername)
       //log.info("Status $status")
-      workerCount = status.regionNodes.size()
+      workerCount = status.workerNodes.size()
       if (workerCount == 0) {
         if (duration.limitExceeded) {
           describe("Cluster region server count of $regionServerCount not reached")
-          log.info(status.toJsonString())
-          assert regionServerCount == workerCount;
+          log.info(prettyPrint(status.toJsonString()))
+          fail("Expected $regionServerCount YARN region servers, but saw $workerCount")
         }
-        Thread.sleep(5000)
+        Thread.sleep(1000)
       }
     }
     return status
@@ -680,10 +713,16 @@ implements KeysForTests {
     JsonOutput.prettyPrint(json)
   }
   
-  String log(String text, ClusterDescription status) {
+  void log(String text, ClusterDescription status) {
     describe(text)
     log.info(prettyPrint(status.toJsonString()))
   }
   
-  
+  void assertExceptionDetails(ServiceLaunchException ex, int exitCode, String text){
+    assert exitCode == ex.exitCode
+    if (text) {
+      assert ex.toString().contains(text)
+    }
+  }
+
 }

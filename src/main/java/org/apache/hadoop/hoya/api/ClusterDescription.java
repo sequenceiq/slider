@@ -110,18 +110,16 @@ public class ClusterDescription {
   
   public String originConfigurationPath;
   public String generatedConfigurationPath;
-  public int minRegionNodes;
-  public int maxRegionNodes;
-  public int minMasterNodes;
-  public int maxMasterNodes;
-
-  public int regionServerHeap;
+  public int workers;
+  public int workerHeap;
+  public int masters;
+  public int masterHeap;
   public String zkHosts;
   public int zkPort;
   public String zkPath;
   public String hbaseRootPath;
   public String hbaseHome;
-  public String hbaseCommand;
+  public String xHBaseMasterCommand;
 
   /**
    * Extra flags that can be used to communicate
@@ -139,76 +137,30 @@ public class ClusterDescription {
   /**
    *  Worker nodes
    */
-  public List<ClusterNode> regionNodes = new ArrayList<ClusterNode>();
+  public List<ClusterNode> workerNodes = new ArrayList<ClusterNode>();
 
   /**
    *  Completed nodes
    */
   public List<ClusterNode> completedNodes = new ArrayList<ClusterNode>();
 
+  /**
+   * Requested nodes -when they get allocated they will be moved into
+   * one for the other states
+   */
+  public List<ClusterNode> requestedNodes = new ArrayList<ClusterNode>();
+
+  
+  /**
+   * Nodes that failed to start
+   */
+  public List<ClusterNode> failedNodes = new ArrayList<ClusterNode>();
+
   
   /**
    * List of key-value pairs to add to an HBase config to set up the client
    */
   public Map<String,String> hBaseClientProperties = new HashMap<String, String>();
-
-  /**
-   * Describe a specific node in the cluster
-   */
-  public static class ClusterNode {
-    /**
-     * server name
-     */
-    public String name;
-    /**
-     * state (Currently arbitrary text)
-     */
-    public int state;
-
-    /**
-     * Exit code: only valid if the state >= STOPPED
-     */
-    public int exitCode;
-    /**
-     * what was the command executed?
-     */
-    public String command;
-    /**
-     * Any diagnostics
-     */
-    public String diagnostics;
-    /**
-     * What is the tail output from the executed process (or [] if not started
-     * or the log cannot be picked up
-     */
-    public String[] output;
-
-    /**
-     * Any environment details
-     */
-    public String[] environment; 
-    
-    public ClusterNode(String name) {
-      this.name = name;
-    }
-
-    public ClusterNode() {
-    }
-
-    @Override
-    public String toString() {
-      StringBuilder builder = new StringBuilder();
-      builder.append(name).append(": ").append(state).append("\n");
-      builder.append(command).append("\n");
-      for (String line : output) {
-        builder.append(line).append("\n");
-      }
-      if (diagnostics != null) {
-        builder.append(diagnostics).append("\n");
-      }
-      return builder.toString();
-    }
-  }
 
   @Override
   public String toString() {
@@ -223,10 +175,10 @@ public class ClusterDescription {
       builder.append("Stopped: ");
       builder.append(new Date(startTime).toLocaleString());
     }
-    builder.append("RS nodes: ")
-           .append(minRegionNodes)
-           .append('-')
-           .append(maxRegionNodes)
+    builder.append("Workers: ")
+           .append(workers)
+           .append("- Masters")
+           .append(masters)
            .append('\n');
     builder.append("ZK cluster: ").append(zkHosts).
       append(" : ").append(zkPort).append('\n');
@@ -236,8 +188,8 @@ public class ClusterDescription {
       builder.append("    ");
       builder.append(node.toString()).append('\n');
     }
-    builder.append(String.format("Region Server count %d", regionNodes.size()));
-    for (ClusterNode node : regionNodes) {
+    builder.append(String.format("Region Server count %d", workerNodes.size()));
+    for (ClusterNode node : workerNodes) {
       builder.append("    ");
       builder.append(node.toString()).append('\n');
     }
