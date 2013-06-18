@@ -25,6 +25,8 @@
 package org.apache.hadoop.hoya.yarn.cluster
 
 import groovy.util.logging.Commons
+import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.api.records.YarnApplicationState
@@ -88,6 +90,13 @@ class TestCreateMasterlessAM extends YarnMiniClusterTestBase {
     //but when we look up an instance, we get the new App ID
     ApplicationReport newInstance = hoyaClient.findInstance(username, clustername)
     assert oldInstance.applicationId != newInstance.applicationId
+
+    //now try to create instance #3, and expect an in-use failure
+    try {
+      launcher = createMasterlessAM(clustername, 0, true)
+    } catch (HoyaException e) {
+      assert e.exitCode == HoyaExitCodes.EXIT_BAD_CLUSTER_STATE
+    }
 
   }
 

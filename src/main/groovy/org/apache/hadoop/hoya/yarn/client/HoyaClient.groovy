@@ -237,6 +237,14 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
                                                  + " missing")
     }
     
+    //validate cluster isn't there
+    Collection<ApplicationReport> existing = findAllLiveInstances(null, clustername)
+    
+    if (existing.size() > 0 ) {
+      throw new HoyaException(EXIT_BAD_CLUSTER_STATE,
+                              "A cluster called $clustername exists: $existing[0] ")
+    }
+
     // Set up the container launch context for the application master
     ContainerLaunchContext amContainer =
       Records.newRecord(ContainerLaunchContext.class);
@@ -884,10 +892,39 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
   @VisibleForTesting
   public ApplicationReport findInstance(String user, String appname) {
-    log.debug("Looking for instances of user $user")
     List<ApplicationReport> instances = listHoyaInstances(user);
-    log.debug("Found $instances of user $user")
     return findClusterInInstanceList(instances, appname)
+  }
+
+  /**
+   * find all instances of a specific app -if there is >1 in the cluster,
+   * this returns them all
+   * @param user user
+   * @param appname application name
+   * @return the list of all matching application instances
+   */
+  @VisibleForTesting
+  public Collection<ApplicationReport> findAllInstances(String user, String appname) {
+    List<ApplicationReport> instances = listHoyaInstances(user);
+    return instances.findAll { ApplicationReport report ->
+      report.name == appname
+    }
+  }
+
+  /**
+   * find all live instances of a specific app -if there is >1 in the cluster,
+   * this returns them all. State should be running or less
+   * @param user user
+   * @param appname application name
+   * @return the list of all matching application instances
+   */
+  @VisibleForTesting
+  public Collection<ApplicationReport> findAllLiveInstances(String user, String appname) {
+    List<ApplicationReport> instances = listHoyaInstances(user);
+    return instances.findAll { ApplicationReport app ->
+      app.name == appname &&
+      app.yarnApplicationState <= YarnApplicationState.RUNNING
+    }
   }
 
   public ApplicationReport findClusterInInstanceList(List<ApplicationReport> instances, String appname) {

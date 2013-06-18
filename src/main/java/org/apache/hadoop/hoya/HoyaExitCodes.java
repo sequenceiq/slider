@@ -25,7 +25,7 @@ public interface HoyaExitCodes extends LauncherExitCodes {
   /**
    * starting point for exit codes; not an exception itself
    */
-  int _EXIT_CODE_BASE = 48;
+  int _EXIT_CODE_BASE = 50;
   /**
    * internal error: {@value}
    */
@@ -55,11 +55,15 @@ public interface HoyaExitCodes extends LauncherExitCodes {
    */
   int EXIT_YARN_SERVICE_FINISHED_WITH_ERROR = _EXIT_CODE_BASE + 5;
 
-
   /**
    * the cluster is unknown: {@value}
    */
   int EXIT_UNKNOWN_HOYA_CLUSTER = _EXIT_CODE_BASE + 6;
+
+  /**
+   * the cluster is in the wrong state for that operation: {@value}
+   */
+  int EXIT_BAD_CLUSTER_STATE = _EXIT_CODE_BASE + 7;
 
 
 }
