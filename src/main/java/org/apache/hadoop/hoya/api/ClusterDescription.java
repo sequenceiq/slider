@@ -61,6 +61,13 @@ public class ClusterDescription {
    */
   public long statusTime;
 
+  /**
+   * The path to the original configuration
+   * files; these are re-read when 
+   * restoring a cluster
+   */
+  
+  public String originConfigurationPath;
   public int minRegionNodes;
   public int maxRegionNodes;
   public int minMasterNodes;

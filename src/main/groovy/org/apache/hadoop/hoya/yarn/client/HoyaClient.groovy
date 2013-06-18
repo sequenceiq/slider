@@ -237,17 +237,18 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
                                                  + " missing")
     }
     
-    //validate cluster isn't there
-    Collection<ApplicationReport> existing = findAllLiveInstances(null, clustername)
-    
-    if (existing.size() > 0 ) {
-      throw new HoyaException(EXIT_BAD_CLUSTER_STATE,
-                              "A cluster called $clustername exists: $existing[0] ")
-    }
+    //verify that a live cluster isn't there
+    verifyNoLiveClusters(clustername)
 
     // Set up the container launch context for the application master
     ContainerLaunchContext amContainer =
       Records.newRecord(ContainerLaunchContext.class);
+
+    String appIdStr = appId.toString()
+
+    Path tempPath = HoyaUtils.createHoyaAppInstanceTempPath(clusterFS,
+                                                            clustername,
+                                                            appId.toString())
 
     // set local resources for the application master
     // local files or archives as needed
@@ -265,25 +266,28 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
       // Create a local resource to point to the destination jar path 
       String bindir = "";
       //add this class
-      localResources["hoya.jar"] = submitJarWithClass(this.class, appPath, bindir, "hoya.jar")
+      localResources["hoya.jar"] = submitJarWithClass(this.class,
+                                                      tempPath,
+                                                      bindir,
+                                                      "hoya.jar")
       //add lib classes that don't come automatically with YARN AM classpath
       String libdir = bindir + "lib/"
       localResources["groovayll.jar"] = submitJarWithClass(GroovyObject.class,
-                                                           appPath,
+                                                           tempPath,
                                                            libdir,
                                                            "groovayll.jar")
-
+      
       localResources["jcommander.jar"] = submitJarWithClass(JCommander.class,
-                                                            appPath,
+                                                            tempPath,
                                                             libdir,
                                                             "jcommander.jar")
-      localResources["ant.jar"] = submitJarWithClass(JCommander.class,
-                                                            appPath,
-                                                            libdir,
-                                                            "ant.jar")
 /*
-      localResources["hbase.jar"] = submitJarWithClass(HConstants.class,
-                                                     appPath,
+      localResources["ant.jar"] = submitJarWithClass(JCommander.class, tempPath,
+                                                     libdir,
+                                                     "ant.jar")
+*/
+/*
+      localResources["hbase.jar"] = submitJarWithClass( HConstants.class, tempPath,
                                                      libdir,
                                                      "hbase.jar")
 */
@@ -291,15 +295,20 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
     //build up the configuration
 
-    String confDirName = HoyaKeys.PROPAGATED_CONF_DIR_NAME +"/"
-    String relativeConfPath = appPath + confDirName
-    Path generatedConfPath = new Path(clusterFS.homeDirectory, relativeConfPath);
 
     if (!serviceArgs.confdir) {
       throw new BadCommandArgumentsException("Missing argument ${CommonArgs.ARG_CONFDIR}")
     }
+    
+    Path clusterDirectory = HoyaUtils.createHoyaClusterDirPath(clusterFS, clustername)
+    Path origConfPath = new Path(clusterDirectory, HoyaKeys.ORIG_CONF_DIR_NAME);
+    Path generatedConfPath = new Path(clusterDirectory, HoyaKeys.GENERATED_CONF_DIR_NAME);
+
     //bulk copy
-    HoyaUtils.copyDirectory(config, serviceArgs.confdir, generatedConfPath)
+    //first the original from wherever to the DFS
+    HoyaUtils.copyDirectory(config, serviceArgs.confdir, origConfPath)
+    //then build up the generated path
+    HoyaUtils.copyDirectory(config, origConfPath, generatedConfPath)
 
     
     //now load the template configuration and build the site
@@ -312,11 +321,9 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     if (serviceArgs.hbasezkpath == null) {
       zookeeperRoot = "/yarnapps_$appName${appId.id}"
     }
-    HadoopFS targetFS = clusterFS
     
-    String hbaseDir = "target/yarnapps/$appName/${clustername}";
-    Path relativeHBaseRootPath = new Path(hbaseDir)
-    Path hBaseRootPath = relativeHBaseRootPath.makeQualified(targetFS)
+    Path hBaseRootPath = new Path(clusterDirectory, HoyaKeys.HBASE_DATA_DIR_NAME);
+
     log.debug("hBaseRootPath=$hBaseRootPath") 
     Map<String, String> clusterConfMap = buildConfMapFromServiceArguments(
                                             zookeeperRoot,
@@ -508,6 +515,20 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     return exitCode
   }
 
+  /**
+   * verify that a live cluster isn't there
+   * @param clustername cluster name
+   * @throws HoyaException with exit code EXIT_BAD_CLUSTER_STATE
+   * if a cluster of that name is either live or starting up.
+   */
+  public void verifyNoLiveClusters(String clustername) {
+    Collection<ApplicationReport> existing = findAllLiveInstances(null, clustername)
+
+    if (existing.size() > 0) {
+      throw new HoyaException(EXIT_BAD_CLUSTER_STATE,
+          "A cluster called $clustername exists: $existing[0] ")
+    }
+  }
 
   public String getUsername() {
     return UserGroupInformation.getCurrentUser().getShortUserName();
@@ -522,16 +543,13 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * @return the local resource ref
    * @throws IOException trouble copying to HDFS
    */
-  private LocalResource submitJarWithClass(Class clazz,
-                               String appPath,
-                               String subdir,
-                               String jarName)
+  private LocalResource submitJarWithClass(Class clazz, Path tempPath, String subdir, String jarName)
         throws IOException, HoyaException{
     File localFile = HoyaUtils.findContainingJar(clazz);
     if (!localFile) {
       throw new FileNotFoundException("Could not find JAR containing " + clazz);
     }
-    LocalResource resource = submitFile(localFile, appPath, subdir, jarName)
+    LocalResource resource = submitFile(localFile, tempPath, subdir, jarName)
     return resource
   }
 
@@ -539,27 +557,23 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * Submit a local file to the filesystem references by the instance's cluster
    * filesystem
    * @param localFile filename
-   * @param appPath application path
+   * @param clusterName application path
    * @param subdir subdirectory (expected to end in a "/")
    * @param destFileName destination filename
    * @return the local resource ref
    * @throws IOException trouble copying to HDFS
    */
-  private LocalResource submitFile(File localFile,
-                                   String appPath,
-                                   String subdir,
-                                   String destFileName) throws IOException {
-    HadoopFS hdfs = clusterFS;
+  private LocalResource submitFile(File localFile, Path tempPath, String subdir, String destFileName) throws IOException {
     Path src = new Path(localFile.toString());
-    String subPath = appPath + "${subdir}$destFileName";
-    Path destPath = new Path(hdfs.homeDirectory, subPath);
+    Path destPath = new Path(tempPath, "${subdir}$destFileName")
+    // new Path(hdfs.homeDirectory, subPath);
 
-    hdfs.copyFromLocalFile(false, true, src, destPath);
+    clusterFS.copyFromLocalFile(false, true, src, destPath);
 
     // Set the type of resource - file or archive
     // archives are untarred at destination
     // we don't need the jar file to be untarred for now
-    LocalResource resource = YarnUtils.createAmResource(hdfs,
+    LocalResource resource = YarnUtils.createAmResource(clusterFS,
                                destPath,
                                LocalResourceType.FILE)
     return resource

@@ -24,19 +24,48 @@ package org.apache.hadoop.hoya;
  */
 public interface HoyaKeys {
 
+  /**
+   * The path under which cluster and temp data are stored
+   * {@value}
+   */
+  String HOYA_BASE_DIRECTORY = ".hoya";
+  
+  /**
+   *  name of the site conf to generate :  {@value}
+   */
   String HBASE_SITE = "hbase-site.xml";
+
+  /**
+   * name of the template file to use for cluster-specific
+   * customisations:  {@value}
+   */
   String HBASE_TEMPLATE = "hbase-site-template.xml";
+
+  /**
+   * Template stored in the hoya classpath -to use if there is
+   * no site-specific template
+   *  {@value}
+   */
   String HBASE_TEMPLATE_RESOURCE = "/conf/" + HBASE_TEMPLATE;
+
+  /**
+   * Application type for YARN  {@value}
+   */
   String APP_TYPE = "HOYA-HBASE";
 
+  /**
+   * JVM arg to force IPv4  {@value}
+   */
   String JAVA_FORCE_IPV4 = "-Djava.net.preferIPv4Stack=true";
 
 
   /**
    * This is the name of the dir/subdir containing
    * the hbase conf that is propagated via YARN
+   *  {@value}
    */
   String PROPAGATED_CONF_DIR_NAME = "conf";
-  
-  int HBASE_ZK_PORT = 2181; // HConstants.DEFAULT_ZOOKEPER_CLIENT_PORT;
+  String GENERATED_CONF_DIR_NAME = "generated";
+  String ORIG_CONF_DIR_NAME = "original";
+  String HBASE_DATA_DIR_NAME = "hbase";
 }

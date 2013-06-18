@@ -308,4 +308,44 @@ class HoyaUtils {
     return sourcePaths.size();
   }
 
+  /**
+   * Create the Hoya cluster path for a named cluster.
+   * This is a directory; a mkdirs() operation is executed
+   * to ensure that it is there.
+   * @param fs filesystem
+   * @param clustername name of the cluster
+   * @return the path for persistent data
+   */
+  public static Path createHoyaClusterDirPath(HadoopFS fs, String clustername) {
+    Path hoyaPath = getBaseHoyaPath(fs);
+    Path instancePath = new Path(hoyaPath, "cluster/$clustername")
+    fs.mkdirs(instancePath);
+    return instancePath
+  }
+
+  /**
+   * Create the application-instance specific temporary directory
+   * in the DFS
+   * @param fs filesystem
+   * @param clustername name of the cluster
+   * @param appID appliation ID
+   * @return the path; this directory will already have been created
+   */
+  public static Path createHoyaAppInstanceTempPath(HadoopFS fs,
+                                            String clustername,
+                                            String appID){
+    Path hoyaPath = getBaseHoyaPath(fs);
+    Path instancePath = new Path(hoyaPath, "tmp/$clustername/$appID")
+    fs.mkdirs(instancePath);
+    return instancePath
+  }
+
+  /**
+   * Get the base path for hoya
+   * @param fs
+   * @return
+   */
+  public static Path getBaseHoyaPath(HadoopFS fs) {
+    return new Path(fs.homeDirectory, ".hoya")
+  }
 }

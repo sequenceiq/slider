@@ -28,11 +28,6 @@ package org.apache.hadoop.hoya.yarn.appmaster
  */
 class EnvMappings {
   
-  public static final String ENV_FS_DEFAULT_NAME = 'FS_DEFAULT_NAME';
-  public static final String ENV_ZOOKEEPER_PATH = 'ZOOKEEPER_PATH';
-  public static final String ENV_ZOOKEEPER_CONNECTION = 'ZOOKEEPER_CONNECTION';
-  public static final String ENV_HBASE_OPTS = 'HBASE_OPTS';
-
   public static final String KEY_HBASE_ROOTDIR = "hbase.rootdir";
   
   public static final String KEY_ZOOKEEPER_QUORUM = "hbase.zookeeper.quorum" ;
