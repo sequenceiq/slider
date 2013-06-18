@@ -42,9 +42,9 @@ class TestHBaseVersionCluster extends YarnMiniClusterTestBase {
     log.info("RM address = ${RMAddr}")
     String clustername = "TestHBaseVersionCluster"
     ServiceLauncher launcher = createHoyaCluster(clustername,
-         0, 
-        [CommonArgs.ARG_X_HBASE_COMMAND, "version"],
-        true)
+                                                 0,
+                                                 [CommonArgs.ARG_X_HBASE_COMMAND, "version"], true,
+                                                 true)
     assert launcher.serviceExitCode == 0
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)

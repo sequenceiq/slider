@@ -42,7 +42,7 @@ class TestHBaseMaster extends YarnMiniClusterTestBase {
     log.info("ZK up at $zki");
     //now launch the cluster
     int regionServerCount = 1
-    ServiceLauncher launcher = createHoyaCluster(clustername, regionServerCount, [], true) 
+    ServiceLauncher launcher = createHoyaCluster(clustername, regionServerCount, [], true, true) 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)
     assert ZKHosts == status.zkHosts

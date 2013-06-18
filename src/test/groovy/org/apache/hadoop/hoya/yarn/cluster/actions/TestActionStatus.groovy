@@ -77,7 +77,7 @@ class TestActionStatus extends YarnMiniClusterTestBase {
     String clustername = "testStatusLiveCluster"
     
     //launch the cluster
-    ServiceLauncher launcher = createMasterlessAM(clustername, 0, false)
+    ServiceLauncher launcher = createMasterlessAM(clustername, 0, true, false)
 
     ApplicationReport report = waitForClusterLive((HoyaClient)launcher.service)
 

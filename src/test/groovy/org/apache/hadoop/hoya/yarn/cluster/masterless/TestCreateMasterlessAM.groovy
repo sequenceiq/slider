@@ -22,12 +22,14 @@
 
 
 
-package org.apache.hadoop.hoya.yarn.cluster
+package org.apache.hadoop.hoya.yarn.cluster.masterless
 
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
+import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
+import org.apache.hadoop.yarn.api.records.ApplicationId
 import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.hadoop.yarn.conf.YarnConfiguration
@@ -35,17 +37,17 @@ import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
 /**
- * Test of RM creation. This is so the later test's prereq's can be met
+ * create masterless AMs and work with them. This is faster than
+ * bringing up full clusters
  */
 @Commons
 class TestCreateMasterlessAM extends YarnMiniClusterTestBase {
 
 
-
   @Test
   public void testCreateMasterlessAM() throws Throwable {
     createMiniCluster("TestCreateMasterlessAM", new YarnConfiguration(), 1, true)
-    
+
     describe "create a masteress AM then get the service and look it up via the AM"
 
     //launch fake master
@@ -54,7 +56,7 @@ class TestCreateMasterlessAM extends YarnMiniClusterTestBase {
     String hbaseHome = HBaseHome
     String rmAddr = RMAddr
     ServiceLauncher launcher
-    launcher = createMasterlessAM(clustername, 0, true) 
+    launcher = createMasterlessAM(clustername, 0, true, false)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
 
     ApplicationReport report = waitForClusterLive(hoyaClient)
@@ -71,32 +73,53 @@ class TestCreateMasterlessAM extends YarnMiniClusterTestBase {
     ApplicationReport instance = hoyaClient.findInstance(username, clustername)
     logReport(instance)
     assert instance != null
-    
+
     //now kill that cluster
     assert 0 == clusterActionStop(hoyaClient, clustername)
     //list it & See if it is still there
     ApplicationReport oldInstance = hoyaClient.findInstance(username, clustername)
-    assert oldInstance!=null
+    assert oldInstance != null
     assert oldInstance.yarnApplicationState >= YarnApplicationState.FINISHED
 
     //create another AM
-    launcher = createMasterlessAM(clustername, 0, true)
-    
+    launcher = createMasterlessAM(clustername, 0, true, true)
+    hoyaClient = (HoyaClient) launcher.service
+    ApplicationId i2AppID = hoyaClient.applicationId
+
     //expect 2 in the list
     userInstances = hoyaClient.listHoyaInstances(username)
     logApplications(userInstances)
     assert userInstances.size() == 2
 
     //but when we look up an instance, we get the new App ID
-    ApplicationReport newInstance = hoyaClient.findInstance(username, clustername)
-    assert oldInstance.applicationId != newInstance.applicationId
+    ApplicationReport instance2 = hoyaClient.findInstance(username, clustername)
+    assert i2AppID == instance2.applicationId
 
+    describe("Creating instance #3")
     //now try to create instance #3, and expect an in-use failure
     try {
-      launcher = createMasterlessAM(clustername, 0, true)
+      createMasterlessAM(clustername, 0, true, true)
+      fail("expected a failure")
     } catch (HoyaException e) {
       assert e.exitCode == HoyaExitCodes.EXIT_BAD_CLUSTER_STATE
+      assert e.toString().contains(HoyaClient.E_CLUSTER_RUNNING)
     }
+
+    describe("Stopping instance #2")
+
+    //now stop that cluster
+    assert 0 == clusterActionStop(hoyaClient, clustername)
+
+    logApplications(hoyaClient.listHoyaInstances(username))
+    
+    //verify it is down
+    ApplicationReport reportFor = hoyaClient.getApplicationReport(i2AppID)
+    assert YarnApplicationState.FINISHED <= report.yarnApplicationState
+
+
+    ApplicationReport instance3 = hoyaClient.findInstance(username, clustername)
+    assert instance3.yarnApplicationState >= YarnApplicationState.FINISHED
+
 
   }
 

@@ -23,6 +23,8 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileUtil
+import org.apache.hadoop.fs.FileSystem as HadoopFS
+import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hbase.HBaseConfiguration
 import org.apache.hadoop.hbase.ServerName
@@ -34,6 +36,7 @@ import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.hoya.tools.Duration
+import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.tools.YarnUtils
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.KeysForTests
@@ -299,17 +302,21 @@ implements KeysForTests {
    * Create an AM without a master
    * @param clustername AM name
    * @param size # of nodes
+   * @param deleteExistingData should any existing cluster data be deleted
    * @param blockUntilRunning block until the AM is running
    * @return launcher which will have executed the command.
    */
-  public ServiceLauncher createMasterlessAM(String clustername,
-                                            int size,
-                                            boolean blockUntilRunning) {
+  public ServiceLauncher createMasterlessAM(String clustername, int size, boolean deleteExistingData, boolean blockUntilRunning) {
     return createHoyaCluster(clustername, size,
                              [CommonArgs.ARG_X_NO_MASTER],
+                             deleteExistingData,
                              blockUntilRunning)
   }
 
+  /**
+   * Get the resource configuration dir in the source tree
+   * @return
+   */
   public File getResourceConfDir() {
     File f = new File("src/main/resources/conf").absoluteFile
     assert f.exists()
@@ -321,15 +328,23 @@ implements KeysForTests {
    * @param clustername cluster name
    * @param size # of nodes
    * @param extraArgs list of extra args to add to the creation command
+   * @param deleteExistingData should the data of any existing cluster
+   * of this name be deleted
    * @param blockUntilRunning block until the AM is running
    * @return launcher which will have executed the command.
    */
-  public ServiceLauncher createHoyaCluster(String clustername,
-                                           int size,
-                                           List<String> extraArgs,
-                                           boolean blockUntilRunning) {
+  public ServiceLauncher createHoyaCluster(String clustername, int size, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
     assert clustername != null
     assert miniCluster != null
+    if (deleteExistingData) {
+      HadoopFS dfs = HadoopFS.get(new URI(fsDefaultName), miniCluster.config)
+      Path clusterDir = HoyaUtils.createHoyaClusterDirPath(dfs, clustername)
+      log.info("deleting customer data at $clusterDir")
+      //this is a safety check to stop us doing something stupid like deleting /
+      assert clusterDir.toString().contains("/.hoya/")
+      dfs.delete(clusterDir, true)
+    }
+
     List<String> argsList = [
         ClientArgs.ACTION_CREATE, clustername,
         CommonArgs.ARG_MIN, Integer.toString(size),
@@ -550,9 +565,7 @@ implements KeysForTests {
    */
   public int clusterActionStop(HoyaClient hoyaClient, String clustername) {
 
-    hoyaClient.actionStop(clustername);
-    int exitCode = hoyaClient.monitorAppToCompletion(
-        new Duration(HBASE_CLUSTER_STOP_TIME))
+    int exitCode = hoyaClient.actionStop(clustername, HBASE_CLUSTER_STOP_TIME);
     if (exitCode != 0) {
       log.warn("HBase app shutdown failed with error code $exitCode")
     }

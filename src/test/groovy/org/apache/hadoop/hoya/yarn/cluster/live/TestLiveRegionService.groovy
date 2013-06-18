@@ -30,7 +30,6 @@ import groovy.util.logging.Commons
 import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hbase.ServerName
 import org.apache.hadoop.hoya.api.ClusterDescription
-import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.yarn.ZKIntegration
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
@@ -54,7 +53,7 @@ class TestLiveRegionService extends YarnMiniClusterTestBase {
     ZKIntegration zki = createZKIntegrationInstance(ZKBinding, clustername, false, false, 5000)
     log.info("ZK up at $zki");
     //now launch the cluster
-    ServiceLauncher launcher = createHoyaCluster(clustername, regionServerCount, [], true)
+    ServiceLauncher launcher = createHoyaCluster(clustername, regionServerCount, [], true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)
     log.info("${status.toJsonString()}")

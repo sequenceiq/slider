@@ -40,7 +40,7 @@ class TestHBaseMasterOnHDFS extends YarnMiniClusterTestBase {
     createMiniCluster(clustername, new YarnConfiguration(), 1, 1, 1, true, true)
     log.info("HDFS is at $fsDefaultName")
     assert fsDefaultName.startsWith("hdfs://")
-    ServiceLauncher launcher = createHoyaCluster(clustername, 1, [], true) 
+    ServiceLauncher launcher = createHoyaCluster(clustername, 1, [], true, true) 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)
     log.info("Status $status")

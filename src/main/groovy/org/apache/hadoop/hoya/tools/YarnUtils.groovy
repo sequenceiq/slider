@@ -112,7 +112,7 @@ class YarnUtils {
     if (!report) {
       return "Null application report"
     }
-    return "App {${report.name}}/{$report.applicationType} user ${report.user}" +
+    return "App {${report.name}}/{$report.applicationType} #${report.applicationId} user ${report.user}" +
            " is in state ${report.yarnApplicationState}  " +
            "RPC: ${report.host}:${report.rpcPort}"
   }

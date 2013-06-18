@@ -20,39 +20,53 @@
 
 
 
-package org.apache.hadoop.hoya.yarn.cluster.actions
+
+
+
+
+package org.apache.hadoop.hoya.yarn.cluster.masterless
 
 import groovy.util.logging.Commons
-import org.apache.hadoop.hoya.api.ClusterDescription
-import org.apache.hadoop.hoya.tools.Duration
-import org.apache.hadoop.hoya.yarn.CommonArgs
+import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
+import org.apache.hadoop.yarn.api.records.ApplicationId
+import org.apache.hadoop.yarn.api.records.ApplicationReport
+import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
 /**
- * Test of RM creation. This is so the later test's prereq's can be met
+ * create masterless AMs and work with them. This is faster than
+ * bringing up full clusters
  */
 @Commons
-class TestHBaseVersionCommand extends YarnMiniClusterTestBase {
+class TestRecreateMasterlessAM extends YarnMiniClusterTestBase {
 
   @Test
-  public void testHBaseVersionCommand() throws Throwable {
-    String clustername = "TestHBaseVersionCommand"
+  public void testRecreateMasterlessAM() throws Throwable {
+    String clustername = "TestRecreateMasterlessAM"
     createMiniCluster(clustername, new YarnConfiguration(), 1, true)
-    ServiceLauncher launcher = createHoyaCluster(clustername, 0,
-                                                 [
-                                                     CommonArgs.ARG_X_HBASE_COMMAND, "version",
-                                                 ], true,
-                                                 true)
-    assert launcher.serviceExitCode == 0
+
+    describe "create a masterless AM, stop it, try to create" +
+             "a second cluster with the same name"
+
+    ServiceLauncher launcher = createMasterlessAM(clustername, 0, true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
-    hoyaClient.monitorAppToRunning(new Duration(CLUSTER_GO_LIVE_TIME))
-    ClusterDescription status = hoyaClient.getClusterStatus(clustername)
-    log.info("Status $status")
-    waitForAppToFinish(hoyaClient)
+    clusterActionStop(hoyaClient,clustername)
+
+    //now try to create instance #2, and expect an in-use failure
+    try {
+      createMasterlessAM(clustername, 0, false, false)
+      fail("expected a failure")
+    } catch (HoyaException e) {
+      assert e.exitCode == HoyaExitCodes.EXIT_BAD_CLUSTER_STATE
+      assert e.toString().contains(HoyaClient.E_ALREADY_EXISTS)
+    }
+
   }
+
 
 }

@@ -228,10 +228,14 @@ class HoyaAppMaster extends CompositeService
    * @throws Throwable on a failure
    */
   public int createAndRunCluster(String clustername) throws Throwable {
+
     clusterDescription.name = clustername;
     clusterDescription.state = ClusterDescription.STATE_CREATED;
     clusterDescription.startTime = System.currentTimeMillis();
-    
+    if (!clusterDescription.createTime) {
+      clusterDescription.createTime = clusterDescription.startTime
+    }
+
     YarnConfiguration conf = new YarnConfiguration(config);
 
     InetSocketAddress address = YarnUtils.getRmSchedulerAddress(conf)

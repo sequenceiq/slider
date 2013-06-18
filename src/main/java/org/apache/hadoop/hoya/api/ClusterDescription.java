@@ -18,6 +18,9 @@
 
 package org.apache.hadoop.hoya.api;
 
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import java.io.IOException;
@@ -36,17 +39,54 @@ import java.util.Map;
  */
 public class ClusterDescription {
 
+  /**
+   * Name of the cluster
+   */
   public String name;
+  /**
+   * State of the cluster
+   */
   public int state;
   
   /*
    State list for both clusters and nodes in them. Ordered so that destroyed follows
-   stopped
+   stopped.
+   
+   Some of the states are only used for recording
+   the persistent state of the cluster and are not
+   seen in node descriptions
    */
-  public static final int STATE_CREATED = 0;
-  public static final int STATE_LIVE = 1;
-  public static final int STATE_STOPPED = 2;
-  public static final int STATE_DESTROYED = 3;
+
+  /**
+   * Specification is incomplete & cannot
+   * be used: {@value}
+   */
+  public static final int STATE_INCOMPLETE = 0;
+
+  /**
+   * Spec has been submitted: {@value}
+   */
+  public static final int STATE_SUBMITTED = 1;
+  /**
+   * Cluster created: {@value}
+   */
+  public static final int STATE_CREATED   = 2;
+  /**
+   * Live: {@value}
+   */
+  public static final int STATE_LIVE      = 3;
+  /**
+   * Stopped
+   */
+  public static final int STATE_STOPPED   = 4;
+  /**
+   * destroyed
+   */
+  public static final int STATE_DESTROYED = 5;
+  /**
+   * When was the cluster created?
+   */
+  public long createTime;
   /**
    * When was the cluster last started?
    */
@@ -68,11 +108,13 @@ public class ClusterDescription {
    */
   
   public String originConfigurationPath;
+  public String generatedConfigurationPath;
   public int minRegionNodes;
   public int maxRegionNodes;
   public int minMasterNodes;
   public int maxMasterNodes;
 
+  public int regionServerHeap;
   public String zkHosts;
   public int zkPort;
   public String zkPath;
@@ -198,6 +240,26 @@ public class ClusterDescription {
     ObjectMapper mapper = new ObjectMapper();
     return mapper.writeValueAsString(this);
   }
+
+
+  /**
+   * Save a cluster description to a hadoop filesystem
+   * @param fs filesystem
+   * @param path path
+   * @param overwrite should any existing file be overwritten
+   * @throws IOException IO excpetion
+   */
+  public void save(FileSystem fs, Path path, boolean overwrite) throws
+                                                                IOException {
+    String json = toJsonString();
+    FSDataOutputStream dataOutputStream = fs.create(path, overwrite);
+    try {
+      dataOutputStream.writeUTF(json);
+    } finally {
+      dataOutputStream.close();
+    }
+
+  } 
   
   public static ClusterDescription fromJson(String json) throws IOException {
     ObjectMapper mapper = new ObjectMapper();
