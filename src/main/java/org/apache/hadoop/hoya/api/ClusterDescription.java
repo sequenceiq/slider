@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.api;
 
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -270,8 +271,20 @@ public class ClusterDescription {
     } finally {
       dataOutputStream.close();
     }
+  }
 
-  } 
+  /**
+   * Load from the filesystem
+   * @param fs filesystem
+   * @param path path
+   * @return a loaded CD
+   * @throws IOException IO problems
+   */
+  public static ClusterDescription load(FileSystem fs, Path path) throws IOException {
+    FSDataInputStream dataInputStream = fs.open(path);
+    String json = dataInputStream.readUTF();
+    return fromJson(json);
+  }
   
   public static ClusterDescription fromJson(String json) throws IOException {
     ObjectMapper mapper = new ObjectMapper();

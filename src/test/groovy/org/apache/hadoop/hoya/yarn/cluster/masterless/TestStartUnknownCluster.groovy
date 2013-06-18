@@ -23,9 +23,6 @@ import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
-import org.apache.hadoop.yarn.api.records.ApplicationId
-import org.apache.hadoop.yarn.api.records.ApplicationReport
-import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
@@ -35,33 +32,23 @@ import org.junit.Test
  * bringing up full clusters
  */
 @Commons
-class TestCreateClusterRunning extends YarnMiniClusterTestBase {
+class TestStartUnknownCluster extends YarnMiniClusterTestBase {
 
+  @Test
+  public void testStartUnknownCluster() throws Throwable {
+    String clustername = "TestStartUnknownCluster"
+    createMiniCluster(clustername, new YarnConfiguration(), 1, true)
 
-    @Test
-    public void testCreateClusterRunning() throws Throwable {
-      String clustername = "TestCreateClusterRunning"
-      createMiniCluster(clustername, new YarnConfiguration(), 1, true)
+    describe "try to start a cluster that isn't defined"
 
-      describe "create a masterless AM, while it is running, try to create" +
-               "a second cluster with the same name"
-
-      //launch fake master
-      ServiceLauncher launcher
-      launcher = createMasterlessAM(clustername, 0, true, true)
-      HoyaClient hoyaClient = (HoyaClient) launcher.service
-
-      //now try to create instance #2, and expect an in-use failure
     try {
-      createMasterlessAM(clustername, 0, false, true)
+      ServiceLauncher launcher = startHoyaCluster(clustername, [], true);
       fail("expected a failure")
     } catch (HoyaException e) {
-      assert e.exitCode == HoyaExitCodes.EXIT_BAD_CLUSTER_STATE
-      assert e.toString().contains(HoyaClient.E_CLUSTER_RUNNING)
+      assert e.exitCode == HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER
+      assert e.toString().contains(HoyaClient.E_UNKNOWN_CLUSTER)
+      assert e.toString().contains(clustername)
     }
-
-
   }
-
 
 }

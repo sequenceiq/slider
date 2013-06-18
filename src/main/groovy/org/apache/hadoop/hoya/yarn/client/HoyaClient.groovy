@@ -79,6 +79,9 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   public static final int ACCEPT_TIME = 60000
   public static final String E_CLUSTER_RUNNING = "cluster already running"
   public static final String E_ALREADY_EXISTS = "already exists"
+  public static final String E_MISSING_PATH = "Missing path "
+  public static final String E_INCOMPLETE_CLUSTER_SPEC = "Cluster specification is marked as incomplete: "
+  public static final String E_UNKNOWN_CLUSTER = "Unknown cluster "
   private int amPriority = 0;
   // Queue for App master
   private String amQueue = "default";
@@ -178,8 +181,8 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
         break;
 
       case ClientArgs.ACTION_START:
-        validateClusterName(clusterName)
-        throw new HoyaException("Start: " + actionArgs[0])
+        exitCode = actionStart(clusterName);
+        break;
 
       case ClientArgs.ACTION_STATUS:
         validateClusterName(clusterName)
@@ -203,9 +206,32 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
       throw new BadCommandArgumentsException("Illegal cluster name: `$clustername`")
     }
   }
+
+  /**
+   * Start the AM
+   */
+  public int actionStart(String clustername) {
+    //verify that a live cluster isn't there
+    validateClusterName(clustername)
+    verifyNoLiveClusters(clustername)
+    Path clusterDirectory = HoyaUtils.createHoyaClusterDirPath(clusterFS, clustername)
+    Path clusterSpecPath = new Path(clusterDirectory, HoyaKeys.CLUSTER_SPECIFICATION_FILE);
+    if (!clusterFS.exists(clusterSpecPath)) {
+      log.debug("Missing cluster specification file $clusterSpecPath")
+      throw new HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER,
+                                             E_UNKNOWN_CLUSTER + clustername +
+        "\n (cluster definition not found at $clusterSpecPath)")
+    }
+    ClusterDescription clusterSpec = ClusterDescription.load(clusterFS, clusterSpecPath);
+    //spec is loaded, just look at its state
+    if (clusterSpec.state == ClusterDescription.STATE_INCOMPLETE) {
+      throw new HoyaException(EXIT_BAD_CLUSTER_STATE,E_INCOMPLETE_CLUSTER_SPEC + clusterSpecPath)
+    }
+    return executeClusterCreation(clusterSpec);
+  }
   
   /**
-   * Create the AM
+   * Create the cluster -saving the arguments to a specification file first
    */
   private int actionCreate(String clustername) {
 
@@ -272,8 +298,6 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
                               e)
     }
 
-
-
     //bulk copy
     //first the original from wherever to the DFS
     HoyaUtils.copyDirectory(config, serviceArgs.confdir, origConfPath)
@@ -305,22 +329,36 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     clusterSpec.state = ClusterDescription.STATE_SUBMITTED;
     clusterSpec.save(clusterFS, clusterSpecPath, true)
     //here is where all the work is done
-    
-    //make sure it is valid
-    verifyValidClusterSize(minRegionServers)
+   
     
     return executeClusterCreation(clusterSpec)
   }
- 
- public int executeClusterCreation(ClusterDescription clusterSpec) {   
-    ApplicationSubmissionContext appContext =
+
+  /**
+   * Create a cluster to the specification
+   * @param clusterSpec cluster specification
+   * @return the exit code from the operation
+   */
+ public int executeClusterCreation(ClusterDescription clusterSpec) {
+
+   //verify that a live cluster isn't there
+   final String clustername = clusterSpec.name
+   validateClusterName(clustername)
+   verifyNoLiveClusters(clustername)
+   //make sure it is valid
+   verifyValidClusterSize(clusterSpec.minRegionNodes)
+
+   Path genConfPath = createPathThatMustExist(clusterSpec.generatedConfigurationPath)
+   Path origConfPath = createPathThatMustExist(clusterSpec.originConfigurationPath)
+   
+   ApplicationSubmissionContext appContext =
       Records.newRecord(ApplicationSubmissionContext.class);
     GetNewApplicationResponse newApp = super.getNewApplication();
     ApplicationId appId = newApp.applicationId
     // set the application id 
     appContext.applicationId = appId;
     // set the application name
-    appContext.applicationName = clusterSpec.name
+    appContext.applicationName = clustername
     //app type used in service enum
     appContext.applicationType = HoyaKeys.APP_TYPE
 
@@ -329,16 +367,13 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
       appContext.maxAppAttempts = 1
     }
 
-
     Path tempPath = HoyaUtils.createHoyaAppInstanceTempPath(clusterFS,
-                                                            clusterSpec.name,
+                                                            clustername,
                                                             appId.toString())
 
     // Set up the container launch context for the application master
     ContainerLaunchContext amContainer =
       Records.newRecord(ContainerLaunchContext.class);
-
-
 
     // set local resources for the application master
     // local files or archives as needed
@@ -387,7 +422,6 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
     
     //now load the template configuration and build the site
-    Path genConfPath = new Path(clusterSpec.generatedConfigurationPath) 
     Configuration templateConf = ConfigHelper.loadTemplateConfiguration(config,
                                                                         genConfPath,
                                         HoyaKeys.HBASE_TEMPLATE,
@@ -467,7 +501,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     //now the app specific args
     commands << HoyaMasterServiceArgs.ARG_DEBUG
     commands << HoyaMasterServiceArgs.ACTION_CREATE
-    commands << clusterSpec.name
+    commands << clustername
     //min #of nodes
     commands << HoyaMasterServiceArgs.ARG_MIN
     commands << (Integer) clusterSpec.minRegionNodes
@@ -586,6 +620,25 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
       }
     }
     return exitCode
+  }
+
+  /**
+   * Create a path that must exist in the cluster fs
+   * @param uri uri to create
+   * @return the path
+   * @throws HoyaException if the path does not exist
+   */
+  public Path createPathThatMustExist(String uri) {
+    Path path = new Path(uri)
+    verifyPathExists(path)
+    return path;
+  }
+
+  public void verifyPathExists(Path path) {
+    if (!clusterFS.exists(path)) {
+      throw new HoyaException(EXIT_BAD_CLUSTER_STATE,
+                              E_MISSING_PATH + path)
+    }
   }
 
   /**

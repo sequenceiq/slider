@@ -23,9 +23,6 @@ import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
-import org.apache.hadoop.yarn.api.records.ApplicationId
-import org.apache.hadoop.yarn.api.records.ApplicationReport
-import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
@@ -35,32 +32,24 @@ import org.junit.Test
  * bringing up full clusters
  */
 @Commons
-class TestCreateClusterRunning extends YarnMiniClusterTestBase {
+class TestStartMasterlessAM extends YarnMiniClusterTestBase {
 
+  
+  @Test
+  public void testStartMasterlessAM() throws Throwable {
+    String clustername = "TestStartMasterlessAM"
+    createMiniCluster(clustername, new YarnConfiguration(), 1, true)
 
-    @Test
-    public void testCreateClusterRunning() throws Throwable {
-      String clustername = "TestCreateClusterRunning"
-      createMiniCluster(clustername, new YarnConfiguration(), 1, true)
+    describe "create a masterless AM, stop it, restart it"
 
-      describe "create a masterless AM, while it is running, try to create" +
-               "a second cluster with the same name"
-
-      //launch fake master
-      ServiceLauncher launcher
-      launcher = createMasterlessAM(clustername, 0, true, true)
-      HoyaClient hoyaClient = (HoyaClient) launcher.service
-
-      //now try to create instance #2, and expect an in-use failure
-    try {
-      createMasterlessAM(clustername, 0, false, true)
-      fail("expected a failure")
-    } catch (HoyaException e) {
-      assert e.exitCode == HoyaExitCodes.EXIT_BAD_CLUSTER_STATE
-      assert e.toString().contains(HoyaClient.E_CLUSTER_RUNNING)
-    }
-
-
+    ServiceLauncher launcher = createMasterlessAM(clustername, 0, true, true)
+    HoyaClient hoyaClient = (HoyaClient) launcher.service
+    clusterActionStop(hoyaClient, clustername)
+    
+    //now start the cluster
+    ServiceLauncher launcher2 = startHoyaCluster(clustername, [], true);
+    HoyaClient newCluster = launcher.getService() as HoyaClient
+    newCluster.getClusterStatus(clustername);
   }
 
 

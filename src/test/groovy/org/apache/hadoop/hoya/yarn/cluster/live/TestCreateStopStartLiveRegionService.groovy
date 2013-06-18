@@ -33,7 +33,7 @@ import org.junit.Test
  * Test of RM creation. This is so the later test's prereq's can be met
  */
 @Commons
-class TestLiveRegionService extends YarnMiniClusterTestBase {
+class TestCreateStopStartLiveRegionService extends YarnMiniClusterTestBase {
 
 
   @Test
@@ -41,18 +41,10 @@ class TestLiveRegionService extends YarnMiniClusterTestBase {
     String clustername = "TestLiveRegionService"
     int regionServerCount = 2
     createMiniCluster(clustername, new YarnConfiguration(), regionServerCount+1, true)
-    //make sure that ZK is up and running at the binding string
-    ZKIntegration zki = createZKIntegrationInstance(ZKBinding, clustername, false, false, 5000)
-    log.info("ZK up at $zki");
-    //now launch the cluster
     ServiceLauncher launcher = createHoyaCluster(clustername, regionServerCount, [], true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)
     log.info("${status.toJsonString()}")
-    assert ZKHosts == status.zkHosts
-    assert ZKPort == status.zkPort
-
-    dumpFullHBaseConf(hoyaClient, clustername)
 
     ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient, clustername)
 
@@ -64,11 +56,22 @@ class TestLiveRegionService extends YarnMiniClusterTestBase {
     
     Collection<ServerName> servers = clustat.servers
     if (servers.size() != regionServerCount) {
-      fail("Server size is not $regionServerCount in " + statusToString(clustat))
+      log.warn("Server size is not $regionServerCount in " + statusToString(clustat))
     }
     
 
     clusterActionStop(hoyaClient, clustername)
+    
+    //now let's start the cluster up again
+    ServiceLauncher launcher2 = startHoyaCluster(clustername, [], true);
+    HoyaClient newCluster = launcher.getService() as HoyaClient
+    newCluster.getClusterStatus(clustername);
+
+    status = waitForRegionServerCount(newCluster, clustername,
+                                      regionServerCount,
+                                      HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+    clustat = getHBaseClusterStatus(newCluster, clustername)
+
   }
 
 

@@ -16,12 +16,6 @@
  *  limitations under the License.
  */
 
-
-
-
-
-
-
 package org.apache.hadoop.hoya.yarn.cluster.actions
 
 import groovy.util.logging.Commons
