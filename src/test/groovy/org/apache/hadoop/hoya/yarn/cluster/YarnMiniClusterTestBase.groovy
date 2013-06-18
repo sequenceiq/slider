@@ -542,11 +542,13 @@ implements KeysForTests {
   }
 
   /**
-   * stop the cluster via the stop action 
+   * stop the cluster via the stop action -and wait for {@link #HBASE_CLUSTER_STOP_TIME}
+   * for the cluster to stop. If it doesn't
    * @param hoyaClient client
    * @param clustername cluster
+   * @return the exit code
    */
-  public void clusterActionStop(HoyaClient hoyaClient, String clustername) {
+  public int clusterActionStop(HoyaClient hoyaClient, String clustername) {
 
     hoyaClient.actionStop(clustername);
     int exitCode = hoyaClient.monitorAppToCompletion(
@@ -554,6 +556,7 @@ implements KeysForTests {
     if (exitCode != 0) {
       log.warn("HBase app shutdown failed with error code $exitCode")
     }
+    return exitCode
   }
 
   /**

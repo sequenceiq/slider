@@ -27,6 +27,7 @@ package org.apache.hadoop.hoya.yarn.cluster
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.yarn.api.records.ApplicationReport
+import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
@@ -61,11 +62,32 @@ class TestCreateMasterlessAM extends YarnMiniClusterTestBase {
     describe("list of all applications")
     logApplications(apps)
     describe("apps of user $username")
-    logApplications(hoyaClient.listHoyaInstances(username))
+    List<ApplicationReport> userInstances = hoyaClient.listHoyaInstances(username)
+    logApplications(userInstances)
+    assert userInstances.size() == 1
     describe("named app $clustername")
     ApplicationReport instance = hoyaClient.findInstance(username, clustername)
     logReport(instance)
     assert instance != null
+    
+    //now kill that cluster
+    assert 0 == clusterActionStop(hoyaClient, clustername)
+    //list it & See if it is still there
+    ApplicationReport oldInstance = hoyaClient.findInstance(username, clustername)
+    assert oldInstance!=null
+    assert oldInstance.yarnApplicationState >= YarnApplicationState.FINISHED
+
+    //create another AM
+    launcher = createMasterlessAM(clustername, 0, true)
+    
+    //expect 2 in the list
+    userInstances = hoyaClient.listHoyaInstances(username)
+    logApplications(userInstances)
+    assert userInstances.size() == 2
+
+    //but when we look up an instance, we get the new App ID
+    ApplicationReport newInstance = hoyaClient.findInstance(username, clustername)
+    assert oldInstance.applicationId != newInstance.applicationId
 
   }
 
