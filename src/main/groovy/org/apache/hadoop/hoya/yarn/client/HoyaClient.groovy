@@ -421,9 +421,12 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
 
     
-    //now load the template configuration and build the site
+    //now load the template configuration and build the site. Note that the 
+    //original confdir (as on the localfs of the client) is passed.
+    //TODO: will this work when clusters are restarted (would we need to 
+    //use the original configuration when the cluster was first started..)
     Configuration templateConf = ConfigHelper.loadTemplateConfiguration(config,
-                                                                        genConfPath,
+                                                                        serviceArgs.confdir,
                                         HoyaKeys.HBASE_TEMPLATE,
                                         HoyaKeys.HBASE_TEMPLATE_RESOURCE)
 
