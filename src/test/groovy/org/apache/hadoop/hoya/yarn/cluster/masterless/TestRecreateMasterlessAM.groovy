@@ -16,14 +16,6 @@
  *  limitations under the License.
  */
 
-
-
-
-
-
-
-
-
 package org.apache.hadoop.hoya.yarn.cluster.masterless
 
 import groovy.util.logging.Commons
@@ -31,9 +23,6 @@ import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
-import org.apache.hadoop.yarn.api.records.ApplicationId
-import org.apache.hadoop.yarn.api.records.ApplicationReport
-import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
@@ -55,7 +44,7 @@ class TestRecreateMasterlessAM extends YarnMiniClusterTestBase {
 
     ServiceLauncher launcher = createMasterlessAM(clustername, 0, true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
-    clusterActionStop(hoyaClient,clustername)
+    clusterActionStop(hoyaClient, clustername)
 
     //now try to create instance #2, and expect an in-use failure
     try {

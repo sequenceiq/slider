@@ -16,10 +16,6 @@
  *  limitations under the License.
  */
 
-
-
-
-
 package org.apache.hadoop.hoya.yarn.cluster.actions
 
 import groovy.util.logging.Commons
@@ -42,11 +38,13 @@ class TestHBaseVersionCommand extends YarnMiniClusterTestBase {
   public void testHBaseVersionCommand() throws Throwable {
     String clustername = "TestHBaseVersionCommand"
     createMiniCluster(clustername, new YarnConfiguration(), 1, true)
-    ServiceLauncher launcher = createHoyaCluster(clustername, 0,
-                                                 [
-                                                     CommonArgs.ARG_X_HBASE_COMMAND, "version",
-                                                 ], true,
-                                                 true)
+    ServiceLauncher launcher = createHoyaCluster(clustername,
+                                 0,
+                                 [
+                                     CommonArgs.ARG_X_HBASE_COMMAND, "version",
+                                 ],
+                                 true,
+                                 true)
     assert launcher.serviceExitCode == 0
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     hoyaClient.monitorAppToRunning(new Duration(CLUSTER_GO_LIVE_TIME))

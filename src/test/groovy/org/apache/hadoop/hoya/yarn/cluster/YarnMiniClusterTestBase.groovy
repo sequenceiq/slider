@@ -307,21 +307,13 @@ implements KeysForTests {
    * @return launcher which will have executed the command.
    */
   public ServiceLauncher createMasterlessAM(String clustername, int size, boolean deleteExistingData, boolean blockUntilRunning) {
-    return createHoyaCluster(clustername, size,
+    return createHoyaCluster(clustername,
+                             size,
                              [CommonArgs.ARG_X_NO_MASTER],
                              deleteExistingData,
                              blockUntilRunning)
   }
 
-  /**
-   * Get the resource configuration dir in the source tree
-   * @return
-   */
-  public File getResourceConfDir() {
-    File f = new File("src/main/resources/conf").absoluteFile
-    assert f.exists()
-    return f
-  }
 
   /**
    * Create a full cluster with a master & the requested no. of region servers
@@ -377,11 +369,56 @@ implements KeysForTests {
   }
 
   /**
+   * Start a cluster that has already been defined
+   * @param clustername cluster name
+   * @param extraArgs list of extra args to add to the creation command
+   * @param blockUntilRunning block until the AM is running
+   * @return launcher which will have executed the command.
+   */
+  public ServiceLauncher startHoyaCluster(String clustername, List<String> extraArgs, boolean blockUntilRunning) {
+    assert clustername != null
+    assert miniCluster != null
+
+    List<String> argsList = [
+        ClientArgs.ACTION_START, clustername,
+        ClientArgs.ARG_MANAGER, RMAddr,
+        ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
+        ClientArgs.ARG_FILESYSTEM, fsDefaultName,
+    ]
+    if (extraArgs != null) {
+      argsList += extraArgs;
+    }
+    ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
+        //config includes RM binding info
+        new YarnConfiguration(miniCluster.config),
+        //varargs list of command line params
+        argsList
+    )
+    assert launcher.serviceExitCode == 0
+    HoyaClient hoyaClient = (HoyaClient) launcher.service
+    if (blockUntilRunning) {
+      hoyaClient.monitorAppToRunning(new Duration(CLUSTER_GO_LIVE_TIME))
+    }
+    return launcher;
+  }
+
+  
+  /**
+   * Get the resource configuration dir in the source tree
+   * @return
+   */
+  public File getResourceConfDir() {
+    File f = new File("src/main/resources/conf").absoluteFile
+    assert f.exists()
+    return f
+  }
+
+  /**
    get a URI string to the resource conf dir that is suitable for passing down
    to the AM -and works even when the default FS is hdfs
    */
   public String getResourceConfDirURI() {
-    return getResourceConfDir().absoluteFile.toURI().toString()
+    return resourceConfDir.absoluteFile.toURI().toString()
   }
 
 
