@@ -33,6 +33,7 @@ import org.apache.hadoop.hbase.client.HConnection
 import org.apache.hadoop.hbase.client.HConnectionManager
 import org.apache.hadoop.hdfs.MiniDFSCluster
 import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.hoya.tools.Duration
@@ -52,6 +53,7 @@ import org.apache.hadoop.yarn.server.MiniYARNCluster
 import org.apache.hadoop.yarn.server.resourcemanager.ResourceManager
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.ResourceScheduler
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fifo.FifoScheduler
+import org.apache.hadoop.yarn.service.launcher.ServiceLaunchException
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
 import org.junit.After
@@ -231,6 +233,7 @@ implements KeysForTests {
    */
   protected ServiceLauncher launchHoyaClientAgainstMiniMR(Configuration conf,
                                                           List args) {
+    assert miniCluster != null
     ResourceManager rm = miniCluster.resourceManager
     log.info("Connecting to rm at ${rm}")
 
@@ -456,7 +459,7 @@ implements KeysForTests {
   public void assertHBaseMasterNotStopped(HoyaClient hoyaClient,
                                           String clustername) {
     ClusterDescription status = hoyaClient.getClusterStatus(clustername);
-    ClusterDescription.ClusterNode node = status.masterNodes[0];
+    ClusterNode node = status.masterNodes[0];
     assert node != null;
     if (node.state >= ClusterDescription.STATE_STOPPED) {
       //stopped, not what is wanted
@@ -574,7 +577,7 @@ implements KeysForTests {
       //see if there is a master node yet
       if (cd.masterNodes.size() != 0) {
         //if there is, get the node
-        ClusterDescription.ClusterNode master = cd.masterNodes[0];
+        ClusterNode master = cd.masterNodes[0];
         live = master.state == ClusterDescription.STATE_LIVE
         if (!live) {
           break
@@ -667,7 +670,7 @@ implements KeysForTests {
       if (duration.limitExceeded) {
         describe("Cluster region server count of $regionServerCount not reached: $clustat")
         log.info(clustat)
-        fail("Expected $regionServerCount YARN region servers, but only saw $workerCount in $clustat")
+        fail("Expected $regionServerCount YARN region servers, but saw $workerCount in $clustat")
       }
       Thread.sleep(1000)
     }
@@ -698,7 +701,7 @@ implements KeysForTests {
         if (duration.limitExceeded) {
           describe("Cluster region server count of $regionServerCount not reached")
           log.info(prettyPrint(status.toJsonString()))
-          fail("Expected $regionServerCount YARN region servers, but only saw $workerCount")
+          fail("Expected $regionServerCount YARN region servers, but saw $workerCount")
         }
         Thread.sleep(1000)
       }
@@ -710,10 +713,16 @@ implements KeysForTests {
     JsonOutput.prettyPrint(json)
   }
   
-  String log(String text, ClusterDescription status) {
+  void log(String text, ClusterDescription status) {
     describe(text)
     log.info(prettyPrint(status.toJsonString()))
   }
   
-  
+  void assertExceptionDetails(ServiceLaunchException ex, int exitCode, String text){
+    assert exitCode == ex.exitCode
+    if (text) {
+      assert ex.toString().contains(text)
+    }
+  }
+
 }

@@ -146,7 +146,7 @@ public class ClusterDescription {
 
   /**
    * Requested nodes -when they get allocated they will be moved into
-   * one fo the other states
+   * one for the other states
    */
   public List<ClusterNode> requestedNodes = new ArrayList<ClusterNode>();
 
@@ -161,70 +161,6 @@ public class ClusterDescription {
    * List of key-value pairs to add to an HBase config to set up the client
    */
   public Map<String,String> hBaseClientProperties = new HashMap<String, String>();
-
-  /**
-   * Describe a specific node in the cluster
-   */
-  public static class ClusterNode {
-    /**
-     * server name
-     */
-    public String name;
-
-    public String role;
-    /**
-     * state (Currently arbitrary text)
-     */
-    public int state;
-
-    /**
-     * Exit code: only valid if the state >= STOPPED
-     */
-    public int exitCode;
-    
-    /**
-     * what was the command executed?
-     */
-    public String command;
-
-    /**
-     * Any diagnostics
-     */
-    public String diagnostics;
-
-    /**
-     * What is the tail output from the executed process (or [] if not started
-     * or the log cannot be picked up
-     */
-    public String[] output;
-
-    /**
-     * Any environment details
-     */
-    public String[] environment; 
-    
-    
-    public ClusterNode(String name) {
-      this.name = name;
-    }
-
-    public ClusterNode() {
-    }
-
-    @Override
-    public String toString() {
-      StringBuilder builder = new StringBuilder();
-      builder.append(name).append(": ").append(state).append("\n");
-      builder.append(command).append("\n");
-      for (String line : output) {
-        builder.append(line).append("\n");
-      }
-      if (diagnostics != null) {
-        builder.append(diagnostics).append("\n");
-      }
-      return builder.toString();
-    }
-  }
 
   @Override
   public String toString() {

@@ -23,7 +23,7 @@ import groovy.util.logging.Commons
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.HBaseCommands
 import org.apache.hadoop.hoya.HoyaKeys
-import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.tools.YarnUtils
 import org.apache.hadoop.net.NetUtils
 import org.apache.hadoop.security.UserGroupInformation
@@ -140,7 +140,7 @@ class HoyaRegionServiceLauncher implements Runnable {
       log.info("$k=$v")
     }
 
-    ClusterDescription.ClusterNode node = new ClusterDescription.ClusterNode()
+    ClusterNode node = new ClusterNode()
     List<String> nodeEnv = []
     localResources.each { String key, LocalResource val ->
       nodeEnv << "$key=${YarnUtils.stringify(val.resource)}".toString()
@@ -151,7 +151,7 @@ class HoyaRegionServiceLauncher implements Runnable {
     node.environment = nodeEnv.toArray(new String[nodeEnv.size()])
 
 
-    owner.startContainer(container, ctx)
+    owner.startContainer(container, ctx, node)
   }
 
 

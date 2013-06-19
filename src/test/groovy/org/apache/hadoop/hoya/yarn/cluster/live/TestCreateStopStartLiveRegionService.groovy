@@ -37,8 +37,8 @@ class TestCreateStopStartLiveRegionService extends YarnMiniClusterTestBase {
 
 
   @Test
-  public void testLiveRegionServiceTwoNodes() throws Throwable {
-    String clustername = "TestLiveRegionService"
+  public void testCreateStopStartLiveRegionService() throws Throwable {
+    String clustername = "TestCreateStopStartLiveRegionService"
     int regionServerCount = 2
     createMiniCluster(clustername, new YarnConfiguration(), regionServerCount+1, true)
     ServiceLauncher launcher = createHoyaCluster(clustername, regionServerCount, [], true, true)
@@ -48,16 +48,10 @@ class TestCreateStopStartLiveRegionService extends YarnMiniClusterTestBase {
 
     ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient, clustername)
 
-    status = waitForRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-    clustat = getHBaseClusterStatus(hoyaClient, clustername)
-
+    waitForHBaseWorkerCount(hoyaClient, clustername, regionServerCount,
+                            HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     describe("Cluster status")
     log.info(prettyPrint(status.toJsonString()))
-    
-    Collection<ServerName> servers = clustat.servers
-    if (servers.size() != regionServerCount) {
-      log.warn("Server size is not $regionServerCount in " + statusToString(clustat))
-    }
     
 
     clusterActionStop(hoyaClient, clustername)
@@ -65,14 +59,10 @@ class TestCreateStopStartLiveRegionService extends YarnMiniClusterTestBase {
     //now let's start the cluster up again
     ServiceLauncher launcher2 = startHoyaCluster(clustername, [], true);
     HoyaClient newCluster = launcher.getService() as HoyaClient
-    newCluster.getClusterStatus(clustername);
+    basicHBaseClusterStartupSequence(newCluster, clustername)
 
-    status = waitForRegionServerCount(newCluster, clustername,
-                                      regionServerCount,
-                                      HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-    clustat = getHBaseClusterStatus(newCluster, clustername)
     //get the hbase status
-    waitForHBaseWorkerCount(hoyaClient, clustername, regionServerCount,
+    waitForHBaseWorkerCount(newCluster, clustername, regionServerCount,
                             HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
   }

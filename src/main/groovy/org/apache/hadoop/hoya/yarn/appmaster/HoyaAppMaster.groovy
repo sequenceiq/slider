@@ -26,6 +26,7 @@ import org.apache.hadoop.hoya.HoyaApp
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.api.HoyaAppMasterProtocol
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
 import org.apache.hadoop.hoya.exceptions.HoyaException
@@ -60,7 +61,6 @@ import org.apache.hadoop.yarn.client.api.AMRMClient
 import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync
 import org.apache.hadoop.yarn.client.api.async.NMClientAsync
 import org.apache.hadoop.yarn.client.api.async.impl.NMClientAsyncImpl
-import org.apache.hadoop.yarn.client.api.impl.AMRMClientImpl
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.exceptions.YarnException
 import org.apache.hadoop.yarn.ipc.YarnRPC
@@ -171,14 +171,14 @@ class HoyaAppMaster extends CompositeService
   private final ClusterDescription clusterDescription = new ClusterDescription();
   //hbase command
   private RunLongLivedApp hbaseMaster
-  private ClusterDescription.ClusterNode masterNode;
+  private ClusterNode masterNode;
 
   /**
    * Map of containerID -> cluster nodes, for status reports.
    * Access to this should be synchronized on the clusterDescription
    */
-  private final Map<ContainerId, ClusterDescription.ClusterNode> containerMap = [:]
-  private final Map<ContainerId, ClusterDescription.ClusterNode> requestedNodes = [:]
+  private final Map<ContainerId, ClusterNode> containerMap = [:]
+  private final Map<ContainerId, ClusterNode> requestedNodes = [:]
   private boolean noMaster
 
 
@@ -409,7 +409,7 @@ class HoyaAppMaster extends CompositeService
     success = true;
     clusterDescription.statusTime = System.currentTimeMillis()
     clusterDescription.state = ClusterDescription.STATE_LIVE;
-    masterNode = new ClusterDescription.ClusterNode(hostname)
+    masterNode = new ClusterNode(hostname)
     clusterDescription.masterNodes = 
       [
         masterNode
@@ -801,7 +801,7 @@ class HoyaAppMaster extends CompositeService
    */
   private void updateClusterDescription() {
     
-    List<ClusterDescription.ClusterNode> nodes = []
+    List<ClusterNode> nodes = []
     
     synchronized (clusterDescription) {
       nodes  = containerMap.values().toList()  
@@ -833,13 +833,13 @@ class HoyaAppMaster extends CompositeService
    * @param completed the node that has just completed
    */
   private void updateCompletedNode(ContainerStatus completed) {
-    ClusterDescription.ClusterNode node
+    ClusterNode node
     
     //add the node
     synchronized (clusterDescription) {
       node = containerMap.remove(completed.containerId)
       if (node == null) {
-        node = new ClusterDescription.ClusterNode()
+        node = new ClusterNode()
         node.name = completed.containerId.toString()
       }
       node.state = ClusterDescription.STATE_DESTROYED
@@ -854,7 +854,7 @@ class HoyaAppMaster extends CompositeService
    * @param id id
    * @param node node details
    */
-  public void addLaunchedContainerToCD(ContainerId id, ClusterDescription.ClusterNode node) {
+  public void addLaunchedContainerToCD(ContainerId id, ClusterNode node) {
     synchronized (clusterDescription) {
       containerMap[id] = node
     }
@@ -865,7 +865,7 @@ class HoyaAppMaster extends CompositeService
    * @param id id
    * @param node node details
    */
-  public void addRequestedContainerToCD(ContainerId id, ClusterDescription.ClusterNode node) {
+  public void addRequestedContainerToCD(ContainerId id, ClusterNode node) {
     synchronized (clusterDescription) {
       requestedNodes[id]=node;
     }
@@ -958,11 +958,16 @@ class HoyaAppMaster extends CompositeService
     clusterDescription.hBaseClientProperties[key] = val;
   }
 
-  public void startContainer(Container container, ContainerLaunchContext ctx) {
+  public void startContainer(Container container, ContainerLaunchContext ctx,
+                             ClusterNode node) {
+    node.state = ClusterDescription.STATE_SUBMITTED
+    synchronized (clusterDescription) {
+      clusterDescription.requestedNodes << node
+    }
     containers.putIfAbsent(container.getId(), container);
     nmClientAsync.startContainerAsync(container, ctx);
+
   }
-  
   
   @Override //  NMClientAsync.CallbackHandler 
   public void onContainerStopped(ContainerId containerId) {
@@ -972,13 +977,21 @@ class HoyaAppMaster extends CompositeService
     containers.remove(containerId);
   }
 
-
   @Override //  NMClientAsync.CallbackHandler 
   public void onContainerStarted(ContainerId containerId,
                                  Map<String, ByteBuffer> allServiceResponse) {
     if (log.isDebugEnabled()) {
       log.debug("Succeeded to start Container " + containerId);
     }
+    //update the specification
+    ClusterNode node = requestedNodes.remove(containerId)
+    if (!node) {
+      log.warn("Creating a new node description for an unrequested node")
+      node = new ClusterNode(containerId.toString())
+      node.role="unknown"
+    }
+    node.state = ClusterDescription.STATE_LIVE
+    addLaunchedContainerToCD(containerId, node)
     Container container = containers.get(containerId);
     if (container != null) {
       nmClientAsync.getContainerStatusAsync(containerId, container.getNodeId());
@@ -992,7 +1005,7 @@ class HoyaAppMaster extends CompositeService
     log.error("Failed to start Container " + containerId, t);
     containers.remove(containerId);
     synchronized (clusterDescription) {
-      ClusterDescription.ClusterNode node = requestedNodes.remove(containerId)
+      ClusterNode node = requestedNodes.remove(containerId)
       if (node) {
         if (t) {
           node.diagnostics = HoyaUtils.stringify(t)
@@ -1006,16 +1019,6 @@ class HoyaAppMaster extends CompositeService
   public void onContainerStatusReceived(ContainerId containerId,
                                         ContainerStatus containerStatus) {
     log.debug("Container Status: id= $containerId, status=$containerStatus");
-    synchronized (clusterDescription) {
-      ClusterDescription.ClusterNode node = requestedNodes.remove(containerId)
-      if (!node) {
-        log.warn("Got container status on an unknown container $containerId")
-      } else {
-        node.diagnostics = containerStatus.diagnostics
-        node.exitCode = containerStatus.exitStatus
-        addLaunchedContainerToCD(containerId, node)
-      }
-    }
   }
   
   @Override //  NMClientAsync.CallbackHandler 
@@ -1030,9 +1033,9 @@ class HoyaAppMaster extends CompositeService
     containers.remove(containerId);
     synchronized (clusterDescription) {
 
-      ClusterDescription.ClusterNode node = failNode(containerId,
-                                                     clusterDescription.workerNodes,
-                                                     t)
+      ClusterNode node = failNode(containerId,
+                                  clusterDescription.workerNodes,
+                                  t)
       if (!node) {
         failNode(containerId, clusterDescription.masterNodes, t)
       }
@@ -1048,14 +1051,14 @@ class HoyaAppMaster extends CompositeService
    * @param nodeList list to scan from (& remove found)
    * @return the node, if found
    */
-  public ClusterDescription.ClusterNode failNode(ContainerId containerId,
-                                                 List<ClusterDescription.ClusterNode> nodeList,
+  public ClusterNode failNode(ContainerId containerId,
+                                                 List<ClusterNode> nodeList,
                                                  Throwable t) {
     String containerName = containerId.toString()
-    ClusterDescription.ClusterNode node
+    ClusterNode node
     synchronized (clusterDescription) {
       node = nodeList.find {
-        ClusterDescription.ClusterNode n ->
+        ClusterNode n ->
           n.name == containerName
       }
       if (node) {

@@ -56,15 +56,14 @@ class TestLiveRegionService extends YarnMiniClusterTestBase {
 
     ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient, clustername)
 
-    status = waitForRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-    clustat = getHBaseClusterStatus(hoyaClient, clustername)
 
-    describe("Cluster status")
-    log.info(prettyPrint(status.toJsonString()))
 
     //get the hbase status
     waitForHBaseWorkerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+    describe("Cluster status")
+    log.info(prettyPrint(status.toJsonString()))
 
+    status = waitForRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
     clusterActionStop(hoyaClient, clustername)
   }
