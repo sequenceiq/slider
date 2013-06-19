@@ -348,4 +348,11 @@ class HoyaUtils {
   public static Path getBaseHoyaPath(HadoopFS fs) {
     return new Path(fs.homeDirectory, ".hoya")
   }
+  
+  public static String stringify(Throwable t) {
+    StringWriter sw = new StringWriter()
+    sw.append(t.toString()).append('\n')
+    t.printStackTrace(new PrintWriter(sw))
+    return sw.toString()
+  }
 }

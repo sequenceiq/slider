@@ -66,6 +66,7 @@ import org.apache.hadoop.yarn.exceptions.YarnException
 import org.apache.hadoop.yarn.service.launcher.RunService
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.util.Records
+import org.codehaus.jackson.JsonParseException
 
 import java.nio.ByteBuffer
 
@@ -1251,8 +1252,13 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   public ClusterDescription getClusterStatus(String clustername) {
     HoyaAppMasterProtocol appMaster = bondToCluster(clustername)
     String statusJson = appMaster.getClusterStatus()
-    ClusterDescription cd = ClusterDescription.fromJson(statusJson)
-    return cd
+    try {
+      ClusterDescription cd = ClusterDescription.fromJson(statusJson)
+      return cd
+    } catch (JsonParseException e) {
+      log.error("Exception $e parsing:\n" + JsonOutput.prettyPrint(statusJson), e)
+      throw e;
+    }
   }
   
   private HoyaAppMasterProtocol bondToCluster(String clustername) {

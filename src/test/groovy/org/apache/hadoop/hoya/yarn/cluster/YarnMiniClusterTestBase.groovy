@@ -56,7 +56,6 @@ import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
 import org.junit.After
 import org.junit.Before
-import org.junit.internal.AssumptionViolatedException
 
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.SynchronousQueue
@@ -85,7 +84,7 @@ implements KeysForTests {
    * The time to sleep before trying to talk to the HBase Master and
    * expect meaningful results.
    */
-  public static final int HBASE_CLUSTER_STARTUP_TO_LIVE_TIME = 20000
+  public static final int HBASE_CLUSTER_STARTUP_TO_LIVE_TIME = HBASE_CLUSTER_STARTUP_TIME
   
   protected MiniDFSCluster hdfsCluster
   protected MiniYARNCluster miniCluster;
@@ -549,14 +548,11 @@ implements KeysForTests {
   public ClusterStatus getHBaseClusterStatus(HoyaClient hoyaClient, String clustername) {
     try {
       HConnection hbaseConnection = createHConnection(hoyaClient, clustername)
-
       HBaseAdmin hBaseAdmin = new HBaseAdmin(hbaseConnection)
       ClusterStatus hBaseClusterStatus = hBaseAdmin.clusterStatus
       return hBaseClusterStatus
     } catch (NoSuchMethodError e) {
-      throw e
-      //this looks like some version mismatch: downgrade to a skip
-      //throw new AssumptionViolatedException("HBase connection version problems", e, null);
+      throw new Exception("Using an incompatible version of HBase!", e)
     }
     
   }
@@ -648,6 +644,8 @@ implements KeysForTests {
     describe("HBASE CLUSTER STATUS \n " + statusToString(clustat));
     return clustat
   }
+  
+  
   /**
    * Spin waiting for the RS count to match expected
    * @param hoyaClient client
@@ -655,7 +653,39 @@ implements KeysForTests {
    * @param regionServerCount RS count
    * @param timeout timeout
    */
-  public ClusterDescription waitForRegionServerCount(HoyaClient hoyaClient, String clustername, int regionServerCount, int timeout) {
+  public ClusterDescription waitForHBaseWorkerCount(HoyaClient hoyaClient,
+                                                     String clustername,
+                                                     int regionServerCount,
+                                                     int timeout) {
+    ClusterDescription status = null
+    Duration duration = new Duration(timeout);
+    duration.start()
+    int workerCount = 0;
+    while (workerCount != regionServerCount) {
+      ClusterStatus clustat = getHBaseClusterStatus(hoyaClient, clustername)
+      workerCount = clustat.servers.size()
+      if (duration.limitExceeded) {
+        describe("Cluster region server count of $regionServerCount not reached: $clustat")
+        log.info(clustat)
+        fail("Expected $regionServerCount YARN region servers, but only saw $workerCount in $clustat")
+      }
+      Thread.sleep(1000)
+    }
+    return status
+  }
+ 
+  
+  /**
+   * Spin waiting for the RS count to match expected
+   * @param hoyaClient client
+   * @param clustername cluster name
+   * @param regionServerCount RS count
+   * @param timeout timeout
+   */
+  public ClusterDescription waitForRegionServerCount(HoyaClient hoyaClient,
+                                                    String clustername,
+                                                    int regionServerCount,
+                                                    int timeout) {
     ClusterDescription status = null
     Duration duration = new Duration(timeout);
     duration.start()
@@ -663,14 +693,14 @@ implements KeysForTests {
     while (workerCount == 0) {
       status = hoyaClient.getClusterStatus(clustername)
       //log.info("Status $status")
-      workerCount = status.regionNodes.size()
+      workerCount = status.workerNodes.size()
       if (workerCount == 0) {
         if (duration.limitExceeded) {
           describe("Cluster region server count of $regionServerCount not reached")
-          log.info(status.toJsonString())
-          assert regionServerCount == workerCount;
+          log.info(prettyPrint(status.toJsonString()))
+          fail("Expected $regionServerCount YARN region servers, but only saw $workerCount")
         }
-        Thread.sleep(5000)
+        Thread.sleep(1000)
       }
     }
     return status

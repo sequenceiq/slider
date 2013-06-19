@@ -137,12 +137,24 @@ public class ClusterDescription {
   /**
    *  Worker nodes
    */
-  public List<ClusterNode> regionNodes = new ArrayList<ClusterNode>();
+  public List<ClusterNode> workerNodes = new ArrayList<ClusterNode>();
 
   /**
    *  Completed nodes
    */
   public List<ClusterNode> completedNodes = new ArrayList<ClusterNode>();
+
+  /**
+   * Requested nodes -when they get allocated they will be moved into
+   * one fo the other states
+   */
+  public List<ClusterNode> requestedNodes = new ArrayList<ClusterNode>();
+
+  
+  /**
+   * Nodes that failed to start
+   */
+  public List<ClusterNode> failedNodes = new ArrayList<ClusterNode>();
 
   
   /**
@@ -158,6 +170,8 @@ public class ClusterDescription {
      * server name
      */
     public String name;
+
+    public String role;
     /**
      * state (Currently arbitrary text)
      */
@@ -167,14 +181,17 @@ public class ClusterDescription {
      * Exit code: only valid if the state >= STOPPED
      */
     public int exitCode;
+    
     /**
      * what was the command executed?
      */
     public String command;
+
     /**
      * Any diagnostics
      */
     public String diagnostics;
+
     /**
      * What is the tail output from the executed process (or [] if not started
      * or the log cannot be picked up
@@ -185,6 +202,7 @@ public class ClusterDescription {
      * Any environment details
      */
     public String[] environment; 
+    
     
     public ClusterNode(String name) {
       this.name = name;
@@ -234,8 +252,8 @@ public class ClusterDescription {
       builder.append("    ");
       builder.append(node.toString()).append('\n');
     }
-    builder.append(String.format("Region Server count %d", regionNodes.size()));
-    for (ClusterNode node : regionNodes) {
+    builder.append(String.format("Region Server count %d", workerNodes.size()));
+    for (ClusterNode node : workerNodes) {
       builder.append("    ");
       builder.append(node.toString()).append('\n');
     }

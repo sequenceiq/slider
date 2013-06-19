@@ -34,6 +34,7 @@ import org.apache.hadoop.hoya.exec.ApplicationEventHandler
 import org.apache.hadoop.hoya.exec.RunLongLivedApp
 import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.hoya.tools.Env
+import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.tools.YarnUtils
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.ipc.ProtocolSignature
@@ -48,6 +49,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationAttemptId
 import org.apache.hadoop.yarn.api.records.Container
 import org.apache.hadoop.yarn.api.records.ContainerExitStatus
 import org.apache.hadoop.yarn.api.records.ContainerId
+import org.apache.hadoop.yarn.api.records.ContainerLaunchContext
 import org.apache.hadoop.yarn.api.records.ContainerState
 import org.apache.hadoop.yarn.api.records.ContainerStatus
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus
@@ -56,7 +58,8 @@ import org.apache.hadoop.yarn.api.records.Priority
 import org.apache.hadoop.yarn.api.records.Resource
 import org.apache.hadoop.yarn.client.api.AMRMClient
 import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync
-import org.apache.hadoop.yarn.client.api.async.impl.AMRMClientAsyncImpl
+import org.apache.hadoop.yarn.client.api.async.NMClientAsync
+import org.apache.hadoop.yarn.client.api.async.impl.NMClientAsyncImpl
 import org.apache.hadoop.yarn.client.api.impl.AMRMClientImpl
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.exceptions.YarnException
@@ -65,6 +68,9 @@ import org.apache.hadoop.yarn.service.launcher.RunService
 import org.apache.hadoop.yarn.util.ConverterUtils
 import org.apache.hadoop.yarn.util.Records
 
+import java.nio.ByteBuffer
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.locks.Condition
 import java.util.concurrent.locks.ReentrantLock
@@ -83,7 +89,8 @@ class HoyaAppMaster extends CompositeService
       RunService,
       HoyaExitCodes,
       HoyaAppMasterProtocol,
-      ApplicationEventHandler
+      ApplicationEventHandler,
+    NMClientAsync.CallbackHandler
 
 {
 
@@ -106,7 +113,9 @@ class HoyaAppMaster extends CompositeService
   private YarnRPC rpc;
   // Handle to communicate with the Resource Manager
   private AMRMClientAsync asyncRMClient;
-  
+  // Handle to communicate with the Node Manager
+  NMClientAsync nmClientAsync;
+
   //RPC server
   private Server server; 
   // Hostname of the container
@@ -120,11 +129,15 @@ class HoyaAppMaster extends CompositeService
   private ApplicationAttemptId appAttemptID;
   // App Master configuration
   // No. of containers to run shell command on
-  private int numTotalContainers = 0; //HACK to test
-  // Memory to request for the container on which the shell command will run
+  private int numTotalContainers = 0; 
   private int containerMemory = 10;
   // Priority of the request
   private int requestPriority;
+
+
+  private ConcurrentMap<ContainerId, Container> containers =
+    new ConcurrentHashMap<ContainerId, Container>();
+  
   // Counter for completed containers ( complete denotes successful or failed )
   private final AtomicInteger numCompletedContainers = new AtomicInteger();
   // Allocated container count so that we know how many containers has the RM
@@ -165,6 +178,7 @@ class HoyaAppMaster extends CompositeService
    * Access to this should be synchronized on the clusterDescription
    */
   private final Map<ContainerId, ClusterDescription.ClusterNode> containerMap = [:]
+  private final Map<ContainerId, ClusterDescription.ClusterNode> requestedNodes = [:]
   private boolean noMaster
 
 
@@ -267,20 +281,26 @@ class HoyaAppMaster extends CompositeService
 
 
     int heartbeatInterval = 1000
-    AMRMClient<AMRMClient.ContainerRequest> rmClient =
-      new AMRMClientImpl<AMRMClient.ContainerRequest>(appAttemptID) 
-    //add the RM client -this brings the callbacks in
-    asyncRMClient = new AMRMClientAsyncImpl<AMRMClient.ContainerRequest>(rmClient,
-                                                                     heartbeatInterval,
-                                                                     this);
 
+    
+    //add the RM client -this brings the callbacks in
+    asyncRMClient =  AMRMClientAsync.createAMRMClientAsync(appAttemptID,
+                                                           heartbeatInterval,
+                                                           this);
     //add to the list of things to terminate in service stop
     addService(asyncRMClient)
     //now bring it up
     asyncRMClient.init(conf);
     asyncRMClient.start();
-    
 
+
+    //nmclient relays callbacks back to this class
+    nmClientAsync = new NMClientAsyncImpl(this, asyncRMClient.getNMTokens());
+    nmClientAsync.init(conf);
+    nmClientAsync.start();
+    addService(nmClientAsync)
+    
+    //bring up the Hoya RPC service
     startHoyaRPCServer();
     
     String hostname = NetUtils.getConnectAddress(server).hostName
@@ -297,7 +317,7 @@ class HoyaAppMaster extends CompositeService
 
     // Register self with ResourceManager
     // This will start heartbeating to the RM
-    address = YarnUtils.getRmSchedulerAddress(rmClient.config)
+    address = YarnUtils.getRmSchedulerAddress(asyncRMClient.config)
     log.info("Connecting to RM at $address")
     RegisterApplicationMasterResponse response = asyncRMClient
         .registerApplicationMaster(appMasterHostname,
@@ -620,7 +640,7 @@ class HoyaAppMaster extends CompositeService
       // +container.getContainerToken().getIdentifier().toString());
 
       HoyaRegionServiceLauncher launcher =
-        new HoyaRegionServiceLauncher(this, container)
+        new HoyaRegionServiceLauncher(this, container, HBaseCommands.REGION_SERVER)
       Thread launchThread = new Thread(launcherThreadGroup,
                launcher,
                "container-${container.nodeId.host}:${container.nodeId.port},");
@@ -650,8 +670,11 @@ class HoyaAppMaster extends CompositeService
       // non complete containers should not be here
       assert (status.state == ContainerState.COMPLETE);
       //record the complete node's details for the status report
-      updateCompletedNode(status)
-      if (status.exitStatus != ContainerExitStatus.ABORTED) {
+      //TODO -renable this
+      // updateCompletedNode(status)
+      if (status.exitStatus != ContainerExitStatus.ABORTED || serviceArgs.xTest) {
+        //if it is a failure (and this isn't a test run), decrement the container
+        //pool
         numAllocatedContainers.decrementAndGet();
         numRequestedContainers.decrementAndGet();
       }
@@ -800,7 +823,7 @@ class HoyaAppMaster extends CompositeService
           masterNode.output = new String[0];
         }
       }
-      clusterDescription.regionNodes = nodes;
+      clusterDescription.workerNodes = nodes;
     }
   }
 
@@ -815,7 +838,7 @@ class HoyaAppMaster extends CompositeService
     //add the node
     synchronized (clusterDescription) {
       node = containerMap.remove(completed.containerId)
-      if (node==null) {
+      if (node == null) {
         node = new ClusterDescription.ClusterNode()
         node.name = completed.containerId.toString()
       }
@@ -834,6 +857,17 @@ class HoyaAppMaster extends CompositeService
   public void addLaunchedContainerToCD(ContainerId id, ClusterDescription.ClusterNode node) {
     synchronized (clusterDescription) {
       containerMap[id] = node
+    }
+  }
+  /**
+   * add a requested container to the node map. This can be promoted once a
+   * launch notification comes in
+   * @param id id
+   * @param node node details
+   */
+  public void addRequestedContainerToCD(ContainerId id, ClusterDescription.ClusterNode node) {
+    synchronized (clusterDescription) {
+      requestedNodes[id]=node;
     }
   }
 
@@ -924,4 +958,114 @@ class HoyaAppMaster extends CompositeService
     clusterDescription.hBaseClientProperties[key] = val;
   }
 
+  public void startContainer(Container container, ContainerLaunchContext ctx) {
+    containers.putIfAbsent(container.getId(), container);
+    nmClientAsync.startContainerAsync(container, ctx);
+  }
+  
+  
+  @Override //  NMClientAsync.CallbackHandler 
+  public void onContainerStopped(ContainerId containerId) {
+    if (log.isDebugEnabled()) {
+      log.debug("Succeeded to stop Container " + containerId);
+    }
+    containers.remove(containerId);
+  }
+
+
+  @Override //  NMClientAsync.CallbackHandler 
+  public void onContainerStarted(ContainerId containerId,
+                                 Map<String, ByteBuffer> allServiceResponse) {
+    if (log.isDebugEnabled()) {
+      log.debug("Succeeded to start Container " + containerId);
+    }
+    Container container = containers.get(containerId);
+    if (container != null) {
+      nmClientAsync.getContainerStatusAsync(containerId, container.getNodeId());
+    } else {
+      log.warn("Notified of started container that isn't pending $containerId")
+    }
+  }
+
+  @Override //  NMClientAsync.CallbackHandler 
+  public void onStartContainerError(ContainerId containerId, Throwable t) {
+    log.error("Failed to start Container " + containerId, t);
+    containers.remove(containerId);
+    synchronized (clusterDescription) {
+      ClusterDescription.ClusterNode node = requestedNodes.remove(containerId)
+      if (node) {
+        if (t) {
+          node.diagnostics = HoyaUtils.stringify(t)
+        }
+        clusterDescription.failedNodes << node
+      }
+    }
+  }
+
+  @Override //  NMClientAsync.CallbackHandler 
+  public void onContainerStatusReceived(ContainerId containerId,
+                                        ContainerStatus containerStatus) {
+    log.debug("Container Status: id= $containerId, status=$containerStatus");
+    synchronized (clusterDescription) {
+      ClusterDescription.ClusterNode node = requestedNodes.remove(containerId)
+      if (!node) {
+        log.warn("Got container status on an unknown container $containerId")
+      } else {
+        node.diagnostics = containerStatus.diagnostics
+        node.exitCode = containerStatus.exitStatus
+        addLaunchedContainerToCD(containerId, node)
+      }
+    }
+  }
+  
+  @Override //  NMClientAsync.CallbackHandler 
+  public void onGetContainerStatusError(
+      ContainerId containerId, Throwable t) {
+    log.error("Failed to query the status of Container " + containerId);
+  }
+
+  @Override //  NMClientAsync.CallbackHandler 
+  public void onStopContainerError(ContainerId containerId, Throwable t) {
+    log.error("Failed to stop Container " + containerId);
+    containers.remove(containerId);
+    synchronized (clusterDescription) {
+
+      ClusterDescription.ClusterNode node = failNode(containerId,
+                                                     clusterDescription.workerNodes,
+                                                     t)
+      if (!node) {
+        failNode(containerId, clusterDescription.masterNodes, t)
+      }
+      if (node) {
+        clusterDescription.completedNodes << node
+      }
+    }
+  }
+
+  /**
+   * Move a node from the live set to the failed list
+   * @param containerId container ID to look for
+   * @param nodeList list to scan from (& remove found)
+   * @return the node, if found
+   */
+  public ClusterDescription.ClusterNode failNode(ContainerId containerId,
+                                                 List<ClusterDescription.ClusterNode> nodeList,
+                                                 Throwable t) {
+    String containerName = containerId.toString()
+    ClusterDescription.ClusterNode node
+    synchronized (clusterDescription) {
+      node = nodeList.find {
+        ClusterDescription.ClusterNode n ->
+          n.name == containerName
+      }
+      if (node) {
+        nodeList.remove(node)
+        if (t) {
+          node.diagnostics = HoyaUtils.stringify(t)
+        }
+        clusterDescription.failedNodes << node
+      }
+    }
+    return node
+  }
 }

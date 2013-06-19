@@ -71,6 +71,9 @@ class TestCreateStopStartLiveRegionService extends YarnMiniClusterTestBase {
                                       regionServerCount,
                                       HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     clustat = getHBaseClusterStatus(newCluster, clustername)
+    //get the hbase status
+    waitForHBaseWorkerCount(hoyaClient, clustername, regionServerCount,
+                            HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
   }
 

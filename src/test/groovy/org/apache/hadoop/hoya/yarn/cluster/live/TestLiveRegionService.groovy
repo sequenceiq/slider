@@ -61,12 +61,10 @@ class TestLiveRegionService extends YarnMiniClusterTestBase {
 
     describe("Cluster status")
     log.info(prettyPrint(status.toJsonString()))
-    
-    Collection<ServerName> servers = clustat.servers
-    if (servers.size() != regionServerCount) {
-      fail("Server size is not $regionServerCount in " + statusToString(clustat))
-    }
-    
+
+    //get the hbase status
+    waitForHBaseWorkerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+
 
     clusterActionStop(hoyaClient, clustername)
   }
