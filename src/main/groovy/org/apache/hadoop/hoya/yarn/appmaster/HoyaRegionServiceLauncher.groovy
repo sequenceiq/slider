@@ -39,7 +39,7 @@ import org.apache.hadoop.yarn.api.records.ContainerStatus
 import org.apache.hadoop.yarn.api.records.LocalResource
 import org.apache.hadoop.yarn.exceptions.YarnException
 import org.apache.hadoop.yarn.security.ContainerTokenIdentifier
-import org.apache.hadoop.yarn.util.ProtoUtils
+import org.apache.hadoop.yarn.util.ConverterUtils
 import org.apache.hadoop.yarn.util.Records
 
 /**
@@ -75,7 +75,7 @@ class HoyaRegionServiceLauncher implements Runnable {
     final InetSocketAddress cmAddress = NetUtils.createSocketAddr(cmIpPortStr);
 
     Token<ContainerTokenIdentifier> token =
-      ProtoUtils.convertFromProtoFormat(container.getContainerToken(), cmAddress);
+      ConverterUtils.convertFromYarn(container.getContainerToken(), cmAddress);
     user.addToken(token);
 
     // Connect to ContainerManager
@@ -142,13 +142,12 @@ class HoyaRegionServiceLauncher implements Runnable {
     String cmdStr = command.join(" ")
 
     ctx.commands = [cmdStr]
-    StartContainerRequest startReq = StartContainerRequest.newInstance(ctx,
-                                                 container.getContainerToken())
     log.info("Starting container with command: $cmdStr");
     env.each { String k, String v ->
       log.info("$k=$v")
     }
-
+    StartContainerRequest startReq = StartContainerRequest.newInstance(ctx,
+                                                 container.getContainerToken())
     try {
       containerManager.startContainer(startReq);
     } catch (YarnException e) {

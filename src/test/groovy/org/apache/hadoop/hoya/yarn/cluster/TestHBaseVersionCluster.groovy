@@ -41,7 +41,7 @@ class TestHBaseVersionCluster extends YarnMiniClusterTestBase {
     String clustername = "TestHBaseVersionCluster"
     ServiceLauncher launcher = createHoyaCluster(clustername,
                                                  0,
-                                                 [CommonArgs.ARG_X_HBASE_COMMAND, "version"], true,
+                                                 [CommonArgs.ARG_X_HBASE_MASTER_COMMAND, "version"], true,
                                                  true)
     assert launcher.serviceExitCode == 0
     HoyaClient hoyaClient = (HoyaClient) launcher.service

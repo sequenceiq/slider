@@ -41,7 +41,7 @@ class TestHBaseVersionCommand extends YarnMiniClusterTestBase {
     ServiceLauncher launcher = createHoyaCluster(clustername,
                                  0,
                                  [
-                                     CommonArgs.ARG_X_HBASE_COMMAND, "version",
+                                     CommonArgs.ARG_X_HBASE_MASTER_COMMAND, "version",
                                  ],
                                  true,
                                  true)

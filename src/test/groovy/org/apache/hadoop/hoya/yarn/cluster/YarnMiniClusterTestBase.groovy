@@ -309,7 +309,7 @@ implements KeysForTests {
   public ServiceLauncher createMasterlessAM(String clustername, int size, boolean deleteExistingData, boolean blockUntilRunning) {
     return createHoyaCluster(clustername,
                              size,
-                             [CommonArgs.ARG_X_NO_MASTER],
+                             [CommonArgs.ARG_MASTERS, "0"],
                              deleteExistingData,
                              blockUntilRunning)
   }
@@ -339,8 +339,7 @@ implements KeysForTests {
 
     List<String> argsList = [
         ClientArgs.ACTION_CREATE, clustername,
-        CommonArgs.ARG_MIN, Integer.toString(size),
-        CommonArgs.ARG_MAX, Integer.toString(size),
+        CommonArgs.ARG_WORKERS, Integer.toString(size),
         ClientArgs.ARG_MANAGER, RMAddr,
         CommonArgs.ARG_HBASE_HOME, HBaseHome,
         CommonArgs.ARG_ZKQUORUM, ZKHosts,
@@ -555,8 +554,9 @@ implements KeysForTests {
       ClusterStatus hBaseClusterStatus = hBaseAdmin.clusterStatus
       return hBaseClusterStatus
     } catch (NoSuchMethodError e) {
+      throw e
       //this looks like some version mismatch: downgrade to a skip
-      throw new AssumptionViolatedException("HBase connection version problems", e, null);
+      //throw new AssumptionViolatedException("HBase connection version problems", e, null);
     }
     
   }

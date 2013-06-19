@@ -43,7 +43,7 @@ class TestCreateMasterlessAM extends YarnMiniClusterTestBase {
   public void testCreateMasterlessAM() throws Throwable {
     createMiniCluster("TestCreateMasterlessAM", new YarnConfiguration(), 1, true)
 
-    describe "create a masteress AM then get the service and look it up via the AM"
+    describe "create a masterless AM then get the service and look it up via the AM"
 
     //launch fake master
     String clustername = "TestCreateMasterlessAM"

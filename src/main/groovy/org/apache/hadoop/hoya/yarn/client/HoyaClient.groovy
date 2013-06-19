@@ -59,7 +59,8 @@ import org.apache.hadoop.yarn.api.records.LocalResourceType
 import org.apache.hadoop.yarn.api.records.Priority
 import org.apache.hadoop.yarn.api.records.Resource
 import org.apache.hadoop.yarn.api.records.YarnApplicationState
-import org.apache.hadoop.yarn.client.YarnClientImpl
+import org.apache.hadoop.yarn.client.api.YarnClientApplication
+import org.apache.hadoop.yarn.client.api.impl.YarnClientImpl
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.exceptions.YarnException
 import org.apache.hadoop.yarn.service.launcher.RunService
@@ -82,6 +83,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   public static final String E_MISSING_PATH = "Missing path "
   public static final String E_INCOMPLETE_CLUSTER_SPEC = "Cluster specification is marked as incomplete: "
   public static final String E_UNKNOWN_CLUSTER = "Unknown cluster "
+  public static final String E_DESTROY_CREATE_RACE_CONDITION = "created while it was being destroyed"
   private int amPriority = 0;
   // Queue for App master
   private String amQueue = "default";
@@ -152,6 +154,11 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
         exitCode = actionCreate(clusterName)
         break;
 
+      case ClientArgs.ACTION_DESTROY:
+        validateClusterName(clusterName)
+        exitCode = actionCreate(clusterName)
+        break;
+
       case CommonArgs.ACTION_EXISTS:
         validateClusterName(clusterName)
         exitCode = actionExists(clusterName)
@@ -208,7 +215,32 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   }
 
   /**
-   * Start the AM
+   * Destroy a cluster. There's two race conditions here
+   * #1 the cluster is started between verifying that there are no live
+   * clusters of that name.
+   */
+  public int actionDestroy(String clustername) {
+    //verify that a live cluster isn't there
+    validateClusterName(clustername)
+    verifyNoLiveClusters(clustername)
+    //create the directory path
+    Path clusterDirectory = HoyaUtils.createHoyaClusterDirPath(clusterFS, clustername)
+    //delete the directory
+    clusterFS.delete(clusterDirectory, true)
+
+    // detect any race leading to cluster creation during the check/destroy process
+    // and report a problem.
+    if (findAllLiveInstances(null, clustername).size() > 0) {
+      throw new HoyaException(EXIT_BAD_CLUSTER_STATE,
+                              clustername + ": "
+                              + E_DESTROY_CREATE_RACE_CONDITION
+                              + " :" + findAllLiveInstances(null, clustername)[0])
+    }
+    return EXIT_SUCCESS
+  }
+  
+  /**
+   * Restore a cluster
    */
   public int actionStart(String clustername) {
     //verify that a live cluster isn't there
@@ -256,17 +288,23 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     verifyNoLiveClusters(clustername)
     
     //build up the initial cluster specification
-    int minRegionServers = serviceArgs.min
-    int maxRegionServers = serviceArgs.max
-    int regionServerHeap = serviceArgs.regionserverHeap
     ClusterDescription clusterSpec = new ClusterDescription()
     clusterSpec.name = clustername;
     clusterSpec.state = ClusterDescription.STATE_INCOMPLETE;
     clusterSpec.createTime = System.currentTimeMillis();
-    clusterSpec.minMasterNodes = clusterSpec.maxMasterNodes =1
-    clusterSpec.minRegionNodes = minRegionServers
-    clusterSpec.maxRegionNodes = maxRegionServers
-    clusterSpec.regionServerHeap = regionServerHeap;
+    int workers = serviceArgs.workers
+    int workerHeap = serviceArgs.workerHeap
+    validateNodeAndHeapValues("worker",workers, workerHeap)
+    clusterSpec.workers = workers
+    clusterSpec.workerHeap = workerHeap;
+    int masters = serviceArgs.masters
+    int masterHeap = serviceArgs.masterHeap
+    validateNodeAndHeapValues("master", masters, masterHeap)
+    if (masters > 1) {
+      throw new BadCommandArgumentsException("No more than one master is currently supported")
+    }
+    clusterSpec.masters = masters
+    clusterSpec.masterHeap = masterHeap
 
     //set up the ZK binding
     String zookeeperRoot = serviceArgs.hbasezkpath
@@ -313,16 +351,12 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     //HBase home
     clusterSpec.hbaseHome = serviceArgs.hbasehome
     //explicit hbase command set
-    clusterSpec.hbaseCommand = serviceArgs.hbaseCommand
+    clusterSpec.xHBaseMasterCommand = serviceArgs.xHBaseMasterCommand
   
     
     //check for debug mode
     if (serviceArgs.xTest) {
       clusterSpec.flags[CommonArgs.ARG_X_TEST] = "true";
-    }
-    
-    if (serviceArgs.xNoMaster) {
-      clusterSpec.flags[CommonArgs.ARG_X_NO_MASTER] = "true";
     }
     
     //here the configuration is set up. Mark the 
@@ -346,17 +380,15 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    validateClusterName(clustername)
    verifyNoLiveClusters(clustername)
    //make sure it is valid
-   verifyValidClusterSize(clusterSpec.minRegionNodes)
+   verifyValidClusterSize(clusterSpec.workers)
 
    Path genConfPath = createPathThatMustExist(clusterSpec.generatedConfigurationPath)
    Path origConfPath = createPathThatMustExist(clusterSpec.originConfigurationPath)
    
-   ApplicationSubmissionContext appContext =
-      Records.newRecord(ApplicationSubmissionContext.class);
-    GetNewApplicationResponse newApp = super.getNewApplication();
-    ApplicationId appId = newApp.applicationId
-    // set the application id 
-    appContext.applicationId = appId;
+   YarnClientApplication application = createApplication()
+   ApplicationSubmissionContext appContext = application.applicationSubmissionContext
+
+   ApplicationId appId = appContext.applicationId
     // set the application name
     appContext.applicationName = clustername
     //app type used in service enum
@@ -503,14 +535,14 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     commands << HoyaMasterServiceArgs.ACTION_CREATE
     commands << clustername
     //min #of nodes
-    commands << HoyaMasterServiceArgs.ARG_MIN
-    commands << (Integer) clusterSpec.minRegionNodes
-    
-    //max # is defined by the min no, or, if higher, any specified maximum
-    commands << HoyaMasterServiceArgs.ARG_MAX
-    commands << (Integer)Math.max(clusterSpec.maxRegionNodes, clusterSpec.minRegionNodes)
-    commands << HoyaMasterServiceArgs.ARG_REGIONSERVER_HEAP
-    commands << (Integer) clusterSpec.regionServerHeap
+    commands << HoyaMasterServiceArgs.ARG_WORKERS
+    commands << (Integer) clusterSpec.workers
+    commands << HoyaMasterServiceArgs.ARG_WORKER_HEAP
+    commands << (Integer) clusterSpec.workerHeap
+    commands << HoyaMasterServiceArgs.ARG_MASTERS
+    commands << (Integer)clusterSpec.masters
+    commands << HoyaMasterServiceArgs.ARG_MASTER_HEAP
+    commands << (Integer) clusterSpec.masterHeap
     
     //spec out the RM address
     commands << HoyaMasterServiceArgs.ARG_RM_ADDR;
@@ -526,22 +558,16 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
       commands << HoyaMasterServiceArgs.ARG_HBASE_HOME
       commands << hbaseHome
     }
-    String hbaseCommand = clusterSpec.hbaseCommand
-    if (hbaseCommand) {
+    String xHBaseMasterCommand = clusterSpec.xHBaseMasterCommand
+    if (xHBaseMasterCommand) {
       //explicit hbase command set
-      commands << CommonArgs.ARG_X_HBASE_COMMAND 
-      commands << hbaseCommand
+      commands << CommonArgs.ARG_X_HBASE_MASTER_COMMAND 
+      commands << xHBaseMasterCommand
     }
     if (clusterSpec.flags[CommonArgs.ARG_X_TEST]) {
       //test flag set
       commands << CommonArgs.ARG_X_TEST 
     }
-    if (clusterSpec.flags[CommonArgs.ARG_X_NO_MASTER]) {
-      //server is not to create the master, just come up.
-      //purely for test purposes
-      commands << CommonArgs.ARG_X_NO_MASTER 
-    }
-  
     commands << HoyaMasterServiceArgs.ARG_FILESYSTEM
     commands << config.get(HadoopFS.FS_DEFAULT_NAME_KEY);
 
@@ -623,6 +649,24 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   }
 
   /**
+   * Validate the node count and heap size values of a node class 
+   * @param name node class name
+   * @param count requested node count
+   * @param heap requested heap size
+   * @throws BadCommandArgumentsException if the values are out of range
+   */
+  public void validateNodeAndHeapValues(String name, int count, int heap) {
+    if (count < 0) {
+      throw new BadCommandArgumentsException("requested no of $name nodes is too low: $count")
+    }
+    
+    if (heap < HoyaKeys.MIN_HEAP_SIZE) {
+      throw new BadCommandArgumentsException("requested heap size of $name nodes is too low: $count")
+    }
+    
+  }
+
+  /**
    * Create a path that must exist in the cluster fs
    * @param uri uri to create
    * @return the path
@@ -652,7 +696,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
     if (existing.size() > 0) {
       throw new HoyaException(EXIT_BAD_CLUSTER_STATE,
-                clustername + ": "+E_CLUSTER_RUNNING +" :"+ existing[0])
+                clustername + ": " + E_CLUSTER_RUNNING + " :" + existing[0])
     }
   }
 
@@ -929,7 +973,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
       ApplicationReport report = getApplicationReport(appId);
 
-      log.info("Got application report from ASM for, appId=${appId}, clientToken=${report.clientToken}, appDiagnostics=${report.diagnostics}, appMasterHost=${report.host}, appQueue=${report.queue}, appMasterRpcPort=${report.rpcPort}, appStartTime=${report.startTime}, yarnAppState=${report.yarnApplicationState}, distributedFinalState=${report.finalApplicationStatus}, appTrackingUrl=${report.trackingUrl}, appUser=${report.user}");
+      log.info("Got application report from ASM for, appId=${appId}, appDiagnostics=${report.diagnostics}, appMasterHost=${report.host}, appQueue=${report.queue}, appMasterRpcPort=${report.rpcPort}, appStartTime=${report.startTime}, yarnAppState=${report.yarnApplicationState}, distributedFinalState=${report.finalApplicationStatus}, appTrackingUrl=${report.trackingUrl}, appUser=${report.user}");
 
       YarnApplicationState state = report.yarnApplicationState;
       if (state >= desiredState) {

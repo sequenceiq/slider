@@ -40,7 +40,7 @@ class TestClusterDescription extends YarnMiniClusterTestBase {
     ClusterDescription cd = new ClusterDescription();
     cd.name = "test"
     cd.state = ClusterDescription.STATE_LIVE;
-    cd.maxMasterNodes = cd.minMasterNodes = 1;
+    cd.masters = 1;
     ClusterDescription.ClusterNode node = new ClusterDescription.ClusterNode("masternode")
     node.state = ClusterDescription.STATE_LIVE
     node.output = ["line1","line2"]

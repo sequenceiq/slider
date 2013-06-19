@@ -54,9 +54,10 @@ import org.apache.hadoop.yarn.api.records.FinalApplicationStatus
 import org.apache.hadoop.yarn.api.records.NodeReport
 import org.apache.hadoop.yarn.api.records.Priority
 import org.apache.hadoop.yarn.api.records.Resource
-import org.apache.hadoop.yarn.client.AMRMClient
-import org.apache.hadoop.yarn.client.AMRMClientAsync
-import org.apache.hadoop.yarn.client.AMRMClientImpl
+import org.apache.hadoop.yarn.client.api.AMRMClient
+import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync
+import org.apache.hadoop.yarn.client.api.async.impl.AMRMClientAsyncImpl
+import org.apache.hadoop.yarn.client.api.impl.AMRMClientImpl
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.exceptions.YarnException
 import org.apache.hadoop.yarn.ipc.YarnRPC
@@ -82,7 +83,9 @@ class HoyaAppMaster extends CompositeService
       RunService,
       HoyaExitCodes,
       HoyaAppMasterProtocol,
-      ApplicationEventHandler {
+      ApplicationEventHandler
+
+{
 
   // YARN RPC to communicate with the Resource Manager or Node Manager
 
@@ -162,6 +165,7 @@ class HoyaAppMaster extends CompositeService
    * Access to this should be synchronized on the clusterDescription
    */
   private final Map<ContainerId, ClusterDescription.ClusterNode> containerMap = [:]
+  private boolean noMaster
 
 
   public HoyaAppMaster() {
@@ -266,7 +270,7 @@ class HoyaAppMaster extends CompositeService
     AMRMClient<AMRMClient.ContainerRequest> rmClient =
       new AMRMClientImpl<AMRMClient.ContainerRequest>(appAttemptID) 
     //add the RM client -this brings the callbacks in
-    asyncRMClient = new AMRMClientAsync<AMRMClient.ContainerRequest>(rmClient,
+    asyncRMClient = new AMRMClientAsyncImpl<AMRMClient.ContainerRequest>(rmClient,
                                                                      heartbeatInterval,
                                                                      this);
 
@@ -309,8 +313,8 @@ class HoyaAppMaster extends CompositeService
 
     //start hbase command
     //pull out the command line argument if set
-    if (serviceArgs.hbaseCommand != null) {
-      hbaseCommand = serviceArgs.hbaseCommand;
+    if (serviceArgs.xHBaseMasterCommand != null) {
+      hbaseCommand = serviceArgs.xHBaseMasterCommand;
     }
 
     File hBaseConfDir = localConfDir
@@ -338,6 +342,13 @@ class HoyaAppMaster extends CompositeService
     clusterDescription.zkPort = siteConf.getInt(EnvMappings.KEY_ZOOKEEPER_PORT, 0)
     clusterDescription.zkPath = siteConf.get(EnvMappings.KEY_ZNODE_PARENT)
 
+    numTotalContainers = serviceArgs.workers
+    clusterDescription.workers = serviceArgs.workers
+    clusterDescription.masters = serviceArgs.masters
+    clusterDescription.workerHeap = serviceArgs.workerHeap
+    clusterDescription.masterHeap = serviceArgs.masterHeap
+    noMaster = clusterDescription.masters <= 0
+
     confKeys.each { key ->
       String val = siteConf.get(key)
       log.info("$key=$val")
@@ -352,9 +363,9 @@ class HoyaAppMaster extends CompositeService
       ];
     launchSequence << hbaseCommand
     launchSequence << HBaseCommands.ACTION_START;
-    
-    if (serviceArgs.xNoMaster) {
-      log.info "skipping master launch as xNoMaster is set"
+
+    if (noMaster) {
+      log.info "skipping master launch as the #of master nodes is too low"
     } else {
       launchHBaseServer(launchSequence,
                         [('HBASE_LOG_DIR'): buildHBaseLogdir()]);
@@ -366,17 +377,11 @@ class HoyaAppMaster extends CompositeService
     // containers
     // Keep looping until all the containers are launched and shell script
     // executed on them ( regardless of success/failure).
-    if (serviceArgs.max < serviceArgs.min) {
-      throw new BadCommandArgumentsException("Maximum #of nodes (${serviceArgs.max}} is higher than the minimum (${serviceArgs.min}) ")
-    }
-    numTotalContainers = serviceArgs.max
-    
+
     AMRMClient.ContainerRequest containerAsk =
       setupContainerAskForRM(numTotalContainers);
     numRequestedContainers.set(numTotalContainers);
     asyncRMClient.addContainerRequest(containerAsk);
-    clusterDescription.minRegionNodes = serviceArgs.min
-    clusterDescription.maxRegionNodes = numTotalContainers
 
 
     
@@ -384,7 +389,6 @@ class HoyaAppMaster extends CompositeService
     success = true;
     clusterDescription.statusTime = System.currentTimeMillis()
     clusterDescription.state = ClusterDescription.STATE_LIVE;
-    clusterDescription.maxMasterNodes = clusterDescription.minMasterNodes = 1;
     masterNode = new ClusterDescription.ClusterNode(hostname)
     clusterDescription.masterNodes = 
       [
@@ -527,8 +531,8 @@ class HoyaAppMaster extends CompositeService
 
   private void configureContainerMemory(RegisterApplicationMasterResponse response) {
     containerMemory = response.maximumResourceCapability.memory;
-    if (serviceArgs.regionserverHeap != null) {
-      containerMemory = serviceArgs.regionserverHeap
+    if (serviceArgs.workerHeap != null) {
+      containerMemory = serviceArgs.workerHeap
     }
     log.info("Setting container ask to $containerMemory");
   }
@@ -680,7 +684,7 @@ class HoyaAppMaster extends CompositeService
     float progress = (float) completedContainerCount / numTotalContainers;
 //    resourceManager.setProgress(progress);
 
-    if (completedContainerCount == numTotalContainers && serviceArgs.xNoMaster) {
+    if (completedContainerCount == numTotalContainers && noMaster) {
       log.info("All containers have completed and there is no running master -stopping")
       signalAMComplete();
     }
@@ -713,9 +717,6 @@ class HoyaAppMaster extends CompositeService
    */
   @Override //AMRMClientAsync
   public float getProgress() {
-    if (serviceArgs.xNoMaster) {
-      return 25f;
-    }
     if (!hbaseMaster) {
       return 0f;
     } else {

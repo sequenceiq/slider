@@ -110,18 +110,16 @@ public class ClusterDescription {
   
   public String originConfigurationPath;
   public String generatedConfigurationPath;
-  public int minRegionNodes;
-  public int maxRegionNodes;
-  public int minMasterNodes;
-  public int maxMasterNodes;
-
-  public int regionServerHeap;
+  public int workers;
+  public int workerHeap;
+  public int masters;
+  public int masterHeap;
   public String zkHosts;
   public int zkPort;
   public String zkPath;
   public String hbaseRootPath;
   public String hbaseHome;
-  public String hbaseCommand;
+  public String xHBaseMasterCommand;
 
   /**
    * Extra flags that can be used to communicate
@@ -223,10 +221,10 @@ public class ClusterDescription {
       builder.append("Stopped: ");
       builder.append(new Date(startTime).toLocaleString());
     }
-    builder.append("RS nodes: ")
-           .append(minRegionNodes)
-           .append('-')
-           .append(maxRegionNodes)
+    builder.append("Workers: ")
+           .append(workers)
+           .append("- Masters")
+           .append(masters)
            .append('\n');
     builder.append("ZK cluster: ").append(zkHosts).
       append(" : ").append(zkPort).append('\n');
