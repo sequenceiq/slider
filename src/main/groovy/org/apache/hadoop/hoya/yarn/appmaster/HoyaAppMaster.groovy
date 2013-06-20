@@ -195,8 +195,6 @@ class HoyaAppMaster extends CompositeService
   synchronized void serviceInit(Configuration conf) throws Exception {
     //sort out the location of the AM
     serviceArgs.applyDefinitions(conf);
-    String rmAddress = serviceArgs.rmAddress
-    YarnUtils.setRmSchedulerAddress(conf, rmAddress)
     super.serviceInit(conf)
   }
   

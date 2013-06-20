@@ -58,7 +58,7 @@ class HoyaMasterServiceArgs extends CommonArgs {
   //TODO: do we need this?
   @Parameter(names = '--rm',
       description = "Resource manager hostname:port ",
-      required = true)
+      required = false)
   public String rmAddress;
 
   /**

@@ -570,10 +570,6 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     commands << HoyaMasterServiceArgs.ARG_MASTER_HEAP
     commands << (Integer) clusterSpec.masterHeap
     
-    //spec out the RM address
-    commands << HoyaMasterServiceArgs.ARG_RM_ADDR;
-    commands << rmAddr;
-        
     //now conf dir path -fileset in the DFS
     commands << HoyaMasterServiceArgs.ARG_GENERATED_CONFDIR
     commands << clusterSpec.generatedConfigurationPath
