@@ -869,7 +869,9 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   @VisibleForTesting
   public Map<String, String> buildConfMapFromServiceArguments(ClusterDescription clusterSpec) {
     Map<String, String> envMap = [
+        (EnvMappings.KEY_HBASE_CLUSTER_DISTRIBUTED): "true",
         (EnvMappings.KEY_HBASE_MASTER_PORT): "0",
+        (EnvMappings.KEY_HBASE_MASTER_INFO_PORT): "0",
         (EnvMappings.KEY_HBASE_ROOTDIR): clusterSpec.hbaseRootPath,
         (EnvMappings.KEY_REGIONSERVER_INFO_PORT): "0",
         (EnvMappings.KEY_REGIONSERVER_PORT): "0",
@@ -877,9 +879,6 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
         (EnvMappings.KEY_ZOOKEEPER_PORT): clusterSpec.zkPort.toString(),
         (EnvMappings.KEY_ZOOKEEPER_QUORUM): clusterSpec.zkHosts,
     ]
-    if (!getUsingMiniMRCluster()) {
-      envMap.put("hbase.cluster.distributed", "true")
-    }
     envMap
   }
 

@@ -28,6 +28,8 @@ package org.apache.hadoop.hoya.yarn.appmaster
  */
 class EnvMappings {
   
+  
+  public static final String KEY_HBASE_CLUSTER_DISTRIBUTED = "hbase.cluster.distributed";
   public static final String KEY_HBASE_ROOTDIR = "hbase.rootdir";
   
   public static final String KEY_ZOOKEEPER_QUORUM = "hbase.zookeeper.quorum" ;
@@ -40,6 +42,7 @@ class EnvMappings {
   //public static final int DEFAULT_MASTER_PORT = 60000;
 
   public static final String KEY_HBASE_MASTER_PORT = "hbase.master.port";
+  public static final String KEY_HBASE_MASTER_INFO_PORT = "hbase.master.info.port";
 
   public static final int HBASE_ZK_PORT = 2181; // HConstants.DEFAULT_ZOOKEPER_CLIENT_PORT;
 
