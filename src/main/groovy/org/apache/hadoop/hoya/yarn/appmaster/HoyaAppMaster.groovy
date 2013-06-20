@@ -90,11 +90,7 @@ class HoyaAppMaster extends CompositeService
       HoyaExitCodes,
       HoyaAppMasterProtocol,
       ApplicationEventHandler,
-    NMClientAsync.CallbackHandler
-
-{
-
-  // YARN RPC to communicate with the Resource Manager or Node Manager
+    NMClientAsync.CallbackHandler { 
 
   /**
    * How long to expect launcher threads to shut down on AM termination:
@@ -110,31 +106,41 @@ class HoyaAppMaster extends CompositeService
    * Max failures to tolerate for the containers
    */
   public static final int MAX_TOLERABLE_FAILURES = 10
+
+  /** YARN RPC to communicate with the Resource Manager or Node Manager */
   private YarnRPC rpc;
-  // Handle to communicate with the Resource Manager
+  
+  /** Handle to communicate with the Resource Manager*/
   private AMRMClientAsync asyncRMClient;
-  // Handle to communicate with the Node Manager
+  
+  /** Handle to communicate with the Node Manager*/
   NMClientAsync nmClientAsync;
 
-  //RPC server
+  /** RPC server*/
   private Server server; 
-  // Hostname of the container
+  /** Hostname of the container*/
   private String appMasterHostname = "";
-  // Port on which the app master listens for status updates from clients
+  /* Port on which the app master listens for status updates from clients*/
   private int appMasterRpcPort = 0;
-  // Tracking url to which app master publishes info for clients to monitor
+  /** Tracking url to which app master publishes info for clients to monitor*/
   private String appMasterTrackingUrl = "";
 
-  // Application Attempt Id ( combination of attemptId and fail count )
+  /** Application Attempt Id ( combination of attemptId and fail count )*/
   private ApplicationAttemptId appAttemptID;
   // App Master configuration
-  // No. of containers to run shell command on
-  private int numTotalContainers = 0; 
+  /** No. of containers to run shell command on*/
+  private int numTotalContainers = 0;
+
+  /**
+   * container memory
+   */
   private int containerMemory = 10;
-  // Priority of the request
+  /** Priority of the request*/
   private int requestPriority;
 
-
+  /**
+   * Hash map of the containers we have
+   */
   private ConcurrentMap<ContainerId, Container> containers =
     new ConcurrentHashMap<ContainerId, Container>();
   
@@ -157,6 +163,10 @@ class HoyaAppMaster extends CompositeService
 
   // Launch threads
   private final List<Thread> launchThreads = new ArrayList<Thread>();
+  /**
+   * Thread group for the launchers; gives them all a useful name
+   * in stack dumps
+   */
   final ThreadGroup launcherThreadGroup = new ThreadGroup("launcher");
 
   /**
@@ -167,19 +177,45 @@ class HoyaAppMaster extends CompositeService
   private volatile boolean success; 
 
   String[] argv
+  /* Arguments passed in */
   private HoyaMasterServiceArgs serviceArgs
+  
+  /**
+   The cluster description published to callers
+   This is used as a synchronization point on activities that update
+   the CD, and also to update some of the structures that
+   feed in to the CD
+  */
   private final ClusterDescription clusterDescription = new ClusterDescription();
-  //hbase command
+
+  /**
+   * Flag set if there is no master
+   */
+  private boolean noMaster
+
+  /**
+   * the hbase master runner
+   */
   private RunLongLivedApp hbaseMaster
+
+  /**
+   * The master node. This is a shared reference with the clusterDescription;
+   * operations on it MUST be synchronised with that object
+   */
   private ClusterNode masterNode;
 
   /**
    * Map of containerID -> cluster nodes, for status reports.
    * Access to this should be synchronized on the clusterDescription
    */
-  private final Map<ContainerId, ClusterNode> containerMap = [:]
+  private final Map<ContainerId, ClusterNode> workerMap = [:]
+
+  /**
+   * Map of requested nodes. This records the command used to start it,
+   * resources, etc. When container started callback is received,
+   * the node is promoted from here to the containerMap
+   */
   private final Map<ContainerId, ClusterNode> requestedNodes = [:]
-  private boolean noMaster
 
 
   public HoyaAppMaster() {
@@ -202,7 +238,10 @@ class HoyaAppMaster extends CompositeService
 /* RunService methods called from ServiceLauncher */
 /* =================================================================== */
 
-  // pick up the args from the service launcher
+  /**
+   * pick up the args from the service launcher
+   * @param args argument list
+   */
   @Override // RunService
   public void setArgs(String...args) {
     this.argv = args;
@@ -802,7 +841,7 @@ class HoyaAppMaster extends CompositeService
     List<ClusterNode> nodes = []
     
     synchronized (clusterDescription) {
-      nodes  = containerMap.values().toList()  
+      nodes  = workerMap.values().toList()  
       clusterDescription.statusTime = System.currentTimeMillis()
       if (masterNode) {
         if (hbaseMaster) {
@@ -835,7 +874,7 @@ class HoyaAppMaster extends CompositeService
     
     //add the node
     synchronized (clusterDescription) {
-      node = containerMap.remove(completed.containerId)
+      node = workerMap.remove(completed.containerId)
       if (node == null) {
         node = new ClusterNode()
         node.name = completed.containerId.toString()
@@ -854,7 +893,7 @@ class HoyaAppMaster extends CompositeService
    */
   public void addLaunchedContainerToCD(ContainerId id, ClusterNode node) {
     synchronized (clusterDescription) {
-      containerMap[id] = node
+      workerMap[id] = node
     }
   }
   /**
