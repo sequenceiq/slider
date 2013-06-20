@@ -117,6 +117,8 @@ public class ClusterDescription {
   public int workerHeap;
   public int masters;
   public int masterHeap;
+  public int masterInfoPort;
+  public int workerInfoPort;
   public String zkHosts;
   public int zkPort;
   public String zkPath;

@@ -307,12 +307,16 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     clusterSpec.workerHeap = workerHeap;
     int masters = serviceArgs.masters
     int masterHeap = serviceArgs.masterHeap
+    int masterInfoPort = serviceArgs.masterInfoPort
+    int workerInfoPort = serviceArgs.workerInfoPort
     validateNodeAndHeapValues("master", masters, masterHeap)
     if (masters > 1) {
       throw new BadCommandArgumentsException("No more than one master is currently supported")
     }
     clusterSpec.masters = masters
     clusterSpec.masterHeap = masterHeap
+    clusterSpec.masterInfoPort = masterInfoPort
+    clusterSpec.workerInfoPort = workerInfoPort
 
     //set up the ZK binding
     String zookeeperRoot = serviceArgs.hbasezkpath
@@ -871,9 +875,9 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     Map<String, String> envMap = [
         (EnvMappings.KEY_HBASE_CLUSTER_DISTRIBUTED): "true",
         (EnvMappings.KEY_HBASE_MASTER_PORT): "0",
-        (EnvMappings.KEY_HBASE_MASTER_INFO_PORT): "0",
+        (EnvMappings.KEY_HBASE_MASTER_INFO_PORT): clusterSpec.masterInfoPort.toString(),
         (EnvMappings.KEY_HBASE_ROOTDIR): clusterSpec.hbaseRootPath,
-        (EnvMappings.KEY_REGIONSERVER_INFO_PORT): "0",
+        (EnvMappings.KEY_REGIONSERVER_INFO_PORT): clusterSpec.workerInfoPort.toString(),
         (EnvMappings.KEY_REGIONSERVER_PORT): "0",
         (EnvMappings.KEY_ZNODE_PARENT): clusterSpec.zkPath,
         (EnvMappings.KEY_ZOOKEEPER_PORT): clusterSpec.zkPort.toString(),

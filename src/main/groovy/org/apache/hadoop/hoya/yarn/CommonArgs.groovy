@@ -180,6 +180,16 @@ public class CommonArgs {
       description = "Master heap size in MB")
   public int masterHeap = 128;
 
+  //--masterinfoport [port]
+  @Parameter(names = "--masterinfoport",
+      description = "The web UI port that the Master should bind to")
+  public int masterInfoPort = 0
+
+  //--workerinfoport [port]
+  @Parameter(names = "--workerinfoport",
+      description = "The web UI port that the Workers should bind to")
+  public int workerInfoPort = 0
+
   @Parameter(names = '--max',
       description = '(ignored argument)')
   public int max = -1
