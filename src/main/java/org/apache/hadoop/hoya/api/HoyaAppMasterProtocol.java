@@ -32,4 +32,12 @@ public interface HoyaAppMasterProtocol extends VersionedProtocol {
   public void addNodes(int nodes) throws IOException;
   public void deleteNodes(int nodes) throws IOException;
   public String getClusterStatus() throws IOException;
+  
+  public static final String STAT_CONTAINERS_REQUESTED ="containers.requested";
+  public static final String STAT_CONTAINERS_ALLOCATED ="containers.allocated";
+  public static final String STAT_CONTAINERS_COMPLETED ="containers.completed";
+  public static final String STAT_CONTAINERS_FAILED ="containers.failed";
+  public static final String STAT_CONTAINERS_STARTED ="containers.start.started";
+  public static final String STAT_CONTAINERS_STARTED_FAILED ="containers.start.failed";
+  
 }

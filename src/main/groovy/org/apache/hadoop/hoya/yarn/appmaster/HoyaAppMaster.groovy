@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem as HadoopFS
@@ -146,15 +147,29 @@ class HoyaAppMaster extends CompositeService
   
   // Counter for completed containers ( complete denotes successful or failed )
   private final AtomicInteger numCompletedContainers = new AtomicInteger();
-  // Allocated container count so that we know how many containers has the RM
-  // allocated to us
-  private final AtomicInteger numAllocatedContainers = new AtomicInteger();
-  // Count of failed containers
-  private final AtomicInteger numFailedContainers = new AtomicInteger();
+
   // Count of containers already requested from the RM
   // Needed as once requested, we should not request for containers again.
   // Only request for more if the original requirement changes.
   private final AtomicInteger numRequestedContainers = new AtomicInteger();
+
+  // Allocated container count so that we know how many containers has the RM
+  // allocated to us
+  private final AtomicInteger numAllocatedContainers = new AtomicInteger();
+  
+  // Count of failed containers
+  private final AtomicInteger numFailedContainers = new AtomicInteger();
+
+  /**
+   * # of started containers
+   */
+  private final AtomicInteger startedContainers = new AtomicInteger();
+  
+  /**
+   * # of containers that failed to start 
+   */
+  private final AtomicInteger startFailedContainers = new AtomicInteger();
+  
 
   /**
    * Command to launch
@@ -209,13 +224,15 @@ class HoyaAppMaster extends CompositeService
    * Access to this should be synchronized on the clusterDescription
    */
   private final Map<ContainerId, ClusterNode> workerMap = [:]
+//    new ConcurrentHashMap<ContainerId, ClusterNode>()
 
   /**
    * Map of requested nodes. This records the command used to start it,
    * resources, etc. When container started callback is received,
    * the node is promoted from here to the containerMap
    */
-  private final Map<ContainerId, ClusterNode> requestedNodes = [:]
+  private final Map<ContainerId, ClusterNode> requestedNodes =
+    new ConcurrentHashMap<ContainerId, ClusterNode>()
 
 
   public HoyaAppMaster() {
@@ -302,6 +319,10 @@ class HoyaAppMaster extends CompositeService
     if (!clusterDescription.createTime) {
       clusterDescription.createTime = clusterDescription.startTime
     }
+    clusterDescription.hbaseHome = serviceArgs.hbasehome
+    clusterDescription.xHBaseMasterCommand = serviceArgs.xHBaseMasterCommand
+
+
 
     YarnConfiguration conf = new YarnConfiguration(config);
 
@@ -369,7 +390,6 @@ class HoyaAppMaster extends CompositeService
                                    appMasterRpcPort,
                                    appMasterTrackingUrl);
     configureContainerMemory(response)
-    log.info("Total containers in this app " + numTotalContainers)
 
     //before bothering to start the containers, bring up the
     //hbase master.
@@ -408,13 +428,15 @@ class HoyaAppMaster extends CompositeService
     clusterDescription.zkPath = siteConf.get(EnvMappings.KEY_ZNODE_PARENT)
 
     numTotalContainers = serviceArgs.workers
+    log.info("Total containers in this app " + numTotalContainers)
+
     clusterDescription.workers = serviceArgs.workers
     clusterDescription.masters = serviceArgs.masters
     clusterDescription.workerHeap = serviceArgs.workerHeap
     clusterDescription.masterHeap = serviceArgs.masterHeap
     noMaster = clusterDescription.masters <= 0
 
-    confKeys.each { key ->
+    confKeys.each { String key ->
       String val = siteConf.get(key)
       log.info("$key=$val")
       clusterDescription.hBaseClientProperties[key] = val
@@ -447,8 +469,6 @@ class HoyaAppMaster extends CompositeService
       setupContainerAskForRM(numTotalContainers);
     numRequestedContainers.set(numTotalContainers);
     asyncRMClient.addContainerRequest(containerAsk);
-
-
     
     //if we get here: success
     success = true;
@@ -869,6 +889,15 @@ class HoyaAppMaster extends CompositeService
         }
       }
       clusterDescription.workerNodes = nodes;
+      
+      clusterDescription.stats = [
+          (STAT_CONTAINERS_REQUESTED): numRequestedContainers.longValue(),
+          (STAT_CONTAINERS_ALLOCATED): numAllocatedContainers.longValue(),
+          (STAT_CONTAINERS_COMPLETED): numCompletedContainers.longValue(),
+          (STAT_CONTAINERS_FAILED): startFailedContainers.longValue(),
+          (STAT_CONTAINERS_STARTED): startedContainers.longValue(),
+          (STAT_CONTAINERS_STARTED_FAILED): startFailedContainers.longValue(),
+      ]
     }
   }
 
@@ -902,17 +931,6 @@ class HoyaAppMaster extends CompositeService
   public void addLaunchedContainerToCD(ContainerId id, ClusterNode node) {
     synchronized (clusterDescription) {
       workerMap[id] = node
-    }
-  }
-  /**
-   * add a requested container to the node map. This can be promoted once a
-   * launch notification comes in
-   * @param id id
-   * @param node node details
-   */
-  public void addRequestedContainerToCD(ContainerId id, ClusterNode node) {
-    synchronized (clusterDescription) {
-      requestedNodes[id]=node;
     }
   }
 
@@ -1007,11 +1025,11 @@ class HoyaAppMaster extends CompositeService
                              ClusterNode node) {
     node.state = ClusterDescription.STATE_SUBMITTED
     synchronized (clusterDescription) {
-      clusterDescription.requestedNodes << node
+      //clusterDescription.requestedNodes << node
+      requestedNodes[container.getId()] =node
     }
     containers.putIfAbsent(container.getId(), container);
     nmClientAsync.startContainerAsync(container, ctx);
-
   }
   
   @Override //  NMClientAsync.CallbackHandler 
@@ -1026,18 +1044,22 @@ class HoyaAppMaster extends CompositeService
   public void onContainerStarted(ContainerId containerId,
                                  Map<String, ByteBuffer> allServiceResponse) {
     if (log.isDebugEnabled()) {
-      log.debug("Succeeded to start Container " + containerId);
+      log.debug("Started Container " + containerId);
     }
+    startedContainers.incrementAndGet()
+    Container container = null
     //update the specification
-    ClusterNode node = requestedNodes.remove(containerId)
-    if (!node) {
-      log.warn("Creating a new node description for an unrequested node")
-      node = new ClusterNode(containerId.toString())
-      node.role="unknown"
+    synchronized (clusterDescription) {
+      ClusterNode node = requestedNodes.remove(containerId)
+      if (!node) {
+        log.warn("Creating a new node description for an unrequested node")
+        node = new ClusterNode(containerId.toString())
+        node.role = "unknown"
+      }
+      node.state = ClusterDescription.STATE_LIVE
+      addLaunchedContainerToCD(containerId, node)
+      container = containers.get(containerId);
     }
-    node.state = ClusterDescription.STATE_LIVE
-    addLaunchedContainerToCD(containerId, node)
-    Container container = containers.get(containerId);
     if (container != null) {
       nmClientAsync.getContainerStatusAsync(containerId, container.getNodeId());
     } else {
@@ -1049,6 +1071,8 @@ class HoyaAppMaster extends CompositeService
   public void onStartContainerError(ContainerId containerId, Throwable t) {
     log.error("Failed to start Container " + containerId, t);
     containers.remove(containerId);
+    numFailedContainers.incrementAndGet()
+    startFailedContainers.incrementAndGet()
     synchronized (clusterDescription) {
       ClusterNode node = requestedNodes.remove(containerId)
       if (node) {

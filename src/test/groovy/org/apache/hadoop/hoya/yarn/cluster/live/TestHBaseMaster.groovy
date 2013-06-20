@@ -57,6 +57,7 @@ class TestHBaseMaster extends YarnMiniClusterTestBase {
     log("post-hbase-boot status", status)
     //get the hbase status
     waitForHBaseWorkerCount(hoyaClient, clustername, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+    waitForRegionServerCount(hoyaClient, clustername, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
 
     clusterActionStop(hoyaClient, clustername)

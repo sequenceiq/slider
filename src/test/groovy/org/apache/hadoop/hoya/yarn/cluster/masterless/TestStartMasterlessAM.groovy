@@ -54,7 +54,7 @@ class TestStartMasterlessAM extends YarnMiniClusterTestBase {
   public void testStartMasterlessAM() throws Throwable {
     String clustername = "TestStartMasterlessAM"
     YarnConfiguration conf = new YarnConfiguration()
-    createMiniCluster(clustername, conf, 1, true)
+    createMiniCluster(clustername, conf, 1, 1, 1, true, true)
     
     describe "create a masterless AM, stop it, restart it"
     //copy the confdir somewhere

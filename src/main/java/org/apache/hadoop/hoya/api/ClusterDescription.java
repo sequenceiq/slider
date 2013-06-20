@@ -20,11 +20,13 @@ package org.apache.hadoop.hoya.api;
 
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -40,6 +42,7 @@ import java.util.Map;
  */
 public class ClusterDescription {
 
+  private static final String UTF_8 = "UTF-8";
   /**
    * Name of the cluster
    */
@@ -128,6 +131,12 @@ public class ClusterDescription {
    */
   public Map<String, String> flags =
     new HashMap<String, String>();
+
+  /**
+   * Statistics
+   */
+  public Map<String, Long> stats =
+    new HashMap<String, Long>();
 
 
   /**
@@ -218,8 +227,9 @@ public class ClusterDescription {
                                                                 IOException {
     String json = toJsonString();
     FSDataOutputStream dataOutputStream = fs.create(path, overwrite);
+    byte[] b = json.getBytes(UTF_8);
     try {
-      dataOutputStream.writeUTF(json);
+      dataOutputStream.write(b);
     } finally {
       dataOutputStream.close();
     }
@@ -233,8 +243,11 @@ public class ClusterDescription {
    * @throws IOException IO problems
    */
   public static ClusterDescription load(FileSystem fs, Path path) throws IOException {
+    FileStatus status = fs.getFileStatus(path);
+    byte[] b = new byte[(int)status.getLen()];
     FSDataInputStream dataInputStream = fs.open(path);
-    String json = dataInputStream.readUTF();
+    int count = dataInputStream.read(b);
+    String json = new String(b,0, count, UTF_8);
     return fromJson(json);
   }
   
