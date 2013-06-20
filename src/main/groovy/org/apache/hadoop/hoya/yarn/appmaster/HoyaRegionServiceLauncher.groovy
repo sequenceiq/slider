@@ -102,9 +102,9 @@ class HoyaRegionServiceLauncher implements Runnable {
 
 
     //add the configuration resources
-    Path generatedConfPath = new Path(owner.getDFSConfDir())
+    Path generatedConfPath = new Path(owner.DFSConfDir)
     Map<String, LocalResource> confResources;
-    confResources = YarnUtils.submitDirectory(owner.getClusterFS(),
+    confResources = YarnUtils.submitDirectory(owner.clusterFS,
                                               generatedConfPath,
                                               HoyaKeys.PROPAGATED_CONF_DIR_NAME)
     localResources.putAll(confResources)

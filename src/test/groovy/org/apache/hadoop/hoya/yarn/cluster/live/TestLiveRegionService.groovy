@@ -35,12 +35,12 @@ import org.junit.Test
 @Commons
 class TestLiveRegionService extends YarnMiniClusterTestBase {
 
-
   @Test
   public void testLiveRegionServiceTwoNodes() throws Throwable {
     String clustername = "TestLiveRegionService"
     int regionServerCount = 2
-    createMiniCluster(clustername, new YarnConfiguration(), regionServerCount+1, true)
+    createMiniCluster(clustername, new YarnConfiguration(), regionServerCount + 1, 1, 1, true, true)
+
     //make sure that ZK is up and running at the binding string
     ZKIntegration zki = createZKIntegrationInstance(ZKBinding, clustername, false, false, 5000)
     log.info("ZK up at $zki");

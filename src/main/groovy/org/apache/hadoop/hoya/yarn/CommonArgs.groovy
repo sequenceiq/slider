@@ -23,6 +23,7 @@ import com.beust.jcommander.Parameter
 import com.beust.jcommander.ParameterException
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
 import org.apache.hadoop.hoya.tools.PathArgumentConverter
@@ -128,6 +129,12 @@ public class CommonArgs {
   @Parameter(names = '--help', help = true)
   public boolean help;
 
+  //TODO: do we need this?
+  @Parameter(names = '--rm',
+      description = "Resource manager hostname:port ",
+      required = false)
+  public String rmAddress;
+  
   @Parameter(names = '--Xtest', description = 'Test mode')
   public boolean xTest = false;
 
@@ -304,6 +311,18 @@ public class CommonArgs {
     definitionMap.each { key, val ->
       conf.set(key.toString(), val.toString(), "command line")
     }
+  }
 
+  /**
+   * If the Filesystem URL was provided, it overrides anything in
+   * the configuration
+   * @param conf configuration
+   */
+  public void applyFileSystemURL(Configuration conf) {
+    if (filesystemURL) {
+      //filesystem argument was set -this overwrites any defaults in the
+      //configuration
+      HadoopFS.setDefaultUri(conf, filesystemURL)
+    }
   }
 }

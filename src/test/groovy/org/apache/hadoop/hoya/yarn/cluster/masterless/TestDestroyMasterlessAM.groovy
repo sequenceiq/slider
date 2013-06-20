@@ -68,15 +68,23 @@ class TestDestroyMasterlessAM extends YarnMiniClusterTestBase {
     
     
     //expect start to now fail
-    launcher = launch(HoyaClient,
-                      new Configuration(),
-                      [
-                          CommonArgs.ACTION_START,
-                          clustername
-                      ])
-    assert launcher.serviceExitCode == HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER
-    
-    //and create a new cluster
+    try {
+      launcher = launch(HoyaClient,
+                        new Configuration(),
+                        [
+                            CommonArgs.ACTION_START,
+                            clustername,
+                            ClientArgs.ARG_FILESYSTEM, fsDefaultName,
+                            ClientArgs.ARG_MANAGER, RMAddr,
+                        ])
+      assert launcher.serviceExitCode == HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER
+    } catch (HoyaException e) {
+      assertExceptionDetails(e,
+                             HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER,
+                             HoyaClient.E_UNKNOWN_CLUSTER)
+    }
+
+      //and create a new cluster
     launcher = createMasterlessAM(clustername, 0, false, false)
     HoyaClient cluster2 = launcher.service as HoyaClient
     

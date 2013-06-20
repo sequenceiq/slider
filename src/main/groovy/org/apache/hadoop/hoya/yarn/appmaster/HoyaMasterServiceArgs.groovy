@@ -55,11 +55,6 @@ class HoyaMasterServiceArgs extends CommonArgs {
   @Parameter(names = '--path', description = "FileSystem path", required = true)
   public String path;
 
-  //TODO: do we need this?
-  @Parameter(names = '--rm',
-      description = "Resource manager hostname:port ",
-      required = false)
-  public String rmAddress;
 
   /**
    * The only action you can do in the MasterService (apart from ask for help)

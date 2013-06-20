@@ -172,7 +172,12 @@ implements KeysForTests {
    * @param startZK create a ZK micro cluster
    * @param startHDFS create an HDFS mini cluster
    */
-  protected void createMiniCluster(String name, YarnConfiguration conf, int noOfNodeManagers, int numLocalDirs, int numLogDirs, boolean startZK, boolean startHDFS) {
+  protected void createMiniCluster(String name, YarnConfiguration conf,
+                                   int noOfNodeManagers,
+                                   int numLocalDirs,
+                                   int numLogDirs,
+                                   boolean startZK,
+                                   boolean startHDFS) {
     conf.setInt(YarnConfiguration.RM_SCHEDULER_MINIMUM_ALLOCATION_MB, 64);
     conf.setClass(YarnConfiguration.RM_SCHEDULER,
                   FifoScheduler.class, ResourceScheduler.class);
@@ -350,7 +355,7 @@ implements KeysForTests {
         ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
         ClientArgs.ARG_FILESYSTEM, fsDefaultName,
         CommonArgs.ARG_X_TEST,
-        CommonArgs.ARG_CONFDIR, getResourceConfDirURI()
+        CommonArgs.ARG_CONFDIR, getConfDir()
     ]
     if (extraArgs != null) {
       argsList += extraArgs;
@@ -367,6 +372,10 @@ implements KeysForTests {
       hoyaClient.monitorAppToRunning(new Duration(CLUSTER_GO_LIVE_TIME))
     }
     return launcher;
+  }
+
+  public String getConfDir() {
+    return getResourceConfDirURI()
   }
 
   /**
@@ -536,13 +545,18 @@ implements KeysForTests {
    */
   String statusToString(ClusterStatus status) {
     StringBuilder builder = new StringBuilder();
-    status.with {
-      builder << "Cluster " << clusterId
-      builder << " @ " << master << " version " << getHBaseVersion()
-      builder << "\n"
+    builder << "Cluster " << status.clusterId
+    builder << " @ " << status.master << " version " << status.HBaseVersion
+    builder << "\n"
+    if (!status.servers.empty) {
       status.servers.each() { ServerName name ->
-        builder << name << ":" << getLoad(name) << "\n"
+        builder << name << ":" << status.getLoad(name) << "\n"
       }
+    } else {
+      builder << "no servers"
+    }
+    if (status.deadServers > 0) {
+      builder << "\n dead servers=${status.deadServers}"
     }
     return builder.toString()
   }
@@ -664,13 +678,24 @@ implements KeysForTests {
     Duration duration = new Duration(timeout);
     duration.start()
     int workerCount = 0;
-    while (workerCount != regionServerCount) {
+    while (true) {
       ClusterStatus clustat = getHBaseClusterStatus(hoyaClient, clustername)
       workerCount = clustat.servers.size()
+      if (workerCount == regionServerCount) {
+        break;
+      }
+      if (workerCount > regionServerCount) {
+        //happens if the cluster is leaking region servers
+        fail("The number of region servers is greater than expected -this may mean" +
+             " there are previous instances leaking." +
+             " Expected $regionServerCount," +
+             " got $workerCount in ${statusToString(clustat)}")
+      }
       if (duration.limitExceeded) {
-        describe("Cluster region server count of $regionServerCount not reached: $clustat")
-        log.info(clustat)
-        fail("Expected $regionServerCount YARN region servers, but saw $workerCount in $clustat")
+        describe("Cluster region server count of $regionServerCount not reached:")
+        log.info(statusToString(clustat))
+        fail("Expected $regionServerCount YARN region servers," +
+             " but saw $workerCount in ${statusToString(clustat)}")
       }
       Thread.sleep(1000)
     }
@@ -686,25 +711,34 @@ implements KeysForTests {
    * @param timeout timeout
    */
   public ClusterDescription waitForRegionServerCount(HoyaClient hoyaClient,
-                                                    String clustername,
-                                                    int regionServerCount,
-                                                    int timeout) {
+                                                     String clustername,
+                                                     int regionServerCount,
+                                                     int timeout) {
     ClusterDescription status = null
     Duration duration = new Duration(timeout);
     duration.start()
     int workerCount = 0;
-    while (workerCount == 0) {
+    while (true) {
       status = hoyaClient.getClusterStatus(clustername)
-      //log.info("Status $status")
       workerCount = status.workerNodes.size()
-      if (workerCount == 0) {
-        if (duration.limitExceeded) {
-          describe("Cluster region server count of $regionServerCount not reached")
-          log.info(prettyPrint(status.toJsonString()))
-          fail("Expected $regionServerCount YARN region servers, but saw $workerCount")
-        }
-        Thread.sleep(1000)
+      if (workerCount == regionServerCount) {
+        break;
       }
+      if (workerCount > regionServerCount) {
+        log.info(prettyPrint(status.toJsonString()))
+
+        //happens if the cluster is leaking region servers
+        fail("The number of region servers is greater than expected -this may mean" +
+             " there are previous instances leaking." +
+             " Expected $regionServerCount, got $workerCount")
+      }
+
+      if (duration.limitExceeded) {
+        describe("Cluster region server count of $regionServerCount not reached")
+        log.info(prettyPrint(status.toJsonString()))
+        fail("Expected $regionServerCount YARN region servers, but saw $workerCount")
+      }
+      Thread.sleep(1000)
     }
     return status
   }

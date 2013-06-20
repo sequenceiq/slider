@@ -81,7 +81,30 @@ class YarnUtils {
                               YarnConfiguration.DEFAULT_RM_SCHEDULER_ADDRESS,
                               YarnConfiguration.DEFAULT_RM_SCHEDULER_PORT);
   }
-  
+
+  /**
+   * probe to see if the RM scheduler is defined
+   * @param conf config
+   * @return true if the RM scheduler address is set to
+   * something other than 0.0.0.0
+   */
+  public static boolean isRmSchedulerAddressDefined(Configuration conf) {
+    InetSocketAddress address = getRmSchedulerAddress(conf)
+    return isAddressDefined(address)
+  }
+
+  /**
+   * probe to see if the address
+   * @param address
+   * @return true if the scheduler address is set to
+   * something other than 0.0.0.0
+   */
+  public static boolean isAddressDefined(InetSocketAddress address) {
+    return address.hostName != "0.0.0.0"
+  }
+
+
+
   public static setRmAddress(Configuration conf, String rmAddr) {
     conf.set(YarnConfiguration.RM_ADDRESS, rmAddr);
   }
@@ -144,7 +167,7 @@ class YarnUtils {
 
 
   public static String stringify(org.apache.hadoop.yarn.api.records.URL url) {
-    return "$url.scheme:/${url.host!=null?url.host:""}/${url.file}"
+    return "$url.scheme:/${url.host != null ? url.host : ""}/${url.file}"
   }
 
 

@@ -20,8 +20,12 @@ package org.apache.hadoop.hoya.yarn.cluster.masterless
 
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.FileSystem as HadoopFS
+
+import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.exceptions.HoyaException
+import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
@@ -37,17 +41,35 @@ import org.junit.Test
 @Commons
 class TestStartMasterlessAM extends YarnMiniClusterTestBase {
 
-  
+  File getConfDirFile() {
+    return new File("target/testRecreateMasterlessAMconf")
+  }
+
+  @Override
+  String getConfDir() {
+    return confDirFile.toURI().toString()
+  }
+
   @Test
   public void testStartMasterlessAM() throws Throwable {
     String clustername = "TestStartMasterlessAM"
-    createMiniCluster(clustername, new YarnConfiguration(), 1, true)
-
+    YarnConfiguration conf = new YarnConfiguration()
+    createMiniCluster(clustername, conf, 1, true)
+    
     describe "create a masterless AM, stop it, restart it"
+    //copy the confdir somewhere
+    Path resConfPath = new Path(getResourceConfDirURI())
+    Path tempConfPath = new Path(confDir)
+    HoyaUtils.copyDirectory(conf, resConfPath, tempConfPath)
+
 
     ServiceLauncher launcher = createMasterlessAM(clustername, 0, true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     clusterActionStop(hoyaClient, clustername)
+
+    //here we do something devious: delete our copy of the configuration
+    HadoopFS localFS = HadoopFS.get(tempConfPath.toUri(), conf)
+    localFS.delete(tempConfPath,true)
     
     //now start the cluster
     ServiceLauncher launcher2 = startHoyaCluster(clustername, [], true);
@@ -67,7 +89,7 @@ class TestStartMasterlessAM extends YarnMiniClusterTestBase {
               "no-cluster-of-this-name",
               ClientArgs.ARG_FILESYSTEM, fsDefaultName,
           ])
-      launcher.serviceExitCode == HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER
+      assert launcher.serviceExitCode == HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER
     } catch (HoyaException e) {
       assertExceptionDetails(e,
                              HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER,
