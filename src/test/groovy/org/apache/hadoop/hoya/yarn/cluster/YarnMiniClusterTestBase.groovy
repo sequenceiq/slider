@@ -351,7 +351,6 @@ implements KeysForTests {
         CommonArgs.ARG_HBASE_HOME, HBaseHome,
         CommonArgs.ARG_ZKQUORUM, ZKHosts,
         CommonArgs.ARG_ZKPORT, ZKPort.toString(),
-        CommonArgs.ARG_HBASE_ZKPATH, "/hbase",
         ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
         ClientArgs.ARG_FILESYSTEM, fsDefaultName,
         CommonArgs.ARG_X_TEST,
@@ -677,10 +676,9 @@ implements KeysForTests {
     ClusterDescription status = null
     Duration duration = new Duration(timeout);
     duration.start()
-    int workerCount = 0;
     while (true) {
       ClusterStatus clustat = getHBaseClusterStatus(hoyaClient, clustername)
-      workerCount = clustat.servers.size()
+      int workerCount = clustat.servers.size()
       if (workerCount == regionServerCount) {
         break;
       }
@@ -717,10 +715,9 @@ implements KeysForTests {
     ClusterDescription status = null
     Duration duration = new Duration(timeout);
     duration.start()
-    int workerCount = 0;
     while (true) {
       status = hoyaClient.getClusterStatus(clustername)
-      workerCount = status.workerNodes.size()
+      int workerCount = status.workerNodes.size()
       if (workerCount == regionServerCount) {
         break;
       }
