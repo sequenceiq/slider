@@ -711,6 +711,8 @@ class HoyaAppMaster extends CompositeService
     log.info("Got response from RM for container ask, allocatedCnt="
                  + allocatedContainers.size());
     allocatedContainers.each { Container container ->
+      
+      numAllocatedContainers.incrementAndGet()
       log.info("Launching shell command on a new container.," +
                " containerId=$container.id," +
                " containerNode=$container.nodeId.host:$container.nodeId.port," +
@@ -843,7 +845,7 @@ class HoyaAppMaster extends CompositeService
     int delta = total - numRequestedContainers.get();
 
     if (delta > 0) {
-      log.info("Asking for $delta more workers for a total of ${total}")
+      log.info("Asking for $delta more worker(s) for a total of ${total}")
       //more workers needed than we have -ask for more
       numRequestedContainers.addAndGet(delta);
       AMRMClient.ContainerRequest containerAsk = setupContainerAskForRM(delta);
@@ -857,9 +859,9 @@ class HoyaAppMaster extends CompositeService
         return;
       }
       
-      log.info("Asking for $delta fewer workers for a total of ${total}")
+      log.info("Asking for $delta fewer worker(s) for a total of ${total}")
 
-      //reduce the number expected
+      //reduce the number expected (i.e. subtract the delta)
       numRequestedContainers.addAndGet(delta);
       
       //then pick some containers to kill
