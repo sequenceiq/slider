@@ -361,7 +361,7 @@ class HoyaAppMaster extends CompositeService
 
 
     //nmclient relays callbacks back to this class
-    nmClientAsync = new NMClientAsyncImpl(this, asyncRMClient.getNMTokens());
+    nmClientAsync = new NMClientAsyncImpl("hoya", this);
     nmClientAsync.init(conf);
     nmClientAsync.start();
     addService(nmClientAsync)
