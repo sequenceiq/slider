@@ -86,6 +86,7 @@ class ClientArgs extends CommonArgs {
       (ACTION_ADDNODE):   ["add nodes", 1],
       (ACTION_CREATE):    ["create cluster", 1],
       (ACTION_DESTROY):   ["destroy a stopped cluster", 1],
+      (ACTION_FLEX):      ["flex a running cluster", 1],
       (ACTION_GETCONF):   ["get the configuration of a cluster", 1],
       (ACTION_GETSIZE):   ["get the size of a cluster", 1],
       (ACTION_EXISTS):    ["probe for a cluster being live", 1],
