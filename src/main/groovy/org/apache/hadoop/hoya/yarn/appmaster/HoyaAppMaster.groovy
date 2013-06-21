@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster
 
-import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem as HadoopFS
@@ -142,9 +141,17 @@ class HoyaAppMaster extends CompositeService
   /**
    * Hash map of the containers we have
    */
-  private ConcurrentMap<ContainerId, Container> containers =
+  private final ConcurrentMap<ContainerId, Container> containers =
     new ConcurrentHashMap<ContainerId, Container>();
-  
+
+  /**
+   * Hash map of the containers we have released, but we
+   * are still awaiting acknowledgements on. Any failure of these
+   * containers is treated as a successful outcome
+   */
+  private final ConcurrentMap<ContainerId, Container> containersBeingReleased =
+    new ConcurrentHashMap<ContainerId, Container>();
+
   // Counter for completed containers ( complete denotes successful or failed )
   private final AtomicInteger numCompletedContainers = new AtomicInteger();
 
@@ -152,6 +159,11 @@ class HoyaAppMaster extends CompositeService
   // Needed as once requested, we should not request for containers again.
   // Only request for more if the original requirement changes.
   private final AtomicInteger numRequestedContainers = new AtomicInteger();
+
+  /**
+   * counter of how many outstanding release requests we have
+   */
+  private final AtomicInteger numReleaseRequests = new AtomicInteger();
 
   // Allocated container count so that we know how many containers has the RM
   // allocated to us
@@ -203,6 +215,14 @@ class HoyaAppMaster extends CompositeService
   */
   private final ClusterDescription clusterDescription = new ClusterDescription();
 
+  /**
+   * List of completed nodes. This isn't kept in the CD as it gets too
+   * big for the RPC responses. Indeed, we should think about how deep to get this
+   */
+  private final List<ClusterNode> completedNodes;
+  
+  private static final int COMPLETE_NODE_SIZE_LIMIT = 100;
+  
   /**
    * Flag set if there is no master
    */
@@ -311,7 +331,7 @@ class HoyaAppMaster extends CompositeService
    * @return exit code
    * @throws Throwable on a failure
    */
-  public int createAndRunCluster(String clustername) throws Throwable {
+  private int createAndRunCluster(String clustername) throws Throwable {
 
     clusterDescription.name = clustername;
     clusterDescription.state = ClusterDescription.STATE_CREATED;
@@ -427,10 +447,7 @@ class HoyaAppMaster extends CompositeService
     clusterDescription.zkPort = siteConf.getInt(EnvMappings.KEY_ZOOKEEPER_PORT, 0)
     clusterDescription.zkPath = siteConf.get(EnvMappings.KEY_ZNODE_PARENT)
 
-    numTotalContainers = serviceArgs.workers
-    log.info("Total containers in this app " + numTotalContainers)
 
-    clusterDescription.workers = serviceArgs.workers
     clusterDescription.masters = serviceArgs.masters
     clusterDescription.workerHeap = serviceArgs.workerHeap
     clusterDescription.masterHeap = serviceArgs.masterHeap
@@ -442,7 +459,8 @@ class HoyaAppMaster extends CompositeService
       clusterDescription.hBaseClientProperties[key] = val
     }
     if (clusterDescription.zkPort == 0) {
-      throw new BadCommandArgumentsException("ZK port property not provided at $EnvMappings.KEY_ZOOKEEPER_PORT in configuration file $hBaseSiteXML")
+      throw new BadCommandArgumentsException("ZK port property not provided at" +
+                     " $EnvMappings.KEY_ZOOKEEPER_PORT in configuration file $hBaseSiteXML")
     }
 
     List<String> launchSequence = [
@@ -457,19 +475,10 @@ class HoyaAppMaster extends CompositeService
       launchHBaseServer(launchSequence,
                         [('HBASE_LOG_DIR'): buildHBaseLogdir()]);
     }
-    
-    // Setup ask for containers from RM
-    // Send request for containers to RM
-    // Until we get our fully allocated quota, we keep on polling RM for
-    // containers
-    // Keep looping until all the containers are launched and shell script
-    // executed on them ( regardless of success/failure).
 
-    AMRMClient.ContainerRequest containerAsk =
-      setupContainerAskForRM(numTotalContainers);
-    numRequestedContainers.set(numTotalContainers);
-    asyncRMClient.addContainerRequest(containerAsk);
-    
+    //now ask for the workers
+    flexClusterNodes(serviceArgs.workers, serviceArgs.masters)
+
     //if we get here: success
     success = true;
     clusterDescription.statusTime = System.currentTimeMillis()
@@ -509,7 +518,7 @@ class HoyaAppMaster extends CompositeService
   }
   /**
    * build the log directory
-   * @return
+   * @return the log dir
    */
   public String buildHBaseLogdir() {
     String logdir = System.getenv("LOGDIR");
@@ -521,7 +530,7 @@ class HoyaAppMaster extends CompositeService
 
   /**
    * Build the log dir env variable for the containers
-   * @return
+   * @return the container's log dir
    */
   public String buildHBaseContainerLogdir() {
     return buildHBaseLogdir();
@@ -549,7 +558,8 @@ class HoyaAppMaster extends CompositeService
   /**
    * Declare that the AM is complete
    */
-  public void signalAMComplete() {
+  public void signalAMComplete(String reason) {
+    log.info("Triggering shutdown of the AM: $reason")
     AMExecutionStateLock.lock()
     try {
       isAMCompleted.signal()
@@ -634,7 +644,6 @@ class HoyaAppMaster extends CompositeService
     server = new RPC.Builder(config)
         .setProtocol(HoyaAppMasterProtocol.class)
         .setInstance(this)
-//        .setBindAddress(ADDRESS)
         .setPort(0)
         .setNumHandlers(5)
         .setVerbose(serviceArgs.xTest)
@@ -679,31 +688,35 @@ class HoyaAppMaster extends CompositeService
 /* AMRMClientAsync callbacks */
 /* =================================================================== */
 
+
+  /*
+      synchronized (this) { //only one thread must enter this at once
+        if (numAllocatedContainers.get() == numTotalContainers) {
+          log.info("Releasing unneeded containers " + container.id)
+          asyncRMClient.releaseAssignedContainer(container.id);
+          return
+        }
+        numAllocatedContainers.incrementAndGet();
+      }
+  
+   */
+  
   /**
    * Callback event when a container is allocated
-   * @param allocatedContainers list of containers
+   * @param allocatedContainers list of containers that are now ready to be
+   * given work
    */
   @Override //AMRMClientAsync
   public void onContainersAllocated(List<Container> allocatedContainers) {
     log.info("Got response from RM for container ask, allocatedCnt="
                  + allocatedContainers.size());
     allocatedContainers.each { Container container ->
-      synchronized (numAllocatedContainers) { //only one thread must enter this at once
-        if (numAllocatedContainers.get() == numTotalContainers) {
-          log.info("Releasing unneeded containers " + container.getId())
-          asyncRMClient.releaseAssignedContainer(container.getId());
-          return
-        }
-        numAllocatedContainers.incrementAndGet();
-      }
       log.info("Launching shell command on a new container.," +
                " containerId=$container.id," +
                " containerNode=$container.nodeId.host:$container.nodeId.port," +
                " containerNodeURI=$container.nodeHttpAddress," +
                " containerResourceMemory$container.resource.memory");
-      // + ", containerToken"
-      // +container.getContainerToken().getIdentifier().toString());
-
+  
       HoyaRegionServiceLauncher launcher =
         new HoyaRegionServiceLauncher(this, container, HBaseCommands.REGION_SERVER)
       Thread launchThread = new Thread(launcherThreadGroup,
@@ -722,12 +735,13 @@ class HoyaAppMaster extends CompositeService
   }
 
   @Override //AMRMClientAsync
-  public void onContainersCompleted(List<ContainerStatus> completedContainers) {
+  public synchronized void onContainersCompleted(List<ContainerStatus> completedContainers) {
     log.info("Got response from RM for container ask, completedCnt="
                  + completedContainers.size());
     for (ContainerStatus status : completedContainers) {
-      log.info("Got container status for" +
-               " containerID=$status.containerId," +
+      ContainerId id = status.containerId
+      log.info("Container Completion for" +
+               " containerID=${id}," +
                " state=$status.state," +
                " exitStatus=$status.exitStatus," +
                " diagnostics=$status.diagnostics");
@@ -735,13 +749,17 @@ class HoyaAppMaster extends CompositeService
       // non complete containers should not be here
       assert (status.state == ContainerState.COMPLETE);
       //record the complete node's details for the status report
-      //TODO -renable this
-      // updateCompletedNode(status)
-      if (status.exitStatus != ContainerExitStatus.ABORTED || serviceArgs.xTest) {
-        //if it is a failure (and this isn't a test run), decrement the container
-        //pool
-        numAllocatedContainers.decrementAndGet();
-        numRequestedContainers.decrementAndGet();
+      updateCompletedNode(status)
+      boolean markCompleted = status.exitStatus != ContainerExitStatus.ABORTED;
+      if (containersBeingReleased.containsKey(id)) {
+        log.info("Container was queued for release")
+        markCompleted = true
+        containersBeingReleased.remove(id)
+        numReleaseRequests.decrementAndGet()
+      }
+      if (markCompleted) {
+        //if it isn't a failure , decrement the container pool
+        noteContainerCompleted()
       }
     }
 
@@ -751,41 +769,125 @@ class HoyaAppMaster extends CompositeService
     // are completing. If too many complete, abort the application
     // TODO: this needs to be better thought about (and maybe something to
     // better handle in Yarn for long running apps)
+/*
+
     if ((numCompletedContainers.addAndGet(completedContainers.size())
-            >= MAX_TOLERABLE_FAILURES) &&
+            >= maximumContainerFailureLimit()) &&
         numCompletedContainers.get() == numTotalContainers) {
       log.info("Too many containers " +numCompletedContainers.get() +
               "  completed unexpectedly -stopping")
       signalAMComplete();
     }
-    // ask for more containers if any failed
-    int askCount = numTotalContainers - numRequestedContainers.get();
-    numRequestedContainers.addAndGet(askCount);
+    
+*/
+    reviewRequestAndReleaseNodes();
 
-    if (askCount > 0) {
-      AMRMClient.ContainerRequest containerAsk = setupContainerAskForRM(askCount);
-      asyncRMClient.addContainerRequest(containerAsk);
-    }
-
-    // set progress to deliver to RM on next heartbeat
     int completedContainerCount = numCompletedContainers.get()
-    float progress = (float) completedContainerCount / numTotalContainers;
-//    resourceManager.setProgress(progress);
-
+/*
     if (completedContainerCount == numTotalContainers && noMaster) {
       log.info("All containers have completed and there is no running master -stopping")
       signalAMComplete();
+    }*/
+    
+  }
+
+  /**
+   * How many failures to tolerate
+   * On test runs, the numbers are low to keep things under control
+   * @return the max #of failures
+   */
+  public int maximumContainerFailureLimit() {
+    
+    return serviceArgs.xTest? 1:  MAX_TOLERABLE_FAILURES
+  }
+
+  /**
+   * Handle completion of a container by decrementing the requested and alloc'd numbers
+   */
+  private synchronized void noteContainerCompleted() {
+    numAllocatedContainers.decrementAndGet();
+    numRequestedContainers.decrementAndGet();
+  }
+  
+  /**
+   * Implementation of cluster flexing.
+   * This is synchronized so that it doesn't get confused by other requests coming
+   * in.
+   * It should be the only way that anything -even the AM itself on startup-
+   * asks for nodes. 
+   * @param workers #of workers to add
+   * @param masters #of masters to request (if supported)
+   * @throws IOException
+   */
+  private synchronized void flexClusterNodes(int workers, int masters) throws IOException {
+    log.info("Flexing cluster count from $numTotalContainers to $workers")
+    if (numTotalContainers == workers) {
+      log.info("Flex is a no-op")
+      //no-op
+      return;
+    }
+    //update the #of workers
+    numTotalContainers = workers
+    clusterDescription.workers = serviceArgs.workers
+
+    // ask for more containers if needed
+
+    reviewRequestAndReleaseNodes()
+  }
+
+  /**
+   * Look at where the current node state is -and whether it should be changed
+   */
+  private synchronized void reviewRequestAndReleaseNodes() {
+    int total = numTotalContainers
+    int delta = total - numRequestedContainers.get();
+
+    if (delta > 0) {
+      log.info("Asking for $delta more workers for a total of ${total}")
+      //more workers needed than we have -ask for more
+      numRequestedContainers.addAndGet(delta);
+      AMRMClient.ContainerRequest containerAsk = setupContainerAskForRM(delta);
+      asyncRMClient.addContainerRequest(containerAsk);
+    } else if (delta < 0) {
+
+      //special case: there are no more containers
+      if (total == 0 && !noMaster) {
+        //just exit the entire application here, rather than a node at a time.
+        signalAMComplete("#of workers is set to zero: exiting");
+        return;
+      }
+      
+      log.info("Asking for $delta fewer workers for a total of ${total}")
+
+      //reduce the number expected
+      numRequestedContainers.addAndGet(delta);
+      
+      //then pick some containers to kill
+      int excess = -delta;
+      List<Container> targets = containers.values()
+      int index = 0;
+      while (index < targets.size() && excess > 0) {
+        Container possible = targets[index]
+        ContainerId id = possible.id
+        if (!containersBeingReleased.containsKey(id)) {
+          log.info("Requesting release of container $id")
+          containersBeingReleased[id] = possible
+          numReleaseRequests.incrementAndGet()
+          asyncRMClient.releaseAssignedContainer(id)
+          excess--;
+        }
+        index++
+      }
+
     }
   }
 
-  
   /**
    * RM wants to shut down the AM
    */
   @Override //AMRMClientAsync
   void onShutdownRequest() {
-    log.info("Shutdown requested")
-    signalAMComplete();
+    signalAMComplete("Shutdown requested from RM");
   }
   
 /**
@@ -816,7 +918,7 @@ class HoyaAppMaster extends CompositeService
   public void onError(Exception e) {
     //callback says it's time to finish
     log.error("AMRMClientAsync.onError() received $e",e)
-    signalAMComplete();
+    signalAMComplete("AMRMClientAsync.onError() received $e");
   }
 
 /* =================================================================== */
@@ -832,18 +934,15 @@ class HoyaAppMaster extends CompositeService
   @Override   //HoyaAppMasterApi
   void stopCluster() throws IOException {
     log.info("HoyaAppMasterApi.stopCluster()")
-    signalAMComplete();
+    signalAMComplete("stopCluster() invoked");
   }
 
   @Override   //HoyaAppMasterApi
-  void addNodes(int nodes) throws IOException {
-    log.info("HoyaAppMasterApi.addNodes($nodes)")
+  public void flexNodes(int workers, int masters) throws IOException {
+    log.info("HoyaAppMasterApi.flexNodes($workers, $masters)")
+    flexClusterNodes(workers, masters)
   }
 
-  @Override   //HoyaAppMasterApi
-  void deleteNodes(int nodes) throws IOException {
-    log.info("HoyaAppMasterApi.rmNodes($nodes)")
-  }
 
   @Override   //HoyaAppMasterApi
   long getProtocolVersion(String protocol, long clientVersion) throws IOException {
@@ -902,16 +1001,15 @@ class HoyaAppMaster extends CompositeService
   }
 
   /**
-   * handle  completed node in the CD -move something from the live
+   * handle completed node in the CD -move something from the live
    * server list to the completed server list
    * @param completed the node that has just completed
    */
   private void updateCompletedNode(ContainerStatus completed) {
-    ClusterNode node
-    
+
     //add the node
     synchronized (clusterDescription) {
-      node = workerMap.remove(completed.containerId)
+      ClusterNode node = workerMap.remove(completed.containerId)
       if (node == null) {
         node = new ClusterNode()
         node.name = completed.containerId.toString()
@@ -919,7 +1017,11 @@ class HoyaAppMaster extends CompositeService
       node.state = ClusterDescription.STATE_DESTROYED
       node.exitCode = completed.exitStatus
       node.diagnostics = completed.diagnostics
-      clusterDescription.completedNodes.add(node)
+      completedNodes.add(node)
+      //drop the tail node if the size limit is reached
+      if (completedNodes.size() > COMPLETE_NODE_SIZE_LIMIT) {
+        completedNodes.remove(completedNodes.size() - 1)
+      }
     }
   }
 
@@ -982,7 +1084,7 @@ class HoyaAppMaster extends CompositeService
       masterNode.state = ClusterDescription.STATE_STOPPED;
     }
     //tell the AM the cluster is complete 
-    signalAMComplete();
+    signalAMComplete("HBase master exited with $exitCode");
   }
 
   /**

@@ -166,7 +166,11 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
         exitCode = actionExists(clusterName)
         break;
 
-      
+      case CommonArgs.ACTION_FLEX:
+        validateClusterName(clusterName)
+        exitCode = actionFlex(clusterName, serviceArgs.workers, serviceArgs.masters)
+        break;
+
       case CommonArgs.ACTION_GETCONF:
         validateClusterName(clusterName)
         File outfile = null;
@@ -901,10 +905,8 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   public int monitorAppToCompletion(Duration duration)
       throws YarnException, IOException {
 
-
     ApplicationReport report = monitorAppToState(duration,
                                        YarnApplicationState.FINISHED)
-
     return buildExitCode(applicationId, report)
   }
 
@@ -920,7 +922,6 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
       throws YarnException, IOException {
     return monitorAppToState(duration,
                              YarnApplicationState.RUNNING)
-
   }
 
   private boolean maybeKillApp(ApplicationReport report) {
@@ -1298,6 +1299,19 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     return EXIT_SUCCESS
   }
 
+  public int actionFlex(String clustername, int workers, int masters) {
+    verifyManagerSet()
+    validateClusterName(clustername)
+    if (workers < 0) {
+      throw new BadCommandArgumentsException("Requested number of workers is out of range")
+    }
+    HoyaAppMasterProtocol appMaster = bondToCluster(clustername)
+    appMaster.flexNodes(workers, masters)
+    return EXIT_SUCCESS
+
+  }
+  
+  
   @VisibleForTesting
   public ClusterDescription getClusterStatus(String clustername) {
     HoyaAppMasterProtocol appMaster = bondToCluster(clustername)

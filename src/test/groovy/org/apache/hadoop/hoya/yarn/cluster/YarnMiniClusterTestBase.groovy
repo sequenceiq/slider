@@ -660,8 +660,7 @@ implements KeysForTests {
     describe("HBASE CLUSTER STATUS \n " + statusToString(clustat));
     return clustat
   }
-  
-  
+
   /**
    * Spin waiting for the RS count to match expected
    * @param hoyaClient client
@@ -672,7 +671,8 @@ implements KeysForTests {
   public ClusterDescription waitForHBaseWorkerCount(HoyaClient hoyaClient,
                                                      String clustername,
                                                      int regionServerCount,
-                                                     int timeout) {
+                                                     int timeout,
+                                                     boolean failIfTooBig=true) {
     ClusterDescription status = null
     Duration duration = new Duration(timeout);
     duration.start()
@@ -682,7 +682,9 @@ implements KeysForTests {
       if (workerCount == regionServerCount) {
         break;
       }
-      if (workerCount > regionServerCount) {
+      if (failIfTooBig && workerCount > regionServerCount) {
+        describe("Cluster region server count of $regionServerCount not reached:")
+        log.info(statusToString(clustat))
         //happens if the cluster is leaking region servers
         fail("The number of region servers is greater than expected -this may mean" +
              " there are previous instances leaking." +
@@ -690,7 +692,7 @@ implements KeysForTests {
              " got $workerCount in ${statusToString(clustat)}")
       }
       if (duration.limitExceeded) {
-        describe("Cluster region server count of $regionServerCount not reached:")
+        describe("Cluster region server count of $regionServerCount not met:")
         log.info(statusToString(clustat))
         fail("Expected $regionServerCount YARN region servers," +
              " but saw $workerCount in ${statusToString(clustat)}")
@@ -711,7 +713,8 @@ implements KeysForTests {
   public ClusterDescription waitForRegionServerCount(HoyaClient hoyaClient,
                                                      String clustername,
                                                      int regionServerCount,
-                                                     int timeout) {
+                                                     int timeout,
+                                                     boolean failIfTooBig = true) {
     ClusterDescription status = null
     Duration duration = new Duration(timeout);
     duration.start()
@@ -721,7 +724,7 @@ implements KeysForTests {
       if (workerCount == regionServerCount) {
         break;
       }
-      if (workerCount > regionServerCount) {
+      if (failIfTooBig && workerCount > regionServerCount) {
         log.info(prettyPrint(status.toJsonString()))
 
         //happens if the cluster is leaking region servers
@@ -731,7 +734,7 @@ implements KeysForTests {
       }
 
       if (duration.limitExceeded) {
-        describe("Cluster region server count of $regionServerCount not reached")
+        describe("Cluster region server count of $regionServerCount not met")
         log.info(prettyPrint(status.toJsonString()))
         fail("Expected $regionServerCount YARN region servers, but saw $workerCount")
       }
