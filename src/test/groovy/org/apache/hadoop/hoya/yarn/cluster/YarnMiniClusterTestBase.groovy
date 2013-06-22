@@ -671,8 +671,7 @@ implements KeysForTests {
   public ClusterDescription waitForHBaseWorkerCount(HoyaClient hoyaClient,
                                                      String clustername,
                                                      int regionServerCount,
-                                                     int timeout,
-                                                     boolean failIfTooBig=true) {
+                                                     int timeout) {
     ClusterDescription status = null
     Duration duration = new Duration(timeout);
     duration.start()
@@ -682,21 +681,13 @@ implements KeysForTests {
       if (workerCount == regionServerCount) {
         break;
       }
-      if (failIfTooBig && workerCount > regionServerCount) {
-        describe("Cluster region server count of $regionServerCount not reached:")
-        log.info(statusToString(clustat))
-        //happens if the cluster is leaking region servers
-        fail("The number of region servers is greater than expected -this may mean" +
-             " there are previous instances leaking." +
-             " Expected $regionServerCount," +
-             " got $workerCount in ${statusToString(clustat)}")
-      }
       if (duration.limitExceeded) {
         describe("Cluster region server count of $regionServerCount not met:")
         log.info(statusToString(clustat))
         fail("Expected $regionServerCount YARN region servers," +
              " but saw $workerCount in ${statusToString(clustat)}")
       }
+      log.info("Waiting for $regionServerCount workers -got $workerCount")
       Thread.sleep(1000)
     }
     return status
@@ -713,8 +704,7 @@ implements KeysForTests {
   public ClusterDescription waitForRegionServerCount(HoyaClient hoyaClient,
                                                      String clustername,
                                                      int regionServerCount,
-                                                     int timeout,
-                                                     boolean failIfTooBig = true) {
+                                                     int timeout) {
     ClusterDescription status = null
     Duration duration = new Duration(timeout);
     duration.start()
@@ -724,20 +714,12 @@ implements KeysForTests {
       if (workerCount == regionServerCount) {
         break;
       }
-      if (failIfTooBig && workerCount > regionServerCount) {
-        log.info(prettyPrint(status.toJsonString()))
-
-        //happens if the cluster is leaking region servers
-        fail("The number of region servers is greater than expected -this may mean" +
-             " there are previous instances leaking." +
-             " Expected $regionServerCount, got $workerCount")
-      }
-
       if (duration.limitExceeded) {
         describe("Cluster region server count of $regionServerCount not met")
         log.info(prettyPrint(status.toJsonString()))
         fail("Expected $regionServerCount YARN region servers, but saw $workerCount")
       }
+      log.info("Waiting for $regionServerCount workers -got $workerCount")
       Thread.sleep(1000)
     }
     return status
@@ -759,4 +741,30 @@ implements KeysForTests {
     }
   }
 
+
+  public void flexClusterTestRun(String clustername, int workers, int flexTarget, boolean testHBaseAfter) {
+    createMiniCluster(clustername, new YarnConfiguration(), 2, true)
+    //now launch the cluster
+    ServiceLauncher launcher = createHoyaCluster(clustername, workers, [], true, true)
+    HoyaClient hoyaClient = (HoyaClient) launcher.service
+    ClusterDescription status = hoyaClient.getClusterStatus(clustername)
+    basicHBaseClusterStartupSequence(hoyaClient, clustername)
+
+    describe("Waiting for initial worker count of $workers")
+
+    //verify the #of region servers is as expected
+    //get the hbase status
+    waitForRegionServerCount(hoyaClient, clustername, workers, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+    waitForHBaseWorkerCount(hoyaClient, clustername, workers, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+
+    //start to add some more workers
+    describe("Flexing from $workers worker(s) to $flexTarget worker")
+    hoyaClient.actionFlex(clustername, flexTarget, 0)
+    waitForRegionServerCount(hoyaClient, clustername, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+    if (testHBaseAfter) {
+      waitForHBaseWorkerCount(hoyaClient, clustername, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+    }
+
+    clusterActionStop(hoyaClient, clustername)
+  }
 }

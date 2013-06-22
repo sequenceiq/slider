@@ -849,15 +849,18 @@ class HoyaAppMaster extends CompositeService
       //more workers needed than we have -ask for more
       numRequestedContainers.addAndGet(delta);
       AMRMClient.ContainerRequest containerAsk = setupContainerAskForRM(delta);
+      log.info("Container ask is $containerAsk")
       asyncRMClient.addContainerRequest(containerAsk);
     } else if (delta < 0) {
 
       //special case: there are no more containers
+/*
       if (total == 0 && !noMaster) {
         //just exit the entire application here, rather than a node at a time.
         signalAMComplete("#of workers is set to zero: exiting");
         return;
       }
+*/
       
       log.info("Asking for $delta fewer worker(s) for a total of ${total}")
 
@@ -866,7 +869,7 @@ class HoyaAppMaster extends CompositeService
       
       //then pick some containers to kill
       int excess = -delta;
-      List<Container> targets = containers.values()
+      Collection<Container> targets = containers.values()
       int index = 0;
       while (index < targets.size() && excess > 0) {
         Container possible = targets[index]
