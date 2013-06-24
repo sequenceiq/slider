@@ -24,7 +24,7 @@
 
 
 
-package org.apache.hadoop.hoya.yarn.cluster.live
+package org.apache.hadoop.hoya.yarn.cluster.flexing
 
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
@@ -38,7 +38,7 @@ class TestClusterFlex1To2 extends YarnMiniClusterTestBase {
 
   @Test
   public void testClusterFlex() throws Throwable {
-    flexClusterTestRun("TestClusterFlex1To2", 1, 2, true)
+    assert flexClusterTestRun("TestClusterFlex1To2", 1, 2, true, true)
   }
 
 

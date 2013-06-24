@@ -20,25 +20,28 @@
 
 
 
-package org.apache.hadoop.hoya.yarn.cluster.live
+
+
+
+
+
+
+package org.apache.hadoop.hoya.yarn.cluster.flexing
 
 import groovy.util.logging.Commons
-import org.apache.hadoop.hoya.api.ClusterDescription
-import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
-import org.apache.hadoop.yarn.conf.YarnConfiguration
-import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
 /**
  * Create a master against the File:// fs
  */
 @Commons
-class TestClusterFlexDownToZero extends YarnMiniClusterTestBase {
+class TestClusterFlex2To5 extends YarnMiniClusterTestBase {
 
   @Test
-  public void testClusterFlexDownToZero() throws Throwable {
-    flexClusterTestRun("TestClusterFlexDownToZero", 1, 0, false)
+  public void testClusterFlex() throws Throwable {
+    assert flexClusterTestRun("TestClusterFlex2To5", 2, 5, true, true)
   }
+
 
 }

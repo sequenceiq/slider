@@ -145,7 +145,6 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
     //choose the action
     String action = serviceArgs.action
-    List<String> actionArgs = serviceArgs.actionArgs
     int exitCode = EXIT_SUCCESS
     String clusterName = serviceArgs.clusterName;
     //actions
@@ -168,7 +167,10 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
       case CommonArgs.ACTION_FLEX:
         validateClusterName(clusterName)
-        exitCode = actionFlex(clusterName, serviceArgs.workers, serviceArgs.masters)
+        exitCode = actionFlex(clusterName,
+                              serviceArgs.workers,
+                              serviceArgs.masters,
+                              serviceArgs.persist)
         break;
 
       case CommonArgs.ACTION_GETCONF:
@@ -248,34 +250,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     return EXIT_SUCCESS
   }
   
-  /**
-   * Restore a cluster
-   */
-  public int actionStart(String clustername) {
-    //verify that a live cluster isn't there
-    validateClusterName(clustername)
-    verifyFileSystemArgSet()
 
-    Path clusterDirectory = HoyaUtils.createHoyaClusterDirPath(clusterFS, clustername)
-    Path clusterSpecPath = new Path(clusterDirectory, HoyaKeys.CLUSTER_SPECIFICATION_FILE);
-    if (!clusterFS.exists(clusterSpecPath)) {
-      log.debug("Missing cluster specification file $clusterSpecPath")
-      throw new HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER,
-                                             E_UNKNOWN_CLUSTER + clustername +
-        "\n (cluster definition not found at $clusterSpecPath)")
-    }
-    ClusterDescription clusterSpec = ClusterDescription.load(clusterFS, clusterSpecPath);
-    //spec is loaded, just look at its state
-    if (clusterSpec.state == ClusterDescription.STATE_INCOMPLETE) {
-      throw new HoyaException(EXIT_BAD_CLUSTER_STATE,E_INCOMPLETE_CLUSTER_SPEC + clusterSpecPath)
-    }
-  
-    //now see if it is actually running and bail out
-    verifyManagerSet()
-    verifyNoLiveClusters(clustername)
-
-    return executeClusterCreation(clusterSpec);
-  }
   
   /**
    * Create the cluster -saving the arguments to a specification file first
@@ -1273,21 +1248,25 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
       toPrint = true
     }
     String description = "HBase cluster $clustername"
+    switch (format) {
+
     //extract the config
-    if ("xml" == format) {
-      Configuration siteConf = new Configuration(false)
-      status.hBaseClientProperties.each { String key, String val ->
-        siteConf.set(key, val, description);
-      }
-      siteConf.writeXml(writer)
-    } else if ("property" ==format) {
-      Properties props = new Properties()
-      status.hBaseClientProperties.each { String key, String val ->
-        props[key] = val
-      }
-      props.store(writer, description)
-    } else {
-      throw new BadCommandArgumentsException("Unknown format: $format")
+      case ClientArgs.FORMAT_XML:
+        Configuration siteConf = new Configuration(false)
+        status.hBaseClientProperties.each { String key, String val ->
+          siteConf.set(key, val, description);
+        }
+        siteConf.writeXml(writer)
+        break
+      case ClientArgs.FORMAT_PROPERTIES:
+        Properties props = new Properties()
+        status.hBaseClientProperties.each { String key, String val ->
+          props[key] = val
+        }
+        props.store(writer, description)
+        break;
+      default:
+        throw new BadCommandArgumentsException("Unknown format: $format")
     }
     //data is written.
     //close the file
@@ -1299,19 +1278,122 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     return EXIT_SUCCESS
   }
 
-  public int actionFlex(String clustername, int workers, int masters) {
+  /**
+   * Restore a cluster
+   */
+  public int actionStart(String clustername) {
+    //verify that a live cluster isn't there
+    validateClusterName(clustername)
+    verifyFileSystemArgSet()
+
+    Path clusterSpecPath = locateClusterSpecification(clustername)
+    ClusterDescription clusterSpec = ClusterDescription.load(clusterFS, clusterSpecPath);
+    //spec is loaded, just look at its state
+    verifySpecificationValidity(clusterSpecPath, clusterSpec)
+
+    //now see if it is actually running and bail out
+    verifyManagerSet()
+    verifyNoLiveClusters(clustername)
+
+    return executeClusterCreation(clusterSpec);
+  }
+
+  /**
+   * Perform any post-load cluster validation
+   * @param clusterSpecPath
+   * @param clusterSpec
+   */
+  public void verifySpecificationValidity(Path clusterSpecPath, ClusterDescription clusterSpec) {
+    if (clusterSpec.state == ClusterDescription.STATE_INCOMPLETE) {
+      throw new HoyaException(EXIT_BAD_CLUSTER_STATE, E_INCOMPLETE_CLUSTER_SPEC + clusterSpecPath)
+    }
+  }
+
+  /**
+   * get the path of a cluster
+   * @param clustername
+   * @return the path to the cluster specification
+   * @throws HoyaException if the specification is not there
+   */
+  public Path locateClusterSpecification(String clustername) {
+    Path clusterDirectory = HoyaUtils.createHoyaClusterDirPath(clusterFS, clustername)
+    Path clusterSpecPath = new Path(clusterDirectory, HoyaKeys.CLUSTER_SPECIFICATION_FILE);
+    if (!clusterFS.exists(clusterSpecPath)) {
+      log.debug("Missing cluster specification file $clusterSpecPath")
+      throw new HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER,
+                              E_UNKNOWN_CLUSTER + clustername +
+                              "\n (cluster definition not found at $clusterSpecPath)")
+    }
+    return clusterSpecPath
+  }
+
+  /**
+   * Implement flexing
+   * @param clustername name of the cluster
+   * @param workers number of workers
+   * @param masters number of masters
+   * @return EXIT_SUCCESS if the #of nodes in a live cluster changed
+   */
+  public int actionFlex(String clustername, int workers, int masters, boolean persist) {
     verifyManagerSet()
     validateClusterName(clustername)
     if (workers < 0) {
       throw new BadCommandArgumentsException("Requested number of workers is out of range")
     }
-    HoyaAppMasterProtocol appMaster = bondToCluster(clustername)
-    appMaster.flexNodes(workers, masters)
-    return EXIT_SUCCESS
+    if (persist) {
+      Path clusterDirectory = HoyaUtils.createHoyaClusterDirPath(clusterFS, clustername)
+      Path clusterSpecPath = locateClusterSpecification(clustername)
+      ClusterDescription clusterSpec = ClusterDescription.load(clusterFS, clusterSpecPath);
+      //spec is loaded, just look at its state
+      verifySpecificationValidity(clusterSpecPath, clusterSpec)
 
+      //update the specification
+      
+      if (clusterSpec.workers != workers) {
+        clusterSpec.workers = workers
+
+        //save to a renamed version
+        GString specFilename = "spec-${System.currentTimeMillis()}"
+        Path specSavePath = new Path(clusterDirectory, specFilename +".json");
+        Path specOrigPath = new Path(clusterDirectory, specFilename +"-orig.json");
+
+        //roll the specification. The (atomic) rename may fail if there is 
+        //an overwrite, which is how we catch re-entrant calls to this
+        clusterSpec.save(clusterFS, specSavePath,false);
+        clusterFS.rename(clusterSpecPath, specOrigPath)
+        clusterFS.rename(specSavePath, clusterSpecPath)
+        clusterFS.delete(specOrigPath, false)
+        //there is no live instance, nothing to do
+        log.info("New cluster size: $workers persisted")
+      } else {
+        log.info("New cluster size:  $workers is the same as the current persisted size")
+      }
+    }
+    int exitCode = EXIT_FALSE
+
+    //now see if it is actually running and bail out
+    verifyManagerSet()
+    ApplicationReport instance = findInstance(getUsername(), clustername);
+    if (instance) {
+      log.info("Flexing running cluster to size $workers")
+      HoyaAppMasterProtocol appMaster = connect(instance);
+      if (appMaster.flexNodes(workers, masters)) {
+        log.info("Cluster size updated")
+        exitCode = EXIT_SUCCESS
+      } else {
+        log.info("Requested cluster size is the same as current size: no change")
+      }
+    } else {
+      log.info("No running cluster to update")
+    }
+    return exitCode
   }
-  
-  
+
+  /**
+   * Connect to a live cluster and get its current state
+   * @param clustername the cluster name
+   * @return its description
+   */
   @VisibleForTesting
   public ClusterDescription getClusterStatus(String clustername) {
     HoyaAppMasterProtocol appMaster = bondToCluster(clustername)
@@ -1324,7 +1406,14 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
       throw e;
     }
   }
-  
+
+  /**
+   *   Bond to a running cluster
+   *
+   * @param clustername cluster name
+   * @return the AM RPC client
+   * @throws HoyaException if the cluster is unkown
+   */
   private HoyaAppMasterProtocol bondToCluster(String clustername) {
     verifyManagerSet()
     ApplicationReport instance = findInstance(getUsername(), clustername)

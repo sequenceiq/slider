@@ -742,8 +742,10 @@ implements KeysForTests {
   }
 
 
-  public void flexClusterTestRun(String clustername, int workers, int flexTarget, boolean testHBaseAfter) {
-    createMiniCluster(clustername, new YarnConfiguration(), 2, true)
+  public boolean flexClusterTestRun(String clustername, int workers, int flexTarget, boolean persist, boolean testHBaseAfter) {
+    createMiniCluster(clustername, new YarnConfiguration(),
+                      2,
+                      true)
     //now launch the cluster
     ServiceLauncher launcher = createHoyaCluster(clustername, workers, [], true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
@@ -759,12 +761,13 @@ implements KeysForTests {
 
     //start to add some more workers
     describe("Flexing from $workers worker(s) to $flexTarget worker")
-    hoyaClient.actionFlex(clustername, flexTarget, 0)
+    boolean flexed = 0 == hoyaClient.actionFlex(clustername, flexTarget, 0, true)
     waitForRegionServerCount(hoyaClient, clustername, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     if (testHBaseAfter) {
       waitForHBaseWorkerCount(hoyaClient, clustername, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     }
 
     clusterActionStop(hoyaClient, clustername)
+    return flexed
   }
 }

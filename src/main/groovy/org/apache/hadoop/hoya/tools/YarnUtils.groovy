@@ -176,4 +176,34 @@ class YarnUtils {
     stopContainerMessage.containerId = id;
     manager.stopContainer(stopContainerMessage)
   }
+  
+  public static int findFreePort(int start, int limit) {
+    int found = 0
+    int port = start;
+    int finish = start + limit
+    while(!found && port < finish) {
+      if (isPortAvailable(port)) {
+        found = port;
+      } else {
+        port++;
+      }
+    }
+    return found;
+  }
+
+  /**
+   * See if a port is available for listening on by trying to listen
+   * on it and seeing if that works or fails.
+   * @param port port to listen to
+   * @return true if the port was available for listening on
+   */
+  public static boolean isPortAvailable(int port) {
+    try {
+      ServerSocket socket = new ServerSocket(port)
+      socket.close()
+      return true
+    } catch (IOException e) {
+      return false
+    }
+  }
 }

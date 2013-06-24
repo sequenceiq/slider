@@ -38,45 +38,47 @@ class ClientArgs extends CommonArgs {
   /**
    * Name of entry class: {@value}
    */
-  public static final String CLASSNAME = "org.apache.hadoop.hoya.yarn.client.HoyaClient"
+  public static final String CLASSNAME = 'org.apache.hadoop.hoya.yarn.client.HoyaClient'
   /**
    filesystem-uri: {@value}
    */
-  public static final String ARG_AMQUEUE = "--amqueue"
-  public static final String ARG_AMPRIORITY = "--ampriority"
-  //public static final String ARG_FILESYSTEM = "--fs"
-  public static final String ARG_FORMAT = "--format"
-  public static final String ARG_WAIT = "--wait"
+  public static final String ARG_AMQUEUE = '--amqueue'
+  public static final String ARG_AMPRIORITY = '--ampriority'
+  //public static final String ARG_FILESYSTEM = '--fs'
+  public static final String ARG_FORMAT = '--format'
+  public static final String ARG_PERSIST = '--persist'
+  public static final String ARG_WAIT = '--wait'
 
 
 
   public static final String FORMAT_XML = 'xml'
   public static final String FORMAT_PROPERTIES = 'properties'
 
-  @Parameter(names = "--amqueue", description = "Application Manager Queue Name")
-  String amqueue = "default";
+  @Parameter(names = '--amqueue', description = 'Application Manager Queue Name')
+  String amqueue = 'default';
 
   //--format 
-  @Parameter(names = "--format", description = "format for a response text|xml|json|properties")
-  String format;
+  @Parameter(names = '--format', description = 'format for a response text|xml|json|properties')
+  String format = FORMAT_XML;
 
   //--wait [timeout]
-  @Parameter(names = "--wait",
-      description = "time to wait for an action to complete")
+  @Parameter(names = '--wait',
+      description = 'time to wait for an action to complete')
   int waittime = 0
 
   /**
    * --image path
    the full path to a .tar or .tar.gz path containing an HBase image.
    */
-  @Parameter(names = "--image",
-      description = "the full path to a .tar or .tar.gz path containing an HBase image",
+  @Parameter(names = '--image',
+      description = 'the full path to a .tar or .tar.gz path containing an HBase image',
       converter = PathArgumentConverter)
   Path image
 
- 
-
-
+  @Parameter(names = '--persist',
+      description = 'flag to indicate whether a flex change should be persisted (default=true)',
+      arity = 1)
+  boolean persist
 
   /**
    * map of actions -> (explanation, min #of entries [, max no.])

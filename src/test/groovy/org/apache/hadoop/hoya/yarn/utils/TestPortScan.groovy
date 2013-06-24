@@ -16,32 +16,26 @@
  *  limitations under the License.
  */
 
+package org.apache.hadoop.hoya.yarn.utils
 
-
-
-
-
-
-package org.apache.hadoop.hoya.yarn.cluster.live
-
-import groovy.util.logging.Commons
-import org.apache.hadoop.hoya.api.ClusterDescription
-import org.apache.hadoop.hoya.yarn.client.HoyaClient
-import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
-import org.apache.hadoop.yarn.conf.YarnConfiguration
-import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
+import org.apache.hadoop.hoya.tools.YarnUtils
+import org.junit.Assume
 import org.junit.Test
 
-/**
- * Create a master against the File:// fs
- */
-@Commons
-class TestClusterFlex2DownTo1 extends YarnMiniClusterTestBase {
+class TestPortScan {
 
   @Test
-  public void testClusterFlex2DownTo1() throws Throwable {
-    flexClusterTestRun("TestClusterFlex2DownTo1", 2, 1, false)
+  public void testScanPorts() throws Throwable {
+    
+    ServerSocket server = new ServerSocket(0)
+    
+    try {
+      int serverPort = server.getLocalPort()
+      assert !YarnUtils.isPortAvailable(serverPort)
+      int port = YarnUtils.findFreePort(serverPort, 10)
+      assert port > 0 && serverPort < port
+    } finally {
+      server.close()
+    }
   }
-
-
 }

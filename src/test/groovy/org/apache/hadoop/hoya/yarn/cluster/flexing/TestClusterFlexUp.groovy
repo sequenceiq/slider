@@ -18,11 +18,10 @@
 
 
 
-package org.apache.hadoop.hoya.yarn.cluster.live
+package org.apache.hadoop.hoya.yarn.cluster.flexing
 
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.api.ClusterDescription
-import org.apache.hadoop.hoya.yarn.ZKIntegration
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.conf.YarnConfiguration
@@ -57,7 +56,7 @@ class TestClusterFlexUp extends YarnMiniClusterTestBase {
     for (increment in [1]) {
       workers += increment
       describe("Adding $increment workers to a total of $workers")
-      hoyaClient.actionFlex(clustername, workers, 0)
+      assert hoyaClient.actionFlex(clustername, workers, 0, true)
       waitForHBaseWorkerCount(hoyaClient, clustername, workers, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
       waitForRegionServerCount(hoyaClient, clustername, workers, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     }

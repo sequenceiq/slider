@@ -106,6 +106,8 @@ class HoyaAppMaster extends CompositeService
    * Max failures to tolerate for the containers
    */
   public static final int MAX_TOLERABLE_FAILURES = 10
+  public static final String ROLE_WORKER = HBaseCommands.REGION_SERVER
+  public static final String ROLE_UNKNOWN = "unknown"
 
   /** YARN RPC to communicate with the Resource Manager or Node Manager */
   private YarnRPC rpc;
@@ -141,8 +143,8 @@ class HoyaAppMaster extends CompositeService
   /**
    * Hash map of the containers we have
    */
-  private final ConcurrentMap<ContainerId, Container> containers =
-    new ConcurrentHashMap<ContainerId, Container>();
+  private final ConcurrentMap<ContainerId, ContainerInfo> containers =
+    new ConcurrentHashMap<ContainerId, ContainerInfo>();
 
   /**
    * Hash map of the containers we have released, but we
@@ -219,7 +221,7 @@ class HoyaAppMaster extends CompositeService
    * List of completed nodes. This isn't kept in the CD as it gets too
    * big for the RPC responses. Indeed, we should think about how deep to get this
    */
-  private final List<ClusterNode> completedNodes;
+  private final List<ClusterNode> completedNodes = [];
   
   private static final int COMPLETE_NODE_SIZE_LIMIT = 100;
   
@@ -605,12 +607,7 @@ class HoyaAppMaster extends CompositeService
       appMessage = "completed. Master exit code = $exitCode"
     } else {
       appStatus = FinalApplicationStatus.FAILED;
-      appMessage = "Diagnostics" +
-                    "Master exit code = $exitCode," +
-                   " total=$numTotalContainers," +
-                   " completed=${numCompletedContainers.get()}," +
-                   " allocated=${numAllocatedContainers.get()}," +
-                   " failed=${numFailedContainers.get()}";
+      appMessage = "Diagnostics" + "Master exit code = $exitCode," + containerDiagnosticInfo
       success = false;
     }
     try {
@@ -624,6 +621,14 @@ class HoyaAppMaster extends CompositeService
     server?.stop()
   }
 
+  private String getContainerDiagnosticInfo() {
+    return " total=$numTotalContainers," +
+                 " requested=${numRequestedContainers.get()}," +
+                 " allocated=${numAllocatedContainers.get()}," +
+                 " completed=${numCompletedContainers.get()}," +
+                 " failed=${numFailedContainers.get()}";
+  }
+  
   private void configureContainerMemory(RegisterApplicationMasterResponse response) {
     containerMemory = response.maximumResourceCapability.memory;
     if (serviceArgs.workerHeap != null) {
@@ -646,7 +651,6 @@ class HoyaAppMaster extends CompositeService
         .setInstance(this)
         .setPort(0)
         .setNumHandlers(5)
-        .setVerbose(serviceArgs.xTest)
 //        .setSecretManager(sm)
         .build();
     server.start();
@@ -687,19 +691,6 @@ class HoyaAppMaster extends CompositeService
 /* =================================================================== */
 /* AMRMClientAsync callbacks */
 /* =================================================================== */
-
-
-  /*
-      synchronized (this) { //only one thread must enter this at once
-        if (numAllocatedContainers.get() == numTotalContainers) {
-          log.info("Releasing unneeded containers " + container.id)
-          asyncRMClient.releaseAssignedContainer(container.id);
-          return
-        }
-        numAllocatedContainers.incrementAndGet();
-      }
-  
-   */
   
   /**
    * Callback event when a container is allocated
@@ -710,30 +701,43 @@ class HoyaAppMaster extends CompositeService
   public void onContainersAllocated(List<Container> allocatedContainers) {
     log.info("Got response from RM for container ask, allocatedCnt="
                  + allocatedContainers.size());
+    List<Container> surplus = []
     allocatedContainers.each { Container container ->
-      
-      numAllocatedContainers.incrementAndGet()
-      log.info("Launching shell command on a new container.," +
-               " containerId=$container.id," +
-               " containerNode=$container.nodeId.host:$container.nodeId.port," +
-               " containerNodeURI=$container.nodeHttpAddress," +
-               " containerResourceMemory$container.resource.memory");
-  
-      HoyaRegionServiceLauncher launcher =
-        new HoyaRegionServiceLauncher(this, container, HBaseCommands.REGION_SERVER)
-      Thread launchThread = new Thread(launcherThreadGroup,
-               launcher,
-               "container-${container.nodeId.host}:${container.nodeId.port},");
+      log.info(containerDiagnosticInfo)
+      if (numAllocatedContainers.get() >= numTotalContainers) {
+        log.info("Discarding surplus container $container.id")
+        surplus << container
+      } else {
+        numAllocatedContainers.incrementAndGet()
+        log.info("Launching shell command on a new container.," +
+                 " containerId=$container.id," +
+                 " containerNode=$container.nodeId.host:$container.nodeId.port," +
+                 " containerNodeURI=$container.nodeHttpAddress," +
+                 " containerResourceMemory$container.resource.memory");
 
-      // launch and start the container on a separate thread to keep
-      // the main thread unblocked
-      // as all containers may not be allocated at one go.
-      synchronized (launchThreads) {
-        launchThreads.add(launchThread);
+        HoyaRegionServiceLauncher launcher =
+          new HoyaRegionServiceLauncher(this, container, HBaseCommands.REGION_SERVER)
+        Thread launchThread = new Thread(launcherThreadGroup,
+                                         launcher,
+                                         "container-${container.nodeId.host}:${container.nodeId.port},");
+
+        // launch and start the container on a separate thread to keep
+        // the main thread unblocked
+        // as all containers may not be allocated at one go.
+        synchronized (launchThreads) {
+          launchThreads.add(launchThread);
+        }
+        launchThread.start();
       }
-      launchThread.start();
     }
-
+    //now discard those surplus containers
+    surplus.each { Container container->
+      ContainerId id = container.id
+      containersBeingReleased[id] = container
+      numReleaseRequests.incrementAndGet()
+      asyncRMClient.releaseAssignedContainer(id)
+    }
+    log.info(containerDiagnosticInfo)
   }
 
   @Override //AMRMClientAsync
@@ -819,14 +823,15 @@ class HoyaAppMaster extends CompositeService
    * asks for nodes. 
    * @param workers #of workers to add
    * @param masters #of masters to request (if supported)
+   * @return true if the number of workers changed
    * @throws IOException
    */
-  private synchronized void flexClusterNodes(int workers, int masters) throws IOException {
+  private synchronized boolean flexClusterNodes(int workers, int masters) throws IOException {
     log.info("Flexing cluster count from $numTotalContainers to $workers")
     if (numTotalContainers == workers) {
       log.info("Flex is a no-op")
       //no-op
-      return;
+      return false;
     }
     //update the #of workers
     numTotalContainers = workers
@@ -835,6 +840,7 @@ class HoyaAppMaster extends CompositeService
     // ask for more containers if needed
 
     reviewRequestAndReleaseNodes()
+    return true
   }
 
   /**
@@ -869,13 +875,15 @@ class HoyaAppMaster extends CompositeService
       
       //then pick some containers to kill
       int excess = -delta;
-      Collection<Container> targets = containers.values()
+      Collection<ContainerInfo> targets = containers.values()
       int index = 0;
       while (index < targets.size() && excess > 0) {
-        Container possible = targets[index]
+        ContainerInfo ci = targets[index]
+        Container possible = ci.container
         ContainerId id = possible.id
-        if (!containersBeingReleased.containsKey(id)) {
+        if (!ci.released) {
           log.info("Requesting release of container $id")
+          ci.released = true
           containersBeingReleased[id] = possible
           numReleaseRequests.incrementAndGet()
           asyncRMClient.releaseAssignedContainer(id)
@@ -943,9 +951,9 @@ class HoyaAppMaster extends CompositeService
   }
 
   @Override   //HoyaAppMasterApi
-  public void flexNodes(int workers, int masters) throws IOException {
+  public boolean flexNodes(int workers, int masters) throws IOException {
     log.info("HoyaAppMasterApi.flexNodes($workers, $masters)")
-    flexClusterNodes(workers, masters)
+    return flexClusterNodes(workers, masters)
   }
 
 
@@ -1128,21 +1136,26 @@ class HoyaAppMaster extends CompositeService
     clusterDescription.hBaseClientProperties[key] = val;
   }
 
-  public void startContainer(Container container, ContainerLaunchContext ctx,
+  public void startContainer(Container container,
+                             ContainerLaunchContext ctx,
                              ClusterNode node) {
     node.state = ClusterDescription.STATE_SUBMITTED
     synchronized (clusterDescription) {
       //clusterDescription.requestedNodes << node
       requestedNodes[container.getId()] =node
     }
-    containers.putIfAbsent(container.getId(), container);
+    ContainerInfo containerInfo = new ContainerInfo()
+    containerInfo.container=container;
+    containerInfo.role=ROLE_WORKER
+    containerInfo.createTime = System.currentTimeMillis()
+    containers.putIfAbsent(container.getId(), containerInfo);
     nmClientAsync.startContainerAsync(container, ctx);
   }
   
   @Override //  NMClientAsync.CallbackHandler 
   public void onContainerStopped(ContainerId containerId) {
     if (log.isDebugEnabled()) {
-      log.debug("Succeeded to stop Container " + containerId);
+      log.debug("Succeeded stopping Container " + containerId);
     }
     containers.remove(containerId);
   }
@@ -1154,23 +1167,26 @@ class HoyaAppMaster extends CompositeService
       log.debug("Started Container " + containerId);
     }
     startedContainers.incrementAndGet()
-    Container container = null
+    ContainerInfo ci = null
     //update the specification
     synchronized (clusterDescription) {
       ClusterNode node = requestedNodes.remove(containerId)
       if (!node) {
         log.warn("Creating a new node description for an unrequested node")
         node = new ClusterNode(containerId.toString())
-        node.role = "unknown"
+        node.role = ROLE_UNKNOWN
       }
       node.state = ClusterDescription.STATE_LIVE
       addLaunchedContainerToCD(containerId, node)
-      container = containers.get(containerId);
+      ci = containers.get(containerId);
     }
-    if (container != null) {
-      nmClientAsync.getContainerStatusAsync(containerId, container.getNodeId());
+    if (ci != null) {
+      ci.startTime=  System.currentTimeMillis()
+      nmClientAsync.getContainerStatusAsync(containerId, ci.container.nodeId);
     } else {
-      log.warn("Notified of started container that isn't pending $containerId")
+      //this is a hypothetical path not seen. We react by warning
+      //there's not much else to do
+      log.error("Notified of started container that isn't pending $containerId")
     }
   }
 

@@ -16,32 +16,19 @@
  *  limitations under the License.
  */
 
+package org.apache.hadoop.hoya.yarn.appmaster
 
-
-
-
-
-
-
-
-
-
-package org.apache.hadoop.hoya.yarn.cluster.live
-
-import groovy.util.logging.Commons
-import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
-import org.junit.Test
+import org.apache.hadoop.yarn.api.records.Container
 
 /**
- * Create a master against the File:// fs
+ * Info about a continer to keep around when deciding which container to release
  */
-@Commons
-class TestClusterFlex2To5 extends YarnMiniClusterTestBase {
-
-  @Test
-  public void testClusterFlex() throws Throwable {
-    flexClusterTestRun("TestClusterFlex2To5", 2, 5, true)
-  }
-
-
+class ContainerInfo {
+  
+  Container container;
+  long createTime;
+  long startTime;
+  boolean released;
+  String role;
+  
 }
