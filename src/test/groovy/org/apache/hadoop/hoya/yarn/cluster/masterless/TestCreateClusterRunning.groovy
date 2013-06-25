@@ -41,7 +41,7 @@ class TestCreateClusterRunning extends YarnMiniClusterTestBase {
     @Test
     public void testCreateClusterRunning() throws Throwable {
       String clustername = "TestCreateClusterRunning"
-      createMiniCluster(clustername, new YarnConfiguration(), 1, true)
+      createMiniCluster(clustername, createConfiguration(), 1, true)
 
       describe "create a masterless AM, while it is running, try to create" +
                "a second cluster with the same name"

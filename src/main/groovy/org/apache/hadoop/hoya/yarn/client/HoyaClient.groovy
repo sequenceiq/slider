@@ -132,6 +132,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   protected void serviceInit(Configuration conf) throws Exception {
     serviceArgs.applyDefinitions(conf);
     serviceArgs.applyFileSystemURL(conf)
+    HoyaUtils.patchConfiguration(conf)
     super.serviceInit(conf)
   }
 

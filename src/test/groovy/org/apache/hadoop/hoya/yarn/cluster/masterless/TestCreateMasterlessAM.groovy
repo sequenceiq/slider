@@ -41,7 +41,7 @@ class TestCreateMasterlessAM extends YarnMiniClusterTestBase {
 
   @Test
   public void testCreateMasterlessAM() throws Throwable {
-    createMiniCluster("TestCreateMasterlessAM", new YarnConfiguration(), 1, true)
+    createMiniCluster("TestCreateMasterlessAM", createConfiguration(), 1, true)
 
     describe "create a masterless AM then get the service and look it up via the AM"
 

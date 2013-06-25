@@ -35,7 +35,7 @@ class TestHBaseMasterOnHDFS extends YarnMiniClusterTestBase {
   @Test
   public void testHBaseMasteOnHDFS() throws Throwable {
     String clustername = "TestHBaseMasterOnHDFS"
-    createMiniCluster(clustername, new YarnConfiguration(), 1, 1, 1, true, true)
+    createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
     log.info("HDFS is at $fsDefaultName")
     assert fsDefaultName.startsWith("hdfs://")
     ServiceLauncher launcher = createHoyaCluster(clustername, 1, [], true, true) 

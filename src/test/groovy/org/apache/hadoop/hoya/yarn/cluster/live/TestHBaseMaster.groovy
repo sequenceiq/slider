@@ -36,7 +36,7 @@ class TestHBaseMaster extends YarnMiniClusterTestBase {
   @Test
   public void testHBaseMaster() throws Throwable {
     String clustername = "TestHBaseMaster"
-    createMiniCluster(clustername, new YarnConfiguration(), 1, true)
+    createMiniCluster(clustername, createConfiguration(), 1, true)
     //make sure that ZK is up and running at the binding string
     ZKIntegration zki = createZKIntegrationInstance(ZKBinding, clustername, false, false, 5000)
     log.info("ZK up at $zki");

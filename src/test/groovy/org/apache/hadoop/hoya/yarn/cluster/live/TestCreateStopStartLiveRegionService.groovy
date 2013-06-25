@@ -40,7 +40,7 @@ class TestCreateStopStartLiveRegionService extends YarnMiniClusterTestBase {
   public void testCreateStopStartLiveRegionService() throws Throwable {
     String clustername = "TestCreateStopStartLiveRegionService"
     int regionServerCount = 2
-    createMiniCluster(clustername, new YarnConfiguration(), regionServerCount+1, true)
+    createMiniCluster(clustername, createConfiguration(), regionServerCount+1, true)
     ServiceLauncher launcher = createHoyaCluster(clustername, regionServerCount, [], true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)

@@ -37,7 +37,7 @@ class TestStartUnknownCluster extends YarnMiniClusterTestBase {
   @Test
   public void testStartUnknownCluster() throws Throwable {
     String clustername = "TestStartUnknownCluster"
-    createMiniCluster(clustername, new YarnConfiguration(), 1, true)
+    createMiniCluster(clustername, createConfiguration(), 1, true)
 
     describe "try to start a cluster that isn't defined"
 

@@ -36,7 +36,7 @@ class TestHBaseVersionCluster extends YarnMiniClusterTestBase {
   public void testClusterAMrunningVersionCommand() throws Throwable {
     describe "create a cluster, exec the version command"
     
-    createMiniCluster("TestHBaseVersionCluster", new YarnConfiguration(), 1, true)
+    createMiniCluster("TestHBaseVersionCluster", createConfiguration(), 1, true)
     log.info("RM address = ${RMAddr}")
     String clustername = "TestHBaseVersionCluster"
     ServiceLauncher launcher = createHoyaCluster(clustername,

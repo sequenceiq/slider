@@ -50,7 +50,7 @@ class TestCreateMiniClusterCreation extends YarnMiniClusterTestBase {
   @Test
   public void testYARNClusterCreation() throws Throwable {
     describe "Create a mini cluster"
-    createMiniCluster("testYARNClusterCreation", new YarnConfiguration(), 1, true)
+    createMiniCluster("testYARNClusterCreation", createConfiguration(), 1, true)
     String rmAddr = getRMAddr();
 
     log.info("RM address = $rmAddr")

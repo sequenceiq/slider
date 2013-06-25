@@ -37,7 +37,7 @@ class TestHBaseVersionCommand extends YarnMiniClusterTestBase {
   @Test
   public void testHBaseVersionCommand() throws Throwable {
     String clustername = "TestHBaseVersionCommand"
-    createMiniCluster(clustername, new YarnConfiguration(), 1, true)
+    createMiniCluster(clustername, createConfiguration(), 1, true)
     ServiceLauncher launcher = createHoyaCluster(clustername,
                                  0,
                                  [

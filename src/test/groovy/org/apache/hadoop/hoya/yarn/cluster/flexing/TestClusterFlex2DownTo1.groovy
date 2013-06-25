@@ -17,11 +17,6 @@
  */
 
 
-
-
-
-
-
 package org.apache.hadoop.hoya.yarn.cluster.flexing
 
 import groovy.util.logging.Commons

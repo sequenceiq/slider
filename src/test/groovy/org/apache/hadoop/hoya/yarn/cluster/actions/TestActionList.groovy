@@ -38,7 +38,7 @@ class TestActionList extends YarnMiniClusterTestBase {
 
   @Before
   public void setup() {
-    createMiniCluster("testActionList", new YarnConfiguration(), 1, false)
+    createMiniCluster("testActionList", createConfiguration(), 1, false)
   }
   
   @Test

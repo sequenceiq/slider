@@ -42,7 +42,7 @@ import org.junit.Test
 class TestStartMasterlessAM extends YarnMiniClusterTestBase {
 
   File getConfDirFile() {
-    return new File("target/testRecreateMasterlessAMconf")
+    return new File("target/TestStartMasterlessAM")
   }
 
   @Override
@@ -53,7 +53,7 @@ class TestStartMasterlessAM extends YarnMiniClusterTestBase {
   @Test
   public void testStartMasterlessAM() throws Throwable {
     String clustername = "TestStartMasterlessAM"
-    YarnConfiguration conf = new YarnConfiguration()
+    YarnConfiguration conf = createConfiguration()
     createMiniCluster(clustername, conf, 1, 1, 1, true, true)
     
     describe "create a masterless AM, stop it, restart it"
@@ -80,7 +80,7 @@ class TestStartMasterlessAM extends YarnMiniClusterTestBase {
   @Test
   public void testStartUnknownCluster() throws Throwable {
     String clustername = "TestStartMasterlessAM"
-    createMiniCluster(clustername, new YarnConfiguration(), 1, true)
+    createMiniCluster(clustername, createConfiguration(), 1, true)
     try {
       ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
           createConfiguration(),

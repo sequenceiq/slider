@@ -16,12 +16,6 @@
  *  limitations under the License.
  */
 
-
-
-
-
-
-
 package org.apache.hadoop.hoya.yarn.cluster.actions
 
 import groovy.util.logging.Commons
@@ -44,7 +38,7 @@ class TestActionStatus extends YarnMiniClusterTestBase {
 
   @Before
   public void setup() {
-    createMiniCluster("TestActionStatus", new YarnConfiguration(), 1, false)
+    createMiniCluster("TestActionStatus", createConfiguration(), 1, false)
   }
 
   @Test

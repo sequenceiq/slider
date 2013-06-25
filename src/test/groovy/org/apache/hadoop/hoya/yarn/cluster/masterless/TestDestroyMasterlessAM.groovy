@@ -16,8 +16,6 @@
  *  limitations under the License.
  */
 
-
-
 package org.apache.hadoop.hoya.yarn.cluster.masterless
 
 import groovy.util.logging.Commons
@@ -42,7 +40,7 @@ class TestDestroyMasterlessAM extends YarnMiniClusterTestBase {
   @Test
   public void testDestroyMasterlessAM() throws Throwable {
     String clustername = "TestDestroyMasterlessAM"
-    createMiniCluster(clustername, new YarnConfiguration(), 1, true)
+    createMiniCluster(clustername, createConfiguration(), 1, true)
 
     describe "create a masterless AM, stop it, try to create" +
              "a second cluster with the same name, destroy it, try a third time"
@@ -105,7 +103,7 @@ class TestDestroyMasterlessAM extends YarnMiniClusterTestBase {
   @Test
   public void testDestroyNonexistentCluster() throws Throwable {
     String clustername = "TestDestroyMasterlessAM"
-    createMiniCluster(clustername, new YarnConfiguration(), 1, true)
+    createMiniCluster(clustername, createConfiguration(), 1, true)
     ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
               createConfiguration(),
               [

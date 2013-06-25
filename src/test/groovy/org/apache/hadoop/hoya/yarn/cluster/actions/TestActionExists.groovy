@@ -38,7 +38,7 @@ class TestActionExists extends YarnMiniClusterTestBase {
 
   @Before
   public void setup() {
-    createMiniCluster("TestActionExists", new YarnConfiguration(), 1, false)
+    createMiniCluster("TestActionExists", createConfiguration(), 1, false)
   }
   
   @Test

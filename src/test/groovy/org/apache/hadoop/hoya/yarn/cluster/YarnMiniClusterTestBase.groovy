@@ -109,7 +109,7 @@ implements KeysForTests {
     hdfsCluster?.shutdown();
   }
   
-  protected Configuration createConfiguration() {
+  protected YarnConfiguration createConfiguration() {
     return HoyaUtils.createConfiguration();
   }
 
@@ -176,7 +176,8 @@ implements KeysForTests {
    * @param startZK create a ZK micro cluster
    * @param startHDFS create an HDFS mini cluster
    */
-  protected void createMiniCluster(String name, YarnConfiguration conf,
+  protected void createMiniCluster(String name,
+                                   YarnConfiguration conf,
                                    int noOfNodeManagers,
                                    int numLocalDirs,
                                    int numLogDirs,
@@ -185,6 +186,7 @@ implements KeysForTests {
     conf.setInt(YarnConfiguration.RM_SCHEDULER_MINIMUM_ALLOCATION_MB, 64);
     conf.setClass(YarnConfiguration.RM_SCHEDULER,
                   FifoScheduler.class, ResourceScheduler.class);
+    HoyaUtils.patchConfiguration(conf)
     miniCluster = new MiniYARNCluster(name, noOfNodeManagers, numLocalDirs, numLogDirs)
     miniCluster.init(conf)
     miniCluster.start();
@@ -262,7 +264,7 @@ implements KeysForTests {
   }
 
   public YarnConfiguration getTestConfiguration() {
-    YarnConfiguration conf = new YarnConfiguration()
+    YarnConfiguration conf = createConfiguration()
 
     conf.addResource(HOYA_TEST)
     return conf
@@ -747,7 +749,7 @@ implements KeysForTests {
 
 
   public boolean flexClusterTestRun(String clustername, int workers, int flexTarget, boolean persist, boolean testHBaseAfter) {
-    createMiniCluster(clustername, new YarnConfiguration(),
+    createMiniCluster(clustername, createConfiguration(),
                       2,
                       true)
     //now launch the cluster

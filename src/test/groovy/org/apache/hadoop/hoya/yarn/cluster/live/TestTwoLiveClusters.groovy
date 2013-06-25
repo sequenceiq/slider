@@ -16,8 +16,6 @@
  *  limitations under the License.
  */
 
-
-
 package org.apache.hadoop.hoya.yarn.cluster.live
 
 import groovy.util.logging.Commons
@@ -38,7 +36,7 @@ class TestTwoLiveClusters extends YarnMiniClusterTestBase {
 
   @Test
   public void testTwoLiveClusters() throws Throwable {
-    createMiniCluster("TestTwoLiveClusters", new YarnConfiguration(), 1, true)
+    createMiniCluster("TestTwoLiveClusters", createConfiguration(), 1, true)
     String clustername1 = "TestTwoLiveClusters-a"
     //now launch the cluster
     int regionServerCount = 1

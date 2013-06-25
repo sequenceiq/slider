@@ -16,8 +16,6 @@
  *  limitations under the License.
  */
 
-
-
 package org.apache.hadoop.hoya.yarn.cluster.flexing
 
 import groovy.util.logging.Commons
@@ -37,7 +35,7 @@ class TestClusterFlexUp extends YarnMiniClusterTestBase {
   @Test
   public void testClusterFlexUp() throws Throwable {
     String clustername = "TestClusterFlexUp"
-    createMiniCluster(clustername, new YarnConfiguration(), 1, true)
+    createMiniCluster(clustername, createConfiguration(), 1, true)
     //now launch the cluster
     int workers = 1
     ServiceLauncher launcher = createHoyaCluster(clustername, workers, [], true, true)

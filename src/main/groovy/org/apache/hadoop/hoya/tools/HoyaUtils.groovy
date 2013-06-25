@@ -31,6 +31,7 @@ import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.appmaster.EnvMappings
 import org.apache.hadoop.net.NetUtils
 import org.apache.hadoop.util.ExitUtil.ExitException
+import org.apache.hadoop.yarn.conf.YarnConfiguration
 
 /**
  * Utility methods primarily used in setting up and executing tools
@@ -362,8 +363,8 @@ class HoyaUtils {
    * This is done rather than doing custom configs.
    * @return
    */
-  public static Configuration createConfiguration() {
-    Configuration conf = new Configuration()
+  public static YarnConfiguration createConfiguration() {
+    YarnConfiguration conf = new YarnConfiguration()
     patchConfiguration(conf)
     return conf
   }
