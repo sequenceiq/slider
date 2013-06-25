@@ -108,6 +108,10 @@ implements KeysForTests {
     microZKCluster?.close();
     hdfsCluster?.shutdown();
   }
+  
+  protected Configuration createConfiguration() {
+    return HoyaUtils.createConfiguration();
+  }
 
   /**
    * Print a description with some markers to

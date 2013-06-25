@@ -70,7 +70,7 @@ class TestDestroyMasterlessAM extends YarnMiniClusterTestBase {
     //expect start to now fail
     try {
       launcher = launch(HoyaClient,
-                        new Configuration(),
+                        createConfiguration(),
                         [
                             CommonArgs.ACTION_START,
                             clustername,
@@ -107,12 +107,12 @@ class TestDestroyMasterlessAM extends YarnMiniClusterTestBase {
     String clustername = "TestDestroyMasterlessAM"
     createMiniCluster(clustername, new YarnConfiguration(), 1, true)
     ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
-                                      new Configuration(),
-                                      [
-                                          CommonArgs.ACTION_DESTROY,
-                                          "no-cluster-of-this-name",
-                                          ClientArgs.ARG_FILESYSTEM, fsDefaultName,
-                                      ])
+              createConfiguration(),
+              [
+                  CommonArgs.ACTION_DESTROY,
+                  "no-cluster-of-this-name",
+                  ClientArgs.ARG_FILESYSTEM, fsDefaultName,
+              ])
     assert launcher.serviceExitCode == 0
   }
 

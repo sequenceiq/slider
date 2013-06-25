@@ -27,6 +27,7 @@ import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.ClusterNode
+import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.junit.Test
 
@@ -90,7 +91,7 @@ class TestClusterDescription extends YarnMiniClusterTestBase {
     File file = new File("target/cluster.json");
     URI fileURI = file.toURI()
     Path path = new Path(fileURI.toString());
-    HadoopFS fileSystem = HadoopFS.get(fileURI,new Configuration())
+    HadoopFS fileSystem = HadoopFS.get(fileURI, HoyaUtils.createConfiguration())
     original.save(fileSystem, path, false)
     ClusterDescription received = ClusterDescription.load(fileSystem, path)
     assert received.masterNodes.size() > 0

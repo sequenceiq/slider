@@ -19,6 +19,7 @@
 package org.apache.hadoop.hoya.yarn.client
 
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
@@ -46,7 +47,8 @@ class TestClientBasicArgs extends ServiceLauncherBaseTest {
    */
   @Test
   public void testHelpWithHyphenArgs() throws Throwable {
-    ServiceLauncher launcher = launch(HoyaClient, new Configuration(),
+    ServiceLauncher launcher = launch(HoyaClient,
+                      HoyaUtils.createConfiguration(),
                        [
                        ClientArgs.ACTION_HELP,
                        CommonArgs.ARG_DEBUG,

@@ -49,6 +49,11 @@ class EnvMappings {
 
   public static final String KEY_REGIONSERVER_PORT = "hbase.regionserver.port";
   public static final String KEY_REGIONSERVER_INFO_PORT = "hbase.regionserver.info.port";
-  
+
+  /**
+   * needed to relax constraints in negotiations, including tests
+   */
+  public static final String IPC_CLIENT_FALLBACK_TO_SIMPLE_AUTH =
+    "ipc.client.fallback-to-simple-auth-allowed";
 
 }

@@ -28,6 +28,10 @@ class ContainerInfo {
   Container container;
   long createTime;
   long startTime;
+  /**
+   * flag set when it is released, to know if it has
+   * already been targeted for termination
+   */
   boolean released;
   String role;
   

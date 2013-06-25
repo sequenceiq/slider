@@ -22,6 +22,7 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.zookeeper.MiniZooKeeperCluster
+import org.apache.hadoop.hoya.tools.HoyaUtils
 
 @Commons
 @CompileStatic
@@ -35,7 +36,7 @@ class MicroZKCluster implements Closeable {
   int port
 
   MicroZKCluster() {
-    this(new Configuration())
+    this(HoyaUtils.createConfiguration())
   }
 
   MicroZKCluster(Configuration conf) {

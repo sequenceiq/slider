@@ -268,10 +268,11 @@ class HoyaAppMaster extends CompositeService
 
   @Override //AbstractService
   synchronized void serviceInit(Configuration conf) throws Exception {
+    HoyaUtils.patchConfiguration(conf)
     //sort out the location of the AM
     serviceArgs.applyDefinitions(conf);
     serviceArgs.applyFileSystemURL(conf)
-
+    
     String rmAddress = serviceArgs.rmAddress
     if (rmAddress) {
       log.debug("Setting rm address from the command line: $rmAddress")

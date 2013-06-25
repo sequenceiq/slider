@@ -38,7 +38,7 @@ class TestZKIntegration extends YarnMiniClusterTestBase implements KeysForTests 
 
   @Before
   void createCluster() {
-    Configuration conf = new Configuration()
+    Configuration conf = createConfiguration()
     createMicroZKCluster(conf)
   }
 

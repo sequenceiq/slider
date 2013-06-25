@@ -28,6 +28,7 @@ import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.FileUtil
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.exceptions.HoyaException
+import org.apache.hadoop.hoya.yarn.appmaster.EnvMappings
 import org.apache.hadoop.net.NetUtils
 import org.apache.hadoop.util.ExitUtil.ExitException
 
@@ -354,5 +355,31 @@ class HoyaUtils {
     sw.append(t.toString()).append('\n')
     t.printStackTrace(new PrintWriter(sw))
     return sw.toString()
+  }
+
+  /**
+   * Create a configuration with Hoya-specific tuning.
+   * This is done rather than doing custom configs.
+   * @return
+   */
+  public static Configuration createConfiguration() {
+    Configuration conf = new Configuration()
+    patchConfiguration(conf)
+    return conf
+  }
+
+  /**
+   * Take an existing conf and patch it for Hoya's needs. Useful
+   * in Service.init methods where a shared config is being
+   * passed in
+   * @param conf configuration
+   */
+  public static void patchConfiguration(Configuration conf) {
+    
+    //if the fallback option is NOT set, enable it.
+    //if it is explicitly set to anything -leave alone
+    if (conf.get(EnvMappings.IPC_CLIENT_FALLBACK_TO_SIMPLE_AUTH) == null) {
+      conf.set(EnvMappings.IPC_CLIENT_FALLBACK_TO_SIMPLE_AUTH, "true")
+    }
   }
 }

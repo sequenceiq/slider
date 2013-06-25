@@ -83,7 +83,7 @@ class TestStartMasterlessAM extends YarnMiniClusterTestBase {
     createMiniCluster(clustername, new YarnConfiguration(), 1, true)
     try {
       ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
-          new Configuration(),
+          createConfiguration(),
           [
               CommonArgs.ACTION_START,
               "no-cluster-of-this-name",
