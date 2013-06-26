@@ -1378,7 +1378,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     if (instance) {
       log.info("Flexing running cluster to size $workers")
       HoyaAppMasterProtocol appMaster = connect(instance);
-      if (appMaster.flexNodes(workers, masters)) {
+      if (appMaster.flexNodes(workers)) {
         log.info("Cluster size updated")
         exitCode = EXIT_SUCCESS
       } else {

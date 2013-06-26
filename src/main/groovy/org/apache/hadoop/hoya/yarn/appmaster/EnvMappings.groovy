@@ -39,7 +39,8 @@ class EnvMappings {
   public static final String KEY_ZNODE_PARENT = "zookeeper.znode.parent";
   
   
-  //public static final int DEFAULT_MASTER_PORT = 60000;
+  public static final int DEFAULT_MASTER_PORT = 60000;
+  public static final int DEFAULT_MASTER_INFO_PORT = 60010;
 
   public static final String KEY_HBASE_MASTER_PORT = "hbase.master.port";
   public static final String KEY_HBASE_MASTER_INFO_PORT = "hbase.master.info.port";

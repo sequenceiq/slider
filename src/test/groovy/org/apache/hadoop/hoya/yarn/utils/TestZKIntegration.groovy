@@ -35,13 +35,11 @@ import org.junit.Test
 
 class TestZKIntegration extends YarnMiniClusterTestBase implements KeysForTests {
 
-
   @Before
   void createCluster() {
     Configuration conf = createConfiguration()
     createMicroZKCluster(conf)
   }
-
 
   @Test
   public void testIntegrationCreate() throws Throwable {

@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem as HadoopFS
@@ -86,11 +87,11 @@ import java.util.concurrent.locks.ReentrantLock
 
 class HoyaAppMaster extends CompositeService
     implements AMRMClientAsync.CallbackHandler,
+      NMClientAsync.CallbackHandler,
       RunService,
       HoyaExitCodes,
       HoyaAppMasterProtocol,
-      ApplicationEventHandler,
-    NMClientAsync.CallbackHandler { 
+      ApplicationEventHandler { 
 
   /**
    * How long to expect launcher threads to shut down on AM termination:
@@ -344,6 +345,7 @@ class HoyaAppMaster extends CompositeService
     }
     clusterDescription.hbaseHome = serviceArgs.hbasehome
     clusterDescription.xHBaseMasterCommand = serviceArgs.xHBaseMasterCommand
+    clusterDescription.masterInfoPort = serviceArgs.masterInfoPort
 
 
 
@@ -376,7 +378,6 @@ class HoyaAppMaster extends CompositeService
     asyncRMClient =  AMRMClientAsync.createAMRMClientAsync(appAttemptID,
                                                            heartbeatInterval,
                                                            this);
-    //add to the list of things to terminate in service stop
     addService(asyncRMClient)
     //now bring it up
     asyncRMClient.init(conf);
@@ -385,9 +386,9 @@ class HoyaAppMaster extends CompositeService
 
     //nmclient relays callbacks back to this class
     nmClientAsync = new NMClientAsyncImpl("hoya", this);
+    addService(nmClientAsync)
     nmClientAsync.init(conf);
     nmClientAsync.start();
-    addService(nmClientAsync)
     
     //bring up the Hoya RPC service
     startHoyaRPCServer();
@@ -398,12 +399,17 @@ class HoyaAppMaster extends CompositeService
     appMasterTrackingUrl = null;
     log.info("Server is at $appMasterHostname:$appMasterRpcPort")
 
-    // Setup local RPC Server to accept status requests directly from clients
-    // TODO need to setup a protocol for client to be able to communicate to
-    // the RPC server
-    // TODO use the rpc port info to register with the RM for the client to
-    // send requests to this app master
 
+    // work out a port for the AM
+    if (!clusterDescription.masterInfoPort) {
+      int port = YarnUtils.findFreePort(EnvMappings.DEFAULT_MASTER_INFO_PORT, 128)
+      //need to get this to the app
+      clusterDescription.masterInfoPort = port
+      
+    }
+    appMasterTrackingUrl = "http://$appMasterHostname:$clusterDescription.masterInfoPort"
+    
+    
     // Register self with ResourceManager
     // This will start heartbeating to the RM
     address = YarnUtils.getRmSchedulerAddress(asyncRMClient.config)
@@ -480,7 +486,7 @@ class HoyaAppMaster extends CompositeService
     }
 
     //now ask for the workers
-    flexClusterNodes(serviceArgs.workers, serviceArgs.masters)
+    flexClusterNodes(serviceArgs.workers)
 
     //if we get here: success
     success = true;
@@ -827,7 +833,7 @@ class HoyaAppMaster extends CompositeService
    * @return true if the number of workers changed
    * @throws IOException
    */
-  private synchronized boolean flexClusterNodes(int workers, int masters) throws IOException {
+  private synchronized boolean flexClusterNodes(int workers) throws IOException {
     log.info("Flexing cluster count from $numTotalContainers to $workers")
     if (numTotalContainers == workers) {
       log.info("Flex is a no-op")
@@ -839,7 +845,6 @@ class HoyaAppMaster extends CompositeService
     clusterDescription.workers = serviceArgs.workers
 
     // ask for more containers if needed
-
     reviewRequestAndReleaseNodes()
     return true
   }
@@ -952,9 +957,9 @@ class HoyaAppMaster extends CompositeService
   }
 
   @Override   //HoyaAppMasterApi
-  public boolean flexNodes(int workers, int masters) throws IOException {
-    log.info("HoyaAppMasterApi.flexNodes($workers, $masters)")
-    return flexClusterNodes(workers, masters)
+  public boolean flexNodes(int workers) throws IOException {
+    log.info("HoyaAppMasterApi.flexNodes($workers)")
+    return flexClusterNodes(workers)
   }
 
 

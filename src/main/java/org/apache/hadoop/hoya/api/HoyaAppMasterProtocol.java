@@ -29,7 +29,7 @@ public interface HoyaAppMasterProtocol extends VersionedProtocol {
   public static final long versionID = 0x01;
   
   public void stopCluster() throws IOException;
-  public boolean flexNodes(int workers, int masters) throws IOException;
+  public boolean flexNodes(int workers) throws IOException;
   public String getClusterStatus() throws IOException;
   
   public static final String STAT_CONTAINERS_REQUESTED ="containers.requested";
