@@ -42,7 +42,7 @@ import org.junit.Test
 class TestStartMasterlessAM extends YarnMiniClusterTestBase {
 
   File getConfDirFile() {
-    return new File("target/TestStartMasterlessAM")
+    return new File("target/TestStartMasterlessAMconf")
   }
 
   @Override

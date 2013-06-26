@@ -300,7 +300,7 @@ class HoyaUtils {
     entries.eachWithIndex { FileStatus e , int i ->
       Path srcFile = e.path
       if (srcFS.isDirectory(srcFile)) {
-        throw new HoyaException("Configuration dir $srcDirPath contains a directory");
+        throw new HoyaException("Configuration dir $srcDirPath contains a directory $srcFile");
       }
       log.debug("copying src conf file $srcFile")
       sourcePaths[i] = srcFile
