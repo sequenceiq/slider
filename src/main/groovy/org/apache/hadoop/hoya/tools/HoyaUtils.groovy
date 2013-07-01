@@ -27,6 +27,7 @@ import org.apache.hadoop.fs.FileStatus
 import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.FileUtil
 import org.apache.hadoop.fs.Path
+import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.appmaster.EnvMappings
 import org.apache.hadoop.net.NetUtils
@@ -382,5 +383,58 @@ class HoyaUtils {
     if (conf.get(EnvMappings.IPC_CLIENT_FALLBACK_TO_SIMPLE_AUTH) == null) {
       conf.set(EnvMappings.IPC_CLIENT_FALLBACK_TO_SIMPLE_AUTH, "true")
     }
+  }
+
+  /**
+   * Overwrite a cluster specification. This code
+   * attempts to do this atomically by writing the updated specification
+   * to a new file, renaming the original and then updating the original.
+   * There's special handling for one case: the original file doesn't exist
+   * @param clusterFS
+   * @param clusterSpec
+   * @param clusterDirectory
+   * @param clusterSpecPath
+   * @return true if the original cluster specification was updated.
+   */
+  public static boolean updateClusterSpecification(HadoopFS clusterFS, Path clusterDirectory, Path clusterSpecPath, ClusterDescription clusterSpec) {
+
+    //it is not currently there -do a write with overwrite disabled, so that if
+    //it appears at this point this is picked up
+    if (!clusterFS.exists(clusterSpecPath) &&
+        writeSpecWithoutOverwriting(clusterFS, clusterSpecPath, clusterSpec)) {
+      return true;
+    }
+    
+    //save to a renamed version
+    String specTimestampedFilename = "spec-${System.currentTimeMillis()}"
+    Path specSavePath = new Path(clusterDirectory, specTimestampedFilename + ".json");
+    Path specOrigPath = new Path(clusterDirectory, specTimestampedFilename + "-orig.json");
+
+    //roll the specification. The (atomic) rename may fail if there is 
+    //an overwrite, which is how we catch re-entrant calls to this
+    if (!writeSpecWithoutOverwriting(clusterFS, specSavePath, clusterSpec)) {
+      return false
+    }
+    if (!clusterFS.rename(clusterSpecPath, specOrigPath)) {
+      return false
+    }
+    try {
+      if (!clusterFS.rename(specSavePath, clusterSpecPath)) {
+        return false
+      }
+    } finally {
+      clusterFS.delete(specOrigPath, false)
+    }
+    return true;
+  }
+  
+  public static boolean writeSpecWithoutOverwriting(HadoopFS clusterFS, Path clusterSpecPath, ClusterDescription clusterSpec) {
+    try {
+      clusterSpec.save(clusterFS, clusterSpecPath, false);
+    } catch (IOException e) {
+      log.debug("Failed to save cluster specification -race condition? " + e, e);
+      return false
+    }
+    return true;
   }
 }

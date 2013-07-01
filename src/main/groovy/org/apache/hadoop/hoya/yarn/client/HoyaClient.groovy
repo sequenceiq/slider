@@ -1352,18 +1352,9 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
       
       if (clusterSpec.workers != workers) {
         clusterSpec.workers = workers
-
-        //save to a renamed version
-        GString specFilename = "spec-${System.currentTimeMillis()}"
-        Path specSavePath = new Path(clusterDirectory, specFilename +".json");
-        Path specOrigPath = new Path(clusterDirectory, specFilename +"-orig.json");
-
-        //roll the specification. The (atomic) rename may fail if there is 
-        //an overwrite, which is how we catch re-entrant calls to this
-        clusterSpec.save(clusterFS, specSavePath,false);
-        clusterFS.rename(clusterSpecPath, specOrigPath)
-        clusterFS.rename(specSavePath, clusterSpecPath)
-        clusterFS.delete(specOrigPath, false)
+        if (!HoyaUtils.updateClusterSpecification(clusterFS, clusterDirectory, clusterSpecPath, clusterSpec)) {
+          log.warn("Failed to save new cluster size to $clusterSpecPath")
+        }
         //there is no live instance, nothing to do
         log.info("New cluster size: $workers persisted")
       } else {
@@ -1372,7 +1363,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     }
     int exitCode = EXIT_FALSE
 
-    //now see if it is actually running and bail out
+    //now see if it is actually running and bail out if not
     verifyManagerSet()
     ApplicationReport instance = findInstance(getUsername(), clustername);
     if (instance) {
