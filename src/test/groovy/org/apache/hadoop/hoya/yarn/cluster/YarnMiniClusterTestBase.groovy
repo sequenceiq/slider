@@ -277,9 +277,14 @@ implements KeysForTests {
    * @return
    */
   public List getHBaseImageCommands() {
-    return switchToImageDeploy ?
-      [CommonArgs.ARG_IMAGE, HBaseArchive] :
-      [CommonArgs.ARG_HBASE_HOME, HBaseHome]
+    if (switchToImageDeploy) {
+      assert HBaseArchive
+      return [CommonArgs.ARG_IMAGE, HBaseArchive]
+    } else {
+      assert HBaseHome 
+      assert new File(HBaseHome).exists();
+      return [CommonArgs.ARG_HBASE_HOME, HBaseHome]
+    }
   }
 
 

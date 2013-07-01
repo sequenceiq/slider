@@ -44,7 +44,7 @@ public interface HoyaKeys {
   /**
    *  name of the hbase subdir in the archive:  {@value}
    */
-  String HBASE_ARCHIVE_SUBDIR = "hbase-0.94.9-SNAPSHOT/";
+  String HBASE_ARCHIVE_SUBDIR = "hbase-0.94.9-SNAPSHOT";
   
   
   /**

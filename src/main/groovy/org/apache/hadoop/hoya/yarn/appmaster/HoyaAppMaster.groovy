@@ -184,7 +184,6 @@ class HoyaAppMaster extends CompositeService
    * # of containers that failed to start 
    */
   private final AtomicInteger startFailedContainers = new AtomicInteger();
-  
 
   /**
    * Command to launch
@@ -223,7 +222,14 @@ class HoyaAppMaster extends CompositeService
    * big for the RPC responses. Indeed, we should think about how deep to get this
    */
   private final List<ClusterNode> completedNodes = [];
-  
+
+  /**
+   * Nodes that failed to start.
+   * Again, kept out of the CD
+   */
+  public List<ClusterNode> failedNodes = [];
+
+
   private static final int COMPLETE_NODE_SIZE_LIMIT = 100;
   
   /**
@@ -1112,14 +1118,15 @@ class HoyaAppMaster extends CompositeService
    */
   public File buildHBaseBinPath(ClusterDescription cd) {
     File hbaseScript = new File(buildHBaseDir(cd), 
-        "hbase-0.94.9-SNAPSHOT/" + HoyaKeys.HBASE_SCRIPT);
+         HoyaKeys.HBASE_SCRIPT);
     return hbaseScript;
   }
 
   public File buildHBaseDir(ClusterDescription cd) {
     File hbasedir
     if (cd.imagePath) {
-      hbasedir = new File(HoyaKeys.HBASE_LOCAL)
+      hbasedir = new File(new File(HoyaKeys.HBASE_LOCAL),
+                          HoyaKeys.HBASE_ARCHIVE_SUBDIR)
     } else {
       hbasedir = new File(cd.hbaseHome)
     }
@@ -1248,7 +1255,7 @@ class HoyaAppMaster extends CompositeService
         failNode(containerId, clusterDescription.masterNodes, t)
       }
       if (node) {
-        clusterDescription.completedNodes << node
+        completedNodes << node
       }
     }
   }
@@ -1274,7 +1281,7 @@ class HoyaAppMaster extends CompositeService
         if (t) {
           node.diagnostics = HoyaUtils.stringify(t)
         }
-        clusterDescription.failedNodes << node
+        failedNodes << node
       }
     }
     return node

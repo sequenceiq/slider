@@ -51,8 +51,8 @@ public class ServiceLauncherBaseTest extends Assert {
   }
 
   protected static String[] toArray(List args) {
-    String[] converted= new String[args.size()];
-    for (int i=0;i<args.size();i++) {
+    String[] converted = new String[args.size()];
+    for (int i = 0; i < args.size(); i++) {
       converted[i] = args.get(i).toString();
     }
     return converted;
