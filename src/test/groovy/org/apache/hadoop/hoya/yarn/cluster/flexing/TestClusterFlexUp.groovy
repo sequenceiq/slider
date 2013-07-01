@@ -34,33 +34,7 @@ class TestClusterFlexUp extends YarnMiniClusterTestBase {
 
   @Test
   public void testClusterFlexUp() throws Throwable {
-    String clustername = "TestClusterFlexUp"
-    createMiniCluster(clustername, createConfiguration(), 1, true)
-    //now launch the cluster
-    int workers = 1
-    ServiceLauncher launcher = createHoyaCluster(clustername, workers, [], true, true)
-    HoyaClient hoyaClient = (HoyaClient) launcher.service
-    ClusterDescription status = hoyaClient.getClusterStatus(clustername)
-    basicHBaseClusterStartupSequence(hoyaClient, clustername)
-
-    describe("Waiting for initial worker count of $workers")
-
-    //verify the #of region servers is as expected
-    //get the hbase status
-    waitForRegionServerCount(hoyaClient, clustername, workers, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-    waitForHBaseWorkerCount(hoyaClient, clustername, workers, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-
-    //start to add some more workers
-    for (increment in [1]) {
-      workers += increment
-      describe("Adding $increment workers to a total of $workers")
-      assert hoyaClient.actionFlex(clustername, workers, 0, true)
-      waitForHBaseWorkerCount(hoyaClient, clustername, workers, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-      waitForRegionServerCount(hoyaClient, clustername, workers, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-    }
-
-    clusterActionStop(hoyaClient, clustername)
-
+    assert flexClusterTestRun("TestClusterFlexUp", 1, 2, true, false)
   }
 
 }
