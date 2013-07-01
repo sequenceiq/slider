@@ -39,7 +39,7 @@ public interface HoyaKeys {
    * name of the template file to use for cluster-specific
    * customisations:  {@value}
    */
-  String HBASE_TEMPLATE = "hbase-site-template.xml";
+  String HBASE_TEMPLATE = HBASE_SITE;
 
   /**
    * Template stored in the hoya classpath -to use if there is
