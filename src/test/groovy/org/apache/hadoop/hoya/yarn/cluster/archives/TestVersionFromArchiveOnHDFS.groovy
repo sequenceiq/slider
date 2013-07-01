@@ -18,28 +18,46 @@
 
 
 
+
+
 package org.apache.hadoop.hoya.yarn.cluster.archives
 
 import groovy.util.logging.Commons
+import org.apache.commons.io.FileSystemUtils
+import org.apache.hadoop.fs.FileUtil
+import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
+import org.junit.Assume
 import org.junit.Test
 
 /**
  * Test of RM creation. This is so the later test's prereq's can be met
  */
 @Commons
-class TestVersionFromArchive extends YarnMiniClusterTestBase {
+class TestVersionFromArchiveOnHDFS extends YarnMiniClusterTestBase {
+
+  String uploadedImage;
 
   @Test
-  public void testVersionFromArchive() throws Throwable {
+  public void testVersionFromArchiveOnHDFS() throws Throwable {
     describe "create a cluster, exec the version command"
-    assumeHBaseArchive();
-    String clustername = "TestVersionFromArchive"
-    createMiniCluster(clustername, createConfiguration(), 1, true)
+    String localArchive = super.getHBaseArchive()
+    Assume.assumeTrue("Hbase Archive conf option not set " + HOYA_TEST_HBASE_TAR,
+                      localArchive != null && localArchive != "");
+    String clustername = "TestVersionFromArchiveOnHDFS"
+    createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
+
+    File localArchiveFile = new File(localArchive)
+    assert localArchiveFile.exists()
+    Path remoteUnresolvedArchive = new Path(localArchiveFile.name)
+    assert FileUtil.copy(localArchiveFile, hdfsCluster.fileSystem, remoteUnresolvedArchive, false, getTestConfiguration())
+    Path hbasePath = hdfsCluster.fileSystem.resolvePath(remoteUnresolvedArchive)
+    uploadedImage = hbasePath.toUri().toString()
     switchToImageDeploy = true
     ServiceLauncher launcher = createHoyaCluster(clustername,
                                                  0,
@@ -47,9 +65,10 @@ class TestVersionFromArchive extends YarnMiniClusterTestBase {
                                                      CommonArgs.ARG_X_HBASE_MASTER_COMMAND, "version",
                                                  ],
                                                  true,
-                                                 true)
+                                                 false)
     assert launcher.serviceExitCode == 0
     HoyaClient hoyaClient = (HoyaClient) launcher.service
+    hoyaClient.monitorAppToRunning(new Duration(10*60000))
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)
     log.info("Status $status")
     waitForAppToFinish(hoyaClient)
@@ -60,4 +79,19 @@ class TestVersionFromArchive extends YarnMiniClusterTestBase {
     fail("The test should not have looked for HBase-home, but instead the image")
     null
   }
+
+  /**
+   * Override this so that the path is set up with the HDFS copy
+   * @return
+   */
+  @Override
+  String getHBaseArchive() {
+    return uploadedImage
+  }
+
+
+  public List getHBaseImageCommands() {
+    [CommonArgs.ARG_IMAGE, uploadedImage]
+  }
+
 }

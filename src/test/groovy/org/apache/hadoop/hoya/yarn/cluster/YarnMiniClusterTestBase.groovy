@@ -78,8 +78,8 @@ implements KeysForTests {
   /**
    * Mini YARN cluster only
    */
-  public static final int CLUSTER_GO_LIVE_TIME = 1 * 60 * 1000
-  public static final int HBASE_CLUSTER_STARTUP_TIME = 2 * 60 * 1000
+  public static final int CLUSTER_GO_LIVE_TIME = 3 * 60 * 1000
+  public static final int HBASE_CLUSTER_STARTUP_TIME = 3 * 60 * 1000
   public static final int HBASE_CLUSTER_STOP_TIME = 1 * 60 * 1000
   
   /**
@@ -262,8 +262,7 @@ implements KeysForTests {
 
   public String getHBaseArchive() {
     YarnConfiguration conf = getTestConfiguration()
-    String hbaseHome = conf.getTrimmed(HOYA_TEST_HBASE_TAR)
-    return hbaseHome
+    return conf.getTrimmed(HOYA_TEST_HBASE_TAR)
   }
 
   public void assumeHBaseArchive() {
@@ -279,7 +278,9 @@ implements KeysForTests {
   public List getHBaseImageCommands() {
     if (switchToImageDeploy) {
       assert HBaseArchive
-      return [CommonArgs.ARG_IMAGE, HBaseArchive]
+      File f = new File(HBaseArchive)
+      assert f.exists()
+      return [CommonArgs.ARG_IMAGE, f.toURI().toString()]
     } else {
       assert HBaseHome 
       assert new File(HBaseHome).exists();
@@ -386,6 +387,7 @@ implements KeysForTests {
         CommonArgs.ARG_X_TEST,
         CommonArgs.ARG_CONFDIR, getConfDir()
     ]
+    
     argsList += HBaseImageCommands
     
     if (extraArgs != null) {
@@ -793,7 +795,7 @@ implements KeysForTests {
 
     //start to add some more workers
     describe("Flexing from $workers worker(s) to $flexTarget worker")
-    boolean flexed = 0 == hoyaClient.actionFlex(clustername, flexTarget, 0, true)
+    boolean flexed = 0 == hoyaClient.actionFlex(clustername, flexTarget, 0, persist)
     waitForRegionServerCount(hoyaClient, clustername, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     if (testHBaseAfter) {
       waitForHoyaWorkerCount(hoyaClient, clustername, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)

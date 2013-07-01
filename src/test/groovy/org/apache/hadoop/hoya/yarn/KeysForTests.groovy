@@ -29,7 +29,7 @@ public interface KeysForTests extends HoyaKeys {
    */
   String USERNAME = "bigdataborat"
 
-  int WAIT_TIME = 30;
+  int WAIT_TIME = 120;
   String WAIT_TIME_ARG = WAIT_TIME.toString()
 
   String HOYA_TEST_HBASE_HOME = "hoya.test.hbase_home";
