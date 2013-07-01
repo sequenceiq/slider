@@ -385,31 +385,31 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * @param clusterSpec cluster specification
    * @return the exit code from the operation
    */
- public int executeClusterCreation(ClusterDescription clusterSpec) {
+  public int executeClusterCreation(ClusterDescription clusterSpec) {
 
-   //verify that a live cluster isn't there
-   final String clustername = clusterSpec.name
-   validateClusterName(clustername)
-   verifyNoLiveClusters(clustername)
-   //make sure it is valid
-   verifyValidClusterSize(clusterSpec.workers)
+    //verify that a live cluster isn't there
+    final String clustername = clusterSpec.name
+    validateClusterName(clustername)
+    verifyNoLiveClusters(clustername)
+    //make sure it is valid
+    verifyValidClusterSize(clusterSpec.workers)
 
-   Path genConfPath = createPathThatMustExist(clusterSpec.generatedConfigurationPath)
-   Path origConfPath = createPathThatMustExist(clusterSpec.originConfigurationPath)
-   
-   YarnClientApplication application = createApplication()
-   ApplicationSubmissionContext appContext = application.applicationSubmissionContext
+    Path genConfPath = createPathThatMustExist(clusterSpec.generatedConfigurationPath)
+    Path origConfPath = createPathThatMustExist(clusterSpec.originConfigurationPath)
 
-   ApplicationId appId = appContext.applicationId
-   // set the application name
-   appContext.applicationName = clustername
-   //app type used in service enum
-   appContext.applicationType = HoyaKeys.APP_TYPE
+    YarnClientApplication application = createApplication()
+    ApplicationSubmissionContext appContext = application.applicationSubmissionContext
 
-   if (clusterSpec.flags[CommonArgs.ARG_X_TEST]) {
-     //test flag set
-     appContext.maxAppAttempts = 1
-   }
+    ApplicationId appId = appContext.applicationId
+    // set the application name
+    appContext.applicationName = clustername
+    //app type used in service enum
+    appContext.applicationType = HoyaKeys.APP_TYPE
+
+    if (clusterSpec.flags[CommonArgs.ARG_X_TEST]) {
+      //test flag set
+      appContext.maxAppAttempts = 1
+    }
 
     Path tempPath = HoyaUtils.createHoyaAppInstanceTempPath(clusterFS,
                                                             clustername,
@@ -443,7 +443,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
                                                            tempPath,
                                                            libdir,
                                                            "groovayll.jar")
-      
+
       localResources["jcommander.jar"] = submitJarWithClass(JCommander.class,
                                                             tempPath,
                                                             libdir,
@@ -462,42 +462,39 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
     //build up the configuration
 
-    
     //now load the template configuration and build the site. Note that the 
     //original confdir (as on the localfs of the client) is passed.
     //TODO: will this work when clusters are restarted (would we need to 
-   //use the original configuration when the cluster was first started..)
-   Configuration templateConf = ConfigHelper.loadTemplateConfiguration(config,
-                                                   origConfPath,
-                                                   HoyaKeys.HBASE_TEMPLATE,
-                                                   HoyaKeys.HBASE_TEMPLATE_RESOURCE)
+    //use the original configuration when the cluster was first started..)
+    Configuration templateConf = ConfigHelper.loadTemplateConfiguration(config,
+                                                                        origConfPath,
+                                                                        HoyaKeys.HBASE_TEMPLATE,
+                                                                        HoyaKeys.HBASE_TEMPLATE_RESOURCE)
 
-   //construct the cluster configuration values
+    //construct the cluster configuration values
     Map<String, String> clusterConfMap = buildConfMapFromServiceArguments(clusterSpec);
     //merge them
     ConfigHelper.addConfigMap(templateConf, clusterConfMap)
-    
+
     //dump them @info
     if (log.debugEnabled) {
       ConfigHelper.dumpConf(templateConf);
     }
-
-
 
     //save the -site.xml config to the visible-to-all DFS
     //that generatedConfPath is in
     //this is the path for the site configuration
 
     Path sitePath = ConfigHelper.generateConfig(config,
-                                      templateConf,
-                                      genConfPath,
-                                      HoyaKeys.HBASE_SITE);
-    
+                                                templateConf,
+                                                genConfPath,
+                                                HoyaKeys.HBASE_SITE);
+
     log.debug("Saving the config to $sitePath")
     Map<String, LocalResource> confResources;
     confResources = YarnUtils.submitDirectory(clusterFS,
                                               genConfPath,
-                                    HoyaKeys.PROPAGATED_CONF_DIR_NAME)
+                                              HoyaKeys.PROPAGATED_CONF_DIR_NAME)
     localResources.putAll(confResources)
     if (log.isDebugEnabled()) {
       localResources.each { String key, LocalResource val ->
@@ -523,150 +520,150 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
 */
 
-   // Set local resource info into app master container launch context
-   amContainer.localResources = localResources;
-   def env = [:]
+    // Set local resource info into app master container launch context
+    amContainer.localResources = localResources;
+    def env = [:]
 
-   env['CLASSPATH'] = buildClasspath()
+    env['CLASSPATH'] = buildClasspath()
 
-   amContainer.environment = env;
+    amContainer.environment = env;
 
-   String rmAddr = serviceArgs.rmAddress;
-   //spec out the RM address
-   if (!rmAddr && YarnUtils.isRmSchedulerAddressDefined(config)) {
-     rmAddr = NetUtils.getHostPortString(YarnUtils.getRmSchedulerAddress(config))
-   }
+    String rmAddr = serviceArgs.rmAddress;
+    //spec out the RM address
+    if (!rmAddr && YarnUtils.isRmSchedulerAddressDefined(config)) {
+      rmAddr = NetUtils.getHostPortString(YarnUtils.getRmSchedulerAddress(config))
+    }
 
-   //build up the args list, intially as anyting
-   List commands = []
-   commands << ApplicationConstants.Environment.JAVA_HOME.$() + "/bin/java"
-   //insert any JVM options
-   commands << HoyaKeys.JAVA_FORCE_IPV4;
-   //add the generic sevice entry point
-   commands << ServiceLauncher.ENTRY_POINT
-   //immeiately followed by the classname
-   commands << HoyaMasterServiceArgs.CLASSNAME
-   //now the app specific args
-   commands << HoyaMasterServiceArgs.ARG_DEBUG
-   commands << HoyaMasterServiceArgs.ACTION_CREATE
-   commands << clustername
-   //min #of nodes
-   commands << HoyaMasterServiceArgs.ARG_WORKERS
-   commands << (Integer) clusterSpec.workers
-   commands << HoyaMasterServiceArgs.ARG_WORKER_HEAP
-   commands << (Integer) clusterSpec.workerHeap
-   commands << HoyaMasterServiceArgs.ARG_MASTERS
-   commands << (Integer) clusterSpec.masters
-   commands << HoyaMasterServiceArgs.ARG_MASTER_HEAP
-   commands << (Integer) clusterSpec.masterHeap
+    //build up the args list, intially as anyting
+    List commands = []
+    commands << ApplicationConstants.Environment.JAVA_HOME.$() + "/bin/java"
+    //insert any JVM options
+    commands << HoyaKeys.JAVA_FORCE_IPV4;
+    //add the generic sevice entry point
+    commands << ServiceLauncher.ENTRY_POINT
+    //immeiately followed by the classname
+    commands << HoyaMasterServiceArgs.CLASSNAME
+    //now the app specific args
+    commands << HoyaMasterServiceArgs.ARG_DEBUG
+    commands << HoyaMasterServiceArgs.ACTION_CREATE
+    commands << clustername
+    //min #of nodes
+    commands << HoyaMasterServiceArgs.ARG_WORKERS
+    commands << (Integer) clusterSpec.workers
+    commands << HoyaMasterServiceArgs.ARG_WORKER_HEAP
+    commands << (Integer) clusterSpec.workerHeap
+    commands << HoyaMasterServiceArgs.ARG_MASTERS
+    commands << (Integer) clusterSpec.masters
+    commands << HoyaMasterServiceArgs.ARG_MASTER_HEAP
+    commands << (Integer) clusterSpec.masterHeap
 
 
-   if (rmAddr) {
-     commands << HoyaMasterServiceArgs.ARG_RM_ADDR;
-     commands << rmAddr;
-   }
+    if (rmAddr) {
+      commands << HoyaMasterServiceArgs.ARG_RM_ADDR;
+      commands << rmAddr;
+    }
 
-   //now conf dir path -fileset in the DFS
-   commands << HoyaMasterServiceArgs.ARG_GENERATED_CONFDIR
-   commands << clusterSpec.generatedConfigurationPath
+    //now conf dir path -fileset in the DFS
+    commands << HoyaMasterServiceArgs.ARG_GENERATED_CONFDIR
+    commands << clusterSpec.generatedConfigurationPath
 
-   String hbaseHome = clusterSpec.hbaseHome
-   if (hbaseHome) {
-     //HBase home
-     commands << HoyaMasterServiceArgs.ARG_HBASE_HOME
-     commands << hbaseHome
-   }
-   String xHBaseMasterCommand = clusterSpec.xHBaseMasterCommand
-   if (xHBaseMasterCommand) {
-     //explicit hbase command set
-     commands << CommonArgs.ARG_X_HBASE_MASTER_COMMAND
-     commands << xHBaseMasterCommand
-   }
-   if (clusterSpec.flags[CommonArgs.ARG_X_TEST]) {
-     //test flag set
-     commands << CommonArgs.ARG_X_TEST
-   }
-   if (serviceArgs.filesystemURL) {
-     commands << HoyaMasterServiceArgs.ARG_FILESYSTEM
-     commands << serviceArgs.filesystemURL;
-   }
+    String hbaseHome = clusterSpec.hbaseHome
+    if (hbaseHome) {
+      //HBase home
+      commands << HoyaMasterServiceArgs.ARG_HBASE_HOME
+      commands << hbaseHome
+    }
+    String xHBaseMasterCommand = clusterSpec.xHBaseMasterCommand
+    if (xHBaseMasterCommand) {
+      //explicit hbase command set
+      commands << CommonArgs.ARG_X_HBASE_MASTER_COMMAND
+      commands << xHBaseMasterCommand
+    }
+    if (clusterSpec.flags[CommonArgs.ARG_X_TEST]) {
+      //test flag set
+      commands << CommonArgs.ARG_X_TEST
+    }
+    if (serviceArgs.filesystemURL) {
+      commands << HoyaMasterServiceArgs.ARG_FILESYSTEM
+      commands << serviceArgs.filesystemURL;
+    }
 
-   //path in FS can be unqualified
-   commands << HoyaMasterServiceArgs.ARG_PATH
-   commands << "services/hoya/"
-   commands << "1>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/out.txt";
-   commands << "2>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/err.txt";
+    //path in FS can be unqualified
+    commands << HoyaMasterServiceArgs.ARG_PATH
+    commands << "services/hoya/"
+    commands << "1>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/out.txt";
+    commands << "2>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/err.txt";
 
-   String cmdStr = commands.join(" ")
-   log.info("Completed setting up app master command $cmdStr");
-   //sanity check: no null entries are allowed
-   commands.each { assert it != null }
-   //uses the star-dot operator to apply the tostring method to all elements
-   //of the array, returnigna new array
-   List<String> commandListStr = commands*.toString();
+    String cmdStr = commands.join(" ")
+    log.info("Completed setting up app master command $cmdStr");
+    //sanity check: no null entries are allowed
+    commands.each { assert it != null }
+    //uses the star-dot operator to apply the tostring method to all elements
+    //of the array, returnigna new array
+    List<String> commandListStr = commands*.toString();
 
-   amContainer.commands = commandListStr
-   // Set up resource type requirements
-   // For now, only memory is supported so we set memory requirements
-   Resource capability = Records.newRecord(Resource.class);
-   capability.memory = amMemory;
-   appContext.resource = capability;
-   Map<String, ByteBuffer> serviceData = [:]
-   // Service data is a binary blob that can be passed to the application
-   // Not needed in this scenario
-   amContainer.serviceData = serviceData;
+    amContainer.commands = commandListStr
+    // Set up resource type requirements
+    // For now, only memory is supported so we set memory requirements
+    Resource capability = Records.newRecord(Resource.class);
+    capability.memory = amMemory;
+    appContext.resource = capability;
+    Map<String, ByteBuffer> serviceData = [:]
+    // Service data is a binary blob that can be passed to the application
+    // Not needed in this scenario
+    amContainer.serviceData = serviceData;
 
-   // The following are not required for launching an application master 
-   // amContainer.setContainerId(containerId);
+    // The following are not required for launching an application master 
+    // amContainer.setContainerId(containerId);
 
-   appContext.AMContainerSpec = amContainer;
+    appContext.AMContainerSpec = amContainer;
 
-   // Set the priority for the application master
-   Priority pri = Records.newRecord(Priority.class);
-   // TODO - what is the range for priority? how to decide? 
-   pri.priority = amPriority;
-   appContext.priority = pri;
+    // Set the priority for the application master
+    Priority pri = Records.newRecord(Priority.class);
+    // TODO - what is the range for priority? how to decide? 
+    pri.priority = amPriority;
+    appContext.priority = pri;
 
-   // Set the queue to which this application is to be submitted in the RM
-   appContext.queue = amQueue;
+    // Set the queue to which this application is to be submitted in the RM
+    appContext.queue = amQueue;
 
-   // Submit the application to the applications manager
-   // SubmitApplicationResponse submitResp = applicationsManager.submitApplication(appRequest);
-   // Ignore the response as either a valid response object is returned on success 
-   // or an exception thrown to denote some form of a failure
-   log.info("Submitting application to ASM");
+    // Submit the application to the applications manager
+    // SubmitApplicationResponse submitResp = applicationsManager.submitApplication(appRequest);
+    // Ignore the response as either a valid response object is returned on success 
+    // or an exception thrown to denote some form of a failure
+    log.info("Submitting application to ASM");
 
-   //submit the application
-   applicationId = submitApplication(appContext)
+    //submit the application
+    applicationId = submitApplication(appContext)
 
-   int exitCode
-   //wait for the submit state to be reached
-   ApplicationReport report = monitorAppToState(new Duration(ACCEPT_TIME),
-                                                YarnApplicationState.ACCEPTED);
+    int exitCode
+    //wait for the submit state to be reached
+    ApplicationReport report = monitorAppToState(new Duration(ACCEPT_TIME),
+                                                 YarnApplicationState.ACCEPTED);
 
-   //may have failed, so check that
-   if (YarnUtils.hasAppFinished(report)) {
-     exitCode = buildExitCode(appId, report)
-   } else {
-     //exit unless there is a wait
-     exitCode = EXIT_SUCCESS
+    //may have failed, so check that
+    if (YarnUtils.hasAppFinished(report)) {
+      exitCode = buildExitCode(appId, report)
+    } else {
+      //exit unless there is a wait
+      exitCode = EXIT_SUCCESS
 
-     if (serviceArgs.waittime != 0) {
-       //waiting for state to change
-       Duration duration = new Duration(serviceArgs.waittime * 1000)
-       duration.start()
-       report = monitorAppToState(duration,
-                                  YarnApplicationState.RUNNING);
-       if (report && report.yarnApplicationState == YarnApplicationState.RUNNING) {
-         exitCode = EXIT_SUCCESS
-       } else {
-         killRunningApplication(appId);
-         exitCode = buildExitCode(appId, report)
-       }
-     }
-   }
-   return exitCode
- }
+      if (serviceArgs.waittime != 0) {
+        //waiting for state to change
+        Duration duration = new Duration(serviceArgs.waittime * 1000)
+        duration.start()
+        report = monitorAppToState(duration,
+                                   YarnApplicationState.RUNNING);
+        if (report && report.yarnApplicationState == YarnApplicationState.RUNNING) {
+          exitCode = EXIT_SUCCESS
+        } else {
+          killRunningApplication(appId);
+          exitCode = buildExitCode(appId, report)
+        }
+      }
+    }
+    return exitCode
+  }
 
   /**
    * Validate the node count and heap size values of a node class 
