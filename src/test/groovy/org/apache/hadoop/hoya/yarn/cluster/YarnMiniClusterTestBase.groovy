@@ -92,10 +92,6 @@ implements KeysForTests {
   protected MiniYARNCluster miniCluster;
   protected MicroZKCluster microZKCluster
 
-  @Before
-  public void setup() {
-
-  }
 
   @After
   public void teardown() {
