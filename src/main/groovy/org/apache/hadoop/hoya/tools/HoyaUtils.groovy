@@ -27,11 +27,14 @@ import org.apache.hadoop.fs.FileStatus
 import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.FileUtil
 import org.apache.hadoop.fs.Path
+import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.appmaster.EnvMappings
 import org.apache.hadoop.net.NetUtils
 import org.apache.hadoop.util.ExitUtil.ExitException
+import org.apache.hadoop.yarn.api.records.LocalResource
+import org.apache.hadoop.yarn.api.records.LocalResourceType
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 
 /**
@@ -436,5 +439,17 @@ class HoyaUtils {
       return false
     }
     return true;
+  }
+
+  public static boolean maybeAddImagePath(HadoopFS clusterFS, Map<String, LocalResource> localResources, Path imagePath) {
+    if (imagePath) {
+      LocalResource resource = YarnUtils.createAmResource(clusterFS,
+                                                          imagePath,
+                                                          LocalResourceType.ARCHIVE)
+      localResources[HoyaKeys.HBASE_LOCAL] = resource
+      return true
+    } else {
+      return false
+    }
   }
 }

@@ -298,6 +298,22 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     clusterSpec.masterInfoPort = masterInfoPort
     clusterSpec.workerInfoPort = workerInfoPort
 
+    //HBase home or image
+    if (serviceArgs.image) {
+      if (serviceArgs.hbasehome) {
+        //both args have been set
+        throw new BadCommandArgumentsException("only one of ${ClientArgs.ARG_IMAGE} and ${CommonArgs.ARG_HBASE_HOME} can be provided")
+      }
+      clusterSpec.imagePath = serviceArgs.image
+    } else {
+      //the alternative is HBase home, which now MUST be set
+      if (!serviceArgs.hbasehome) {
+        //both args have been set
+        throw new BadCommandArgumentsException("Either ${ClientArgs.ARG_IMAGE} or ${CommonArgs.ARG_HBASE_HOME} must be provided")
+      }
+      clusterSpec.hbaseHome = serviceArgs.hbasehome
+    }
+
     //set up the ZK binding
     String zookeeperRoot = serviceArgs.hbasezkpath
     if (serviceArgs.hbasezkpath == null) {
@@ -338,14 +354,11 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     Path hBaseRootPath = new Path(clusterDirectory, HoyaKeys.HBASE_DATA_DIR_NAME);
 
     log.debug("hBaseRootPath=$hBaseRootPath")
-    clusterSpec.hbaseRootPath = hBaseRootPath.toUri().toString();
+    clusterSpec.hbaseDataPath = hBaseRootPath.toUri().toString();
 
-    //HBase home
-    clusterSpec.hbaseHome = serviceArgs.hbasehome
     //explicit hbase command set
     clusterSpec.xHBaseMasterCommand = serviceArgs.xHBaseMasterCommand
   
-    
     //check for debug mode
     if (serviceArgs.xTest) {
       clusterSpec.flags[CommonArgs.ARG_X_TEST] = "true";
@@ -397,6 +410,17 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     Path genConfPath = createPathThatMustExist(clusterSpec.generatedConfigurationPath)
     Path origConfPath = createPathThatMustExist(clusterSpec.originConfigurationPath)
 
+    Path imagePath
+    if (clusterSpec.imagePath) {
+      imagePath = createPathThatMustExist(clusterSpec.imagePath)
+    } else {
+      imagePath = null;
+      if (!clusterSpec.hbaseHome) {
+        throw new HoyaException(EXIT_BAD_CLUSTER_STATE,
+                                "Neither an image path or hbase home were specified")
+      }
+    }
+    
     YarnClientApplication application = createApplication()
     ApplicationSubmissionContext appContext = application.applicationSubmissionContext
 
@@ -463,8 +487,6 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     //build up the configuration
 
     //now load the template configuration and build the site. Note that the 
-    //original confdir (as on the localfs of the client) is passed.
-    //TODO: will this work when clusters are restarted (would we need to 
     //use the original configuration when the cluster was first started..)
     Configuration templateConf = ConfigHelper.loadTemplateConfiguration(config,
                                                                         origConfPath,
@@ -496,6 +518,12 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
                                               genConfPath,
                                               HoyaKeys.PROPAGATED_CONF_DIR_NAME)
     localResources.putAll(confResources)
+    
+    //now add the image if it was set
+    if (HoyaUtils.maybeAddImagePath(clusterFS, localResources, imagePath)) {
+      log.debug("Registered image path $imagePath")
+    }
+    
     if (log.isDebugEnabled()) {
       localResources.each { String key, LocalResource val ->
         log.debug("$key=${YarnUtils.stringify(val.resource)}")
@@ -539,6 +567,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     commands << ApplicationConstants.Environment.JAVA_HOME.$() + "/bin/java"
     //insert any JVM options
     commands << HoyaKeys.JAVA_FORCE_IPV4;
+    commands << HoyaKeys.JAVA_HEADLESS;
     //add the generic sevice entry point
     commands << ServiceLauncher.ENTRY_POINT
     //immeiately followed by the classname
@@ -568,7 +597,10 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     commands << clusterSpec.generatedConfigurationPath
 
     String hbaseHome = clusterSpec.hbaseHome
-    if (hbaseHome) {
+    if (imagePath) {
+      commands << HoyaMasterServiceArgs.ARG_IMAGE
+      commands << imagePath.toString()
+    } else {
       //HBase home
       commands << HoyaMasterServiceArgs.ARG_HBASE_HOME
       commands << hbaseHome
@@ -853,7 +885,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
         (EnvMappings.KEY_HBASE_CLUSTER_DISTRIBUTED): "true",
         (EnvMappings.KEY_HBASE_MASTER_PORT): "0",
         (EnvMappings.KEY_HBASE_MASTER_INFO_PORT): clusterSpec.masterInfoPort.toString(),
-        (EnvMappings.KEY_HBASE_ROOTDIR): clusterSpec.hbaseRootPath,
+        (EnvMappings.KEY_HBASE_ROOTDIR): clusterSpec.hbaseDataPath,
         (EnvMappings.KEY_REGIONSERVER_INFO_PORT): clusterSpec.workerInfoPort.toString(),
         (EnvMappings.KEY_REGIONSERVER_PORT): "0",
         (EnvMappings.KEY_ZNODE_PARENT): clusterSpec.zkPath,

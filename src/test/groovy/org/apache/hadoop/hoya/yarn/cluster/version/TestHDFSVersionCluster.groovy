@@ -16,11 +16,13 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.cluster.live
+
+
+package org.apache.hadoop.hoya.yarn.cluster.version
 
 import groovy.util.logging.Commons
-import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
@@ -30,41 +32,24 @@ import org.junit.Test
  * Test of RM creation. This is so the later test's prereq's can be met
  */
 @Commons
-class TestCreateStopStartLiveRegionService extends YarnMiniClusterTestBase {
-
+class TestHDFSVersionCluster extends YarnMiniClusterTestBase {
 
   @Test
-  public void testCreateStopStartLiveRegionService() throws Throwable {
-    String clustername = "TestCreateStopStartLiveRegionService"
-    int regionServerCount = 2
-    createMiniCluster(clustername, createConfiguration(), regionServerCount+1, true)
-    ServiceLauncher launcher = createHoyaCluster(clustername, regionServerCount, [], true, true)
+  public void testClusterAMrunningVersionCommand() throws Throwable {
+    describe "create a cluster, exec the version command"
+
+    String clustername = "TestHDFSVersionCluster"
+    createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
+    ServiceLauncher launcher = createHoyaCluster(clustername,
+                                                 0,
+                                                 [CommonArgs.ARG_X_HBASE_MASTER_COMMAND, "version"],
+                                                 true,
+                                                 true)
+    assert launcher.serviceExitCode == 0
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)
-    log.info("${status.toJsonString()}")
-
-    ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient, clustername)
-
-    waitForHoyaWorkerCount(hoyaClient, clustername, regionServerCount,
-                            HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-    describe("Cluster status")
-    log.info(prettyPrint(status.toJsonString()))
-    
-
-    clusterActionStop(hoyaClient, clustername)
-    
-    //now let's start the cluster up again
-    ServiceLauncher launcher2 = startHoyaCluster(clustername, [], true);
-    HoyaClient newCluster = launcher.getService() as HoyaClient
-    basicHBaseClusterStartupSequence(newCluster, clustername)
-
-    //get the hbase status
-    waitForHoyaWorkerCount(newCluster, clustername, regionServerCount,
-                            HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-
+    log.info("Status $status")
+    waitForAppToFinish(hoyaClient)
   }
-
-
-
 
 }

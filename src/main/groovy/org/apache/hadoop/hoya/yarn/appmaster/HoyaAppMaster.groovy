@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster
 
-import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem as HadoopFS
@@ -109,6 +108,7 @@ class HoyaAppMaster extends CompositeService
   public static final int MAX_TOLERABLE_FAILURES = 10
   public static final String ROLE_WORKER = HBaseCommands.REGION_SERVER
   public static final String ROLE_UNKNOWN = "unknown"
+  public static final int HEARTBEAT_INTERVAL = 1000
 
   /** YARN RPC to communicate with the Resource Manager or Node Manager */
   private YarnRPC rpc;
@@ -216,7 +216,7 @@ class HoyaAppMaster extends CompositeService
    the CD, and also to update some of the structures that
    feed in to the CD
   */
-  private final ClusterDescription clusterDescription = new ClusterDescription();
+  public ClusterDescription clusterDescription = new ClusterDescription();
 
   /**
    * List of completed nodes. This isn't kept in the CD as it gets too
@@ -344,6 +344,7 @@ class HoyaAppMaster extends CompositeService
       clusterDescription.createTime = clusterDescription.startTime
     }
     clusterDescription.hbaseHome = serviceArgs.hbasehome
+    clusterDescription.imagePath = serviceArgs.image
     clusterDescription.xHBaseMasterCommand = serviceArgs.xHBaseMasterCommand
     clusterDescription.masterInfoPort = serviceArgs.masterInfoPort
 
@@ -359,19 +360,13 @@ class HoyaAppMaster extends CompositeService
         Env.mandatory(ApplicationConstants.Environment.CONTAINER_ID.name()));
     appAttemptID = containerId.applicationAttemptId;
 
-    String nmHost = Env.mandatory(ApplicationConstants.Environment.NM_HOST.name())
-    String nmPort = Env.mandatory(ApplicationConstants.Environment.NM_PORT.name())
-    String nmHttpPort = Env.mandatory(ApplicationConstants.Environment.NM_HTTP_PORT.name())
-    String UserName = Env.mandatory(ApplicationConstants.Environment.USER
-                                                           .key());
-
     log.info("Hoya AM for app," +
              " appId=$appAttemptID.applicationId.id," +
              " clustertimestamp=$appAttemptID.applicationId.clusterTimestamp," +
              " attemptId=$appAttemptID.attemptId");
 
 
-    int heartbeatInterval = 1000
+    int heartbeatInterval = HEARTBEAT_INTERVAL
 
     
     //add the RM client -this brings the callbacks in
@@ -405,7 +400,6 @@ class HoyaAppMaster extends CompositeService
       int port = YarnUtils.findFreePort(EnvMappings.DEFAULT_MASTER_INFO_PORT, 128)
       //need to get this to the app
       clusterDescription.masterInfoPort = port
-      
     }
     appMasterTrackingUrl = "http://$appMasterHostname:$clusterDescription.masterInfoPort"
     
@@ -451,7 +445,7 @@ class HoyaAppMaster extends CompositeService
     log.info(" Contents of $hBaseSiteXML")
     TreeSet<String> confKeys = ConfigHelper.sortedConfigKeys(siteConf)
     //update the values
-    clusterDescription.hbaseRootPath = siteConf.get(EnvMappings.KEY_HBASE_ROOTDIR)
+    clusterDescription.hbaseDataPath = siteConf.get(EnvMappings.KEY_HBASE_ROOTDIR)
     clusterDescription.zkHosts = siteConf.get(EnvMappings.KEY_ZOOKEEPER_QUORUM)
     clusterDescription.zkPort = siteConf.getInt(EnvMappings.KEY_ZOOKEEPER_PORT, 0)
     clusterDescription.zkPath = siteConf.get(EnvMappings.KEY_ZNODE_PARENT)
@@ -473,15 +467,16 @@ class HoyaAppMaster extends CompositeService
     }
 
     List<String> launchSequence = [
-        HBaseCommands.ARG_CONFIG, hBaseConfDir.absolutePath
-      ];
+      HBaseCommands.ARG_CONFIG, hBaseConfDir.absolutePath
+    ];
     launchSequence << hbaseCommand
     launchSequence << HBaseCommands.ACTION_START;
 
     if (noMaster) {
       log.info "skipping master launch as the #of master nodes is too low"
     } else {
-      launchHBaseServer(launchSequence,
+      launchHBaseServer(clusterDescription,
+                        launchSequence,
                         [('HBASE_LOG_DIR'): buildHBaseLogdir()]);
     }
 
@@ -1062,7 +1057,8 @@ class HoyaAppMaster extends CompositeService
    * @throws IOException IO problems
    * @throws HoyaException anything internal
    */
-  protected synchronized void launchHBaseServer(List<String> commands,
+  protected synchronized void launchHBaseServer(ClusterDescription cd,
+                                                List<String> commands,
                                                 Map<String, String> env)
                         throws IOException, HoyaException {
     if (hbaseMaster != null) {
@@ -1070,7 +1066,11 @@ class HoyaAppMaster extends CompositeService
                                            " when one is already running")
     }
     //prepend the hbase command itself
-    commands.add(0, buildHBaseBinPath().absolutePath);
+    File binHbaseSh = buildHBaseBinPath(cd)
+    if( !binHbaseSh.exists()) {
+      throw new BadCommandArgumentsException("Missing script ${binHbaseSh.absolutePath}")
+    }
+    commands.add(0, binHbaseSh.absolutePath);
     hbaseMaster = new RunLongLivedApp(commands);
     //set the env variable mapping
     hbaseMaster.putEnvMap(env)
@@ -1110,12 +1110,22 @@ class HoyaAppMaster extends CompositeService
    * Get the path to hbase home
    * @return the hbase home path
    */
-  public File buildHBaseBinPath() {
-    File hbaseScript = new File(serviceArgs.hbasehome,
-                                "bin/hbase");
+  public File buildHBaseBinPath(ClusterDescription cd) {
+    File hbaseScript = new File(buildHBaseDir(cd), 
+        "hbase-0.94.9-SNAPSHOT/" + HoyaKeys.HBASE_SCRIPT);
     return hbaseScript;
   }
-  
+
+  public File buildHBaseDir(ClusterDescription cd) {
+    File hbasedir
+    if (cd.imagePath) {
+      hbasedir = new File(HoyaKeys.HBASE_LOCAL)
+    } else {
+      hbasedir = new File(cd.hbaseHome)
+    }
+    return hbasedir
+  }
+
   /**
    * stop hbase process if it the running process var is not null
    * @return the hbase exit code -null if it is not running

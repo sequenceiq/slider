@@ -16,11 +16,12 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.cluster.live
+
+
+package org.apache.hadoop.hoya.yarn.cluster.archives
 
 import groovy.util.logging.Commons
 import org.apache.hadoop.hbase.ClusterStatus
-import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.yarn.ZKIntegration
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
@@ -28,45 +29,35 @@ import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
 /**
- * Test of RM creation. This is so the later test's prereq's can be met
+ * create a live cluster from the image
  */
 @Commons
-class TestLiveRegionService extends YarnMiniClusterTestBase {
+class TestLiveClusterFromArchive extends YarnMiniClusterTestBase {
 
   @Test
-  public void testLiveRegionServiceTwoNodes() throws Throwable {
-    String clustername = "TestLiveRegionService"
-    int regionServerCount = 2
-    createMiniCluster(clustername, createConfiguration(), regionServerCount + 1, 1, 1, true, true)
+  public void testLiveClusterFromArchive() throws Throwable {
+    String clustername = "TestLiveClusterFromArchive"
+    int regionServerCount = 1
+    createMiniCluster(clustername, createConfiguration(), regionServerCount + 1, 1, 1, true, false)
 
-    //make sure that ZK is up and running at the binding string
-    ZKIntegration zki = createZKIntegrationInstance(ZKBinding, clustername, false, false, 5000)
-    log.info("ZK up at $zki");
     //now launch the cluster
+    switchToImageDeploy = true
     ServiceLauncher launcher = createHoyaCluster(clustername, regionServerCount, [], true, true)
+
     HoyaClient hoyaClient = (HoyaClient) launcher.service
-    ClusterDescription status = hoyaClient.getClusterStatus(clustername)
-    log.info("${status.toJsonString()}")
-    assert ZKHosts == status.zkHosts
-    assert ZKPort == status.zkPort
-
-    dumpFullHBaseConf(hoyaClient, clustername)
-
     ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient, clustername)
-
-
 
     //get the hbase status
     waitForHoyaWorkerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-    describe("Cluster status")
-    log.info(prettyPrint(status.toJsonString()))
-
-    status = waitForRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+    waitForRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
     clusterActionStop(hoyaClient, clustername)
   }
 
-
-
+  @Override
+  String getHBaseHome() {
+    fail("The test should not have looked for HBase-home, but instead the image")
+    null
+  }
 
 }

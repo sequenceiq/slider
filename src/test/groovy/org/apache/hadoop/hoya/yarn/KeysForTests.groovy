@@ -33,5 +33,6 @@ public interface KeysForTests extends HoyaKeys {
   String WAIT_TIME_ARG = WAIT_TIME.toString()
 
   String HOYA_TEST_HBASE_HOME = "hoya.test.hbase_home";
+  String HOYA_TEST_HBASE_TAR = "hoya.test.hbase_tar";
   public String HOYA_TEST = "hoya-test.xml"
 }

@@ -16,51 +16,48 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.cluster.live
+
+
+package org.apache.hadoop.hoya.yarn.cluster.archives
 
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.api.ClusterDescription
-import org.apache.hadoop.hoya.yarn.ZKIntegration
+import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
 /**
- * Create a master against the File:// fs
+ * Test of RM creation. This is so the later test's prereq's can be met
  */
 @Commons
-class TestHBaseMaster extends YarnMiniClusterTestBase {
+class TestVersionFromArchive extends YarnMiniClusterTestBase {
 
   @Test
-  public void testHBaseMaster() throws Throwable {
-    String clustername = "TestHBaseMaster"
+  public void testClusterAMrunningVersionCommand() throws Throwable {
+    describe "create a cluster, exec the version command"
+    assumeHBaseArchive();
+    String clustername = "TestVersionFromArchive"
     createMiniCluster(clustername, createConfiguration(), 1, true)
-    //make sure that ZK is up and running at the binding string
-    ZKIntegration zki = createZKIntegrationInstance(ZKBinding, clustername, false, false, 5000)
-    log.info("ZK up at $zki");
-    //now launch the cluster
-    int regionServerCount = 1
-    ServiceLauncher launcher = createHoyaCluster(clustername, regionServerCount, [], true, true) 
+    switchToImageDeploy = true
+    ServiceLauncher launcher = createHoyaCluster(clustername,
+                                                 0,
+                                                 [
+                                                     CommonArgs.ARG_X_HBASE_MASTER_COMMAND, "version",
+                                                 ],
+                                                 true,
+                                                 true)
+    assert launcher.serviceExitCode == 0
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)
-    assert ZKHosts == status.zkHosts
-    assert ZKPort == status.zkPort
-    
-    dumpFullHBaseConf(hoyaClient, clustername)
-
-    basicHBaseClusterStartupSequence(hoyaClient, clustername)
-    
-    //verify the #of region servers is as expected
-    status = hoyaClient.getClusterStatus(clustername)
-    log("post-hbase-boot status", status)
-    //get the hbase status
-    waitForHoyaWorkerCount(hoyaClient, clustername, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-    waitForRegionServerCount(hoyaClient, clustername, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-
-
-    clusterActionStop(hoyaClient, clustername)
-
+    log.info("Status $status")
+    waitForAppToFinish(hoyaClient)
   }
 
+  @Override
+  String getHBaseHome() {
+    fail("The test should not have looked for HBase-home, but instead the image")
+    null
+  }
 }

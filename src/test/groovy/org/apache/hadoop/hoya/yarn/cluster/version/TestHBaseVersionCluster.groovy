@@ -16,12 +16,13 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.cluster
+package org.apache.hadoop.hoya.yarn.cluster.version
 
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
+import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
@@ -35,13 +36,13 @@ class TestHBaseVersionCluster extends YarnMiniClusterTestBase {
   @Test
   public void testClusterAMrunningVersionCommand() throws Throwable {
     describe "create a cluster, exec the version command"
-    
-    createMiniCluster("TestHBaseVersionCluster", createConfiguration(), 1, true)
-    log.info("RM address = ${RMAddr}")
+
     String clustername = "TestHBaseVersionCluster"
+    createMiniCluster(clustername, createConfiguration(), 1, true)
     ServiceLauncher launcher = createHoyaCluster(clustername,
                                                  0,
-                                                 [CommonArgs.ARG_X_HBASE_MASTER_COMMAND, "version"], true,
+                                                 [CommonArgs.ARG_X_HBASE_MASTER_COMMAND, "version"],
+                                                 true,
                                                  true)
     assert launcher.serviceExitCode == 0
     HoyaClient hoyaClient = (HoyaClient) launcher.service

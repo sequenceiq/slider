@@ -57,7 +57,7 @@ import org.apache.hadoop.yarn.service.launcher.ServiceLaunchException
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
 import org.junit.After
-import org.junit.Before
+import org.junit.Assume
 
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.SynchronousQueue
@@ -91,6 +91,7 @@ implements KeysForTests {
   protected MiniDFSCluster hdfsCluster
   protected MiniYARNCluster miniCluster;
   protected MicroZKCluster microZKCluster
+  protected boolean switchToImageDeploy = false
 
 
   @After
@@ -259,6 +260,30 @@ implements KeysForTests {
     return hbaseHome
   }
 
+  public String getHBaseArchive() {
+    YarnConfiguration conf = getTestConfiguration()
+    String hbaseHome = conf.getTrimmed(HOYA_TEST_HBASE_TAR)
+    return hbaseHome
+  }
+
+  public void assumeHBaseArchive() {
+    String hbaseArchive = getHBaseArchive()
+    Assume.assumeTrue("Hbase Archive conf option not set " + HOYA_TEST_HBASE_TAR,
+                      hbaseArchive != null && hbaseArchive != "")
+  }
+
+  /**
+   * Get the arguments needed to point to HBase for these tests
+   * @return
+   */
+  public List getHBaseImageCommands() {
+    return switchToImageDeploy ?
+      [CommonArgs.ARG_IMAGE, HBaseArchive] :
+      [CommonArgs.ARG_HBASE_HOME, HBaseHome]
+  }
+
+
+
   public YarnConfiguration getTestConfiguration() {
     YarnConfiguration conf = createConfiguration()
 
@@ -323,7 +348,6 @@ implements KeysForTests {
                              blockUntilRunning)
   }
 
-
   /**
    * Create a full cluster with a master & the requested no. of region servers
    * @param clustername cluster name
@@ -350,7 +374,6 @@ implements KeysForTests {
         ClientArgs.ACTION_CREATE, clustername,
         CommonArgs.ARG_WORKERS, Integer.toString(size),
         ClientArgs.ARG_MANAGER, RMAddr,
-        CommonArgs.ARG_HBASE_HOME, HBaseHome,
         CommonArgs.ARG_ZKQUORUM, ZKHosts,
         CommonArgs.ARG_ZKPORT, ZKPort.toString(),
         ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
@@ -358,6 +381,8 @@ implements KeysForTests {
         CommonArgs.ARG_X_TEST,
         CommonArgs.ARG_CONFDIR, getConfDir()
     ]
+    argsList += HBaseImageCommands
+    
     if (extraArgs != null) {
       argsList += extraArgs;
     }
@@ -670,7 +695,7 @@ implements KeysForTests {
    * @param regionServerCount RS count
    * @param timeout timeout
    */
-  public ClusterDescription waitForHBaseWorkerCount(HoyaClient hoyaClient,
+  public ClusterDescription waitForHoyaWorkerCount(HoyaClient hoyaClient,
                                                      String clustername,
                                                      int regionServerCount,
                                                      int timeout) {
@@ -759,14 +784,14 @@ implements KeysForTests {
     //verify the #of region servers is as expected
     //get the hbase status
     waitForRegionServerCount(hoyaClient, clustername, workers, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-    waitForHBaseWorkerCount(hoyaClient, clustername, workers, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+    waitForHoyaWorkerCount(hoyaClient, clustername, workers, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
     //start to add some more workers
     describe("Flexing from $workers worker(s) to $flexTarget worker")
     boolean flexed = 0 == hoyaClient.actionFlex(clustername, flexTarget, 0, true)
     waitForRegionServerCount(hoyaClient, clustername, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     if (testHBaseAfter) {
-      waitForHBaseWorkerCount(hoyaClient, clustername, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+      waitForHoyaWorkerCount(hoyaClient, clustername, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     }
 
     clusterActionStop(hoyaClient, clustername)

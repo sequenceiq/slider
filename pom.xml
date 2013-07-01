@@ -100,6 +100,7 @@
           <argLine>-Xmx1024m -XX:+HeapDumpOnOutOfMemoryError</argLine>
           <systemPropertyVariables>
             <java.net.preferIPv4Stack>true</java.net.preferIPv4Stack>
+            <java.awt.headless>true</java.awt.headless>
           </systemPropertyVariables>
           <includes>
             <include>**/Test*.java</include>

@@ -23,6 +23,8 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.codehaus.jackson.JsonParseException;
+import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import java.io.IOException;
@@ -43,10 +45,17 @@ import java.util.Map;
 public class ClusterDescription {
 
   private static final String UTF_8 = "UTF-8";
+
+  /**
+   * version counter
+   */
+  public String version = "1.0";
+  
   /**
    * Name of the cluster
    */
   public String name;
+  
   /**
    * State of the cluster
    */
@@ -122,8 +131,23 @@ public class ClusterDescription {
   public String zkHosts;
   public int zkPort;
   public String zkPath;
-  public String hbaseRootPath;
+  /**
+   * This is where the data goes
+   */
+  public String hbaseDataPath;
+
+  /**
+   * HBase home: if non-empty defines where a copy of HBase is preinstalled
+   */
   public String hbaseHome;
+  
+  /**
+   * The path in HDFS where the HBase image must go
+   */
+  public String imagePath;
+  
+  
+
   public String xHBaseMasterCommand;
 
   /**
@@ -244,7 +268,8 @@ public class ClusterDescription {
    * @return a loaded CD
    * @throws IOException IO problems
    */
-  public static ClusterDescription load(FileSystem fs, Path path) throws IOException {
+  public static ClusterDescription load(FileSystem fs, Path path)
+    throws IOException, JsonParseException, JsonMappingException  {
     FileStatus status = fs.getFileStatus(path);
     byte[] b = new byte[(int)status.getLen()];
     FSDataInputStream dataInputStream = fs.open(path);
@@ -252,8 +277,15 @@ public class ClusterDescription {
     String json = new String(b,0, count, UTF_8);
     return fromJson(json);
   }
-  
-  public static ClusterDescription fromJson(String json) throws IOException {
+
+  /**
+   * Convert from JSON
+   * @param json input
+   * @return the parsed JSON
+   * @throws IOException IO
+   */
+  public static ClusterDescription fromJson(String json)
+    throws IOException, JsonParseException, JsonMappingException {
     ObjectMapper mapper = new ObjectMapper();
     ClusterDescription cd = mapper.readValue(json, ClusterDescription.class);
     return cd;

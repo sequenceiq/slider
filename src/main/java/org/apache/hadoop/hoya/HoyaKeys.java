@@ -31,6 +31,23 @@ public interface HoyaKeys {
   String HOYA_BASE_DIRECTORY = ".hoya";
   
   /**
+   *  name of the relative path to install hBase into:  {@value}
+   */
+  String HBASE_LOCAL = "hbaselocal";
+  
+  /**
+   *  name of the hbase script relative to the hbase root dir:  {@value}
+   */
+  String HBASE_SCRIPT = "bin/hbase";
+  
+  
+  /**
+   *  name of the hbase subdir in the archive:  {@value}
+   */
+  String HBASE_ARCHIVE_SUBDIR = "hbase-0.94.9-SNAPSHOT/";
+  
+  
+  /**
    *  name of the site conf to generate :  {@value}
    */
   String HBASE_SITE = "hbase-site.xml";
@@ -57,6 +74,12 @@ public interface HoyaKeys {
    * JVM arg to force IPv4  {@value}
    */
   String JAVA_FORCE_IPV4 = "-Djava.net.preferIPv4Stack=true";
+
+  /**
+   * JVM arg to go headless  {@value}
+   */
+
+  String JAVA_HEADLESS = "-Djava.awt.headless=true";
 
 
   /**

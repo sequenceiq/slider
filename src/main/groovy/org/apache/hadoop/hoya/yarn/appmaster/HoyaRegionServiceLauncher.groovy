@@ -23,7 +23,9 @@ import groovy.util.logging.Commons
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.HBaseCommands
 import org.apache.hadoop.hoya.HoyaKeys
+import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.ClusterNode
+import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.tools.YarnUtils
 import org.apache.hadoop.net.NetUtils
 import org.apache.hadoop.security.UserGroupInformation
@@ -108,13 +110,20 @@ class HoyaRegionServiceLauncher implements Runnable {
                                               generatedConfPath,
                                               HoyaKeys.PROPAGATED_CONF_DIR_NAME)
     localResources.putAll(confResources)
-    ctx.setLocalResources(localResources)
     
-    //TODO: add binaries
-
+    //Add binaries
+    ClusterDescription clusterSpec = owner.clusterDescription
+    //now add the image if it was set
+    if (clusterSpec.imagePath) {
+      Path imagePath = new Path(clusterSpec.imagePath)
+      log.info("using image path $imagePath")
+      HoyaUtils.maybeAddImagePath(owner.clusterFS, localResources, imagePath)
+    }
+    ctx.setLocalResources(localResources)
 
     def command = []
-    command << owner.buildHBaseBinPath().absolutePath
+    //this must stay relative if it is an image
+    command << owner.buildHBaseBinPath(clusterSpec).toString()
 
     //config dir is relative to the generated file
     command << HBaseCommands.ARG_CONFIG
@@ -137,13 +146,15 @@ class HoyaRegionServiceLauncher implements Runnable {
     ctx.commands = [cmdStr]
     log.info("Starting container with command: $cmdStr");
     env.each { String k, String v ->
-      log.info("$k=$v")
+      log.debug("$k=$v")
     }
 
     ClusterNode node = new ClusterNode()
     List<String> nodeEnv = []
     localResources.each { String key, LocalResource val ->
-      nodeEnv << "$key=${YarnUtils.stringify(val.resource)}".toString()
+      String envElt = "$key=${YarnUtils.stringify(val.resource)}".toString()
+      nodeEnv << envElt
+      log.info(envElt)
     }
     node.command = cmdStr
     node.name = container.id.toString()
