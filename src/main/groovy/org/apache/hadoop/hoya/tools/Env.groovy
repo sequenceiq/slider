@@ -19,6 +19,7 @@
 package org.apache.hadoop.hoya.tools
 
 import groovy.transform.CompileStatic
+import org.apache.hadoop.hoya.exceptions.MissingArgException
 
 /**
  * A class that provides array access to system properties.

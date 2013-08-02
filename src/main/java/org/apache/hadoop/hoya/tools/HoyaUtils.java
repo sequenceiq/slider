@@ -16,49 +16,54 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hoya.tools
+package org.apache.hadoop.hoya.tools;
 
-import groovy.transform.CompileStatic
-import org.apache.commons.io.IOUtils
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.FileStatus
-import org.apache.hadoop.fs.FileSystem as HadoopFS
-import org.apache.hadoop.fs.FileUtil
-import org.apache.hadoop.fs.Path
-import org.apache.hadoop.hoya.HoyaKeys
-import org.apache.hadoop.hoya.api.ClusterDescription
-import org.apache.hadoop.hoya.exceptions.HoyaException
-import org.apache.hadoop.hoya.yarn.appmaster.EnvMappings
-import org.apache.hadoop.net.NetUtils
-import org.apache.hadoop.util.ExitUtil.ExitException
-import org.apache.hadoop.yarn.api.records.LocalResource
-import org.apache.hadoop.yarn.api.records.LocalResourceType
-import org.apache.hadoop.yarn.conf.YarnConfiguration
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+import org.apache.commons.io.IOUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileUtil;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hoya.HoyaKeys;
+import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.yarn.appmaster.EnvMappings;
+import org.apache.hadoop.net.NetUtils;
+import org.apache.hadoop.util.ExitUtil;
+import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.LocalResourceType;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-/**
- * Utility methods primarily used in setting up and executing tools
- */
-@CompileStatic
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.util.Enumeration;
+import java.util.Locale;
+import java.util.Map;
 
-/**
- * This contains general utility methods -including some that
- * are HoyaSpecific
- */
-class HoyaUtils {
+public class HoyaUtils {
 
   private static final Logger log = LoggerFactory.getLogger(HoyaUtils.class);
 
 
-  public static def deleteDirectoryTree(File dir) {
+  public static void deleteDirectoryTree(File dir) throws IOException {
     if (dir.exists()) {
       if (dir.isDirectory()) {
         log.info("Cleaning up {}", dir);
         //delete the children
-        dir.eachFile { File file ->
+        File[] files = dir.listFiles();
+        if (files==null) {
+          throw new IOException("listfiles() failed for " + dir);
+        }
+        for (File file : files) {
           log.info("deleting {}", file);
-          file.delete();
+          file.delete();     
         }
         dir.delete();
       } else {
@@ -78,19 +83,20 @@ class HoyaUtils {
    * classloader
    */
   public static File findContainingJar(Class my_class) throws IOException {
-    ClassLoader loader = my_class.classLoader;
+    ClassLoader loader = my_class.getClassLoader();
     if (loader == null) {
-      throw new HoyaException("Class " + my_class + " does not have a classloader!")
+      throw new IOException(
+        "Class " + my_class + " does not have a classloader!");
     }
     String class_file = my_class.getName().replaceAll("\\.", "/") + ".class";
     Enumeration<URL> urlEnumeration = loader.getResources(class_file);
     if (urlEnumeration == null) {
-      throw new HoyaException("Unable to find resources for class " + my_class);
+      throw new IOException("Unable to find resources for class " + my_class);
     }
 
-    for (Enumeration itr = urlEnumeration; itr.hasMoreElements();) {
+    for (Enumeration itr = urlEnumeration; itr.hasMoreElements(); ) {
       URL url = (URL) itr.nextElement();
-      if ("jar".equals(url.protocol)) {
+      if ("jar".equals(url.getProtocol())) {
         String toReturn = url.getPath();
         if (toReturn.startsWith("file:")) {
           toReturn = toReturn.substring("file:".length());
@@ -103,7 +109,7 @@ class HoyaUtils {
         // that they are kept sacred during the decoding process.
         toReturn = toReturn.replaceAll("\\+", "%2B");
         toReturn = URLDecoder.decode(toReturn, "UTF-8");
-        String jarFilePath = toReturn.replaceAll("!.*\$", "");
+        String jarFilePath = toReturn.replaceAll("!.*$", "");
         return new File(jarFilePath);
       } else {
         log.info("could not locate JAR containing {} URL={}", my_class, url);
@@ -113,29 +119,33 @@ class HoyaUtils {
   }
 
   public static void checkPort(String hostname, int port, int connectTimeout)
-  throws IOException {
+    throws IOException {
     InetSocketAddress addr = new InetSocketAddress(hostname, port);
     checkPort(hostname, addr, connectTimeout);
   }
 
-  public static void checkPort(String name, InetSocketAddress address, int connectTimeout)
-  throws IOException {
+  @SuppressWarnings("SocketOpenedButNotSafelyClosed")
+  public static void checkPort(String name,
+                               InetSocketAddress address,
+                               int connectTimeout)
+    throws IOException {
     Socket socket = null;
     try {
       socket = new Socket();
       socket.connect(address, connectTimeout);
     } catch (Exception e) {
       throw new IOException("Failed to connect to " + name
-                                + " at " + address
-                                + " after " + connectTimeout + "millisconds"
-                                + ": " + e,
+                            + " at " + address
+                            + " after " + connectTimeout + "millisconds"
+                            + ": " + e,
                             e);
     } finally {
       IOUtils.closeQuietly(socket);
     }
   }
 
-  public static void checkURL(String name, String url, int timeout) {
+  public static void checkURL(String name, String url, int timeout) throws
+                                                                    IOException {
     InetSocketAddress address = NetUtils.createSocketAddr(url);
     checkPort(name, address, timeout);
   }
@@ -144,17 +154,19 @@ class HoyaUtils {
    * A required file
    * @param role role of the file (for errors)
    * @param filename the filename
-   * @throws ExitException if the file is missing
+   * @throws ExitUtil.ExitException if the file is missing
    * @return the file
    */
-  public static File requiredFile(String filename, String role) {
+  public static File requiredFile(String filename, String role) throws
+                                                                IOException {
     if (filename.isEmpty()) {
-      throw new ExitException(-1, role + " file not defined");
+      throw new ExitUtil.ExitException(-1, role + " file not defined");
     }
     File file = new File(filename);
     if (!file.exists()) {
-      throw new ExitException(-1,
-                              role + " file not found: " + file.getCanonicalPath());
+      throw new ExitUtil.ExitException(-1,
+                                       role + " file not found: " +
+                                       file.getCanonicalPath());
     }
     return file;
   }
@@ -177,7 +189,7 @@ class HoyaUtils {
     for (int i = 0; i < name.length(); i++) {
       int elt = (int) name.charAt(i);
       if (!Character.isLetterOrDigit(elt) && elt != '-') {
-        return false
+        return false;
       }
     }
     return true;
@@ -200,31 +212,34 @@ class HoyaUtils {
    * @param destDirPath dest dir
    * @return # of files copies
    */
-  public static int copyDirectory(Configuration conf, Path srcDirPath, Path destDirPath) {
-    HadoopFS srcFS = HadoopFS.get(srcDirPath.toUri(), conf);
-    HadoopFS destFS = HadoopFS.get(destDirPath.toUri(), conf);
+  public static int copyDirectory(Configuration conf,
+                                  Path srcDirPath,
+                                  Path destDirPath) throws IOException {
+    FileSystem srcFS = FileSystem.get(srcDirPath.toUri(), conf);
+    FileSystem destFS = FileSystem.get(destDirPath.toUri(), conf);
     //list all paths in the src.
     FileStatus[] entries = srcFS.listStatus(srcDirPath);
-    int srcFileCount = entries.size();
-    if (srcFileCount==0) {
+    int srcFileCount = entries.length;
+    if (srcFileCount == 0) {
       return 0;
     }
     if (!destFS.exists(destDirPath)) {
       destFS.mkdirs(destDirPath);
     }
     Path[] sourcePaths = new Path[srcFileCount];
-    entries.eachWithIndex { FileStatus e, int i ->
+    for (int i=0;i<srcFileCount;i++) {
+      FileStatus e = entries[i];
       Path srcFile = e.getPath();
       if (srcFS.isDirectory(srcFile)) {
-        throw new HoyaException("Configuration dir " + srcDirPath
-                                    + " contains a directory " + srcFile);
+        throw new IOException("Configuration dir " + srcDirPath
+                                + " contains a directory " + srcFile);
       }
-      log.debug("copying src conf file {}",srcFile);
+      log.debug("copying src conf file {}", srcFile);
       sourcePaths[i] = srcFile;
     }
-    log.debug("Copying {} files to dest dir {}", srcFileCount, destDirPath)
+    log.debug("Copying {} files to dest dir {}", srcFileCount, destDirPath);
     FileUtil.copy(srcFS, sourcePaths, destFS, destDirPath, false, true, conf);
-    return sourcePaths.size();
+    return srcFileCount;
   }
 
   /**
@@ -235,7 +250,9 @@ class HoyaUtils {
    * @param clustername name of the cluster
    * @return the path for persistent data
    */
-  public static Path createHoyaClusterDirPath(HadoopFS fs, String clustername) {
+  public static Path createHoyaClusterDirPath(FileSystem fs,
+                                              String clustername) throws
+                                                                  IOException {
     Path hoyaPath = getBaseHoyaPath(fs);
     Path instancePath = new Path(hoyaPath, "cluster/" + clustername);
     fs.mkdirs(instancePath);
@@ -250,9 +267,10 @@ class HoyaUtils {
    * @param appID appliation ID
    * @return the path; this directory will already have been created
    */
-  public static Path createHoyaAppInstanceTempPath(HadoopFS fs,
+  public static Path createHoyaAppInstanceTempPath(FileSystem fs,
                                                    String clustername,
-                                                   String appID) {
+                                                   String appID) throws
+                                                                 IOException {
     Path hoyaPath = getBaseHoyaPath(fs);
     Path instancePath = new Path(hoyaPath, "tmp/" + clustername + "/" + appID);
     fs.mkdirs(instancePath);
@@ -264,8 +282,8 @@ class HoyaUtils {
    * @param fs
    * @return
    */
-  public static Path getBaseHoyaPath(HadoopFS fs) {
-    return new Path(fs.homeDirectory, ".hoya")
+  public static Path getBaseHoyaPath(FileSystem fs) {
+    return new Path(fs.getHomeDirectory(), ".hoya");
   }
 
   public static String stringify(Throwable t) {
@@ -278,7 +296,7 @@ class HoyaUtils {
   /**
    * Create a configuration with Hoya-specific tuning.
    * This is done rather than doing custom configs.
-   * @return
+   * @return the config
    */
   public static YarnConfiguration createConfiguration() {
     YarnConfiguration conf = new YarnConfiguration();
@@ -312,7 +330,11 @@ class HoyaUtils {
    * @param clusterSpecPath
    * @return true if the original cluster specification was updated.
    */
-  public static boolean updateClusterSpecification(HadoopFS clusterFS, Path clusterDirectory, Path clusterSpecPath, ClusterDescription clusterSpec) {
+  public static boolean updateClusterSpecification(FileSystem clusterFS,
+                                                   Path clusterDirectory,
+                                                   Path clusterSpecPath,
+                                                   ClusterDescription clusterSpec) throws
+                                                                                   IOException {
 
     //it is not currently there -do a write with overwrite disabled, so that if
     //it appears at this point this is picked up
@@ -323,8 +345,10 @@ class HoyaUtils {
 
     //save to a renamed version
     String specTimestampedFilename = "spec-" + System.currentTimeMillis();
-    Path specSavePath = new Path(clusterDirectory, specTimestampedFilename + ".json");
-    Path specOrigPath = new Path(clusterDirectory, specTimestampedFilename + "-orig.json");
+    Path specSavePath =
+      new Path(clusterDirectory, specTimestampedFilename + ".json");
+    Path specOrigPath =
+      new Path(clusterDirectory, specTimestampedFilename + "-orig.json");
 
     //roll the specification. The (atomic) rename may fail if there is 
     //an overwrite, which is how we catch re-entrant calls to this
@@ -344,25 +368,31 @@ class HoyaUtils {
     return true;
   }
 
-  public static boolean writeSpecWithoutOverwriting(HadoopFS clusterFS, Path clusterSpecPath, ClusterDescription clusterSpec) {
+  public static boolean writeSpecWithoutOverwriting(FileSystem clusterFS,
+                                                    Path clusterSpecPath,
+                                                    ClusterDescription clusterSpec) {
     try {
       clusterSpec.save(clusterFS, clusterSpecPath, false);
     } catch (IOException e) {
-      log.debug("Failed to save cluster specification -race condition? " + e, e);
-      return false
+      log.debug("Failed to save cluster specification -race condition? " + e,
+                e);
+      return false;
     }
     return true;
   }
 
-  public static boolean maybeAddImagePath(HadoopFS clusterFS, Map<String, LocalResource> localResources, Path imagePath) {
-    if (imagePath) {
+  public static boolean maybeAddImagePath(FileSystem clusterFS,
+                                          Map<String, LocalResource> localResources,
+                                          Path imagePath) throws IOException {
+    if (imagePath!=null) {
       LocalResource resource = YarnUtils.createAmResource(clusterFS,
                                                           imagePath,
-                                                          LocalResourceType.ARCHIVE)
+                                                          LocalResourceType.ARCHIVE);
       localResources.put(HoyaKeys.HBASE_LOCAL, resource);
       return true;
     } else {
       return false;
     }
   }
+
 }

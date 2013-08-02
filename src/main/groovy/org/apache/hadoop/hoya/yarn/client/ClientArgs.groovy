@@ -55,16 +55,16 @@ class ClientArgs extends CommonArgs {
   public static final String FORMAT_PROPERTIES = 'properties'
 
   @Parameter(names = '--amqueue', description = 'Application Manager Queue Name')
-  String amqueue = 'default';
+  public String amqueue = 'default';
 
   //--format 
   @Parameter(names = '--format', description = 'format for a response text|xml|json|properties')
-  String format = FORMAT_XML;
+  public String format = FORMAT_XML;
 
   //--wait [timeout]
   @Parameter(names = '--wait',
       description = 'time to wait for an action to complete')
-  int waittime = 0
+  public int waittime = 0;
 
   /**
    * --image path
@@ -73,12 +73,12 @@ class ClientArgs extends CommonArgs {
   @Parameter(names = '--image',
       description = 'the full path to a .tar or .tar.gz path containing an HBase image',
       converter = PathArgumentConverter)
-  Path image
+  public Path image;
 
   @Parameter(names = '--persist',
       description = 'flag to indicate whether a flex change should be persisted (default=true)',
       arity = 1)
-  boolean persist
+  public boolean persist;
 
   /**
    * map of actions -> (explanation, min #of entries [, max no.])
@@ -105,26 +105,26 @@ class ClientArgs extends CommonArgs {
       (ACTION_STOP):      ["stop a cluster", 1],
   ]
 
-  ClientArgs(String[] args) {
-    super(args)
+  public ClientArgs(String[] args) {
+    super(args);
   }
 
-  ClientArgs(Collection args) {
-    super(args)
+  public ClientArgs(Collection args) {
+    super(args);
   }
 
   @Override
-  Map<String, List<Object>> getActions() {
-    return ACTIONS
+  public Map<String, List<Object>> getActions() {
+    return ACTIONS;
   }
 
   @Override
   void applyDefinitions(Configuration conf) {
-    super.applyDefinitions(conf)
+    super.applyDefinitions(conf);
     //RM
     if (manager) {
-      log.debug("Setting RM to $manager")
-      conf.set(YarnConfiguration.RM_ADDRESS, manager)
+      log.debug("Setting RM to $manager");
+      conf.set(YarnConfiguration.RM_ADDRESS, manager);
     }
   }
 }

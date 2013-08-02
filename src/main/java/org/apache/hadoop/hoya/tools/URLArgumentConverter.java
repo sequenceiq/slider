@@ -16,20 +16,26 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.tools
 
-import com.beust.jcommander.JCommander
-import com.beust.jcommander.ParameterException
-import groovy.transform.CompileStatic
 
-@CompileStatic
-class CommanderHelper {
-  
-  public void parse(JCommander commander, String[] args) {
+package org.apache.hadoop.hoya.tools;
+
+import com.beust.jcommander.converters.BaseConverter;
+
+import java.net.MalformedURLException;
+import java.net.URL;
+
+public class URLArgumentConverter extends BaseConverter<URL> {
+  public URLArgumentConverter(String optionName) {
+    super(optionName);
+  }
+
+  //@Override
+  public URL convert(String value) {
     try {
-      commander.parse(args)
-    } catch (ParameterException e) {
-      throw new IOException(e);
+      return new URL(value);
+    } catch (MalformedURLException e) {
+      throw new RuntimeException("Cannot make a URL from "+ value);
     }
   }
 }

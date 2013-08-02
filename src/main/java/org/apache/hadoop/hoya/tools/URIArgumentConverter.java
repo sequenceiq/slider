@@ -16,17 +16,25 @@
  *  limitations under the License.
  */
 
+package org.apache.hadoop.hoya.tools;
 
+import com.beust.jcommander.converters.BaseConverter;
 
-package org.apache.hadoop.hoya.tools
+import java.net.URI;
+import java.net.URISyntaxException;
 
-import com.beust.jcommander.IStringConverter
-import groovy.transform.CompileStatic
+public class URIArgumentConverter extends BaseConverter<URI> {
 
-@CompileStatic
-class URIArgumentConverter implements IStringConverter<URI> {
-  @Override
+  public URIArgumentConverter(String optionName) {
+    super(optionName);
+  }
+
+  //@Override
   public URI convert(String value) {
-    return new URI(value);
+    try {
+      return new URI(value);
+    } catch (URISyntaxException e) {
+      throw new RuntimeException("Cannot make a URI from " + value);
+    }
   }
 }

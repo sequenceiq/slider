@@ -16,7 +16,7 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.appmaster
+package org.apache.hadoop.hoya.yarn.appmaster;
 
 /**
  * Mappings of config params to env variables for
@@ -26,35 +26,34 @@ package org.apache.hadoop.hoya.yarn.appmaster
  * and pasted in here is to remove dependencies on HBase from
  * the Hoya Client and AM.
  */
-class EnvMappings {
+public interface EnvMappings {
   
+  String KEY_HBASE_CLUSTER_DISTRIBUTED = "hbase.cluster.distributed";
+  String KEY_HBASE_ROOTDIR = "hbase.rootdir";
   
-  public static final String KEY_HBASE_CLUSTER_DISTRIBUTED = "hbase.cluster.distributed";
-  public static final String KEY_HBASE_ROOTDIR = "hbase.rootdir";
-  
-  public static final String KEY_ZOOKEEPER_QUORUM = "hbase.zookeeper.quorum" ;
+  String KEY_ZOOKEEPER_QUORUM = "hbase.zookeeper.quorum" ;
    //HConstants.ZOOKEEPER_QUORUM;
-  public static final String KEY_ZOOKEEPER_PORT = "hbase.zookeeper.property.clientPort" ;
+  String KEY_ZOOKEEPER_PORT = "hbase.zookeeper.property.clientPort" ;
   //HConstants.ZOOKEEPER_CLIENT_PORT;
-  public static final String KEY_ZNODE_PARENT = "zookeeper.znode.parent";
+  String KEY_ZNODE_PARENT = "zookeeper.znode.parent";
   
   
-  public static final int DEFAULT_MASTER_PORT = 60000;
-  public static final int DEFAULT_MASTER_INFO_PORT = 60010;
+  int DEFAULT_MASTER_PORT = 60000;
+  int DEFAULT_MASTER_INFO_PORT = 60010;
 
-  public static final String KEY_HBASE_MASTER_PORT = "hbase.master.port";
-  public static final String KEY_HBASE_MASTER_INFO_PORT = "hbase.master.info.port";
+  String KEY_HBASE_MASTER_PORT = "hbase.master.port";
+  String KEY_HBASE_MASTER_INFO_PORT = "hbase.master.info.port";
 
-  public static final int HBASE_ZK_PORT = 2181; // HConstants.DEFAULT_ZOOKEPER_CLIENT_PORT;
+  int HBASE_ZK_PORT = 2181; // HConstants.DEFAULT_ZOOKEPER_CLIENT_PORT;
 
 
-  public static final String KEY_REGIONSERVER_PORT = "hbase.regionserver.port";
-  public static final String KEY_REGIONSERVER_INFO_PORT = "hbase.regionserver.info.port";
+  String KEY_REGIONSERVER_PORT = "hbase.regionserver.port";
+  String KEY_REGIONSERVER_INFO_PORT = "hbase.regionserver.info.port";
 
   /**
    * needed to relax constraints in negotiations, including tests
    */
-  public static final String IPC_CLIENT_FALLBACK_TO_SIMPLE_AUTH =
+  String IPC_CLIENT_FALLBACK_TO_SIMPLE_AUTH =
     "ipc.client.fallback-to-simple-auth-allowed";
 
 }

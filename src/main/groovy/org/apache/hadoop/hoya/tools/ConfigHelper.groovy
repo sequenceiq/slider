@@ -27,19 +27,20 @@ import org.apache.hadoop.fs.Path
 import org.apache.hadoop.fs.permission.FsAction
 import org.apache.hadoop.fs.permission.FsPermission
 import org.apache.hadoop.io.IOUtils
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 /**
  * Methods to aid in config, both in the Configuration class and
  * with other parts of setting up Hoya-initated processes
  */
 @CompileStatic
-@Commons
 class ConfigHelper {
+  private static final Logger log = LoggerFactory.getLogger(HoyaUtils.class);
 
   public static final FsPermission CONF_DIR_PERMISSION = new FsPermission(FsAction.ALL,
                                                                           FsAction.READ_EXECUTE,
-                                    
-                                                                          FsAction.NONE)
+                                                                          FsAction.NONE);
 
   /**
    * Dump the (sorted) configuration
@@ -49,26 +50,19 @@ class ConfigHelper {
   public static TreeSet<String> dumpConf(Configuration conf) {
     TreeSet<String> keys = sortedConfigKeys(conf);
     keys.each { key ->
-      log.info("$key=\"${conf.get((String) key)}\"")
+      log.info("$key={}",conf.get((String) key));
     }
-    return keys
+    return keys;
   }
 
   public static TreeSet<String> sortedConfigKeys(Configuration conf) {
     TreeSet<String> sorted = new TreeSet<String>();
     conf.each { Map.Entry<String, String> entry ->
-      sorted.add(entry.key)
+      sorted.add(entry.key);
     }
-    sorted;
+    return sorted;
   }
 
-  public static def setConfigEntry(Configuration self, def key, def value) {
-    self.set(key.toString(), value.toString())
-  }
-
-  public static String getConfigEntry(Configuration self, def key) {
-    self.get(key.toString())
-  }
 
   /**
    * Set an entire map full of values
@@ -77,14 +71,12 @@ class ConfigHelper {
    */
   public static void addConfigMap(Configuration self, Map map) {
     map.each { Map.Entry mapEntry ->
-      setConfigEntry(self,
-                     mapEntry.key.toString(),
-                     mapEntry.value.toString())  
+      self.set(mapEntry.key.toString(), mapEntry.value.toString())  
     }
   }
 
 
-  public static Path generateConfigDir(Configuration conf, String appId, Path outputDirectory) {
+  public static Path generateConfigDir(Configuration conf, String appId, Path outputDirectory) throws IOException {
     
     Path confdir = new Path(outputDirectory, appId + "/conf");
     HadoopFS fs = HadoopFS.get(confdir.toUri(), conf);
@@ -103,7 +95,7 @@ class ConfigHelper {
   public static Path generateConfig(Configuration systemConf,
                                     Configuration generatingConf,
                                     Path confdir,
-                                    String filename) {
+                                    String filename) throws IOException {
     HadoopFS fs = HadoopFS.get(confdir.toUri(), systemConf);
     Path destPath = new Path(confdir, filename)
     FSDataOutputStream fos = fs.create(destPath);
@@ -112,7 +104,7 @@ class ConfigHelper {
     } finally {
       IOUtils.closeStream(fos);
     }
-    return destPath
+    return destPath;
   }
   
   /**
@@ -123,17 +115,17 @@ class ConfigHelper {
    */
   public static File generateConfig(Configuration generatingConf,
                                     File confdir,
-                                    String filename) {
+                                    String filename) throws IOException{
     
 
-    File destPath = new File(confdir, filename)
-    OutputStream fos = new FileOutputStream(destPath)
+    File destPath = new File(confdir, filename);
+    OutputStream fos = new FileOutputStream(destPath);
     try {
       generatingConf.writeXml(fos);
     } finally {
       IOUtils.closeStream(fos);
     }
-    return destPath
+    return destPath;
   }
 
   public static Configuration loadConfFromFile(File file) {
@@ -152,70 +144,18 @@ class ConfigHelper {
                                                         String resource) {
     HadoopFS fs = HadoopFS.get(confdir.toUri(), systemConf);
 
-    Path templatePath = new Path(confdir, templateFilename)
-    Configuration conf = new Configuration(false)
+    Path templatePath = new Path(confdir, templateFilename);
+    Configuration conf = new Configuration(false);
     if (fs.exists(templatePath)) {
-      log.debug("Loading template $templatePath");
+      log.debug("Loading template {}",templatePath);
       conf.addResource(templatePath);
     } else {
-      log.debug("Template $templatePath not found" +
-                " -reverting to classpath resource $resource");
-      conf.addResource(resource)
+      log.debug("Template {} not found" +
+                " -reverting to classpath resource {}", templatePath, resource);
+      conf.addResource(resource);
     }
-    return conf
+    return conf;
   }
-  
-  /**
-   * Take a list of definitions for HBase and create [-D,name=value] 
-   * entries on a list, ready for appending to the command list
-   * @param properties properties
-   * @return
-   */
-  public static List<String> buildHadoopCommandLineDefinitions(String prefix, Map<String, String> properties) {
-    List<String> definitions = []
-    properties.each { String k, String v ->
-      definitions << "-D" << "${k}=${v}".toString()
-    }
-    return definitions
-  }
-
-
-  public static String build_JVM_opts(Map<String, String> properties) {
-    StringBuilder builder = new StringBuilder()
-    properties.each { String k, String v ->
-      builder << "-D${k}=${v}".toString() << ' '
-    }
-    return builder.toString();
-  }
-
-  /**
-   * build a list of export strings for bash to handle as export name=value.
-   * If this is to be handed to a bash -v command, the env vars still
-   * need to be joined into a single line
-   * @param properties env variables to build up
-   * @return the export commands.
-   */
-  public static List<String> buildBashExportCommands(Map<String, String> properties) {
-    List<String> definitions = []
-    properties.each { String k, String v ->
-      definitions << "export ${k}=\"${v}\"".toString()
-    }
-    return definitions
-  }
-
-  /**
-   * Sanity check: make sure everything in the list
-   * really is a string.
-   * @param list of string objects
-   */
-  public static void verifyAllStringType(List list) {
-    list.each { k ->
-      if (!(k instanceof String)) {
-        throw new IllegalArgumentException("${k} is not a string")
-      }
-    }
-  }
-  
 
 
 }

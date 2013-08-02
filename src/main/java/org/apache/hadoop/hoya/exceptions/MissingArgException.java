@@ -16,16 +16,11 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.tools
+package org.apache.hadoop.hoya.exceptions;
 
-import com.beust.jcommander.IStringConverter
-import groovy.transform.CompileStatic
-import org.apache.hadoop.fs.Path
 
-@CompileStatic
-class PathArgumentConverter  implements IStringConverter<Path> {
-  @Override
-  public Path convert(String value) {
-    return new Path(value);
+public class MissingArgException extends RuntimeException {
+  public MissingArgException(String s) {
+    super(s);
   }
 }

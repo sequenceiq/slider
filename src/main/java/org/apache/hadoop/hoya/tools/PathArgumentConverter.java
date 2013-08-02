@@ -16,43 +16,19 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hoya.tools
+package org.apache.hadoop.hoya.tools;
 
-import org.apache.hadoop.hoya.exceptions.MissingArgException
+import com.beust.jcommander.converters.BaseConverter;
+import org.apache.hadoop.fs.Path;
 
-/**
- * A class that provides array access to system properties.
- *
- * example
- * <code>
- *   def home = Sysprops['java.home']
- *   Sysprops['timeout'] = 24
- * <code>
- */
+public class PathArgumentConverter extends BaseConverter<Path> {
 
-final class Sysprops {
-
-  static String getAt(String k) {
-    return System.getProperty(k)
+  public PathArgumentConverter(String optionName) {
+    super(optionName);
   }
 
-  static setAt(String k, def v) {
-    System.setProperty(k, v.toString())
+  //@Override
+  public Path convert(String value) {
+    return new Path(value);
   }
-
-  /**
-   * Get a mandatory property. Raises an assertion if it is 
-   * missing.
-   * @param k key
-   * @return the value
-   */
-  static String mandatory(String k) {
-    def v = getAt(k)
-    if (v == null) {
-      throw new MissingArgException("Missing Environment variable $k")
-    }
-    v
-  }
-
-
 }

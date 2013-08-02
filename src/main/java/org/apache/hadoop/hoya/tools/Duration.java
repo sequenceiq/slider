@@ -16,17 +16,42 @@
  *  limitations under the License.
  */
 
+package org.apache.hadoop.hoya.tools;
 
+public class Duration {
+  public long start, finish;
+  public final long limit;
 
-package org.apache.hadoop.hoya.tools
-
-import com.beust.jcommander.IStringConverter
-import groovy.transform.CompileStatic
-
-@CompileStatic
-class URLArgumentConverter implements IStringConverter<URL> {
-  @Override
-  public URL convert(String value) {
-    return new URL(value);
+  public Duration() {
+    this(0);
   }
+
+  public Duration(long limit) {
+    this.limit = limit;
+  }
+
+  public Duration start() {
+    start = System.currentTimeMillis();
+    return this;
+  }
+
+  public void finish() {
+    finish = System.currentTimeMillis();
+  }
+
+  public long getInterval() {
+    return finish - start;
+  }
+
+  public boolean getLimitExceeded() {
+    return limit >= 0 && ((System.currentTimeMillis() - start) > limit);
+  }
+
+  @Override
+  public String toString() {
+    return "Duration " +
+          ( (finish >= start) ? (" of " + getInterval() + " millis") : "undefined");
+  }
+
+
 }

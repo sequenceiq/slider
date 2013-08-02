@@ -1,40 +1,44 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
- *  or more contributor license agreements.  See the NOTICE file
- *  distributed with this work for additional information
- *  regarding copyright ownership.  The ASF licenses this file
- *  to you under the Apache License, Version 2.0 (the
- *  "License"); you may not use this file except in compliance
- *  with the License.  You may obtain a copy of the License at
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
-package org.apache.hadoop.hoya.tools
+package org.apache.hadoop.hoya.tools;
 
-import groovy.transform.CompileStatic
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.FileStatus
-import org.apache.hadoop.fs.FileSystem as HadoopFS
-import org.apache.hadoop.fs.Path
-import org.apache.hadoop.yarn.api.records.ApplicationReport
-import org.apache.hadoop.yarn.api.records.LocalResource
-import org.apache.hadoop.yarn.api.records.LocalResourceType
-import org.apache.hadoop.yarn.api.records.LocalResourceVisibility
-import org.apache.hadoop.yarn.api.records.YarnApplicationState
-import org.apache.hadoop.yarn.conf.YarnConfiguration
-import org.apache.hadoop.yarn.util.ConverterUtils
-import org.apache.hadoop.yarn.util.Records
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.yarn.api.records.ApplicationReport;
+import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.LocalResourceType;
+import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
+import org.apache.hadoop.yarn.api.records.YarnApplicationState;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.hadoop.yarn.util.Records;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@CompileStatic
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.util.HashMap;
+import java.util.Map;
+
 public class YarnUtils {
   private static final Logger log = LoggerFactory.getLogger(YarnUtils.class);
 
@@ -46,23 +50,24 @@ public class YarnUtils {
    * @return the resource set up wih application-level visibility and the
    * timestamp & size set from the file stats.
    */
-  public static LocalResource createAmResource(HadoopFS hdfs,
+  public static LocalResource createAmResource(FileSystem hdfs,
                                                Path destPath,
-                                               LocalResourceType resourceType) {
+                                               LocalResourceType resourceType) throws
+                                                                               IOException {
     FileStatus destStatus = hdfs.getFileStatus(destPath);
     LocalResource amResource = Records.newRecord(LocalResource.class);
-    amResource.type = resourceType;
+    amResource.setType(resourceType);
     // Set visibility of the resource 
     // Setting to most private option
-    amResource.visibility = LocalResourceVisibility.APPLICATION;
+    amResource.setVisibility(LocalResourceVisibility.APPLICATION);
     // Set the resource to be copied over
-    amResource.resource = ConverterUtils.getYarnUrlFromPath(destPath);
+    amResource.setResource(ConverterUtils.getYarnUrlFromPath(destPath));
     // Set timestamp and length of file so that the framework 
     // can do basic sanity checks for the local resource 
     // after it has been copied over to ensure it is the same 
     // resource the client intended to use with the application
-    amResource.timestamp = destStatus.modificationTime;
-    amResource.size = destStatus.len;
+    amResource.setTimestamp(destStatus.getModificationTime());
+    amResource.setSize(destStatus.getLen());
     return amResource;
   }
 
@@ -96,19 +101,20 @@ public class YarnUtils {
    * something other than 0.0.0.0
    */
   public static boolean isAddressDefined(InetSocketAddress address) {
-    return !(address.hostName.equals("0.0.0.0"));
+    return !(address.getHostName().equals("0.0.0.0"));
   }
 
-  public static setRmAddress(Configuration conf, String rmAddr) {
+  public static void setRmAddress(Configuration conf, String rmAddr) {
     conf.set(YarnConfiguration.RM_ADDRESS, rmAddr);
   }
 
-  public static setRmSchedulerAddress(Configuration conf, String rmAddr) {
+  public static void setRmSchedulerAddress(Configuration conf, String rmAddr) {
     conf.set(YarnConfiguration.RM_SCHEDULER_ADDRESS, rmAddr);
   }
 
   public static boolean hasAppFinished(ApplicationReport report) {
-    return report == null || report.getYarnApplicationState() >= YarnApplicationState.FINISHED;
+    return report == null ||
+           report.getYarnApplicationState().ordinal() >= YarnApplicationState.FINISHED.ordinal();
   }
 
   public static String reportToString(ApplicationReport report) {
@@ -116,10 +122,11 @@ public class YarnUtils {
       return "Null application report";
     }
 
-    return "App " + report.getName() + "/" + report.getApplicationType() + "# " +
+    return "App " + report.getName() + "/" + report.getApplicationType() +
+           "# " +
            report.getApplicationId() + " user " + report.getUser() +
            " is in state " + report.getYarnApplicationState() +
-           "RPC: " + report.getHost() + ":" + report.rpcPort;
+           "RPC: " + report.getHost() + ":" + report.getRpcPort();
   }
 
   /**
@@ -129,14 +136,16 @@ public class YarnUtils {
    * @param destRelativeDir dest dir (no trailing /)
    * @return the list of entries
    */
-  public static Map<String, LocalResource> submitDirectory(HadoopFS clusterFS,
+  public static Map<String, LocalResource> submitDirectory(FileSystem clusterFS,
                                                            Path srcDir,
-                                                           String destRelativeDir) {
+                                                           String destRelativeDir) throws
+                                                                                   IOException {
     //now register each of the files in the directory to be
     //copied to the destination
     FileStatus[] fileset = clusterFS.listStatus(srcDir);
-    Map<String, LocalResource> localResources = new HashMap<String, LocalResource>(fileset.size());
-    fileset.each { FileStatus entry ->
+    Map<String, LocalResource> localResources =
+      new HashMap<String, LocalResource>(fileset.length);
+    for (FileStatus entry: fileset) {
 
       LocalResource resource = createAmResource(clusterFS,
                                                 entry.getPath(),
@@ -149,7 +158,7 @@ public class YarnUtils {
 
 
   public static String stringify(org.apache.hadoop.yarn.api.records.URL url) {
-    return url.getScheme() + ":/" + 
+    return url.getScheme() + ":/" +
            (url.getHost() != null ? url.getHost() : "") + "/" + url.getFile();
   }
 
@@ -157,7 +166,7 @@ public class YarnUtils {
     int found = 0;
     int port = start;
     int finish = start + limit;
-    while (!found && port < finish) {
+    while (found==0 && port < finish) {
       if (isPortAvailable(port)) {
         found = port;
       } else {
@@ -177,7 +186,7 @@ public class YarnUtils {
     try {
       ServerSocket socket = new ServerSocket(port);
       socket.close();
-      return true
+      return true;
     } catch (IOException e) {
       return false;
     }

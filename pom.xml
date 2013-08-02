@@ -18,8 +18,9 @@
     <groovy.version>2.1.4</groovy.version>
 <!-- 
     <hadoop.version>2.1.1-SNAPSHOT</hadoop.version>
--->
     <hadoop.version>2.1.0-beta</hadoop.version>
+-->
+    <hadoop.version>3.0.0-SNAPSHOT</hadoop.version>
 
 
     <hbase.version>0.94.9-SNAPSHOT</hbase.version>

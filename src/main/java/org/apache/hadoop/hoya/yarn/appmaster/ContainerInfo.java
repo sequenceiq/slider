@@ -16,45 +16,22 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.tools
+package org.apache.hadoop.hoya.yarn.appmaster;
 
-import groovy.transform.CompileStatic
+import org.apache.hadoop.yarn.api.records.Container;
 
-@CompileStatic
-class Duration {
-  long start,finish
-  final long limit;
+/**
+ * Info about a continer to keep around when deciding which container to release
+ */
+public class ContainerInfo {
 
-  Duration() {
-    this(0)
-  }
-
-  Duration(long limit) {
-    this.limit = limit
-  }
-
-  Duration start() {
-    start = System.currentTimeMillis();
-    return this
-  }
-  
-  void finish() {
-    finish = System.currentTimeMillis();
-  }
-  
-  long getInterval() {
-    return finish - start
-  }
-
-  boolean getLimitExceeded() {
-    return limit>=0 && ((System.currentTimeMillis() - start) > limit )
-  }
-  
-  @Override
-  String toString() {
-    return "Duration " + 
-           (finish>=start)? (" of $interval millis") : "undefined"
-  }
-  
-  
+  public Container container;
+  public long createTime;
+  public long startTime;
+  /**
+   * flag set when it is released, to know if it has
+   * already been targeted for termination
+   */
+  public boolean released;
+  public String role;
 }

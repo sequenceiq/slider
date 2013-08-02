@@ -16,23 +16,16 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.appmaster
+package org.apache.hadoop.hoya.tools;
 
-import org.apache.hadoop.yarn.api.records.Container
+import org.apache.zookeeper.Watcher;
 
 /**
- * Info about a continer to keep around when deciding which container to release
+ * Relays ZK watcher events to a closure
  */
-class ContainerInfo {
-  
-  Container container;
-  long createTime;
-  long startTime;
-  /**
-   * flag set when it is released, to know if it has
-   * already been targeted for termination
-   */
-  boolean released;
-  String role;
-  
+public abstract class ZKCallback implements Watcher {
+
+  public ZKCallback() {
+  }
+
 }
