@@ -26,17 +26,17 @@ import org.apache.hadoop.hoya.yarn.CommonArgs
 /**
  * Parameters sent by the Client to the AM
  */
-class HoyaMasterServiceArgs extends CommonArgs {
+public class HoyaMasterServiceArgs extends CommonArgs {
   /**
    * Name of entry class: {@value}
    */
-  public static final String CLASSNAME = "org.apache.hadoop.hoya.yarn.appmaster.HoyaAppMaster"
+  public static final String CLASSNAME = "org.apache.hadoop.hoya.yarn.appmaster.HoyaAppMaster";
 
 
   /**
    * Path for the ZK instance (required)
    */
-  public static final String ARG_RM_ADDR = "--rm"
+  public static final String ARG_RM_ADDR = "--rm";
 
   /**
    *    Declare the image configuration directory to use when creating
@@ -47,7 +47,7 @@ class HoyaMasterServiceArgs extends CommonArgs {
    */
   @Parameter(names = '--generated_confdir',
       description = "generated configuration directory")
-  String generatedConfdir
+  String generatedConfdir;
 
   @Parameter(names = '--image', description = "image", required = false)
   public String image;
@@ -63,19 +63,19 @@ class HoyaMasterServiceArgs extends CommonArgs {
   static final Map<String, List<Object>> ACTIONS = [
       (ACTION_CREATE): ["create cluster", 1],
       (ACTION_HELP): ["Print Help information", 0],
-  ]
+  ];
 
   /**
    * map of actions -> (explanation, min #of entries [, max no.])
    * If the max no is not given it is assumed to be the same as the min no.
    */
   public HoyaMasterServiceArgs(String[] args) {
-    super(args)
+    super(args);
   }
 
   @Override
   public Map<String, List<Object>> getActions() {
-    return ACTIONS
+    return ACTIONS;
   }
 
 }

@@ -30,10 +30,9 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration
 /**
  * Args list for JCommanderification
  */
-@Commons
 @CompileStatic
 
-class ClientArgs extends CommonArgs {
+public class ClientArgs extends CommonArgs {
 
   /**
    * Name of entry class: {@value}

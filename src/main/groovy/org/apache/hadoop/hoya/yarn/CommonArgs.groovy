@@ -311,8 +311,7 @@ public class CommonArgs {
     log.debug("Action {} expected #args={} actual #args={}", action, minArgs, actionArgSize);
     if (minArgs > actionArgSize) {
       throw new BadCommandArgumentsException(ERROR_NOT_ENOUGH_ARGUMENTS + action
-                                                 + " in " + args.join(" ");
-      )
+                                                 + " in " + args.join(" "));
     }
     int maxArgs = (actionOpts.size() == 3) ? ((Integer) actionOpts[2]) : minArgs
     if (actionArgSize > maxArgs) {
