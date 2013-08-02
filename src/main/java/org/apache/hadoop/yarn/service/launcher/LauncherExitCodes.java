@@ -29,52 +29,53 @@ public interface LauncherExitCodes {
   /**
    * 0: success
    */
-  int EXIT_SUCCESS = 0;
+  int EXIT_SUCCESS                    =  0;
   
   /**
    * -1: generic "false" response. The operation worked but
    * the result was not true
    */
-  int EXIT_FALSE = -1;
+  int EXIT_FALSE                      = -1;
   
   /**
    * Exit code when a client requested service termination: {@value}
    */
-  int EXIT_CLIENT_INITIATED_SHUTDOWN = 1;
+  int EXIT_CLIENT_INITIATED_SHUTDOWN  =  1;
   /**
    * Exit code when targets could not be launched: {@value}
    */
-  int EXIT_TASK_LAUNCH_FAILURE = 2;
+  int EXIT_TASK_LAUNCH_FAILURE        =  2;
   /**
    * Exit code when an exception was thrown from the service: {@value}
    */
-  int EXIT_EXCEPTION_THROWN = 32;
+  int EXIT_EXCEPTION_THROWN           = 32;
   /**
    * Exit code when a usage message was printed: {@value}
    */
-  int EXIT_USAGE = EXIT_EXCEPTION_THROWN + 1;
+  int EXIT_USAGE                      = 33;
   /**
    * Exit code when something happened but we can't be specific: {@value}
    */
-  int EXIT_OTHER_FAILURE = EXIT_USAGE + 2;
+  int EXIT_OTHER_FAILURE              = 34;
   /**
    * Exit code when a control-C, kill -3, signal was picked up: {@value}
    */
-  int EXIT_INTERRUPTED = EXIT_OTHER_FAILURE + 1;
+                                
+  int EXIT_INTERRUPTED                = 35;
   /**
    * Exit code when the command line doesn't parse: {@value}, or
    * when it is otherwise invalid.
    */
-  int EXIT_COMMAND_ARGUMENT_ERROR = EXIT_INTERRUPTED + 1;
+  int EXIT_COMMAND_ARGUMENT_ERROR     = 36;
   /**
    * Exit code when the configurations in valid/incomplete: {@value}
    */
-  int EXIT_BAD_CONFIGURATION  = EXIT_COMMAND_ARGUMENT_ERROR + 1;
+  int EXIT_BAD_CONFIGURATION          = 37;
  
   /**
    * Exit code when the configurations in valid/incomplete: {@value}
    */
-  int EXIT_CONNECTIVTY_PROBLEM  = EXIT_BAD_CONFIGURATION + 1;
+  int EXIT_CONNECTIVTY_PROBLEM        = 38;
  
   
 }

@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem as HadoopFS
@@ -376,8 +377,7 @@ class HoyaAppMaster extends CompositeService
 
     
     //add the RM client -this brings the callbacks in
-    asyncRMClient =  AMRMClientAsync.createAMRMClientAsync(appAttemptID,
-                                                           heartbeatInterval,
+    asyncRMClient =  AMRMClientAsync.createAMRMClientAsync(heartbeatInterval,
                                                            this);
     addService(asyncRMClient)
     //now bring it up
@@ -691,7 +691,7 @@ class HoyaAppMaster extends CompositeService
                                               hosts,
                                               racks,
                                               pri,
-                                              numContainers);
+                                              true);
     log.info("Requested container ask: $request");
     return request;
   }
@@ -935,12 +935,12 @@ class HoyaAppMaster extends CompositeService
   }
 
   @Override //AMRMClientAsync
-  public void onError(Exception e) {
+  void onError(Throwable e) {
     //callback says it's time to finish
-    log.error("AMRMClientAsync.onError() received $e",e)
+    log.error("AMRMClientAsync.onError() received $e", e)
     signalAMComplete("AMRMClientAsync.onError() received $e");
   }
-
+  
 /* =================================================================== */
 /* HoyaAppMasterApi */
 /* =================================================================== */

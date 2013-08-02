@@ -22,14 +22,11 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileStatus
-import org.apache.hadoop.fs.FileSystem as FS
 import org.apache.hadoop.fs.FileSystem as HadoopFS
+import org.apache.hadoop.fs.FileSystem as FS
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.IOUtils
-import org.apache.hadoop.yarn.api.ContainerManagementProtocol
-import org.apache.hadoop.yarn.api.protocolrecords.StopContainerRequest
 import org.apache.hadoop.yarn.api.records.ApplicationReport
-import org.apache.hadoop.yarn.api.records.ContainerId
 import org.apache.hadoop.yarn.api.records.LocalResource
 import org.apache.hadoop.yarn.api.records.LocalResourceType
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility
@@ -170,13 +167,6 @@ class YarnUtils {
     return "$url.scheme:/${url.host != null ? url.host : ""}/${url.file}"
   }
 
-
-  public static void stopContainer(ContainerManagementProtocol manager, ContainerId id) {
-    StopContainerRequest stopContainerMessage = StopContainerRequest.newInstance()
-    stopContainerMessage.containerId = id;
-    manager.stopContainer(stopContainerMessage)
-  }
-  
   public static int findFreePort(int start, int limit) {
     int found = 0
     int port = start;

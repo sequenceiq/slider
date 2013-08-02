@@ -99,11 +99,13 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * Entry point from the service launcher
    */
   HoyaClient() {
-    super("HoyaClient", null)
+//    super("HoyaClient", null)
     //any app-wide actions
     new HoyaApp("HoyaClient")
   }
 
+  
+  
   /**
    * Constructor that takes the command line arguments and parses them
    * via {@link RunService#setArgs(String [])}. That method 
@@ -1079,7 +1081,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   @VisibleForTesting
   public List<ApplicationReport> listHoyaInstances(String user)
     throws YarnException, IOException {
-    List<ApplicationReport> allApps = applicationList;
+    List<ApplicationReport> allApps = getApplications();
     List<ApplicationReport> results = []
     allApps.each { ApplicationReport report ->
       if (   report.applicationType == HoyaKeys.APP_TYPE
@@ -1485,4 +1487,12 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
                             "Hoya cluster not found: '${clustername}' ")
   }
 
+/*
+
+  public List<ApplicationReport> getApplicationList() throws YarnException,
+                                                          IOException {
+    return getApplications(null);
+  }
+*/
+  
 }
