@@ -19,9 +19,7 @@
 package org.apache.hadoop.hoya.tools
 
 import groovy.transform.CompileStatic
-import groovy.util.logging.Commons
 import org.apache.commons.io.IOUtils
-import org.apache.commons.logging.Log
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileStatus
 import org.apache.hadoop.fs.FileSystem as HadoopFS
@@ -36,11 +34,12 @@ import org.apache.hadoop.util.ExitUtil.ExitException
 import org.apache.hadoop.yarn.api.records.LocalResource
 import org.apache.hadoop.yarn.api.records.LocalResourceType
 import org.apache.hadoop.yarn.conf.YarnConfiguration
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 /**
  * Utility methods primarily used in setting up and executing tools
  */
-@Commons
 @CompileStatic
 
 /**
@@ -49,95 +48,28 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration
  */
 class HoyaUtils {
 
+  private static final Logger log = LoggerFactory.getLogger(HoyaUtils.class);
 
-  public static void dumpArguments(String[] args) {
-    println("Arguments");
-    println(convertArgsToString(args));
-  }
-
-
-  /**
-   * Quote any argument passed in that doesn't start with a single or double quote
-   * in the first place
-   * @param arg argument, may be null but not empty
-   * @return a quoted argument
-   */
-  public static String quoteArg(String arg) {
-    if (arg.length() == 0) {
-      return "";
-    }
-    if (arg[0]=='"' || arg[0] == '\'') {
-      return arg;
-    } else {
-      return '"' + arg + '"'
-    }
-  }
-
-  /**
-   * convert a file to a string and quote it
-   * @param f file
-   * @return a quoted filename
-   */
-  public static String quoteArg(File f) {
-    return quoteArg(f.absolutePath)
-  }
-
-  public static String convertArgsToString(String... args) {
-    StringBuilder builder = new StringBuilder();
-    args.each { arg ->
-      builder.append(" \"").append(arg).append("\"");
-    }
-    builder.toString();
-  }
-
-  public static long dumpDir(Log dumpLog, File dir, String pattern) {
-    if (!dir.exists()) {
-      dumpLog.warn("Not found: ${dir}");
-      return -1;
-    }
-    if (!dir.isDirectory()) {
-      dumpLog.warn("Not a directory: ${dir}");
-      return -1;
-    }
-    long size = 0;
-    dir.eachFile { File file ->
-      long l = dumpFile(dumpLog, file)
-      if (file.name.startsWith(pattern)) {
-        size += l
-      }
-    }
-    size;
-  }
-
-  public static long dumpFile(Log dumpLog, File file) {
-    long length = file.length()
-    dumpLog.info("File : ${file} of size ${length}")
-    length
-  }
-
-  public static String convertToUrl(File file) {
-    return file.toURI().toString();
-  }
 
   public static def deleteDirectoryTree(File dir) {
     if (dir.exists()) {
       if (dir.isDirectory()) {
-        log.info("Cleaning up $dir")
+        log.info("Cleaning up {}", dir);
         //delete the children
         dir.eachFile { File file ->
-          log.info("deleting $file")
-          file.delete()
+          log.info("deleting {}", file);
+          file.delete();
         }
-        dir.delete()
+        dir.delete();
       } else {
-        throw new IOException("Not a directory: ${dir}")
+        throw new IOException("Not a directory " + dir);
       }
     } else {
       //not found, do nothing
-      log.debug("No output dir yet")
+      log.debug("No output dir yet");
     }
   }
-  
+
   /**
    * Find a containing JAR
    * @param my_class class to find
@@ -147,21 +79,21 @@ class HoyaUtils {
    */
   public static File findContainingJar(Class my_class) throws IOException {
     ClassLoader loader = my_class.classLoader;
-    if (!loader) {
-      throw new IOException("Class $my_class does not have a classloader!")
+    if (loader == null) {
+      throw new HoyaException("Class " + my_class + " does not have a classloader!")
     }
-    assert loader != null
-    assert my_class != null
-    String class_file = my_class.name.replaceAll("\\.", "/") + ".class";
-    Enumeration<URL> urlEnumeration = loader.getResources(class_file)
-    assert urlEnumeration != null
+    String class_file = my_class.getName().replaceAll("\\.", "/") + ".class";
+    Enumeration<URL> urlEnumeration = loader.getResources(class_file);
+    if (urlEnumeration == null) {
+      throw new HoyaException("Unable to find resources for class " + my_class);
+    }
 
     for (Enumeration itr = urlEnumeration; itr.hasMoreElements();) {
-      URL url = (URL) itr.nextElement()
+      URL url = (URL) itr.nextElement();
       if ("jar".equals(url.protocol)) {
-        String toReturn = url.path
+        String toReturn = url.getPath();
         if (toReturn.startsWith("file:")) {
-          toReturn = toReturn.substring("file:".length())
+          toReturn = toReturn.substring("file:".length());
         }
         // URLDecoder is a misnamed class, since it actually decodes
         // x-www-form-urlencoded MIME type rather than actual
@@ -171,10 +103,10 @@ class HoyaUtils {
         // that they are kept sacred during the decoding process.
         toReturn = toReturn.replaceAll("\\+", "%2B");
         toReturn = URLDecoder.decode(toReturn, "UTF-8");
-        String jarFilePath = toReturn.replaceAll("!.*\$", "")
-        return new File(jarFilePath)
+        String jarFilePath = toReturn.replaceAll("!.*\$", "");
+        return new File(jarFilePath);
       } else {
-        log.info("could not locate JAR containing $my_class: URL=$url")
+        log.info("could not locate JAR containing {} URL={}", my_class, url);
       }
     }
     return null;
@@ -183,7 +115,7 @@ class HoyaUtils {
   public static void checkPort(String hostname, int port, int connectTimeout)
   throws IOException {
     InetSocketAddress addr = new InetSocketAddress(hostname, port);
-    checkPort(hostname, addr, connectTimeout)
+    checkPort(hostname, addr, connectTimeout);
   }
 
   public static void checkPort(String name, InetSocketAddress address, int connectTimeout)
@@ -193,17 +125,19 @@ class HoyaUtils {
       socket = new Socket();
       socket.connect(address, connectTimeout);
     } catch (Exception e) {
-      throw new IOException("Failed to connect to $name at $address" +
-                            " after $connectTimeout millisconds" +
-                            ": $e", e);
+      throw new IOException("Failed to connect to " + name
+                                + " at " + address
+                                + " after " + connectTimeout + "millisconds"
+                                + ": " + e,
+                            e);
     } finally {
-      IOUtils.closeQuietly(socket)
+      IOUtils.closeQuietly(socket);
     }
   }
 
   public static void checkURL(String name, String url, int timeout) {
-    InetSocketAddress address = NetUtils.createSocketAddr(url)
-    checkPort(name, address, timeout)
+    InetSocketAddress address = NetUtils.createSocketAddr(url);
+    checkPort(name, address, timeout);
   }
 
   /**
@@ -214,37 +148,15 @@ class HoyaUtils {
    * @return the file
    */
   public static File requiredFile(String filename, String role) {
-    if (!filename) {
-      throw new ExitException(-1, "$role file not defined");
+    if (filename.isEmpty()) {
+      throw new ExitException(-1, role + " file not defined");
     }
-    File file = new File(filename)
+    File file = new File(filename);
     if (!file.exists()) {
-      throw new ExitException(-1, "$role file not found: \"${file.canonicalPath}\"");
+      throw new ExitException(-1,
+                              role + " file not found: " + file.getCanonicalPath());
     }
-    file
-  }
-
-  protected static File requiredDir(String name) {
-    File dir = requiredFile(name, "")
-    if (!dir.directory) {
-      throw new ExitException(-1, "Not a directory: " + dir.canonicalPath)
-    }
-    dir
-  }
-
-  protected static File maybeCreateDir(String name) {
-    File dir = new File(name)
-    if (!dir.exists()) {
-      //this is what we want
-      if (!dir.mkdirs()) {
-        throw new ExitException(-1, "Failed to create directory " + dir.canonicalPath)
-      }
-    } else {
-      if (!dir.directory) {
-        throw new ExitException(-1, "Not a directory: " + dir.canonicalPath)
-      }
-    }
-    return dir
+    return file;
   }
 
   /**
@@ -253,20 +165,20 @@ class HoyaUtils {
    * @return true iff it is valid
    */
   public static boolean isClusternameValid(String name) {
-    if (!name) {
-      return false
-    };
-    name = normalizeClusterName(name)
-    int first = name.charAt(0)
+    if (name == null || name.isEmpty()) {
+      return false;
+    }
+    name = normalizeClusterName(name);
+    int first = name.charAt(0);
     if (!Character.isLetter(first)) {
       return false;
     }
 
     for (int i = 0; i < name.length(); i++) {
-      int elt = (int) name.charAt(i)
+      int elt = (int) name.charAt(i);
       if (!Character.isLetterOrDigit(elt) && elt != '-') {
         return false
-      } 
+      }
     }
     return true;
   }
@@ -278,7 +190,7 @@ class HoyaUtils {
    * @return the normalized one (currently: the lower case name)
    */
   public static String normalizeClusterName(String name) {
-    return name.toLowerCase(Locale.ENGLISH)
+    return name.toLowerCase(Locale.ENGLISH);
   }
 
   /**
@@ -286,31 +198,32 @@ class HoyaUtils {
    * @param conf conf file
    * @param srcDirPath src dir
    * @param destDirPath dest dir
-   * @return #of files copies
+   * @return # of files copies
    */
   public static int copyDirectory(Configuration conf, Path srcDirPath, Path destDirPath) {
-    HadoopFS srcFS = HadoopFS.get(srcDirPath.toUri(), conf)
-    HadoopFS destFS = HadoopFS.get(destDirPath.toUri(), conf)
+    HadoopFS srcFS = HadoopFS.get(srcDirPath.toUri(), conf);
+    HadoopFS destFS = HadoopFS.get(destDirPath.toUri(), conf);
     //list all paths in the src.
-    FileStatus[] entries = srcFS.listStatus(srcDirPath)
-    int srcFileCount = entries.size()
-    if (!srcFileCount) {
+    FileStatus[] entries = srcFS.listStatus(srcDirPath);
+    int srcFileCount = entries.size();
+    if (srcFileCount==0) {
       return 0;
     }
     if (!destFS.exists(destDirPath)) {
       destFS.mkdirs(destDirPath);
     }
-    Path[] sourcePaths = new Path[srcFileCount]
-    entries.eachWithIndex { FileStatus e , int i ->
-      Path srcFile = e.path
+    Path[] sourcePaths = new Path[srcFileCount];
+    entries.eachWithIndex { FileStatus e, int i ->
+      Path srcFile = e.getPath();
       if (srcFS.isDirectory(srcFile)) {
-        throw new HoyaException("Configuration dir $srcDirPath contains a directory $srcFile");
+        throw new HoyaException("Configuration dir " + srcDirPath
+                                    + " contains a directory " + srcFile);
       }
-      log.debug("copying src conf file $srcFile")
-      sourcePaths[i] = srcFile
+      log.debug("copying src conf file {}",srcFile);
+      sourcePaths[i] = srcFile;
     }
-    log.debug("Copying $srcFileCount files to dest dir $destDirPath")
-    FileUtil.copy(srcFS, sourcePaths, destFS, destDirPath, false, true, conf)
+    log.debug("Copying {} files to dest dir {}", srcFileCount, destDirPath)
+    FileUtil.copy(srcFS, sourcePaths, destFS, destDirPath, false, true, conf);
     return sourcePaths.size();
   }
 
@@ -324,9 +237,9 @@ class HoyaUtils {
    */
   public static Path createHoyaClusterDirPath(HadoopFS fs, String clustername) {
     Path hoyaPath = getBaseHoyaPath(fs);
-    Path instancePath = new Path(hoyaPath, "cluster/$clustername")
+    Path instancePath = new Path(hoyaPath, "cluster/" + clustername);
     fs.mkdirs(instancePath);
-    return instancePath
+    return instancePath;
   }
 
   /**
@@ -338,12 +251,12 @@ class HoyaUtils {
    * @return the path; this directory will already have been created
    */
   public static Path createHoyaAppInstanceTempPath(HadoopFS fs,
-                                            String clustername,
-                                            String appID){
+                                                   String clustername,
+                                                   String appID) {
     Path hoyaPath = getBaseHoyaPath(fs);
-    Path instancePath = new Path(hoyaPath, "tmp/$clustername/$appID")
+    Path instancePath = new Path(hoyaPath, "tmp/" + clustername + "/" + appID);
     fs.mkdirs(instancePath);
-    return instancePath
+    return instancePath;
   }
 
   /**
@@ -354,12 +267,12 @@ class HoyaUtils {
   public static Path getBaseHoyaPath(HadoopFS fs) {
     return new Path(fs.homeDirectory, ".hoya")
   }
-  
+
   public static String stringify(Throwable t) {
-    StringWriter sw = new StringWriter()
-    sw.append(t.toString()).append('\n')
-    t.printStackTrace(new PrintWriter(sw))
-    return sw.toString()
+    StringWriter sw = new StringWriter();
+    sw.append(t.toString()).append('\n');
+    t.printStackTrace(new PrintWriter(sw));
+    return sw.toString();
   }
 
   /**
@@ -368,9 +281,9 @@ class HoyaUtils {
    * @return
    */
   public static YarnConfiguration createConfiguration() {
-    YarnConfiguration conf = new YarnConfiguration()
-    patchConfiguration(conf)
-    return conf
+    YarnConfiguration conf = new YarnConfiguration();
+    patchConfiguration(conf);
+    return conf;
   }
 
   /**
@@ -380,11 +293,11 @@ class HoyaUtils {
    * @param conf configuration
    */
   public static void patchConfiguration(Configuration conf) {
-    
+
     //if the fallback option is NOT set, enable it.
     //if it is explicitly set to anything -leave alone
     if (conf.get(EnvMappings.IPC_CLIENT_FALLBACK_TO_SIMPLE_AUTH) == null) {
-      conf.set(EnvMappings.IPC_CLIENT_FALLBACK_TO_SIMPLE_AUTH, "true")
+      conf.set(EnvMappings.IPC_CLIENT_FALLBACK_TO_SIMPLE_AUTH, "true");
     }
   }
 
@@ -407,30 +320,30 @@ class HoyaUtils {
         writeSpecWithoutOverwriting(clusterFS, clusterSpecPath, clusterSpec)) {
       return true;
     }
-    
+
     //save to a renamed version
-    String specTimestampedFilename = "spec-${System.currentTimeMillis()}"
+    String specTimestampedFilename = "spec-" + System.currentTimeMillis();
     Path specSavePath = new Path(clusterDirectory, specTimestampedFilename + ".json");
     Path specOrigPath = new Path(clusterDirectory, specTimestampedFilename + "-orig.json");
 
     //roll the specification. The (atomic) rename may fail if there is 
     //an overwrite, which is how we catch re-entrant calls to this
     if (!writeSpecWithoutOverwriting(clusterFS, specSavePath, clusterSpec)) {
-      return false
+      return false;
     }
     if (!clusterFS.rename(clusterSpecPath, specOrigPath)) {
-      return false
+      return false;
     }
     try {
       if (!clusterFS.rename(specSavePath, clusterSpecPath)) {
-        return false
+        return false;
       }
     } finally {
-      clusterFS.delete(specOrigPath, false)
+      clusterFS.delete(specOrigPath, false);
     }
     return true;
   }
-  
+
   public static boolean writeSpecWithoutOverwriting(HadoopFS clusterFS, Path clusterSpecPath, ClusterDescription clusterSpec) {
     try {
       clusterSpec.save(clusterFS, clusterSpecPath, false);
@@ -446,10 +359,10 @@ class HoyaUtils {
       LocalResource resource = YarnUtils.createAmResource(clusterFS,
                                                           imagePath,
                                                           LocalResourceType.ARCHIVE)
-      localResources[HoyaKeys.HBASE_LOCAL] = resource
-      return true
+      localResources.put(HoyaKeys.HBASE_LOCAL, resource);
+      return true;
     } else {
-      return false
+      return false;
     }
   }
 }
