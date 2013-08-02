@@ -19,13 +19,10 @@
 package org.apache.hadoop.hoya.tools
 
 import groovy.transform.CompileStatic
-import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileStatus
 import org.apache.hadoop.fs.FileSystem as HadoopFS
-import org.apache.hadoop.fs.FileSystem as FS
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.io.IOUtils
 import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.api.records.LocalResource
 import org.apache.hadoop.yarn.api.records.LocalResourceType
@@ -34,10 +31,12 @@ import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.util.ConverterUtils
 import org.apache.hadoop.yarn.util.Records
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
-@Commons
 @CompileStatic
-class YarnUtils {
+public class YarnUtils {
+  private static final Logger log = LoggerFactory.getLogger(YarnUtils.class);
 
   /**
    * Create an AM resource from the 
@@ -47,9 +46,9 @@ class YarnUtils {
    * @return the resource set up wih application-level visibility and the
    * timestamp & size set from the file stats.
    */
-  public static LocalResource createAmResource(FS hdfs,
-                                        Path destPath,
-                                        LocalResourceType resourceType) {
+  public static LocalResource createAmResource(HadoopFS hdfs,
+                                               Path destPath,
+                                               LocalResourceType resourceType) {
     FileStatus destStatus = hdfs.getFileStatus(destPath);
     LocalResource amResource = Records.newRecord(LocalResource.class);
     amResource.type = resourceType;
@@ -72,7 +71,7 @@ class YarnUtils {
                               YarnConfiguration.DEFAULT_RM_ADDRESS,
                               YarnConfiguration.DEFAULT_RM_PORT);
   }
-  
+
   public static InetSocketAddress getRmSchedulerAddress(Configuration conf) {
     return conf.getSocketAddr(YarnConfiguration.RM_SCHEDULER_ADDRESS,
                               YarnConfiguration.DEFAULT_RM_SCHEDULER_ADDRESS,
@@ -86,8 +85,8 @@ class YarnUtils {
    * something other than 0.0.0.0
    */
   public static boolean isRmSchedulerAddressDefined(Configuration conf) {
-    InetSocketAddress address = getRmSchedulerAddress(conf)
-    return isAddressDefined(address)
+    InetSocketAddress address = getRmSchedulerAddress(conf);
+    return isAddressDefined(address);
   }
 
   /**
@@ -97,44 +96,30 @@ class YarnUtils {
    * something other than 0.0.0.0
    */
   public static boolean isAddressDefined(InetSocketAddress address) {
-    return address.hostName != "0.0.0.0"
+    return !(address.hostName.equals("0.0.0.0"));
   }
-
-
 
   public static setRmAddress(Configuration conf, String rmAddr) {
     conf.set(YarnConfiguration.RM_ADDRESS, rmAddr);
   }
-  
+
   public static setRmSchedulerAddress(Configuration conf, String rmAddr) {
     conf.set(YarnConfiguration.RM_SCHEDULER_ADDRESS, rmAddr);
   }
-  
-  public static setRmAddressGlobal(String rmAddr) {
-    Configuration rmResource = new Configuration(false);
-    setRmAddress(rmResource, rmAddr);
-    File f = File.createTempFile("config","xml");
-    FileOutputStream fof = new FileOutputStream(f);
-    try {
-      rmResource.writeXml(fof);
-    } finally {
-      IOUtils.closeStream(fof);
-    }
-    Configuration.addDefaultResource(f.getAbsolutePath());
-    
-  }
 
   public static boolean hasAppFinished(ApplicationReport report) {
-    return report==null || report.yarnApplicationState >= YarnApplicationState.FINISHED
+    return report == null || report.getYarnApplicationState() >= YarnApplicationState.FINISHED;
   }
 
   public static String reportToString(ApplicationReport report) {
-    if (!report) {
-      return "Null application report"
+    if (report == null) {
+      return "Null application report";
     }
-    return "App {${report.name}}/{$report.applicationType} #${report.applicationId} user ${report.user}" +
-           " is in state ${report.yarnApplicationState}  " +
-           "RPC: ${report.host}:${report.rpcPort}"
+
+    return "App " + report.getName() + "/" + report.getApplicationType() + "# " +
+           report.getApplicationId() + " user " + report.getUser() +
+           " is in state " + report.getYarnApplicationState() +
+           "RPC: " + report.getHost() + ":" + report.rpcPort;
   }
 
   /**
@@ -145,33 +130,34 @@ class YarnUtils {
    * @return the list of entries
    */
   public static Map<String, LocalResource> submitDirectory(HadoopFS clusterFS,
-                                      Path srcDir,
-                                      String destRelativeDir) {
+                                                           Path srcDir,
+                                                           String destRelativeDir) {
     //now register each of the files in the directory to be
     //copied to the destination
-    FileStatus[] fileset = clusterFS.listStatus(srcDir)
-    Map<String, LocalResource> localResources = [:]
+    FileStatus[] fileset = clusterFS.listStatus(srcDir);
+    Map<String, LocalResource> localResources = new HashMap<String, LocalResource>(fileset.size());
     fileset.each { FileStatus entry ->
 
       LocalResource resource = createAmResource(clusterFS,
-                                                entry.path,
-                                                LocalResourceType.FILE)
-      String relativePath = destRelativeDir + "/" +entry.path.name
-      localResources[relativePath] = resource
+                                                entry.getPath(),
+                                                LocalResourceType.FILE);
+      String relativePath = destRelativeDir + "/" + entry.getPath().getName();
+      localResources.put(relativePath, resource);
     }
-    return localResources
+    return localResources;
   }
 
 
   public static String stringify(org.apache.hadoop.yarn.api.records.URL url) {
-    return "$url.scheme:/${url.host != null ? url.host : ""}/${url.file}"
+    return url.getScheme() + ":/" + 
+           (url.getHost() != null ? url.getHost() : "") + "/" + url.getFile();
   }
 
   public static int findFreePort(int start, int limit) {
-    int found = 0
+    int found = 0;
     int port = start;
-    int finish = start + limit
-    while(!found && port < finish) {
+    int finish = start + limit;
+    while (!found && port < finish) {
       if (isPortAvailable(port)) {
         found = port;
       } else {
@@ -189,11 +175,11 @@ class YarnUtils {
    */
   public static boolean isPortAvailable(int port) {
     try {
-      ServerSocket socket = new ServerSocket(port)
-      socket.close()
+      ServerSocket socket = new ServerSocket(port);
+      socket.close();
       return true
     } catch (IOException e) {
-      return false
+      return false;
     }
   }
 }
