@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.yarn.cluster.masterless
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.exceptions.HoyaException
@@ -26,7 +27,6 @@ import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.api.records.ApplicationId
 import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.api.records.YarnApplicationState
-import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Assume
 import org.junit.Test
@@ -35,6 +35,7 @@ import org.junit.Test
  * create masterless AMs and work with them. This is faster than
  * bringing up full clusters
  */
+@CompileStatic
 @Commons
 class TestCreateMasterlessAM extends YarnMiniClusterTestBase {
 
@@ -56,7 +57,7 @@ class TestCreateMasterlessAM extends YarnMiniClusterTestBase {
 
     ApplicationReport report = waitForClusterLive(hoyaClient)
     logReport(report)
-    List<ApplicationReport> apps = hoyaClient.applicationList;
+    List<ApplicationReport> apps = hoyaClient.applications;
     String username = hoyaClient.username
     describe("list of all applications")
     logApplications(apps)

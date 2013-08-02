@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.yarn.cluster.flexing
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.junit.Test
@@ -25,6 +26,7 @@ import org.junit.Test
 /**
  * Create a master against the File:// fs
  */
+@CompileStatic
 @Commons
 class TestClusterFlexDownToZero extends YarnMiniClusterTestBase {
 

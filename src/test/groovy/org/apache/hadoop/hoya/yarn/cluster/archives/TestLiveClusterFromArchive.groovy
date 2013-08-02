@@ -20,9 +20,9 @@
 
 package org.apache.hadoop.hoya.yarn.cluster.archives
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.hbase.ClusterStatus
-import org.apache.hadoop.hoya.yarn.ZKIntegration
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
@@ -31,6 +31,7 @@ import org.junit.Test
 /**
  * create a live cluster from the image
  */
+@CompileStatic
 @Commons
 class TestLiveClusterFromArchive extends YarnMiniClusterTestBase {
 

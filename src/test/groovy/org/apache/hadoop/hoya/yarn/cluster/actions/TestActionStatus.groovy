@@ -18,8 +18,8 @@
 
 package org.apache.hadoop.hoya.yarn.cluster.actions
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
-import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
@@ -33,6 +33,7 @@ import org.junit.Test
 /**
  * Test of RM creation. This is so the later test's prereq's can be met
  */
+//@CompileStatic
 @Commons
 class TestActionStatus extends YarnMiniClusterTestBase {
 
@@ -60,7 +61,7 @@ class TestActionStatus extends YarnMiniClusterTestBase {
       )
       fail("expected an exception, got a status code " + launcher.serviceExitCode)
     } catch (HoyaException e) {
-      assert e.exitCode == HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER
+      assert e.exitCode == EXIT_UNKNOWN_HOYA_CLUSTER
     }
   }
   
@@ -93,7 +94,7 @@ class TestActionStatus extends YarnMiniClusterTestBase {
     //do the low level operations to get a better view of what is going on 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     int status = hoyaClient.actionStatus(clustername)
-    assert status == HoyaExitCodes.EXIT_SUCCESS
+    assert status == EXIT_SUCCESS
   }
 
 

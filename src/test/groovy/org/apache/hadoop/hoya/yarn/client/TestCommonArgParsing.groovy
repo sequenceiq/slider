@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.yarn.client
 
+import groovy.transform.CompileStatic
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.junit.Assert
@@ -26,6 +27,7 @@ import org.junit.Test
 /**
  * Test handling of common arguments, specifically how things get split up
  */
+@CompileStatic
 class TestCommonArgParsing {
 
   @Test

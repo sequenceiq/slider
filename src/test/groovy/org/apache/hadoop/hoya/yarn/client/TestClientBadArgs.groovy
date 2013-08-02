@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.yarn.client
 
+import groovy.transform.CompileStatic
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
@@ -26,6 +27,7 @@ import org.junit.Test
 /**
  * Test the argument parsing/validation logic
  */
+@CompileStatic
 class TestClientBadArgs extends ServiceLauncherBaseTest {
   @Test
   public void testNoAction() throws Throwable {

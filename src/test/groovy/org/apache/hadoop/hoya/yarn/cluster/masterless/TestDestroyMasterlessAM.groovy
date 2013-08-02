@@ -18,15 +18,14 @@
 
 package org.apache.hadoop.hoya.yarn.cluster.masterless
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
-import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
-import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
@@ -34,6 +33,7 @@ import org.junit.Test
  * create masterless AMs and work with them. This is faster than
  * bringing up full clusters
  */
+//@CompileStatic
 @Commons
 class TestDestroyMasterlessAM extends YarnMiniClusterTestBase {
 
@@ -53,10 +53,10 @@ class TestDestroyMasterlessAM extends YarnMiniClusterTestBase {
     //now try to create instance #2, and expect an in-use failure
     try {
       createMasterlessAM(clustername, 0, false, false)
-      fail("expected a failure, got error code $ec")
+      fail("expected a failure, got an AM")
     } catch (HoyaException e) {
       assertExceptionDetails(e,
-                             HoyaExitCodes.EXIT_BAD_CLUSTER_STATE,
+                             EXIT_BAD_CLUSTER_STATE,
                              HoyaClient.E_ALREADY_EXISTS)
     }
 

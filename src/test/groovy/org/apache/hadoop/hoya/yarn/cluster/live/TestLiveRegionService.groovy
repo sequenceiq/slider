@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.yarn.cluster.live
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hoya.api.ClusterDescription
@@ -30,6 +31,7 @@ import org.junit.Test
 /**
  * Test of RM creation. This is so the later test's prereq's can be met
  */
+@CompileStatic
 @Commons
 class TestLiveRegionService extends YarnMiniClusterTestBase {
 

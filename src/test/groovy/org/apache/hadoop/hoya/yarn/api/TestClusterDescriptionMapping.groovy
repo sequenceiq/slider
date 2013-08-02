@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.yarn.api
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.ClusterNode
@@ -27,6 +28,7 @@ import org.junit.Test
 /**
  test CD serialization/deserialization to and from JSON
  */
+@CompileStatic
 @Commons
 class TestClusterDescriptionMapping extends YarnMiniClusterTestBase {
 

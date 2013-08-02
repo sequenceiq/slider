@@ -22,8 +22,8 @@ import groovy.json.JsonOutput
 import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.FileUtil
 import org.apache.hadoop.fs.FileSystem as HadoopFS
+import org.apache.hadoop.fs.FileUtil
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hbase.HBaseConfiguration
@@ -32,6 +32,7 @@ import org.apache.hadoop.hbase.client.HBaseAdmin
 import org.apache.hadoop.hbase.client.HConnection
 import org.apache.hadoop.hbase.client.HConnectionManager
 import org.apache.hadoop.hdfs.MiniDFSCluster
+import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.exceptions.HoyaException
@@ -73,7 +74,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 @CompileStatic
 
 public class YarnMiniClusterTestBase extends ServiceLauncherBaseTest
-implements KeysForTests {
+implements KeysForTests, HoyaExitCodes {
 
   /**
    * Mini YARN cluster only

@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.yarn.client
 
+import groovy.transform.CompileStatic
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.CommonArgs
@@ -28,6 +29,7 @@ import org.junit.Test
 /**
  * Test bad argument handling
  */
+//@CompileStatic
 class TestClientBasicArgs extends ServiceLauncherBaseTest {
 
   /**
@@ -37,7 +39,7 @@ class TestClientBasicArgs extends ServiceLauncherBaseTest {
   @Test
   public void testHelp() throws Throwable {
     ServiceLauncher launcher = launch(HoyaClient,
-                                      new Configuration(),
+                                      HoyaUtils.createConfiguration(),
                                       [ClientArgs.ACTION_HELP])
     assert 0 == launcher.serviceExitCode
   }

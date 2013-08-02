@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.yarn.cluster.live
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.yarn.ZKIntegration
@@ -29,6 +30,7 @@ import org.junit.Test
 /**
  * Create a master against the File:// fs
  */
+@CompileStatic
 @Commons
 class TestHBaseMaster extends YarnMiniClusterTestBase {
 

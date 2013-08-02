@@ -18,13 +18,14 @@
 
 package org.apache.hadoop.hoya.yarn.cluster
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
-import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.junit.Test
 
 /**
  * Test of RM creation. This is so the later test's prereq's can be met
  */
+//@CompileStatic
 @Commons
 class TestCreateMiniClusterCreation extends YarnMiniClusterTestBase {
 

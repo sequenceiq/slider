@@ -21,7 +21,6 @@ package org.apache.hadoop.hoya.yarn.utils
 import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.fs.FileSystem as HadoopFS
-
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.tools.HoyaUtils

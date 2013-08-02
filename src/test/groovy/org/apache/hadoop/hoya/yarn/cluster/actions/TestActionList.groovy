@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.yarn.cluster.actions
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.exceptions.HoyaException
@@ -33,6 +34,7 @@ import org.junit.Test
 /**
  * Test of RM creation. This is so the later test's prereq's can be met
  */
+@CompileStatic
 @Commons
 class TestActionList extends YarnMiniClusterTestBase {
 
@@ -119,6 +121,7 @@ class TestActionList extends YarnMiniClusterTestBase {
     //launch fake master
     //launch the cluster
     //exec the status command
+    ServiceLauncher launcher
     try {
       launcher = launchHoyaClientAgainstMiniMR(
           //config includes RM binding info

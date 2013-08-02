@@ -18,10 +18,9 @@
 
 package org.apache.hadoop.hoya.yarn.cluster.masterless
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
-import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem as HadoopFS
-
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.exceptions.HoyaException
@@ -39,6 +38,7 @@ import org.junit.Test
  * bringing up full clusters
  */
 @Commons
+@CompileStatic
 class TestStartMasterlessAM extends YarnMiniClusterTestBase {
 
   File getConfDirFile() {

@@ -18,10 +18,11 @@
 
 package org.apache.hadoop.hoya.yarn.utils
 
+import groovy.transform.CompileStatic
 import org.apache.hadoop.hoya.tools.YarnUtils
-import org.junit.Assume
 import org.junit.Test
 
+@CompileStatic
 class TestPortScan {
 
   @Test

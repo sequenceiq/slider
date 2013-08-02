@@ -22,8 +22,8 @@
 
 package org.apache.hadoop.hoya.yarn.cluster.archives
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
-import org.apache.commons.io.FileSystemUtils
 import org.apache.hadoop.fs.FileUtil
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.api.ClusterDescription
@@ -38,6 +38,7 @@ import org.junit.Test
 /**
  * Test of RM creation. This is so the later test's prereq's can be met
  */
+//@CompileStatic
 @Commons
 class TestVersionFromArchiveOnHDFS extends YarnMiniClusterTestBase {
 
@@ -68,7 +69,7 @@ class TestVersionFromArchiveOnHDFS extends YarnMiniClusterTestBase {
                                                  false)
     assert launcher.serviceExitCode == 0
     HoyaClient hoyaClient = (HoyaClient) launcher.service
-    hoyaClient.monitorAppToRunning(new Duration(10*60000))
+    hoyaClient.monitorAppToRunning(new Duration(10 * 60000))
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)
     log.info("Status $status")
     waitForAppToFinish(hoyaClient)

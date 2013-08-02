@@ -18,10 +18,12 @@
 
 package org.apache.hadoop.hoya.yarn.utils
 
+import groovy.transform.CompileStatic
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.junit.Assert
 import org.junit.Test
 
+@CompileStatic
 class TestClusterNames {
 
   void assertValidName(String name) {
