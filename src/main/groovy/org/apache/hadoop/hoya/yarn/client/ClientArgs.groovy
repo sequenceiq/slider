@@ -20,7 +20,6 @@ package org.apache.hadoop.hoya.yarn.client
 
 import com.beust.jcommander.Parameter
 import groovy.transform.CompileStatic
-import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.tools.PathArgumentConverter
@@ -37,45 +36,45 @@ public class ClientArgs extends CommonArgs {
   /**
    * Name of entry class: {@value}
    */
-  public static final String CLASSNAME = 'org.apache.hadoop.hoya.yarn.client.HoyaClient'
+  public static final String CLASSNAME = "org.apache.hadoop.hoya.yarn.client.HoyaClient";
   /**
    filesystem-uri: {@value}
    */
-  public static final String ARG_AMQUEUE = '--amqueue'
-  public static final String ARG_AMPRIORITY = '--ampriority'
-  //public static final String ARG_FILESYSTEM = '--fs'
-  public static final String ARG_FORMAT = '--format'
-  public static final String ARG_PERSIST = '--persist'
-  public static final String ARG_WAIT = '--wait'
+  public static final String ARG_AMQUEUE = "--amqueue";
+  public static final String ARG_AMPRIORITY = "--ampriority";
+  //public static final String ARG_FILESYSTEM = "--fs";
+  public static final String ARG_FORMAT = "--format";
+  public static final String ARG_PERSIST = "--persist";
+  public static final String ARG_WAIT = "--wait";
 
 
 
-  public static final String FORMAT_XML = 'xml'
-  public static final String FORMAT_PROPERTIES = 'properties'
+  public static final String FORMAT_XML = "xml";
+  public static final String FORMAT_PROPERTIES = "properties";
 
-  @Parameter(names = '--amqueue', description = 'Application Manager Queue Name')
-  public String amqueue = 'default';
+  @Parameter(names = "--amqueue", description = "Application Manager Queue Name")
+  public String amqueue = "default";
 
   //--format 
-  @Parameter(names = '--format', description = 'format for a response text|xml|json|properties')
+  @Parameter(names = "--format", description = "format for a response text|xml|json|properties")
   public String format = FORMAT_XML;
 
   //--wait [timeout]
-  @Parameter(names = '--wait',
-      description = 'time to wait for an action to complete')
+  @Parameter(names = "--wait",
+      description = "time to wait for an action to complete")
   public int waittime = 0;
 
   /**
    * --image path
    the full path to a .tar or .tar.gz path containing an HBase image.
    */
-  @Parameter(names = '--image',
-      description = 'the full path to a .tar or .tar.gz path containing an HBase image',
+  @Parameter(names = "--image",
+      description = "the full path to a .tar or .tar.gz path containing an HBase image",
       converter = PathArgumentConverter)
   public Path image;
 
-  @Parameter(names = '--persist',
-      description = 'flag to indicate whether a flex change should be persisted (default=true)',
+  @Parameter(names = "--persist",
+      description = "flag to indicate whether a flex change should be persisted (default=true)",
       arity = 1)
   public boolean persist;
 
@@ -83,26 +82,28 @@ public class ClientArgs extends CommonArgs {
    * map of actions -> (explanation, min #of entries [, max no.])
    * If the max no is not given it is assumed to be the same as the min no.
    */
-  static final Map<String, List<Object>> ACTIONS = [
-      (ACTION_ADDNODE):   ["add nodes", 1],
-      (ACTION_CREATE):    ["create cluster", 1],
-      (ACTION_DESTROY):   ["destroy a stopped cluster", 1],
-      (ACTION_FLEX):      ["flex a running cluster", 1],
-      (ACTION_GETCONF):   ["get the configuration of a cluster", 1],
-      (ACTION_GETSIZE):   ["get the size of a cluster", 1],
-      (ACTION_EXISTS):    ["probe for a cluster being live", 1],
-      (ACTION_HELP):      ["Print Help information", 0],
-      (ACTION_LIST):      ["List running cluster", 0, 1],
-      (ACTION_MIGRATE):   ["migrate cluster to a new HBase version", 1],
-      (ACTION_ADDNODE):   ["add nodes", 1],
-      (ACTION_PREFLIGHT): ["Perform preflight checks", 0],
-      (ACTION_RECONFIGURE): ["change the configuration of a cluser", 1],
-      (ACTION_RMNODE):    ["remove nodes", 1],
-      (ACTION_REIMAGE):   ["change the image a cluster uses", 1],
-      (ACTION_START):     ["start a cluster", 1],
-      (ACTION_STATUS):    ["Get the status of a cluster", 1],
-      (ACTION_STOP):      ["stop a cluster", 1],
-  ]
+
+  private static final Map<String, List<Object>> ACTIONS;
+  static {
+    ACTIONS.put(ACTION_ADDNODE, t("add nodes", 1, 1));
+    ACTIONS.put(ACTION_CREATE, t("create cluster", 1));
+    ACTIONS.put(ACTION_DESTROY, t("destroy a stopped cluster", 1));
+    ACTIONS.put(ACTION_FLEX, t("flex a running cluster", 1));
+    ACTIONS.put(ACTION_GETCONF, t("get the configuration of a cluster", 1));
+    ACTIONS.put(ACTION_GETSIZE, t("get the size of a cluster", 1));
+    ACTIONS.put(ACTION_EXISTS, t("probe for a cluster being live", 1));
+    ACTIONS.put(ACTION_HELP, t("Print Help information", 0));
+    ACTIONS.put(ACTION_LIST, t("List running cluster", 0, 1));
+    ACTIONS.put(ACTION_MIGRATE, t("migrate cluster to a new HBase version", 1));
+    ACTIONS.put(ACTION_ADDNODE, t("add nodes", 1));
+    ACTIONS.put(ACTION_PREFLIGHT, t("Perform preflight checks", 0));
+    ACTIONS.put(ACTION_RECONFIGURE, t("change the configuration of a cluster", 1));
+    ACTIONS.put(ACTION_RMNODE, t("remove nodes", 1));
+    ACTIONS.put(ACTION_REIMAGE, t("change the image a cluster uses", 1));
+    ACTIONS.put(ACTION_START, t("start a cluster", 1));
+    ACTIONS.put(ACTION_STATUS, t("Get the status of a cluster", 1));
+    ACTIONS.put(ACTION_STOP, t("stop a cluster", 1));
+  }
 
   public ClientArgs(String[] args) {
     super(args);
@@ -121,8 +122,8 @@ public class ClientArgs extends CommonArgs {
   void applyDefinitions(Configuration conf) {
     super.applyDefinitions(conf);
     //RM
-    if (manager) {
-      log.debug("Setting RM to $manager");
+    if (manager != null) {
+      log.debug("Setting RM to {}", manager);
       conf.set(YarnConfiguration.RM_ADDRESS, manager);
     }
   }

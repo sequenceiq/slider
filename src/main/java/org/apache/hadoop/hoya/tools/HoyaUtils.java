@@ -43,7 +43,10 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -384,7 +387,7 @@ public class HoyaUtils {
   public static boolean maybeAddImagePath(FileSystem clusterFS,
                                           Map<String, LocalResource> localResources,
                                           Path imagePath) throws IOException {
-    if (imagePath!=null) {
+    if (imagePath != null) {
       LocalResource resource = YarnUtils.createAmResource(clusterFS,
                                                           imagePath,
                                                           LocalResourceType.ARCHIVE);
@@ -395,4 +398,26 @@ public class HoyaUtils {
     }
   }
 
+  /**
+   * Take a collection, return a list containing the string value of every
+   * element in the collection.
+   * @param c collection
+   * @return a stringified list
+   */
+  public static List<String> collectionToStringList(Collection c) {
+    List<String> l = new ArrayList<String>(c.size());
+    for (Object o: c){
+      l.add(o.toString());
+    }
+    return l;
+  }
+  
+  public static String join(Collection collection, String separator) {
+    StringBuilder b = new StringBuilder();
+    for (Object o:collection) {
+      b.append(o.toString());
+      b.append(separator);
+    }
+    return b.toString();
+  }
 }
