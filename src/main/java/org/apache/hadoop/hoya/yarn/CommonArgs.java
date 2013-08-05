@@ -16,20 +16,28 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn
+package org.apache.hadoop.hoya.yarn;
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.ParameterException;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
+import org.apache.hadoop.hoya.tools.HoyaUtils;
+import org.apache.hadoop.hoya.tools.PathArgumentConverter;
+import org.apache.hadoop.hoya.tools.URIArgumentConverter;
+import org.apache.hadoop.hoya.yarn.appmaster.EnvMappings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.beust.jcommander.JCommander
-import com.beust.jcommander.Parameter
-import com.beust.jcommander.ParameterException
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.FileSystem as HadoopFS
-import org.apache.hadoop.fs.Path
-import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
-import org.apache.hadoop.hoya.tools.PathArgumentConverter
-import org.apache.hadoop.hoya.tools.URIArgumentConverter
-import org.apache.hadoop.hoya.yarn.appmaster.EnvMappings
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * This class contains the common argument set for all tne entry points,
@@ -100,8 +108,7 @@ public class CommonArgs {
   public static final String ACTION_STATUS = "status";
   public static final String ACTION_STOP = "stop";
 
-  protected static final Logger log = LoggerFactory.getLogger(CommonArgs);
-
+  protected static final Logger log = LoggerFactory.getLogger(CommonArgs.class);
 
   @Parameter
   public List<String> parameters = new ArrayList<String>();
@@ -115,11 +122,11 @@ public class CommonArgs {
    */
   @Parameter(names = "--confdir",
       description = "path cluster configuration directory in HDFS",
-      converter = PathArgumentConverter)
+      converter = PathArgumentConverter.class)
   Path confdir;
 
   @Parameter(names = "--fs", description = "filesystem URI",
-      converter = URIArgumentConverter)
+      converter = URIArgumentConverter.class)
   URI filesystemURL;
 
   @Parameter(names = "--hbasehome",
@@ -166,21 +173,20 @@ public class CommonArgs {
 
   @Parameter(names = "-D", description = "Definitions")
   public List<String> definitions = new ArrayList<String>();
-  public Map<String, String> definitionMap = [:]
+  public Map<String, String> definitionMap = new HashMap<String, String>();
 
 
-
-  @Parameter(names = ["--m", "--manager"],
+  @Parameter(names = {"--m", "--manager"},
       description = "hostname:port of the YARN resource manager")
   String manager;
 
-  @Parameter(names = ["--workers", "--min"], description = "number of worker nodes")
+  @Parameter(names = {"--workers", "--min"}, description = "number of worker nodes")
   public int workers = 0;
 
-  @Parameter(names = ["--masters"], description = "number of master nodes")
+  @Parameter(names = {"--masters"}, description = "number of master nodes")
   public int masters = 1;
 
-  @Parameter(names = ["--masterheap"],
+  @Parameter(names = {"--masterheap"},
       description = "Master heap size in MB")
   public int masterHeap = 128;
 
@@ -198,11 +204,11 @@ public class CommonArgs {
       description = "(ignored argument)")
   public int max = -1;
 
-  @Parameter(names = ["-o", "--output"],
+  @Parameter(names = {"-o", "--output"},
       description = "output file for the configuration data")
   public String output;
 
-  @Parameter(names = ["--workerheap", "--regionserverheap"],
+  @Parameter(names = {"--workerheap", "--regionserverheap"},
       description = "Worker heap size in MB")
   public int workerHeap = 256;
 
@@ -214,17 +220,43 @@ public class CommonArgs {
    * fields
    */
   public JCommander commander;
-  public String action
+  public String action;
   //action arguments; 
-  public List<String> actionArgs
-  public final String[] args
-  //
+  public List<String> actionArgs;
+  public final String[] args;
+
+  /**
+   * create a 3-tuple
+   * @param msg
+   * @param min
+   * @param max
+   * @return
+   */
+  protected static List<Object> t(String msg, int min, int max) {
+    List<Object> l = new ArrayList<Object>(3);
+    l.add(msg);
+    l.add(min);
+    l.add(max);
+    return l;
+  }
+
+  /**
+   * Create a tuple
+   * @param msg
+   * @param min
+   * @return
+   */
+  protected static List<Object> t(String msg, int min) {
+    return t(msg, min , min );
+  }
+  
   /**
    * get the name: relies on arg 1 being the cluster name in all operations 
    * @return the name argument, null if there is none
    */
   public String getClusterName() {
-    return (actionArgs == null || actionArgs.isEmpty() || args.length < 2) ? null
+    return (actionArgs == null || actionArgs.isEmpty() || args.length < 2) ?
+      null 
     : args[1];
   }
 
@@ -234,7 +266,7 @@ public class CommonArgs {
   }
 
   public CommonArgs(Collection args) {
-    List<String> argsAsStrings = args*.toString();
+    List<String> argsAsStrings = HoyaUtils.collectionToStringList(args);
     this.args = argsAsStrings.toArray(new String[argsAsStrings.size()]);
     commander = new JCommander(this);
   }
@@ -244,19 +276,20 @@ public class CommonArgs {
     StringBuilder builder = new StringBuilder("\n");
     commander.usage(builder, "  ");
     builder.append("\nactions: ");
-    getActions().each { key, value ->
+    Map<String, List<Object>> actions = getActions();
+    for (String key:actions.keySet()) {
       builder.append(key).append(" ");
     }
     return builder.toString();
   }
 
-  public void parse() {
+  public void parse() throws BadCommandArgumentsException {
     try {
       commander.parse(args);
     } catch (ParameterException e) {
       throw new BadCommandArgumentsException(e.toString() +
-                                             " with " + args.join(" "),
-                                             e)
+                                             " with " + HoyaUtils.join(actionArgs, " "),
+                                             e);
     }
   }
 
@@ -269,60 +302,66 @@ public class CommonArgs {
    * @return
    */
   public Map<String, List<Object>> getActions() {
-    return [:]
+    return Collections.emptyMap();
   }
 
 /**
  * validate args via {@link #validate()}
  * then postprocess the arguments
  */
-  public void postProcess() {
+  public void postProcess() throws BadCommandArgumentsException {
     validate();
-
-    definitions.each { prop ->
-      String[] keyval = ((String) prop).split("=", 2);
+    for (String prop:definitions) {
+      String[] keyval = prop.split("=", 2);
       if (keyval.length == 2) {
-        definitionMap[keyval[0]] = keyval[1];
+        definitionMap.put(keyval[0],keyval[1]);
       }
     }
   }
 
-  public void validate() {
-    if (parameters.size() == 0) {
+  /**
+   * Validate the arguments against the action requested
+   */
+  public void validate() throws BadCommandArgumentsException {
+    if (parameters.isEmpty()) {
       throw new BadCommandArgumentsException(ERROR_NO_ACTION
-                                                 + " in " + args.join(" ")
-                                                 + usage())
+                                                 + " in " + HoyaUtils.join(actionArgs, " ")
+                                                 + usage());
     }
     action = parameters.get(0);
-    log.debug("action=$action")
+    log.debug("action={}",action);
     Map<String, List<Object>> actionMap = getActions();
     List<Object> actionOpts = actionMap.get(action);
     if (null == actionOpts) {
       throw new BadCommandArgumentsException(ERROR_UNKNOWN_ACTION
                                                  + action
-                                                 + " in " + args.join(" ")
-                                                 + usage())
+                                                 + " in " + HoyaUtils.join(actionArgs, " ")
+                                                 + usage());
     }
-    assert actionOpts.size() >= 2
-    actionArgs = parameters.subList(1, parameters.size())
+    actionArgs = parameters.subList(1, parameters.size());
 
-    int minArgs = (Integer) actionOpts[1]
-    int actionArgSize = actionArgs.size()
+    int minArgs = (Integer) actionOpts.get(1);
+    int actionArgSize = actionArgs.size();
     log.debug("Action {} expected #args={} actual #args={}", action, minArgs, actionArgSize);
     if (minArgs > actionArgSize) {
       throw new BadCommandArgumentsException(ERROR_NOT_ENOUGH_ARGUMENTS + action
-                                                 + " in " + args.join(" "));
+                                                 + " in " + HoyaUtils.join(actionArgs, " "));
     }
-    int maxArgs = (actionOpts.size() == 3) ? ((Integer) actionOpts[2]) : minArgs
+    int maxArgs = (actionOpts.size() == 3) ? ((Integer) actionOpts.get(2)) : minArgs;
     if (actionArgSize > maxArgs) {
       throw new BadCommandArgumentsException(ERROR_TOO_MANY_ARGUMENTS + action
-                                                 + " in " + args.join(" "));
+                                                 + " in " + HoyaUtils.join(actionArgs, " "));
     }
   }
 
+  /**
+   * Apply all the definitions on the command line to the configuration
+   * @param conf config
+   */
   public void applyDefinitions(Configuration conf) {
-    definitionMap.each { key, val ->
-      conf.set(key.toString(), val.toString(), "command line");
+    for (String key : definitionMap.keySet()) {
+      String val = definitionMap.get(key);
+      conf.set(key, val, "command line");
     }
   }
 
@@ -332,10 +371,10 @@ public class CommonArgs {
    * @param conf configuration
    */
   public void applyFileSystemURL(Configuration conf) {
-    if (filesystemURL) {
+    if (filesystemURL != null) {
       //filesystem argument was set -this overwrites any defaults in the
       //configuration
-      HadoopFS.setDefaultUri(conf, filesystemURL);
+      FileSystem.setDefaultUri(conf, filesystemURL);
     }
   }
 }
