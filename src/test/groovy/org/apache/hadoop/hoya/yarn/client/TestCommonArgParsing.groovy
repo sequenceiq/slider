@@ -100,7 +100,7 @@ class TestCommonArgParsing {
    */
   private def baseArgs() {
     return [
-        CommonArgs.ARG_ZKQUORUM, "localhost",
+        CommonArgs.ARG_ZKHOSTS, "localhost",
         CommonArgs.ARG_ZKPORT, "8080",
     ]
   }

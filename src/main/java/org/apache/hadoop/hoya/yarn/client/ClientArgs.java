@@ -16,15 +16,19 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.client
+package org.apache.hadoop.hoya.yarn.client;
+import com.beust.jcommander.Parameter;
+import groovy.transform.CompileStatic;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hoya.tools.PathArgumentConverter;
+import org.apache.hadoop.hoya.yarn.CommonArgs;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
-import com.beust.jcommander.Parameter
-import groovy.transform.CompileStatic
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.Path
-import org.apache.hadoop.hoya.tools.PathArgumentConverter
-import org.apache.hadoop.hoya.yarn.CommonArgs
-import org.apache.hadoop.yarn.conf.YarnConfiguration
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Args list for JCommanderification
@@ -52,11 +56,11 @@ public class ClientArgs extends CommonArgs {
   public static final String FORMAT_XML = "xml";
   public static final String FORMAT_PROPERTIES = "properties";
 
-  @Parameter(names = "--amqueue", description = "Application Manager Queue Name")
+  @Parameter(names = ARG_AMQUEUE, description = "Application Manager Queue Name")
   public String amqueue = "default";
 
   //--format 
-  @Parameter(names = "--format", description = "format for a response text|xml|json|properties")
+  @Parameter(names = ARG_FORMAT, description = "format for a response text|xml|json|properties")
   public String format = FORMAT_XML;
 
   //--wait [timeout]
@@ -68,9 +72,9 @@ public class ClientArgs extends CommonArgs {
    * --image path
    the full path to a .tar or .tar.gz path containing an HBase image.
    */
-  @Parameter(names = "--image",
+  @Parameter(names = ARG_IMAGE,
       description = "the full path to a .tar or .tar.gz path containing an HBase image",
-      converter = PathArgumentConverter)
+      converter = PathArgumentConverter.class)
   public Path image;
 
   @Parameter(names = "--persist",
@@ -83,7 +87,7 @@ public class ClientArgs extends CommonArgs {
    * If the max no is not given it is assumed to be the same as the min no.
    */
 
-  private static final Map<String, List<Object>> ACTIONS;
+  private static final Map<String, List<Object>> ACTIONS = new HashMap<String, List<Object>>();
   static {
     ACTIONS.put(ACTION_ADDNODE, t("add nodes", 1, 1));
     ACTIONS.put(ACTION_CREATE, t("create cluster", 1));
@@ -119,7 +123,7 @@ public class ClientArgs extends CommonArgs {
   }
 
   @Override
-  void applyDefinitions(Configuration conf) {
+  public void applyDefinitions(Configuration conf) {
     super.applyDefinitions(conf);
     //RM
     if (manager != null) {

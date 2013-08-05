@@ -60,15 +60,18 @@ public class CommonArgs {
   public static final String ARG_MANAGER = "--manager";
   public static final String ARG_MASTERS = "--masters";
   public static final String ARG_MASTER_HEAP = "--masterheap";
+  public static final String ARG_MASTER_INFO_PORT = "--masterinfoport";
   public static final String ARG_NAME = "--name";
   public static final String ARG_OUTPUT = "--output";
   public static final String ARG_PATH = "--path";
+  public static final String ACTION_RMNODE = "rmnode";
   public static final String ARG_USER = "--user";
-  public static final String ARG_WORKERS = "--min";
+  public static final String ARG_WORKERS = "--workers";
   public static final String ARG_WORKER_HEAP = "--workerheap";
+  public static final String ARG_WORKER_INFO_PORT = "--workerinfoport";
 
   public static final String ARG_ZKPORT = "--zkport";
-  public static final String ARG_ZKQUORUM = "--zkhosts";
+  public static final String ARG_ZKHOSTS = "--zkhosts";
 
   public static final String ARG_X_TEST = "--Xtest";
   /** for testing only: {@value} */
@@ -103,61 +106,62 @@ public class CommonArgs {
   public static final String ACTION_PREFLIGHT = "preflight";
   public static final String ACTION_RECONFIGURE = "reconfigure";
   public static final String ACTION_REIMAGE = "reimage";
-  public static final String ACTION_RMNODE = "rmnode";
+  public static final String ARG_RESOURCE_MANAGER = "--rm";
   public static final String ACTION_START = "start";
   public static final String ACTION_STATUS = "status";
   public static final String ACTION_STOP = "stop";
 
   protected static final Logger log = LoggerFactory.getLogger(CommonArgs.class);
 
+
   @Parameter
   public List<String> parameters = new ArrayList<String>();
 
-  @Parameter(names = "--debug", description = "Debug mode")
+  @Parameter(names = ARG_DEBUG, description = "Debug mode")
   public boolean debug = false;
 
   /**
    *    Declare the image configuration directory to use when creating or reconfiguring a hoya cluster. The path must be on a filesystem visible to all nodes in the YARN cluster.
    Only one configuration directory can be specified.
    */
-  @Parameter(names = "--confdir",
+  @Parameter(names = ARG_CONFDIR,
       description = "path cluster configuration directory in HDFS",
       converter = PathArgumentConverter.class)
   Path confdir;
 
-  @Parameter(names = "--fs", description = "filesystem URI",
+  @Parameter(names = ARG_FILESYSTEM, description = "filesystem URI",
       converter = URIArgumentConverter.class)
   URI filesystemURL;
 
-  @Parameter(names = "--hbasehome",
+  @Parameter(names = ARG_HBASE_HOME,
       description = "HBase home dir for starting pre-installed binaries")
   public String hbasehome;
 
-  @Parameter(names = "--hbasezkpath",
+  @Parameter(names = ARG_HBASE_ZKPATH,
       description = "HBase Zookeeper path")
   public String hbasezkpath;
 
-  @Parameter(names = "--help", help = true)
+  @Parameter(names = ARG_HELP, help = true)
   public boolean help;
 
   //TODO: do we need this?
-  @Parameter(names = "--rm",
+  @Parameter(names = ARG_RESOURCE_MANAGER,
       description = "Resource manager hostname:port ",
       required = false)
   public String rmAddress;
 
-  @Parameter(names = "--Xtest", description = "Test mode")
+  @Parameter(names = ARG_X_TEST, description = "Test mode")
   public boolean xTest = false;
 
-  @Parameter(names = "--user",
+  @Parameter(names = ARG_USER,
       description = "username if not self")
   public String user = System.getProperty("user.name");
 
-  @Parameter(names = "--zkhosts",
-      description = "Zookeeper connection string")
+  @Parameter(names = ARG_ZKHOSTS,
+      description = "Zookeeper hosts")
   public String zkhosts;
 
-  @Parameter(names = "--zkport",
+  @Parameter(names = ARG_ZKPORT,
       description = "Zookeeper port")
   public int zkport = EnvMappings.HBASE_ZK_PORT;
 
@@ -176,43 +180,39 @@ public class CommonArgs {
   public Map<String, String> definitionMap = new HashMap<String, String>();
 
 
-  @Parameter(names = {"--m", "--manager"},
+  @Parameter(names = {"--m", ARG_MANAGER},
       description = "hostname:port of the YARN resource manager")
-  String manager;
+  public String manager;
 
-  @Parameter(names = {"--workers", "--min"}, description = "number of worker nodes")
+  @Parameter(names = {ARG_WORKERS, "--min"}, description = "number of worker nodes")
   public int workers = 0;
 
-  @Parameter(names = {"--masters"}, description = "number of master nodes")
+  @Parameter(names = {ARG_MASTERS}, description = "number of master nodes")
   public int masters = 1;
 
-  @Parameter(names = {"--masterheap"},
+  @Parameter(names = {ARG_MASTER_HEAP},
       description = "Master heap size in MB")
   public int masterHeap = 128;
 
   //--masterinfoport [port]
-  @Parameter(names = "--masterinfoport",
+  @Parameter(names = ARG_MASTER_INFO_PORT,
       description = "The web UI port that the Master should bind to")
   public int masterInfoPort = 0;
 
   //--workerinfoport [port]
-  @Parameter(names = "--workerinfoport",
+  @Parameter(names = ARG_WORKER_INFO_PORT,
       description = "The web UI port that the Workers should bind to")
   public int workerInfoPort = 0;
 
-  @Parameter(names = "--max",
-      description = "(ignored argument)")
-  public int max = -1;
-
-  @Parameter(names = {"-o", "--output"},
+  @Parameter(names = {ARG_OUTPUT,"-o"},
       description = "output file for the configuration data")
   public String output;
 
-  @Parameter(names = {"--workerheap", "--regionserverheap"},
+  @Parameter(names = {ARG_WORKER_HEAP, "--regionserverheap"},
       description = "Worker heap size in MB")
   public int workerHeap = 256;
 
-  @Parameter(names = "--Xhbase-master-command",
+  @Parameter(names =ARG_X_HBASE_MASTER_COMMAND,
       description = "testing only: hbase command to exec on the master")
   public String xHBaseMasterCommand = null;
 

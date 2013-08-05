@@ -381,7 +381,7 @@ implements KeysForTests, HoyaExitCodes {
         ClientArgs.ACTION_CREATE, clustername,
         CommonArgs.ARG_WORKERS, Integer.toString(size),
         ClientArgs.ARG_MANAGER, RMAddr,
-        CommonArgs.ARG_ZKQUORUM, ZKHosts,
+        CommonArgs.ARG_ZKHOSTS, ZKHosts,
         CommonArgs.ARG_ZKPORT, ZKPort.toString(),
         ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
         ClientArgs.ARG_FILESYSTEM, fsDefaultName,

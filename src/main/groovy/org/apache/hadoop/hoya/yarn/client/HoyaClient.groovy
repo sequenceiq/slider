@@ -267,7 +267,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
     if (serviceArgs.zkhosts == null) {
       throw new BadCommandArgumentsException("Required argument "
-                                                 + CommonArgs.ARG_ZKQUORUM
+                                                 + CommonArgs.ARG_ZKHOSTS
                                                  + " missing")
     }
     if (!serviceArgs.confdir) {
