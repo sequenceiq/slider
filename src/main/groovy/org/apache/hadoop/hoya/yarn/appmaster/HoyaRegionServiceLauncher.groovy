@@ -18,8 +18,6 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster
 
-import groovy.transform.CompileStatic
-import groovy.util.logging.Commons
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.HBaseCommands
 import org.apache.hadoop.hoya.HoyaKeys
@@ -38,37 +36,33 @@ import org.apache.hadoop.yarn.api.records.LocalResource
 import org.apache.hadoop.yarn.security.ContainerTokenIdentifier
 import org.apache.hadoop.yarn.util.ConverterUtils
 import org.apache.hadoop.yarn.util.Records
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 /**
  * Thread that runs on the AM to launch a region server.
- * In the Java examples these are usually non-static nested classes
- * of the AM. Groovy doesn't like non-static nested classes
- * -so this is isolated.
- * 
- * This could be brought back in to the AM by having a single method in the owner
- * to do everything, and have the runnable call it. For now: isolating things
  */
-@Commons
-@CompileStatic
-class HoyaRegionServiceLauncher implements Runnable {
-  final HoyaAppMaster owner
-  
-  // Allocated container
-  final Container container;
-  final String role;
+public class HoyaRegionServiceLauncher implements Runnable {
+  protected static final Logger log = LoggerFactory.getLogger(HoyaRegionServiceLauncher.class);
 
-  HoyaRegionServiceLauncher(HoyaAppMaster owner, Container container, String role) {
-    this.owner = owner
-    this.container = container
-    this.role = role
+  private final HoyaAppMaster owner;
+
+  // Allocated container
+  private final Container container;
+  private final String role;
+
+  public HoyaRegionServiceLauncher(HoyaAppMaster owner, Container container, String role) {
+    this.owner = owner;
+    this.container = container;
+    this.role = role;
   }
 
   @Override
   void run() {
-    
+
     UserGroupInformation user =
       UserGroupInformation.createRemoteUser(container.getId().toString());
-    String cmIpPortStr = "$container.nodeId.host:$container.nodeId.port";
+    String cmIpPortStr = container.getNodeId().getHost() + ":" + container.getNodeId().getPort();
     final InetSocketAddress cmAddress = NetUtils.createSocketAddr(cmIpPortStr);
 
     Token<ContainerTokenIdentifier> token =
@@ -77,9 +71,9 @@ class HoyaRegionServiceLauncher implements Runnable {
 
     // Connect to ContainerManager
     PrivilegedConnectToCM action = new PrivilegedConnectToCM(owner,
-                                                             cmAddress)
-    ContainerManagementProtocol containerManager = (ContainerManagementProtocol) user.doAs(action)
-    log.debug("Setting up container launch container for containerid=$container.id");
+                                                             cmAddress);
+    ContainerManagementProtocol containerManager = (ContainerManagementProtocol) user.doAs(action);
+    log.debug("Setting up container launch container for containerid={}", container.getId());
 
     ContainerLaunchContext ctx = Records
         .newRecord(ContainerLaunchContext.class);
@@ -92,80 +86,72 @@ class HoyaRegionServiceLauncher implements Runnable {
 
 */
     //now build up the configuration data    
-    
+
     // Set the environment
-    Map<String, String> env = [:]
+    Map<String, String> env = new HashMap<String, String>();
 //    env[EnvMappings.ENV_HBASE_OPTS] = ConfigHelper.build_JVM_opts(env);
-    env["HBASE_LOG_DIR"] = owner.buildHBaseContainerLogdir();
+    env.put("HBASE_LOG_DIR", owner.buildHBaseContainerLogdir());
 
     ctx.setEnvironment(env);
     //local resources
-    Map<String, LocalResource> localResources = [:];
-
+    Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
 
     //add the configuration resources
-    Path generatedConfPath = new Path(owner.DFSConfDir)
+    Path generatedConfPath = new Path(owner.getDFSConfDir());
     Map<String, LocalResource> confResources;
-    confResources = YarnUtils.submitDirectory(owner.clusterFS,
+    org.apache.hadoop.fs.FileSystem fs = owner.getClusterFS()
+    confResources = YarnUtils.submitDirectory(fs,
                                               generatedConfPath,
-                                              HoyaKeys.PROPAGATED_CONF_DIR_NAME)
-    localResources.putAll(confResources)
-    
-    //Add binaries
-    ClusterDescription clusterSpec = owner.clusterDescription
-    //now add the image if it was set
-    if (clusterSpec.imagePath) {
-      Path imagePath = new Path(clusterSpec.imagePath)
-      log.info("using image path $imagePath")
-      HoyaUtils.maybeAddImagePath(owner.clusterFS, localResources, imagePath)
-    }
-    ctx.setLocalResources(localResources)
+                                              HoyaKeys.PROPAGATED_CONF_DIR_NAME);
+    localResources.putAll(confResources);
 
-    def command = []
+    //Add binaries
+    ClusterDescription clusterSpec = owner.clusterDescription;
+    //now add the image if it was set
+    if (clusterSpec.imagePath != null) {
+      Path imagePath = new Path(clusterSpec.imagePath)
+      log.info("using image path {}", imagePath);
+      HoyaUtils.maybeAddImagePath(fs, localResources, imagePath);
+    }
+    ctx.setLocalResources(localResources);
+
+    List<String> command = new ArrayList<String>();
     //this must stay relative if it is an image
-    command << owner.buildHBaseBinPath(clusterSpec).toString()
+    command.add(owner.buildHBaseBinPath(clusterSpec).toString());
 
     //config dir is relative to the generated file
-    command << HBaseCommands.ARG_CONFIG
-
-
-    command << HoyaKeys.PROPAGATED_CONF_DIR_NAME;
-    
-    
+    command.add(HBaseCommands.ARG_CONFIG);
+    command.add(HoyaKeys.PROPAGATED_CONF_DIR_NAME);
     //role is region server
-    assert role
-    command << role
-    command << HBaseCommands.ACTION_START
-    
+    command.add(role);
+    command.add(HBaseCommands.ACTION_START);
+
     //log details
-    command << "1>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/out.txt";
-    command << "2>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/err.txt";
+    command.add("1>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/out.txt");
+    command.add("2>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/err.txt");
 
-    String cmdStr = command.join(" ")
+    String cmdStr = HoyaUtils.join(command, " ");
 
-    ctx.commands = [cmdStr]
-    log.info("Starting container with command: $cmdStr");
-    env.each { String k, String v ->
-      log.debug("$k=$v")
+    List<String> commands = new ArrayList<String>();
+    commands.add(cmdStr);
+    ctx.setCommands(commands);
+    log.info("Starting container with command: {}", cmdStr);
+
+    ClusterNode node = new ClusterNode();
+    List<String> nodeEnv = new ArrayList<String>();
+    for (Map.Entry<String, LocalResource> entry : localResources) {
+
+      String key = entry.getKey();
+      LocalResource val = entry.getValue();
+      String envElt = key + "=" + YarnUtils.stringify(val.getResource());
+      nodeEnv.add(envElt);
+      log.info(envElt);
     }
-
-    ClusterNode node = new ClusterNode()
-    List<String> nodeEnv = []
-    localResources.each { String key, LocalResource val ->
-      String envElt = "$key=${YarnUtils.stringify(val.resource)}".toString()
-      nodeEnv << envElt
-      log.info(envElt)
-    }
-    node.command = cmdStr
-    node.name = container.id.toString()
-    node.role = role
-    node.environment = nodeEnv.toArray(new String[nodeEnv.size()])
-
-
-    owner.startContainer(container, ctx, node)
+    node.command = cmdStr;
+    node.name = container.getId().toString();
+    node.role = role;
+    node.environment = nodeEnv.toArray(new String[nodeEnv.size()]);
+    owner.startContainer(container, ctx, node);
   }
-
-
-
 
 }
