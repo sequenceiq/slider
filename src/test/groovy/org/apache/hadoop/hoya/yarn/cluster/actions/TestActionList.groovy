@@ -22,6 +22,7 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.exceptions.HoyaException
+import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
@@ -51,7 +52,7 @@ class TestActionList extends YarnMiniClusterTestBase {
         new YarnConfiguration(miniCluster.config),
         //varargs list of command line params
         [
-            ClientArgs.ACTION_LIST,
+            HoyaActions.ACTION_LIST,
             ClientArgs.ARG_MANAGER, RMAddr
         ]
     )
@@ -67,7 +68,7 @@ class TestActionList extends YarnMiniClusterTestBase {
         new YarnConfiguration(miniCluster.config),
         //varargs list of command line params
         [
-            ClientArgs.ACTION_LIST,
+            HoyaActions.ACTION_LIST,
             ClientArgs.ARG_MANAGER, RMAddr,
             ClientArgs.ARG_USER,""
         ]
@@ -88,7 +89,7 @@ class TestActionList extends YarnMiniClusterTestBase {
         new YarnConfiguration(miniCluster.config),
         //varargs list of command line params
         [
-            ClientArgs.ACTION_LIST,
+            HoyaActions.ACTION_LIST,
         ]
     )
     assert launcher.serviceExitCode == 0
@@ -107,7 +108,7 @@ class TestActionList extends YarnMiniClusterTestBase {
         new YarnConfiguration(miniCluster.config),
         //varargs list of command line params
         [
-            ClientArgs.ACTION_LIST, clustername
+            HoyaActions.ACTION_LIST, clustername
         ]
     )
 
@@ -128,7 +129,7 @@ class TestActionList extends YarnMiniClusterTestBase {
           new YarnConfiguration(miniCluster.config),
           //varargs list of command line params
           [
-              ClientArgs.ACTION_LIST,
+              HoyaActions.ACTION_LIST,
               "testStatusMissingCluster"
           ]
       )

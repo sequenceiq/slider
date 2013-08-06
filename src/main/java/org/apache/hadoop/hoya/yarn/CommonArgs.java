@@ -46,7 +46,7 @@ import java.util.Map;
  * in the range allowed
  */
 
-public class CommonArgs {
+public class CommonArgs implements HoyaActions {
 
   public static final String ARG_ACTION = "--action";
   public static final String ARG_CONFDIR = "--confdir";
@@ -87,29 +87,8 @@ public class CommonArgs {
    */
   public static final String ERROR_TOO_MANY_ARGUMENTS = "Too many arguments for action: ";
 
-  /**
-   * Actions.
-   * Only some of these are supported by specific Hoya Services; they
-   * are listed in the common args to ensure the names are consistent
-   */
-  public static final String ACTION_ADDNODE = "addnode";
-  public static final String ACTION_CREATE = "create";
-  public static final String ACTION_DESTROY = "destroy";
-  public static final String ACTION_GETSIZE = "getsize";
-  public static final String ACTION_FLEX = "flex";
-  public static final String ACTION_GETCONF = "getconf";
-  public static final String ACTION_HELP = "help";
-  public static final String ACTION_EXISTS = "exists";
-  public static final String ACTION_LIST = "list";
 
-  public static final String ACTION_MIGRATE = "migrate";
-  public static final String ACTION_PREFLIGHT = "preflight";
-  public static final String ACTION_RECONFIGURE = "reconfigure";
-  public static final String ACTION_REIMAGE = "reimage";
   public static final String ARG_RESOURCE_MANAGER = "--rm";
-  public static final String ACTION_START = "start";
-  public static final String ACTION_STATUS = "status";
-  public static final String ACTION_STOP = "stop";
 
   protected static final Logger LOG = LoggerFactory.getLogger(CommonArgs.class);
 

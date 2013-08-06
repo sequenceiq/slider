@@ -18,8 +18,6 @@
 
 package org.apache.hadoop.hoya.yarn.client
 
-import groovy.transform.CompileStatic
-import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher

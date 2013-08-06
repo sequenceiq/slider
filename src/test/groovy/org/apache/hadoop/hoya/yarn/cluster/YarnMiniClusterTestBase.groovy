@@ -41,6 +41,7 @@ import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.tools.YarnUtils
 import org.apache.hadoop.hoya.yarn.CommonArgs
+import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.MicroZKCluster
 import org.apache.hadoop.hoya.yarn.ZKIntegration
@@ -276,7 +277,7 @@ implements KeysForTests, HoyaExitCodes {
    * Get the arguments needed to point to HBase for these tests
    * @return
    */
-  public List getHBaseImageCommands() {
+  public List<String> getHBaseImageCommands() {
     if (switchToImageDeploy) {
       assert HBaseArchive
       File f = new File(HBaseArchive)
@@ -378,7 +379,7 @@ implements KeysForTests, HoyaExitCodes {
     }
 
     List<String> argsList = [
-        ClientArgs.ACTION_CREATE, clustername,
+        HoyaActions.ACTION_CREATE, clustername,
         CommonArgs.ARG_WORKERS, Integer.toString(size),
         ClientArgs.ARG_MANAGER, RMAddr,
         CommonArgs.ARG_ZKHOSTS, ZKHosts,
@@ -424,7 +425,7 @@ implements KeysForTests, HoyaExitCodes {
     assert miniCluster != null
 
     List<String> argsList = [
-        ClientArgs.ACTION_START, clustername,
+        HoyaActions.ACTION_START, clustername,
         ClientArgs.ARG_MANAGER, RMAddr,
         ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
         ClientArgs.ARG_FILESYSTEM, fsDefaultName,

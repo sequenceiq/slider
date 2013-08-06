@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.client
 import groovy.transform.CompileStatic
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
 import org.apache.hadoop.hoya.yarn.CommonArgs
+import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.junit.Assert
 import org.junit.Test
 
@@ -32,20 +33,20 @@ class TestCommonArgParsing {
 
   @Test
   public void testCreateActionArgs() throws Throwable {
-    ClientArgs clientArgs = createClientArgs([ClientArgs.ACTION_CREATE, 'cluster1'])
+    ClientArgs clientArgs = createClientArgs([HoyaActions.ACTION_CREATE, 'cluster1'])
     assert clientArgs.clusterName == 'cluster1'
   }
 
   @Test
   public void testCreateFailsNoClustername() throws Throwable {
-    assertParseFails([ClientArgs.ACTION_CREATE])
+    assertParseFails([HoyaActions.ACTION_CREATE])
 
   }
 
   @Test
   public void testCreateFailsTwoClusternames() throws Throwable {
     assertParseFails([
-        ClientArgs.ACTION_CREATE,
+        HoyaActions.ACTION_CREATE,
         "c1",
         "c2",
       ])
@@ -54,20 +55,20 @@ class TestCommonArgParsing {
 
   @Test
   public void testListNoClusternames() throws Throwable {
-    ClientArgs clientArgs = createClientArgs([ClientArgs.ACTION_LIST])
+    ClientArgs clientArgs = createClientArgs([HoyaActions.ACTION_LIST])
     assert clientArgs.clusterName == null
   }
 
   @Test
   public void testList1Clustername() throws Throwable {
-    ClientArgs clientArgs = createClientArgs([ClientArgs.ACTION_LIST, 'cluster1'])
+    ClientArgs clientArgs = createClientArgs([HoyaActions.ACTION_LIST, 'cluster1'])
     assert clientArgs.clusterName == 'cluster1'
   }
 
   @Test
   public void testListFailsTwoClusternames() throws Throwable {
     assertParseFails([
-        ClientArgs.ACTION_LIST,
+        HoyaActions.ACTION_LIST,
         "c1",
         "c2",
       ])

@@ -91,7 +91,7 @@ class TestVersionFromArchiveOnHDFS extends YarnMiniClusterTestBase {
   }
 
 
-  public List getHBaseImageCommands() {
+  public List<String> getHBaseImageCommands() {
     [CommonArgs.ARG_IMAGE, uploadedImage]
   }
 

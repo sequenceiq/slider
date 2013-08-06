@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.hoya.yarn.cluster.actions
 
-import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.client.ClientArgs

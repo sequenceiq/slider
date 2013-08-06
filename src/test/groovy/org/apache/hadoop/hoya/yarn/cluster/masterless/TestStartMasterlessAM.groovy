@@ -26,6 +26,7 @@ import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.CommonArgs
+import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
@@ -85,7 +86,7 @@ class TestStartMasterlessAM extends YarnMiniClusterTestBase {
       ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
           createConfiguration(),
           [
-              CommonArgs.ACTION_START,
+              HoyaActions.ACTION_START,
               "no-cluster-of-this-name",
               ClientArgs.ARG_FILESYSTEM, fsDefaultName,
           ])

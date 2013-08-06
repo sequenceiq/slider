@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.client
 import groovy.transform.CompileStatic
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.yarn.CommonArgs
+import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
 import org.junit.Test
 
@@ -51,7 +52,7 @@ class TestClientBadArgs extends ServiceLauncherBaseTest {
     launchExpectingException(HoyaClient,
                              new Configuration(),
                              CommonArgs.ERROR_NOT_ENOUGH_ARGUMENTS,
-                             [ClientArgs.ACTION_START])
+                             [HoyaActions.ACTION_START])
   }
 
   @Test
@@ -59,7 +60,7 @@ class TestClientBadArgs extends ServiceLauncherBaseTest {
     launchExpectingException(HoyaClient,
                              new Configuration(),
                              CommonArgs.ERROR_TOO_MANY_ARGUMENTS,
-                             [ClientArgs.ACTION_HELP,
+                             [HoyaActions.ACTION_HELP,
                              "hello, world"])
   }
   @Test
@@ -67,7 +68,7 @@ class TestClientBadArgs extends ServiceLauncherBaseTest {
     launchExpectingException(HoyaClient,
                              new Configuration(),
                              "Expected a value after parameter",
-                            [ ClientArgs.ACTION_HELP,
+                            [HoyaActions.ACTION_HELP,
                              CommonArgs.ARG_IMAGE])
   }
 
