@@ -94,4 +94,5 @@ public interface HoyaKeys {
   String CLUSTER_SPECIFICATION_FILE = "cluster.json";
 
   int MIN_HEAP_SIZE = 0;
+  String HBASE_LOG_DIR = "HBASE_LOG_DIR";
 }

@@ -33,7 +33,8 @@ import org.apache.zookeeper.data.Stat
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * ZK logic exists here, including the location of various services
+ * This is a class used to register Hoya instances in ZK
+ * As of Aug 2013 it is not in active use.
  */
 @Commons
 @CompileStatic

@@ -42,7 +42,7 @@ import java.util.TreeSet;
  * with other parts of setting up Hoya-initated processes
  */
 @CompileStatic
-class ConfigHelper {
+public class ConfigHelper {
   private static final Logger log = LoggerFactory.getLogger(HoyaUtils.class);
 
   public static final FsPermission CONF_DIR_PERMISSION =

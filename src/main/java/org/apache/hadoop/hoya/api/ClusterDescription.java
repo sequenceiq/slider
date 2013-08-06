@@ -26,9 +26,10 @@ import org.apache.hadoop.fs.Path;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -43,6 +44,8 @@ import java.util.Map;
  * the code paths are simplified.
  */
 public class ClusterDescription {
+  protected static final Logger
+    log = LoggerFactory.getLogger(ClusterDescription.class);
 
   private static final String UTF_8 = "UTF-8";
 
@@ -287,7 +290,11 @@ public class ClusterDescription {
   public static ClusterDescription fromJson(String json)
     throws IOException, JsonParseException, JsonMappingException {
     ObjectMapper mapper = new ObjectMapper();
-    ClusterDescription cd = mapper.readValue(json, ClusterDescription.class);
-    return cd;
+    try {
+      return mapper.readValue(json, ClusterDescription.class);
+    } catch (IOException e) {
+      log.error("Exception while parsing json : " + e + "\n" + json, e);
+      throw e;
+    }
   }
 }

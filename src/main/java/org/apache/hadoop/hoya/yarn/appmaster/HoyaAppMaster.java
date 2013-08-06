@@ -21,7 +21,6 @@ package org.apache.hadoop.hoya.yarn.appmaster;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hoya.HBaseCommands;
-import org.apache.hadoop.hoya.HoyaApp;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
@@ -279,7 +278,6 @@ public class HoyaAppMaster extends CompositeService
 
   public HoyaAppMaster() {
     super("HoyaMasterService");
-    new HoyaApp("HoyaMasterService");
   }
 
 /* =================================================================== */

@@ -27,7 +27,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hoya.HoyaApp;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
@@ -117,8 +116,6 @@ public final class HoyaClient extends YarnClientImpl implements RunService, Hoya
    * Entry point from the service launcher
    */
   public HoyaClient() {
-    //any app-wide actions
-    new HoyaApp("HoyaClient");
   }
 
   /**
@@ -1417,7 +1414,7 @@ public final class HoyaClient extends YarnClientImpl implements RunService, Hoya
     //now see if it is actually running and bail out if not
     verifyManagerSet();
     ApplicationReport instance = findInstance(getUsername(), clustername);
-    if (null==instance) {
+    if (instance!=null) {
       log.info("Flexing running cluster to size {}",workers);
       HoyaAppMasterProtocol appMaster = connect(instance);
       if (appMaster.flexNodes(workers)) {
@@ -1446,7 +1443,9 @@ public final class HoyaClient extends YarnClientImpl implements RunService, Hoya
     try {
       return ClusterDescription.fromJson(statusJson);
     } catch (JsonParseException e) {
-      log.error("Exception "+e+" parsing:\n" + JsonOutput.prettyPrint(statusJson), e);
+      log.error(
+        "Exception " + e + " parsing:\n" + JsonOutput.prettyPrint(statusJson),
+        e);
       throw e;
     }
   }
