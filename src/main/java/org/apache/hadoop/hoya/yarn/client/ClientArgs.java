@@ -127,7 +127,7 @@ public class ClientArgs extends CommonArgs {
     super.applyDefinitions(conf);
     //RM
     if (manager != null) {
-      log.debug("Setting RM to {}", manager);
+      LOG.debug("Setting RM to {}", manager);
       conf.set(YarnConfiguration.RM_ADDRESS, manager);
     }
   }

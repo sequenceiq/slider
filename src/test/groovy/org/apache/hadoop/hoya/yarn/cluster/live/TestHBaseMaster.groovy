@@ -49,7 +49,7 @@ class TestHBaseMaster extends YarnMiniClusterTestBase {
     assert ZKHosts == status.zkHosts
     assert ZKPort == status.zkPort
     
-    dumpFullHBaseConf(hoyaClient, clustername)
+    //dumpFullHBaseConf(hoyaClient, clustername)
 
     basicHBaseClusterStartupSequence(hoyaClient, clustername)
     

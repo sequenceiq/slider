@@ -495,7 +495,7 @@ implements KeysForTests, HoyaExitCodes {
   public void waitForAppToFinish(HoyaClient hoyaClient) {
     if (!hoyaClient.monitorAppToCompletion(new Duration(WAIT_TIME))) {
       log.info("Forcibly killing application")
-      hoyaClient.forceKillApplication();
+      hoyaClient.forceKillApplication("timed out waiting for application to complete");
     }
   }
 

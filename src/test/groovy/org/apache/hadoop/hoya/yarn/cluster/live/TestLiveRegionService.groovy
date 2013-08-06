@@ -29,7 +29,7 @@ import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
 /**
- * Test of RM creation. This is so the later test's prereq's can be met
+ * test create a live region service
  */
 @CompileStatic
 @Commons
@@ -67,8 +67,5 @@ class TestLiveRegionService extends YarnMiniClusterTestBase {
 
     clusterActionStop(hoyaClient, clustername)
   }
-
-
-
 
 }

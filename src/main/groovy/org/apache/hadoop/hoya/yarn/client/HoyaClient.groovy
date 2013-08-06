@@ -22,7 +22,6 @@ import com.beust.jcommander.JCommander;
 import com.google.common.annotations.VisibleForTesting;
 import groovy.json.JsonOutput;
 import groovy.transform.CompileStatic;
-import groovy.util.logging.Commons;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileSystem as HadoopFS;
@@ -68,7 +67,8 @@ import org.apache.hadoop.yarn.service.launcher.ServiceLauncher;
 import org.apache.hadoop.yarn.util.Records;
 import org.codehaus.jackson.JsonParseException
 import org.slf4j.Logger
-import org.slf4j.LoggerFactory;
+import org.slf4j.LoggerFactory
+import org.slf4j.impl.Log4jLoggerAdapter;
 ;
 import java.nio.ByteBuffer;
 
@@ -151,73 +151,52 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     //choose the action
     String action = serviceArgs.action;
     int exitCode = EXIT_SUCCESS;
-    String clusterName = serviceArgs.clusterName;
+    String clusterName = serviceArgs.getClusterName();
     //actions
-    switch(action) {
-
-      case ClientArgs.ACTION_CREATE:
-        validateClusterName(clusterName);
-        exitCode = actionCreate(clusterName);
-        break;
-
-      case ClientArgs.ACTION_DESTROY:
+    if (ClientArgs.ACTION_CREATE.equals(action)) {
+      validateClusterName(clusterName);
+      exitCode = actionCreate(clusterName);
+    } else if (ClientArgs.ACTION_DESTROY.equals(action)) {
         validateClusterName(clusterName);
         exitCode = actionDestroy(clusterName);
-        break;
+    } else if (ClientArgs.ACTION_EXISTS.equals(action)) {
+      validateClusterName(clusterName);
+      exitCode = actionExists(clusterName);
+    } else if (ClientArgs.ACTION_FLEX.equals(action)) {
+      validateClusterName(clusterName)
+      exitCode = actionFlex(clusterName,
+                            serviceArgs.workers,
+                            serviceArgs.masters,
+                            serviceArgs.persist);
+    } else if (ClientArgs.ACTION_GETCONF.equals(action)) {
+      File outfile = null;
+      if (serviceArgs.output != null) {
+        outfile = new File(serviceArgs.output);
+      }
+      exitCode = actionGetConf(clusterName,
+                               serviceArgs.format,
+                               outfile);
+    } else if (ClientArgs.ACTION_HELP.equals(action)) {
+      log.info("HoyaClient {}", serviceArgs.usage());
 
-      case CommonArgs.ACTION_EXISTS:
-        validateClusterName(clusterName)
-        exitCode = actionExists(clusterName)
-        break;
-
-      case CommonArgs.ACTION_FLEX:
-        validateClusterName(clusterName)
-        exitCode = actionFlex(clusterName,
-                              serviceArgs.workers,
-                              serviceArgs.masters,
-                              serviceArgs.persist)
-        break;
-
-      case CommonArgs.ACTION_GETCONF:
+    } else if (ClientArgs.ACTION_LIST.equals(action)) {
+      if (!isUnset(clusterName)) {
         validateClusterName(clusterName);
-        File outfile = null;
-        if (serviceArgs.output != null) {
-          outfile = new File(serviceArgs.output);
-        }
-        exitCode = actionGetConf(clusterName,
-                                 serviceArgs.format,
-                                 outfile);
-        break;
-
-      case ClientArgs.ACTION_HELP:
-        log.info("HoyaClient {}", serviceArgs.usage());
-        break;
-
-      case CommonArgs.ACTION_LIST:
-        if (clusterName != null) {
-          validateClusterName(clusterName);
-        }
-        exitCode = actionList(clusterName);
-        break;
-
-      case ClientArgs.ACTION_START:
-        exitCode = actionStart(clusterName);
-        break;
-
-      case ClientArgs.ACTION_STATUS:
-        validateClusterName(clusterName)
-        exitCode = actionStatus(clusterName);
-        break;
-
-      case ClientArgs.ACTION_STOP:
-        validateClusterName(clusterName);
-        exitCode = actionStop(clusterName, 0);
-        break;
-
-      default:
-        throw new HoyaException(EXIT_UNIMPLEMENTED,
-                                "Unimplemented: " + action);
+      }
+      exitCode = actionList(clusterName);
+    } else if (ClientArgs.ACTION_START.equals(action)) {
+      exitCode = actionStart(clusterName);
+    } else if (ClientArgs.ACTION_STATUS.equals(action)) {
+      validateClusterName(clusterName);
+      exitCode = actionStatus(clusterName);
+    } else if (ClientArgs.ACTION_DESTROY.equals(action)) {
+      validateClusterName(clusterName);
+      exitCode = actionStop(clusterName, 0);
+    } else  {
+      throw new HoyaException(EXIT_UNIMPLEMENTED,
+                              "Unimplemented: " + action); 
     }
+      
     return exitCode;
   }
 
@@ -240,7 +219,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     verifyNoLiveClusters(clustername);
 
     //create the directory path
-    Path clusterDirectory = HoyaUtils.createHoyaClusterDirPath(clusterFS, clustername);
+    Path clusterDirectory = HoyaUtils.createHoyaClusterDirPath(getClusterFS(), clustername);
     //delete the directory;
     clusterFS.delete(clusterDirectory, true)
 
@@ -267,28 +246,29 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     verifyFileSystemArgSet();
     verifyManagerSet();
 
-    if (serviceArgs.zkhosts == null) {
+    if (isUnset(serviceArgs.zkhosts)) {
       throw new BadCommandArgumentsException("Required argument "
                                                  + CommonArgs.ARG_ZKHOSTS
                                                  + " missing");
     }
-    if (!serviceArgs.confdir) {
-      throw new BadCommandArgumentsException("Missing argument ${CommonArgs.ARG_CONFDIR}");
+    if (serviceArgs.confdir==null) {
+      throw new BadCommandArgumentsException("Missing argument "
+                                                 +CommonArgs.ARG_CONFDIR);
     }
     
     //verify that a live cluster isn't there
-    verifyNoLiveClusters(clustername)
+    verifyNoLiveClusters(clustername);
     
     //build up the initial cluster specification
     ClusterDescription clusterSpec = new ClusterDescription();
-    clusterSpec.name = clustername;;
-    clusterSpec.state = ClusterDescription.STATE_INCOMPLETE;;
-    clusterSpec.createTime = System.currentTimeMillis();;
+    clusterSpec.name = clustername;
+    clusterSpec.state = ClusterDescription.STATE_INCOMPLETE;
+    clusterSpec.createTime = System.currentTimeMillis();
     int workers = serviceArgs.workers;
     int workerHeap = serviceArgs.workerHeap;
     validateNodeAndHeapValues("worker",workers, workerHeap);
     clusterSpec.workers = workers;
-    clusterSpec.workerHeap = workerHeap;;
+    clusterSpec.workerHeap = workerHeap;
     int masters = serviceArgs.masters;
     int masterHeap = serviceArgs.masterHeap;
     int masterInfoPort = serviceArgs.masterInfoPort;
@@ -303,33 +283,36 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     clusterSpec.workerInfoPort = workerInfoPort;
 
     //HBase home or image
-    if (serviceArgs.image) {
-      if (serviceArgs.hbasehome) {
+    if ((serviceArgs.image) != null) {
+      if (!isUnset(serviceArgs.hbasehome)) {
         //both args have been set
-        throw new BadCommandArgumentsException("only one of ${ClientArgs.ARG_IMAGE} and ${CommonArgs.ARG_HBASE_HOME} can be provided");
+        throw new BadCommandArgumentsException("only one of "
+                                                   + ClientArgs.ARG_IMAGE
+                                                   + " and " + CommonArgs.ARG_HBASE_HOME + " can be provided");
       }
       clusterSpec.imagePath = serviceArgs.image;
     } else {
       //the alternative is HBase home, which now MUST be set
-      if (!serviceArgs.hbasehome) {
+      if (isUnset(serviceArgs.hbasehome)) {
         //both args have been set
-        throw new BadCommandArgumentsException("Either ${ClientArgs.ARG_IMAGE} or ${CommonArgs.ARG_HBASE_HOME} must be provided");
+        throw new BadCommandArgumentsException("Either " + ClientArgs.ARG_IMAGE
+                                                   + " or " + CommonArgs.ARG_HBASE_HOME +" must be provided");
       }
       clusterSpec.hbaseHome = serviceArgs.hbasehome;
     }
 
     //set up the ZK binding
     String zookeeperRoot = serviceArgs.hbasezkpath;
-    if (serviceArgs.hbasezkpath == null) {
-      zookeeperRoot = "/yarnapps_${appName}_${username}_${clustername}";
+    if (isUnset(serviceArgs.hbasezkpath)) {
+      zookeeperRoot = "/yarnapps_" + getAppName() + "_" + getUsername() + "_" + clustername;
     }
     clusterSpec.zkPath = zookeeperRoot;
     clusterSpec.zkPort = serviceArgs.zkport;
-    clusterSpec.zkHosts = serviceArgs.zkhosts
+    clusterSpec.zkHosts = serviceArgs.zkhosts;
 
     //build up the paths in the DFS
 
-    Path clusterDirectory = HoyaUtils.createHoyaClusterDirPath(clusterFS, clustername);
+    Path clusterDirectory = HoyaUtils.createHoyaClusterDirPath(getClusterFS(), clustername);
     Path origConfPath = new Path(clusterDirectory, HoyaKeys.ORIG_CONF_DIR_NAME);
     Path generatedConfPath = new Path(clusterDirectory, HoyaKeys.GENERATED_CONF_DIR_NAME);
     Path clusterSpecPath = new Path(clusterDirectory, HoyaKeys.CLUSTER_SPECIFICATION_FILE);
@@ -337,7 +320,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     clusterSpec.generatedConfigurationPath = generatedConfPath.toUri().toASCIIString();
     //save the specification to get a lock on this cluster name
     try {
-      clusterSpec.save(clusterFS, clusterSpecPath, false);
+      clusterSpec.save(getClusterFS(), clusterSpecPath, false);
     } catch (FileAlreadyExistsException fae) {
       throw new HoyaException(EXIT_BAD_CLUSTER_STATE,
                               clustername + ": " + E_ALREADY_EXISTS + " :" + clusterSpecPath);
@@ -350,9 +333,9 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
     //bulk copy
     //first the original from wherever to the DFS
-    HoyaUtils.copyDirectory(config, serviceArgs.confdir, origConfPath);
+    HoyaUtils.copyDirectory(getConfig(), serviceArgs.confdir, origConfPath);
     //then build up the generated path
-    HoyaUtils.copyDirectory(config, origConfPath, generatedConfPath);
+    HoyaUtils.copyDirectory(getConfig(), origConfPath, generatedConfPath);
 
     //HBase
     Path hBaseRootPath = new Path(clusterDirectory, HoyaKeys.HBASE_DATA_DIR_NAME);
@@ -365,15 +348,14 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   
     //check for debug mode
     if (serviceArgs.xTest) {
-      clusterSpec.flags[CommonArgs.ARG_X_TEST] = "true";
+      clusterSpec.flags.put(CommonArgs.ARG_X_TEST, "true");
     }
     
     //here the configuration is set up. Mark the 
     clusterSpec.state = ClusterDescription.STATE_SUBMITTED;
-    clusterSpec.save(clusterFS, clusterSpecPath, true);
-    //here is where all the work is done
-   
+    clusterSpec.save(getClusterFS(), clusterSpecPath, true);
     
+    //here is where all the work is done
     return executeClusterCreation(clusterSpec);
   }
 
@@ -387,7 +369,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   
   
   public void verifyManagerSet() {
-    InetSocketAddress rmAddr = YarnUtils.getRmAddress(config);
+    InetSocketAddress rmAddr = YarnUtils.getRmAddress(getConfig());
     if (! YarnUtils.isAddressDefined(rmAddr)) {
       throw new BadCommandArgumentsException(
           "No valid Resource Manager adddress provided in the argument "
@@ -405,7 +387,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   public int executeClusterCreation(ClusterDescription clusterSpec) {
 
     //verify that a live cluster isn't there;
-    final String clustername = clusterSpec.name;
+    String clustername = clusterSpec.name;
     validateClusterName(clustername);
     verifyNoLiveClusters(clustername);
     //make sure it is valid;
@@ -415,8 +397,9 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     Path origConfPath = createPathThatMustExist(clusterSpec.originConfigurationPath)
 
     Path imagePath;
-    if (clusterSpec.imagePath) {
-      imagePath = createPathThatMustExist(clusterSpec.imagePath);
+    String csip = clusterSpec.imagePath
+    if (!isUnset(csip)) {
+      imagePath = createPathThatMustExist(csip);
     } else {
       imagePath = null;
       if (!clusterSpec.hbaseHome) {
@@ -426,19 +409,20 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     }
     
     YarnClientApplication application = createApplication();
-    ApplicationSubmissionContext appContext = application.applicationSubmissionContext;
-    ApplicationId appId = appContext.applicationId;
+    ApplicationSubmissionContext appContext = application.getApplicationSubmissionContext();
+    ApplicationId appId = appContext.getApplicationId();
     // set the application name;
-    appContext.applicationName = clustername;
+    appContext.setApplicationName(clustername);
     //app type used in service enum;
-    appContext.applicationType = HoyaKeys.APP_TYPE;
+    appContext.setApplicationType(HoyaKeys.APP_TYPE);
 
-    if (clusterSpec.flags[CommonArgs.ARG_X_TEST]) {
+    if (clusterSpec.flags.get(CommonArgs.ARG_X_TEST)!=null) {
       //test flag set
-      appContext.maxAppAttempts = 1;
+      appContext.setMaxAppAttempts(1);
     }
 
-    Path tempPath = HoyaUtils.createHoyaAppInstanceTempPath(clusterFS,
+    org.apache.hadoop.fs.FileSystem hdfs = getClusterFS()
+    Path tempPath = HoyaUtils.createHoyaAppInstanceTempPath(hdfs,
                                                             clustername,
                                                             appId.toString());
 
@@ -449,9 +433,9 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     // set local resources for the application master
     // local files or archives as needed
     // In this scenario, the jar file for the application master is part of the local resources			
-    Map<String, LocalResource> localResources = [:];
+    Map<String, LocalResource> localResources = new HashMap<String, LocalResource>()
 
-    if (!usingMiniMRCluster) {
+    if (!getUsingMiniMRCluster()) {
       //the assumption here is that minimr cluster => this is a test run
       //and the classpath can look after itself
 
@@ -460,21 +444,34 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
       // Create a local resource to point to the destination jar path 
       String bindir = "";
       //add this class
-      localResources["hoya.jar"] = submitJarWithClass(this.class,
+      localResources.put("hoya.jar",  submitJarWithClass(this.class,
                                                       tempPath,
                                                       bindir,
-                                                      "hoya.jar");
+                                                      "hoya.jar"));
       //add lib classes that don't come automatically with YARN AM classpath
       String libdir = bindir + "lib/";
-      localResources["groovayll.jar"] = submitJarWithClass(GroovyObject.class,
+      localResources.put("groovayll.jar", submitJarWithClass(GroovyObject.class,
                                                            tempPath,
                                                            libdir,
-                                                           "groovayll.jar");
+                                                           "groovayll.jar"));
 
-      localResources["jcommander.jar"] = submitJarWithClass(JCommander.class,
+      localResources.put("jcommander.jar", submitJarWithClass(JCommander.class,
                                                             tempPath,
                                                             libdir,
-                                                            "jcommander.jar");
+                                                            "jcommander.jar"));
+      
+
+      localResources.put("slf4j.jar", submitJarWithClass(Logger.class,
+                                                            tempPath,
+                                                            libdir,
+                                                            "slf4j.jar"));
+      
+      localResources.put("slf4j-log4j.jar", submitJarWithClass(Log4jLoggerAdapter.class,
+                                                            tempPath,
+                                                            libdir,
+                                                            "slf4j-log4j.jar"));
+      
+      
 /*
       localResources["ant.jar"] = submitJarWithClass(JCommander.class, tempPath,
                                                      libdir,
@@ -491,6 +488,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
     //now load the template configuration and build the site. Note that the 
     //use the original configuration when the cluster was first started..)
+    Configuration config = getConfig()
     Configuration templateConf = ConfigHelper.loadTemplateConfiguration(config,
                                                                         origConfPath,
                                                                         HoyaKeys.HBASE_TEMPLATE,
@@ -502,7 +500,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     ConfigHelper.addConfigMap(templateConf, clusterConfMap);
 
     //dump them @info
-    if (log.debugEnabled) {
+    if (log.isDebugEnabled()) {
       ConfigHelper.dumpConf(templateConf);
     }
 
@@ -517,20 +515,20 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
     log.debug("Saving the config to {}",sitePath);
     Map<String, LocalResource> confResources;
-    confResources = YarnUtils.submitDirectory(clusterFS,
+    confResources = YarnUtils.submitDirectory(hdfs,
                                               genConfPath,
                                               HoyaKeys.PROPAGATED_CONF_DIR_NAME);
     localResources.putAll(confResources);
     
     //now add the image if it was set
-    if (HoyaUtils.maybeAddImagePath(clusterFS, localResources, imagePath)) {
+    if (HoyaUtils.maybeAddImagePath(hdfs, localResources, imagePath)) {
       log.debug("Registered image path {}",imagePath);
     }
     
     if (log.isDebugEnabled()) {
       for (String key in localResources.keySet()) {
         LocalResource val = localResources.get(key);
-        log.debug("{}={}", key,YarnUtils.stringify(val.resource));
+        log.debug("{}={}", key,YarnUtils.stringify(val.getResource()));
       }
     }
 
@@ -553,12 +551,12 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 */
 
     // Set local resource info into app master container launch context
-    amContainer.localResources = localResources;
-    def env = [:];
+    amContainer.setLocalResources(localResources);
+    Map<String, String> env = new HashMap<String, String>();
 
-    env['CLASSPATH'] = buildClasspath();
+    env.put("CLASSPATH", buildClasspath());
 
-    amContainer.environment = env;
+    amContainer.setEnvironment(env);
 
     String rmAddr = serviceArgs.rmAddress;
     //spec out the RM address
@@ -567,101 +565,96 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     }
 
     //build up the args list, intially as anyting
-    List commands = [];
-    commands << ApplicationConstants.Environment.JAVA_HOME.$() + "/bin/java";
-    //insert any JVM options;
-    commands << HoyaKeys.JAVA_FORCE_IPV4;;
-    commands << HoyaKeys.JAVA_HEADLESS;;
-    //add the generic sevice entry point;
-    commands << ServiceLauncher.ENTRY_POINT;
-    //immeiately followed by the classname;
-    commands << HoyaMasterServiceArgs.CLASSNAME;
-    //now the app specific args;
-    commands << HoyaMasterServiceArgs.ARG_DEBUG;
-    commands << HoyaMasterServiceArgs.ACTION_CREATE;
-    commands << clustername;
-    //min #of nodes;
-    commands << HoyaMasterServiceArgs.ARG_WORKERS;
-    commands << (Integer) clusterSpec.workers;
-    commands << HoyaMasterServiceArgs.ARG_WORKER_HEAP;
-    commands << (Integer) clusterSpec.workerHeap;
-    commands << HoyaMasterServiceArgs.ARG_MASTERS;
-    commands << (Integer) clusterSpec.masters;
-    commands << HoyaMasterServiceArgs.ARG_MASTER_HEAP;
-    commands << (Integer) clusterSpec.masterHeap;
+    List<String> commands = new ArrayList<String>(20);
+    commands.add(ApplicationConstants.Environment.JAVA_HOME.$() + "/bin/java");
+    //insert any JVM options);
+    commands.add(HoyaKeys.JAVA_FORCE_IPV4);
+    commands.add(HoyaKeys.JAVA_HEADLESS);
+    //add the generic sevice entry point
+    commands.add(ServiceLauncher.ENTRY_POINT);
+    //immeiately followed by the classname
+    commands.add(HoyaMasterServiceArgs.CLASSNAME);
+    //now the app specific args
+    commands.add(HoyaMasterServiceArgs.ARG_DEBUG);
+    commands.add(HoyaMasterServiceArgs.ACTION_CREATE);
+    commands.add(clustername);
+    //min #of nodes
+    commands.add(HoyaMasterServiceArgs.ARG_WORKERS);
+    commands.add(Integer.toString(clusterSpec.workers));
+    commands.add(HoyaMasterServiceArgs.ARG_WORKER_HEAP);
+    commands.add(Integer.toString(clusterSpec.workerHeap));
+    commands.add(HoyaMasterServiceArgs.ARG_MASTERS);
+    commands.add(Integer.toString(clusterSpec.masters));
+    commands.add(HoyaMasterServiceArgs.ARG_MASTER_HEAP);
+    commands.add(Integer.toString(clusterSpec.masterHeap));
 
 
     if (rmAddr) {
-      commands << HoyaMasterServiceArgs.ARG_RM_ADDR;
-      commands << rmAddr;
+      commands.add( HoyaMasterServiceArgs.ARG_RM_ADDR);
+      commands.add( rmAddr);
     }
 
     //now conf dir path -fileset in the DFS
-    commands << HoyaMasterServiceArgs.ARG_GENERATED_CONFDIR;
-    commands << clusterSpec.generatedConfigurationPath;
-;
+    commands.add( HoyaMasterServiceArgs.ARG_GENERATED_CONFDIR);
+    commands.add( clusterSpec.generatedConfigurationPath);
+
     String hbaseHome = clusterSpec.hbaseHome;
     if (imagePath) {
-      commands << HoyaMasterServiceArgs.ARG_IMAGE;
-      commands << imagePath.toString();
+      commands.add( HoyaMasterServiceArgs.ARG_IMAGE);
+      commands.add( imagePath.toString());
     } else {
       //HBase home
-      commands << HoyaMasterServiceArgs.ARG_HBASE_HOME;
-      commands << hbaseHome;
+      commands.add( HoyaMasterServiceArgs.ARG_HBASE_HOME);
+      commands.add( hbaseHome);
     }
-    String xHBaseMasterCommand = clusterSpec.xHBaseMasterCommand
+    String xHBaseMasterCommand = clusterSpec.xHBaseMasterCommand;
     if (xHBaseMasterCommand) {
       //explicit hbase command set
-      commands << CommonArgs.ARG_X_HBASE_MASTER_COMMAND;
-      commands << xHBaseMasterCommand;
+      commands.add( CommonArgs.ARG_X_HBASE_MASTER_COMMAND);
+      commands.add( xHBaseMasterCommand);
     }
-    if (clusterSpec.flags[CommonArgs.ARG_X_TEST]) {
+    if (clusterSpec.flags.get(CommonArgs.ARG_X_TEST) != null) {
       //test flag set
-      commands << CommonArgs.ARG_X_TEST;
+      commands.add( CommonArgs.ARG_X_TEST);
     }
     if (serviceArgs.filesystemURL) {
-      commands << HoyaMasterServiceArgs.ARG_FILESYSTEM;
-      commands << serviceArgs.filesystemURL;
+      commands.add( HoyaMasterServiceArgs.ARG_FILESYSTEM);
+      commands.add( serviceArgs.filesystemURL.toString());
     }
 
     //path in FS can be unqualified
-    commands << HoyaMasterServiceArgs.ARG_PATH;
-    commands << "services/hoya/";
-    commands << "1>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/out.txt";
-    commands << "2>${ApplicationConstants.LOG_DIR_EXPANSION_VAR}/err.txt";
+    commands.add( HoyaMasterServiceArgs.ARG_PATH);
+    commands.add( "services/hoya/");
+    commands.add( "1>"+ApplicationConstants.LOG_DIR_EXPANSION_VAR+"/out.txt");
+    commands.add( "2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR +"/err.txt");
 
     String cmdStr = HoyaUtils.join(commands, " ");
     log.info("Completed setting up app master command {}",cmdStr);
-    //sanity check: no null entries are allowed
-    commands.each { assert it != null }
-    //uses the star-dot operator to apply the tostring method to all elements
-    //of the array, returnigna new array
-    List<String> commandListStr = commands*.toString();
 
-    amContainer.commands = commandListStr;
+    amContainer.setCommands(commands);
     // Set up resource type requirements
-    // For now, only memory is supported so we set memory requirements
     Resource capability = Records.newRecord(Resource.class);
-    capability.memory = amMemory;
-    appContext.resource = capability;
+    capability.setMemory(amMemory);
+    capability.setVirtualCores(1);
+    appContext.setResource(capability);
     Map<String, ByteBuffer> serviceData = new HashMap<String, ByteBuffer>();
     // Service data is a binary blob that can be passed to the application
     // Not needed in this scenario
-    amContainer.serviceData = serviceData;
+    amContainer.setServiceData(serviceData);
 
     // The following are not required for launching an application master 
     // amContainer.setContainerId(containerId);
 
-    appContext.AMContainerSpec = amContainer;
+    appContext.setAMContainerSpec(amContainer);
 
     // Set the priority for the application master
     Priority pri = Records.newRecord(Priority.class);
     // TODO - what is the range for priority? how to decide? 
-    pri.priority = amPriority;
-    appContext.priority = pri;
+    pri.setPriority(amPriority);
+    appContext.setPriority(pri);
 
     // Set the queue to which this application is to be submitted in the RM
-    appContext.queue = amQueue;
+    appContext.setQueue(amQueue);
 
     // Submit the application to the applications manager
     // SubmitApplicationResponse submitResp = applicationsManager.submitApplication(appRequest);
@@ -690,10 +683,10 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
         duration.start()
         report = monitorAppToState(duration,
                                    YarnApplicationState.RUNNING);
-        if (report && report.yarnApplicationState == YarnApplicationState.RUNNING) {
+        if (report && report.getYarnApplicationState()==YarnApplicationState.RUNNING) {
           exitCode = EXIT_SUCCESS;
         } else {
-          killRunningApplication(appId);
+          killRunningApplication(appId, "");
           exitCode = buildExitCode(appId, report);
         }
       }
@@ -710,11 +703,11 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    */
   public void validateNodeAndHeapValues(String name, int count, int heap) {
     if (count < 0) {
-      throw new BadCommandArgumentsException("requested no of $name nodes is too low: $count");
+      throw new BadCommandArgumentsException("requested no of "+name+" nodes is too low: "+count);
     }
     
     if (heap < HoyaKeys.MIN_HEAP_SIZE) {
-      throw new BadCommandArgumentsException("requested heap size of $name nodes is too low: $count");
+      throw new BadCommandArgumentsException("requested heap size of " + name + " nodes is too low: " + count);
     }
     
   }
@@ -769,7 +762,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   private LocalResource submitJarWithClass(Class clazz, Path tempPath, String subdir, String jarName)
         throws IOException, HoyaException{
     File localFile = HoyaUtils.findContainingJar(clazz);
-    if (!localFile) {
+    if (null==localFile) {
       throw new FileNotFoundException("Could not find JAR containing " + clazz);
     }
     LocalResource resource = submitFile(localFile, tempPath, subdir, jarName);
@@ -788,35 +781,25 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    */
   private LocalResource submitFile(File localFile, Path tempPath, String subdir, String destFileName) throws IOException {
     Path src = new Path(localFile.toString());
-    Path destPath = new Path(tempPath, "${subdir}$destFileName")
-    // new Path(hdfs.homeDirectory, subPath);
+    Path destPath = new Path(tempPath, subdir+destFileName);
 
     clusterFS.copyFromLocalFile(false, true, src, destPath);
 
     // Set the type of resource - file or archive
     // archives are untarred at destination
     // we don't need the jar file to be untarred for now
-    LocalResource resource = YarnUtils.createAmResource(clusterFS,
+    LocalResource resource = YarnUtils.createAmResource(getClusterFS(),
                                destPath,
                                LocalResourceType.FILE)
-    return resource
+    return resource;
   }
-
-  /**
-   * Create an AM resource from the 
-   * @param hdfs HDFS or other filesystem in use
-   * @param destPath dest path in filesystem
-   * @param resourceType resource type
-   * @return the resource set up wih application-level visibility and the
-   * timestamp & size set from the file stats.
-   */
   
   /**
    * Get the filesystem of this cluster
    * @return the FS of the config
    */
   private HadoopFS getClusterFS() {
-    return HadoopFS.get(serviceArgs.filesystemURL, config);
+    return HadoopFS.get(serviceArgs.filesystemURL, getConfig());
   }
 
   /**
@@ -826,13 +809,13 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    */
   private void verifyValidClusterSize(int requiredNumber) {
     if (requiredNumber == 0) {
-      return
+      return;
     }
-    int nodeManagers = yarnClusterMetrics.numNodeManagers
+    int nodeManagers = getYarnClusterMetrics().getNumNodeManagers();
     if (nodeManagers < requiredNumber) {
       throw new BadConfigException("Not enough nodes in the cluster:" +
-                                   " need $requiredNumber" +
-                                   " -but there are only $nodeManagers nodes");
+                                   " need "+requiredNumber +
+                                   " -but there are only "+nodeManagers+" nodes");
     }
   }
   
@@ -854,7 +837,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     } else {
       classPathEnv.append(ApplicationConstants.Environment.CLASSPATH.$())
           .append(File.pathSeparatorChar).append("./*");
-      for (String c : config.getStrings(
+      for (String c : getConfig().getStrings(
           YarnConfiguration.YARN_APPLICATION_CLASSPATH,
           YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH)) {
         classPathEnv.append(File.pathSeparatorChar);
@@ -885,17 +868,17 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    */
   @VisibleForTesting
   public Map<String, String> buildConfMapFromServiceArguments(ClusterDescription clusterSpec) {
-    Map<String, String> envMap = [
-        (EnvMappings.KEY_HBASE_CLUSTER_DISTRIBUTED): "true",
-        (EnvMappings.KEY_HBASE_MASTER_PORT): "0",
-        (EnvMappings.KEY_HBASE_MASTER_INFO_PORT): clusterSpec.masterInfoPort.toString(),
-        (EnvMappings.KEY_HBASE_ROOTDIR): clusterSpec.hbaseDataPath,
-        (EnvMappings.KEY_REGIONSERVER_INFO_PORT): clusterSpec.workerInfoPort.toString(),
-        (EnvMappings.KEY_REGIONSERVER_PORT): "0",
-        (EnvMappings.KEY_ZNODE_PARENT): clusterSpec.zkPath,
-        (EnvMappings.KEY_ZOOKEEPER_PORT): clusterSpec.zkPort.toString(),
-        (EnvMappings.KEY_ZOOKEEPER_QUORUM): clusterSpec.zkHosts,
-    ]
+    Map<String, String> envMap = new HashMap<String, String>()
+
+    envMap.put(EnvMappings.KEY_HBASE_CLUSTER_DISTRIBUTED, "true");
+    envMap.put(EnvMappings.KEY_HBASE_MASTER_PORT, "0");
+    envMap.put(EnvMappings.KEY_HBASE_MASTER_INFO_PORT, clusterSpec.masterInfoPort.toString());
+    envMap.put(EnvMappings.KEY_HBASE_ROOTDIR, clusterSpec.hbaseDataPath);
+    envMap.put(EnvMappings.KEY_REGIONSERVER_INFO_PORT, clusterSpec.workerInfoPort.toString());
+    envMap.put(EnvMappings.KEY_REGIONSERVER_PORT, "0");
+    envMap.put(EnvMappings.KEY_ZNODE_PARENT, clusterSpec.zkPath);
+    envMap.put(EnvMappings.KEY_ZOOKEEPER_PORT, clusterSpec.zkPort.toString());
+    envMap.put(EnvMappings.KEY_ZOOKEEPER_QUORUM, clusterSpec.zkHosts);
     return envMap;
   }
 
@@ -933,13 +916,6 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
                              YarnApplicationState.RUNNING);
   }
 
-  private boolean maybeKillApp(ApplicationReport report) {
-    if (!report) {
-      log.debug("Reached client specified timeout for application. Killing application");
-      forceKillApplication();
-    }
-    return false;
-  }
   /**
    * Build an exit code for an application Id and its report.
    * If the report parameter is null, the app is killed
@@ -948,14 +924,13 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * @return the exit code
    */
   private int buildExitCode(ApplicationId appId, ApplicationReport report) {
-    if (!report) {
-      log.info("Reached client specified timeout for application. Killing application");
-      forceKillApplication();
+    if (null==report) {
+      forceKillApplication("Reached client specified timeout for application");
       return EXIT_TIMED_OUT;
     }
 
-    YarnApplicationState state = report.yarnApplicationState;
-    FinalApplicationStatus dsStatus = report.finalApplicationStatus;
+    YarnApplicationState state = report.getYarnApplicationState();
+    FinalApplicationStatus dsStatus = report.getFinalApplicationStatus();
     switch (state) {
       case YarnApplicationState.FINISHED:
         if (FinalApplicationStatus.SUCCEEDED == dsStatus) {
@@ -1023,15 +998,14 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
       ApplicationReport r = getApplicationReport(appId);
 
-      log.info("Got application r from ASM for, appId={}, appDiagnostics={}, appMasterHost={}, appQueue={}, appMasterRpcPort={}, appStartTime={}, yarnAppState={}, distributedFinalState={}, appTrackingUrl={}, appUser={}",
-               appId, r.diagnostics, r.host, r.queue, r.rpcPort, r.startTime, r.yarnApplicationState, r.finalApplicationStatus, r.trackingUrl, r.user);
+      logAppReport(r);
 
-      YarnApplicationState state = r.yarnApplicationState;
+      YarnApplicationState state = r.getYarnApplicationState();
       if (state >= desiredState) {
         log.debug("App in desired state (or higher) :{},state");
         return r;
       }
-      if (duration.limitExceeded) {
+      if (duration.getLimitExceeded()) {
         return null;
       }
 
@@ -1049,10 +1023,10 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * @throws YarnException
    * @throws IOException
    */
-  public boolean forceKillApplication()
+  public boolean forceKillApplication(String reason)
         throws YarnException, IOException {
     if (applicationId != null) {
-      killRunningApplication(applicationId);
+      killRunningApplication(applicationId, reason);
       return true;
     }
     return false;
@@ -1065,10 +1039,10 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * @throws YarnException YARN problems
    * @throws IOException IO problems
    */
-  private KillApplicationResponse killRunningApplication(ApplicationId applicationId) throws
+  private KillApplicationResponse killRunningApplication(ApplicationId applicationId, String reason) throws
       YarnException,
       IOException {
-    log.info("Killing application {}", applicationId);
+    log.info("Killing application {} - {}", applicationId.clusterTimestamp, reason);
     KillApplicationRequest request =
       Records.newRecord(KillApplicationRequest.class);
     request.setApplicationId(applicationId);
@@ -1082,13 +1056,13 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    */
   @VisibleForTesting
   public List<ApplicationReport> listHoyaInstances(String user)
-    throws YarnException, IOException {
+        throws YarnException, IOException {
     List<ApplicationReport> allApps = getApplications();
-    List<ApplicationReport> results = [];
-    allApps.each { ApplicationReport report ->
-      if (   report.applicationType == HoyaKeys.APP_TYPE
-          && (!user || user == report.user)) {
-        results << report;
+    List<ApplicationReport> results = new ArrayList<ApplicationReport>();
+    for (ApplicationReport report: allApps) {
+      if (report.getApplicationType() == HoyaKeys.APP_TYPE
+          && (user==null || user == report.getUser())) {
+        results.add(report);
       }
     }
     return results;
@@ -1105,7 +1079,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     String user = serviceArgs.user;
     List<ApplicationReport> instances = listHoyaInstances(user);
 
-    if (!clustername) {
+    if (clustername==null || clustername.isEmpty()) {
       log.info("Hoya instances for {}:{}",user ? user : 'all users', instances.size());
       for (ApplicationReport report in instances) {
         logAppReport(report);
@@ -1115,8 +1089,8 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
       validateClusterName(clustername);
       log.debug("Listing cluster named {}",clustername);
       ApplicationReport report = findClusterInInstanceList(instances, clustername);
-      if (report) {
-        logAppReport(report)
+      if (report != null) {
+        logAppReport(report);
         return EXIT_SUCCESS;
       } else {
         throw unknownClusterException(clustername);
@@ -1125,12 +1099,12 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   }
 
   public void logAppReport(ApplicationReport r) {
-    log.info("Name        : {}", r.name);
-    log.info("YARN status : {}", r.yarnApplicationState);
-    log.info("Start Time  : {}", r.startTime);
-    log.info("Finish Time : {}", r.startTime);
-    log.info("RPC         : {}:{}", r.host, r.rpcPort);
-    log.info("Diagnostics : {}", r.diagnostics);
+    log.info("Name        : {}", r.getName());
+    log.info("YARN status : {}", r.getYarnApplicationState());
+    log.info("Start Time  : {}", r.getStartTime());
+    log.info("Finish Time : {}", r.getFinishTime());
+    log.info("RPC         : {}:{}", r.getHost(), r.getRpcPort());
+    log.info("Diagnostics : {}", r.getDiagnostics());
   }
 
   /**
@@ -1142,7 +1116,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   public int actionExists(String name) {
     verifyManagerSet();
     ApplicationReport instance = findInstance(getUsername(), name);
-    if (!instance) {
+    if (instance==null) {
       throw unknownClusterException(name);
     }
     return EXIT_SUCCESS;
@@ -1164,9 +1138,13 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   @VisibleForTesting
   public Collection<ApplicationReport> findAllInstances(String user, String appname) {
     List<ApplicationReport> instances = listHoyaInstances(user);
-    return instances.findAll { ApplicationReport report ->
-      report.name == appname;
+    List<ApplicationReport> results = new ArrayList<ApplicationReport>(instances.size());
+    for (ApplicationReport report:instances) {
+      if (report.getName().equals(appname)) {
+        results.add(report);
+      }
     }
+    return results;
   }
 
   /**
@@ -1179,21 +1157,25 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   @VisibleForTesting
   public Collection<ApplicationReport> findAllLiveInstances(String user, String appname) {
     List<ApplicationReport> instances = listHoyaInstances(user);
-    return instances.findAll { ApplicationReport app ->
-      app.name == appname &&
-      app.yarnApplicationState <= YarnApplicationState.RUNNING;
+    List<ApplicationReport> results = new ArrayList<ApplicationReport>(instances.size());
+    for (ApplicationReport app : instances) {
+      if (app.getName().equals(appname) 
+          && app.getYarnApplicationState() <= YarnApplicationState.RUNNING) {
+        results.add(app);
+      }
     }
+    return results;
+
   }
 
   public ApplicationReport findClusterInInstanceList(List<ApplicationReport> instances, String appname) {
     ApplicationReport found = null;
     ApplicationReport foundAndLive = null;
-    
-    instances.each { ApplicationReport report ->
-      if (report.name == appname) {
-        found = report;
-        if (report.yarnApplicationState<=YarnApplicationState.RUNNING) {
-          foundAndLive = report;
+    for (ApplicationReport app: instances) {
+      if (app.getName().equals(appname)) {
+        found = app;
+        if (app.getYarnApplicationState()<=YarnApplicationState.RUNNING) {
+          foundAndLive = app;
         }
       }
     }
@@ -1204,15 +1186,15 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   }
 
   @VisibleForTesting
-  public HoyaAppMasterProtocol connect(ApplicationReport report) {
-    String host = report.host;
-    int port = report.rpcPort;
-    String address= report.host + ":" + port;
-    if (!host || !port ) {
+  public HoyaAppMasterProtocol connect(ApplicationReport app) {
+    String host = app.getHost();
+    int port = app.getRpcPort();
+    String address= host + ":" + port;
+    if (host==null || 0==port ) {
       throw new HoyaException(EXIT_CONNECTIVTY_PROBLEM,
-                              "Hoya instance $report.name isn't" +
+                              "Hoya instance "+app.getName()+" isn't" +
                               " providing a valid address for the" +
-                              " Hoya RPC protocol: <$address>")
+                              " Hoya RPC protocol: "+ address);
     }
     InetSocketAddress addr = NetUtils.createSocketAddrForHost(host, port);
     log.debug("Connecting to Hoya Server at {}",addr);
@@ -1224,7 +1206,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
                         NetUtils.getDefaultSocketFactory(getConfig()),
                         15000,
                         null);
-    HoyaAppMasterProtocol hoyaServer = protoProxy.proxy;
+    HoyaAppMasterProtocol hoyaServer = protoProxy.getProxy();
     return hoyaServer;
   }
   /**
@@ -1248,15 +1230,15 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
   public int actionStop(String clustername, int waittime) {
     verifyManagerSet();
     validateClusterName(clustername);
-    ApplicationReport instance = findInstance(getUsername(), clustername);
-    if (!instance) {
+    ApplicationReport app = findInstance(getUsername(), clustername);
+    if (!app) {
       //exit early
       return EXIT_SUCCESS;
     }
-    HoyaAppMasterProtocol appMaster = connect(instance)
+    HoyaAppMasterProtocol appMaster = connect(app)
     appMaster.stopCluster();
     if (waittime > 0) {
-      monitorAppToState(instance.applicationId,
+      monitorAppToState(app.getApplicationId(),
                         YarnApplicationState.FINISHED,
                         new Duration(waittime));
     }
@@ -1281,26 +1263,19 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
       writer = new StringWriter();
       toPrint = true;
     };
-    String description = "HBase cluster $clustername";
-    switch (format) {
-
-    //extract the config
-      case ClientArgs.FORMAT_XML:
-        Configuration siteConf = new Configuration(false);
-        status.hBaseClientProperties.each { String key, String val ->
-          siteConf.set(key, val, description);
-        }
-        siteConf.writeXml(writer)
-        break
-      case ClientArgs.FORMAT_PROPERTIES:
-        Properties props = new Properties();
-        status.hBaseClientProperties.each { String key, String val ->
-          props[key] = val;
-        }
-        props.store(writer, description);
-        break;
-      default:
-        throw new BadCommandArgumentsException("Unknown format: $format");
+    String description = "Hoya cluster "+clustername;
+    if (format.equals(ClientArgs.FORMAT_XML)) {
+      Configuration siteConf = new Configuration(false);
+      status.hBaseClientProperties.each { String key, String val ->
+        siteConf.set(key, val, description);
+      }
+      siteConf.writeXml(writer) 
+    } else if (format.equals(ClientArgs.FORMAT_PROPERTIES)) {
+      Properties props = new Properties();
+      props.putAll(status.hBaseClientProperties);
+      props.store(writer, description);
+    } else {
+        throw new BadCommandArgumentsException("Unknown format: "+format);
     }
     //data is written.
     //close the file
@@ -1309,7 +1284,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     if (toPrint) {
       System.out.println(writer.toString());
     } 
-    return EXIT_SUCCESS
+    return EXIT_SUCCESS;
   }
 
   /**
@@ -1320,7 +1295,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     validateClusterName(clustername);
     verifyFileSystemArgSet();
     Path clusterSpecPath = locateClusterSpecification(clustername);
-    ClusterDescription clusterSpec = ClusterDescription.load(clusterFS, clusterSpecPath);
+    ClusterDescription clusterSpec = ClusterDescription.load(getClusterFS(), clusterSpecPath);
     //spec is loaded, just look at its state
     verifySpecificationValidity(clusterSpecPath, clusterSpec);
     //now see if it is actually running and bail out;
@@ -1348,9 +1323,9 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
    * @throws HoyaException if the specification is not there
    */
   public Path locateClusterSpecification(String clustername) {
-    Path clusterDirectory = HoyaUtils.createHoyaClusterDirPath(clusterFS, clustername);
+    Path clusterDirectory = HoyaUtils.createHoyaClusterDirPath(getClusterFS(), clustername);
     Path clusterSpecPath = new Path(clusterDirectory, HoyaKeys.CLUSTER_SPECIFICATION_FILE);
-    if (!clusterFS.exists(clusterSpecPath)) {
+    if (!getClusterFS().exists(clusterSpecPath)) {
       log.debug("Missing cluster specification file {}", clusterSpecPath);
       throw new HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER,
                               E_UNKNOWN_CLUSTER + clustername +
@@ -1373,9 +1348,9 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
       throw new BadCommandArgumentsException("Requested number of workers is out of range");
     }
     if (persist) {
-      Path clusterDirectory = HoyaUtils.createHoyaClusterDirPath(clusterFS, clustername);
+      Path clusterDirectory = HoyaUtils.createHoyaClusterDirPath(getClusterFS(), clustername);
       Path clusterSpecPath = locateClusterSpecification(clustername);
-      ClusterDescription clusterSpec = ClusterDescription.load(clusterFS, clusterSpecPath);;
+      ClusterDescription clusterSpec = ClusterDescription.load(getClusterFS(), clusterSpecPath);;
       //spec is loaded, just look at its state;
       verifySpecificationValidity(clusterSpecPath, clusterSpec);
 
@@ -1383,9 +1358,9 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
  
       if (clusterSpec.workers != workers) {
         clusterSpec.workers = workers;
-        if (!HoyaUtils.updateClusterSpecification(clusterFS, clusterDirectory, clusterSpecPath, clusterSpec)) {;
+        if (!HoyaUtils.updateClusterSpecification(getClusterFS(), clusterDirectory, clusterSpecPath, clusterSpec)) {;
           log.warn("Failed to save new cluster size to {}",clusterSpecPath);
-        };
+        }
         //there is no live instance, nothing to do;
         log.info("New cluster size: {} persisted",workers);
       } else {
@@ -1470,7 +1445,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
         state = master.state;
         live = state >= ClusterDescription.STATE_LIVE;
         }
-      if (!live && !duration.limitExceeded) {
+      if (!live && !duration.getLimitExceeded()) {
         try {
           Thread.sleep(1000);
         } catch (InterruptedException ignored) {
@@ -1484,7 +1459,7 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
 
   public HoyaException unknownClusterException(String clustername) {
     return new HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER,
-                            "Hoya cluster not found: '${clustername}' ");
+                            "Hoya cluster not found: '"+clustername+"' ");
   }
 
 /*
@@ -1494,5 +1469,11 @@ class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCodes {
     return getApplications(null);
   }
 */
-  
+
+  /**
+   * Implementation of set-ness, groovy definition of true/false for a string
+   * @param s
+   * @return
+   */
+  private static boolean isUnset(String s) { return s ==null || s.isEmpty();}
 }

@@ -111,7 +111,7 @@ public class CommonArgs {
   public static final String ACTION_STATUS = "status";
   public static final String ACTION_STOP = "stop";
 
-  protected static final Logger log = LoggerFactory.getLogger(CommonArgs.class);
+  protected static final Logger LOG = LoggerFactory.getLogger(CommonArgs.class);
 
 
   @Parameter
@@ -127,11 +127,11 @@ public class CommonArgs {
   @Parameter(names = ARG_CONFDIR,
       description = "path cluster configuration directory in HDFS",
       converter = PathArgumentConverter.class)
-  Path confdir;
+  public Path confdir;
 
   @Parameter(names = ARG_FILESYSTEM, description = "filesystem URI",
       converter = URIArgumentConverter.class)
-  URI filesystemURL;
+  public URI filesystemURL;
 
   @Parameter(names = ARG_HBASE_HOME,
       description = "HBase home dir for starting pre-installed binaries")
@@ -329,7 +329,7 @@ public class CommonArgs {
                                                  + usage());
     }
     action = parameters.get(0);
-    log.debug("action={}",action);
+    LOG.debug("action={}", action);
     Map<String, List<Object>> actionMap = getActions();
     List<Object> actionOpts = actionMap.get(action);
     if (null == actionOpts) {
@@ -342,7 +342,8 @@ public class CommonArgs {
 
     int minArgs = (Integer) actionOpts.get(1);
     int actionArgSize = actionArgs.size();
-    log.debug("Action {} expected #args={} actual #args={}", action, minArgs, actionArgSize);
+    LOG.debug("Action {} expected #args={} actual #args={}", action, minArgs,
+              actionArgSize);
     if (minArgs > actionArgSize) {
       throw new BadCommandArgumentsException(ERROR_NOT_ENOUGH_ARGUMENTS + action
                                                  + " in " + HoyaUtils.join(actionArgs, " "));
