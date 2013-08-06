@@ -1019,7 +1019,7 @@ public final class HoyaClient extends YarnClientImpl implements RunService, Hoya
 
       YarnApplicationState state = r.getYarnApplicationState();
       if (state.ordinal() >= desiredState.ordinal()) {
-        log.debug("App in desired state (or higher) :{},state");
+        log.debug("App in desired state (or higher) :{}",state);
         return r;
       }
       if (duration.getLimitExceeded()) {

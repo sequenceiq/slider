@@ -27,13 +27,16 @@ import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
-/**
- * Create a master against the File:// fs
- */
+
 //@CompileStatic
 @Commons
 class TestTwoLiveClusters extends YarnMiniClusterTestBase {
 
+  /**
+   * Create two clusters simultaneously and verify that their lifecycle is
+   * independent.
+   * @throws Throwable
+   */
   @Test
   public void testTwoLiveClusters() throws Throwable {
     createMiniCluster("TestTwoLiveClusters", createConfiguration(), 1, true)
