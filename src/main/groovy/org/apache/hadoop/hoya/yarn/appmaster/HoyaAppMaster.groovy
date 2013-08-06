@@ -519,7 +519,7 @@ class HoyaAppMaster extends CompositeService
   }
 
   public String getDFSConfDir() {
-    return serviceArgs.getGeneratedConfdir();
+    return serviceArgs.generatedConfdir;
   }
 
   /**

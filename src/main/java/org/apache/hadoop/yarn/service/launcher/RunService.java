@@ -41,7 +41,7 @@ public interface RunService {
    * @param args argument list
    * @throws IOException any problem
    */
-  void setArgs(String...args) throws IOException;
+  void setArgs(String...args) throws Exception;
   
   /**
    * Run a service
