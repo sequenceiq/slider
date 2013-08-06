@@ -18,10 +18,14 @@
 
 
 
-package org.apache.hadoop.hoya.yarn.appmaster
+package org.apache.hadoop.hoya.yarn.appmaster;
 
-import com.beust.jcommander.Parameter
-import org.apache.hadoop.hoya.yarn.CommonArgs
+import com.beust.jcommander.Parameter;
+import org.apache.hadoop.hoya.yarn.CommonArgs;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Parameters sent by the Client to the AM
@@ -45,30 +49,29 @@ public class HoyaMasterServiceArgs extends CommonArgs {
    *    YARN cluster.
    *    Only one configuration directory can be specified.
    */
-  @Parameter(names = '--generated_confdir',
+  @Parameter(names = "--generated_confdir",
       description = "generated configuration directory")
-  String generatedConfdir;
+  public String generatedConfdir;
 
-  @Parameter(names = '--image', description = "image", required = false)
+  @Parameter(names = "--image", description = "image", required = false)
   public String image;
 
-  @Parameter(names = '--path', description = "FileSystem path", required = true)
+  @Parameter(names = "--path", description = "FileSystem path", required = true)
   public String path;
 
 
   /**
    * The only action you can do in the MasterService (apart from ask for help)
-   * Is the create a cluster of size min to max
+   * Is create a cluster
    */
-  static final Map<String, List<Object>> ACTIONS = [
-      (ACTION_CREATE): ["create cluster", 1],
-      (ACTION_HELP): ["Print Help information", 0],
-  ];
 
-  /**
-   * map of actions -> (explanation, min #of entries [, max no.])
-   * If the max no is not given it is assumed to be the same as the min no.
-   */
+  private static final Map<String, List<Object>> ACTIONS = new HashMap<String, List<Object>>();
+  static {
+    ACTIONS.put(ACTION_CREATE, t("create cluster", 1));
+    ACTIONS.put(ACTION_HELP, t("Print Help information", 0));
+  }
+
+
   public HoyaMasterServiceArgs(String[] args) {
     super(args);
   }
@@ -78,4 +81,5 @@ public class HoyaMasterServiceArgs extends CommonArgs {
     return ACTIONS;
   }
 
+  
 }
