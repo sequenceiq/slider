@@ -26,6 +26,7 @@ import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.exceptions.MissingArgException;
 import org.apache.hadoop.hoya.yarn.appmaster.EnvMappings;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.util.ExitUtil;
@@ -419,5 +420,13 @@ public class HoyaUtils {
       b.append(separator);
     }
     return b.toString();
+  }
+
+  public static String mandatoryEnvVariable(String key) {
+    String v = System.getenv(key);
+    if (v == null) {
+      throw new MissingArgException("Missing Environment variable " + key);
+    }
+    return v;
   }
 }

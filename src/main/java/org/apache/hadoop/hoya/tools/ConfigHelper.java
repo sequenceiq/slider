@@ -16,19 +16,26 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hoya.tools
+package org.apache.hadoop.hoya.tools;
 
-import groovy.transform.CompileStatic
-import groovy.util.logging.Commons
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.FSDataOutputStream
-import org.apache.hadoop.fs.FileSystem as HadoopFS
-import org.apache.hadoop.fs.Path
-import org.apache.hadoop.fs.permission.FsAction
-import org.apache.hadoop.fs.permission.FsPermission
-import org.apache.hadoop.io.IOUtils
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+import groovy.transform.CompileStatic;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsAction;
+import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.io.IOUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.MalformedURLException;
+import java.util.Map;
+import java.util.TreeSet;
 
 /**
  * Methods to aid in config, both in the Configuration class and
@@ -38,9 +45,10 @@ import org.slf4j.LoggerFactory
 class ConfigHelper {
   private static final Logger log = LoggerFactory.getLogger(HoyaUtils.class);
 
-  public static final FsPermission CONF_DIR_PERMISSION = new FsPermission(FsAction.ALL,
-                                                                          FsAction.READ_EXECUTE,
-                                                                          FsAction.NONE);
+  public static final FsPermission CONF_DIR_PERMISSION =
+    new FsPermission(FsAction.ALL,
+                     FsAction.READ_EXECUTE,
+                     FsAction.NONE);
 
   /**
    * Dump the (sorted) configuration
@@ -49,16 +57,16 @@ class ConfigHelper {
    */
   public static TreeSet<String> dumpConf(Configuration conf) {
     TreeSet<String> keys = sortedConfigKeys(conf);
-    keys.each { key ->
-      log.info("$key={}",conf.get((String) key));
+    for (String key : keys) {
+      log.info("$key={}", conf.get(key));
     }
     return keys;
   }
 
   public static TreeSet<String> sortedConfigKeys(Configuration conf) {
     TreeSet<String> sorted = new TreeSet<String>();
-    conf.each { Map.Entry<String, String> entry ->
-      sorted.add(entry.key);
+    for (Map.Entry<String, String> entry : conf) {
+      sorted.add(entry.getKey());
     }
     return sorted;
   }
@@ -69,21 +77,12 @@ class ConfigHelper {
    * @param map map
    * @return nothing
    */
-  public static void addConfigMap(Configuration self, Map map) {
-    map.each { Map.Entry mapEntry ->
-      self.set(mapEntry.key.toString(), mapEntry.value.toString())  
+  public static void addConfigMap(Configuration self, Map<String, String> map) {
+    for (Map.Entry<String, String> mapEntry : map.entrySet()) {
+      self.set(mapEntry.getKey(), mapEntry.getValue());
     }
   }
 
-
-  public static Path generateConfigDir(Configuration conf, String appId, Path outputDirectory) throws IOException {
-    
-    Path confdir = new Path(outputDirectory, appId + "/conf");
-    HadoopFS fs = HadoopFS.get(confdir.toUri(), conf);
-    FsPermission perms = CONF_DIR_PERMISSION
-    fs.mkdirs(confdir, perms)
-    return confdir;
-  }
 
   /**
    * Generate a config file in a destination directory on a given filesystem
@@ -96,8 +95,8 @@ class ConfigHelper {
                                     Configuration generatingConf,
                                     Path confdir,
                                     String filename) throws IOException {
-    HadoopFS fs = HadoopFS.get(confdir.toUri(), systemConf);
-    Path destPath = new Path(confdir, filename)
+    FileSystem fs = FileSystem.get(confdir.toUri(), systemConf);
+    Path destPath = new Path(confdir, filename);
     FSDataOutputStream fos = fs.create(destPath);
     try {
       generatingConf.writeXml(fos);
@@ -106,7 +105,7 @@ class ConfigHelper {
     }
     return destPath;
   }
-  
+
   /**
    * Generate a config file in a destination directory on the local filesystem
    * @param confdir the directory path where the file is to go
@@ -115,8 +114,8 @@ class ConfigHelper {
    */
   public static File generateConfig(Configuration generatingConf,
                                     File confdir,
-                                    String filename) throws IOException{
-    
+                                    String filename) throws IOException {
+
 
     File destPath = new File(confdir, filename);
     OutputStream fos = new FileOutputStream(destPath);
@@ -128,12 +127,13 @@ class ConfigHelper {
     return destPath;
   }
 
-  public static Configuration loadConfFromFile(File file) {
-    Configuration conf = new Configuration(false)
+  public static Configuration loadConfFromFile(File file) throws
+                                                          MalformedURLException {
+    Configuration conf = new Configuration(false);
     conf.addResource(file.toURI().toURL());
     return conf;
   }
-  
+
   /**
    * looks for the config under confdir/templateFile; if not there
    * loads it from /conf/templateFile . 
@@ -141,13 +141,14 @@ class ConfigHelper {
   public static Configuration loadTemplateConfiguration(Configuration systemConf,
                                                         Path confdir,
                                                         String templateFilename,
-                                                        String resource) {
-    HadoopFS fs = HadoopFS.get(confdir.toUri(), systemConf);
+                                                        String resource) throws
+                                                                         IOException {
+    FileSystem fs = FileSystem.get(confdir.toUri(), systemConf);
 
     Path templatePath = new Path(confdir, templateFilename);
     Configuration conf = new Configuration(false);
     if (fs.exists(templatePath)) {
-      log.debug("Loading template {}",templatePath);
+      log.debug("Loading template {}", templatePath);
       conf.addResource(templatePath);
     } else {
       log.debug("Template {} not found" +
