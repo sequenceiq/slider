@@ -168,7 +168,6 @@
       <version>${groovy.version}</version>
     </dependency>
 
-     
     <dependency>
       <groupId>com.beust</groupId>
       <artifactId>jcommander</artifactId>
@@ -206,7 +205,6 @@
       <type>test-jar</type>
     </dependency>
 
-
     <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-yarn-server-common</artifactId>
@@ -243,11 +241,13 @@
       <artifactId>slf4j-api</artifactId>
       <version>${slf4j.version}</version>
     </dependency>
+    
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-log4j12</artifactId>
       <version>${slf4j.version}</version>
     </dependency>
+    
     <!-- Used for unit testing -->
     <dependency>
       <groupId>junit</groupId>
