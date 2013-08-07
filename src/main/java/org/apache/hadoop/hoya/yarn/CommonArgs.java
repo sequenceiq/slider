@@ -64,7 +64,6 @@ public class CommonArgs implements HoyaActions {
   public static final String ARG_NAME = "--name";
   public static final String ARG_OUTPUT = "--output";
   public static final String ARG_PATH = "--path";
-  public static final String ACTION_RMNODE = "rmnode";
   public static final String ARG_USER = "--user";
   public static final String ARG_WORKERS = "--workers";
   public static final String ARG_WORKER_HEAP = "--workerheap";
@@ -104,20 +103,20 @@ public class CommonArgs implements HoyaActions {
    Only one configuration directory can be specified.
    */
   @Parameter(names = ARG_CONFDIR,
-      description = "path cluster configuration directory in HDFS",
+      description = "Path to cluster configuration directory in HDFS",
       converter = PathArgumentConverter.class)
   public Path confdir;
 
-  @Parameter(names = ARG_FILESYSTEM, description = "filesystem URI",
+  @Parameter(names = ARG_FILESYSTEM, description = "Filesystem URI",
       converter = URIArgumentConverter.class)
   public URI filesystemURL;
 
   @Parameter(names = ARG_HBASE_HOME,
-      description = "HBase home dir for starting pre-installed binaries")
+      description = "Home directory for a pre-installed HBase version")
   public String hbasehome;
 
   @Parameter(names = ARG_HBASE_ZKPATH,
-      description = "HBase Zookeeper path")
+      description = "Zookeeper path for the HBase nodes")
   public String hbasezkpath;
 
   @Parameter(names = ARG_HELP, help = true)
@@ -129,15 +128,15 @@ public class CommonArgs implements HoyaActions {
       required = false)
   public String rmAddress;
 
-  @Parameter(names = ARG_X_TEST, description = "Test mode")
+  @Parameter(names = ARG_X_TEST, description = "Enable Hoya test mode")
   public boolean xTest = false;
 
   @Parameter(names = ARG_USER,
-      description = "username if not self")
+      description = "Username if not the current user")
   public String user = System.getProperty("user.name");
 
   @Parameter(names = ARG_ZKHOSTS,
-      description = "Zookeeper hosts")
+      description = "comma separated list of the Zookeeper hosts")
   public String zkhosts;
 
   @Parameter(names = ARG_ZKPORT,
@@ -163,10 +162,10 @@ public class CommonArgs implements HoyaActions {
       description = "hostname:port of the YARN resource manager")
   public String manager;
 
-  @Parameter(names = {ARG_WORKERS, "--min"}, description = "number of worker nodes")
+  @Parameter(names = {ARG_WORKERS, "--min"}, description = "The number of worker nodes")
   public int workers = 0;
 
-  @Parameter(names = {ARG_MASTERS}, description = "number of master nodes")
+  @Parameter(names = {ARG_MASTERS}, description = "The number of master nodes")
   public int masters = 1;
 
   @Parameter(names = {ARG_MASTER_HEAP},
@@ -184,7 +183,7 @@ public class CommonArgs implements HoyaActions {
   public int workerInfoPort = 0;
 
   @Parameter(names = {ARG_OUTPUT,"-o"},
-      description = "output file for the configuration data")
+      description = "Output file for the configuration data")
   public String output;
 
   @Parameter(names = {ARG_WORKER_HEAP, "--regionserverheap"},
@@ -192,7 +191,7 @@ public class CommonArgs implements HoyaActions {
   public int workerHeap = 256;
 
   @Parameter(names =ARG_X_HBASE_MASTER_COMMAND,
-      description = "testing only: hbase command to exec on the master")
+      description = "Testing only: hbase command to exec on the master")
   public String xHBaseMasterCommand = null;
 
   /**
@@ -304,8 +303,8 @@ public class CommonArgs implements HoyaActions {
   public void validate() throws BadCommandArgumentsException {
     if (parameters.isEmpty()) {
       throw new BadCommandArgumentsException(ERROR_NO_ACTION
-                                                 + " in " + HoyaUtils.join(actionArgs, " ")
-                                                 + usage());
+                     + (actionArgs!=null ? (" in " + HoyaUtils.join(actionArgs, " ")):"")
+                     + usage());
     }
     action = parameters.get(0);
     LOG.debug("action={}", action);

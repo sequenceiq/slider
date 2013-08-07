@@ -24,7 +24,6 @@ package org.apache.hadoop.hoya.yarn;
  * are listed here to ensure the names are consistent
  */
 public interface HoyaActions {
-  String ACTION_ADDNODE = "addnode";
   String ACTION_CREATE = "create";
   String ACTION_DESTROY = "destroy";
   String ACTION_GETSIZE = "getsize";

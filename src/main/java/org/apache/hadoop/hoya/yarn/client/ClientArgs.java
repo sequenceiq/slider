@@ -60,7 +60,7 @@ public class ClientArgs extends CommonArgs {
   public String amqueue = "default";
 
   //--format 
-  @Parameter(names = ARG_FORMAT, description = "format for a response text|xml|json|properties")
+  @Parameter(names = ARG_FORMAT, description = "Format for a response: [text|xml|json|properties]")
   public String format = FORMAT_XML;
 
   //--wait [timeout]
@@ -73,7 +73,7 @@ public class ClientArgs extends CommonArgs {
    the full path to a .tar or .tar.gz path containing an HBase image.
    */
   @Parameter(names = ARG_IMAGE,
-      description = "the full path to a .tar or .tar.gz path containing an HBase image",
+      description = "The full path to a .tar or .tar.gz path containing an HBase image",
       converter = PathArgumentConverter.class)
   public Path image;
 
@@ -89,21 +89,18 @@ public class ClientArgs extends CommonArgs {
 
   private static final Map<String, List<Object>> ACTIONS = new HashMap<String, List<Object>>();
   static {
-    ACTIONS.put(ACTION_ADDNODE, t("add nodes", 1, 1));
-    ACTIONS.put(ACTION_CREATE, t("create cluster", 1));
-    ACTIONS.put(ACTION_DESTROY, t("destroy a stopped cluster", 1));
-    ACTIONS.put(ACTION_FLEX, t("flex a running cluster", 1));
-    ACTIONS.put(ACTION_GETCONF, t("get the configuration of a cluster", 1));
-    ACTIONS.put(ACTION_GETSIZE, t("get the size of a cluster", 1));
-    ACTIONS.put(ACTION_EXISTS, t("probe for a cluster being live", 1));
-    ACTIONS.put(ACTION_HELP, t("Print Help information", 0));
-    ACTIONS.put(ACTION_LIST, t("List running cluster", 0, 1));
-    ACTIONS.put(ACTION_MIGRATE, t("migrate cluster to a new HBase version", 1));
-    ACTIONS.put(ACTION_ADDNODE, t("add nodes", 1));
-    ACTIONS.put(ACTION_PREFLIGHT, t("Perform preflight checks", 0));
+    ACTIONS.put(ACTION_CREATE, t("Create a Hoya cluster", 1));
+    ACTIONS.put(ACTION_DESTROY, t("Destroy a Hoya cluster (which must be stopped)", 1));
+    ACTIONS.put(ACTION_FLEX, t("Flex a Hoya cluster", 1));
+    ACTIONS.put(ACTION_GETCONF, t("Get the configuration of a cluster", 1));
+//    ACTIONS.put(ACTION_GETSIZE, t("Get the size of a cluster", 1));
+    ACTIONS.put(ACTION_EXISTS, t("Probe for a cluster being live", 1));
+    ACTIONS.put(ACTION_HELP, t("Print help information", 0));
+    ACTIONS.put(ACTION_LIST, t("List running Hoya clusters", 0, 1));
+//    ACTIONS.put(ACTION_MIGRATE, t("Migrate a Hoya cluster to a new HBase version", 1));
+//    ACTIONS.put(ACTION_PREFLIGHT, t("Perform preflight checks", 0));
     ACTIONS.put(ACTION_RECONFIGURE, t("change the configuration of a cluster", 1));
-    ACTIONS.put(ACTION_RMNODE, t("remove nodes", 1));
-    ACTIONS.put(ACTION_REIMAGE, t("change the image a cluster uses", 1));
+//    ACTIONS.put(ACTION_REIMAGE, t("change the image a cluster uses", 1));
     ACTIONS.put(ACTION_START, t("start a cluster", 1));
     ACTIONS.put(ACTION_STATUS, t("Get the status of a cluster", 1));
     ACTIONS.put(ACTION_STOP, t("stop a cluster", 1));
