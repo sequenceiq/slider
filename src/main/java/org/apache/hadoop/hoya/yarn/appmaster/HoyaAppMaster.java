@@ -95,13 +95,14 @@ import java.util.concurrent.locks.ReentrantLock;
  * for maven seems to build in Java 5 syntax, not java6
  */
 public class HoyaAppMaster extends CompositeService
-    implements AMRMClientAsync.CallbackHandler,
-      NMClientAsync.CallbackHandler,
-      RunService,
-      HoyaExitCodes,
-      HoyaAppMasterProtocol,
-      ApplicationEventHandler {
-  protected static final Logger log = LoggerFactory.getLogger(HoyaAppMaster.class);
+  implements AMRMClientAsync.CallbackHandler,
+             NMClientAsync.CallbackHandler,
+             RunService,
+             HoyaExitCodes,
+             HoyaAppMasterProtocol,
+             ApplicationEventHandler {
+  protected static final Logger log =
+    LoggerFactory.getLogger(HoyaAppMaster.class);
 
   /**
    * How long to expect launcher threads to shut down on AM termination:
@@ -123,15 +124,15 @@ public class HoyaAppMaster extends CompositeService
 
   /** YARN RPC to communicate with the Resource Manager or Node Manager */
   private YarnRPC rpc;
-  
+
   /** Handle to communicate with the Resource Manager*/
   private AMRMClientAsync asyncRMClient;
-  
+
   /** Handle to communicate with the Node Manager*/
   public NMClientAsync nmClientAsync;
 
   /** RPC server*/
-  private Server server; 
+  private Server server;
   /** Hostname of the container*/
   private String appMasterHostname = "";
   /* Port on which the app master listens for status updates from clients*/
@@ -182,7 +183,7 @@ public class HoyaAppMaster extends CompositeService
   // Allocated container count so that we know how many containers has the RM
   // allocated to us
   private final AtomicInteger numAllocatedContainers = new AtomicInteger();
-  
+
   // Count of failed containers
   private final AtomicInteger numFailedContainers = new AtomicInteger();
 
@@ -190,7 +191,7 @@ public class HoyaAppMaster extends CompositeService
    * # of started containers
    */
   private final AtomicInteger startedContainers = new AtomicInteger();
-  
+
   /**
    * # of containers that failed to start 
    */
@@ -214,18 +215,18 @@ public class HoyaAppMaster extends CompositeService
    */
   private final ReentrantLock AMExecutionStateLock = new ReentrantLock();
   private final Condition isAMCompleted = AMExecutionStateLock.newCondition();
-  private volatile boolean success; 
+  private volatile boolean success;
 
   private String[] argv;
   /* Arguments passed in */
   private HoyaMasterServiceArgs serviceArgs;
-  
+
   /**
    The cluster description published to callers
    This is used as a synchronization point on activities that update
    the CD, and also to update some of the structures that
    feed in to the CD
-  */
+   */
   public ClusterDescription clusterDescription = new ClusterDescription();
 
   /**
@@ -238,11 +239,11 @@ public class HoyaAppMaster extends CompositeService
    * Nodes that failed to start.
    * Again, kept out of the CD
    */
-  public List<ClusterNode> failedNodes =new ArrayList<ClusterNode>();
+  public List<ClusterNode> failedNodes = new ArrayList<ClusterNode>();
 
 
   private static final int COMPLETE_NODE_SIZE_LIMIT = 100;
-  
+
   /**
    * Flag set if there is no master
    */
@@ -290,9 +291,9 @@ public class HoyaAppMaster extends CompositeService
     //sort out the location of the AM
     serviceArgs.applyDefinitions(conf);
     serviceArgs.applyFileSystemURL(conf);
-    
+
     String rmAddress = serviceArgs.rmAddress;
-    if (rmAddress!=null) {
+    if (rmAddress != null) {
       log.debug("Setting rm address from the command line: {}", rmAddress);
       YarnUtils.setRmSchedulerAddress(conf, rmAddress);
     }
@@ -309,19 +310,19 @@ public class HoyaAppMaster extends CompositeService
    * @param args argument list
    */
   //@Override // RunService
-  public void setArgs(String...args) throws Exception{
+  public void setArgs(String... args) throws Exception {
     this.argv = args;
     serviceArgs = new HoyaMasterServiceArgs(argv);
     serviceArgs.parse();
     serviceArgs.postProcess();
   }
 
-  
-/**
- * this is where the work is done.
- * @return the exit code
- * @throws Throwable
- */
+
+  /**
+   * this is where the work is done.
+   * @return the exit code
+   * @throws Throwable
+   */
   //@Override
   public int runService() throws Throwable {
 
@@ -351,16 +352,17 @@ public class HoyaAppMaster extends CompositeService
     clusterDescription.name = clustername;
     clusterDescription.state = ClusterDescription.STATE_CREATED;
     clusterDescription.startTime = System.currentTimeMillis();
-    if (0==clusterDescription.createTime) {
+    if (0 == clusterDescription.createTime) {
       clusterDescription.createTime = clusterDescription.startTime;
-    };
+    }
+    ;
     clusterDescription.hbaseHome = serviceArgs.hbasehome;
     clusterDescription.imagePath = serviceArgs.image;
     clusterDescription.xHBaseMasterCommand = serviceArgs.xHBaseMasterCommand;
     clusterDescription.masterInfoPort = serviceArgs.masterInfoPort;
     YarnConfiguration conf = new YarnConfiguration(getConfig());
     InetSocketAddress address = YarnUtils.getRmSchedulerAddress(conf);
-    log.info("RM is at {}",address);
+    log.info("RM is at {}", address);
     rpc = YarnRPC.create(conf);
 
     ContainerId cid = ConverterUtils.toContainerId(
@@ -370,17 +372,17 @@ public class HoyaAppMaster extends CompositeService
 
     ApplicationId appid = appAttemptID.getApplicationId();
     log.info("Hoya AM for app," +
-             " appId="+appid.getId() +
-             " clustertimestamp="+appid.getClusterTimestamp() +
-             " attemptId="+appAttemptID.getAttemptId());
+             " appId=" + appid.getId() +
+             " clustertimestamp=" + appid.getClusterTimestamp() +
+             " attemptId=" + appAttemptID.getAttemptId());
 
 
     int heartbeatInterval = HEARTBEAT_INTERVAL;
 
-    
+
     //add the RM client -this brings the callbacks in
-    asyncRMClient =  AMRMClientAsync.createAMRMClientAsync(heartbeatInterval,
-                                                           this);
+    asyncRMClient = AMRMClientAsync.createAMRMClientAsync(heartbeatInterval,
+                                                          this);
     addService(asyncRMClient);
     //now bring it up
     asyncRMClient.init(conf);
@@ -392,34 +394,36 @@ public class HoyaAppMaster extends CompositeService
     addService(nmClientAsync);
     nmClientAsync.init(conf);
     nmClientAsync.start();
-    
+
     //bring up the Hoya RPC service
     startHoyaRPCServer();
-    
+
     String hostname = NetUtils.getConnectAddress(server).getHostName();
-    appMasterHostname = hostname ;
+    appMasterHostname = hostname;
     appMasterRpcPort = server.getPort();
     appMasterTrackingUrl = null;
-    log.info("Server is at {}:{}",appMasterHostname,appMasterRpcPort);
+    log.info("Server is at {}:{}", appMasterHostname, appMasterRpcPort);
 
 
     // work out a port for the AM
-    if (0==clusterDescription.masterInfoPort) {
-      int port = YarnUtils.findFreePort(EnvMappings.DEFAULT_MASTER_INFO_PORT, 128);
+    if (0 == clusterDescription.masterInfoPort) {
+      int port =
+        YarnUtils.findFreePort(EnvMappings.DEFAULT_MASTER_INFO_PORT, 128);
       //need to get this to the app
       clusterDescription.masterInfoPort = port;
     }
-    appMasterTrackingUrl = "http://"+appMasterHostname+":"+clusterDescription.masterInfoPort;
-    
-    
+    appMasterTrackingUrl =
+      "http://" + appMasterHostname + ":" + clusterDescription.masterInfoPort;
+
+
     // Register self with ResourceManager
     // This will start heartbeating to the RM
     address = YarnUtils.getRmSchedulerAddress(asyncRMClient.getConfig());
     log.info("Connecting to RM at {},address");
     RegisterApplicationMasterResponse response = asyncRMClient
-        .registerApplicationMaster(appMasterHostname,
-                                   appMasterRpcPort,
-                                   appMasterTrackingUrl);
+      .registerApplicationMaster(appMasterHostname,
+                                 appMasterRpcPort,
+                                 appMasterTrackingUrl);
     configureContainerMemory(response);
 
     //before bothering to start the containers, bring up the
@@ -435,30 +439,36 @@ public class HoyaAppMaster extends CompositeService
 
     File hBaseConfDir = getLocalConfDir();
     if (!hBaseConfDir.exists() || !hBaseConfDir.isDirectory()) {
-      
-      throw new BadCommandArgumentsException("Configuration directory "+hBaseConfDir +
-                                             " doesn't exist");
+
+      throw new BadCommandArgumentsException(
+        "Configuration directory " + hBaseConfDir +
+        " doesn't exist");
     }
-    
+
     //now validate the dir by loading in a hadoop-site.xml file from it
     File hBaseSiteXML = new File(hBaseConfDir, HoyaKeys.HBASE_SITE);
     if (!hBaseSiteXML.exists()) {
       StringBuilder builder = new StringBuilder();
       String[] confDirEntries = hBaseConfDir.list();
-      for (String entry:confDirEntries) {
+      for (String entry : confDirEntries) {
         builder.append(entry).append("\n");
       }
-      throw new FileNotFoundException("Conf dir "+hBaseConfDir+" doesn't contain "+HoyaKeys.HBASE_SITE +"\n"+builder);
+      throw new FileNotFoundException(
+        "Conf dir " + hBaseConfDir + " doesn't contain " + HoyaKeys.HBASE_SITE +
+        "\n" + builder);
     }
-    
+
     //now read it in
     Configuration siteConf = ConfigHelper.loadConfFromFile(hBaseSiteXML);
-    log.info(" Contents of {}",hBaseSiteXML);;
+    log.info(" Contents of {}", hBaseSiteXML);
+    ;
     TreeSet<String> confKeys = ConfigHelper.sortedConfigKeys(siteConf);
     //update the values
-    clusterDescription.hbaseDataPath = siteConf.get(EnvMappings.KEY_HBASE_ROOTDIR);
+    clusterDescription.hbaseDataPath =
+      siteConf.get(EnvMappings.KEY_HBASE_ROOTDIR);
     clusterDescription.zkHosts = siteConf.get(EnvMappings.KEY_ZOOKEEPER_QUORUM);
-    clusterDescription.zkPort = siteConf.getInt(EnvMappings.KEY_ZOOKEEPER_PORT, 0);
+    clusterDescription.zkPort =
+      siteConf.getInt(EnvMappings.KEY_ZOOKEEPER_PORT, 0);
     clusterDescription.zkPath = siteConf.get(EnvMappings.KEY_ZNODE_PARENT);
 
 
@@ -466,14 +476,16 @@ public class HoyaAppMaster extends CompositeService
     clusterDescription.workerHeap = serviceArgs.workerHeap;
     clusterDescription.masterHeap = serviceArgs.masterHeap;
     noMaster = clusterDescription.masters <= 0;
-    for (String key:confKeys) {
+    for (String key : confKeys) {
       String val = siteConf.get(key);
-      log.info("{}={}",key, val);
+      log.info("{}={}", key, val);
       clusterDescription.hBaseClientProperties.put(key, val);
     }
     if (clusterDescription.zkPort == 0) {
-      throw new BadCommandArgumentsException("ZK port property not provided at" +
-                     EnvMappings.KEY_ZOOKEEPER_PORT+" in configuration file "+hBaseSiteXML);
+      throw new BadCommandArgumentsException(
+        "ZK port property not provided at" +
+        EnvMappings.KEY_ZOOKEEPER_PORT + " in configuration file " +
+        hBaseSiteXML);
     }
 
     List<String> launchSequence = new ArrayList<String>(8);
@@ -483,10 +495,10 @@ public class HoyaAppMaster extends CompositeService
     launchSequence.add(HBaseCommands.ACTION_START);
 
     if (noMaster) {
-      log.info ("skipping master launch");
+      log.info("skipping master launch");
     } else {
       Map<String, String> env = new HashMap<String, String>();
-      env.put("HBASE_LOG_DIR",buildHBaseLogdir());
+      env.put("HBASE_LOG_DIR", buildHBaseLogdir());
       launchHBaseServer(clusterDescription,
                         launchSequence,
                         env);
@@ -516,7 +528,8 @@ public class HoyaAppMaster extends CompositeService
    * @return the file
    */
   public File getLocalConfDir() {
-    File confdir = new File(HoyaKeys.PROPAGATED_CONF_DIR_NAME).getAbsoluteFile();
+    File confdir =
+      new File(HoyaKeys.PROPAGATED_CONF_DIR_NAME).getAbsoluteFile();
     return confdir;
   }
 
@@ -531,14 +544,16 @@ public class HoyaAppMaster extends CompositeService
   public FileSystem getClusterFS() throws IOException {
     return FileSystem.get(getConfig());
   }
+
   /**
    * build the log directory
    * @return the log dir
    */
   public String buildHBaseLogdir() throws IOException {
     String logdir = System.getenv("LOGDIR");
-    if (logdir==null) {
-      logdir = "/tmp/hoya-" + UserGroupInformation.getCurrentUser().getShortUserName();
+    if (logdir == null) {
+      logdir =
+        "/tmp/hoya-" + UserGroupInformation.getCurrentUser().getShortUserName();
     }
     return logdir;
   }
@@ -575,7 +590,7 @@ public class HoyaAppMaster extends CompositeService
    * Declare that the AM is complete
    */
   public void signalAMComplete(String reason) {
-    log.info("Triggering shutdown of the AM: {}",reason);
+    log.info("Triggering shutdown of the AM: {}", reason);
     AMExecutionStateLock.lock();
     try {
       isAMCompleted.signal();
@@ -590,11 +605,11 @@ public class HoyaAppMaster extends CompositeService
   private synchronized void finish() {
     //stop the daemon & grab its exit code
     Integer exitCode = stopHBase();
-    
+
     // Join all launched threads
     // needed for when we time out
     // and we need to release containers
-    
+
     //first: take a snapshot of the thread list
     List<Thread> liveThreads;
     synchronized (launchThreads) {
@@ -605,7 +620,7 @@ public class HoyaAppMaster extends CompositeService
       try {
         launchThread.join(LAUNCHER_THREAD_SHUTDOWN_TIME);
       } catch (InterruptedException e) {
-        log.info("Exception thrown in thread join: "+e, e);
+        log.info("Exception thrown in thread join: " + e, e);
       }
     }
 
@@ -618,11 +633,11 @@ public class HoyaAppMaster extends CompositeService
     success = true;
     if (numFailedContainers.get() == 0) {
       appStatus = FinalApplicationStatus.SUCCEEDED;
-      appMessage = "completed. Master exit code = "+exitCode;
+      appMessage = "completed. Master exit code = " + exitCode;
     } else {
       appStatus = FinalApplicationStatus.FAILED;
       appMessage = "Diagnostics" + "Master exit code = " +
-          exitCode +" - " + getContainerDiagnosticInfo();
+                   exitCode + " - " + getContainerDiagnosticInfo();
       success = false;
     }
     try {
@@ -639,19 +654,19 @@ public class HoyaAppMaster extends CompositeService
   }
 
   private String getContainerDiagnosticInfo() {
-    return " total="+numTotalContainers +
-                 " requested="+numRequestedContainers.get()+
-                 " allocated="+numAllocatedContainers.get() +
-                 " completed="+numCompletedContainers.get() +
-                 " failed="+numFailedContainers.get();
+    return " total=" + numTotalContainers +
+           " requested=" + numRequestedContainers.get() +
+           " allocated=" + numAllocatedContainers.get() +
+           " completed=" + numCompletedContainers.get() +
+           " failed=" + numFailedContainers.get();
   }
-  
+
   private void configureContainerMemory(RegisterApplicationMasterResponse response) {
     containerMemory = response.getMaximumResourceCapability().getMemory();
     if (serviceArgs.workerHeap != 0) {
       containerMemory = serviceArgs.workerHeap;
     }
-    log.info("Setting container ask to {}",containerMemory);
+    log.info("Setting container ask to {}", containerMemory);
   }
 
   public Object getProxy(Class protocol, InetSocketAddress addr) {
@@ -664,17 +679,17 @@ public class HoyaAppMaster extends CompositeService
    */
   private Server startHoyaRPCServer() throws IOException {
     server = new RPC.Builder(getConfig())
-        .setProtocol(HoyaAppMasterProtocol.class)
-        .setInstance(this)
-        .setPort(0)
-        .setNumHandlers(5)
+      .setProtocol(HoyaAppMasterProtocol.class)
+      .setInstance(this)
+      .setPort(0)
+      .setNumHandlers(5)
 //        .setSecretManager(sm)
-        .build();
+      .build();
     server.start();
-    
+
     return server;
   }
-  
+
   /**
    * Setup the request that will be sent to the RM for the container ask.
    *
@@ -701,14 +716,14 @@ public class HoyaAppMaster extends CompositeService
                                               racks,
                                               pri,
                                               true);
-    log.info("Requested container ask: {}",request);
+    log.info("Requested container ask: {}", request);
     return request;
   }
 
 /* =================================================================== */
 /* AMRMClientAsync callbacks */
 /* =================================================================== */
-  
+
   /**
    * Callback event when a container is allocated
    * @param allocatedContainers list of containers that are now ready to be
@@ -719,10 +734,10 @@ public class HoyaAppMaster extends CompositeService
     log.info("Got response from RM for container ask, allocatedCnt= {}",
              allocatedContainers.size());
     List<Container> surplus = new ArrayList<Container>();
-    for (Container container:allocatedContainers) {
+    for (Container container : allocatedContainers) {
       log.info(getContainerDiagnosticInfo());
       if (numAllocatedContainers.get() >= numTotalContainers) {
-        log.info("Discarding surplus container {}",container.getId());
+        log.info("Discarding surplus container {}", container.getId());
         surplus.add(container);
       } else {
         numAllocatedContainers.incrementAndGet();
@@ -732,7 +747,8 @@ public class HoyaAppMaster extends CompositeService
                  " containerNodeURI={}," +
                  " containerResourceMemory={}",
                  container.getId(),
-                 container.getNodeId().getHost(), container.getNodeId().getPort(),
+                 container.getNodeId().getHost(),
+                 container.getNodeId().getPort(),
                  container.getNodeHttpAddress(),
                  container.getResource().getMemory());
 
@@ -741,8 +757,10 @@ public class HoyaAppMaster extends CompositeService
                                         HBaseCommands.REGION_SERVER);
         Thread launchThread = new Thread(launcherThreadGroup,
                                          launcher,
-                                         "container-"+container.getNodeId().getHost()
-                                             +":"+container.getNodeId().getPort());
+                                         "container-" +
+                                         container.getNodeId().getHost()
+                                         + ":" +
+                                         container.getNodeId().getPort());
 
         // launch and start the container on a separate thread to keep
         // the main thread unblocked
@@ -754,7 +772,7 @@ public class HoyaAppMaster extends CompositeService
       }
     }
     //now discard those surplus containers
-    for (Container container:surplus) {
+    for (Container container : surplus) {
       ContainerId id = container.getId();
       containersBeingReleased.put(id, container);
       numReleaseRequests.incrementAndGet();
@@ -766,7 +784,7 @@ public class HoyaAppMaster extends CompositeService
   //@Override //AMRMClientAsync
   public synchronized void onContainersCompleted(List<ContainerStatus> completedContainers) {
     log.info("Got response from RM for container ask, completedCnt="
-                 + completedContainers.size());
+             + completedContainers.size());
     for (ContainerStatus status : completedContainers) {
       ContainerId id = status.getContainerId();
       log.info("Container Completion for" +
@@ -782,7 +800,8 @@ public class HoyaAppMaster extends CompositeService
       assert (status.getState() == ContainerState.COMPLETE);
       //record the complete node's details for the status report
       updateCompletedNode(status);
-      boolean markCompleted = status.getExitStatus() != ContainerExitStatus.ABORTED;
+      boolean markCompleted =
+        status.getExitStatus() != ContainerExitStatus.ABORTED;
       if (containersBeingReleased.containsKey(id)) {
         log.info("Container was queued for release");
         markCompleted = true;
@@ -820,7 +839,7 @@ public class HoyaAppMaster extends CompositeService
       log.info("All containers have completed and there is no running master -stopping")
       signalAMComplete();
     }*/
-    
+
   }
 
   /**
@@ -829,8 +848,8 @@ public class HoyaAppMaster extends CompositeService
    * @return the max #of failures
    */
   public int maximumContainerFailureLimit() {
-    
-    return serviceArgs.xTest? 1:  MAX_TOLERABLE_FAILURES;
+
+    return serviceArgs.xTest ? 1 : MAX_TOLERABLE_FAILURES;
   }
 
   /**
@@ -840,7 +859,7 @@ public class HoyaAppMaster extends CompositeService
     numAllocatedContainers.decrementAndGet();
     numRequestedContainers.decrementAndGet();
   }
-  
+
   /**
    * Implementation of cluster flexing.
    * This is synchronized so that it doesn't get confused by other requests coming
@@ -852,8 +871,10 @@ public class HoyaAppMaster extends CompositeService
    * @return true if the number of workers changed
    * @throws IOException
    */
-  private synchronized boolean flexClusterNodes(int workers) throws IOException {
-    log.info("Flexing cluster count from {} to {}", numTotalContainers,workers);
+  private synchronized boolean flexClusterNodes(int workers) throws
+                                                             IOException {
+    log.info("Flexing cluster count from {} to {}", numTotalContainers,
+             workers);
     if (numTotalContainers == workers) {
       //no-op
       log.info("Flex is a no-op");
@@ -876,11 +897,11 @@ public class HoyaAppMaster extends CompositeService
     int delta = total - numRequestedContainers.get();
 
     if (delta > 0) {
-      log.info("Asking for {} more worker(s) for a total of {}", delta,total);
+      log.info("Asking for {} more worker(s) for a total of {}", delta, total);
       //more workers needed than we have -ask for more
       numRequestedContainers.addAndGet(delta);
       AMRMClient.ContainerRequest containerAsk = setupContainerAskForRM(delta);
-      log.info("Container ask is {}",containerAsk);
+      log.info("Container ask is {}", containerAsk);
       asyncRMClient.addContainerRequest(containerAsk);
     } else if (delta < 0) {
 
@@ -892,11 +913,11 @@ public class HoyaAppMaster extends CompositeService
         return;
       }
 */
-      
+
       log.info("Asking for {} fewer worker(s) for a total of {}", delta, total);
       //reduce the number expected (i.e. subtract the delta)
       numRequestedContainers.addAndGet(delta);
-      
+
       //then pick some containers to kill
       int excess = -delta;
       Collection<ContainerInfo> targets = containers.values();
@@ -916,8 +937,10 @@ public class HoyaAppMaster extends CompositeService
       }
       //here everything should be freed up, though there may be an excess due 
       //to race conditions with requests coming in
-      if (excess>0) {
-        log.warn("After releasing all worker nodes that could be free, there was an excess of {} nodes", excess);
+      if (excess > 0) {
+        log.warn(
+          "After releasing all worker nodes that could be free, there was an excess of {} nodes",
+          excess);
       }
 
     }
@@ -930,8 +953,8 @@ public class HoyaAppMaster extends CompositeService
   public void onShutdownRequest() {
     signalAMComplete("Shutdown requested from RM");
   }
-  
-/**
+
+  /**
    * Monitored nodes have been changed
    * @param updatedNodes list of updated notes
    */
@@ -957,18 +980,21 @@ public class HoyaAppMaster extends CompositeService
   //@Override //AMRMClientAsync
   public void onError(Throwable e) {
     //callback says it's time to finish
-    log.error("AMRMClientAsync.onError() received "+e, e);
-    signalAMComplete("AMRMClientAsync.onError() received "+e);
+    log.error("AMRMClientAsync.onError() received " + e, e);
+    signalAMComplete("AMRMClientAsync.onError() received " + e);
   }
   
 /* =================================================================== */
 /* HoyaAppMasterApi */
 /* =================================================================== */
-  
+
   //@Override   //HoyaAppMasterApi
-  public ProtocolSignature getProtocolSignature(String protocol, long clientVersion, int clientMethodsHash) throws IOException {
+  public ProtocolSignature getProtocolSignature(String protocol,
+                                                long clientVersion,
+                                                int clientMethodsHash) throws
+                                                                       IOException {
     return ProtocolSignature.getProtocolSignature(
-        this, protocol, clientVersion, clientMethodsHash);
+      this, protocol, clientVersion, clientMethodsHash);
   }
 
   //@Override   //HoyaAppMasterApi
@@ -979,13 +1005,14 @@ public class HoyaAppMaster extends CompositeService
 
   //@Override   //HoyaAppMasterApi
   public boolean flexNodes(int workers) throws IOException {
-    log.info("HoyaAppMasterApi.flexNodes({})",workers);
+    log.info("HoyaAppMasterApi.flexNodes({})", workers);
     return flexClusterNodes(workers);
   }
 
 
   //@Override   //HoyaAppMasterApi
-  public long getProtocolVersion(String protocol, long clientVersion) throws IOException {
+  public long getProtocolVersion(String protocol, long clientVersion) throws
+                                                                      IOException {
     return versionID;
   }
 
@@ -993,7 +1020,7 @@ public class HoyaAppMaster extends CompositeService
   public synchronized String getClusterStatus() throws IOException {
     updateClusterDescription();
     String status = clusterDescription.toJsonString();
-    return status; 
+    return status;
   }
 
 /* =================================================================== */
@@ -1004,21 +1031,21 @@ public class HoyaAppMaster extends CompositeService
    * Update the cluster description with anything interesting
    */
   private void updateClusterDescription() {
-    
+
     List<ClusterNode> nodes = new ArrayList<ClusterNode>();
 
     long t = System.currentTimeMillis();
     synchronized (clusterDescription) {
-      nodes  = new ArrayList<ClusterNode>(workerMap.values());
+      nodes = new ArrayList<ClusterNode>(workerMap.values());
       clusterDescription.statusTime = t;
-      if (masterNode!=null) {
+      if (masterNode != null) {
         if (hbaseMaster != null) {
-          masterNode.command = HoyaUtils.join(hbaseMaster.getCommands()," ");
+          masterNode.command = HoyaUtils.join(hbaseMaster.getCommands(), " ");
           if (hbaseMaster.isRunning()) {
             masterNode.state = ClusterDescription.STATE_LIVE;
           } else {
             masterNode.state = ClusterDescription.STATE_STOPPED;
-            masterNode.diagnostics = "Exit code = "+hbaseMaster.getExitCode();
+            masterNode.diagnostics = "Exit code = " + hbaseMaster.getExitCode();
           }
           //pull in recent lines of output from the HBase master
           List<String> output = hbaseMaster.getRecentOutput();
@@ -1035,7 +1062,8 @@ public class HoyaAppMaster extends CompositeService
       stats.put(STAT_CONTAINERS_COMPLETED, numCompletedContainers.longValue());
       stats.put(STAT_CONTAINERS_FAILED, startFailedContainers.longValue());
       stats.put(STAT_CONTAINERS_STARTED, startedContainers.longValue());
-      stats.put(STAT_CONTAINERS_STARTED_FAILED, startFailedContainers.longValue());
+      stats.put(STAT_CONTAINERS_STARTED_FAILED,
+                startFailedContainers.longValue());
       clusterDescription.stats = stats;
     }
   }
@@ -1086,7 +1114,7 @@ public class HoyaAppMaster extends CompositeService
   protected synchronized void launchHBaseServer(ClusterDescription cd,
                                                 List<String> commands,
                                                 Map<String, String> env)
-                        throws IOException, HoyaException {
+    throws IOException, HoyaException {
     if (hbaseMaster != null) {
       throw new HoyaInternalStateException("trying to launch hbase server" +
                                            " when one is already running");
@@ -1094,7 +1122,7 @@ public class HoyaAppMaster extends CompositeService
     //prepend the hbase command itself
     File binHbaseSh = buildHBaseBinPath(cd);
     String scriptPath = binHbaseSh.getAbsolutePath();
-    if( !binHbaseSh.exists()) {
+    if (!binHbaseSh.exists()) {
       throw new BadCommandArgumentsException("Missing script " + scriptPath);
     }
     commands.add(0, scriptPath);
@@ -1122,13 +1150,13 @@ public class HoyaAppMaster extends CompositeService
    */
   //@Override // ApplicationEventHandler
   public void onApplicationExited(RunLongLivedApp application, int exitCode) {
-    log.info("Process has exited with exit code {}",exitCode);
+    log.info("Process has exited with exit code {}", exitCode);
     synchronized (clusterDescription) {
       masterNode.exitCode = exitCode;
       masterNode.state = ClusterDescription.STATE_STOPPED;
     }
     //tell the AM the cluster is complete 
-    signalAMComplete("HBase master exited with "+exitCode);
+    signalAMComplete("HBase master exited with " + exitCode);
   }
 
   /**
@@ -1136,8 +1164,8 @@ public class HoyaAppMaster extends CompositeService
    * @return the hbase home path
    */
   public File buildHBaseBinPath(ClusterDescription cd) {
-    File hbaseScript = new File(buildHBaseDir(cd), 
-         HoyaKeys.HBASE_SCRIPT);
+    File hbaseScript = new File(buildHBaseDir(cd),
+                                HoyaKeys.HBASE_SCRIPT);
     return hbaseScript;
   }
 
@@ -1175,7 +1203,7 @@ public class HoyaAppMaster extends CompositeService
    * @param val property value
    */
   public void noteHBaseClientProperty(String key, String val) {
-    clusterDescription.hBaseClientProperties.put(key,val);
+    clusterDescription.hBaseClientProperties.put(key, val);
   }
 
   public void startContainer(Container container,
@@ -1187,13 +1215,13 @@ public class HoyaAppMaster extends CompositeService
       requestedNodes.put(container.getId(), node);
     }
     ContainerInfo containerInfo = new ContainerInfo();
-    containerInfo.container=container;
-    containerInfo.role=ROLE_WORKER;
+    containerInfo.container = container;
+    containerInfo.role = ROLE_WORKER;
     containerInfo.createTime = System.currentTimeMillis();
     containers.putIfAbsent(container.getId(), containerInfo);
     nmClientAsync.startContainerAsync(container, ctx);
   }
-  
+
   //@Override //  NMClientAsync.CallbackHandler 
   public void onContainerStopped(ContainerId containerId) {
     log.debug("Succeeded stopping Container {} ", containerId);
@@ -1203,13 +1231,13 @@ public class HoyaAppMaster extends CompositeService
   //@Override //  NMClientAsync.CallbackHandler 
   public void onContainerStarted(ContainerId containerId,
                                  Map<String, ByteBuffer> allServiceResponse) {
-      log.debug("Started Container {} ", containerId);
+    log.debug("Started Container {} ", containerId);
     startedContainers.incrementAndGet();
     ContainerInfo ci = null;
     //update the specification
     synchronized (clusterDescription) {
       ClusterNode node = requestedNodes.remove(containerId);
-      if (null==node) {
+      if (null == node) {
         log.warn("Creating a new node description for an unrequested node");
         node = new ClusterNode(containerId.toString());
         node.role = ROLE_UNKNOWN;
@@ -1219,12 +1247,14 @@ public class HoyaAppMaster extends CompositeService
       ci = containers.get(containerId);
     }
     if (ci != null) {
-      ci.startTime=  System.currentTimeMillis();
-      nmClientAsync.getContainerStatusAsync(containerId, ci.container.getNodeId());
+      ci.startTime = System.currentTimeMillis();
+      nmClientAsync.getContainerStatusAsync(containerId,
+                                            ci.container.getNodeId());
     } else {
       //this is a hypothetical path not seen. We react by warning
       //there's not much else to do
-      log.error("Notified of started container that isn't pending {}",containerId);
+      log.error("Notified of started container that isn't pending {}",
+                containerId);
     }
   }
 
@@ -1236,8 +1266,8 @@ public class HoyaAppMaster extends CompositeService
     startFailedContainers.incrementAndGet();
     synchronized (clusterDescription) {
       ClusterNode node = requestedNodes.remove(containerId);
-      if (null!=node) {
-        if (null!=t) {
+      if (null != node) {
+        if (null != t) {
           node.diagnostics = HoyaUtils.stringify(t);
         }
         clusterDescription.failedNodes.add(node);
@@ -1248,12 +1278,13 @@ public class HoyaAppMaster extends CompositeService
   //@Override //  NMClientAsync.CallbackHandler 
   public void onContainerStatusReceived(ContainerId containerId,
                                         ContainerStatus containerStatus) {
-    log.debug("Container Status: id={}, status={}", containerId,containerStatus);
+    log.debug("Container Status: id={}, status={}", containerId,
+              containerStatus);
   }
-  
+
   //@Override //  NMClientAsync.CallbackHandler 
   public void onGetContainerStatusError(
-      ContainerId containerId, Throwable t) {
+    ContainerId containerId, Throwable t) {
     log.error("Failed to query the status of Container " + containerId);
   }
 
@@ -1266,7 +1297,7 @@ public class HoyaAppMaster extends CompositeService
       ClusterNode node = failNode(containerId,
                                   clusterDescription.workerNodes,
                                   t);
-      if (node==null) {
+      if (node == null) {
         failNode(containerId, clusterDescription.masterNodes, t);
       } else {
         completedNodes.add(node);

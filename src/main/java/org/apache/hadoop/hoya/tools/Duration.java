@@ -50,7 +50,9 @@ public class Duration {
   @Override
   public String toString() {
     return "Duration " +
-          ( (finish >= start) ? (" of " + getInterval() + " millis") : "undefined");
+           ((finish >= start)
+            ? (" of " + getInterval() + " millis")
+            : "undefined");
   }
 
 

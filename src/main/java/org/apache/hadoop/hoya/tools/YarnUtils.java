@@ -114,7 +114,8 @@ public class YarnUtils {
 
   public static boolean hasAppFinished(ApplicationReport report) {
     return report == null ||
-           report.getYarnApplicationState().ordinal() >= YarnApplicationState.FINISHED.ordinal();
+           report.getYarnApplicationState().ordinal() >=
+           YarnApplicationState.FINISHED.ordinal();
   }
 
   public static String reportToString(ApplicationReport report) {
@@ -145,7 +146,7 @@ public class YarnUtils {
     FileStatus[] fileset = clusterFS.listStatus(srcDir);
     Map<String, LocalResource> localResources =
       new HashMap<String, LocalResource>(fileset.length);
-    for (FileStatus entry: fileset) {
+    for (FileStatus entry : fileset) {
 
       LocalResource resource = createAmResource(clusterFS,
                                                 entry.getPath(),
@@ -166,7 +167,7 @@ public class YarnUtils {
     int found = 0;
     int port = start;
     int finish = start + limit;
-    while (found==0 && port < finish) {
+    while (found == 0 && port < finish) {
       if (isPortAvailable(port)) {
         found = port;
       } else {

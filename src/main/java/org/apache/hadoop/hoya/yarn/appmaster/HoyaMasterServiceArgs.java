@@ -17,7 +17,6 @@
  */
 
 
-
 package org.apache.hadoop.hoya.yarn.appmaster;
 
 import com.beust.jcommander.Parameter;
@@ -34,7 +33,8 @@ public class HoyaMasterServiceArgs extends CommonArgs {
   /**
    * Name of entry class: {@value}
    */
-  public static final String CLASSNAME = "org.apache.hadoop.hoya.yarn.appmaster.HoyaAppMaster";
+  public static final String CLASSNAME =
+    "org.apache.hadoop.hoya.yarn.appmaster.HoyaAppMaster";
 
 
   /**
@@ -50,7 +50,7 @@ public class HoyaMasterServiceArgs extends CommonArgs {
    *    Only one configuration directory can be specified.
    */
   @Parameter(names = "--generated_confdir",
-      description = "generated configuration directory")
+             description = "generated configuration directory")
   public String generatedConfdir;
 
   @Parameter(names = "--image", description = "image", required = false)
@@ -65,7 +65,9 @@ public class HoyaMasterServiceArgs extends CommonArgs {
    * Is create a cluster
    */
 
-  private static final Map<String, List<Object>> ACTIONS = new HashMap<String, List<Object>>();
+  private static final Map<String, List<Object>> ACTIONS =
+    new HashMap<String, List<Object>>();
+
   static {
     ACTIONS.put(ACTION_CREATE, t("create cluster", 1));
     ACTIONS.put(ACTION_HELP, t("Print Help information", 0));
@@ -81,5 +83,5 @@ public class HoyaMasterServiceArgs extends CommonArgs {
     return ACTIONS;
   }
 
-  
+
 }

@@ -21,23 +21,23 @@ package org.apache.hadoop.hoya.yarn.appmaster;
 /**
  * Mappings of config params to env variables for
  * custom -site.xml files to pick up
- * 
+ *
  * A lot of these come from HConstants -the reason they have been copied
  * and pasted in here is to remove dependencies on HBase from
  * the Hoya Client and AM.
  */
 public interface EnvMappings {
-  
+
   String KEY_HBASE_CLUSTER_DISTRIBUTED = "hbase.cluster.distributed";
   String KEY_HBASE_ROOTDIR = "hbase.rootdir";
-  
-  String KEY_ZOOKEEPER_QUORUM = "hbase.zookeeper.quorum" ;
-   //HConstants.ZOOKEEPER_QUORUM;
-  String KEY_ZOOKEEPER_PORT = "hbase.zookeeper.property.clientPort" ;
+
+  String KEY_ZOOKEEPER_QUORUM = "hbase.zookeeper.quorum";
+  //HConstants.ZOOKEEPER_QUORUM;
+  String KEY_ZOOKEEPER_PORT = "hbase.zookeeper.property.clientPort";
   //HConstants.ZOOKEEPER_CLIENT_PORT;
   String KEY_ZNODE_PARENT = "zookeeper.znode.parent";
-  
-  
+
+
   int DEFAULT_MASTER_PORT = 60000;
   int DEFAULT_MASTER_INFO_PORT = 60010;
 

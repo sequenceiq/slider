@@ -62,12 +62,12 @@ public class HoyaUtils {
         log.info("Cleaning up {}", dir);
         //delete the children
         File[] files = dir.listFiles();
-        if (files==null) {
+        if (files == null) {
           throw new IOException("listfiles() failed for " + dir);
         }
         for (File file : files) {
           log.info("deleting {}", file);
-          file.delete();     
+          file.delete();
         }
         dir.delete();
       } else {
@@ -231,12 +231,12 @@ public class HoyaUtils {
       destFS.mkdirs(destDirPath);
     }
     Path[] sourcePaths = new Path[srcFileCount];
-    for (int i=0;i<srcFileCount;i++) {
+    for (int i = 0; i < srcFileCount; i++) {
       FileStatus e = entries[i];
       Path srcFile = e.getPath();
       if (srcFS.isDirectory(srcFile)) {
         throw new IOException("Configuration dir " + srcDirPath
-                                + " contains a directory " + srcFile);
+                              + " contains a directory " + srcFile);
       }
       log.debug("copying src conf file {}", srcFile);
       sourcePaths[i] = srcFile;
@@ -407,15 +407,15 @@ public class HoyaUtils {
    */
   public static List<String> collectionToStringList(Collection c) {
     List<String> l = new ArrayList<String>(c.size());
-    for (Object o: c){
+    for (Object o : c) {
       l.add(o.toString());
     }
     return l;
   }
-  
+
   public static String join(Collection collection, String separator) {
     StringBuilder b = new StringBuilder();
-    for (Object o:collection) {
+    for (Object o : collection) {
       b.append(o.toString());
       b.append(separator);
     }

@@ -139,8 +139,10 @@ public class HoyaRegionServiceLauncher implements Runnable {
       command.add(HBaseCommands.ACTION_START);
 
       //log details
-      command.add("1>"+ ApplicationConstants.LOG_DIR_EXPANSION_VAR+"/out.txt");
-      command.add("2>"+ApplicationConstants.LOG_DIR_EXPANSION_VAR+"/err.txt");
+      command.add(
+        "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/out.txt");
+      command.add(
+        "2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/err.txt");
 
       String cmdStr = HoyaUtils.join(command, " ");
 

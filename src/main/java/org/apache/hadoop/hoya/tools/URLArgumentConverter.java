@@ -17,7 +17,6 @@
  */
 
 
-
 package org.apache.hadoop.hoya.tools;
 
 import com.beust.jcommander.converters.BaseConverter;
@@ -35,7 +34,7 @@ public class URLArgumentConverter extends BaseConverter<URL> {
     try {
       return new URL(value);
     } catch (MalformedURLException e) {
-      throw new RuntimeException("Cannot make a URL from "+ value);
+      throw new RuntimeException("Cannot make a URL from " + value);
     }
   }
 }

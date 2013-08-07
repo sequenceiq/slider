@@ -26,7 +26,7 @@ import java.security.PrivilegedAction;
 
 /**
  * Implement privileged connection to the CM
- * 
+ *
  * This is done in Java because of runtime errors
  * when trying to run <code>doAs()</code> operations
  * in groovy.
@@ -41,11 +41,11 @@ public class PrivilegedConnectToCM implements PrivilegedAction<ContainerManageme
     this.cmAddress = cmAddress;
   }
 
-  
-//  @Override
+
+  //  @Override
   public ContainerManagementProtocol run() {
     return ((ContainerManagementProtocol) appMaster.getProxy(
-          ContainerManagementProtocol.class,
-          cmAddress));
+      ContainerManagementProtocol.class,
+      cmAddress));
   }
 }
