@@ -67,11 +67,11 @@ public class RunLongLivedApp implements Runnable {
     builder = new ProcessBuilder(commands);
     initBuilder();
   }
-  
+
   private void initBuilder() {
     builder.redirectErrorStream(false);
   }
-  
+
   public ProcessBuilder getBuilder() {
     return builder;
   }
@@ -125,7 +125,7 @@ public class RunLongLivedApp implements Runnable {
     return getCommands().get(0);
   }
 
-  
+
   public boolean isRunning() {
     return process != null && !done;
   }
@@ -178,7 +178,7 @@ public class RunLongLivedApp implements Runnable {
     if (process != null) {
       throw new HoyaInternalStateException("Process already started");
     }
-    if(LOG.isDebugEnabled()) {
+    if (LOG.isDebugEnabled()) {
       LOG.debug("Spawning process:\n " + describeBuilder());
     }
     process = builder.start();
@@ -203,14 +203,14 @@ public class RunLongLivedApp implements Runnable {
       LOG.info("process has finished");
       //tell the logger it has to finish too
       done = true;
-      
+
       //now call the callback if it is set
       if (applicationEventHandler != null) {
         applicationEventHandler.onApplicationExited(this, exitCode);
       }
       try {
         logThread.join();
-      } catch (InterruptedException ignored){
+      } catch (InterruptedException ignored) {
         //ignored
       }
     }
@@ -235,7 +235,8 @@ public class RunLongLivedApp implements Runnable {
   public void spawnApplication() throws IOException, HoyaException {
     execThread = spawnIntoThread();
     execThread.start();
-    processStreamReader = new ProcessStreamReader(LOG, STREAM_READER_SLEEP_TIME);
+    processStreamReader =
+      new ProcessStreamReader(LOG, STREAM_READER_SLEEP_TIME);
     logThread = new Thread(processStreamReader);
     logThread.start();
   }
@@ -272,17 +273,18 @@ public class RunLongLivedApp implements Runnable {
       recentLines.remove(0);
     }
   }
+
   /**
    * Class to read data from the two process streams, and, when run in a thread
    * to keep running until the <code>done</code> flag is set. 
    * Lines are fetched from stdout and stderr and logged at info and error
    * respectively.
    */
-  
+
   private class ProcessStreamReader implements Runnable {
     private final Log streamLog;
     private final int sleepTime;
-    
+
     private ProcessStreamReader(Log streamLog, int sleepTime) {
       this.streamLog = streamLog;
       this.sleepTime = sleepTime;
@@ -309,10 +311,10 @@ public class RunLongLivedApp implements Runnable {
                                 StringBuilder line,
                                 int limit)
       throws IOException {
-      int next ;
+      int next;
       while ((-1 != (next = readCharNonBlocking(reader)))) {
         if (next != '\n') {
-          line.append((char)next);
+          line.append((char) next);
           limit--;
           if (line.length() > limit) {
             //enough has been read in to print it any
@@ -326,9 +328,8 @@ public class RunLongLivedApp implements Runnable {
       //here the end of the stream is hit, or the limit
       return false;
     }
-    
-    
-    
+
+
     //@Override //Runnable
     @SuppressWarnings("IOResourceOpenedButNotSafelyClosed")
     public void run() {
@@ -338,9 +339,9 @@ public class RunLongLivedApp implements Runnable {
       StringBuilder errorLine = new StringBuilder(256);
       try {
         errReader = new BufferedReader(new InputStreamReader(process
-                                                   .getErrorStream()));
+                                                               .getErrorStream()));
         outReader = new BufferedReader(new InputStreamReader(process
-                                                   .getInputStream()));
+                                                               .getInputStream()));
         while (!done) {
           boolean processed = false;
           if (readAnyLine(errReader, errorLine, 256)) {
@@ -368,13 +369,15 @@ public class RunLongLivedApp implements Runnable {
           }
         }
         //get here, done time
-        
+
         //print the current error line then stream through the rest
         streamLog.error(errorLine);
-        String line= errReader.readLine();
+        String line = errReader.readLine();
         while (line != null) {
           streamLog.error(line);
-          if(Thread.interrupted()) break;
+          if (Thread.interrupted()) {
+            break;
+          }
           line = errReader.readLine();
           recordRecentLine(line, true);
         }
@@ -383,7 +386,9 @@ public class RunLongLivedApp implements Runnable {
         line = outReader.readLine();
         while (line != null) {
           streamLog.info(line);
-          if(Thread.interrupted()) break;
+          if (Thread.interrupted()) {
+            break;
+          }
           line = outReader.readLine();
           recordRecentLine(line, false);
         }

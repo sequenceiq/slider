@@ -22,8 +22,8 @@ package org.apache.hadoop.hoya.exec;
  * Callback when a long-lived application exits
  */
 public interface ApplicationEventHandler {
-  
+
   void onApplicationStarted(RunLongLivedApp application);
-  
+
   void onApplicationExited(RunLongLivedApp application, int exitCode);
 }

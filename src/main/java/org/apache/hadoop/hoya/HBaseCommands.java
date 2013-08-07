@@ -47,7 +47,7 @@ PACKAGE MANAGEMENT
 public interface HBaseCommands {
   /** {@value */
   String MASTER = "master";
-  
+
   /** {@value */
   String REGION_SERVER = "regionserver";
 

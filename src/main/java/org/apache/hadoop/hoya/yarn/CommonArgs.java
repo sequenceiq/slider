@@ -17,6 +17,7 @@
  */
 
 package org.apache.hadoop.hoya.yarn;
+
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
@@ -74,17 +75,19 @@ public class CommonArgs implements HoyaActions {
 
   public static final String ARG_X_TEST = "--Xtest";
   /** for testing only: {@value} */
-  public static final String ARG_X_HBASE_MASTER_COMMAND = "--Xhbase-master-command";
-
+  public static final String ARG_X_HBASE_MASTER_COMMAND =
+    "--Xhbase-master-command";
 
 
   public static final String ERROR_NO_ACTION = "No action specified";
   public static final String ERROR_UNKNOWN_ACTION = "Unknown command: ";
-  public static final String ERROR_NOT_ENOUGH_ARGUMENTS = "Not enough arguments for action: ";
+  public static final String ERROR_NOT_ENOUGH_ARGUMENTS =
+    "Not enough arguments for action: ";
   /**
    * All the remaining values after argument processing
    */
-  public static final String ERROR_TOO_MANY_ARGUMENTS = "Too many arguments for action: ";
+  public static final String ERROR_TOO_MANY_ARGUMENTS =
+    "Too many arguments for action: ";
 
 
   public static final String ARG_RESOURCE_MANAGER = "--rm";
@@ -103,20 +106,20 @@ public class CommonArgs implements HoyaActions {
    Only one configuration directory can be specified.
    */
   @Parameter(names = ARG_CONFDIR,
-      description = "Path to cluster configuration directory in HDFS",
-      converter = PathArgumentConverter.class)
+             description = "Path to cluster configuration directory in HDFS",
+             converter = PathArgumentConverter.class)
   public Path confdir;
 
   @Parameter(names = ARG_FILESYSTEM, description = "Filesystem URI",
-      converter = URIArgumentConverter.class)
+             converter = URIArgumentConverter.class)
   public URI filesystemURL;
 
   @Parameter(names = ARG_HBASE_HOME,
-      description = "Home directory for a pre-installed HBase version")
+             description = "Home directory for a pre-installed HBase version")
   public String hbasehome;
 
   @Parameter(names = ARG_HBASE_ZKPATH,
-      description = "Zookeeper path for the HBase nodes")
+             description = "Zookeeper path for the HBase nodes")
   public String hbasezkpath;
 
   @Parameter(names = ARG_HELP, help = true)
@@ -124,23 +127,23 @@ public class CommonArgs implements HoyaActions {
 
   //TODO: do we need this?
   @Parameter(names = ARG_RESOURCE_MANAGER,
-      description = "Resource manager hostname:port ",
-      required = false)
+             description = "Resource manager hostname:port ",
+             required = false)
   public String rmAddress;
 
   @Parameter(names = ARG_X_TEST, description = "Enable Hoya test mode")
   public boolean xTest = false;
 
   @Parameter(names = ARG_USER,
-      description = "Username if not the current user")
+             description = "Username if not the current user")
   public String user = System.getProperty("user.name");
 
   @Parameter(names = ARG_ZKHOSTS,
-      description = "comma separated list of the Zookeeper hosts")
+             description = "comma separated list of the Zookeeper hosts")
   public String zkhosts;
 
   @Parameter(names = ARG_ZKPORT,
-      description = "Zookeeper port")
+             description = "Zookeeper port")
   public int zkport = EnvMappings.HBASE_ZK_PORT;
 
   /*
@@ -159,39 +162,40 @@ public class CommonArgs implements HoyaActions {
 
 
   @Parameter(names = {"--m", ARG_MANAGER},
-      description = "hostname:port of the YARN resource manager")
+             description = "hostname:port of the YARN resource manager")
   public String manager;
 
-  @Parameter(names = {ARG_WORKERS, "--min"}, description = "The number of worker nodes")
+  @Parameter(names = {ARG_WORKERS, "--min"},
+             description = "The number of worker nodes")
   public int workers = 0;
 
   @Parameter(names = {ARG_MASTERS}, description = "The number of master nodes")
   public int masters = 1;
 
   @Parameter(names = {ARG_MASTER_HEAP},
-      description = "Master heap size in MB")
+             description = "Master heap size in MB")
   public int masterHeap = 128;
 
   //--masterinfoport [port]
   @Parameter(names = ARG_MASTER_INFO_PORT,
-      description = "The web UI port that the Master should bind to")
+             description = "The web UI port that the Master should bind to")
   public int masterInfoPort = 0;
 
   //--workerinfoport [port]
   @Parameter(names = ARG_WORKER_INFO_PORT,
-      description = "The web UI port that the Workers should bind to")
+             description = "The web UI port that the Workers should bind to")
   public int workerInfoPort = 0;
 
-  @Parameter(names = {ARG_OUTPUT,"-o"},
-      description = "Output file for the configuration data")
+  @Parameter(names = {ARG_OUTPUT, "-o"},
+             description = "Output file for the configuration data")
   public String output;
 
   @Parameter(names = {ARG_WORKER_HEAP, "--regionserverheap"},
-      description = "Worker heap size in MB")
+             description = "Worker heap size in MB")
   public int workerHeap = 256;
 
-  @Parameter(names =ARG_X_HBASE_MASTER_COMMAND,
-      description = "Testing only: hbase command to exec on the master")
+  @Parameter(names = ARG_X_HBASE_MASTER_COMMAND,
+             description = "Testing only: hbase command to exec on the master")
   public String xHBaseMasterCommand = null;
 
   /**
@@ -225,17 +229,17 @@ public class CommonArgs implements HoyaActions {
    * @return
    */
   protected static List<Object> t(String msg, int min) {
-    return t(msg, min , min );
+    return t(msg, min, min);
   }
-  
+
   /**
    * get the name: relies on arg 1 being the cluster name in all operations 
    * @return the name argument, null if there is none
    */
   public String getClusterName() {
     return (actionArgs == null || actionArgs.isEmpty() || args.length < 2) ?
-      null 
-    : args[1];
+           null
+                                                                           : args[1];
   }
 
   public CommonArgs(String[] args) {
@@ -255,7 +259,7 @@ public class CommonArgs implements HoyaActions {
     commander.usage(builder, "  ");
     builder.append("\nactions: ");
     Map<String, List<Object>> actions = getActions();
-    for (String key:actions.keySet()) {
+    for (String key : actions.keySet()) {
       builder.append(key).append(" ");
     }
     return builder.toString();
@@ -266,7 +270,8 @@ public class CommonArgs implements HoyaActions {
       commander.parse(args);
     } catch (ParameterException e) {
       throw new BadCommandArgumentsException(e.toString() +
-                                             " with " + HoyaUtils.join(actionArgs, " "),
+                                             " with " +
+                                             HoyaUtils.join(actionArgs, " "),
                                              e);
     }
   }
@@ -283,16 +288,16 @@ public class CommonArgs implements HoyaActions {
     return Collections.emptyMap();
   }
 
-/**
- * validate args via {@link #validate()}
- * then postprocess the arguments
- */
+  /**
+   * validate args via {@link #validate()}
+   * then postprocess the arguments
+   */
   public void postProcess() throws BadCommandArgumentsException {
     validate();
-    for (String prop:definitions) {
+    for (String prop : definitions) {
       String[] keyval = prop.split("=", 2);
       if (keyval.length == 2) {
-        definitionMap.put(keyval[0],keyval[1]);
+        definitionMap.put(keyval[0], keyval[1]);
       }
     }
   }
@@ -303,8 +308,12 @@ public class CommonArgs implements HoyaActions {
   public void validate() throws BadCommandArgumentsException {
     if (parameters.isEmpty()) {
       throw new BadCommandArgumentsException(ERROR_NO_ACTION
-                     + (actionArgs!=null ? (" in " + HoyaUtils.join(actionArgs, " ")):"")
-                     + usage());
+                                             + (actionArgs != null
+                                                ? (" in " +
+                                                   HoyaUtils.join(actionArgs,
+                                                                  " "))
+                                                : "")
+                                             + usage());
     }
     action = parameters.get(0);
     LOG.debug("action={}", action);
@@ -312,9 +321,10 @@ public class CommonArgs implements HoyaActions {
     List<Object> actionOpts = actionMap.get(action);
     if (null == actionOpts) {
       throw new BadCommandArgumentsException(ERROR_UNKNOWN_ACTION
-                                                 + action
-                                                 + " in " + HoyaUtils.join(actionArgs, " ")
-                                                 + usage());
+                                             + action
+                                             + " in " +
+                                             HoyaUtils.join(actionArgs, " ")
+                                             + usage());
     }
     actionArgs = parameters.subList(1, parameters.size());
 
@@ -324,12 +334,15 @@ public class CommonArgs implements HoyaActions {
               actionArgSize);
     if (minArgs > actionArgSize) {
       throw new BadCommandArgumentsException(ERROR_NOT_ENOUGH_ARGUMENTS + action
-                                                 + " in " + HoyaUtils.join(actionArgs, " "));
+                                             + " in " +
+                                             HoyaUtils.join(actionArgs, " "));
     }
-    int maxArgs = (actionOpts.size() == 3) ? ((Integer) actionOpts.get(2)) : minArgs;
+    int maxArgs =
+      (actionOpts.size() == 3) ? ((Integer) actionOpts.get(2)) : minArgs;
     if (actionArgSize > maxArgs) {
       throw new BadCommandArgumentsException(ERROR_TOO_MANY_ARGUMENTS + action
-                                                 + " in " + HoyaUtils.join(actionArgs, " "));
+                                             + " in " +
+                                             HoyaUtils.join(actionArgs, " "));
     }
   }
 

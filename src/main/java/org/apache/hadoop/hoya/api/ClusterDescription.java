@@ -53,12 +53,12 @@ public class ClusterDescription {
    * version counter
    */
   public String version = "1.0";
-  
+
   /**
    * Name of the cluster
    */
   public String name;
-  
+
   /**
    * State of the cluster
    */
@@ -86,15 +86,15 @@ public class ClusterDescription {
   /**
    * Cluster created: {@value}
    */
-  public static final int STATE_CREATED   = 2;
+  public static final int STATE_CREATED = 2;
   /**
    * Live: {@value}
    */
-  public static final int STATE_LIVE      = 3;
+  public static final int STATE_LIVE = 3;
   /**
    * Stopped
    */
-  public static final int STATE_STOPPED   = 4;
+  public static final int STATE_STOPPED = 4;
   /**
    * destroyed
    */
@@ -122,7 +122,7 @@ public class ClusterDescription {
    * files; these are re-read when 
    * restoring a cluster
    */
-  
+
   public String originConfigurationPath;
   public String generatedConfigurationPath;
   public int workers;
@@ -143,13 +143,12 @@ public class ClusterDescription {
    * HBase home: if non-empty defines where a copy of HBase is preinstalled
    */
   public String hbaseHome;
-  
+
   /**
    * The path in HDFS where the HBase image must go
    */
   public String imagePath;
-  
-  
+
 
   public String xHBaseMasterCommand;
 
@@ -188,17 +187,18 @@ public class ClusterDescription {
    */
   public List<ClusterNode> requestedNodes = new ArrayList<ClusterNode>();
 
-  
+
   /**
    * Nodes that failed to start
    */
   public List<ClusterNode> failedNodes = new ArrayList<ClusterNode>();
 
-  
+
   /**
    * List of key-value pairs to add to an HBase config to set up the client
    */
-  public Map<String,String> hBaseClientProperties = new HashMap<String, String>();
+  public Map<String, String> hBaseClientProperties =
+    new HashMap<String, String>();
 
   @Override
   public String toString() {
@@ -272,12 +272,12 @@ public class ClusterDescription {
    * @throws IOException IO problems
    */
   public static ClusterDescription load(FileSystem fs, Path path)
-    throws IOException, JsonParseException, JsonMappingException  {
+    throws IOException, JsonParseException, JsonMappingException {
     FileStatus status = fs.getFileStatus(path);
-    byte[] b = new byte[(int)status.getLen()];
+    byte[] b = new byte[(int) status.getLen()];
     FSDataInputStream dataInputStream = fs.open(path);
     int count = dataInputStream.read(b);
-    String json = new String(b,0, count, UTF_8);
+    String json = new String(b, 0, count, UTF_8);
     return fromJson(json);
   }
 

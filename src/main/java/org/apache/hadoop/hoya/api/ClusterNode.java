@@ -37,7 +37,7 @@ public class ClusterNode {
    * Exit code: only valid if the state >= STOPPED
    */
   public int exitCode;
-  
+
   /**
    * what was the command executed?
    */
@@ -57,9 +57,9 @@ public class ClusterNode {
   /**
    * Any environment details
    */
-  public String[] environment; 
-  
-  
+  public String[] environment;
+
+
   public ClusterNode(String name) {
     this.name = name;
   }

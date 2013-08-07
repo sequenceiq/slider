@@ -22,21 +22,25 @@ import org.apache.hadoop.ipc.VersionedProtocol;
 
 import java.io.IOException;
 
-/** 
+/**
  * API for AM operations
  */
 public interface HoyaAppMasterProtocol extends VersionedProtocol {
   public static final long versionID = 0x01;
-  
+
   public void stopCluster() throws IOException;
+
   public boolean flexNodes(int workers) throws IOException;
+
   public String getClusterStatus() throws IOException;
-  
-  public static final String STAT_CONTAINERS_REQUESTED ="containers.requested";
-  public static final String STAT_CONTAINERS_ALLOCATED ="containers.allocated";
-  public static final String STAT_CONTAINERS_COMPLETED ="containers.completed";
-  public static final String STAT_CONTAINERS_FAILED ="containers.failed";
-  public static final String STAT_CONTAINERS_STARTED ="containers.start.started";
-  public static final String STAT_CONTAINERS_STARTED_FAILED ="containers.start.failed";
-  
+
+  public static final String STAT_CONTAINERS_REQUESTED = "containers.requested";
+  public static final String STAT_CONTAINERS_ALLOCATED = "containers.allocated";
+  public static final String STAT_CONTAINERS_COMPLETED = "containers.completed";
+  public static final String STAT_CONTAINERS_FAILED = "containers.failed";
+  public static final String STAT_CONTAINERS_STARTED =
+    "containers.start.started";
+  public static final String STAT_CONTAINERS_STARTED_FAILED =
+    "containers.start.failed";
+
 }

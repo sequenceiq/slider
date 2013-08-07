@@ -17,6 +17,7 @@
  */
 
 package org.apache.hadoop.hoya.yarn.client;
+
 import com.beust.jcommander.Parameter;
 import groovy.transform.CompileStatic;
 import org.apache.hadoop.conf.Configuration;
@@ -40,7 +41,8 @@ public class ClientArgs extends CommonArgs {
   /**
    * Name of entry class: {@value}
    */
-  public static final String CLASSNAME = "org.apache.hadoop.hoya.yarn.client.HoyaClient";
+  public static final String CLASSNAME =
+    "org.apache.hadoop.hoya.yarn.client.HoyaClient";
   /**
    filesystem-uri: {@value}
    */
@@ -52,20 +54,21 @@ public class ClientArgs extends CommonArgs {
   public static final String ARG_WAIT = "--wait";
 
 
-
   public static final String FORMAT_XML = "xml";
   public static final String FORMAT_PROPERTIES = "properties";
 
-  @Parameter(names = ARG_AMQUEUE, description = "Application Manager Queue Name")
+  @Parameter(names = ARG_AMQUEUE,
+             description = "Application Manager Queue Name")
   public String amqueue = "default";
 
   //--format 
-  @Parameter(names = ARG_FORMAT, description = "Format for a response: [text|xml|json|properties]")
+  @Parameter(names = ARG_FORMAT,
+             description = "Format for a response: [text|xml|json|properties]")
   public String format = FORMAT_XML;
 
   //--wait [timeout]
   @Parameter(names = "--wait",
-      description = "time to wait for an action to complete")
+             description = "time to wait for an action to complete")
   public int waittime = 0;
 
   /**
@@ -73,13 +76,13 @@ public class ClientArgs extends CommonArgs {
    the full path to a .tar or .tar.gz path containing an HBase image.
    */
   @Parameter(names = ARG_IMAGE,
-      description = "The full path to a .tar or .tar.gz path containing an HBase image",
-      converter = PathArgumentConverter.class)
+             description = "The full path to a .tar or .tar.gz path containing an HBase image",
+             converter = PathArgumentConverter.class)
   public Path image;
 
   @Parameter(names = "--persist",
-      description = "flag to indicate whether a flex change should be persisted (default=true)",
-      arity = 1)
+             description = "flag to indicate whether a flex change should be persisted (default=true)",
+             arity = 1)
   public boolean persist;
 
   /**
@@ -87,10 +90,13 @@ public class ClientArgs extends CommonArgs {
    * If the max no is not given it is assumed to be the same as the min no.
    */
 
-  private static final Map<String, List<Object>> ACTIONS = new HashMap<String, List<Object>>();
+  private static final Map<String, List<Object>> ACTIONS =
+    new HashMap<String, List<Object>>();
+
   static {
     ACTIONS.put(ACTION_CREATE, t("Create a Hoya cluster", 1));
-    ACTIONS.put(ACTION_DESTROY, t("Destroy a Hoya cluster (which must be stopped)", 1));
+    ACTIONS.put(ACTION_DESTROY,
+                t("Destroy a Hoya cluster (which must be stopped)", 1));
     ACTIONS.put(ACTION_FLEX, t("Flex a Hoya cluster", 1));
     ACTIONS.put(ACTION_GETCONF, t("Get the configuration of a cluster", 1));
 //    ACTIONS.put(ACTION_GETSIZE, t("Get the size of a cluster", 1));
@@ -99,7 +105,8 @@ public class ClientArgs extends CommonArgs {
     ACTIONS.put(ACTION_LIST, t("List running Hoya clusters", 0, 1));
 //    ACTIONS.put(ACTION_MIGRATE, t("Migrate a Hoya cluster to a new HBase version", 1));
 //    ACTIONS.put(ACTION_PREFLIGHT, t("Perform preflight checks", 0));
-    ACTIONS.put(ACTION_RECONFIGURE, t("change the configuration of a cluster", 1));
+    ACTIONS.put(ACTION_RECONFIGURE,
+                t("change the configuration of a cluster", 1));
 //    ACTIONS.put(ACTION_REIMAGE, t("change the image a cluster uses", 1));
     ACTIONS.put(ACTION_START, t("start a cluster", 1));
     ACTIONS.put(ACTION_STATUS, t("Get the status of a cluster", 1));

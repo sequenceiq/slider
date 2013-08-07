@@ -29,24 +29,24 @@ public interface HoyaKeys {
    * {@value}
    */
   String HOYA_BASE_DIRECTORY = ".hoya";
-  
+
   /**
    *  name of the relative path to install hBase into:  {@value}
    */
   String HBASE_LOCAL = "hbaselocal";
-  
+
   /**
    *  name of the hbase script relative to the hbase root dir:  {@value}
    */
   String HBASE_SCRIPT = "bin/hbase";
-  
-  
+
+
   /**
    *  name of the hbase subdir in the archive:  {@value}
    */
   String HBASE_ARCHIVE_SUBDIR = "hbase-0.94.9-SNAPSHOT";
-  
-  
+
+
   /**
    *  name of the site conf to generate :  {@value}
    */
