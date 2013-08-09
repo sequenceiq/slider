@@ -18,7 +18,11 @@
 
 package org.apache.hadoop.hoya.providers.hbase;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hoya.providers.ProviderClusterBuilder;
 
-public class HBaseClusterBuilder implements ProviderClusterBuilder {
+public class HBaseClusterBuilder extends HBaseClusterCore implements ProviderClusterBuilder {
+  public HBaseClusterBuilder(Configuration conf) {
+    super(conf);
+  }
 }

@@ -18,5 +18,15 @@
 
 package org.apache.hadoop.hoya.providers;
 
-public interface ProviderClusterBuilder extends ProviderCore {
+import org.apache.hadoop.conf.Configuration;
+
+import java.util.List;
+
+public interface ProviderCore {
+
+  String getName();
+
+  List<String> getRoles();
+  
+  Configuration getConf();
 }

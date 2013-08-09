@@ -18,5 +18,5 @@
 
 package org.apache.hadoop.hoya.providers;
 
-public interface ProviderClusterDeployer {
+public interface ProviderClusterDeployer extends ProviderCore {
 }

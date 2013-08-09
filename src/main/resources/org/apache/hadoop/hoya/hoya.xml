@@ -20,7 +20,11 @@
 
 <configuration>
   <property>
+    <name>hoya.config.loaded</name>
+    <value>true</value>
+  </property>
+  <property>
     <name>hoya.provider.hbase</name>
-    <value></value>
+    <value>org.apache.hadoop.hoya.providers.hbase.HBaseProviderFactory</value>
   </property>
 </configuration>

@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.yarn.providers
 
+import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory
 import org.apache.hadoop.hoya.providers.hbase.HBaseProviderFactory
 import org.junit.Test
@@ -25,6 +26,11 @@ import org.junit.Test
 class TestProviderFactory {
 
 
+  @Test
+  public void testLoadHoyaConfig() throws Throwable {
+    Configuration conf = HoyaProviderFactory.loadHoyaConfiguration();
+    assert conf.getBoolean("hoya.config.loaded", false)
+  }
   @Test
   public void testLoadHBaseProvider() throws Throwable {
     HoyaProviderFactory factory = HoyaProviderFactory.createHoyaProviderFactory(HBaseProviderFactory.APPLICATION_TYPE);

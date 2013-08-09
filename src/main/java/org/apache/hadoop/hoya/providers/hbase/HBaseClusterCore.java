@@ -19,11 +19,36 @@
 package org.apache.hadoop.hoya.providers.hbase;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hoya.providers.ProviderClusterDeployer;
+import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.hoya.providers.ProviderCore;
 
-public class HBaseClusterDeployer extends HBaseClusterCore implements ProviderClusterDeployer {
+import java.util.ArrayList;
+import java.util.List;
 
-  public HBaseClusterDeployer(Configuration conf) {
+public abstract class HBaseClusterCore extends Configured implements
+                                                          ProviderCore {
+
+  protected static final String NAME = "hbase";
+
+  protected HBaseClusterCore(Configuration conf) {
     super(conf);
+  }
+  
+  protected static final List<String> ROLES = new ArrayList<String>(1);
+
+  protected static final String ROLE_WORKER = "worker";
+
+  static {
+    ROLES.add(ROLE_WORKER);
+  }
+
+  @Override
+  public String getName() {
+    return NAME;
+  }
+
+  @Override
+  public List<String> getRoles() {
+    return ROLES;
   }
 }

@@ -46,7 +46,7 @@ public class ServiceLaunchException extends YarnException
     this.exitCode = exitCode;
   }
 
-  //@Override
+  @Override
   public int getExitCode() {
     return exitCode;
   }

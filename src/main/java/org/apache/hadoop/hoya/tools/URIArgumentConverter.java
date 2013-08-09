@@ -29,7 +29,7 @@ public class URIArgumentConverter extends BaseConverter<URI> {
     super(optionName);
   }
 
-  //@Override
+  @Override
   public URI convert(String value) {
     try {
       return new URI(value);

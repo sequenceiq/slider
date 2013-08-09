@@ -29,7 +29,7 @@ public class URLArgumentConverter extends BaseConverter<URL> {
     super(optionName);
   }
 
-  //@Override
+  @Override
   public URL convert(String value) {
     try {
       return new URL(value);

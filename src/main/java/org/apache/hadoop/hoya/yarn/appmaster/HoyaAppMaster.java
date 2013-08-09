@@ -305,7 +305,7 @@ public class HoyaAppMaster extends CompositeService
    * pick up the args from the service launcher
    * @param args argument list
    */
-  //@Override // RunService
+  @Override // RunService
   public void setArgs(String... args) throws Exception {
     this.argv = args;
     serviceArgs = new HoyaMasterServiceArgs(argv);
@@ -319,7 +319,7 @@ public class HoyaAppMaster extends CompositeService
    * @return the exit code
    * @throws Throwable
    */
-  //@Override
+  @Override
   public int runService() throws Throwable {
 
     //choose the action
@@ -725,7 +725,7 @@ public class HoyaAppMaster extends CompositeService
    * @param allocatedContainers list of containers that are now ready to be
    * given work
    */
-  //@Override //AMRMClientAsync
+  @Override //AMRMClientAsync
   public void onContainersAllocated(List<Container> allocatedContainers) {
     log.info("Got response from RM for container ask, allocatedCnt= {}",
              allocatedContainers.size());
@@ -777,7 +777,7 @@ public class HoyaAppMaster extends CompositeService
     log.info(getContainerDiagnosticInfo());
   }
 
-  //@Override //AMRMClientAsync
+  @Override //AMRMClientAsync
   public synchronized void onContainersCompleted(List<ContainerStatus> completedContainers) {
     log.info("Got response from RM for container ask, completedCnt="
              + completedContainers.size());
@@ -945,7 +945,7 @@ public class HoyaAppMaster extends CompositeService
   /**
    * RM wants to shut down the AM
    */
-  //@Override //AMRMClientAsync
+  @Override //AMRMClientAsync
   public void onShutdownRequest() {
     signalAMComplete("Shutdown requested from RM");
   }
@@ -954,7 +954,7 @@ public class HoyaAppMaster extends CompositeService
    * Monitored nodes have been changed
    * @param updatedNodes list of updated notes
    */
-  //@Override //AMRMClientAsync
+  @Override //AMRMClientAsync
   public void onNodesUpdated(List<NodeReport> updatedNodes) {
     log.info("Nodes updated");
   }
@@ -964,7 +964,7 @@ public class HoyaAppMaster extends CompositeService
    * 0 = not started, 50 = live, 100 = finished
    * @return
    */
-  //@Override //AMRMClientAsync
+  @Override //AMRMClientAsync
   public float getProgress() {
     if (hbaseMaster == null) {
       return 0.0f;
@@ -973,7 +973,7 @@ public class HoyaAppMaster extends CompositeService
     }
   }
 
-  //@Override //AMRMClientAsync
+  @Override //AMRMClientAsync
   public void onError(Throwable e) {
     //callback says it's time to finish
     log.error("AMRMClientAsync.onError() received " + e, e);
@@ -984,7 +984,7 @@ public class HoyaAppMaster extends CompositeService
 /* HoyaAppMasterApi */
 /* =================================================================== */
 
-  //@Override   //HoyaAppMasterApi
+  @Override   //HoyaAppMasterApi
   public ProtocolSignature getProtocolSignature(String protocol,
                                                 long clientVersion,
                                                 int clientMethodsHash) throws
@@ -993,26 +993,26 @@ public class HoyaAppMaster extends CompositeService
       this, protocol, clientVersion, clientMethodsHash);
   }
 
-  //@Override   //HoyaAppMasterApi
+  @Override   //HoyaAppMasterApi
   public void stopCluster() throws IOException {
     log.info("HoyaAppMasterApi.stopCluster()");
     signalAMComplete("stopCluster() invoked");
   }
 
-  //@Override   //HoyaAppMasterApi
+  @Override   //HoyaAppMasterApi
   public boolean flexNodes(int workers) throws IOException {
     log.info("HoyaAppMasterApi.flexNodes({})", workers);
     return flexClusterNodes(workers);
   }
 
 
-  //@Override   //HoyaAppMasterApi
+  @Override   //HoyaAppMasterApi
   public long getProtocolVersion(String protocol, long clientVersion) throws
                                                                       IOException {
     return versionID;
   }
 
-  //@Override //HoyaAppMasterApi
+  @Override //HoyaAppMasterApi
   public synchronized String getClusterStatus() throws IOException {
     updateClusterDescription();
     String status = clusterDescription.toJsonString();
@@ -1130,7 +1130,7 @@ public class HoyaAppMaster extends CompositeService
     hbaseMaster.spawnApplication();
   }
 
-  //@Override // ApplicationEventHandler
+  @Override // ApplicationEventHandler
   public void onApplicationStarted(RunLongLivedApp application) {
     log.info("Process has started");
     synchronized (clusterDescription) {
@@ -1144,7 +1144,7 @@ public class HoyaAppMaster extends CompositeService
    * @param application application
    * @param exitCode exit code
    */
-  //@Override // ApplicationEventHandler
+  @Override // ApplicationEventHandler
   public void onApplicationExited(RunLongLivedApp application, int exitCode) {
     log.info("Process has exited with exit code {}", exitCode);
     synchronized (clusterDescription) {
@@ -1218,13 +1218,13 @@ public class HoyaAppMaster extends CompositeService
     nmClientAsync.startContainerAsync(container, ctx);
   }
 
-  //@Override //  NMClientAsync.CallbackHandler 
+  @Override //  NMClientAsync.CallbackHandler 
   public void onContainerStopped(ContainerId containerId) {
     log.debug("Succeeded stopping Container {} ", containerId);
     containers.remove(containerId);
   }
 
-  //@Override //  NMClientAsync.CallbackHandler 
+  @Override //  NMClientAsync.CallbackHandler 
   public void onContainerStarted(ContainerId containerId,
                                  Map<String, ByteBuffer> allServiceResponse) {
     log.debug("Started Container {} ", containerId);
@@ -1254,7 +1254,7 @@ public class HoyaAppMaster extends CompositeService
     }
   }
 
-  //@Override //  NMClientAsync.CallbackHandler 
+  @Override //  NMClientAsync.CallbackHandler 
   public void onStartContainerError(ContainerId containerId, Throwable t) {
     log.error("Failed to start Container " + containerId, t);
     containers.remove(containerId);
@@ -1271,20 +1271,20 @@ public class HoyaAppMaster extends CompositeService
     }
   }
 
-  //@Override //  NMClientAsync.CallbackHandler 
+  @Override //  NMClientAsync.CallbackHandler 
   public void onContainerStatusReceived(ContainerId containerId,
                                         ContainerStatus containerStatus) {
     log.debug("Container Status: id={}, status={}", containerId,
               containerStatus);
   }
 
-  //@Override //  NMClientAsync.CallbackHandler 
+  @Override //  NMClientAsync.CallbackHandler 
   public void onGetContainerStatusError(
     ContainerId containerId, Throwable t) {
     log.error("Failed to query the status of Container " + containerId);
   }
 
-  //@Override //  NMClientAsync.CallbackHandler 
+  @Override //  NMClientAsync.CallbackHandler 
   public void onStopContainerError(ContainerId containerId, Throwable t) {
     log.error("Failed to stop Container " + containerId);
     containers.remove(containerId);

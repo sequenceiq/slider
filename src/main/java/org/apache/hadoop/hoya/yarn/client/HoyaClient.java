@@ -137,7 +137,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     return "Hoya";
   }
 
-  //@Override
+  @Override
   public void setArgs(String... args) throws Exception {
     this.argv = args;
     serviceArgs = new ClientArgs(args);
@@ -159,7 +159,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
    * @return the exit code
    * @throws Throwable anything that went wrong
    */
-  //@Override
+  @Override
   public int runService() throws Throwable {
 
     //choose the action

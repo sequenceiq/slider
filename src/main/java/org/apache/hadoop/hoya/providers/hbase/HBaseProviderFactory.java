@@ -23,7 +23,11 @@ import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
 import org.apache.hadoop.hoya.providers.ProviderClusterBuilder;
 import org.apache.hadoop.hoya.providers.ProviderClusterDeployer;
 
-public class HBaseProviderFactory extends HoyaProviderFactory{
+public class HBaseProviderFactory extends HoyaProviderFactory {
+
+  public HBaseProviderFactory() {
+  }
+
   public HBaseProviderFactory(Configuration conf) {
     super(conf);
   }
@@ -32,11 +36,11 @@ public class HBaseProviderFactory extends HoyaProviderFactory{
   
   @Override
   public ProviderClusterBuilder createBuilder() {
-    return new HBaseClusterBuilder();
+    return new HBaseClusterBuilder(getConf());
   }
 
   @Override
   public ProviderClusterDeployer createDeployer() {
-    return new HBaseClusterDeployer();
+    return new HBaseClusterDeployer(getConf());
   }
 }

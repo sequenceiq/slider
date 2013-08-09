@@ -188,7 +188,7 @@ public class RunLongLivedApp implements Runnable {
   /**
    * Entry point for waiting for the program to finish
    */
-  //@Override // Runnable
+  @Override // Runnable
   public void run() {
     //notify the callback that the process has started
     if (applicationEventHandler != null) {
@@ -330,7 +330,7 @@ public class RunLongLivedApp implements Runnable {
     }
 
 
-    //@Override //Runnable
+    @Override //Runnable
     @SuppressWarnings("IOResourceOpenedButNotSafelyClosed")
     public void run() {
       BufferedReader errReader = null;

@@ -67,7 +67,7 @@ public class HoyaRegionServiceLauncher implements Runnable {
     this.role = role;
   }
 
-  //@Override
+  @Override
   public void run() {
 
     try {
