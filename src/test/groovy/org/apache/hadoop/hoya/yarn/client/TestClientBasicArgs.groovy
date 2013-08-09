@@ -58,5 +58,27 @@ class TestClientBasicArgs extends ServiceLauncherBaseTest {
     assert 0 == launcher.serviceExitCode
 
   }
+  
+ @Test
+  public void testHelpActionOrdering() throws Throwable {
+    ServiceLauncher launcher = launch(HoyaClient,
+                      HoyaUtils.createConfiguration(),
+                       [
+                       CommonArgs.ARG_X_TEST,
+                       ClientArgs.ACTION_HELP,
+                       ])
+    assert 0 == launcher.serviceExitCode
+  }
+  
+ @Test
+  public void testHelpActionOrderingDualItemArg() throws Throwable {
+    ServiceLauncher launcher = launch(HoyaClient,
+                      HoyaUtils.createConfiguration(),
+                       [
+                       ClientArgs.ARG_X_HBASE_MASTER_COMMAND, "testo",
+                       ClientArgs.ACTION_HELP,
+                       ])
+    assert 0 == launcher.serviceExitCode
+  }
 
 }

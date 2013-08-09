@@ -56,13 +56,14 @@ class TestClientBadArgs extends ServiceLauncherBaseTest {
   }
 
   @Test
-  public void testActionWithoutTooManyArgs() throws Throwable {
+  public void testActionWithTooManyArgs() throws Throwable {
     launchExpectingException(HoyaClient,
                              new Configuration(),
                              CommonArgs.ERROR_TOO_MANY_ARGUMENTS,
                              [HoyaActions.ACTION_HELP,
                              "hello, world"])
   }
+  
   @Test
   public void testBadImageArg() throws Throwable {
     launchExpectingException(HoyaClient,
