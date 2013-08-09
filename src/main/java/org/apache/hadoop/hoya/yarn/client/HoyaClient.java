@@ -35,6 +35,7 @@ import org.apache.hadoop.hoya.api.HoyaAppMasterProtocol;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
+import org.apache.hadoop.hoya.providers.hbase.HBaseCommands;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.Duration;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
@@ -521,8 +522,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     Configuration config = getConfig();
     Configuration templateConf = ConfigHelper.loadTemplateConfiguration(config,
                                                                         origConfPath,
-                                                                        HoyaKeys.HBASE_TEMPLATE,
-                                                                        HoyaKeys.HBASE_TEMPLATE_RESOURCE);
+                                                                        HBaseCommands.HBASE_TEMPLATE,
+                                                                        HBaseCommands.HBASE_TEMPLATE_RESOURCE);
 
     //construct the cluster configuration values
     Map<String, String> clusterConfMap =
@@ -541,7 +542,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     Path sitePath = ConfigHelper.generateConfig(config,
                                                 templateConf,
                                                 genConfPath,
-                                                HoyaKeys.HBASE_SITE);
+                                                HBaseCommands.HBASE_SITE);
 
     log.debug("Saving the config to {}", sitePath);
     Map<String, LocalResource> confResources;

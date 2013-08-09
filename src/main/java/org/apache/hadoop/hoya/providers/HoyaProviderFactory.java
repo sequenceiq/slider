@@ -45,9 +45,9 @@ public abstract class HoyaProviderFactory extends Configured {
   protected HoyaProviderFactory() {
   }
 
-  public abstract ProviderClusterBuilder createBuilder();
+  public abstract ClusterBuilder createBuilder();
 
-  public abstract ProviderClusterDeployer createDeployer();
+  public abstract ClusterExecutor createDeployer();
 
   /**
    * Create a provider for a specific application

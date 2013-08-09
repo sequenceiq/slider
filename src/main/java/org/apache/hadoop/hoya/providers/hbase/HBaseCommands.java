@@ -60,4 +60,27 @@ public interface HBaseCommands {
    * Config directory : {@value}
    */
   String ARG_CONFIG = "--config";
+  /**
+   *  name of the hbase script relative to the hbase root dir:  {@value}
+   */
+  String HBASE_SCRIPT = "bin/hbase";
+  /**
+   *  name of the hbase subdir in the archive:  {@value}
+   */
+  String HBASE_ARCHIVE_SUBDIR = "hbase-0.94.9-SNAPSHOT";
+  /**
+   *  name of the site conf to generate :  {@value}
+   */
+  String HBASE_SITE = "hbase-site.xml";
+  /**
+   * name of the template file to use for cluster-specific
+   * customisations:  {@value}
+   */
+  String HBASE_TEMPLATE = HBASE_SITE;
+  /**
+   * Template stored in the hoya classpath -to use if there is
+   * no site-specific template
+   *  {@value}
+   */
+  String HBASE_TEMPLATE_RESOURCE = "/conf/" + HBASE_TEMPLATE;
 }

@@ -442,7 +442,7 @@ public class HoyaAppMaster extends CompositeService
     }
 
     //now validate the dir by loading in a hadoop-site.xml file from it
-    File hBaseSiteXML = new File(confDir, HoyaKeys.HBASE_SITE);
+    File hBaseSiteXML = new File(confDir, HBaseCommands.HBASE_SITE);
     if (!hBaseSiteXML.exists()) {
       StringBuilder builder = new StringBuilder();
       String[] confDirEntries = confDir.list();
@@ -450,7 +450,7 @@ public class HoyaAppMaster extends CompositeService
         builder.append(entry).append("\n");
       }
       throw new FileNotFoundException(
-        "Conf dir " + confDir + " doesn't contain " + HoyaKeys.HBASE_SITE +
+        "Conf dir " + confDir + " doesn't contain " + HBaseCommands.HBASE_SITE +
         "\n" + builder);
     }
 
@@ -1161,7 +1161,7 @@ public class HoyaAppMaster extends CompositeService
    */
   public File buildHBaseBinPath(ClusterDescription cd) {
     File hbaseScript = new File(buildHBaseDir(cd),
-                                HoyaKeys.HBASE_SCRIPT);
+                                HBaseCommands.HBASE_SCRIPT);
     return hbaseScript;
   }
 
@@ -1169,7 +1169,7 @@ public class HoyaAppMaster extends CompositeService
     File hbasedir;
     if (cd.imagePath != null) {
       hbasedir = new File(new File(HoyaKeys.HBASE_LOCAL),
-                          HoyaKeys.HBASE_ARCHIVE_SUBDIR);
+                          HBaseCommands.HBASE_ARCHIVE_SUBDIR);
     } else {
       hbasedir = new File(cd.hbaseHome);
     }

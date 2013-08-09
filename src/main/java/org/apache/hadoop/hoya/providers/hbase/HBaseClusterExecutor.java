@@ -19,11 +19,12 @@
 package org.apache.hadoop.hoya.providers.hbase;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hoya.providers.ProviderClusterDeployer;
+import org.apache.hadoop.hoya.providers.ClusterExecutor;
 
-public class HBaseClusterDeployer extends HBaseClusterCore implements ProviderClusterDeployer {
+public class HBaseClusterExecutor extends HBaseClusterCore implements
+                                                           ClusterExecutor {
 
-  public HBaseClusterDeployer(Configuration conf) {
+  public HBaseClusterExecutor(Configuration conf) {
     super(conf);
   }
 }

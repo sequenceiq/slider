@@ -18,5 +18,19 @@
 
 package org.apache.hadoop.hoya.providers;
 
-public interface ProviderClusterDeployer extends ProviderCore {
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
+
+/**
+ * An optional base class for providers
+ */
+public abstract class AbstractProviderCore extends Configured implements
+                                                              ProviderCore {
+
+  protected AbstractProviderCore(Configuration conf) {
+    super(conf);
+  }
+
+  protected AbstractProviderCore() {
+  }
 }

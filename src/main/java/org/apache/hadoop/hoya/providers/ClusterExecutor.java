@@ -16,14 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hoya.providers.hbase;
+package org.apache.hadoop.hoya.providers;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hoya.providers.ClusterBuilder;
-
-public class HBaseClusterBuilder extends HBaseClusterCore implements
-                                                          ClusterBuilder {
-  public HBaseClusterBuilder(Configuration conf) {
-    super(conf);
-  }
+public interface ClusterExecutor extends ProviderCore {
 }
