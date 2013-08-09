@@ -16,13 +16,29 @@
   ---
   ${maven.build.timestamp}
 
+## Building a compatible Hadoop version
 
-Checkout a hbase-0.94 branch from apache svn. Build a hadoop-2.1 and <<mvn install -DskipTests>> it.
+During development, Hoya is built against a local version of Hadoop branch 2.1.x,
+so that we can find and fix bugs in Hadoop as well in Hoya.
+
+It will fall back to downloading the `-SNAPSHOT` artifacts from the ASF snapshot
+repository
+
+To build and install locally, check out apache svn/github, branch `2.1-beta` 
+
+Build and install it locally, skipping the tests:
+
+    mvn install -DskipTests
+
+You have to do this every morning to avoid the ASF nightly artifacts being picked up/
+
+## building a compatible HBase version
+
+Checkout the HBase `hbase-0.94` branch from apache svn/github.  
+
 The maven command for building hbase artifacts with hadoop-2.1 is 
 
-+------+
     mvn clean -Dhadoop.profile=2.0 -Dhadoop.version=2.1.0-SNAPSHOT -DskipTests package
-+------+
 
 This will create hbase-0.94.9-SNAPSHOT.tar.gz in the directory target within
 the hbase-0.94 source. That's your hbase with hadoop-2.1
