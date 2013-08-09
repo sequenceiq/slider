@@ -16,7 +16,7 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya;
+package org.apache.hadoop.hoya.providers.hbase;
 
 /*
 Usage: hbase <command>

@@ -95,4 +95,8 @@ public interface HoyaKeys {
 
   int MIN_HEAP_SIZE = 0;
   String HBASE_LOG_DIR = "HBASE_LOG_DIR";
+
+  String HOYA_XML ="/org/apache/hadoop/hoya/hoya.xml";
+
+  String HOYA_PROVIDER_KEY = "hoya.provider.%s";
 }

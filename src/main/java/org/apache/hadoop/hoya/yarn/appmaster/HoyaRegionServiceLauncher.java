@@ -20,7 +20,7 @@ package org.apache.hadoop.hoya.yarn.appmaster;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hoya.HBaseCommands;
+import org.apache.hadoop.hoya.providers.hbase.HBaseCommands;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.ClusterNode;

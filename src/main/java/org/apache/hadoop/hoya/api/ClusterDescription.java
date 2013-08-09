@@ -24,6 +24,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.codehaus.jackson.JsonParseException;
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
@@ -43,6 +44,7 @@ import java.util.Map;
  * a binary format, but by having one unified format for wire and persistence,
  * the code paths are simplified.
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ClusterDescription {
   protected static final Logger
     log = LoggerFactory.getLogger(ClusterDescription.class);

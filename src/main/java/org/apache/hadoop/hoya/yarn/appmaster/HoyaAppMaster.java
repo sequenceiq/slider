@@ -20,7 +20,7 @@ package org.apache.hadoop.hoya.yarn.appmaster;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.hoya.HBaseCommands;
+import org.apache.hadoop.hoya.providers.hbase.HBaseCommands;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
@@ -84,10 +84,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
-
-/**
- * The AM for Hoya
- */
 
 /**
  * This is the AM, which directly implements the callbacks from the AM and NM
@@ -227,7 +223,7 @@ public class HoyaAppMaster extends CompositeService
    the CD, and also to update some of the structures that
    feed in to the CD
    */
-  public ClusterDescription clusterDescription = new ClusterDescription();
+  public final ClusterDescription clusterDescription = new ClusterDescription();
 
   /**
    * List of completed nodes. This isn't kept in the CD as it gets too
@@ -239,7 +235,7 @@ public class HoyaAppMaster extends CompositeService
    * Nodes that failed to start.
    * Again, kept out of the CD
    */
-  public List<ClusterNode> failedNodes = new ArrayList<ClusterNode>();
+  public final List<ClusterNode> failedNodes = new ArrayList<ClusterNode>();
 
 
   private static final int COMPLETE_NODE_SIZE_LIMIT = 100;
@@ -1270,7 +1266,7 @@ public class HoyaAppMaster extends CompositeService
         if (null != t) {
           node.diagnostics = HoyaUtils.stringify(t);
         }
-        clusterDescription.failedNodes.add(node);
+        failedNodes.add(node);
       }
     }
   }
