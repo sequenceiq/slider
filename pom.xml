@@ -5,7 +5,7 @@
   <groupId>org.apache.hadoop.hoya</groupId>
   <artifactId>hoya</artifactId>
   <name>Hoya: HBase on YARN</name>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>0.2-SNAPSHOT</version>
   <url>http://hadoop.apache.org</url>
   <description>
   </description>
