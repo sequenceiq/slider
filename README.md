@@ -1,17 +1,12 @@
-# Hoya
+# Hoya: HBase on YARN
 
 
-## Testing
+Hoya is a YARN an application that can deploy HBase cluster on YARN, 
+monitor them and make them larger or smaller as desired. Clusters
+can be stopped and restarted later.
 
+It is designed to work on Apache Hadoop 2.1, which, until released
+with a compatible HBase version, needs some manual intervention
+to build locally.
 
-
-You must have the file `src/test/resources/hoya-test.xml` (this
-is ignored by git), declaring where HBase is:
-
-    <property>
-      <name>hoya.test.hbase_home</name>
-      <value>/Users/stevel/Java/Apps/hbase</value>
-      <description>HBASE Home</description>
-    </property>
-    
- 
+Please look at [building](src/site/md/building.md) for the details

@@ -12,11 +12,12 @@
 ~~ limitations under the License. See accompanying LICENSE file.
 -->
 
-  ---
-  Hoya ${project.version} -
-  ---
-  ---
-  ${maven.build.timestamp}
+# Building Hoya
+
+Hoya is currently built with some unreleased Apache Artifacts, because it
+uses Hadoop 2.1 and needs a version of HBase built against that.
+
+Here's how to set this up.
 
 ## Building a compatible Hadoop version
 
@@ -44,3 +45,37 @@ The maven command for building hbase artifacts with hadoop-2.1 is
 
 This will create hbase-0.94.9-SNAPSHOT.tar.gz in the directory target within
 the hbase-0.94 source. That's your hbase with hadoop-2.1
+
+
+# Testing
+
+
+You must have the file `src/test/resources/hoya-test.xml` (this
+is ignored by git), declaring where HBase is:
+
+    <property>
+      <name>hoya.test.hbase_home</name>
+      <value>/Users/stevel/Java/Apps/hbase</value>
+      <description>HBASE Home</description>
+    </property>
+    
+## Attn OS/X developers
+
+YARN on OS/X doesn't terminate subprocesses the way it does on Linux, so
+HBase Region Servers created by the hbase shell script remain running
+even after the tests terminate.
+
+This causes some tests -especially those related to flexing down- to fail, 
+and test reruns may be very confused. If ever a test fails because there
+are too many region servers running, this is the likely cause
+
+After every test run: do a `jps -v` to look for any leftover HBase services
+-and kill them.
+
+# Notes
+
+Hoya uses Groovy 2.x as its language for writing tests -for better assertions
+and easier handling of lists and closures. Although the first prototype
+used Groovy on the production source, this has been dropped in favor of
+a Java-only codebase. We do still push up `groovyall.jar` to the classpath
+of the HoyaAM.

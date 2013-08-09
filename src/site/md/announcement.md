@@ -12,11 +12,9 @@
   limitations under the License. See accompanying LICENSE file.
 -->
 
-Hoya!
-===
+# Hoya!
 
-Steve Loughran, Devaraj Das & Eric Baldeschwieler
-----
+## Steve Loughran, Devaraj Das & Eric Baldeschwieler
 
 In the last few weeks, we have been getting together a prototype, Hoya, running HBase On YARN. This is driven by a few top level use cases that we have been trying to address. Some of them are:
 * Be able to create on-demand HBase clusters easily -by and or in apps
