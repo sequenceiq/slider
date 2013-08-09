@@ -243,7 +243,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     // detect any race leading to cluster creation during the check/destroy process
     // and report a problem.
-    if (findAllLiveInstances(null, clustername).size() > 0) {
+    if (!findAllLiveInstances(null, clustername).isEmpty()) {
       throw new HoyaException(EXIT_BAD_CLUSTER_STATE,
                               clustername + ": "
                               + E_DESTROY_CREATE_RACE_CONDITION
@@ -405,7 +405,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     InetSocketAddress rmAddr = YarnUtils.getRmAddress(getConfig());
     if (!YarnUtils.isAddressDefined(rmAddr)) {
       throw new BadCommandArgumentsException(
-        "No valid Resource Manager adddress provided in the argument "
+        "No valid Resource Manager address provided in the argument "
         + CommonArgs.ARG_MANAGER
         + " or the configuration property "
         + YarnConfiguration.RM_ADDRESS);
@@ -1049,10 +1049,10 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     ApplicationId appId, YarnApplicationState desiredState, Duration duration)
     throws YarnException, IOException {
 
-    duration.start();
     if (duration.limit <= 0) {
-      throw new HoyaException("Invalid duration of monitoring");
+      throw new HoyaException("Invalid monitoring duration");
     }
+    duration.start();
     while (true) {
 
       // Get application report for the appId we are interested in 
@@ -1521,8 +1521,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     try {
       return ClusterDescription.fromJson(statusJson);
     } catch (JsonParseException e) {
-      log.error(
-        "Exception " + e + " parsing:\n" + JsonOutput.prettyPrint(statusJson),
+      log.error("Exception " + e + " parsing:\n" + JsonOutput.prettyPrint(statusJson),
         e);
       throw e;
     }

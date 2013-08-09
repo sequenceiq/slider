@@ -433,24 +433,24 @@ public class HoyaAppMaster extends CompositeService
       hbaseCommand = serviceArgs.xHBaseMasterCommand;
     }
 
-    File hBaseConfDir = getLocalConfDir();
-    if (!hBaseConfDir.exists() || !hBaseConfDir.isDirectory()) {
+    File confDir = getLocalConfDir();
+    if (!confDir.exists() || !confDir.isDirectory()) {
 
       throw new BadCommandArgumentsException(
-        "Configuration directory " + hBaseConfDir +
+        "Configuration directory " + confDir +
         " doesn't exist");
     }
 
     //now validate the dir by loading in a hadoop-site.xml file from it
-    File hBaseSiteXML = new File(hBaseConfDir, HoyaKeys.HBASE_SITE);
+    File hBaseSiteXML = new File(confDir, HoyaKeys.HBASE_SITE);
     if (!hBaseSiteXML.exists()) {
       StringBuilder builder = new StringBuilder();
-      String[] confDirEntries = hBaseConfDir.list();
+      String[] confDirEntries = confDir.list();
       for (String entry : confDirEntries) {
         builder.append(entry).append("\n");
       }
       throw new FileNotFoundException(
-        "Conf dir " + hBaseConfDir + " doesn't contain " + HoyaKeys.HBASE_SITE +
+        "Conf dir " + confDir + " doesn't contain " + HoyaKeys.HBASE_SITE +
         "\n" + builder);
     }
 
@@ -486,7 +486,7 @@ public class HoyaAppMaster extends CompositeService
 
     List<String> launchSequence = new ArrayList<String>(8);
     launchSequence.add(HBaseCommands.ARG_CONFIG);
-    launchSequence.add(hBaseConfDir.getAbsolutePath());
+    launchSequence.add(confDir.getAbsolutePath());
     launchSequence.add(hbaseCommand);
     launchSequence.add(HBaseCommands.ACTION_START);
 
