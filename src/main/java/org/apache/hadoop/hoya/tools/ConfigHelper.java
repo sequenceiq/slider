@@ -58,7 +58,7 @@ public class ConfigHelper {
   public static TreeSet<String> dumpConf(Configuration conf) {
     TreeSet<String> keys = sortedConfigKeys(conf);
     for (String key : keys) {
-      log.info("$key={}", conf.get(key));
+      log.info("{}={}", key, conf.get(key));
     }
     return keys;
   }

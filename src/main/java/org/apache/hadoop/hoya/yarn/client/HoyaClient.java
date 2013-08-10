@@ -1593,6 +1593,11 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   }
 */
 
+  @Override
+  public String toString() {
+    return "HoyaClient in state " + getServiceState();
+  }
+
   /**
    * Implementation of set-ness, groovy definition of true/false for a string
    * @param s

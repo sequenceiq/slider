@@ -37,28 +37,85 @@ You have to do this every morning to avoid the ASF nightly artifacts being picke
 
 ## building a compatible HBase version
 
-Checkout the HBase `hbase-0.94` branch from apache svn/github.  
+Checkout the HBase `hbase-0.95` branch from apache svn/github.  
 
 The maven command for building hbase artifacts with hadoop-2.1 is 
 
-    mvn clean -Dhadoop.profile=2.0 -Dhadoop.version=2.1.0-SNAPSHOT -DskipTests package
+    mvn clean install assembly:single -DskipTests -Dmaven.javadoc.skip=true -Dhadoop.profile=2.0 -Dhadoop.version=2.1.1-SNAPSHOT 
 
-This will create hbase-0.94.9-SNAPSHOT.tar.gz in the directory target within
-the hbase-0.94 source. That's your hbase with hadoop-2.1
+This will create hbase-0.95.2-SNAPSHOT.tar.gz in the directory `hbase-assembly/target/` in
+the hbase source tree. 
 
+In that directory `hbase-assembly/target/`
+
+    gunzip hbase-0.95.2-SNAPSHOT-bin.tar.gz 
+    tar -xvf hbase-0.95.2-SNAPSHOT-bin.tar 
+
+This will create an untarred directory `hbase-0.95.2-SNAPSHOT-bin` containing
+hbase. Both the `.tar.gz` and untarred file are needed for testing. Most
+tests just work directly with the untarred file as it saves time uploading
+and downloading then expanding the file.
+
+For more information (including recommended Maven memory configuration options),
+see [http://hbase.apache.org/book/build.html](HBase building)
 
 # Testing
 
+the hbase tarball needs to be unzipped somewhere
 
 You must have the file `src/test/resources/hoya-test.xml` (this
 is ignored by git), declaring where HBase is:
 
-    <property>
-      <name>hoya.test.hbase_home</name>
-      <value>/Users/stevel/Java/Apps/hbase</value>
-      <description>HBASE Home</description>
-    </property>
+    <configuration>
     
+      <property>
+        <name>hoya.test.hbase_home</name>
+        <value> /Users/hoya/hbase/hbase-assembly/target/hbase-0.95.2-SNAPSHOT</value>
+        <description>HBASE Home</description>
+      </property>
+    
+      <property>
+        <name>hoya.test.hbase_tar</name>
+        <value>/Users/hoya/hbase/hbase-assembly/target/hbase-0.95.2-SNAPSHOT-bin.tar.gz</value>
+        <description>HBASE archive URI</description>
+      </property>
+    
+    </configuration>
+    
+
+## Debugging a failing test
+
+1. Locate the directory `target/$TESTNAME` where TESTNAME is the name of the 
+test case and or test method. This directory contains the Mini YARN Cluster
+logs. For example, `TestLiveRegionService` stores its data under 
+`target/TestLiveRegionService`
+
+1. Look under that directory for `-logdir` directories, then an application
+and container containing logs. There may be more than node being simulated;
+every node manager creates its own logdir.
+
+1. Look for the `out.txt` and `err.txt` files for stdout and stderr log output.
+
+1. Hoya uses SLF4J to log to `out.txt`; remotely executed processes may use
+either stream for logging
+
+Example:
+
+    target/TestLiveRegionService/TestLiveRegionService-logDir-nm-1_0/application_1376095770244_0001/container_1376095770244_0001_01_000001/out.txt
+
+1. The actual test log from JUnit itself goes to the console and into 
+`target/surefire/`; this shows the events happening in the YARN services as well
+ as (if configured) HDFS and Zookeeper. It is noisy -everything after the *teardown*
+ message happens during cluster teardown, after the test itself has been completed.
+ Exceptions and messages here can generally be ignored.
+ 
+This is all a bit complicated -debugging is simpler if a single test is run at a
+time, which is straightforward
+
+    mvn clean test -Dtest=TestLiveRegionService
+
+
+
 ## Attn OS/X developers
 
 YARN on OS/X doesn't terminate subprocesses the way it does on Linux, so

@@ -36,9 +36,9 @@ import org.junit.Test
 class TestLiveRegionService extends YarnMiniClusterTestBase {
 
   @Test
-  public void testLiveRegionServiceTwoNodes() throws Throwable {
+  public void testLiveRegionServiceSingleNode() throws Throwable {
     String clustername = "TestLiveRegionService"
-    int regionServerCount = 2
+    int regionServerCount = 1
     createMiniCluster(clustername, createConfiguration(), regionServerCount + 1, 1, 1, true, true)
 
     //make sure that ZK is up and running at the binding string
