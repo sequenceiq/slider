@@ -48,37 +48,38 @@ class TestClientBasicArgs extends ServiceLauncherBaseTest {
   @Test
   public void testHelpWithHyphenArgs() throws Throwable {
     ServiceLauncher launcher = launch(HoyaClient,
-                      HoyaUtils.createConfiguration(),
-                       [
-                       ClientArgs.ACTION_HELP,
-                       CommonArgs.ARG_DEBUG,
-                       CommonArgs.ARG_IMAGE, "hdfs://users/bob/hbase0.94.tar.gz",
-                       CommonArgs.ARG_CONFDIR, "hdfs://users/bob/hoya/conf1"
-                       ])
+                                      HoyaUtils.createConfiguration(),
+                                      [
+                                          ClientArgs.ACTION_HELP,
+                                          CommonArgs.ARG_DEBUG,
+                                          CommonArgs.ARG_IMAGE, "hdfs://users/bob/hbase0.94.tar.gz",
+                                          CommonArgs.ARG_CONFDIR, "hdfs://users/bob/hoya/conf1"
+                                      ])
     assert 0 == launcher.serviceExitCode
 
   }
-  
- @Test
+
+  @Test
   public void testHelpActionOrdering() throws Throwable {
     ServiceLauncher launcher = launch(HoyaClient,
-                      HoyaUtils.createConfiguration(),
-                       [
-                       CommonArgs.ARG_X_TEST,
-                       ClientArgs.ACTION_HELP,
-                       ])
+                                      HoyaUtils.createConfiguration(),
+                                      [
+                                          CommonArgs.ARG_X_TEST,
+                                          ClientArgs.ACTION_HELP,
+                                      ])
     assert 0 == launcher.serviceExitCode
   }
-  
- @Test
+
+  @Test
   public void testHelpActionOrderingDualItemArg() throws Throwable {
     ServiceLauncher launcher = launch(HoyaClient,
-                      HoyaUtils.createConfiguration(),
-                       [
-                       ClientArgs.ARG_X_HBASE_MASTER_COMMAND, "testo",
-                       ClientArgs.ACTION_HELP,
-                       ])
+                                      HoyaUtils.createConfiguration(),
+                                      [
+                                          ClientArgs.ARG_X_HBASE_MASTER_COMMAND, "testo",
+                                          ClientArgs.ACTION_HELP,
+                                      ])
     assert 0 == launcher.serviceExitCode
   }
+
 
 }
