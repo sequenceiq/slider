@@ -31,10 +31,13 @@ import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.ClusterNode;
+import org.apache.hadoop.hoya.api.ClusterRole;
 import org.apache.hadoop.hoya.api.HoyaAppMasterProtocol;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
+import org.apache.hadoop.hoya.providers.ClusterBuilder;
+import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
 import org.apache.hadoop.hoya.providers.hbase.HBaseCommands;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.Duration;
@@ -253,6 +256,11 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     return EXIT_SUCCESS;
   }
 
+  private ClusterBuilder getHadoopClusterBuilder() throws HoyaException {
+    HoyaProviderFactory factory =
+      HoyaProviderFactory.createHoyaProviderFactory("hbase");
+    return factory.createBuilder();
+  }
 
   /**
    * Create the cluster -saving the arguments to a specification file first
@@ -261,10 +269,14 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                                YarnException,
                                                IOException {
 
+    //verify that a live cluster isn't there
+    verifyNoLiveClusters(clustername);
     //check for arguments that are mandatory with this action
 
     verifyFileSystemArgSet();
     verifyManagerSet();
+    //Provider 
+    ClusterBuilder builder = getHadoopClusterBuilder();
 
     if (isUnset(serviceArgs.zkhosts)) {
       throw new BadCommandArgumentsException("Required argument "
@@ -276,14 +288,21 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                              + CommonArgs.ARG_CONFDIR);
     }
 
-    //verify that a live cluster isn't there
-    verifyNoLiveClusters(clustername);
 
     //build up the initial cluster specification
     ClusterDescription clusterSpec = new ClusterDescription();
     clusterSpec.name = clustername;
     clusterSpec.state = ClusterDescription.STATE_INCOMPLETE;
     clusterSpec.createTime = System.currentTimeMillis();
+
+    List<String> supportedRoles = builder.getRoles();
+    Map<String, ClusterRole> roleMap = new HashMap<String, ClusterRole>(
+      supportedRoles.size());
+/*    for (List<String> roleT: serviceArgs.roleTuples) {
+      
+      
+    }
+    */
     int workers = serviceArgs.workers;
     int workerHeap = serviceArgs.workerHeap;
     validateNodeAndHeapValues("worker", workers, workerHeap);

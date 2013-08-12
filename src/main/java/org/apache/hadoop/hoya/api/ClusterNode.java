@@ -18,9 +18,13 @@
 
 package org.apache.hadoop.hoya.api;
 
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
+
 /**
  * Describe a specific node in the cluster
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
+
 public class ClusterNode {
   /**
    * server name

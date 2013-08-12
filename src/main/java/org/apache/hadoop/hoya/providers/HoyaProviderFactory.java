@@ -56,11 +56,10 @@ public abstract class HoyaProviderFactory extends Configured {
    * @throws HoyaException on any instantiation problem
    */
   public static HoyaProviderFactory createHoyaProviderFactory(String application) throws
-                                                                                  HoyaException,
-                                                                                  ClassNotFoundException {
+                                                                                  HoyaException {
     Configuration conf = loadHoyaConfiguration();
     String providerKey = String.format(HoyaKeys.HOYA_PROVIDER_KEY, application);
-    String classname = conf.get(providerKey);
+    String classname = conf.getTrimmed(providerKey);
     if (classname == null) {
       throw new HoyaException(HoyaExitCodes.EXIT_BAD_CONFIGURATION,
                               String.format(PROVIDER_NOT_FOUND, application,
@@ -68,9 +67,13 @@ public abstract class HoyaProviderFactory extends Configured {
     }
     LOG.debug("Provider key {}: value {}", providerKey, classname);
     Class<?> providerClass;
-    providerClass = Class.forName(classname, true,
-                                  HoyaProviderFactory.class.getClassLoader());
-    // providerClass = conf.getClassByNameOrNull(providerKey);
+    try {
+      providerClass = Class.forName(classname, true,
+                                    HoyaProviderFactory.class.getClassLoader());
+    } catch (ClassNotFoundException e) {
+      LOG.debug("Failed to load class " + classname, e);
+      providerClass = null;
+    }
     if (providerClass == null) {
       throw new HoyaException(HoyaExitCodes.EXIT_BAD_CONFIGURATION,
                               String.format(PROVIDER_NOT_LOADED,
@@ -78,17 +81,24 @@ public abstract class HoyaProviderFactory extends Configured {
                                             providerKey,
                                             classname));
     }
+    Exception ex;
     try {
       HoyaProviderFactory providerFactory =
         (HoyaProviderFactory) providerClass.newInstance();
       providerFactory.setConf(conf);
       return providerFactory;
+    } catch (InstantiationException e) {
+      ex = e;
+    } catch (IllegalAccessException e) {
+      ex = e;
     } catch (Exception e) {
-      throw new HoyaException(HoyaExitCodes.EXIT_INTERNAL_ERROR,
-                              String.format(
-                                "Failed to create an instance of %s : %s",
-                                providerClass.toString(), e.toString()), e);
+      ex = e;
     }
+    //by here the operation failed and ex is set to the value 
+    throw new HoyaException(HoyaExitCodes.EXIT_INTERNAL_ERROR,
+                            String.format(
+                              "Failed to create an instance of %s : %s",
+                              providerClass.toString(), ex.toString()), ex);
   }
 
   public static Configuration loadHoyaConfiguration() {

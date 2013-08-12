@@ -85,6 +85,20 @@ public class ClientArgs extends CommonArgs {
              arity = 1)
   public boolean persist;
 
+
+  @Parameter(names = {ARG_ROLE}, arity = 2,
+             description = "role <name> <count>")
+  public List<String> roleTuples = null;
+
+  @Parameter(names = {ARG_ROLE_HEAP}, arity = 2,
+             description = "Role heap size roleheap <name> <string>>")
+  public List<String> roleHeapTuples;
+
+
+  @Parameter(names = {ARG_ROLE_INFO_PORT}, arity = 2,
+             description = "role web port <name> <count>")
+  public List<String> roleInfoPortTuples;
+
   /**
    * map of actions -> (explanation, min #of entries [, max no.])
    * If the max no is not given it is assumed to be the same as the min no.

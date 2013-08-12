@@ -33,6 +33,8 @@ The program can be used to create, pause, and shutdown HBase clusters. It can al
 
 1. Images are kept in the HDFS filesystem and identified by their path names; filesystem permissions can be used to share images amongst users.
 
+1. All clusters are private to the user account that created them; images may be shared
+
 1. An *image configuration* is a directory that is overlaid file-by-file onto the conf/ directory inside the HBase image.
 
 1. Users can have multiple image configurations -they too are kept in HDFS, identified by their path names, and can be shared by setting the appropriate permissions, along with a configuration template file.
@@ -59,9 +61,18 @@ The program can be used to create, pause, and shutdown HBase clusters. It can al
 
 1. Running clusters can be listed. 
 
-1. All images and clusters are private to the user account that created them.
+1. A cluster consists of a set of role instances; 
 
-1. Users can flex a cluster: adding or removing nodes dynamically.
+1. The supported roles depends upon the provider behind Hoya: HBase only has "worker"
+
+1. the number of instances of each role must be specified when a cluster is created.
+
+1. The number of instances of each role can be varied dynamically.
+
+
+
+
+1. Users can flex a cluster: adding or removing instances of specific roles dynamically.
 If the cluster is running, the changes will have immediate effect. If the cluster
 is stopped, the flexed cluster size will be picked up when the cluster is next
 started.

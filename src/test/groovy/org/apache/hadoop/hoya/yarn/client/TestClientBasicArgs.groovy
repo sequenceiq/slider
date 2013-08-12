@@ -81,5 +81,4 @@ class TestClientBasicArgs extends ServiceLauncherBaseTest {
     assert 0 == launcher.serviceExitCode
   }
 
-
 }

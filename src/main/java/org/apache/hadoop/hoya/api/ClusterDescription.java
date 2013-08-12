@@ -155,6 +155,12 @@ public class ClusterDescription {
   public String xHBaseMasterCommand;
 
   /**
+   * Roles
+   */
+  public Map<String, String> roles =
+    new HashMap<String, String>();
+  
+  /**
    * Extra flags that can be used to communicate
    * between client & server; and across versions.
    * Presence of a value is seen as marking the flag as true

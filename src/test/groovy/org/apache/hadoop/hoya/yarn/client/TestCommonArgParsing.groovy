@@ -52,7 +52,6 @@ class TestCommonArgParsing {
       ])
   }
 
-
   @Test
   public void testListNoClusternames() throws Throwable {
     ClientArgs clientArgs = createClientArgs([HoyaActions.ACTION_LIST])
@@ -79,7 +78,7 @@ class TestCommonArgParsing {
     try {
       ClientArgs clientArgs = createClientArgs(argsList)
       Assert.fail("exected an exception, got $clientArgs")
-    } catch (BadCommandArgumentsException expected) {
+    } catch (BadCommandArgumentsException ignored) {
       //expected
     }
   }
@@ -105,4 +104,71 @@ class TestCommonArgParsing {
         CommonArgs.ARG_ZKPORT, "8080",
     ]
   }
+
+
+  @Test
+  public void testSingleRoleArg() throws Throwable {
+    ClientArgs clientArgs = createClientArgs([
+        HoyaActions.ACTION_CREATE, 'cluster1',
+        CommonArgs.ARG_ROLE,"master","5",
+    ])
+    def tuples = clientArgs.roleTuples;
+    assert tuples.size() == 2;
+    Map<String, String> roleMap = clientArgs.convertTupleListToMap("roles", tuples);
+    assert roleMap["master"] == "5"
+  }
+  
+  
+  @Test
+  public void testMultiRoleArg() throws Throwable {
+    ClientArgs clientArgs = createClientArgs([
+        HoyaActions.ACTION_CREATE, 'cluster1',
+        CommonArgs.ARG_ROLE,"master","1",
+        CommonArgs.ARG_ROLE,"worker","2",
+    ])
+    def tuples = clientArgs.roleTuples;
+    assert tuples.size() == 4;
+    Map<String, String> roleMap = clientArgs.convertTupleListToMap("roles", tuples);
+    assert roleMap["master"] == "1"
+    assert roleMap["worker"] == "2"
+  }
+   
+  @Test
+  public void testDuplicateRole() throws Throwable {
+    ClientArgs clientArgs = createClientArgs([
+        HoyaActions.ACTION_CREATE, 'cluster1',
+        CommonArgs.ARG_ROLE,"master","1",
+        CommonArgs.ARG_ROLE,"master","2",
+    ])
+    def tuples = clientArgs.roleTuples;
+    assert tuples.size() == 4;
+    try {
+      Map<String, String> roleMap = clientArgs.convertTupleListToMap("roles", tuples);
+      Assert.fail("got a role map $roleMap not a failure");
+    } catch (BadCommandArgumentsException expected) {
+      assert expected.message.contains(ClientArgs.ERROR_DUPLICATE_ENTRY)
+    }
+  }
+  
+     
+  @Test
+  public void testOddRoleCount() throws Throwable {
+    ClientArgs clientArgs = createClientArgs([
+        HoyaActions.ACTION_CREATE, 'cluster1',
+        CommonArgs.ARG_ROLE,"master","1",
+        CommonArgs.ARG_ROLE,"master","2",
+    ])
+    List<String> tuples = clientArgs.roleTuples
+    tuples += "loggers";
+    assert tuples.size() == 5;
+    try {
+      Map<String, String> roleMap = clientArgs.convertTupleListToMap("roles", tuples);
+      Assert.fail("got a role map $roleMap not a failure");
+    } catch (BadCommandArgumentsException expected) {
+      assert expected.message.contains(ClientArgs.ERROR_PARSE_FAILURE)
+    }
+  }
+  
+  
+
 }

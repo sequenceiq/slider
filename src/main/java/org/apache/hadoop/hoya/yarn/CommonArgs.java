@@ -59,40 +59,67 @@ public class CommonArgs implements HoyaActions {
   public static final String ARG_HELP = "--help";
   public static final String ARG_IMAGE = "--image";
   public static final String ARG_MANAGER = "--manager";
-  public static final String ARG_MASTERS = "--masters";
-  public static final String ARG_MASTER_HEAP = "--masterheap";
-  public static final String ARG_MASTER_INFO_PORT = "--masterinfoport";
   public static final String ARG_NAME = "--name";
   public static final String ARG_OUTPUT = "--output";
   public static final String ARG_PATH = "--path";
+
+  public static final String ARG_ROLE = "--role";
+  public static final String ARG_ROLE_HEAP = "--roleheap";
+  public static final String ARG_ROLE_INFO_PORT = "--roleinfoport";
+
+
   public static final String ARG_USER = "--user";
-  public static final String ARG_WORKERS = "--workers";
-  public static final String ARG_WORKER_HEAP = "--workerheap";
-  public static final String ARG_WORKER_INFO_PORT = "--workerinfoport";
 
   public static final String ARG_ZKPORT = "--zkport";
   public static final String ARG_ZKHOSTS = "--zkhosts";
 
   public static final String ARG_X_TEST = "--Xtest";
+
   /** for testing only: {@value} */
+
+  @Deprecated
   public static final String ARG_X_HBASE_MASTER_COMMAND =
     "--Xhbase-master-command";
 
+  /*
+  Deprecated with transition to roles
+   */
+  @Deprecated
+  public static final String ARG_WORKERS = "--workers";
+  @Deprecated
+  public static final String ARG_WORKER_HEAP = "--workerheap";
+  @Deprecated
+  public static final String ARG_WORKER_INFO_PORT = "--workerinfoport";
+  @Deprecated
+  public static final String ARG_MASTERS = "--masters";
+  @Deprecated
+  public static final String ARG_MASTER_HEAP = "--masterheap";
+  @Deprecated
+  public static final String ARG_MASTER_INFO_PORT = "--masterinfoport";
 
+
+  /**
+   * ERROR Strings
+   */
   public static final String ERROR_NO_ACTION = "No action specified";
   public static final String ERROR_UNKNOWN_ACTION = "Unknown command: ";
   public static final String ERROR_NOT_ENOUGH_ARGUMENTS =
     "Not enough arguments for action: ";
+  
+  public static final String ERROR_PARSE_FAILURE =
+    "Failed to parse ";
+  
   /**
    * All the remaining values after argument processing
    */
   public static final String ERROR_TOO_MANY_ARGUMENTS =
-    "Too many arguments for action: ";
+    "Too many arguments for action:";
 
 
   public static final String ARG_RESOURCE_MANAGER = "--rm";
 
   protected static final Logger LOG = LoggerFactory.getLogger(CommonArgs.class);
+  public static final String ERROR_DUPLICATE_ENTRY = "Duplicate entry for ";
 
 
   @Parameter
@@ -156,7 +183,7 @@ public class CommonArgs implements HoyaActions {
 
    */
 
-  @Parameter(names = "-D", description = "Definitions")
+  @Parameter(names = "-D", arity = 1, description = "Definitions")
   public List<String> definitions = new ArrayList<String>();
   public Map<String, String> definitionMap = new HashMap<String, String>();
 
@@ -165,6 +192,8 @@ public class CommonArgs implements HoyaActions {
              description = "hostname:port of the YARN resource manager")
   public String manager;
 
+
+  
   @Parameter(names = {ARG_WORKERS, "--min"},
              description = "The number of worker nodes")
   public int workers = 0;
@@ -368,5 +397,35 @@ public class CommonArgs implements HoyaActions {
       //configuration
       FileSystem.setDefaultUri(conf, filesystemURL);
     }
+  }
+
+  /**
+   * Create a map from a tuple list like ['worker','2','master','1] into a map
+   * ['worker':'2',"master":'1'];
+   * Duplicate entries also trigger errors
+   * @param description
+   * @param list
+   * @return
+   * @throws BadCommandArgumentsException odd #of arguments received
+   */
+  public Map<String,String> convertTupleListToMap(String description,List<String> list) throws
+                                                                                 BadCommandArgumentsException {
+    int size = list.size();
+    if (size %2!=0) {
+      //odd number of elements, not permitted
+      throw new BadCommandArgumentsException(ERROR_PARSE_FAILURE + description);
+    }
+    Map<String, String> results = new HashMap<String, String>(size);
+    for (int count = 0; count < size; count += 2) {
+      String key = list.get(count);
+      String val = list.get(count + 1);
+      if (results.get(key) != null) {
+        throw new BadCommandArgumentsException(
+          ERROR_DUPLICATE_ENTRY + description
+          + ": " + key);
+      }
+      results.put(key, val);
+    }
+    return results;
   }
 }
