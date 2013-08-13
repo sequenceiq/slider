@@ -33,37 +33,37 @@ public interface HoyaExitCodes extends LauncherExitCodes {
   /**
    * Unimplemented feature: {@value}
    */
-  int EXIT_UNIMPLEMENTED = _EXIT_CODE_BASE + 1;
+  int EXIT_UNIMPLEMENTED = 51;
 
   /**
    * service entered the failed state: {@value}
    */
-  int EXIT_YARN_SERVICE_FAILED = _EXIT_CODE_BASE + 2;
+  int EXIT_YARN_SERVICE_FAILED = 52;
 
   /**
    * service was killed: {@value}
    */
-  int EXIT_YARN_SERVICE_KILLED = _EXIT_CODE_BASE + 3;
+  int EXIT_YARN_SERVICE_KILLED = 53;
 
   /**
    * timeout on monitoring client: {@value}
    */
-  int EXIT_TIMED_OUT = _EXIT_CODE_BASE + 4;
+  int EXIT_TIMED_OUT = 54;
 
   /**
    * service finished with an error: {@value}
    */
-  int EXIT_YARN_SERVICE_FINISHED_WITH_ERROR = _EXIT_CODE_BASE + 5;
+  int EXIT_YARN_SERVICE_FINISHED_WITH_ERROR = 55;
 
   /**
    * the cluster is unknown: {@value}
    */
-  int EXIT_UNKNOWN_HOYA_CLUSTER = _EXIT_CODE_BASE + 6;
+  int EXIT_UNKNOWN_HOYA_CLUSTER = 56;
 
   /**
    * the cluster is in the wrong state for that operation: {@value}
    */
-  int EXIT_BAD_CLUSTER_STATE = _EXIT_CODE_BASE + 7;
+  int EXIT_BAD_CLUSTER_STATE = 57;
 
 
 }
