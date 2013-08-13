@@ -53,10 +53,10 @@ class TestCreateStopStartLiveRegionService extends YarnMiniClusterTestBase {
     log.info(prettyPrint(status.toJsonString()))
     
 
-    clusterActionStop(hoyaClient, clustername)
+    clusterActionFreeze(hoyaClient, clustername)
     
     //now let's start the cluster up again
-    ServiceLauncher launcher2 = startHoyaCluster(clustername, [], true);
+    ServiceLauncher launcher2 = thawHoyaCluster(clustername, [], true);
     HoyaClient newCluster = launcher.getService() as HoyaClient
     basicHBaseClusterStartupSequence(newCluster, clustername)
 

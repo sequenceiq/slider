@@ -22,8 +22,11 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.exceptions.HoyaException
+import org.apache.hadoop.hoya.yarn.HoyaActions
+import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
+import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
@@ -33,29 +36,23 @@ import org.junit.Test
  */
 @CompileStatic
 @Commons
-class TestRecreateMasterlessAM extends YarnMiniClusterTestBase {
+class TestFreezeUnknownCluster extends YarnMiniClusterTestBase {
 
   @Test
-  public void testRecreateMasterlessAM() throws Throwable {
-    String clustername = "TestRecreateMasterlessAM"
-    createMiniCluster(clustername, createConfiguration(), 1, true)
+  public void testFreezeUnknownCluster() throws Throwable {
+    String clustername = "TestStartUnknownCluster"
+    YarnConfiguration conf = createConfiguration()
+    createMiniCluster(clustername, conf, 1, true)
 
-    describe "create a masterless AM, stop it, try to create" +
-             "a second cluster with the same name"
+    describe "try to freeze a cluster that isn't defined"
 
-    ServiceLauncher launcher = createMasterlessAM(clustername, 0, true, true)
-    HoyaClient hoyaClient = (HoyaClient) launcher.service
-    clusterActionFreeze(hoyaClient, clustername)
-
-    //now try to create instance #2, and expect an in-use failure
-    try {
-      createMasterlessAM(clustername, 0, false, false)
-      fail("expected a failure")
-    } catch (HoyaException e) {
-      assert e.exitCode == HoyaExitCodes.EXIT_BAD_CLUSTER_STATE
-      assert e.toString().contains(HoyaClient.E_ALREADY_EXISTS)
-    }
-
+    //we are secretly picking up the RM details from the configuration file
+    ServiceLauncher command = execHoyaCommand(conf,
+                                              [
+                                                  HoyaActions.ACTION_FREEZE,
+                                                  "no-such-cluster"
+                                              ]);
+    assert !command.serviceExitCode ;
   }
 
 

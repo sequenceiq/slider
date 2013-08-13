@@ -46,7 +46,7 @@ class TestDestroyMasterlessAM extends YarnMiniClusterTestBase {
 
     ServiceLauncher launcher = createMasterlessAM(clustername, 0, true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
-    clusterActionStop(hoyaClient, clustername)
+    clusterActionFreeze(hoyaClient, clustername)
     waitForAppToFinish(hoyaClient)
     
     //now try to create instance #2, and expect an in-use failure
@@ -64,12 +64,12 @@ class TestDestroyMasterlessAM extends YarnMiniClusterTestBase {
     assert 0 == exitCode
     
     
-    //expect start to now fail
+    //expect thaw to now fail
     try {
       launcher = launch(HoyaClient,
                         createConfiguration(),
                         [
-                            CommonArgs.ACTION_START,
+                            CommonArgs.ACTION_THAW,
                             clustername,
                             ClientArgs.ARG_FILESYSTEM, fsDefaultName,
                             ClientArgs.ARG_MANAGER, RMAddr,

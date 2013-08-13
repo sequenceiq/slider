@@ -51,13 +51,13 @@ The program can be used to create, pause, and shutdown HBase clusters. It can al
 
 1. A user can create a cluster using a named image.
 
-1. A cluster can be stopped, saving its final state to its cluster state directory. All the HBase processes are shut down.
+1. A cluster can be frozen, saving its final state to its cluster state directory. All the HBase processes are shut down.
 
-1. A stopped cluster can be started -a new set of HBase processes are started on or near the servers where the earlier processes were previously running.
+1. A frozen cluster can be thawed -a new set of HBase processes are started on or near the servers where the earlier processes were previously running.
 
-1. A stopped cluster can be destroyed. simply by deleting the cluster state directory.
+1. A frozen cluster can be destroyed. simply by deleting the cluster state directory.
 
-1. A stopped cluster can be reimaged. This can update the cluster's HBase version and its configuration. When the cluster is started, the changes are picked up.
+1. A frozen cluster can be reimaged. This can update the cluster's HBase version and its configuration. When the cluster is started, the changes are picked up.
 
 1. Running clusters can be listed. 
 
@@ -77,6 +77,9 @@ If the cluster is running, the changes will have immediate effect. If the cluste
 is stopped, the flexed cluster size will be picked up when the cluster is next
 started.
 
+
+<!--- ======================================================================= -->
+
 ## Invoking Hoya
 
 build hoya
@@ -93,6 +96,8 @@ in the same directory:
 To use Hoya elsewhere, all JARs in that directory must be on the classpath.
 
 * Currently the log4j.properties file is embedded inside hoya.jar
+
+<!--- ======================================================================= -->
 
 ## COMMAND-LINE OPTIONS
 
@@ -154,11 +159,12 @@ The number of HBase managers. Only 0 and 1 are currently supported. Default: 1
 the number of workers desired when creating or flexing a cluster.
 
 
-### --wait timeout
+### --wait timeInSeconds
 
-When creating or starting a cluster, wait the for the Hoya Cluster itself to start running. It can still take time after this for HBase to be live.
+When creating or starting a cluster, wait the specified number of seconds
+for the Hoya Cluster itself to start running. It can still take time after this for HBase to be live.
 
-When stopping a cluster -the time for the YARN application to be finished.
+When stopping a cluster -the time for the YARN application to enter a finished state.
 
 ### --amqueue queue
 
@@ -195,23 +201,35 @@ Hoya would would run the HBase master with the command
 
 This would not actually create the master -as stated, it is for testing purposes.
 
+<!--- ======================================================================= -->
+
 ## Actions
 
 CLUSTER COMMANDS
 
 ### list \<cluster>
-List HBase running clusters visible to the user.
+
+List running Hoya clusters visible to the user.
 
 If a cluster name is given and there is no running cluster with that name, an error is returned. 
 
 ### status \<cluster>
 
-Get the status of the HBase cluster at of the given name.
+Get the status of the named Hoya cluster
 
-The --user option can be used to specify a different user's clusters to list, to list all hoya instances use
---user ""
+### exists \<cluster>
+
+Probe the existence of a running instance of the named Hoya cluster
+
+If not, an error code is returned.
+
+1. The probe does not check the status of any Hoya-deployed services, merely that a cluster has been deployed
+1. A cluster that is finished or failed is not considered to exist -this is to be consistent
+with the rule that a new Hoya cluster can be created if an existing cluster exists in any
+of the YARN termination states.
 
 ### create \<cluster> --fs filesystem --workers workers --confdir dir --zkhosts zkhosts \[--image path] \[--hbasehome hbasehomedir] \[--zkport port] \[--hbasezkpath zkpath]\[ \[--waittime time] \[--workerheap heapsize] \[--masters masters] \[--masterheap heapsize]
+
 Create a cluster of the given ZK name, using the specified image. The minimum and maximum nodes define the number of region servers to be created; an HBase master is always created. If a configuration directory is specified, it's configuration files override those in the image. 
 
 The waittime parameter, if provided, specifies the time to wait until the YARN application is actually running. Even after the YARN application has started, there may be some delay for the HBase cluster to start up.
@@ -222,22 +240,19 @@ Destroy a (stopped) cluster.
 
 Important: This deletes all the database data.
 
-### stop \<cluster>  \[--waittime time]
-Stop the cluster. The HBase cluster is scheduled to be destroyed. The cluster settings are retained in HDFS.
+### freeze \<cluster>  \[--waittime time]
+freeze the cluster. The HBase cluster is scheduled to be destroyed. The cluster settings are retained in HDFS.
 
 The --waittime argument can specify a time in seconds to wait for the cluster to be destroyed.
 
-If an unknown (or already stopped) cluster is named, no error is returned.
+If an unknown (or already frozen) cluster is named, no error is returned.
 
-### start \<cluster>
+### thaw \<cluster>
 
-Resume the cluster: recreate the cluster from its previous state. This will include a best-effort attempt to create the same number of nodes as before, though their locations may be different.
+Resume a frozen cluster: recreate the cluster from its previous state. This will include a best-effort attempt to create the same number of nodes as before, though their locations may be different.
 The same zookeeper bindings as before will be used.
 
-### islive \<cluster>
-
-probe for a cluster being live. If not, an error code is returned.
-The probe does not check the status of the HBase services, merely that a cluster has been deployed
+If a cluster is already running, this is a no-op
 
 
 ### flex \<cluster> \[--workers count] \[--persist true|false]
@@ -268,3 +283,27 @@ Update a cluster with a new configuration. This operation is only valid on a sto
 ### UNIMPLEMENTED: reimage \<cluster> --image path
 Update a cluster with a new configuration. This operation is only valid on a stopped cluster. The new configuration will completely replace the existing configuration.
 
+<!--- ======================================================================= -->
+
+## Exit Codes
+
+<!--- ======================================================================= -->
+
+## Examples
+
+## Notes
+
+Cluster names must 
+
+1. be at least one character long
+1. begin with a letter
+1. All other characters must be in the range \[a-z,0-9,-]
+1. All upper case characters are converted to lower case
+ 
+Example valid names:
+
+    hoya1
+    hbase-cluster
+    HBase-cluster
+
+The latter two cluster names are considered equivalent

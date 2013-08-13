@@ -36,7 +36,7 @@ public interface HoyaActions {
   String ACTION_PREFLIGHT = "preflight";
   String ACTION_RECONFIGURE = "reconfigure";
   String ACTION_REIMAGE = "reimage";
-  String ACTION_START = "start";
+  String ACTION_THAW = "thaw";
+  String ACTION_FREEZE = "freeze";
   String ACTION_STATUS = "status";
-  String ACTION_STOP = "stop";
 }

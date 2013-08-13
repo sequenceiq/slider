@@ -61,7 +61,7 @@ class TestHBaseMaster extends YarnMiniClusterTestBase {
     waitForRegionServerCount(hoyaClient, clustername, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
 
-    clusterActionStop(hoyaClient, clustername)
+    clusterActionFreeze(hoyaClient, clustername)
 
   }
 

@@ -52,7 +52,7 @@ class TestClientBadArgs extends ServiceLauncherBaseTest {
     launchExpectingException(HoyaClient,
                              new Configuration(),
                              CommonArgs.ERROR_NOT_ENOUGH_ARGUMENTS,
-                             [HoyaActions.ACTION_START])
+                             [HoyaActions.ACTION_THAW])
   }
 
   @Test

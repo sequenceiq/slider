@@ -30,6 +30,7 @@ import org.apache.hadoop.hoya.exceptions.MissingArgException;
 import org.apache.hadoop.hoya.yarn.appmaster.EnvMappings;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.util.ExitUtil;
+import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
@@ -46,15 +47,18 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public class HoyaUtils {
+public final class HoyaUtils {
 
   private static final Logger log = LoggerFactory.getLogger(HoyaUtils.class);
 
+  private HoyaUtils() {
+  }
 
   public static void deleteDirectoryTree(File dir) throws IOException {
     if (dir.exists()) {
@@ -428,5 +432,42 @@ public class HoyaUtils {
       throw new MissingArgException("Missing Environment variable " + key);
     }
     return v;
+  }
+  
+  public static String appReportToString(ApplicationReport r, String separator) {
+    StringBuilder builder = new StringBuilder(512);
+    builder.append("application ").append(
+      r.getName()).append("/").append(r.getApplicationType());
+    builder.append(separator).append(
+      "state: ").append(r.getYarnApplicationState());
+    builder.append(separator).append("URL: ").append(r.getTrackingUrl());
+    builder.append(separator).append("Started ").append(new Date(r.getStartTime()).toLocaleString());
+    long finishTime = r.getFinishTime();
+    if (finishTime>0) {
+      builder.append(separator).append("Finished ").append(new Date(finishTime).toLocaleString());
+    }
+    builder.append(separator).append("RPC :").append(r.getHost()).append(':').append(r.getRpcPort());
+    String diagnostics = r.getDiagnostics();
+    if (!diagnostics.isEmpty()) {
+      builder.append(separator).append("Diagnostics :").append(diagnostics);
+    }
+    return builder.toString();
+  }
+
+  /**
+   * This wrapps ApplicationReports and generates a string version
+   * iff the toString() operator is invoked
+   */
+  public static class OnDemandReportStringifier {
+    private final ApplicationReport r;
+
+    public OnDemandReportStringifier(ApplicationReport r) {
+      this.r = r;
+    }
+
+    @Override
+    public String toString() {
+      return appReportToString(r, "\n");
+    }
   }
 }

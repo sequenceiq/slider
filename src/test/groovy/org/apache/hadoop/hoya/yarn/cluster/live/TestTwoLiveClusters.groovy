@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.hoya.yarn.cluster.live
 
-import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.yarn.CommonArgs
@@ -74,8 +73,8 @@ class TestTwoLiveClusters extends YarnMiniClusterTestBase {
     waitForHoyaWorkerCount(hoyaClient, clustername1, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
 
-    clusterActionStop(cluster2Client, clustername2)
-    clusterActionStop(hoyaClient, clustername1)
+    clusterActionFreeze(cluster2Client, clustername2)
+    clusterActionFreeze(hoyaClient, clustername1)
 
   }
 

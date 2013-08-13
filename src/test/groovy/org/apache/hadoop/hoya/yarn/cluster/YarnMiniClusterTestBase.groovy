@@ -95,7 +95,6 @@ implements KeysForTests, HoyaExitCodes {
   protected MicroZKCluster microZKCluster
   protected boolean switchToImageDeploy = false
 
-
   @After
   public void teardown() {
     describe("teardown")
@@ -250,8 +249,21 @@ implements KeysForTests, HoyaExitCodes {
     if (!args.contains(ClientArgs.ARG_MANAGER)) {
       args += [ClientArgs.ARG_MANAGER, RMAddr]
     }
-    ServiceLauncher launcher = launch(HoyaClient, conf, args)
+    ServiceLauncher launcher = execHoyaCommand(conf, args)
     assert launcher.serviceExitCode == 0
+    return launcher;
+  }
+  
+  /**
+   * Launch the hoya client with the specific args; no validation
+   * of return code takes place
+   * @param conf configuration
+   * @param args arg list
+   * @return the return code
+   */
+  protected ServiceLauncher execHoyaCommand(Configuration conf,
+                                                          List args) {
+    ServiceLauncher launcher = launch(HoyaClient, conf, args);
     return launcher;
   }
 
@@ -320,7 +332,7 @@ implements KeysForTests, HoyaExitCodes {
   }
 
   protected int getZKPort() {
-    return microZKCluster ? microZKCluster.port : EnvMappings.HBASE_ZK_PORT
+    return microZKCluster ? microZKCluster.port : EnvMappings.HBASE_ZK_PORT;
   }
 
   protected String getZKHosts() {
@@ -338,6 +350,14 @@ implements KeysForTests, HoyaExitCodes {
     } else {
       return "file:///"
     }
+  }
+  
+  protected String getWaitTimeArg() {
+    return WAIT_TIME_ARG;
+  }
+  
+  protected String getWaitTime() {
+    return WAIT_TIME;
   }
 
   /**
@@ -420,12 +440,12 @@ implements KeysForTests, HoyaExitCodes {
    * @param blockUntilRunning block until the AM is running
    * @return launcher which will have executed the command.
    */
-  public ServiceLauncher startHoyaCluster(String clustername, List<String> extraArgs, boolean blockUntilRunning) {
+  public ServiceLauncher thawHoyaCluster(String clustername, List<String> extraArgs, boolean blockUntilRunning) {
     assert clustername != null
     assert miniCluster != null
 
     List<String> argsList = [
-        HoyaActions.ACTION_START, clustername,
+        HoyaActions.ACTION_THAW, clustername,
         ClientArgs.ARG_MANAGER, RMAddr,
         ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
         ClientArgs.ARG_FILESYSTEM, fsDefaultName,
@@ -648,9 +668,9 @@ implements KeysForTests, HoyaExitCodes {
    * @param clustername cluster
    * @return the exit code
    */
-  public int clusterActionStop(HoyaClient hoyaClient, String clustername) {
+  public int clusterActionFreeze(HoyaClient hoyaClient, String clustername) {
 
-    int exitCode = hoyaClient.actionStop(clustername, HBASE_CLUSTER_STOP_TIME);
+    int exitCode = hoyaClient.actionFreeze(clustername, HBASE_CLUSTER_STOP_TIME);
     if (exitCode != 0) {
       log.warn("HBase app shutdown failed with error code $exitCode")
     }
@@ -803,7 +823,7 @@ implements KeysForTests, HoyaExitCodes {
       waitForHoyaWorkerCount(hoyaClient, clustername, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     }
 
-    clusterActionStop(hoyaClient, clustername)
+    clusterActionFreeze(hoyaClient, clustername)
     return flexed
   }
 }

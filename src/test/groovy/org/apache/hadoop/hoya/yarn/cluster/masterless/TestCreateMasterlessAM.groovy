@@ -71,7 +71,7 @@ class TestCreateMasterlessAM extends YarnMiniClusterTestBase {
     assert instance != null
 
     //now kill that cluster
-    assert 0 == clusterActionStop(hoyaClient, clustername)
+    assert 0 == clusterActionFreeze(hoyaClient, clustername)
     //list it & See if it is still there
     ApplicationReport oldInstance = hoyaClient.findInstance(username, clustername)
     assert oldInstance != null
@@ -104,7 +104,7 @@ class TestCreateMasterlessAM extends YarnMiniClusterTestBase {
     describe("Stopping instance #2")
 
     //now stop that cluster
-    assert 0 == clusterActionStop(hoyaClient, clustername)
+    assert 0 == clusterActionFreeze(hoyaClient, clustername)
 
     logApplications(hoyaClient.listHoyaInstances(username))
     

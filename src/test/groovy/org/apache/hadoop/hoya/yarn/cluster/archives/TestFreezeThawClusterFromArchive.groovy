@@ -32,7 +32,7 @@ import org.junit.Test
  */
 @CompileStatic
 @Commons
-class TestRestartClusterFromArchive extends YarnMiniClusterTestBase {
+class TestFreezeThawClusterFromArchive extends YarnMiniClusterTestBase {
 
 
   @Test
@@ -52,11 +52,11 @@ class TestRestartClusterFromArchive extends YarnMiniClusterTestBase {
                             HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
 
-    clusterActionStop(hoyaClient, clustername)
+    clusterActionFreeze(hoyaClient, clustername)
     describe("Restarting cluster")
     
     //now let's start the cluster up again
-    ServiceLauncher launcher2 = startHoyaCluster(clustername, [], true);
+    ServiceLauncher launcher2 = thawHoyaCluster(clustername, [], true);
     HoyaClient newCluster = launcher.getService() as HoyaClient
     basicHBaseClusterStartupSequence(newCluster, clustername)
 

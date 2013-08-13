@@ -643,13 +643,16 @@ public class HoyaAppMaster extends CompositeService
     FinalApplicationStatus appStatus;
     String appMessage = null;
     success = true;
+    String exitCodeString = exitCode != null ? exitCode.toString() : "n/a";
     if (numFailedContainers.get() == 0) {
       appStatus = FinalApplicationStatus.SUCCEEDED;
-      appMessage = "completed. Master exit code = " + exitCode;
+      appMessage = "completed. Local daemon exit code = " 
+                   + exitCodeString;
     } else {
       appStatus = FinalApplicationStatus.FAILED;
-      appMessage = "Diagnostics" + "Master exit code = " +
-                   exitCode + " - " + getContainerDiagnosticInfo();
+      appMessage = "Completed with "+ numFailedContainers.get()+" failed containers: "
+                   + " Local daemon exit code =  " +
+                   exitCodeString + " - " + getContainerDiagnosticInfo();
       success = false;
     }
     try {

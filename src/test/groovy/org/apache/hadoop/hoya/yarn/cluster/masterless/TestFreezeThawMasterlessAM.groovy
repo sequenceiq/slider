@@ -25,7 +25,6 @@ import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.tools.HoyaUtils
-import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
@@ -40,7 +39,7 @@ import org.junit.Test
  */
 @Commons
 @CompileStatic
-class TestStartMasterlessAM extends YarnMiniClusterTestBase {
+class TestFreezeThawMasterlessAM extends YarnMiniClusterTestBase {
 
   File getConfDirFile() {
     return new File("target/TestStartMasterlessAMconf")
@@ -52,12 +51,12 @@ class TestStartMasterlessAM extends YarnMiniClusterTestBase {
   }
 
   @Test
-  public void testStartMasterlessAM() throws Throwable {
+  public void testFreezeThawMasterlessAM() throws Throwable {
     String clustername = "TestStartMasterlessAM"
     YarnConfiguration conf = createConfiguration()
     createMiniCluster(clustername, conf, 1, 1, 1, true, true)
     
-    describe "create a masterless AM, stop it, restart it"
+    describe "create a masterless AM, freeze it, thaw it"
     //copy the confdir somewhere
     Path resConfPath = new Path(getResourceConfDirURI())
     Path tempConfPath = new Path(confDir)
@@ -66,27 +65,27 @@ class TestStartMasterlessAM extends YarnMiniClusterTestBase {
 
     ServiceLauncher launcher = createMasterlessAM(clustername, 0, true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
-    clusterActionStop(hoyaClient, clustername)
+    clusterActionFreeze(hoyaClient, clustername)
 
     //here we do something devious: delete our copy of the configuration
     HadoopFS localFS = HadoopFS.get(tempConfPath.toUri(), conf)
     localFS.delete(tempConfPath,true)
     
     //now start the cluster
-    ServiceLauncher launcher2 = startHoyaCluster(clustername, [], true);
+    ServiceLauncher launcher2 = thawHoyaCluster(clustername, [], true);
     HoyaClient newCluster = launcher.getService() as HoyaClient
     newCluster.getClusterStatus(clustername);
   }
 
   @Test
-  public void testStartUnknownCluster() throws Throwable {
+  public void testThawUnknownCluster() throws Throwable {
     String clustername = "TestStartMasterlessAM"
     createMiniCluster(clustername, createConfiguration(), 1, true)
     try {
       ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
           createConfiguration(),
           [
-              HoyaActions.ACTION_START,
+              HoyaActions.ACTION_THAW,
               "no-cluster-of-this-name",
               ClientArgs.ARG_FILESYSTEM, fsDefaultName,
           ])

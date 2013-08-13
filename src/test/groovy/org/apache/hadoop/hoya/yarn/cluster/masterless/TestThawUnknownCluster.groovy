@@ -33,17 +33,17 @@ import org.junit.Test
  */
 @CompileStatic
 @Commons
-class TestStartUnknownCluster extends YarnMiniClusterTestBase {
+class TestThawUnknownCluster extends YarnMiniClusterTestBase {
 
   @Test
-  public void testStartUnknownCluster() throws Throwable {
-    String clustername = "TestStartUnknownCluster"
+  public void testThawUnknownCluster() throws Throwable {
+    String clustername = "TestThawUnknownCluster"
     createMiniCluster(clustername, createConfiguration(), 1, true)
 
     describe "try to start a cluster that isn't defined"
 
     try {
-      ServiceLauncher launcher = startHoyaCluster(clustername, [], true);
+      ServiceLauncher launcher = thawHoyaCluster(clustername, [], true);
       fail("expected a failure")
     } catch (HoyaException e) {
       assert e.exitCode == HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER

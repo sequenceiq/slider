@@ -156,9 +156,9 @@ public class ClientArgs extends CommonArgs {
     ACTIONS.put(ACTION_RECONFIGURE,
                 t("change the configuration of a cluster", 1));
 //    ACTIONS.put(ACTION_REIMAGE, t("change the image a cluster uses", 1));
-    ACTIONS.put(ACTION_START, t("start a cluster", 1));
+    ACTIONS.put(ACTION_THAW, t("thaw/start a frozen cluster", 1));
     ACTIONS.put(ACTION_STATUS, t("Get the status of a cluster", 1));
-    ACTIONS.put(ACTION_STOP, t("stop a cluster", 1));
+    ACTIONS.put(ACTION_FREEZE, t("freeze/suspend a running cluster", 1));
   }
 
   public ClientArgs(String[] args) {

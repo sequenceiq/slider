@@ -173,9 +173,10 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     if (HoyaActions.ACTION_CREATE.equals(action)) {
       validateClusterName(clusterName);
       exitCode = actionCreate(clusterName);
-    } else if (HoyaActions.ACTION_DESTROY.equals(action)) {
-      validateClusterName(clusterName);
-      exitCode = actionStop(clusterName, 0);
+    } else if (HoyaActions.ACTION_FREEZE.equals(action)) {
+      exitCode = actionFreeze(clusterName, serviceArgs.waittime);
+    } else if (HoyaActions.ACTION_THAW.equals(action)) {
+      exitCode = actionThaw(clusterName);
     } else if (HoyaActions.ACTION_DESTROY.equals(action)) {
       validateClusterName(clusterName);
       exitCode = actionDestroy(clusterName);
@@ -204,8 +205,6 @@ public class HoyaClient extends YarnClientImpl implements RunService,
         validateClusterName(clusterName);
       }
       exitCode = actionList(clusterName);
-    } else if (HoyaActions.ACTION_START.equals(action)) {
-      exitCode = actionStart(clusterName);
     } else if (HoyaActions.ACTION_STATUS.equals(action)) {
       validateClusterName(clusterName);
       exitCode = actionStatus(clusterName);
@@ -1090,6 +1089,9 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     if (duration.limit <= 0) {
       throw new HoyaException("Invalid monitoring duration");
     }
+    log.debug("Waiting {} millis for app to reach state {} ",
+              duration.limit,
+              desiredState);
     duration.start();
     while (true) {
 
@@ -1097,7 +1099,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
       ApplicationReport r = getApplicationReport(appId);
 
-      logAppReport(r);
+        log.debug("queried status is\n{}",
+                  new HoyaUtils.OnDemandReportStringifier(r));
 
       YarnApplicationState state = r.getYarnApplicationState();
       if (state.ordinal() >= desiredState.ordinal()) {
@@ -1105,6 +1108,10 @@ public class HoyaClient extends YarnClientImpl implements RunService,
         return r;
       }
       if (duration.getLimitExceeded()) {
+          log.debug("Wait limit of {} millis to get to state {}, exceeded; app status\n {}",
+                    duration.limit,
+                    desiredState,
+                    new HoyaUtils.OnDemandReportStringifier(r));
         return null;
       }
 
@@ -1202,13 +1209,12 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     }
   }
 
-  public void logAppReport(ApplicationReport r) {
-    log.info("Name        : {}", r.getName());
-    log.info("YARN status : {}", r.getYarnApplicationState());
-    log.info("Start Time  : {}", r.getStartTime());
-    log.info("Finish Time : {}", r.getFinishTime());
-    log.info("RPC         : {}:{}", r.getHost(), r.getRpcPort());
-    log.info("Diagnostics : {}", r.getDiagnostics());
+  /**
+   * Log the application report at INFO
+   * @param report
+   */
+  public void logAppReport(ApplicationReport report) {
+    log.info(HoyaUtils.appReportToString(report, "\n"));
   }
 
   /**
@@ -1219,9 +1225,23 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   @VisibleForTesting
   public int actionExists(String name) throws YarnException, IOException {
     verifyManagerSet();
+    log.debug("actionExists({})", name);
     ApplicationReport instance = findInstance(getUsername(), name);
     if (instance == null) {
+      log.info("cluster {} not found");
       throw unknownClusterException(name);
+    } else {
+      //the app exists, but it may be in a terminated state
+      HoyaUtils.OnDemandReportStringifier report =
+        new HoyaUtils.OnDemandReportStringifier(instance);
+      YarnApplicationState state =
+        instance.getYarnApplicationState();
+      if (state.ordinal() >= YarnApplicationState.FINISHED.ordinal()) {
+        log.info("Cluster {} found but is in state {}", state);
+        log.debug("State {}", report);
+        throw unknownClusterException(name);
+      }
+      log.info("Cluster {} is running:\n{}", name, report);
     }
     return EXIT_SUCCESS;
   }
@@ -1352,22 +1372,33 @@ public class HoyaClient extends YarnClientImpl implements RunService,
    * @param clustername cluster name
    * @return the cluster name
    */
-  public int actionStop(String clustername, int waittime) throws
+  public int actionFreeze(String clustername, int waittime) throws
                                                           YarnException,
                                                           IOException {
     verifyManagerSet();
     validateClusterName(clustername);
+    log.debug("actionFreeze({})", clustername);
     ApplicationReport app = findInstance(getUsername(), clustername);
     if (app == null) {
       //exit early
+      log.info("Cluster {} not running", clustername);
+      //not an error to freeze a frozen cluster
+      return EXIT_SUCCESS;
+    }
+    log.debug("App to freeze was found: {}:\n{}", clustername,
+              new HoyaUtils.OnDemandReportStringifier(app));
+    if (app.getYarnApplicationState().ordinal() >= YarnApplicationState.FINISHED.ordinal()) {
+      log.info("Cluster {} is a terminated state {}", clustername,
+               app.getYarnApplicationState());
       return EXIT_SUCCESS;
     }
     HoyaAppMasterProtocol appMaster = connect(app);
     appMaster.stopCluster();
+    log.debug("Cluster stop command issued");
     if (waittime > 0) {
       monitorAppToState(app.getApplicationId(),
                         YarnApplicationState.FINISHED,
-                        new Duration(waittime));
+                        new Duration(waittime * 1000));
     }
     return EXIT_SUCCESS;
   }
@@ -1425,9 +1456,13 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   /**
    * Restore a cluster
    */
-  public int actionStart(String clustername) throws YarnException, IOException {
-    //verify that a live cluster isn't there
+  public int actionThaw(String clustername) throws YarnException, IOException {
     validateClusterName(clustername);
+    //see if it is actually running and bail out;
+    verifyManagerSet();
+    verifyNoLiveClusters(clustername);
+
+    //load spec
     verifyFileSystemArgSet();
     Path clusterDirectory =
       HoyaUtils.createHoyaClusterDirPath(getClusterFS(), clustername);
@@ -1437,9 +1472,6 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       ClusterDescription.load(getClusterFS(), clusterSpecPath);
     //spec is loaded, just look at its state
     verifySpecificationValidity(clusterSpecPath, clusterSpec);
-    //now see if it is actually running and bail out;
-    verifyManagerSet();
-    verifyNoLiveClusters(clustername);
 
     return executeClusterCreation(clusterDirectory, clusterSpec);
   }
@@ -1557,7 +1589,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     try {
       return ClusterDescription.fromJson(statusJson);
     } catch (JsonParseException e) {
-      log.error("Exception " + e + " parsing:\n" + JsonOutput.prettyPrint(statusJson),
+      log.error(
+        "Exception " + e + " parsing:\n" + JsonOutput.prettyPrint(statusJson),
         e);
       throw e;
     }
