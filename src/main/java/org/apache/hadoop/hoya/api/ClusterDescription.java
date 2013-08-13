@@ -23,6 +23,9 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hoya.HoyaExitCodes;
+import org.apache.hadoop.hoya.exceptions.HoyaException;
+import org.apache.hadoop.hoya.yarn.client.HoyaClient;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -47,7 +50,7 @@ import java.util.Map;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ClusterDescription {
   protected static final Logger
-    log = LoggerFactory.getLogger(ClusterDescription.class);
+    LOG = LoggerFactory.getLogger(ClusterDescription.class);
 
   private static final String UTF_8 = "UTF-8";
 
@@ -208,6 +211,28 @@ public class ClusterDescription {
   public Map<String, String> hBaseClientProperties =
     new HashMap<String, String>();
 
+  /**
+   * Verify that a cluster specification exists
+   * @param clustername name of the cluster (For errors only)
+   * @param fs filesystem
+   * @param clusterSpecPath cluster specification path
+   * @throws IOException IO problems
+   * @throws HoyaException if the cluster is not present
+   */
+  public static void verifyClusterSpecExists(String clustername,
+                                             FileSystem fs,
+                                             Path clusterSpecPath) throws
+                                                                      IOException,
+                                                                      HoyaException {
+      if (!fs.exists(clusterSpecPath)) {
+        LOG.debug("Missing cluster specification file {}", clusterSpecPath);
+        throw new HoyaException(HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER,
+                                HoyaClient.E_UNKNOWN_CLUSTER + clustername +
+                                "\n (cluster definition not found at " +
+                                clusterSpecPath);
+      }
+    }
+
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();
@@ -301,7 +326,7 @@ public class ClusterDescription {
     try {
       return mapper.readValue(json, ClusterDescription.class);
     } catch (IOException e) {
-      log.error("Exception while parsing json : " + e + "\n" + json, e);
+      LOG.error("Exception while parsing json : " + e + "\n" + json, e);
       throw e;
     }
   }

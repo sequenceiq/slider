@@ -61,7 +61,7 @@ public class CommonArgs implements HoyaActions {
   public static final String ARG_MANAGER = "--manager";
   public static final String ARG_NAME = "--name";
   public static final String ARG_OUTPUT = "--output";
-  public static final String ARG_PATH = "--path";
+
 
   public static final String ARG_ROLE = "--role";
   public static final String ARG_ROLE_HEAP = "--roleheap";

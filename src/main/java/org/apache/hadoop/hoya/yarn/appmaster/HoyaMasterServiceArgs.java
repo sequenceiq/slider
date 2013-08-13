@@ -41,7 +41,10 @@ public class HoyaMasterServiceArgs extends CommonArgs {
    * Path for the ZK instance (required)
    */
   public static final String ARG_RM_ADDR = "--rm";
-
+  
+  public static final String ARG_HOYA_CLUSTER_URI = "--hoya-cluster-uri";
+  
+  
   /**
    *    Declare the image configuration directory to use when creating
    *    or reconfiguring a hoya cluster.
@@ -53,11 +56,15 @@ public class HoyaMasterServiceArgs extends CommonArgs {
              description = "generated configuration directory")
   public String generatedConfdir;
 
-  @Parameter(names = "--image", description = "image", required = false)
+  @Parameter(names = ARG_IMAGE, description = "image", required = false)
   public String image;
 
-  @Parameter(names = "--path", description = "FileSystem path", required = true)
-  public String path;
+  /**
+   * This is the URI in the FS to the Hoya cluster; the conf file (and any
+   * other cluster-specifics) can be picked up here
+   */
+  @Parameter(names = ARG_HOYA_CLUSTER_URI, description = "URI to the hoya cluster", required = true)
+  public String hoyaClusterURI;
 
 
   /**

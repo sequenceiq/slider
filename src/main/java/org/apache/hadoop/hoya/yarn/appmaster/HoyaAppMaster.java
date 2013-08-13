@@ -20,6 +20,7 @@ package org.apache.hadoop.hoya.yarn.appmaster;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.providers.hbase.HBaseCommands;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
@@ -72,6 +73,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -344,6 +346,20 @@ public class HoyaAppMaster extends CompositeService
    * @throws Throwable on a failure
    */
   private int createAndRunCluster(String clustername) throws Throwable {
+
+    //load the cluster description from the cd argument
+
+    String hoyaClusterDir = serviceArgs.hoyaClusterURI;
+    URI hoyaClusterURI = new URI(hoyaClusterDir);
+    Path clusterDirPath = new Path(hoyaClusterURI);
+    Path clusterSpecPath =
+      new Path(clusterDirPath, HoyaKeys.CLUSTER_SPECIFICATION_FILE);
+    FileSystem fs = getClusterFS();
+    ClusterDescription.verifyClusterSpecExists(clustername, fs,
+                                               clusterSpecPath);
+
+    ClusterDescription loadedCD = ClusterDescription.load(fs, clusterSpecPath);
+
 
     clusterDescription.name = clustername;
     clusterDescription.state = ClusterDescription.STATE_CREATED;

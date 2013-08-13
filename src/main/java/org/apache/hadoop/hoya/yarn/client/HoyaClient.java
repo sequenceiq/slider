@@ -422,7 +422,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     clusterSpec.save(fs, clusterSpecPath, true);
 
     //here is where all the work is done
-    return executeClusterCreation(clusterSpec);
+    return executeClusterCreation(clusterDirectory, clusterSpec);
   }
 
   public void verifyFileSystemArgSet() throws BadCommandArgumentsException {
@@ -450,7 +450,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
    * @param clusterSpec cluster specification
    * @return the exit code from the operation
    */
-  public int executeClusterCreation(ClusterDescription clusterSpec) throws
+  public int executeClusterCreation(Path clusterDirectory, 
+                                    ClusterDescription clusterSpec) throws
                                                                     YarnException,
                                                                     IOException {
 
@@ -642,6 +643,11 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     commands.add(HoyaMasterServiceArgs.ARG_DEBUG);
     commands.add(HoyaActions.ACTION_CREATE);
     commands.add(clustername);
+    
+    //set the cluster directory path
+    commands.add(HoyaMasterServiceArgs.ARG_HOYA_CLUSTER_URI);
+    commands.add(clusterDirectory.toUri().toString());
+    
     //min #of nodes
     commands.add(HoyaMasterServiceArgs.ARG_WORKERS);
     commands.add(Integer.toString(clusterSpec.workers));
@@ -686,9 +692,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       commands.add(serviceArgs.filesystemURL.toString());
     }
 
-    //path in FS can be unqualified
-    commands.add(CommonArgs.ARG_PATH);
-    commands.add("services/hoya/");
+
+    //write out the path output
     commands.add(
       "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/out.txt");
     commands.add(
@@ -1424,7 +1429,10 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     //verify that a live cluster isn't there
     validateClusterName(clustername);
     verifyFileSystemArgSet();
+    Path clusterDirectory =
+      HoyaUtils.createHoyaClusterDirPath(getClusterFS(), clustername);
     Path clusterSpecPath = locateClusterSpecification(clustername);
+    
     ClusterDescription clusterSpec =
       ClusterDescription.load(getClusterFS(), clusterSpecPath);
     //spec is loaded, just look at its state
@@ -1433,7 +1441,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     verifyManagerSet();
     verifyNoLiveClusters(clustername);
 
-    return executeClusterCreation(clusterSpec);
+    return executeClusterCreation(clusterDirectory, clusterSpec);
   }
 
   /**
@@ -1459,17 +1467,12 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   public Path locateClusterSpecification(String clustername) throws
                                                              YarnException,
                                                              IOException {
+    FileSystem fs = getClusterFS();
     Path clusterDirectory =
-      HoyaUtils.createHoyaClusterDirPath(getClusterFS(), clustername);
+      HoyaUtils.createHoyaClusterDirPath(fs, clustername);
     Path clusterSpecPath =
       new Path(clusterDirectory, HoyaKeys.CLUSTER_SPECIFICATION_FILE);
-    if (!getClusterFS().exists(clusterSpecPath)) {
-      log.debug("Missing cluster specification file {}", clusterSpecPath);
-      throw new HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER,
-                              E_UNKNOWN_CLUSTER + clustername +
-                              "\n (cluster definition not found at " +
-                              clusterSpecPath);
-    }
+    ClusterDescription.verifyClusterSpecExists(clustername, fs, clusterSpecPath);
     return clusterSpecPath;
   }
 
