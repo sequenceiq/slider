@@ -26,7 +26,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class HBaseClusterCore extends Configured implements
-                                                          ProviderCore {
+                                                          ProviderCore,
+                                                          HBaseCommands {
 
   protected static final String NAME = "hbase";
 
@@ -37,9 +38,11 @@ public abstract class HBaseClusterCore extends Configured implements
   protected static final List<String> ROLES = new ArrayList<String>(1);
 
   protected static final String ROLE_WORKER = "worker";
+  protected static final String ROLE_MASTER = "master";
 
   static {
     ROLES.add(ROLE_WORKER);
+    ROLES.add(ROLE_MASTER);
   }
 
   @Override
@@ -51,4 +54,6 @@ public abstract class HBaseClusterCore extends Configured implements
   public List<String> getRoles() {
     return ROLES;
   }
+
+
 }

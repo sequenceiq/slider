@@ -24,6 +24,6 @@ public class BadCommandArgumentsException extends HoyaException {
   }
 
   public BadCommandArgumentsException(String s, Throwable throwable) {
-    super(EXIT_COMMAND_ARGUMENT_ERROR, s, throwable);
+    super(EXIT_COMMAND_ARGUMENT_ERROR, throwable, s);
   }
 }

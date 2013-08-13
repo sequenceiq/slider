@@ -67,7 +67,7 @@ public interface HBaseCommands {
   /**
    *  name of the hbase subdir in the archive:  {@value}
    */
-  String HBASE_ARCHIVE_SUBDIR = "hbase-0.94.9-SNAPSHOT";
+  String HBASE_ARCHIVE_SUBDIR = "hbase-0.95.2-SNAPSHOT";
   /**
    *  name of the site conf to generate :  {@value}
    */
@@ -83,4 +83,10 @@ public interface HBaseCommands {
    *  {@value}
    */
   String HBASE_TEMPLATE_RESOURCE = "/conf/" + HBASE_TEMPLATE;
+
+
+  String DEFAULT_HBASE_WORKER_HEAP = "256M";
+  String DEFAULT_HBASE_MASTER_HEAP = "256M";
+  String DEFAULT_HBASE_WORKER_INFOPORT = "0";
+  String DEFAULT_HBASE_MASTER_INFOPORT = "0";
 }

@@ -118,6 +118,16 @@ class TestCommonArgParsing {
     assert roleMap["master"] == "5"
   }
   
+  @Test
+  public void testNoRoleArg() throws Throwable {
+    ClientArgs clientArgs = createClientArgs([
+        HoyaActions.ACTION_CREATE, 'cluster1',
+    ])
+    def tuples = clientArgs.roleTuples;
+    Map<String, String> roleMap = clientArgs.convertTupleListToMap("roles", tuples);
+    assert roleMap["master"] == null
+  }
+  
   
   @Test
   public void testMultiRoleArg() throws Throwable {

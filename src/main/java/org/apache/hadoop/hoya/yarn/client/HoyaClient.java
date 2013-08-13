@@ -30,8 +30,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.api.ClusterKeys;
 import org.apache.hadoop.hoya.api.ClusterNode;
-import org.apache.hadoop.hoya.api.ClusterRole;
 import org.apache.hadoop.hoya.api.HoyaAppMasterProtocol;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
@@ -296,13 +296,29 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     clusterSpec.createTime = System.currentTimeMillis();
 
     List<String> supportedRoles = builder.getRoles();
-    Map<String, ClusterRole> roleMap = new HashMap<String, ClusterRole>(
-      supportedRoles.size());
-/*    for (List<String> roleT: serviceArgs.roleTuples) {
-      
-      
+    Map<String, String> roleMap = serviceArgs.getRoleMap();
+    Map<String, String> roleHeapMap = serviceArgs.getRoleHeapMap();
+    Map<String, String> roleInfoPortMap = serviceArgs.getRoleInfoPortMap();
+    
+    Map<String, Object> clusterRoleMap = new HashMap<String, Object>();
+    
+
+    for (String roleName: roleMap.keySet()) {
+      Map<String, String> clusterRole =
+        builder.createDefaultClusterRole(roleName);
+      clusterRole.put(ClusterKeys.COUNT, roleMap.get(roleName));
+      String heap = roleHeapMap.get(roleName);
+      if (heap!=null) {
+        clusterRole.put(ClusterKeys.HEAP_SIZE, heap);
+      }
+      String port = roleInfoPortMap.get(roleName);
+      if (port!=null) {
+        clusterRole.put(ClusterKeys.INFO_PORT, port);
+      }
+      clusterRoleMap.put(roleName, clusterRole);
     }
-    */
+    clusterSpec.roles = clusterRoleMap;
+    
     int workers = serviceArgs.workers;
     int workerHeap = serviceArgs.workerHeap;
     validateNodeAndHeapValues("worker", workers, workerHeap);
@@ -376,10 +392,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                               clusterSpecPath);
     } catch (IOException e) {
       //this is probably a file exists exception too, but include it in the trace just in case
-      throw new HoyaException(EXIT_BAD_CLUSTER_STATE,
-                              clustername + ": " + E_ALREADY_EXISTS + " :" +
-                              clusterSpecPath,
-                              e);
+      throw new HoyaException(EXIT_BAD_CLUSTER_STATE, e,
+                      clustername + ": " + E_ALREADY_EXISTS + " :" + clusterSpecPath);
     }
 
     //bulk copy

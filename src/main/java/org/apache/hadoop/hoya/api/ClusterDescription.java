@@ -155,10 +155,10 @@ public class ClusterDescription {
   public String xHBaseMasterCommand;
 
   /**
-   * Roles
+   * Roles mapping to sub-maps
    */
-  public Map<String, String> roles =
-    new HashMap<String, String>();
+  public Map<String, Object> roles =
+    new HashMap<String, Object>();
   
   /**
    * Extra flags that can be used to communicate

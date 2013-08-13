@@ -18,27 +18,13 @@
 
 package org.apache.hadoop.hoya.api;
 
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
-
 /**
- * Definition of a cluster role: number
+ *  Keys for map entries in roles
  */
-@JsonIgnoreProperties(ignoreUnknown = true)
+public interface ClusterKeys {
 
-public class ClusterRole {
-
-  public String name;
-  
-  public String heapSize;
-  
-  public String infoPort;
-
-  @Override
-  public String toString() {
-    return "ClusterRole{" +
-           "name='" + name + '\'' +
-           ", heapSize='" + heapSize + '\'' +
-           ", infoPort='" + infoPort + '\'' +
-           '}';
-  }
+  String NAME = "NAME";
+  String COUNT = "COUNT";
+  String HEAP_SIZE = "HEAP_SIZE";
+  String INFO_PORT = "INFO_PORT";
 }

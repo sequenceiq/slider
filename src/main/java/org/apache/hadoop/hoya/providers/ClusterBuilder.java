@@ -18,5 +18,18 @@
 
 package org.apache.hadoop.hoya.providers;
 
+import org.apache.hadoop.hoya.exceptions.HoyaException;
+
+import java.util.Map;
+
 public interface ClusterBuilder extends ProviderCore {
+
+  /**
+   * Create the default cluster role instance for a named
+   * cluster role; 
+   *
+   * @param rolename role name
+   * @return a node that can be added to the JSON
+   */
+  Map<String, String> createDefaultClusterRole(String rolename) throws HoyaException;
 }

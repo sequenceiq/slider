@@ -24,6 +24,6 @@ public class HoyaInternalStateException extends HoyaException {
   }
 
   public HoyaInternalStateException(String s, Throwable throwable) {
-    super(EXIT_INTERNAL_ERROR, s, throwable);
+    super(EXIT_INTERNAL_ERROR, throwable, s);
   }
 }

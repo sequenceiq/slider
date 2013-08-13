@@ -39,9 +39,29 @@ public class HoyaException extends ServiceLaunchException implements
     super(EXIT_EXCEPTION_THROWN, s, throwable);
   }
 
-  public HoyaException(int code, String s, Throwable throwable) {
-    super(code, s, throwable);
+  /**
+   * Format the exception as you create it
+   * @param code
+   * @param message
+   * @param args
+   */
+  public HoyaException(int code, String message, Object ... args) {
+    super(code, String.format(message, args));
   }
 
+  /**
+   * Format the exception, include a throwable. 
+   * The throwable comes before the message so that it is out of the varargs
+   * @param code exit code
+   * @param throwable thrown
+   * @param message message
+   * @param args arguments
+   */
+  public HoyaException(int code,
+                       Throwable throwable,
+                       String message,
+                       Object ... args) {
+    super(code, String.format(message, args), throwable);
+  }
 
 }

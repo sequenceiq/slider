@@ -95,10 +95,10 @@ public abstract class HoyaProviderFactory extends Configured {
       ex = e;
     }
     //by here the operation failed and ex is set to the value 
-    throw new HoyaException(HoyaExitCodes.EXIT_INTERNAL_ERROR,
-                            String.format(
+    throw new HoyaException(HoyaExitCodes.EXIT_INTERNAL_ERROR, ex,
                               "Failed to create an instance of %s : %s",
-                              providerClass.toString(), ex.toString()), ex);
+                              providerClass,
+                              ex);
   }
 
   public static Configuration loadHoyaConfiguration() {

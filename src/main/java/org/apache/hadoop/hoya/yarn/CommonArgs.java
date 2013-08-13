@@ -410,21 +410,23 @@ public class CommonArgs implements HoyaActions {
    */
   public Map<String,String> convertTupleListToMap(String description,List<String> list) throws
                                                                                  BadCommandArgumentsException {
-    int size = list.size();
-    if (size %2!=0) {
-      //odd number of elements, not permitted
-      throw new BadCommandArgumentsException(ERROR_PARSE_FAILURE + description);
-    }
-    Map<String, String> results = new HashMap<String, String>(size);
-    for (int count = 0; count < size; count += 2) {
-      String key = list.get(count);
-      String val = list.get(count + 1);
-      if (results.get(key) != null) {
-        throw new BadCommandArgumentsException(
-          ERROR_DUPLICATE_ENTRY + description
-          + ": " + key);
+    Map<String, String> results = new HashMap<String, String>();
+    if (list!=null && list.size()>0) {
+      int size = list.size();
+      if (size %2!=0) {
+        //odd number of elements, not permitted
+        throw new BadCommandArgumentsException(ERROR_PARSE_FAILURE + description);
       }
-      results.put(key, val);
+      for (int count = 0; count < size; count += 2) {
+        String key = list.get(count);
+        String val = list.get(count + 1);
+        if (results.get(key) != null) {
+          throw new BadCommandArgumentsException(
+            ERROR_DUPLICATE_ENTRY + description
+            + ": " + key);
+        }
+        results.put(key, val);
+      }
     }
     return results;
   }
