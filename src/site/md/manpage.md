@@ -150,13 +150,10 @@ Use the specific filesystem URI as an argument to the operation.
 ### --format {xml,properties,text}
 The format for returned documents. xml is the Hadoop XML configuration format; properties Java  properties.
 
-### --managers count
 
-The number of HBase managers. Only 0 and 1 are currently supported. Default: 1
+### --role \<rolename> \<count>
 
-### --workers count
-
-the number of workers desired when creating or flexing a cluster.
+the number of instances of a role desired when creating or flexing a cluster.
 
 
 ### --wait timeInSeconds

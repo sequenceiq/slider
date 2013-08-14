@@ -159,7 +159,6 @@ class TestCommonArgParsing {
       assert expected.message.contains(ClientArgs.ERROR_DUPLICATE_ENTRY)
     }
   }
-  
      
   @Test
   public void testOddRoleCount() throws Throwable {
@@ -178,7 +177,29 @@ class TestCommonArgParsing {
       assert expected.message.contains(ClientArgs.ERROR_PARSE_FAILURE)
     }
   }
-  
-  
+
+  @Test
+  public void testRoleOptionTriples() throws Throwable {
+    ClientArgs clientArgs = createClientArgs([
+        HoyaActions.ACTION_CREATE, 'cluster1',
+        CommonArgs.ARG_ROLE, "master", "1",
+        CommonArgs.ARG_ROLE, "worker", "2",
+        CommonArgs.ARG_ROLEOPT, "worker","vcores",2,
+        CommonArgs.ARG_ROLEOPT, "worker","heap","64G",
+        CommonArgs.ARG_ROLEOPT, "master","vcores",3,
+    ])
+    
+    def tripleMaps = clientArgs.roleOptionMap
+    def workerOpts = tripleMaps["worker"];
+    assert workerOpts.size() == 2
+    assert workerOpts["vcores"] == "2"
+    assert workerOpts["heap"] == "64G"
+    
+    def masterOpts = tripleMaps["master"];
+    assert masterOpts.size() == 1
+    assert masterOpts["vcores"] == "3"
+
+  }
+
 
 }

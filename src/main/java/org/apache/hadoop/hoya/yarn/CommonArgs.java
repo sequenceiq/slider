@@ -64,6 +64,7 @@ public class CommonArgs implements HoyaActions {
 
 
   public static final String ARG_ROLE = "--role";
+  public static final String ARG_ROLEOPT = "--roleopt";
   public static final String ARG_ROLE_HEAP = "--roleheap";
   public static final String ARG_ROLE_INFO_PORT = "--roleinfoport";
 
@@ -194,7 +195,7 @@ public class CommonArgs implements HoyaActions {
 
 
   
-  @Parameter(names = {ARG_WORKERS, "--min"},
+  @Parameter(names = {ARG_WORKERS},
              description = "The number of worker nodes")
   public int workers = 0;
 
@@ -408,14 +409,16 @@ public class CommonArgs implements HoyaActions {
    * @return
    * @throws BadCommandArgumentsException odd #of arguments received
    */
-  public Map<String,String> convertTupleListToMap(String description,List<String> list) throws
-                                                                                 BadCommandArgumentsException {
+  public Map<String, String> convertTupleListToMap(String description,
+                                                   List<String> list) throws
+                                                                      BadCommandArgumentsException {
     Map<String, String> results = new HashMap<String, String>();
-    if (list!=null && list.size()>0) {
+    if (list != null && !list.isEmpty()) {
       int size = list.size();
-      if (size %2!=0) {
+      if (size % 2 != 0) {
         //odd number of elements, not permitted
-        throw new BadCommandArgumentsException(ERROR_PARSE_FAILURE + description);
+        throw new BadCommandArgumentsException(
+          ERROR_PARSE_FAILURE + description);
       }
       for (int count = 0; count < size; count += 2) {
         String key = list.get(count);

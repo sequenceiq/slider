@@ -98,6 +98,14 @@ public class ClientArgs extends CommonArgs {
   public List<String> roleHeapTuples = new ArrayList<String>(0);
 
 
+  /**
+   * All the role option triples
+   */
+  @Parameter(names = {ARG_ROLEOPT}, arity = 3,
+             description = "Role option " + ARG_ROLEOPT + " <role> <name> <option>")
+  public List<String> roleOptTriples = new ArrayList<String>(0);
+
+
   @Parameter(names = {ARG_ROLE_INFO_PORT}, arity = 2,
              description = "role web port <name> <count>")
   public List<String> roleInfoPortTuples = new ArrayList<String>(0);
@@ -132,6 +140,7 @@ public class ClientArgs extends CommonArgs {
                                                   BadCommandArgumentsException {
     return convertTupleListToMap(ARG_ROLE_INFO_PORT, roleInfoPortTuples);
   }
+
 
   /**
    * map of actions -> (explanation, min #of entries [, max no.])
@@ -182,5 +191,59 @@ public class ClientArgs extends CommonArgs {
       LOG.debug("Setting RM to {}", manager);
       conf.set(YarnConfiguration.RM_ADDRESS, manager);
     }
+  }
+
+  /**
+   * Create a map from a tuple list like
+   * ['worker','heapsize','5G','master','heapsize','2M'] into a map
+   * ['worker':'2',"master":'1'];
+   * Duplicate entries also trigger errors
+   * @param description
+   * @param list
+   * @return
+   * @throws BadCommandArgumentsException odd #of arguments received
+   */
+  public Map<String, Map<String, String>> convertTripleListToMaps(String description,
+                                                                  List<String> list) throws
+                                                                                     BadCommandArgumentsException {
+    Map<String, Map<String, String>> results =
+      new HashMap<String, Map<String, String>>();
+    if (list != null && !list.isEmpty()) {
+      int size = list.size();
+      if (size % 3 != 0) {
+        //wrong number of elements, not permitted
+        throw new BadCommandArgumentsException(
+          ERROR_PARSE_FAILURE + description);
+      }
+      for (int count = 0; count < size; count += 3) {
+        String role = list.get(count);
+        String key = list.get(count + 1);
+        String val = list.get(count + 2);
+        Map<String, String> roleMap = results.get(role);
+        if (roleMap == null) {
+          //demand create new role map
+          roleMap = new HashMap<String, String>();
+          results.put(role, roleMap);
+        }
+        if (roleMap.get(key) != null) {
+          throw new BadCommandArgumentsException(
+            ERROR_DUPLICATE_ENTRY + description
+            + ": for key " + key + " under " + role);
+        }
+        roleMap.put(key, val);
+      }
+    }
+    return results;
+  }
+
+
+  /**
+   * Get the role heap mapping (may be empty, but never null)
+   * @return role heap mapping
+   * @throws BadCommandArgumentsException parse problem
+   */
+  public Map<String, Map<String, String>> getRoleOptionMap() throws
+                                                     BadCommandArgumentsException {
+    return convertTripleListToMaps(ARG_ROLEOPT, roleOptTriples);
   }
 }
