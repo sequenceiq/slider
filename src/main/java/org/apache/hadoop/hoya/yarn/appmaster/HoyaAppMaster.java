@@ -84,6 +84,7 @@ import java.util.Map;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -214,11 +215,16 @@ public class HoyaAppMaster extends CompositeService
    */
   private final ReentrantLock AMExecutionStateLock = new ReentrantLock();
   private final Condition isAMCompleted = AMExecutionStateLock.newCondition();
+  private final AtomicBoolean amCompletionFlag = new AtomicBoolean(false);
+  private volatile boolean localProcessTerminated = false;
+  private volatile boolean localProcessStarted = false;
   private volatile boolean success;
 
   private String[] argv;
   /* Arguments passed in */
   private HoyaMasterServiceArgs serviceArgs;
+  
+  
 
   /**
    The cluster description published to callers
@@ -274,6 +280,7 @@ public class HoyaAppMaster extends CompositeService
    */
   private final Map<ContainerId, ClusterNode> requestedNodes =
     new ConcurrentHashMap<ContainerId, ClusterNode>();
+  private int processExitCode;
 
 
   public HoyaAppMaster() {
@@ -387,10 +394,7 @@ public class HoyaAppMaster extends CompositeService
     appAttemptID = cid.getApplicationAttemptId();
 
     ApplicationId appid = appAttemptID.getApplicationId();
-    log.info("Hoya AM for app," +
-             " appId=" + appid.getId() +
-             " clustertimestamp=" + appid.getClusterTimestamp() +
-             " attemptId=" + appAttemptID.getAttemptId());
+    log.info("Hoya AM for ID {}", appid.getId() );
 
 
     int heartbeatInterval = HEARTBEAT_INTERVAL;
@@ -514,6 +518,7 @@ public class HoyaAppMaster extends CompositeService
 
     if (noMaster) {
       log.info("skipping master launch");
+      localProcessStarted = true;
     } else {
       Map<String, String> env = new HashMap<String, String>();
       env.put("HBASE_LOG_DIR", buildHBaseLogdir());
@@ -522,23 +527,30 @@ public class HoyaAppMaster extends CompositeService
                         env);
     }
 
-    //now ask for the workers
-    flexClusterNodes(serviceArgs.workers);
+    try {
+      //if we get here: success
+      success = true;
+      
+      //here see if the launch worked.
+      if (localProcessTerminated) {
+        //exit faster
+        return processExitCode;
+      }
 
-    //if we get here: success
-    success = true;
-    clusterDescription.statusTime = System.currentTimeMillis();
-    clusterDescription.state = ClusterDescription.STATE_LIVE;
-    masterNode = new ClusterNode(hostname);
-    clusterDescription.masterNodes = new ArrayList<ClusterNode>(1);
-    clusterDescription.masterNodes.add(masterNode);
+      //if we get here: success
+      success = true;
 
-    //now block waiting to be told to exit the process
-    waitForAMCompletionSignal();
-    //shutdown time
-    finish();
+      //now ask for the workers
+      flexClusterNodes(clusterDescription.workers);
 
-    return success ? EXIT_SUCCESS : EXIT_TASK_LAUNCH_FAILURE;
+      //now block waiting to be told to exit the process
+      waitForAMCompletionSignal();
+      //shutdown time
+    } finally {
+      finish();
+    }
+
+    return success ? processExitCode : EXIT_TASK_LAUNCH_FAILURE;
   }
 
   /**
@@ -590,7 +602,10 @@ public class HoyaAppMaster extends CompositeService
   private void waitForAMCompletionSignal() {
     AMExecutionStateLock.lock();
     try {
-      isAMCompleted.awaitUninterruptibly();
+      if (!amCompletionFlag.get()) {
+        log.debug("blocking until signalled to terminate");
+        isAMCompleted.awaitUninterruptibly();
+      }
     } finally {
       AMExecutionStateLock.unlock();
     }
@@ -611,6 +626,7 @@ public class HoyaAppMaster extends CompositeService
     log.info("Triggering shutdown of the AM: {}", reason);
     AMExecutionStateLock.lock();
     try {
+      amCompletionFlag.set(true);
       isAMCompleted.signal();
     } finally {
       AMExecutionStateLock.unlock();
@@ -1151,13 +1167,16 @@ public class HoyaAppMaster extends CompositeService
     //set the env variable mapping
     hbaseMaster.putEnvMap(env);
 
-    //now spawn the process -expect  updates via callbacks
+    //now spawn the process -expect updates via callbacks
     hbaseMaster.spawnApplication();
+    
+
   }
 
   @Override // ApplicationEventHandler
   public void onApplicationStarted(RunLongLivedApp application) {
     log.info("Process has started");
+    localProcessStarted = true;
     synchronized (clusterDescription) {
       masterNode.state = ClusterDescription.STATE_LIVE;
     }
@@ -1172,8 +1191,10 @@ public class HoyaAppMaster extends CompositeService
   @Override // ApplicationEventHandler
   public void onApplicationExited(RunLongLivedApp application, int exitCode) {
     log.info("Process has exited with exit code {}", exitCode);
+    localProcessTerminated = true;
     synchronized (clusterDescription) {
-      masterNode.exitCode = exitCode;
+      processExitCode = exitCode;
+      masterNode.exitCode = processExitCode;
       masterNode.state = ClusterDescription.STATE_STOPPED;
     }
     //tell the AM the cluster is complete 

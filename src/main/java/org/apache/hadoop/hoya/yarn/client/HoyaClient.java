@@ -118,6 +118,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   private String[] argv;
   private ClientArgs serviceArgs;
   public ApplicationId applicationId;
+  private String deployedClusterName;
 
   /**
    * Entry point from the service launcher
@@ -456,6 +457,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     //verify that a live cluster isn't there;
     String clustername = clusterSpec.name;
+    deployedClusterName = clustername;
     validateClusterName(clustername);
     verifyNoLiveClusters(clustername);
     //make sure it is valid;
@@ -793,6 +795,14 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
   public String getUsername() throws IOException {
     return UserGroupInformation.getCurrentUser().getShortUserName();
+  }
+
+  /**
+   * Get the name of any deployed cluster
+   * @return the cluster name
+   */
+  public String getDeployedClusterName() {
+    return deployedClusterName;
   }
 
   /**
@@ -1343,7 +1353,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                                           IOException {
     verifyManagerSet();
     validateClusterName(clustername);
-    log.debug("actionFreeze({})", clustername);
+    log.debug("actionFreeze({}, {})", clustername, waittime);
     ApplicationReport app = findInstance(getUsername(), clustername);
     if (app == null) {
       //exit early

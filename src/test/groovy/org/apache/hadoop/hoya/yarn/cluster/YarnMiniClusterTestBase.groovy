@@ -662,6 +662,26 @@ implements KeysForTests, HoyaExitCodes {
   }
 
   /**
+   * Teardown-time cluster termination; will stop the cluster iff the client
+   * is not null
+   * @param hoyaClient client
+   * @param clustername name of cluster to teardown
+   * @return
+   */
+  public int maybeStopCluster(HoyaClient hoyaClient, String clustername) {
+    if (hoyaClient != null) {
+      if (!clustername) {
+        clustername = hoyaClient.deployedClusterName;
+      }
+      //only stop a cluster that exists
+      if (clustername) {
+        return clusterActionFreeze(hoyaClient, clustername);
+      }  
+    }
+    return 0;
+  }
+  
+  /**
    * stop the cluster via the stop action -and wait for {@link #HBASE_CLUSTER_STOP_TIME}
    * for the cluster to stop. If it doesn't
    * @param hoyaClient client
@@ -669,7 +689,7 @@ implements KeysForTests, HoyaExitCodes {
    * @return the exit code
    */
   public int clusterActionFreeze(HoyaClient hoyaClient, String clustername) {
-
+    log.info("Freezing cluster $clustername")
     int exitCode = hoyaClient.actionFreeze(clustername, HBASE_CLUSTER_STOP_TIME);
     if (exitCode != 0) {
       log.warn("HBase app shutdown failed with error code $exitCode")
@@ -800,30 +820,36 @@ implements KeysForTests, HoyaExitCodes {
 
   public boolean flexClusterTestRun(String clustername, int workers, int flexTarget, boolean persist, boolean testHBaseAfter) {
     createMiniCluster(clustername, createConfiguration(),
-                      2,
+                      3,
                       true)
     //now launch the cluster
+    HoyaClient hoyaClient = null
     ServiceLauncher launcher = createHoyaCluster(clustername, workers, [], true, true)
-    HoyaClient hoyaClient = (HoyaClient) launcher.service
-    ClusterDescription status = hoyaClient.getClusterStatus(clustername)
-    basicHBaseClusterStartupSequence(hoyaClient, clustername)
+    hoyaClient = (HoyaClient) launcher.service
+    try {
+      ClusterDescription status = hoyaClient.getClusterStatus(clustername)
+      basicHBaseClusterStartupSequence(hoyaClient, clustername)
 
-    describe("Waiting for initial worker count of $workers")
+      describe("Waiting for initial worker count of $workers")
 
-    //verify the #of region servers is as expected
-    //get the hbase status
-    waitForRegionServerCount(hoyaClient, clustername, workers, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-    waitForHoyaWorkerCount(hoyaClient, clustername, workers, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+      //verify the #of region servers is as expected
+      //get the hbase status
+      waitForRegionServerCount(hoyaClient, clustername, workers, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+      waitForHoyaWorkerCount(hoyaClient, clustername, workers, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
-    //start to add some more workers
-    describe("Flexing from $workers worker(s) to $flexTarget worker")
-    boolean flexed = 0 == hoyaClient.actionFlex(clustername, flexTarget, 0, persist)
-    waitForRegionServerCount(hoyaClient, clustername, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-    if (testHBaseAfter) {
-      waitForHoyaWorkerCount(hoyaClient, clustername, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+      //start to add some more workers
+      describe("Flexing from $workers worker(s) to $flexTarget worker")
+      boolean flexed
+      flexed = 0 == hoyaClient.actionFlex(clustername, flexTarget, 0, persist)
+      waitForRegionServerCount(hoyaClient, clustername, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+      if (testHBaseAfter) {
+        waitForHoyaWorkerCount(hoyaClient, clustername, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+      }
+      return flexed
+    } finally {
+      maybeStopCluster(hoyaClient,"")
     }
 
-    clusterActionFreeze(hoyaClient, clustername)
-    return flexed
+
   }
 }
