@@ -23,7 +23,6 @@ import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.HoyaActions
-import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase

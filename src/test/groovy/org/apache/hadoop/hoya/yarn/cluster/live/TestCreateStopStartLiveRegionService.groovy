@@ -34,7 +34,6 @@ import org.junit.Test
 @Commons
 class TestCreateStopStartLiveRegionService extends YarnMiniClusterTestBase {
 
-
   @Test
   public void testCreateStopStartLiveRegionService() throws Throwable {
     String clustername = "TestCreateStopStartLiveRegionService"
