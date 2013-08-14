@@ -347,7 +347,7 @@ public class RunLongLivedApp implements Runnable {
           if (readAnyLine(errReader, errorLine, 256)) {
             String line = errorLine.toString();
             recordRecentLine(line, true);
-            streamLog.error(line);
+            streamLog.warn(line);
             errorLine.setLength(0);
             processed = true;
           }
