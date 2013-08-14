@@ -35,6 +35,7 @@ import org.apache.hadoop.hoya.exec.RunLongLivedApp;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.tools.YarnUtils;
+import org.apache.hadoop.hoya.yarn.CommonArgs;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
 import org.apache.hadoop.ipc.ProtocolSignature;
 import org.apache.hadoop.ipc.RPC;
@@ -225,7 +226,7 @@ public class HoyaAppMaster extends CompositeService
    the CD, and also to update some of the structures that
    feed in to the CD
    */
-  public final ClusterDescription clusterDescription = new ClusterDescription();
+  public ClusterDescription clusterDescription = new ClusterDescription();
 
   /**
    * List of completed nodes. This isn't kept in the CD as it gets too
@@ -348,7 +349,6 @@ public class HoyaAppMaster extends CompositeService
   private int createAndRunCluster(String clustername) throws Throwable {
 
     //load the cluster description from the cd argument
-
     String hoyaClusterDir = serviceArgs.hoyaClusterURI;
     URI hoyaClusterURI = new URI(hoyaClusterDir);
     Path clusterDirPath = new Path(hoyaClusterURI);
@@ -358,20 +358,24 @@ public class HoyaAppMaster extends CompositeService
     ClusterDescription.verifyClusterSpecExists(clustername, fs,
                                                clusterSpecPath);
 
-    ClusterDescription loadedCD = ClusterDescription.load(fs, clusterSpecPath);
+    clusterDescription = ClusterDescription.load(fs, clusterSpecPath);
 
 
-    clusterDescription.name = clustername;
     clusterDescription.state = ClusterDescription.STATE_CREATED;
     clusterDescription.startTime = System.currentTimeMillis();
     if (0 == clusterDescription.createTime) {
       clusterDescription.createTime = clusterDescription.startTime;
     }
-    ;
+/*
     clusterDescription.hbaseHome = serviceArgs.hbasehome;
     clusterDescription.imagePath = serviceArgs.image;
     clusterDescription.xHBaseMasterCommand = serviceArgs.xHBaseMasterCommand;
     clusterDescription.masterInfoPort = serviceArgs.masterInfoPort;
+    clusterDescription.masters = serviceArgs.masters;
+    clusterDescription.workerHeap = serviceArgs.workerHeap;
+    clusterDescription.masterHeap = serviceArgs.masterHeap;
+*/
+
     YarnConfiguration conf = new YarnConfiguration(getConfig());
     InetSocketAddress address = YarnUtils.getRmSchedulerAddress(conf);
     log.info("RM is at {}", address);
@@ -445,8 +449,8 @@ public class HoyaAppMaster extends CompositeService
 
     //start hbase command
     //pull out the command line argument if set
-    if (serviceArgs.xHBaseMasterCommand != null) {
-      hbaseCommand = serviceArgs.xHBaseMasterCommand;
+    if (clusterDescription.xHBaseMasterCommand != null) {
+      hbaseCommand = clusterDescription.xHBaseMasterCommand;
     }
 
     File confDir = getLocalConfDir();
@@ -473,7 +477,7 @@ public class HoyaAppMaster extends CompositeService
     //now read it in
     Configuration siteConf = ConfigHelper.loadConfFromFile(hBaseSiteXML);
     log.info(" Contents of {}", hBaseSiteXML);
-    ;
+    
     TreeSet<String> confKeys = ConfigHelper.sortedConfigKeys(siteConf);
     //update the values
     clusterDescription.hbaseDataPath =
@@ -483,10 +487,6 @@ public class HoyaAppMaster extends CompositeService
       siteConf.getInt(EnvMappings.KEY_ZOOKEEPER_PORT, 0);
     clusterDescription.zkPath = siteConf.get(EnvMappings.KEY_ZNODE_PARENT);
 
-
-    clusterDescription.masters = serviceArgs.masters;
-    clusterDescription.workerHeap = serviceArgs.workerHeap;
-    clusterDescription.masterHeap = serviceArgs.masterHeap;
     noMaster = clusterDescription.masters <= 0;
     for (String key : confKeys) {
       String val = siteConf.get(key);
@@ -500,6 +500,12 @@ public class HoyaAppMaster extends CompositeService
         hBaseSiteXML);
     }
 
+    clusterDescription.statusTime = System.currentTimeMillis();
+    clusterDescription.state = ClusterDescription.STATE_LIVE;
+    masterNode = new ClusterNode(hostname);
+    clusterDescription.masterNodes = new ArrayList<ClusterNode>(1);
+    clusterDescription.masterNodes.add(masterNode);
+    
     List<String> launchSequence = new ArrayList<String>(8);
     launchSequence.add(HBaseCommands.ARG_CONFIG);
     launchSequence.add(confDir.getAbsolutePath());
@@ -546,7 +552,7 @@ public class HoyaAppMaster extends CompositeService
   }
 
   public String getDFSConfDir() {
-    return serviceArgs.generatedConfdir;
+    return clusterDescription.generatedConfigurationPath;
   }
 
   /**
@@ -678,8 +684,8 @@ public class HoyaAppMaster extends CompositeService
 
   private void configureContainerMemory(RegisterApplicationMasterResponse response) {
     containerMemory = response.getMaximumResourceCapability().getMemory();
-    if (serviceArgs.workerHeap != 0) {
-      containerMemory = serviceArgs.workerHeap;
+    if (clusterDescription.workerHeap != 0) {
+      containerMemory = clusterDescription.workerHeap;
     }
     log.info("Setting container ask to {}", containerMemory);
   }
@@ -864,7 +870,7 @@ public class HoyaAppMaster extends CompositeService
    */
   public int maximumContainerFailureLimit() {
 
-    return serviceArgs.xTest ? 1 : MAX_TOLERABLE_FAILURES;
+    return clusterDescription.getFlag(CommonArgs.ARG_X_TEST,false) ? 1 : MAX_TOLERABLE_FAILURES;
   }
 
   /**
@@ -897,7 +903,7 @@ public class HoyaAppMaster extends CompositeService
     }
     //update the #of workers
     numTotalContainers = workers;
-    clusterDescription.workers = serviceArgs.workers;
+    clusterDescription.workers = workers;
 
     // ask for more containers if needed
     reviewRequestAndReleaseNodes();
@@ -1300,12 +1306,12 @@ public class HoyaAppMaster extends CompositeService
   @Override //  NMClientAsync.CallbackHandler 
   public void onGetContainerStatusError(
     ContainerId containerId, Throwable t) {
-    log.error("Failed to query the status of Container " + containerId);
+    log.error("Failed to query the status of Container {}", containerId);
   }
 
   @Override //  NMClientAsync.CallbackHandler 
   public void onStopContainerError(ContainerId containerId, Throwable t) {
-    log.error("Failed to stop Container " + containerId);
+    log.error("Failed to stop Container {}", containerId);
     containers.remove(containerId);
     synchronized (clusterDescription) {
 

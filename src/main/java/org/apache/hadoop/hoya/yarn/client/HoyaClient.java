@@ -300,18 +300,18 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     Map<String, String> roleInfoPortMap = serviceArgs.getRoleInfoPortMap();
     
     Map<String, Object> clusterRoleMap = new HashMap<String, Object>();
-    
 
-    for (String roleName: roleMap.keySet()) {
+
+    for (String roleName : roleMap.keySet()) {
       Map<String, String> clusterRole =
         builder.createDefaultClusterRole(roleName);
       clusterRole.put(ClusterKeys.COUNT, roleMap.get(roleName));
       String heap = roleHeapMap.get(roleName);
-      if (heap!=null) {
+      if (heap != null) {
         clusterRole.put(ClusterKeys.HEAP_SIZE, heap);
       }
       String port = roleInfoPortMap.get(roleName);
-      if (port!=null) {
+      if (port != null) {
         clusterRole.put(ClusterKeys.INFO_PORT, port);
       }
       clusterRoleMap.put(roleName, clusterRole);
@@ -413,7 +413,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     //check for debug mode
     if (serviceArgs.xTest) {
-      clusterSpec.flags.put(CommonArgs.ARG_X_TEST, "true");
+      clusterSpec.flags.put(CommonArgs.ARG_X_TEST, true);
     }
 
     //here the configuration is set up. Mark the 
@@ -646,46 +646,12 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     //set the cluster directory path
     commands.add(HoyaMasterServiceArgs.ARG_HOYA_CLUSTER_URI);
     commands.add(clusterDirectory.toUri().toString());
-    
-    //min #of nodes
-    commands.add(HoyaMasterServiceArgs.ARG_WORKERS);
-    commands.add(Integer.toString(clusterSpec.workers));
-    commands.add(HoyaMasterServiceArgs.ARG_WORKER_HEAP);
-    commands.add(Integer.toString(clusterSpec.workerHeap));
-    commands.add(HoyaMasterServiceArgs.ARG_MASTERS);
-    commands.add(Integer.toString(clusterSpec.masters));
-    commands.add(HoyaMasterServiceArgs.ARG_MASTER_HEAP);
-    commands.add(Integer.toString(clusterSpec.masterHeap));
-
 
     if (!isUnset(rmAddr)) {
       commands.add(HoyaMasterServiceArgs.ARG_RM_ADDR);
       commands.add(rmAddr);
     }
 
-    //now conf dir path -fileset in the DFS
-    commands.add(HoyaMasterServiceArgs.ARG_GENERATED_CONFDIR);
-    commands.add(clusterSpec.generatedConfigurationPath);
-
-    String hbaseHome = clusterSpec.hbaseHome;
-    if (null != imagePath) {
-      commands.add(HoyaMasterServiceArgs.ARG_IMAGE);
-      commands.add(imagePath.toString());
-    } else {
-      //HBase home
-      commands.add(HoyaMasterServiceArgs.ARG_HBASE_HOME);
-      commands.add(hbaseHome);
-    }
-    String xHBaseMasterCommand = clusterSpec.xHBaseMasterCommand;
-    if (isSet(xHBaseMasterCommand)) {
-      //explicit hbase command set
-      commands.add(CommonArgs.ARG_X_HBASE_MASTER_COMMAND);
-      commands.add(xHBaseMasterCommand);
-    }
-    if (clusterSpec.flags.get(CommonArgs.ARG_X_TEST) != null) {
-      //test flag set
-      commands.add(CommonArgs.ARG_X_TEST);
-    }
     if (serviceArgs.filesystemURL != null) {
       commands.add(CommonArgs.ARG_FILESYSTEM);
       commands.add(serviceArgs.filesystemURL.toString());

@@ -168,8 +168,8 @@ public class ClusterDescription {
    * between client & server; and across versions.
    * Presence of a value is seen as marking the flag as true
    */
-  public Map<String, String> flags =
-    new HashMap<String, String>();
+  public Map<String, Boolean > flags =
+    new HashMap<String, Boolean>();
 
   /**
    * Statistics
@@ -329,5 +329,14 @@ public class ClusterDescription {
       LOG.error("Exception while parsing json : " + e + "\n" + json, e);
       throw e;
     }
+  }
+  
+  public boolean getFlag(String flag, boolean defVal) {
+    Boolean b = flags.get(flag);
+    return (b != null)? b : defVal;
+  }
+  
+  public void setFlag(String flag, boolean val) {
+    flags.put(flag, val);
   }
 }
