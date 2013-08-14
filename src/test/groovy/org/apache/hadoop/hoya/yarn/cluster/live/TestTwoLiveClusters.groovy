@@ -44,6 +44,7 @@ class TestTwoLiveClusters extends YarnMiniClusterTestBase {
     int regionServerCount = 1
     ServiceLauncher launcher = createHoyaCluster(clustername1, regionServerCount, [], true, true) 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
+    addToTeardown(hoyaClient);
 
     basicHBaseClusterStartupSequence(hoyaClient, clustername1)
     
@@ -64,6 +65,7 @@ class TestTwoLiveClusters extends YarnMiniClusterTestBase {
                                  true,
                                  true)
     HoyaClient cluster2Client = launcher.service as HoyaClient
+    addToTeardown(cluster2Client);
 
     basicHBaseClusterStartupSequence(cluster2Client, clustername2)
     waitForHoyaWorkerCount(cluster2Client, clustername2, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)

@@ -45,6 +45,7 @@ class TestHBaseMaster extends YarnMiniClusterTestBase {
     int regionServerCount = 1
     ServiceLauncher launcher = createHoyaCluster(clustername, regionServerCount, [], true, true) 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
+    addToTeardown(hoyaClient);
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)
     assert ZKHosts == status.zkHosts
     assert ZKPort == status.zkPort

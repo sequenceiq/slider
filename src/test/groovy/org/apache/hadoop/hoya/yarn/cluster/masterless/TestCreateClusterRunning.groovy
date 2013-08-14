@@ -48,6 +48,7 @@ class TestCreateClusterRunning extends YarnMiniClusterTestBase {
       ServiceLauncher launcher
       launcher = createMasterlessAM(clustername, 0, true, true)
       HoyaClient hoyaClient = (HoyaClient) launcher.service
+      addToTeardown(hoyaClient);
 
       //now try to create instance #2, and expect an in-use failure
     try {

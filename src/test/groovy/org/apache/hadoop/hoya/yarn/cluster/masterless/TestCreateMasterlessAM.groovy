@@ -54,6 +54,7 @@ class TestCreateMasterlessAM extends YarnMiniClusterTestBase {
     ServiceLauncher launcher
     launcher = createMasterlessAM(clustername, 0, true, false)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
+    addToTeardown(hoyaClient);
 
     ApplicationReport report = waitForClusterLive(hoyaClient)
     logReport(report)

@@ -33,18 +33,16 @@ import org.junit.Test
  */
 @CompileStatic
 @Commons
-class TestLiveRegionService extends YarnMiniClusterTestBase {
+class TestLiveTwoNodeRegionService extends YarnMiniClusterTestBase {
 
   @Test
   public void testLiveRegionServiceSingleNode() throws Throwable {
-    String clustername = "TestLiveRegionService"
-    int regionServerCount = 1
+    
+    String clustername = "TestLiveTwoNodeRegionService"
+    int regionServerCount = 2
     createMiniCluster(clustername, createConfiguration(), regionServerCount + 1, 1, 1, true, true)
-    describe(" Create a single region service cluster");
 
-    //make sure that ZK is up and running at the binding string
-    ZKIntegration zki = createZKIntegrationInstance(ZKBinding, clustername, false, false, 5000)
-    log.info("ZK up at $zki");
+    describe(" Create a two node region service cluster");
     //now launch the cluster
     ServiceLauncher launcher = createHoyaCluster(clustername, regionServerCount, [], true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
@@ -58,13 +56,13 @@ class TestLiveRegionService extends YarnMiniClusterTestBase {
 
     ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient, clustername)
 
+
+
     //get the hbase status
     waitForHoyaWorkerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
-
     status = waitForRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-    describe("Cluster status")
-    log.info(prettyPrint(status.toJsonString()))
+
   }
 
 }

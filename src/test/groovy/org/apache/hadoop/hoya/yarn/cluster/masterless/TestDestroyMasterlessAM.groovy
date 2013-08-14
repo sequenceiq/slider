@@ -46,6 +46,8 @@ class TestDestroyMasterlessAM extends YarnMiniClusterTestBase {
 
     ServiceLauncher launcher = createMasterlessAM(clustername, 0, true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
+    addToTeardown(hoyaClient);
+
     clusterActionFreeze(hoyaClient, clustername)
     waitForAppToFinish(hoyaClient)
     

@@ -95,12 +95,31 @@ implements KeysForTests, HoyaExitCodes {
   protected MicroZKCluster microZKCluster
   protected boolean switchToImageDeploy = false
 
+  protected List<HoyaClient> clustersToTeardown = [];
+  
   @After
   public void teardown() {
     describe("teardown")
+    stopRunningClusters();
     stopMiniCluster()
   }
 
+  protected void addToTeardown(HoyaClient client) {
+    clustersToTeardown << client;
+  }
+  /**
+   * Stop any running cluster that has been added
+   */
+  public void stopRunningClusters() {
+    clustersToTeardown.each { HoyaClient hoyaClient -> 
+      try {
+        maybeStopCluster(hoyaClient,"");
+      } catch (Exception e) {
+        log.warn("While stopping cluster " +e , e);
+      }
+    }
+  }
+  
   public void stopMiniCluster() {
     ServiceOperations.stopQuietly(log, miniCluster)
     microZKCluster?.close();

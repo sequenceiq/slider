@@ -47,12 +47,13 @@ class TestFreezeCommands extends YarnMiniClusterTestBase {
     describe "create a masterless AM, freeze it, try to freeze again"
 
     ServiceLauncher launcher = createMasterlessAM(clustername, 0, true, true);
+    addToTeardown(launcher.service as HoyaClient);
 
     log.info("First Freeze command");
     ServiceLauncher freezeCommand = execHoyaCommand(conf,
                           [HoyaActions.ACTION_FREEZE, clustername,
                             ClientArgs.ARG_WAIT, waitTimeArg]);
-    assert 0==freezeCommand.serviceExitCode;
+    assert 0 == freezeCommand.serviceExitCode;
 
     log.info("Second Freeze command");
 

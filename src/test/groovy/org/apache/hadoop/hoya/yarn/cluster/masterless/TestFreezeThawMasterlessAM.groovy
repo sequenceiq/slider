@@ -65,6 +65,8 @@ class TestFreezeThawMasterlessAM extends YarnMiniClusterTestBase {
 
     ServiceLauncher launcher = createMasterlessAM(clustername, 0, true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
+    addToTeardown(hoyaClient);
+
     clusterActionFreeze(hoyaClient, clustername)
 
     //here we do something devious: delete our copy of the configuration
@@ -75,26 +77,6 @@ class TestFreezeThawMasterlessAM extends YarnMiniClusterTestBase {
     ServiceLauncher launcher2 = thawHoyaCluster(clustername, [], true);
     HoyaClient newCluster = launcher.getService() as HoyaClient
     newCluster.getClusterStatus(clustername);
-  }
-
-  @Test
-  public void testThawUnknownCluster() throws Throwable {
-    String clustername = "TestStartMasterlessAM"
-    createMiniCluster(clustername, createConfiguration(), 1, true)
-    try {
-      ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
-          createConfiguration(),
-          [
-              HoyaActions.ACTION_THAW,
-              "no-cluster-of-this-name",
-              ClientArgs.ARG_FILESYSTEM, fsDefaultName,
-          ])
-      assert launcher.serviceExitCode == HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER
-    } catch (HoyaException e) {
-      assertExceptionDetails(e,
-                             HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER,
-                             HoyaClient.E_UNKNOWN_CLUSTER)
-    }
   }
 
 }
