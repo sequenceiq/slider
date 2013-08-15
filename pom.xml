@@ -6,7 +6,6 @@
   <artifactId>hoya</artifactId>
   <name>Hoya: HBase on YARN</name>
   <version>0.3-SNAPSHOT</version>
-  <url>http://hadoop.apache.org</url>
   <description>
   </description>
 

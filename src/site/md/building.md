@@ -43,6 +43,8 @@ The maven command for building hbase artifacts with hadoop-2.1 is
 
     mvn clean install assembly:single -DskipTests -Dmaven.javadoc.skip=true -Dhadoop.profile=2.0 -Dhadoop.version=2.1.1-SNAPSHOT 
 
+    mvn clean install -DskipTests  -Dhadoop.profile=2.0 -Dhadoop-two.version=2.1.1-SNAPSHOT
+    
 This will create hbase-0.95.2-SNAPSHOT.tar.gz in the directory `hbase-assembly/target/` in
 the hbase source tree. 
 
@@ -115,6 +117,14 @@ time, which is straightforward
     mvn clean test -Dtest=TestLiveRegionService
 
 
+### Building the JAR file
+
+You can create the JAR file and set up its directories with
+
+     mvn package -DskipTests
+
+This copies all the dependencies to `target/lib`. The JAR has a manifest set
+to pull this in, so you can just go `java -jar target/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya`
 
 ## Attn OS/X developers
 

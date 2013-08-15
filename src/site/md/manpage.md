@@ -288,8 +288,17 @@ Update a cluster with a new configuration. This operation is only valid on a sto
 
 ## Examples
 
+### Creating a cluster
+
+This creates a cluster `mycluster` with four workers
+
+    java -jar target/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya create mycluster --workers 4
+
+
 ## Notes
 
+
+### Cluster Naming
 Cluster names must 
 
 1. be at least one character long
