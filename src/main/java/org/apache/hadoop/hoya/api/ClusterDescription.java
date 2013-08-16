@@ -176,16 +176,12 @@ public class ClusterDescription {
    */
   public Map<String, Long> stats =
     new HashMap<String, Long>();
-
-
+  
   /**
-   * Master node
+   * Instances: role->count
    */
-  public List<ClusterNode> masterNodes = new ArrayList<ClusterNode>();
-  /**
-   *  Worker nodes
-   */
-  public List<ClusterNode> workerNodes = new ArrayList<ClusterNode>();
+  public Map<String, Integer> instances =
+    new HashMap<String, Integer>();
 
   /**
    *  Completed nodes
@@ -254,29 +250,13 @@ public class ClusterDescription {
     builder.append("ZK cluster: ").append(zkHosts).
       append(" : ").append(zkPort).append('\n');
     builder.append("ZK path: ").append(zkPath).append('\n');
-    builder.append(String.format("HBase Master count %d", masterNodes.size()));
-    for (ClusterNode node : masterNodes) {
-      builder.append("    ");
-      builder.append(node.toString()).append('\n');
-    }
-    builder.append(String.format("Region Server count %d", workerNodes.size()));
-    for (ClusterNode node : workerNodes) {
-      builder.append("    ");
-      builder.append(node.toString()).append('\n');
+    for (Map.Entry<String, Integer> entry: instances.entrySet()) {
+      builder.append("Role")
+             .append(entry.getKey()).append(": ")
+             .append(entry.getValue()).append("\n");
     }
     return builder.toString();
   }
-
-  /**
-   * Convert to a JSON string
-   * @return a JSON string description
-   * @throws IOException Problems mapping/writing the object
-   */
-  public String toJsonString() throws IOException {
-    ObjectMapper mapper = new ObjectMapper();
-    return mapper.writeValueAsString(this);
-  }
-
 
   /**
    * Save a cluster description to a hadoop filesystem
@@ -313,6 +293,18 @@ public class ClusterDescription {
     String json = new String(b, 0, count, UTF_8);
     return fromJson(json);
   }
+
+
+  /**
+   * Convert to a JSON string
+   * @return a JSON string description
+   * @throws IOException Problems mapping/writing the object
+   */
+  public String toJsonString() throws IOException {
+    ObjectMapper mapper = new ObjectMapper();
+    return mapper.writeValueAsString(this);
+  }
+
 
   /**
    * Convert from JSON

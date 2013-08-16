@@ -46,14 +46,14 @@ class TestTwoLiveClusters extends YarnMiniClusterTestBase {
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
 
-    basicHBaseClusterStartupSequence(hoyaClient, clustername1)
+    basicHBaseClusterStartupSequence(hoyaClient)
     
     //verify the #of region servers is as expected
     ClusterDescription status = hoyaClient.getClusterStatus(clustername1)
     log("post-hbase-boot status", status)
     //get the hbase status
+    waitForHBaseRegionServerCount(hoyaClient, clustername1, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     waitForHoyaWorkerCount(hoyaClient, clustername1, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-    waitForRegionServerCount(hoyaClient, clustername1, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
     //now here comes cluster #2
     String clustername2 = "TestTwoLiveClusters-b"
@@ -67,12 +67,12 @@ class TestTwoLiveClusters extends YarnMiniClusterTestBase {
     HoyaClient cluster2Client = launcher.service as HoyaClient
     addToTeardown(cluster2Client);
 
-    basicHBaseClusterStartupSequence(cluster2Client, clustername2)
+    basicHBaseClusterStartupSequence(cluster2Client)
+    waitForHBaseRegionServerCount(cluster2Client, clustername2, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     waitForHoyaWorkerCount(cluster2Client, clustername2, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-    waitForRegionServerCount(cluster2Client, clustername2, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
     //and now verify that cluster 1 is still happy
-    waitForHoyaWorkerCount(hoyaClient, clustername1, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+    waitForHBaseRegionServerCount(hoyaClient, clustername1, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
 
     clusterActionFreeze(cluster2Client, clustername2)

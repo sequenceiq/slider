@@ -46,11 +46,11 @@ class TestLiveClusterFromArchive extends YarnMiniClusterTestBase {
     ServiceLauncher launcher = createHoyaCluster(clustername, regionServerCount, [], true, true)
 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
-    ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient, clustername)
+    ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient)
 
     //get the hbase status
+    waitForHBaseRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     waitForHoyaWorkerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-    waitForRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
     clusterActionFreeze(hoyaClient, clustername)
   }

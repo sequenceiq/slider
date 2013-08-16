@@ -39,11 +39,13 @@ You have to do this every morning to avoid the ASF nightly artifacts being picke
 
 Checkout the HBase `hbase-0.95` branch from apache svn/github.  
 
-The maven command for building hbase artifacts with hadoop-2.1 is 
+The maven command for building hbase artifacts with 2.1.1-SNAPSHOT is 
 
-    mvn clean install assembly:single -DskipTests -Dmaven.javadoc.skip=true -Dhadoop.profile=2.0 -Dhadoop.version=2.1.1-SNAPSHOT 
+    mvn clean install assembly:single -DskipTests -Dmaven.javadoc.skip=true -Dhadoop.profile=2.0 -Dhadoop-two.version=2.1.1-SNAPSHOT 
 
-    mvn clean install -DskipTests  -Dhadoop.profile=2.0 -Dhadoop-two.version=2.1.1-SNAPSHOT
+For building just the JAR files:
+
+    mvn clean install -DskipTests -Dhadoop.profile=2.0 -Dhadoop-two.version=2.1.1-SNAPSHOT
     
 This will create hbase-0.95.2-SNAPSHOT.tar.gz in the directory `hbase-assembly/target/` in
 the hbase source tree. 
@@ -138,6 +140,10 @@ are too many region servers running, this is the likely cause
 
 After every test run: do a `jps -v` to look for any leftover HBase services
 -and kill them.
+
+Here is a handy bash command to do this
+
+  jps -l | grep HRegion | awk '{print $1}' | xargs kill -9
 
 # Notes
 

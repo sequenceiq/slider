@@ -204,7 +204,7 @@ public class CommonArgs implements HoyaActions {
 
   @Parameter(names = {ARG_MASTER_HEAP},
              description = "Master heap size in MB")
-  public int masterHeap = 128;
+  public int masterHeap = 0;
 
   //--masterinfoport [port]
   @Parameter(names = ARG_MASTER_INFO_PORT,
@@ -222,7 +222,7 @@ public class CommonArgs implements HoyaActions {
 
   @Parameter(names = {ARG_WORKER_HEAP, "--regionserverheap"},
              description = "Worker heap size in MB")
-  public int workerHeap = 256;
+  public int workerHeap = 0;
 
   @Parameter(names = ARG_X_HBASE_MASTER_COMMAND,
              description = "Testing only: hbase command to exec on the master")
@@ -299,9 +299,11 @@ public class CommonArgs implements HoyaActions {
     try {
       commander.parse(args);
     } catch (ParameterException e) {
-      throw new BadCommandArgumentsException(e.toString() +
-                                             " with " +
-                                             HoyaUtils.join(actionArgs, " "),
+      throw new BadCommandArgumentsException(e.toString()
+                                             + (args != null
+                                                ? (" in " +
+                                                   HoyaUtils.join(args, " "))
+                                                : ""),
                                              e);
     }
   }
@@ -338,10 +340,9 @@ public class CommonArgs implements HoyaActions {
   public void validate() throws BadCommandArgumentsException {
     if (parameters.isEmpty()) {
       throw new BadCommandArgumentsException(ERROR_NO_ACTION
-                                             + (actionArgs != null
+                                             + (args != null
                                                 ? (" in " +
-                                                   HoyaUtils.join(actionArgs,
-                                                                  " "))
+                                                   HoyaUtils.join(args, " "))
                                                 : "")
                                              + usage());
     }
@@ -352,8 +353,10 @@ public class CommonArgs implements HoyaActions {
     if (null == actionOpts) {
       throw new BadCommandArgumentsException(ERROR_UNKNOWN_ACTION
                                              + action
-                                             + " in " +
-                                             HoyaUtils.join(actionArgs, " ")
+                                             + (args != null
+                                                ? (" in " +
+                                                   HoyaUtils.join(args, " "))
+                                                : "")
                                              + usage());
     }
     actionArgs = parameters.subList(1, parameters.size());

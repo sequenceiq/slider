@@ -18,7 +18,17 @@
 
 package org.apache.hadoop.hoya.api;
 
+import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.codehaus.jackson.JsonParseException;
+import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
+import org.codehaus.jackson.map.JsonMappingException;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
 
 /**
  * Describe a specific node in the cluster
@@ -26,6 +36,11 @@ import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown = true)
 
 public class ClusterNode {
+  protected static final Logger
+    LOG = LoggerFactory.getLogger(ClusterDescription.class);
+  
+  @JsonIgnore
+  public ContainerId containerId;
   /**
    * server name
    */
@@ -63,6 +78,7 @@ public class ClusterNode {
    */
   public String[] environment;
 
+  public String uuid;
 
   public ClusterNode(String name) {
     this.name = name;
@@ -75,13 +91,46 @@ public class ClusterNode {
   public String toString() {
     StringBuilder builder = new StringBuilder();
     builder.append(name).append(": ").append(state).append("\n");
+    builder.append("role: ").append(role).append("\n");
+    builder.append("uuid: ").append(uuid).append("\n");
     builder.append(command).append("\n");
-    for (String line : output) {
-      builder.append(line).append("\n");
+    if (output != null) {
+      for (String line : output) {
+        builder.append(line).append("\n");
+      }
     }
     if (diagnostics != null) {
       builder.append(diagnostics).append("\n");
     }
     return builder.toString();
   }
+
+  /**
+   * Convert to a JSON string
+   * @return a JSON string description
+   * @throws IOException Problems mapping/writing the object
+   */
+  public String toJsonString() throws IOException {
+    ObjectMapper mapper = new ObjectMapper();
+    return mapper.writeValueAsString(this);
+  }
+
+
+  /**
+   * Convert from JSON
+   * @param json input
+   * @return the parsed JSON
+   * @throws IOException IO
+   */
+  public static ClusterNode fromJson(String json)
+    throws IOException, JsonParseException, JsonMappingException {
+    ObjectMapper mapper = new ObjectMapper();
+    try {
+      return mapper.readValue(json, ClusterNode.class);
+    } catch (IOException e) {
+      LOG.error("Exception while parsing json : " + e + "\n" + json, e);
+      throw e;
+    }
+  }
+  
 }

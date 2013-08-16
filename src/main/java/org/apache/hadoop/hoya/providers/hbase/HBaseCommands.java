@@ -45,6 +45,10 @@ PACKAGE MANAGEMENT
 
  */
 public interface HBaseCommands {
+
+  String ROLE_WORKER = "worker";
+  String ROLE_MASTER = "master";
+  
   /** {@value */
   String MASTER = "master";
 

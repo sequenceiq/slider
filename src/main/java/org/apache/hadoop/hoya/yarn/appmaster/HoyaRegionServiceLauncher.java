@@ -57,14 +57,21 @@ public class HoyaRegionServiceLauncher implements Runnable {
 
   // Allocated container
   private final Container container;
-  private final String role;
+  private final String hbaseRole;
+  private final String hoyaRole;
 
   public HoyaRegionServiceLauncher(HoyaAppMaster owner,
                                    Container container,
-                                   String role) {
+                                   String hbaseRole,
+                                   String hoyaRole) {
+    assert owner != null;
+    assert container != null;
+    assert hbaseRole != null;
+    assert hoyaRole != null;
     this.owner = owner;
     this.container = container;
-    this.role = role;
+    this.hbaseRole = hbaseRole;
+    this.hoyaRole = hoyaRole;
   }
 
   @Override
@@ -135,7 +142,7 @@ public class HoyaRegionServiceLauncher implements Runnable {
       command.add(HBaseCommands.ARG_CONFIG);
       command.add(HoyaKeys.PROPAGATED_CONF_DIR_NAME);
       //role is region server
-      command.add(role);
+      command.add(hbaseRole);
       command.add(HBaseCommands.ACTION_START);
 
       //log details
@@ -163,7 +170,7 @@ public class HoyaRegionServiceLauncher implements Runnable {
       }
       node.command = cmdStr;
       node.name = container.getId().toString();
-      node.role = role;
+      node.role = hoyaRole;
       node.environment = nodeEnv.toArray(new String[nodeEnv.size()]);
       owner.startContainer(container, ctx, node);
     } catch (IOException e) {

@@ -190,6 +190,7 @@ public class RunLongLivedApp implements Runnable {
    */
   @Override // Runnable
   public void run() {
+    LOG.debug("Application callback thread running");
     //notify the callback that the process has started
     if (applicationEventHandler != null) {
       applicationEventHandler.onApplicationStarted(this);

@@ -54,17 +54,17 @@ class TestLiveRegionService extends YarnMiniClusterTestBase {
     assert ZKHosts == status.zkHosts
     assert ZKPort == status.zkPort
 
-    dumpFullHBaseConf(hoyaClient, clustername)
+    dumpFullHBaseConf(hoyaClient)
 
-    ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient, clustername)
-
-    //get the hbase status
-    waitForHoyaWorkerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+    ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient)
 
 
-    status = waitForRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+    status = waitForHoyaWorkerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     describe("Cluster status")
     log.info(prettyPrint(status.toJsonString()))
+    //get the hbase status
+    waitForHBaseRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+
   }
 
 }

@@ -34,8 +34,9 @@ import org.apache.hadoop.hoya.api.ClusterKeys;
 import org.apache.hadoop.hoya.api.ClusterNode;
 import org.apache.hadoop.hoya.api.HoyaAppMasterProtocol;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
-import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
+import org.apache.hadoop.hoya.exceptions.NoSuchNodeException;
+import org.apache.hadoop.hoya.exceptions.WaitTimeoutException;
 import org.apache.hadoop.hoya.providers.ClusterBuilder;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
 import org.apache.hadoop.hoya.providers.hbase.HBaseCommands;
@@ -461,7 +462,6 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     validateClusterName(clustername);
     verifyNoLiveClusters(clustername);
     //make sure it is valid;
-    verifyValidClusterSize(clusterSpec.workers);
 
     Path genConfPath =
       createPathThatMustExist(clusterSpec.generatedConfigurationPath);
@@ -673,7 +673,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     // Set up resource type requirements
     Resource capability = Records.newRecord(Resource.class);
     capability.setMemory(amMemory);
-    capability.setVirtualCores(1);
+    //capability.setVirtualCores(1);
     appContext.setResource(capability);
     Map<String, ByteBuffer> serviceData = new HashMap<String, ByteBuffer>();
     // Service data is a binary blob that can be passed to the application
@@ -862,27 +862,6 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   private FileSystem getClusterFS() throws IOException {
     return FileSystem.get(serviceArgs.filesystemURL, getConfig());
   }
-
-  /**
-   * Verify that there are enough nodes in the cluster
-   * @param requiredNumber required # of nodes
-   * @throws BadConfigException if the config is wrong
-   */
-  private void verifyValidClusterSize(int requiredNumber) throws
-                                                          YarnException,
-                                                          IOException {
-    if (requiredNumber == 0) {
-      return;
-    }
-    int nodeManagers = getYarnClusterMetrics().getNumNodeManagers();
-    if (nodeManagers < requiredNumber) {
-      throw new BadConfigException("Not enough nodes in the cluster:" +
-                                   " need " + requiredNumber +
-                                   " -but there are only " + nodeManagers +
-                                   " nodes");
-    }
-  }
-
 
   private String buildClasspath() {
 // Add AppMaster.jar location to classpath
@@ -1570,6 +1549,51 @@ public class HoyaClient extends YarnClientImpl implements RunService,
         e);
       throw e;
     }
+  } 
+  /**
+   * Connect to the cluster and get its current state
+   * @return its description
+   */
+  @VisibleForTesting
+  public ClusterDescription getClusterStatus() throws
+                                                                 YarnException,
+                                                                     IOException {
+    return getClusterStatus(getDeployedClusterName());
+  }
+
+  @VisibleForTesting
+  public String[] listNodesByRole(String role) throws
+                                                        IOException,
+                                                        YarnException {
+    HoyaAppMasterProtocol appMaster = bondToCluster(getDeployedClusterName());
+    return appMaster.listNodesByRole(role);
+  }
+
+  /**
+   * Get a node from the AM
+   * @param uuid uuid of node
+   * @return deserialized node
+   * @throws IOException IO problems
+   * @throws NoSuchNodeException if the node isn't found
+   */
+  @VisibleForTesting
+  public ClusterNode getNode(String uuid) throws IOException, YarnException {
+    HoyaAppMasterProtocol appMaster = bondToCluster(getDeployedClusterName());
+    return getNode(appMaster, uuid);
+  }
+
+  /**
+   * Get a node from the AM
+   * @param appMaster AM
+   * @param uuid uuid of node
+   * @return deserialized node
+   * @throws IOException IO problems
+   * @throws NoSuchNodeException if the node isn't found
+   */
+  private ClusterNode getNode(HoyaAppMasterProtocol appMaster, String uuid)
+    throws IOException, NoSuchNodeException {
+    String json = appMaster.getNode(uuid);
+    return ClusterNode.fromJson(json);
   }
 
   /**
@@ -1591,33 +1615,58 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   }
 
   /**
-   * Wait for the hbase master to be live (or past it in the lifecycle)
+   * Wait for an instance of a named role to be live (or past it in the lifecycle)
+   *
+   *
    * @param clustername cluster
+   * @param role role to look for
    * @param timeout time to wait
    * @return the state. If still in CREATED, the cluster didn't come up
    * in the time period. If LIVE, all is well. If >LIVE, it has shut for a reason
-   * @throws IOException
-   * @throws HoyaException
+   * @throws IOException IO
+   * @throws HoyaException Hoya
+   * @throws WaitTimeoutException if the wait timed out
    */
-  public int waitForHBaseMasterLive(String clustername, long timeout)
-    throws IOException, YarnException {
+  @VisibleForTesting
+  public int waitForRoleInstanceLive(String role, long timeout)
+    throws WaitTimeoutException, IOException, YarnException {
     Duration duration = new Duration(timeout).start();
     boolean live = false;
     int state = ClusterDescription.STATE_CREATED;
+    HoyaAppMasterProtocol appMaster = bondToCluster(getDeployedClusterName());
+
+    log.info("Waiting {} millis for a live node in role {}", timeout, role);
     while (!live) {
-      ClusterDescription cd = getClusterStatus(clustername);
-      //see if there is a master node yet
-      if (!cd.masterNodes.isEmpty()) {
+      //see if there is a node in that role yet
+      String[] containers = appMaster.listNodesByRole(role);
+      int masterNodeCount = containers.length;
+      ClusterNode master = null;
+      if (masterNodeCount != 0) {
+
         //if there is, get the node
-        ClusterNode master = cd.masterNodes.get(0);
-        state = master.state;
-        live = state >= ClusterDescription.STATE_LIVE;
+        master = getNode(appMaster, containers[0]);
+        if (master != null) {
+          state = master.state;
+          live = state >= ClusterDescription.STATE_LIVE;
+        }
       }
-      if (!live && !duration.getLimitExceeded()) {
-        try {
-          Thread.sleep(1000);
-        } catch (InterruptedException ignored) {
-          //ignored
+      if (!live) {
+        if (duration.getLimitExceeded()) {
+          throw new WaitTimeoutException(
+            String.format("Timeout after %d millis" +
+                          " waiting for a live instance of type %s; " +
+                          "instances found %d %s",
+                          timeout, role, masterNodeCount,
+                          (master != null
+                           ? (" instance -" + master.toString())
+                           : "")
+                         ));
+        } else {
+          try {
+            Thread.sleep(1000);
+          } catch (InterruptedException ignored) {
+            //ignored
+          }
         }
       }
     }

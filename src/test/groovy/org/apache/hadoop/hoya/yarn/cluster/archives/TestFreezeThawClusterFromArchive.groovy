@@ -46,9 +46,9 @@ class TestFreezeThawClusterFromArchive extends YarnMiniClusterTestBase {
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)
     log.info("${status.toJsonString()}")
 
-    ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient, clustername)
+    ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient)
 
-    waitForHoyaWorkerCount(hoyaClient, clustername, regionServerCount,
+    waitForHBaseRegionServerCount(hoyaClient, clustername, regionServerCount,
                             HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
 
@@ -57,11 +57,11 @@ class TestFreezeThawClusterFromArchive extends YarnMiniClusterTestBase {
     
     //now let's start the cluster up again
     ServiceLauncher launcher2 = thawHoyaCluster(clustername, [], true);
-    HoyaClient newCluster = launcher.getService() as HoyaClient
-    basicHBaseClusterStartupSequence(newCluster, clustername)
+    HoyaClient newCluster = launcher2.service as HoyaClient
+    basicHBaseClusterStartupSequence(newCluster)
 
     //get the hbase status
-    waitForHoyaWorkerCount(newCluster, clustername, regionServerCount,
+    waitForHBaseRegionServerCount(newCluster, clustername, regionServerCount,
                             HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
   }

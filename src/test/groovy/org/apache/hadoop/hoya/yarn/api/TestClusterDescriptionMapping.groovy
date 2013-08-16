@@ -20,8 +20,12 @@ package org.apache.hadoop.hoya.yarn.api
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
+import org.apache.hadoop.fs.FileSystem as HadoopFS
+import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.ClusterNode
+import org.apache.hadoop.hoya.providers.hbase.HBaseCommands
+import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.junit.Test
 
@@ -38,11 +42,8 @@ class TestClusterDescriptionMapping extends YarnMiniClusterTestBase {
     cd.name = "test"
     cd.state = ClusterDescription.STATE_LIVE;
     cd.masters = 1;
+    cd.instances = [(HBaseCommands.ROLE_MASTER): 1]
     ClusterNode node = new ClusterNode("masternode")
-    node.state = ClusterDescription.STATE_LIVE
-    node.output = ["line1","line2"]
-    cd.masterNodes = [node]
-    
     cd.startTime = System.currentTimeMillis()
 
     return cd;
@@ -75,8 +76,20 @@ class TestClusterDescriptionMapping extends YarnMiniClusterTestBase {
   public void testRTrip() throws Throwable {
     ClusterDescription original = createCD()
     ClusterDescription received = roundTrip(original)
-    assert received.masterNodes.size()>0
-    ClusterNode node = received.masterNodes[0]
-    assert node.output.length == 2;
+
+    assert received.instances[HBaseCommands.ROLE_MASTER] == 1;
+  }
+
+  @Test
+  public void testSaveLoadToFileSystem() throws Throwable {
+    ClusterDescription original = createCD()
+    File file = new File("target/cluster.json");
+    URI fileURI = file.toURI()
+    Path path = new Path(fileURI.toString());
+    HadoopFS fileSystem = HadoopFS.get(fileURI, HoyaUtils.createConfiguration())
+    original.save(fileSystem, path, false)
+    ClusterDescription received = ClusterDescription.load(fileSystem, path)
+    assert received.instances[HBaseCommands.ROLE_MASTER] == 1;
+
   }
 }

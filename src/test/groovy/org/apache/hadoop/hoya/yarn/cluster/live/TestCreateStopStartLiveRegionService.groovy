@@ -38,19 +38,19 @@ class TestCreateStopStartLiveRegionService extends YarnMiniClusterTestBase {
   public void testCreateStopStartLiveRegionService() throws Throwable {
     String clustername = "TestCreateStopStartLiveRegionService"
     int regionServerCount = 1
-    createMiniCluster(clustername, createConfiguration(), regionServerCount + 1, true)
+    createMiniCluster(clustername, createConfiguration(), 1, true)
     ServiceLauncher launcher = createHoyaCluster(clustername, regionServerCount, [], true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)
     log.info("${status.toJsonString()}")
 
-    ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient, clustername)
+    ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient)
 
-    waitForHoyaWorkerCount(hoyaClient, clustername, regionServerCount,
+    clustat = waitForHBaseRegionServerCount(hoyaClient, clustername, regionServerCount,
                             HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     describe("Cluster status")
-    log.info(prettyPrint(status.toJsonString()))
+    log.info(statusToString(clustat));
     
 
     clusterActionFreeze(hoyaClient, clustername)
@@ -58,10 +58,10 @@ class TestCreateStopStartLiveRegionService extends YarnMiniClusterTestBase {
     //now let's start the cluster up again
     ServiceLauncher launcher2 = thawHoyaCluster(clustername, [], true);
     HoyaClient newCluster = launcher.getService() as HoyaClient
-    basicHBaseClusterStartupSequence(newCluster, clustername)
+    basicHBaseClusterStartupSequence(newCluster)
 
     //get the hbase status
-    waitForHoyaWorkerCount(newCluster, clustername, regionServerCount,
+    waitForHBaseRegionServerCount(newCluster, clustername, regionServerCount,
                             HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
   }

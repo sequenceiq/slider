@@ -426,6 +426,15 @@ public final class HoyaUtils {
     return b.toString();
   }
 
+  public static String join(String[] collection, String separator) {
+    StringBuilder b = new StringBuilder();
+    for (String o : collection) {
+      b.append(o);
+      b.append(separator);
+    }
+    return b.toString();
+  }
+
   public static String mandatoryEnvVariable(String key) {
     String v = System.getenv(key);
     if (v == null) {

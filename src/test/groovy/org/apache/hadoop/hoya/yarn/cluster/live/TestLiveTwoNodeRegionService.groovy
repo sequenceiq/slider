@@ -22,7 +22,6 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hoya.api.ClusterDescription
-import org.apache.hadoop.hoya.yarn.ZKIntegration
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
@@ -40,7 +39,7 @@ class TestLiveTwoNodeRegionService extends YarnMiniClusterTestBase {
     
     String clustername = "TestLiveTwoNodeRegionService"
     int regionServerCount = 2
-    createMiniCluster(clustername, createConfiguration(), regionServerCount + 1, 1, 1, true, true)
+    createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
 
     describe(" Create a two node region service cluster");
     //now launch the cluster
@@ -52,16 +51,14 @@ class TestLiveTwoNodeRegionService extends YarnMiniClusterTestBase {
     assert ZKHosts == status.zkHosts
     assert ZKPort == status.zkPort
 
-    dumpFullHBaseConf(hoyaClient, clustername)
-
-    ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient, clustername)
+    ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient)
 
 
 
+    status = waitForHoyaWorkerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     //get the hbase status
-    waitForHoyaWorkerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+    waitForHBaseRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
-    status = waitForRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
   }
 
