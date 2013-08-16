@@ -33,6 +33,7 @@ import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.ClusterKeys;
 import org.apache.hadoop.hoya.api.ClusterNode;
 import org.apache.hadoop.hoya.api.HoyaAppMasterProtocol;
+import org.apache.hadoop.hoya.api.StandardRoleOptions;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.exceptions.NoSuchNodeException;
@@ -325,6 +326,28 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     validateNodeAndHeapValues("worker", workers, workerHeap);
     clusterSpec.workers = workers;
     clusterSpec.workerHeap = workerHeap;
+    clusterSpec.instances.put(HBaseCommands.ROLE_WORKER, workers);
+
+    clusterSpec.setRoleOpt(HBaseCommands.ROLE_WORKER,
+                           StandardRoleOptions.YARN_MEMORY,
+                           workerHeap);
+    clusterSpec.setRoleOpt(HBaseCommands.ROLE_WORKER,
+                           StandardRoleOptions.YARN_CORES,
+                           StandardRoleOptions.DEF_YARN_CORES);
+    clusterSpec.setRoleOpt(HBaseCommands.ROLE_WORKER,
+                           StandardRoleOptions.APP_INFOPORT,
+                           serviceArgs.workerInfoPort);
+    
+    clusterSpec.setRoleOpt(HBaseCommands.ROLE_MASTER,
+                           StandardRoleOptions.YARN_MEMORY,
+                           serviceArgs.masterHeap);
+    clusterSpec.setRoleOpt(HBaseCommands.ROLE_MASTER,
+                           StandardRoleOptions.YARN_CORES,
+                           StandardRoleOptions.DEF_YARN_CORES);
+    clusterSpec.setRoleOpt(HBaseCommands.ROLE_MASTER,
+                           StandardRoleOptions.APP_INFOPORT,
+                           serviceArgs.masterInfoPort);
+    
     int masters = serviceArgs.masters;
     int masterHeap = serviceArgs.masterHeap;
     int masterInfoPort = serviceArgs.masterInfoPort;
@@ -335,6 +358,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
         "No more than one master is currently supported");
     }
     clusterSpec.masters = masters;
+    clusterSpec.instances.put(HBaseCommands.ROLE_MASTER,masters);
     clusterSpec.masterHeap = masterHeap;
     clusterSpec.masterInfoPort = masterInfoPort;
     clusterSpec.workerInfoPort = workerInfoPort;
@@ -415,7 +439,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     //check for debug mode
     if (serviceArgs.xTest) {
-      clusterSpec.flags.put(CommonArgs.ARG_X_TEST, true);
+      clusterSpec.setFlag(CommonArgs.ARG_X_TEST, true);
     }
 
     //here the configuration is set up. Mark the 
@@ -489,7 +513,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     //app type used in service enum;
     appContext.setApplicationType(HoyaKeys.APP_TYPE);
 
-    if (clusterSpec.flags.get(CommonArgs.ARG_X_TEST) != null) {
+    if (clusterSpec.getFlag(CommonArgs.ARG_X_TEST, false)) {
       //test flag set
       appContext.setMaxAppAttempts(1);
     }
@@ -1385,13 +1409,13 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       String description = "Hoya cluster " + clustername;
       if (format.equals(ClientArgs.FORMAT_XML)) {
         Configuration siteConf = new Configuration(false);
-        for (String key : status.hBaseClientProperties.keySet()) {
-          siteConf.set(key, status.hBaseClientProperties.get(key), description);
+        for (String key : status.clientProperties.keySet()) {
+          siteConf.set(key, status.clientProperties.get(key), description);
         }
         siteConf.writeXml(writer);
       } else if (format.equals(ClientArgs.FORMAT_PROPERTIES)) {
         Properties props = new Properties();
-        props.putAll(status.hBaseClientProperties);
+        props.putAll(status.clientProperties);
         props.store(writer, description);
       } else {
         throw new BadCommandArgumentsException("Unknown format: " + format);

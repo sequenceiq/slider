@@ -34,10 +34,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -183,28 +181,18 @@ public class ClusterDescription {
   public Map<String, Integer> instances =
     new HashMap<String, Integer>();
 
-  /**
-   *  Completed nodes
-   */
-  public List<ClusterNode> completedNodes = new ArrayList<ClusterNode>();
 
   /**
-   * Requested nodes -when they get allocated they will be moved into
-   * one for the other states
+   * Role options, 
+   * role -> option -> value
    */
-  public List<ClusterNode> requestedNodes = new ArrayList<ClusterNode>();
-
+  public Map<String,Map<String, String>> roleopts =
+    new HashMap<String, Map<String, String>>();
 
   /**
-   * Nodes that failed to start
+   * List of key-value pairs to add to a client config to set up the client
    */
-  public List<ClusterNode> failedNodes = new ArrayList<ClusterNode>();
-
-
-  /**
-   * List of key-value pairs to add to an HBase config to set up the client
-   */
-  public Map<String, String> hBaseClientProperties =
+  public Map<String, String> clientProperties =
     new HashMap<String, String>();
 
   /**
@@ -331,4 +319,55 @@ public class ClusterDescription {
   public void setFlag(String flag, boolean val) {
     flags.put(flag, val);
   }
+
+  /**
+   * Get a role option
+   * @param role role to get from
+   * @param option option name
+   * @param defVal default value
+   * @return resolved value
+   */
+  public String getRoleOpt(String role, String option, String defVal) {
+    Map<String, String> options = roleopts.get(role);
+    if (options==null) {
+      return defVal;
+    }
+    String val = options.get(option);
+    return val != null? val: defVal;
+  }
+  
+  /**
+   * Get a role opt; use {@link Integer#decode(String)} so as to take hex
+   * oct and bin values too.
+   * 
+   * @param role role to get from
+   * @param option option name
+   * @param defVal default value
+   * @return parsed value
+   * @throws NumberFormatException if the role could not be parsed.
+   */
+  public int getRoleOptInt(String role, String option, int defVal) {
+    String val = getRoleOpt(role, option, Integer.toString(defVal));
+    return Integer.decode(val);
+  }
+  
+  public void setRoleOpt(String role, String option, String val) {
+    Map<String, String> options = roleopts.get(role);
+    if (options == null) {
+      options = new HashMap<String, String>();
+      roleopts.put(role, options);
+    }
+    options.put(option, val);
+  }
+  
+  public void setRoleOpt(String role, String option, int val) {
+    Map<String, String> options = roleopts.get(role);
+    if (options == null) {
+      options = new HashMap<String, String>();
+      roleopts.put(role, options);
+    }
+    options.put(option, Integer.toString(val));
+  }
+  
+  
 }

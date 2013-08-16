@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.appmaster;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hoya.api.StandardRoleOptions;
 import org.apache.hadoop.hoya.exceptions.NoSuchNodeException;
 import org.apache.hadoop.hoya.providers.hbase.HBaseCommands;
 import org.apache.hadoop.hoya.HoyaExitCodes;
@@ -102,7 +103,8 @@ public class HoyaAppMaster extends CompositeService
              RunService,
              HoyaExitCodes,
              HoyaAppMasterProtocol,
-             ApplicationEventHandler {
+             ApplicationEventHandler,
+             StandardRoleOptions {
   protected static final Logger log =
     LoggerFactory.getLogger(HoyaAppMaster.class);
 
@@ -502,7 +504,7 @@ public class HoyaAppMaster extends CompositeService
     for (String key : confKeys) {
       String val = siteConf.get(key);
       log.debug("{}={}", key, val);
-      clusterDescription.hBaseClientProperties.put(key, val);
+      clusterDescription.clientProperties.put(key, val);
     }
     if (clusterDescription.zkPort == 0) {
       throw new BadCommandArgumentsException(
@@ -601,6 +603,8 @@ public class HoyaAppMaster extends CompositeService
   public String buildHBaseContainerLogdir() throws IOException {
     return buildHBaseLogdir();
   }
+  
+  
 
   /**
    * Block until it is signalled that the AM is done
@@ -740,24 +744,30 @@ public class HoyaAppMaster extends CompositeService
   /**
    * Setup the request that will be sent to the RM for the container ask.
    *
-   * @param numContainers Containers to ask for from RM
-   * @return the setup ResourceRequest to be sent to RM
+   *
+   * @param role@return the setup ResourceRequest to be sent to RM
    */
-  private AMRMClient.ContainerRequest setupContainerAskForRM() {
+  private AMRMClient.ContainerRequest buildContainerRequest(String role) {
     // setup requirements for hosts
     // using * as any host initially
     String[] hosts = null;
     String[] racks = null;
     Priority pri = Records.newRecord(Priority.class);
-    // TODO - what is the range for priority? how to decide?
-    pri.setPriority(requestPriority);
-
+    
     // Set up resource type requirements
-
     Resource capability = Records.newRecord(Resource.class);
-    capability.setMemory(containerMemory);
-    // Set up resource type requirements
-    //capability.setVirtualCores(1);
+    synchronized (clusterDescription) {
+      // Set up resource requirements from role valuesx
+      capability.setVirtualCores(clusterDescription.getRoleOptInt(role,
+                                  YARN_CORES,
+                                  DEF_YARN_CORES));
+      capability.setMemory(clusterDescription.getRoleOptInt(role,
+                                                            YARN_MEMORY,
+                                                            DEF_YARN_MEMORY));
+      pri.setPriority(clusterDescription.getRoleOptInt(role,
+                                                       YARN_PRIORITY,
+                                                       DEF_YARN_REQUEST_PRIORITY));
+    }
     AMRMClient.ContainerRequest request;
     request = new AMRMClient.ContainerRequest(capability,
                                               hosts,
@@ -937,7 +947,6 @@ public class HoyaAppMaster extends CompositeService
     }
     //update the #of workers
     numTotalContainers = workers;
-    clusterDescription.workers = workers;
 
     // ask for more containers if needed
     reviewRequestAndReleaseNodes();
@@ -962,7 +971,7 @@ public class HoyaAppMaster extends CompositeService
       numRequestedContainers.addAndGet(delta);
       for (int i = 0; i < delta; i++) {
         AMRMClient.ContainerRequest containerAsk =
-          setupContainerAskForRM();
+          buildContainerRequest(HBaseCommands.ROLE_WORKER);
         log.info("Container ask is {}", containerAsk);
         asyncRMClient.addContainerRequest(containerAsk);
       }
@@ -1335,7 +1344,7 @@ public class HoyaAppMaster extends CompositeService
    * @param val property value
    */
   public void noteHBaseClientProperty(String key, String val) {
-    clusterDescription.hBaseClientProperties.put(key, val);
+    clusterDescription.clientProperties.put(key, val);
   }
 
   public void startContainer(Container container,
@@ -1356,8 +1365,15 @@ public class HoyaAppMaster extends CompositeService
 
   @Override //  NMClientAsync.CallbackHandler 
   public void onContainerStopped(ContainerId containerId) {
-    log.debug("Succeeded stopping Container {} ", containerId);
+    log.info("onContainerStopped {} ", containerId);
     containers.remove(containerId);
+    //Removing live container?
+    synchronized (descriptionUpdateLock) {
+      ClusterNode node = liveNodes.remove(containerId);
+      if (node!=null) {
+        completedNodes.put(containerId, node);
+      }
+    }
   }
 
   @Override //  NMClientAsync.CallbackHandler 
@@ -1381,6 +1397,7 @@ public class HoyaAppMaster extends CompositeService
     }
     if (cinfo != null) {
       cinfo.startTime = System.currentTimeMillis();
+      //trigger an async container status
       nmClientAsync.getContainerStatusAsync(containerId,
                                             cinfo.container.getNodeId());
     } else {

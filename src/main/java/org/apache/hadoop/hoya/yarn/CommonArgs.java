@@ -24,6 +24,7 @@ import com.beust.jcommander.ParameterException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hoya.api.StandardRoleOptions;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.tools.PathArgumentConverter;
@@ -204,7 +205,7 @@ public class CommonArgs implements HoyaActions {
 
   @Parameter(names = {ARG_MASTER_HEAP},
              description = "Master heap size in MB")
-  public int masterHeap = 0;
+  public int masterHeap = StandardRoleOptions.DEF_YARN_MEMORY;
 
   //--masterinfoport [port]
   @Parameter(names = ARG_MASTER_INFO_PORT,
@@ -222,7 +223,7 @@ public class CommonArgs implements HoyaActions {
 
   @Parameter(names = {ARG_WORKER_HEAP, "--regionserverheap"},
              description = "Worker heap size in MB")
-  public int workerHeap = 0;
+  public int workerHeap = StandardRoleOptions.DEF_YARN_MEMORY;
 
   @Parameter(names = ARG_X_HBASE_MASTER_COMMAND,
              description = "Testing only: hbase command to exec on the master")
