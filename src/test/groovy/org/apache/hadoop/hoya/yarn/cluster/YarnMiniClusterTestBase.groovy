@@ -52,7 +52,6 @@ import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.service.ServiceOperations
 import org.apache.hadoop.yarn.api.records.ApplicationReport
-import org.apache.hadoop.yarn.api.records.ContainerId
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.server.MiniYARNCluster
 import org.apache.hadoop.yarn.server.resourcemanager.ResourceManager
@@ -104,7 +103,8 @@ implements KeysForTests, HoyaExitCodes {
   public void teardown() {
     describe("teardown")
     stopRunningClusters();
-    stopMiniCluster()
+    stopMiniCluster();
+    killAllRegionServers();
   }
 
   protected void addToTeardown(HoyaClient client) {
@@ -289,6 +289,15 @@ implements KeysForTests, HoyaExitCodes {
     return launcher;
   }
 
+  /**
+   * Kill all the region servers
+   * <code>
+   *    jps -l | grep HRegion | awk '{print $1}' | kill -9
+   *  </code>
+   */
+  public void killAllRegionServers() {
+    ["bash", "-c", "jps -l | grep HRegion | awk '{print \$1}' | xargs kill -9"].execute();
+  }
 
   public String getHBaseHome() {
     YarnConfiguration conf = getTestConfiguration()
@@ -585,7 +594,7 @@ implements KeysForTests, HoyaExitCodes {
   public Configuration fetchHBaseClientSiteConfig(HoyaClient hoyaClient) {
     ClusterDescription status = hoyaClient.getClusterStatus();
     Configuration siteConf = new Configuration(false)
-    status.hBaseClientProperties.each { String key, String val ->
+    status.clientProperties.each { String key, String val ->
       siteConf.set(key, val, "hoya cluster");
     }
     return siteConf
@@ -727,7 +736,6 @@ implements KeysForTests, HoyaExitCodes {
     int hbaseState = hoyaClient.waitForRoleInstanceLive(HBaseCommands.ROLE_MASTER,
                                                         HBASE_CLUSTER_STARTUP_TIME);
     assert hbaseState == ClusterDescription.STATE_LIVE
-//    dumpHBaseClientConf(hoyaClient, clustername)
     //sleep for a bit to give things a chance to go live
     assert spinForClusterStartup(hoyaClient, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 

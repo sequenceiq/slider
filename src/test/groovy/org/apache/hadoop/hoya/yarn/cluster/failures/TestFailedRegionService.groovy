@@ -16,56 +16,64 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.cluster.live
+package org.apache.hadoop.hoya.yarn.cluster.failures
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.yarn.ZKIntegration
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
 /**
- * Test of RM creation. This is so the later test's prereq's can be met
+ * test create a live region service
  */
 @CompileStatic
 @Commons
-class TestCreateStopStartLiveRegionService extends YarnMiniClusterTestBase {
+class TestFailedRegionService extends YarnMiniClusterTestBase {
 
   @Test
-  public void testCreateStopStartLiveRegionService() throws Throwable {
-    String clustername = "TestCreateStopStartLiveRegionService"
+  public void testFailedRegionService() throws Throwable {
+    String clustername = "TestFailedRegionService"
     int regionServerCount = 1
-    createMiniCluster(clustername, createConfiguration(), 1, true)
+    createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
+    describe(" Create a single region service cluster then kill the RS");
+
+    //now launch the cluster
     ServiceLauncher launcher = createHoyaCluster(clustername, regionServerCount, [], true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)
-    log.info("${status.toJsonString()}")
 
     ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient)
 
-    clustat = waitForHBaseRegionServerCount(hoyaClient, clustername, regionServerCount,
-                            HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-    describe("Cluster status")
-    log.info(statusToString(clustat));
-    
 
-    clusterActionFreeze(hoyaClient, clustername)
-    
-    //now let's start the cluster up again
-    ServiceLauncher launcher2 = thawHoyaCluster(clustername, [], true);
-    HoyaClient newCluster = launcher.getService() as HoyaClient
-    basicHBaseClusterStartupSequence(newCluster)
-
+    status = waitForHoyaWorkerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     //get the hbase status
-    waitForHBaseRegionServerCount(newCluster, clustername, regionServerCount,
-                            HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+    ClusterStatus hbaseStat = waitForHBaseRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+    
+    log.info("Initial cluster status : ${statusToString(hbaseStat)}");
+    
+    describe("about to kill servers")
+    //now kill the process
+    killAllRegionServers()
+    
+    //sleep a bit
+    sleep(5000);
+
+    describe("waiting for recovery")
+
+    //and expect a recovery
+    status = waitForHoyaWorkerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+
+    hbaseStat = waitForHBaseRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+
+    log.info("Updated cluster status : ${statusToString(hbaseStat)}");
 
   }
-
 
 
 
