@@ -56,13 +56,15 @@ class TestFailedRegionService extends YarnMiniClusterTestBase {
     ClusterStatus hbaseStat = waitForHBaseRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     
     log.info("Initial cluster status : ${statusToString(hbaseStat)}");
-    
+    describe("running processes")
+    log.info(lsJavaProcesses(HREGION))
     describe("about to kill servers")
     //now kill the process
     killAllRegionServers()
-    
+
     //sleep a bit
-    sleep(5000);
+    sleep(15000);
+    log.info(lsJavaProcesses(HREGION))
 
     describe("waiting for recovery")
 

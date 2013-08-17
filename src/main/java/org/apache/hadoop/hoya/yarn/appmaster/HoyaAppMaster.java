@@ -147,7 +147,7 @@ public class HoyaAppMaster extends CompositeService
   private ApplicationAttemptId appAttemptID;
   // App Master configuration
   /** No. of containers to run shell command on*/
-  private int numTotalContainers = 0;
+  private int expectedContainerCount = 0;
 
   /**
    * container memory
@@ -701,7 +701,7 @@ public class HoyaAppMaster extends CompositeService
   }
 
   private String getContainerDiagnosticInfo() {
-    return " total=" + numTotalContainers +
+    return " total=" + expectedContainerCount +
            " requested=" + numRequestedContainers.get() +
            " allocated=" + numAllocatedContainers.get() +
            " completed=" + numCompletedContainers.get() +
@@ -797,12 +797,12 @@ public class HoyaAppMaster extends CompositeService
                                  + ":" +
                                  container.getNodeId().getPort();
       log.info(getContainerDiagnosticInfo());
-      if (numAllocatedContainers.get() >= numTotalContainers) {
+      if ( numAllocatedContainers.incrementAndGet() >= expectedContainerCount) {
         log.info("Discarding surplus container {} on {}", container.getId(),
                  containerHostInfo);
         surplus.add(container);
       } else {
-        numAllocatedContainers.incrementAndGet();
+        
         log.info("Launching shell command on a new container.," +
                  " containerId={}," +
                  " containerNode={}:{}," +
@@ -938,15 +938,15 @@ public class HoyaAppMaster extends CompositeService
    */
   private synchronized boolean flexClusterNodes(int workers) throws
                                                              IOException {
-    log.info("Flexing cluster count from {} to {}", numTotalContainers,
+    log.info("Flexing cluster count from {} to {}", expectedContainerCount,
              workers);
-    if (numTotalContainers == workers) {
+    if (expectedContainerCount == workers) {
       //no-op
       log.info("Flex is a no-op");
       return false;
     }
     //update the #of workers
-    numTotalContainers = workers;
+    expectedContainerCount = workers;
 
     // ask for more containers if needed
     reviewRequestAndReleaseNodes();
@@ -962,11 +962,15 @@ public class HoyaAppMaster extends CompositeService
       log.info("Ignoring node review operation: shutdown in progress");
     }
     
-    int total = numTotalContainers;
-    int delta = total - numRequestedContainers.get();
+    int expected = expectedContainerCount;
+    int req = numRequestedContainers.get();
+    int alloced = numAllocatedContainers.get();
+    int inuse = req + alloced;
+    int delta = expected - inuse;
 
     if (delta > 0) {
-      log.info("Asking for {} more worker(s) for a total of {}", delta, total);
+      log.info("Asking for {} more worker(s) for a total of {} (req={} alloced={})",
+               delta, expected, req, alloced);
       //more workers needed than we have -ask for more
       numRequestedContainers.addAndGet(delta);
       for (int i = 0; i < delta; i++) {
@@ -986,7 +990,7 @@ public class HoyaAppMaster extends CompositeService
       }
 */
 
-      log.info("Asking for {} fewer worker(s) for a total of {}", delta, total);
+      log.info("Asking for {} fewer worker(s) for a total of {}", delta, expected);
       //reduce the number expected (i.e. subtract the delta)
       numRequestedContainers.addAndGet(delta);
 

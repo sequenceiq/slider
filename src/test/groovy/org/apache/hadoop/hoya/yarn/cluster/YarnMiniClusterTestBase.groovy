@@ -91,7 +91,8 @@ implements KeysForTests, HoyaExitCodes {
    * expect meaningful results.
    */
   public static final int HBASE_CLUSTER_STARTUP_TO_LIVE_TIME = HBASE_CLUSTER_STARTUP_TIME
-  
+  public static final String HREGION = "HRegion"
+
   protected MiniDFSCluster hdfsCluster
   protected MiniYARNCluster miniCluster;
   protected MicroZKCluster microZKCluster
@@ -296,9 +297,29 @@ implements KeysForTests, HoyaExitCodes {
    *  </code>
    */
   public void killAllRegionServers() {
-    ["bash", "-c", "jps -l | grep HRegion | awk '{print \$1}' | xargs kill -9"].execute();
+    killJavaProcesses(HREGION);
   }
 
+  
+  /**
+   * Kill any java process with the given grep pattern
+   * @param grepString string to grep for
+   */
+  public void killJavaProcesses(String grepString) {
+    Process bash = ["bash", "-c", "jps -l | grep ${grepString} | awk '{print \$1}' | xargs kill -9"].execute()
+    log.info(bash.text)
+  }
+
+   /**
+   * List any java process with the given grep pattern
+   * @param grepString string to grep for
+   */
+  public String lsJavaProcesses(String grepString) {
+    Process bash = ["bash", "-c", "jps -l | grep ${grepString} | awk '{print \$1}' "].execute()
+    return bash.text
+  }
+
+  
   public String getHBaseHome() {
     YarnConfiguration conf = getTestConfiguration()
     String hbaseHome = conf.getTrimmed(HOYA_TEST_HBASE_HOME)
@@ -332,7 +353,6 @@ implements KeysForTests, HoyaExitCodes {
       return [CommonArgs.ARG_HBASE_HOME, HBaseHome]
     }
   }
-
 
 
   public YarnConfiguration getTestConfiguration() {
