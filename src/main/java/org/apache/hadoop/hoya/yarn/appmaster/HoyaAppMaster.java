@@ -797,7 +797,7 @@ public class HoyaAppMaster extends CompositeService
                                  + ":" +
                                  container.getNodeId().getPort();
       log.info(getContainerDiagnosticInfo());
-      if ( numAllocatedContainers.incrementAndGet() >= expectedContainerCount) {
+      if ( numAllocatedContainers.incrementAndGet() > expectedContainerCount) {
         log.info("Discarding surplus container {} on {}", container.getId(),
                  containerHostInfo);
         surplus.add(container);
