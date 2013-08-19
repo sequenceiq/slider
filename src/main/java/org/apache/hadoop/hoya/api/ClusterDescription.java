@@ -160,13 +160,13 @@ public class ClusterDescription {
    */
   public Map<String, Object> roles =
     new HashMap<String, Object>();
-  
+
   /**
    * Extra flags that can be used to communicate
    * between client & server; and across versions.
    * Presence of a value is seen as marking the flag as true
    */
-  public Map<String, Boolean > flags =
+  public Map<String, Boolean> flags =
     new HashMap<String, Boolean>();
 
   /**
@@ -174,7 +174,7 @@ public class ClusterDescription {
    */
   public Map<String, Long> stats =
     new HashMap<String, Long>();
-  
+
   /**
    * Instances: role->count
    */
@@ -186,7 +186,7 @@ public class ClusterDescription {
    * Role options, 
    * role -> option -> value
    */
-  public Map<String,Map<String, String>> roleopts =
+  public Map<String, Map<String, String>> roleopts =
     new HashMap<String, Map<String, String>>();
 
   /**
@@ -206,16 +206,16 @@ public class ClusterDescription {
   public static void verifyClusterSpecExists(String clustername,
                                              FileSystem fs,
                                              Path clusterSpecPath) throws
-                                                                      IOException,
-                                                                      HoyaException {
-      if (!fs.exists(clusterSpecPath)) {
-        LOG.debug("Missing cluster specification file {}", clusterSpecPath);
-        throw new HoyaException(HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER,
-                                HoyaClient.E_UNKNOWN_CLUSTER + clustername +
-                                "\n (cluster definition not found at " +
-                                clusterSpecPath);
-      }
+                                                                   IOException,
+                                                                   HoyaException {
+    if (!fs.exists(clusterSpecPath)) {
+      LOG.debug("Missing cluster specification file {}", clusterSpecPath);
+      throw new HoyaException(HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER,
+                              HoyaClient.E_UNKNOWN_CLUSTER + clustername +
+                              "\n (cluster definition not found at " +
+                              clusterSpecPath);
     }
+  }
 
   @Override
   public String toString() {
@@ -238,7 +238,7 @@ public class ClusterDescription {
     builder.append("ZK cluster: ").append(zkHosts).
       append(" : ").append(zkPort).append('\n');
     builder.append("ZK path: ").append(zkPath).append('\n');
-    for (Map.Entry<String, Integer> entry: instances.entrySet()) {
+    for (Map.Entry<String, Integer> entry : instances.entrySet()) {
       builder.append("Role")
              .append(entry.getKey()).append(": ")
              .append(entry.getValue()).append("\n");
@@ -310,12 +310,12 @@ public class ClusterDescription {
       throw e;
     }
   }
-  
+
   public boolean getFlag(String flag, boolean defVal) {
     Boolean b = flags.get(flag);
-    return (b != null)? b : defVal;
+    return (b != null) ? b : defVal;
   }
-  
+
   public void setFlag(String flag, boolean val) {
     flags.put(flag, val);
   }
@@ -329,17 +329,17 @@ public class ClusterDescription {
    */
   public String getRoleOpt(String role, String option, String defVal) {
     Map<String, String> options = roleopts.get(role);
-    if (options==null) {
+    if (options == null) {
       return defVal;
     }
     String val = options.get(option);
-    return val != null? val: defVal;
+    return val != null ? val : defVal;
   }
-  
+
   /**
    * Get a role opt; use {@link Integer#decode(String)} so as to take hex
    * oct and bin values too.
-   * 
+   *
    * @param role role to get from
    * @param option option name
    * @param defVal default value
@@ -350,7 +350,7 @@ public class ClusterDescription {
     String val = getRoleOpt(role, option, Integer.toString(defVal));
     return Integer.decode(val);
   }
-  
+
   public void setRoleOpt(String role, String option, String val) {
     Map<String, String> options = roleopts.get(role);
     if (options == null) {
@@ -359,7 +359,7 @@ public class ClusterDescription {
     }
     options.put(option, val);
   }
-  
+
   public void setRoleOpt(String role, String option, int val) {
     Map<String, String> options = roleopts.get(role);
     if (options == null) {
@@ -368,6 +368,6 @@ public class ClusterDescription {
     }
     options.put(option, Integer.toString(val));
   }
-  
-  
+
+
 }
