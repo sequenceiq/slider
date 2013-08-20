@@ -25,6 +25,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,9 +78,15 @@ public class ConfigHelper {
    * @param map map
    * @return nothing
    */
-  public static void addConfigMap(Configuration self, Map<String, String> map) {
+  public static void addConfigMap(Configuration config, Map<String, String> map) throws
+                                                                               BadConfigException {
     for (Map.Entry<String, String> mapEntry : map.entrySet()) {
-      self.set(mapEntry.getKey(), mapEntry.getValue());
+      String value = mapEntry.getValue();
+      String key = mapEntry.getKey();
+      if (value==null) {
+        throw new BadConfigException("Null value for property " +key);
+      }
+      config.set(key, value);
     }
   }
 

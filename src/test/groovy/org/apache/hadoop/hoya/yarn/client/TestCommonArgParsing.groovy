@@ -19,7 +19,10 @@
 package org.apache.hadoop.hoya.yarn.client
 
 import groovy.transform.CompileStatic
+import groovy.util.logging.Slf4j
+import org.apache.hadoop.hoya.api.RoleKeys
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
+import org.apache.hadoop.hoya.providers.ProviderUtils
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.junit.Assert
@@ -29,6 +32,8 @@ import org.junit.Test
  * Test handling of common arguments, specifically how things get split up
  */
 @CompileStatic
+@Slf4j
+
 class TestCommonArgParsing {
 
   @Test
@@ -184,21 +189,22 @@ class TestCommonArgParsing {
         HoyaActions.ACTION_CREATE, 'cluster1',
         CommonArgs.ARG_ROLE, "master", "1",
         CommonArgs.ARG_ROLE, "worker", "2",
-        CommonArgs.ARG_ROLEOPT, "worker","vcores",2,
-        CommonArgs.ARG_ROLEOPT, "worker","heap","64G",
-        CommonArgs.ARG_ROLEOPT, "master","vcores",3,
+        CommonArgs.ARG_ROLEOPT, "worker", RoleKeys.YARN_CORES,2,
+        CommonArgs.ARG_ROLEOPT, "worker", RoleKeys.JVM_HEAP,"65536",
+        CommonArgs.ARG_ROLEOPT, "master", RoleKeys.YARN_CORES,3,
     ])
     
     def tripleMaps = clientArgs.roleOptionMap
     def workerOpts = tripleMaps["worker"];
     assert workerOpts.size() == 2
-    assert workerOpts["vcores"] == "2"
-    assert workerOpts["heap"] == "64G"
+    assert workerOpts[RoleKeys.YARN_CORES] == "2"
+    assert workerOpts[RoleKeys.JVM_HEAP] == "65536"
     
     def masterOpts = tripleMaps["master"];
     assert masterOpts.size() == 1
-    assert masterOpts["vcores"] == "3"
+    assert masterOpts[RoleKeys.YARN_CORES] == "3"
 
+    
   }
 
 

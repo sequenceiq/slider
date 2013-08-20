@@ -240,7 +240,7 @@ Important: This deletes all the database data.
 ### freeze \<cluster>  \[--waittime time]
 freeze the cluster. The HBase cluster is scheduled to be destroyed. The cluster settings are retained in HDFS.
 
-The --waittime argument can specify a time in seconds to wait for the cluster to be destroyed.
+The `--waittime` argument can specify a time in seconds to wait for the cluster to be destroyed.
 
 If an unknown (or already frozen) cluster is named, no error is returned.
 
@@ -264,7 +264,7 @@ It returns -1 if there is no running cluster, or the size of the flexed cluster 
 ### getconf \<cluster>  \[--out file] \[--format xml|properties]
 
 Get the configuration properties needed for hbase clients to connect to the cluster. Hadoop XML format files (the default) and Java properties files can be generated.
-The output can be streamed to the console in "stdout", or it can be saved to a file.
+The output can be streamed to the console in `stdout`, or it can be saved to a file.
 
 ## Unimplemented
 
@@ -275,14 +275,73 @@ If a count parameter is provided, then the return code is success, 0, if and onl
 
 
 ### UNIMPLEMENTED: reconfigure \<cluster> --confdir path
+
 Update a cluster with a new configuration. This operation is only valid on a stopped cluster. The new configuration will completely replace the existing configuration.
 
 ### UNIMPLEMENTED: reimage \<cluster> --image path
+
 Update a cluster with a new configuration. This operation is only valid on a stopped cluster. The new configuration will completely replace the existing configuration.
 
 <!--- ======================================================================= -->
 
 ## Exit Codes
+
+## Cluster Naming
+Cluster names must 
+
+1. be at least one character long
+1. begin with a letter
+1. All other characters must be in the range \[a-z,0-9,-]
+1. All upper case characters are converted to lower case
+ 
+Example valid names:
+
+    hoya1
+    hbase-cluster
+    HBase-cluster
+
+The latter two cluster names are considered equivalent
+
+<!--- ======================================================================= -->
+
+## Options for Roles
+
+Here are some role options that are intended to be common across roles, though
+it is up to the provider and role whether or not an option is used.
+
+1. *Important:* Unknown options are ignored. If an option does not appear to work,
+check the spelling.
+1. All values are strings; if an integer is required, it should be quoted
+
+### generic
+
+* `role.name` name of the role
+* `role.instances` number of instances desired 
+
+* `app.infoport`: For applications that support a web port that can be externally configured,
+the web port to use. A value of "0" means that an arbitrary port should be picked.
+
+### YARN parameters
+
+YARN parameters are interpreted by Hoya itself -so will always be read, validated
+and acted on.
+
+* `yarn.app.retries`: number of times to attempt to retry application execution.
+ 
+* `yarn.memory`: how much memory (in GB) to request 
+
+* `yarn.vcores`: number of cores to request; how this is translated into physical
+core allocation is a YARN-specific (possibly scheduler-specific) feature.
+
+### JVM parameters
+
+These should be interpreted by all providers that start a JVM in the specific role
+
+* `jvm.heapsize`: JVM heap size for Java applications in MB.
+* `jvm.opts`: JVM options other than heap size
+* ``: 
+
+
 
 <!--- ======================================================================= -->
 
@@ -298,18 +357,3 @@ This creates a cluster `mycluster` with four workers
 ## Notes
 
 
-### Cluster Naming
-Cluster names must 
-
-1. be at least one character long
-1. begin with a letter
-1. All other characters must be in the range \[a-z,0-9,-]
-1. All upper case characters are converted to lower case
- 
-Example valid names:
-
-    hoya1
-    hbase-cluster
-    HBase-cluster
-
-The latter two cluster names are considered equivalent

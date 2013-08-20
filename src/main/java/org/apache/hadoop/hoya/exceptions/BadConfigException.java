@@ -18,10 +18,13 @@
 
 package org.apache.hadoop.hoya.exceptions;
 
+/**
+ * An exception to raise on a bad configuration
+ */
 public class BadConfigException extends HoyaException {
 
   public BadConfigException(String s) {
-    super(EXIT_COMMAND_ARGUMENT_ERROR, s);
+    super(EXIT_BAD_CONFIGURATION, s);
   }
 
 }

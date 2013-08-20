@@ -24,12 +24,12 @@ import com.beust.jcommander.ParameterException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hoya.api.StandardRoleOptions;
+import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
+import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.tools.PathArgumentConverter;
 import org.apache.hadoop.hoya.tools.URIArgumentConverter;
-import org.apache.hadoop.hoya.yarn.appmaster.EnvMappings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,8 +66,6 @@ public class CommonArgs implements HoyaActions {
 
   public static final String ARG_ROLE = "--role";
   public static final String ARG_ROLEOPT = "--roleopt";
-  public static final String ARG_ROLE_HEAP = "--roleheap";
-  public static final String ARG_ROLE_INFO_PORT = "--roleinfoport";
 
 
   public static final String ARG_USER = "--user";
@@ -173,7 +171,7 @@ public class CommonArgs implements HoyaActions {
 
   @Parameter(names = ARG_ZKPORT,
              description = "Zookeeper port")
-  public int zkport = EnvMappings.HBASE_ZK_PORT;
+  public int zkport = HBaseConfigFileOptions.HBASE_ZK_PORT;
 
   /*
    -D name=value
@@ -205,17 +203,17 @@ public class CommonArgs implements HoyaActions {
 
   @Parameter(names = {ARG_MASTER_HEAP},
              description = "Master heap size in MB")
-  public int masterHeap = StandardRoleOptions.DEF_YARN_MEMORY;
+  public int masterHeap = RoleKeys.DEF_YARN_MEMORY;
 
   //--masterinfoport [port]
   @Parameter(names = ARG_MASTER_INFO_PORT,
              description = "The web UI port that the Master should bind to")
-  public int masterInfoPort = 0;
+  public int masterInfoPort = -1;
 
   //--workerinfoport [port]
   @Parameter(names = ARG_WORKER_INFO_PORT,
              description = "The web UI port that the Workers should bind to")
-  public int workerInfoPort = 0;
+  public int workerInfoPort = -1;
 
   @Parameter(names = {ARG_OUTPUT, "-o"},
              description = "Output file for the configuration data")
@@ -223,7 +221,7 @@ public class CommonArgs implements HoyaActions {
 
   @Parameter(names = {ARG_WORKER_HEAP, "--regionserverheap"},
              description = "Worker heap size in MB")
-  public int workerHeap = StandardRoleOptions.DEF_YARN_MEMORY;
+  public int workerHeap = RoleKeys.DEF_YARN_MEMORY;
 
   @Parameter(names = ARG_X_HBASE_MASTER_COMMAND,
              description = "Testing only: hbase command to exec on the master")

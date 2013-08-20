@@ -26,8 +26,9 @@ import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.MissingArgException;
-import org.apache.hadoop.hoya.yarn.appmaster.EnvMappings;
+import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.util.ExitUtil;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
@@ -322,8 +323,8 @@ public final class HoyaUtils {
 
     //if the fallback option is NOT set, enable it.
     //if it is explicitly set to anything -leave alone
-    if (conf.get(EnvMappings.IPC_CLIENT_FALLBACK_TO_SIMPLE_AUTH) == null) {
-      conf.set(EnvMappings.IPC_CLIENT_FALLBACK_TO_SIMPLE_AUTH, "true");
+    if (conf.get(HBaseConfigFileOptions.IPC_CLIENT_FALLBACK_TO_SIMPLE_AUTH) == null) {
+      conf.set(HBaseConfigFileOptions.IPC_CLIENT_FALLBACK_TO_SIMPLE_AUTH, "true");
     }
   }
 
@@ -463,6 +464,92 @@ public final class HoyaUtils {
     return builder.toString();
   }
 
+  
+  public static Map<String, String>  mergeMap(Map<String, String> dest,
+           Map<String, String> src) {
+    for (Map.Entry<String, String> entry: src.entrySet()) {
+      dest.put(entry.getKey(), entry.getValue());
+    }
+    return dest;
+  }
+
+  public static String stringifyMap(Map<String, String> map) {
+    StringBuilder builder =new StringBuilder();
+    for (Map.Entry<String, String> entry: map.entrySet()) {
+      builder.append(entry.getKey())
+             .append("=\"")
+             .append(entry.getValue())
+             .append("\"\n");
+      
+    }
+    return builder.toString();
+  }
+
+
+  /**
+   * Get the int value of a role
+   * @param roleMap map of role key->val entries
+   * @param key key the key to look for
+   * @param defVal default value to use if the key is not in the map
+   * @param min min value or -1 for do not check
+   * @param max max value or -1 for do not check
+   * @return the int value the integer value
+   * @throws BadConfigException if the value could not be parsed
+   */
+  public static int getIntValue(Map<String, String> roleMap,
+                         String key,
+                         int defVal,
+                         int min,
+                         int max
+                        ) throws BadConfigException {
+    String valS = roleMap.get(key);
+    return parseAndValidate(key, valS, defVal, min, max);
+
+  }
+
+  /**
+   * Parse an int value, replacing it with defval if undefined;
+   * @param errorKey key to use in exceptions
+   * @param defVal default value to use if the key is not in the map
+   * @param min min value or -1 for do not check
+   * @param max max value or -1 for do not check
+   * @return the int value the integer value
+   * @throws BadConfigException if the value could not be parsed
+   */
+  public static int parseAndValidate(String errorKey,
+                                     String valS,
+                                     int defVal,
+                                     int min, int max) throws
+                                                       BadConfigException {
+    if (valS == null) {
+      valS = Integer.toString(defVal);
+    }
+    String trim = valS.trim();
+    int val;
+    try {
+      val = Integer.decode(trim);
+    } catch (NumberFormatException e) {
+      throw new BadConfigException("Failed to parse value of "
+                                   + errorKey + ": \"" + trim + "\"");
+    }
+    if (min>=0 && val<min) {
+      throw new BadConfigException("Value of "
+                                   + errorKey + ": " + val+ "" 
+      + "is less than the minimum of " + min);
+
+    }
+    if (max>=0 && val>max) {
+      throw new BadConfigException("Value of "
+                                   + errorKey + ": " + val+ "" 
+      + "is more than the maximum of " + max);
+
+    }
+    return val;
+  }
+
+  
+                             
+
   /**
    * This wrapps ApplicationReports and generates a string version
    * iff the toString() operator is invoked
@@ -479,4 +566,5 @@ public final class HoyaUtils {
       return appReportToString(r, "\n");
     }
   }
+  
 }

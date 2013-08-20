@@ -63,6 +63,10 @@ and downloading then expanding the file.
 For more information (including recommended Maven memory configuration options),
 see [http://hbase.apache.org/book/build.html](HBase building)
 
+*Tip:* you can force set a version in Maven by having it update all the POMs:
+
+    mvn versions:set -DnewVersion=0.95.2-SNAPSHOT
+
 # Testing
 
 the hbase tarball needs to be unzipped somewhere

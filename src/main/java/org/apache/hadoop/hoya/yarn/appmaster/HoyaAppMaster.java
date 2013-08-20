@@ -21,8 +21,9 @@ package org.apache.hadoop.hoya.yarn.appmaster;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hoya.api.StandardRoleOptions;
+import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.NoSuchNodeException;
+import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions;
 import org.apache.hadoop.hoya.providers.hbase.HBaseCommands;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
@@ -104,7 +105,7 @@ public class HoyaAppMaster extends CompositeService
              HoyaExitCodes,
              HoyaAppMasterProtocol,
              ApplicationEventHandler,
-             StandardRoleOptions {
+             RoleKeys {
   protected static final Logger log =
     LoggerFactory.getLogger(HoyaAppMaster.class);
 
@@ -436,7 +437,7 @@ public class HoyaAppMaster extends CompositeService
     // work out a port for the AM
     if (0 == clusterDescription.masterInfoPort) {
       int port =
-        YarnUtils.findFreePort(EnvMappings.DEFAULT_MASTER_INFO_PORT, 128);
+        YarnUtils.findFreePort(HBaseConfigFileOptions.DEFAULT_MASTER_INFO_PORT, 128);
       //need to get this to the app
       clusterDescription.masterInfoPort = port;
     }
@@ -491,12 +492,11 @@ public class HoyaAppMaster extends CompositeService
     
     TreeSet<String> confKeys = ConfigHelper.sortedConfigKeys(siteConf);
     //update the values
-    clusterDescription.hbaseDataPath =
-      siteConf.get(EnvMappings.KEY_HBASE_ROOTDIR);
-    clusterDescription.zkHosts = siteConf.get(EnvMappings.KEY_ZOOKEEPER_QUORUM);
+
+    clusterDescription.zkHosts = siteConf.get(HBaseConfigFileOptions.KEY_ZOOKEEPER_QUORUM);
     clusterDescription.zkPort =
-      siteConf.getInt(EnvMappings.KEY_ZOOKEEPER_PORT, 0);
-    clusterDescription.zkPath = siteConf.get(EnvMappings.KEY_ZNODE_PARENT);
+      siteConf.getInt(HBaseConfigFileOptions.KEY_ZOOKEEPER_PORT, 0);
+    clusterDescription.zkPath = siteConf.get(HBaseConfigFileOptions.KEY_ZNODE_PARENT);
 
     noMaster = clusterDescription.masters <= 0;
     log.debug(" Contents of {}", hBaseSiteXML);
@@ -509,7 +509,7 @@ public class HoyaAppMaster extends CompositeService
     if (clusterDescription.zkPort == 0) {
       throw new BadCommandArgumentsException(
         "ZK port property not provided at" +
-        EnvMappings.KEY_ZOOKEEPER_PORT + " in configuration file " +
+        HBaseConfigFileOptions.KEY_ZOOKEEPER_PORT + " in configuration file " +
         hBaseSiteXML);
     }
 
@@ -549,7 +549,9 @@ public class HoyaAppMaster extends CompositeService
       }
 
       //now ask for the workers
-      flexClusterNodes(clusterDescription.workers);
+      int instances =
+        clusterDescription.getDesiredInstanceCount(HBaseCommands.ROLE_WORKER, 0);
+      flexClusterNodes(instances);
 
       //now block waiting to be told to exit the process
       waitForAMCompletionSignal();
@@ -764,9 +766,11 @@ public class HoyaAppMaster extends CompositeService
       capability.setMemory(clusterDescription.getRoleOptInt(role,
                                                             YARN_MEMORY,
                                                             DEF_YARN_MEMORY));
-      pri.setPriority(clusterDescription.getRoleOptInt(role,
+/*      pri.setPriority(clusterDescription.getRoleOptInt(role,
                                                        YARN_PRIORITY,
-                                                       DEF_YARN_REQUEST_PRIORITY));
+                                                       DEF_YARN_PRIORITY));*/
+
+      pri.setPriority(0);
     }
     AMRMClient.ContainerRequest request;
     request = new AMRMClient.ContainerRequest(capability,
@@ -1170,6 +1174,7 @@ public class HoyaAppMaster extends CompositeService
       List<ClusterNode> nodes = enumNodesByRole(HBaseCommands.ROLE_WORKER);
       int workerCount = nodes.size();
       clusterDescription.workers = workerCount;
+      clusterDescription.setDesiredInstanceCount(HBaseCommands.ROLE_WORKER, workerCount);
       clusterDescription.instances = buildInstanceMap();
       Map<String, Long> stats = new HashMap<String, Long>();
       stats.put(STAT_CONTAINERS_REQUESTED, numRequestedContainers.longValue());

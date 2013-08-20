@@ -16,7 +16,7 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.appmaster;
+package org.apache.hadoop.hoya.providers.hbase;
 
 /**
  * Mappings of config params to env variables for
@@ -26,10 +26,10 @@ package org.apache.hadoop.hoya.yarn.appmaster;
  * and pasted in here is to remove dependencies on HBase from
  * the Hoya Client and AM.
  */
-public interface EnvMappings {
+public interface HBaseConfigFileOptions {
 
   String KEY_HBASE_CLUSTER_DISTRIBUTED = "hbase.cluster.distributed";
-  String KEY_HBASE_ROOTDIR = "hbase.rootdir";
+   String KEY_HBASE_ROOTDIR = "hbase.rootdir";
 
   String KEY_ZOOKEEPER_QUORUM = "hbase.zookeeper.quorum";
   //HConstants.ZOOKEEPER_QUORUM;

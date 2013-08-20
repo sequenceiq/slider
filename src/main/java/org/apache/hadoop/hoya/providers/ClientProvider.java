@@ -18,11 +18,24 @@
 
 package org.apache.hadoop.hoya.providers;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
+import org.apache.hadoop.yarn.api.records.LocalResource;
 
+import java.io.IOException;
 import java.util.Map;
 
-public interface ClusterBuilder extends ProviderCore {
+/**
+ * This is the client-side provider, the bit
+ * that helps create the template cluster spec,  
+ * preflight checks the specification,
+ * and 
+ */
+public interface ClientProvider extends ProviderCore {
 
   /**
    * Create the default cluster role instance for a named
@@ -32,4 +45,12 @@ public interface ClusterBuilder extends ProviderCore {
    * @return a node that can be added to the JSON
    */
   Map<String, String> createDefaultClusterRole(String rolename) throws HoyaException;
+
+  Map<String, LocalResource> prepareAMAndConfigForLaunch(FileSystem clusterFS,
+                                                         Configuration serviceConf,
+                                                         ClusterDescription clusterSpec,
+                                                         Path originConfDirPath,
+                                                         Path generatedConfDirPath) throws
+                                                                                    IOException,
+                                                                                    BadConfigException;
 }

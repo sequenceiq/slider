@@ -39,7 +39,7 @@ public interface HoyaKeys {
   /**
    * Application type for YARN  {@value}
    */
-  String APP_TYPE = "HOYA-HBASE";
+  String APP_TYPE = "hoya";
 
   /**
    * JVM arg to force IPv4  {@value}

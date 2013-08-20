@@ -24,7 +24,9 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaExitCodes;
+import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
+import org.apache.hadoop.hoya.providers.hbase.HBaseCommands;
 import org.apache.hadoop.hoya.yarn.client.HoyaClient;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
@@ -328,12 +330,25 @@ public class ClusterDescription {
    * @return resolved value
    */
   public String getRoleOpt(String role, String option, String defVal) {
-    Map<String, String> options = roleopts.get(role);
+    Map<String, String> options = getRole(role);
     if (options == null) {
       return defVal;
     }
     String val = options.get(option);
     return val != null ? val : defVal;
+  }
+
+  public Map<String, String> getRole(String role) {
+    return roleopts.get(role);
+  }
+
+  public Map<String, String> getMandatoryRole(String role) throws
+                                                           BadConfigException {
+    Map<String, String> roleOptions = roleopts.get(role);
+    if (roleOptions == null) {
+      throw new BadConfigException("Missing options for role " + role);
+    }
+    return roleOptions;
   }
 
   /**
@@ -352,7 +367,7 @@ public class ClusterDescription {
   }
 
   public void setRoleOpt(String role, String option, String val) {
-    Map<String, String> options = roleopts.get(role);
+    Map<String, String> options = getRole(role);
     if (options == null) {
       options = new HashMap<String, String>();
       roleopts.put(role, options);
@@ -361,7 +376,7 @@ public class ClusterDescription {
   }
 
   public void setRoleOpt(String role, String option, int val) {
-    Map<String, String> options = roleopts.get(role);
+    Map<String, String> options = getRole(role);
     if (options == null) {
       options = new HashMap<String, String>();
       roleopts.put(role, options);
@@ -369,5 +384,21 @@ public class ClusterDescription {
     options.put(option, Integer.toString(val));
   }
 
+  /**
+   * Set the desired instance count
+   * @param role role
+   * @param val value
+   */
+  public void setDesiredInstanceCount(String role, int val) {
+    setRoleOpt(role, RoleKeys.ROLE_INSTANCES, val);
+  }
 
+  /**
+   * Get the desired instance count;
+   * @param role role
+   * @return the desired count -falling back to the default value
+   */
+  public int getDesiredInstanceCount(String role, int defVal) {
+    return getRoleOptInt(role, RoleKeys.ROLE_INSTANCES, defVal);
+  }
 }

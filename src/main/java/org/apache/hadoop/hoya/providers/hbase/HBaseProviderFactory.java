@@ -19,7 +19,7 @@
 package org.apache.hadoop.hoya.providers.hbase;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hoya.providers.ClusterBuilder;
+import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.ClusterExecutor;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
 
@@ -35,8 +35,8 @@ public class HBaseProviderFactory extends HoyaProviderFactory {
   public static final String APPLICATION_TYPE = "hbase";
   
   @Override
-  public ClusterBuilder createBuilder() {
-    return new HBaseClusterBuilder(getConf());
+  public ClientProvider createBuilder() {
+    return new HBaseClientProvider(getConf());
   }
 
   @Override

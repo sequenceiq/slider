@@ -20,7 +20,9 @@ package org.apache.hadoop.hoya.yarn.cluster
 
 import groovy.json.JsonOutput
 import groovy.transform.CompileStatic
-import groovy.util.logging.Commons
+import groovy.util.logging.Slf4j
+import org.apache.commons.logging.Log
+import org.apache.commons.logging.LogFactory
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.FileUtil
@@ -47,7 +49,7 @@ import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.MicroZKCluster
 import org.apache.hadoop.hoya.yarn.ZKIntegration
-import org.apache.hadoop.hoya.yarn.appmaster.EnvMappings
+import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.service.ServiceOperations
@@ -73,9 +75,8 @@ import java.util.concurrent.atomic.AtomicBoolean
  * Base class for mini cluster tests -creates a field for the
  * mini yarn cluster
  */
-@Commons
 @CompileStatic
-
+@Slf4j
 public class YarnMiniClusterTestBase extends ServiceLauncherBaseTest
 implements KeysForTests, HoyaExitCodes {
 
@@ -125,7 +126,8 @@ implements KeysForTests, HoyaExitCodes {
   }
   
   public void stopMiniCluster() {
-    ServiceOperations.stopQuietly(log, miniCluster)
+    Log l = LogFactory.getLog(this.getClass())
+    ServiceOperations.stopQuietly(l, miniCluster)
     microZKCluster?.close();
     hdfsCluster?.shutdown();
   }
@@ -383,7 +385,7 @@ implements KeysForTests, HoyaExitCodes {
   }
 
   protected int getZKPort() {
-    return microZKCluster ? microZKCluster.port : EnvMappings.HBASE_ZK_PORT;
+    return microZKCluster ? microZKCluster.port : HBaseConfigFileOptions.HBASE_ZK_PORT;
   }
 
   protected String getZKHosts() {

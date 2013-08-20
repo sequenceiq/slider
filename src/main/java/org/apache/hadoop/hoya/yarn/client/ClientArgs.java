@@ -88,15 +88,12 @@ public class ClientArgs extends CommonArgs {
   public boolean persist;
 
 
+  /**
+   * This is a listing of the roles to create
+   */
   @Parameter(names = {ARG_ROLE}, arity = 2,
              description = "role <name> <count>")
   public List<String> roleTuples = new ArrayList<String>(0);
-
-
-  @Parameter(names = {ARG_ROLE_HEAP}, arity = 2,
-             description = "Role heap size roleheap <name> <string>>")
-  public List<String> roleHeapTuples = new ArrayList<String>(0);
-
 
   /**
    * All the role option triples
@@ -104,11 +101,6 @@ public class ClientArgs extends CommonArgs {
   @Parameter(names = {ARG_ROLEOPT}, arity = 3,
              description = "Role option " + ARG_ROLEOPT + " <role> <name> <option>")
   public List<String> roleOptTriples = new ArrayList<String>(0);
-
-
-  @Parameter(names = {ARG_ROLE_INFO_PORT}, arity = 2,
-             description = "role web port <name> <count>")
-  public List<String> roleInfoPortTuples = new ArrayList<String>(0);
 
 
   /**
@@ -119,28 +111,6 @@ public class ClientArgs extends CommonArgs {
   public Map<String, String> getRoleMap() throws BadCommandArgumentsException {
     return convertTupleListToMap("roles", roleTuples);
   }
-
-
-  /**
-   * Get the role heap mapping (may be empty, but never null)
-   * @return role heap mapping
-   * @throws BadCommandArgumentsException parse problem
-   */
-  public Map<String, String> getRoleHeapMap() throws
-                                              BadCommandArgumentsException {
-    return convertTupleListToMap(ARG_ROLE_HEAP, roleHeapTuples);
-  }
-
-  /**
-   * Get the role heap mapping (may be empty, but never null)
-   * @return role heap mapping
-   * @throws BadCommandArgumentsException parse problem
-   */
-  public Map<String, String> getRoleInfoPortMap() throws
-                                                  BadCommandArgumentsException {
-    return convertTupleListToMap(ARG_ROLE_INFO_PORT, roleInfoPortTuples);
-  }
-
 
   /**
    * map of actions -> (explanation, min #of entries [, max no.])
