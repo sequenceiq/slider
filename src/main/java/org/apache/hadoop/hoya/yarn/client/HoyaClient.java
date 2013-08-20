@@ -1527,8 +1527,12 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     verifySpecificationValidity(clusterSpecPath, clusterSpec);
     clusterSpec.setDesiredInstanceCount(HBaseCommands.ROLE_WORKER, workers);
 
+    log.debug("Flexed cluster specification (new workers={}) : \n{}",
+              workers,
+              clusterSpec);
     if (persist) {
-      //update the specification
+      log.debug("Saving the cluster specification to {}", clusterSpecPath);
+      //save the specification
       if (!HoyaUtils.updateClusterSpecification(getClusterFS(),
                                                 clusterDirectory,
                                                 clusterSpecPath,

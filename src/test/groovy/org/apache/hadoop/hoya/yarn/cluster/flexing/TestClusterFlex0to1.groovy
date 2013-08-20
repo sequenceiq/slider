@@ -26,11 +26,11 @@ import org.junit.Test
  * Create a master against the File:// fs
  */
 @Commons
-class TestClusterFlexUp extends YarnMiniClusterTestBase {
+class TestClusterFlex0to1 extends YarnMiniClusterTestBase {
 
   @Test
   public void testClusterFlexUp() throws Throwable {
-    assert flexClusterTestRun("TestClusterFlexUp", 1, 2, true, false)
+    assert flexClusterTestRun("TestClusterFlexUp", 0, 1, true, false)
   }
 
 }

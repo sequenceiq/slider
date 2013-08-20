@@ -26,8 +26,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
-import org.apache.hadoop.hoya.providers.hbase.HBaseCommands;
 import org.apache.hadoop.hoya.yarn.client.HoyaClient;
+import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -50,7 +50,7 @@ import java.util.Map;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ClusterDescription {
   protected static final Logger
-    LOG = LoggerFactory.getLogger(ClusterDescription.class);
+    log = LoggerFactory.getLogger(ClusterDescription.class);
 
   private static final String UTF_8 = "UTF-8";
 
@@ -211,7 +211,7 @@ public class ClusterDescription {
                                                                    IOException,
                                                                    HoyaException {
     if (!fs.exists(clusterSpecPath)) {
-      LOG.debug("Missing cluster specification file {}", clusterSpecPath);
+      log.debug("Missing cluster specification file {}", clusterSpecPath);
       throw new HoyaException(HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER,
                               HoyaClient.E_UNKNOWN_CLUSTER + clustername +
                               "\n (cluster definition not found at " +
@@ -221,6 +221,15 @@ public class ClusterDescription {
 
   @Override
   public String toString() {
+    try {
+      return toJsonString();
+    } catch (Exception e) {
+      log.debug("Failed to convert CD to JSON ",e);
+      return OldtoString();
+    }
+  }
+
+  public String OldtoString() {
     StringBuilder builder = new StringBuilder();
     builder.append("Hoya Cluster ").append(name).append('\n');
     builder.append("State: ").append(state).append('\n');
@@ -290,7 +299,9 @@ public class ClusterDescription {
    * @return a JSON string description
    * @throws IOException Problems mapping/writing the object
    */
-  public String toJsonString() throws IOException {
+  public String  toJsonString() throws IOException,
+                                       JsonGenerationException,
+                                       JsonMappingException {
     ObjectMapper mapper = new ObjectMapper();
     return mapper.writeValueAsString(this);
   }
@@ -308,7 +319,7 @@ public class ClusterDescription {
     try {
       return mapper.readValue(json, ClusterDescription.class);
     } catch (IOException e) {
-      LOG.error("Exception while parsing json : " + e + "\n" + json, e);
+      log.error("Exception while parsing json : " + e + "\n" + json, e);
       throw e;
     }
   }

@@ -147,8 +147,6 @@ public class HoyaAppMaster extends CompositeService
   /** Application Attempt Id ( combination of attemptId and fail count )*/
   private ApplicationAttemptId appAttemptID;
   // App Master configuration
-  /** No. of containers to run shell command on*/
-  private int expectedContainerCount = 0;
 
   /**
    * container memory
@@ -171,24 +169,43 @@ public class HoyaAppMaster extends CompositeService
   private final ConcurrentMap<ContainerId, Container> containersBeingReleased =
     new ConcurrentHashMap<ContainerId, Container>();
 
-  // Counter for completed containers ( complete denotes successful or failed )
-  private final AtomicInteger numCompletedContainers = new AtomicInteger();
-
-  // Count of containers already requested from the RM
-  // Needed as once requested, we should not request for containers again.
-  // Only request for more if the original requirement changes.
-  private final AtomicInteger numRequestedContainers = new AtomicInteger();
+  /**
+   *  This is the number of containers which we desire for HoyaAM to maintain
+   */
+  private int desiredContainerCount = 0;
 
   /**
-   * counter of how many outstanding release requests we have
+   * Counter for completed containers ( complete denotes successful or failed )
+   */
+  private final AtomicInteger numCompletedContainers = new AtomicInteger();
+
+  /**
+   This is the count of containers that have been requested from the RM
+   but which have not been delivered. When flexing we have to take this
+   into account when calculating how many to ask for
+   */
+  private final AtomicInteger numActiveRequests = new AtomicInteger();
+
+  /**
+   * counter of how many outstanding release requests we have. 
+   * As containers are released this should decrease
    */
   private final AtomicInteger numReleaseRequests = new AtomicInteger();
 
-  // Allocated container count so that we know how many containers has the RM
-  // allocated to us
+  /**
+   *  Allocated container count so that we know how many containers has the RM
+   *  allocated to us.
+   *  This number includes all containers that have been requested
+   *  for release, but for which the release callback has not been
+   *  received
+   *  
+   */
   private final AtomicInteger numAllocatedContainers = new AtomicInteger();
 
-  // Count of failed containers
+  /**
+   *   Count of failed containers
+
+   */
   private final AtomicInteger numFailedContainers = new AtomicInteger();
 
   /**
@@ -548,9 +565,7 @@ public class HoyaAppMaster extends CompositeService
         return processExitCode;
       }
 
-      //now ask for the workers
-      int instances =
-        clusterDescription.getDesiredInstanceCount(HBaseCommands.ROLE_WORKER, 0);
+      //now ask for the cluster nodes
       flexClusterNodes(clusterDescription);
 
       //now block waiting to be told to exit the process
@@ -702,12 +717,17 @@ public class HoyaAppMaster extends CompositeService
     }
   }
 
+  /**
+   * Get diagnostics info about containers
+   */
   private String getContainerDiagnosticInfo() {
-    return " total=" + expectedContainerCount +
-           " requested=" + numRequestedContainers.get() +
+    return " desired=" + desiredContainerCount +
+           " requested=" + numActiveRequests.get() +
            " allocated=" + numAllocatedContainers.get() +
            " completed=" + numCompletedContainers.get() +
-           " failed=" + numFailedContainers.get();
+           " failed=" + numFailedContainers.get() +
+           " started=" + startedContainers.get() +
+           " startFailed=" + startFailedContainers.get();
   }
 
   private void configureContainerMemory(RegisterApplicationMasterResponse response) {
@@ -800,8 +820,24 @@ public class HoyaAppMaster extends CompositeService
       String containerHostInfo = container.getNodeId().getHost()
                                  + ":" +
                                  container.getNodeId().getPort();
-      log.info(getContainerDiagnosticInfo());
-      if ( numAllocatedContainers.incrementAndGet() > expectedContainerCount) {
+      int allocated;
+      int desired;
+      synchronized (this) {
+        //sync on all container details. Even though these are atomic,
+        //we don't really want multiple updates happening simultaneously
+        log.info(getContainerDiagnosticInfo());
+        //dec requested count
+        if (numActiveRequests.decrementAndGet()<0) {
+          log.warn("numActiveRequests is negative -resetting");
+          numActiveRequests.set(0);
+        }
+        //inc allocated count
+        allocated = numAllocatedContainers.incrementAndGet();
+
+        //look for (race condition) where we get more back than we asked
+        desired = desiredContainerCount;
+      }
+      if ( allocated > desired) {
         log.info("Discarding surplus container {} on {}", container.getId(),
                  containerHostInfo);
         surplus.add(container);
@@ -844,8 +880,10 @@ public class HoyaAppMaster extends CompositeService
                id.getApplicationAttemptId(),
                container.getNodeId().getHost(),
                container.getNodeId().getPort());
-      containersBeingReleased.put(id, container);
-      numReleaseRequests.incrementAndGet();
+      synchronized (this) {
+        containersBeingReleased.put(id, container);
+        numReleaseRequests.incrementAndGet();
+      }
       asyncRMClient.releaseAssignedContainer(id);
     }
     log.info("Diagnostics: "+ getContainerDiagnosticInfo());
@@ -875,7 +913,11 @@ public class HoyaAppMaster extends CompositeService
         log.info("Container was queued for release");
         markCompleted = true;
         containersBeingReleased.remove(id);
-        numReleaseRequests.decrementAndGet();
+        if (numReleaseRequests.decrementAndGet()<0) {
+          log.warn("Number of release requests has gone negative -resetting (was {})",
+                   numReleaseRequests.get());
+          numReleaseRequests.set(0);
+        }
       }
       if (markCompleted) {
         //if it isn't a failure , decrement the container pool
@@ -925,8 +967,10 @@ public class HoyaAppMaster extends CompositeService
    * Handle completion of a container by decrementing the requested and alloc'd numbers
    */
   private synchronized void noteContainerCompleted() {
-    numAllocatedContainers.decrementAndGet();
-    numRequestedContainers.decrementAndGet();
+    if (numAllocatedContainers.decrementAndGet()<0) {
+      log.warn("numAllocatedContainers has gone negative -resetting");
+      numAllocatedContainers.set(0);
+    }
   }
 
   /**
@@ -944,18 +988,18 @@ public class HoyaAppMaster extends CompositeService
                                                              IOException {
 
     int workers = updated.getDesiredInstanceCount(HBaseCommands.ROLE_WORKER,
-                                                  expectedContainerCount);
+                                                  desiredContainerCount);
     log.info("HoyaAppMasterApi.flexClusterNodes({})", workers);
     
-    log.info("Flexing cluster count from {} to {}", expectedContainerCount,
+    log.info("Flexing cluster count from {} to {}", desiredContainerCount,
              workers);
-    if (expectedContainerCount == workers) {
+    if (desiredContainerCount == workers) {
       //no-op
       log.info("Flex is a no-op");
       return false;
     }
     //update the #of workers
-    expectedContainerCount = workers;
+    desiredContainerCount = workers;
     //and in the role map
     clusterDescription.setDesiredInstanceCount(HBaseCommands.ROLE_WORKER, workers);
 
@@ -973,21 +1017,26 @@ public class HoyaAppMaster extends CompositeService
       log.info("Ignoring node review operation: shutdown in progress");
     }
     
-    int expected = expectedContainerCount;
-    int req = numRequestedContainers.get();
+    int expected = desiredContainerCount;
+    int activeRequests = numActiveRequests.get();
+   
     int alloced = numAllocatedContainers.get();
-    int inuse = req + alloced;
+    int inuse = activeRequests + alloced;
     int delta = expected - inuse;
 
+    log.info( "desired={}, activeRequests={}, allocated={} in use={} delta={}",
+      expected, activeRequests, alloced, inuse, delta);
+    log.info(getContainerDiagnosticInfo());
+    
     if (delta > 0) {
-      log.info("Asking for {} more worker(s) for a total of {} (req={} alloced={})",
-               delta, expected, req, alloced);
+      log.info("Asking for {} more worker(s) for a total of {} (activeRequests={} alloced={})",
+               delta, expected, activeRequests, alloced);
       //more workers needed than we have -ask for more
-      numRequestedContainers.addAndGet(delta);
       for (int i = 0; i < delta; i++) {
         AMRMClient.ContainerRequest containerAsk =
           buildContainerRequest(HBaseCommands.ROLE_WORKER);
         log.info("Container ask is {}", containerAsk);
+        numActiveRequests.addAndGet(1);
         asyncRMClient.addContainerRequest(containerAsk);
       }
     } else if (delta < 0) {
@@ -1001,9 +1050,9 @@ public class HoyaAppMaster extends CompositeService
       }
 */
 
-      log.info("Asking for {} fewer worker(s) for a total of {}", delta, expected);
+      log.info("Asking for {} fewer worker(s) for a total of {}", -delta, expected);
       //reduce the number expected (i.e. subtract the delta)
-      numRequestedContainers.addAndGet(delta);
+//      numRequestedContainers.addAndGet(delta);
 
       //then pick some containers to kill
       int excess = -delta;
@@ -1185,7 +1234,7 @@ public class HoyaAppMaster extends CompositeService
       clusterDescription.setDesiredInstanceCount(HBaseCommands.ROLE_WORKER, workerCount);
       clusterDescription.instances = buildInstanceMap();
       Map<String, Long> stats = new HashMap<String, Long>();
-      stats.put(STAT_CONTAINERS_REQUESTED, numRequestedContainers.longValue());
+      stats.put(STAT_CONTAINERS_REQUESTED, numActiveRequests.longValue());
       stats.put(STAT_CONTAINERS_ALLOCATED, numAllocatedContainers.longValue());
       stats.put(STAT_CONTAINERS_COMPLETED, numCompletedContainers.longValue());
       stats.put(STAT_CONTAINERS_FAILED, startFailedContainers.longValue());

@@ -36,8 +36,8 @@ class TestFreezeThawClusterFromArchive extends YarnMiniClusterTestBase {
 
 
   @Test
-  public void testRestartClusterFromArchive() throws Throwable {
-    String clustername = "TestRestartClusterFromArchive"
+  public void testFreezeThawClusterFromArchive() throws Throwable {
+    String clustername = "TestFreezeThawClusterFromArchive"
     int regionServerCount = 1
     createMiniCluster(clustername, createConfiguration(), 1, true)
     switchToImageDeploy = true
@@ -54,7 +54,8 @@ class TestFreezeThawClusterFromArchive extends YarnMiniClusterTestBase {
 
     clusterActionFreeze(hoyaClient, clustername)
     describe("Restarting cluster")
-    
+    killAllRegionServers();
+
     //now let's start the cluster up again
     ServiceLauncher launcher2 = thawHoyaCluster(clustername, [], true);
     HoyaClient newCluster = launcher2.service as HoyaClient
