@@ -1518,31 +1518,24 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       throw new BadCommandArgumentsException(
         "Requested number of workers is out of range");
     }
+    Path clusterDirectory =
+      HoyaUtils.createHoyaClusterDirPath(getClusterFS(), clustername);
+    Path clusterSpecPath = locateClusterSpecification(clustername);
+    ClusterDescription clusterSpec =
+      ClusterDescription.load(getClusterFS(), clusterSpecPath);
+    //spec is loaded, just look at its state;
+    verifySpecificationValidity(clusterSpecPath, clusterSpec);
+    clusterSpec.setDesiredInstanceCount(HBaseCommands.ROLE_WORKER, workers);
+
     if (persist) {
-      Path clusterDirectory =
-        HoyaUtils.createHoyaClusterDirPath(getClusterFS(), clustername);
-      Path clusterSpecPath = locateClusterSpecification(clustername);
-      ClusterDescription clusterSpec =
-        ClusterDescription.load(getClusterFS(), clusterSpecPath);
-      //spec is loaded, just look at its state;
-      verifySpecificationValidity(clusterSpecPath, clusterSpec);
-
       //update the specification
-
-      if (clusterSpec.getDesiredInstanceCount(HBaseCommands.ROLE_WORKER,0) != workers) {
-        clusterSpec.setDesiredInstanceCount(HBaseCommands.ROLE_WORKER, workers);
-        if (!HoyaUtils.updateClusterSpecification(getClusterFS(),
-                                                  clusterDirectory,
-                                                  clusterSpecPath,
-                                                  clusterSpec)) {
-          log.warn("Failed to save new cluster size to {}", clusterSpecPath);
-        }
-        //there is no live instance, nothing to do;
-        log.info("New cluster size: {} persisted", workers);
+      if (!HoyaUtils.updateClusterSpecification(getClusterFS(),
+                                                clusterDirectory,
+                                                clusterSpecPath,
+                                                clusterSpec)) {
+        log.warn("Failed to save new cluster size to {}", clusterSpecPath);
       } else {
-        log.info(
-          "New cluster size: {} is the same as the current persisted size",
-          workers);
+        log.info("New cluster size: {} persisted", workers);
       }
     }
     int exitCode = EXIT_FALSE;
@@ -1553,7 +1546,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     if (instance != null) {
       log.info("Flexing running cluster to size {}", workers);
       HoyaAppMasterProtocol appMaster = connect(instance);
-      if (appMaster.flexNodes(workers)) {
+      if (appMaster.flexCluster(clusterSpec.toJsonString())) {
         log.info("Cluster size updated");
         exitCode = EXIT_SUCCESS;
       } else {

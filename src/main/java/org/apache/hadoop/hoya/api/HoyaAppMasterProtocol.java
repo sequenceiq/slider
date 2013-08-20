@@ -41,7 +41,14 @@ public interface HoyaAppMasterProtocol extends VersionedProtocol {
    */
   public void stopCluster() throws IOException;
 
-  public boolean flexNodes(int workers) throws IOException;
+  /**
+   * Flex the cluster. 
+   * Currently only updated role numbers are picked up 
+   * @param clusterSpec the new specification
+   * @return true if the spec changed
+   * @throws IOException IO problems
+   */
+  public boolean flexCluster(String clusterSpec) throws IOException;
 
   /**
    * Get the current cluster status

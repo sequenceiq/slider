@@ -551,7 +551,7 @@ public class HoyaAppMaster extends CompositeService
       //now ask for the workers
       int instances =
         clusterDescription.getDesiredInstanceCount(HBaseCommands.ROLE_WORKER, 0);
-      flexClusterNodes(instances);
+      flexClusterNodes(clusterDescription);
 
       //now block waiting to be told to exit the process
       waitForAMCompletionSignal();
@@ -940,8 +940,13 @@ public class HoyaAppMaster extends CompositeService
    * @return true if the number of workers changed
    * @throws IOException
    */
-  private synchronized boolean flexClusterNodes(int workers) throws
+  private synchronized boolean flexClusterNodes(ClusterDescription updated) throws
                                                              IOException {
+
+    int workers = updated.getDesiredInstanceCount(HBaseCommands.ROLE_WORKER,
+                                                  expectedContainerCount);
+    log.info("HoyaAppMasterApi.flexClusterNodes({})", workers);
+    
     log.info("Flexing cluster count from {} to {}", expectedContainerCount,
              workers);
     if (expectedContainerCount == workers) {
@@ -951,6 +956,8 @@ public class HoyaAppMaster extends CompositeService
     }
     //update the #of workers
     expectedContainerCount = workers;
+    //and in the role map
+    clusterDescription.setDesiredInstanceCount(HBaseCommands.ROLE_WORKER, workers);
 
     // ask for more containers if needed
     reviewRequestAndReleaseNodes();
@@ -1084,9 +1091,10 @@ public class HoyaAppMaster extends CompositeService
   }
 
   @Override   //HoyaAppMasterApi
-  public boolean flexNodes(int workers) throws IOException {
-    log.info("HoyaAppMasterApi.flexNodes({})", workers);
-    return flexClusterNodes(workers);
+  public boolean flexCluster(String clusterSpec) throws IOException {
+    ClusterDescription updated =
+      ClusterDescription.fromJson(clusterSpec);
+    return flexClusterNodes(updated);
   }
 
 
