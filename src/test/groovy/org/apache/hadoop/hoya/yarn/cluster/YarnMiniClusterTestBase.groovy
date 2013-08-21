@@ -883,7 +883,7 @@ implements KeysForTests, HoyaExitCodes {
       //start to add some more workers
       describe("Flexing from $workers worker(s) to $flexTarget worker")
       boolean flexed
-      flexed = 0 == hoyaClient.actionFlex(clustername, flexTarget, 0, persist)
+      flexed = 0 == hoyaClient.flex(clustername, flexTarget, 0, persist)
       waitForHoyaWorkerCount(hoyaClient, clustername, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
       if (testHBaseAfter) {
         waitForHBaseRegionServerCount(hoyaClient, clustername, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)

@@ -185,10 +185,10 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       exitCode = actionExists(clusterName);
     } else if (HoyaActions.ACTION_FLEX.equals(action)) {
       validateClusterName(clusterName);
-      exitCode = actionFlex(clusterName,
-                            serviceArgs.workers,
-                            serviceArgs.masters,
-                            serviceArgs.persist);
+      exitCode = flex(clusterName,
+                      serviceArgs.workers,
+                      serviceArgs.masters,
+                      serviceArgs.persist);
     } else if (HoyaActions.ACTION_GETCONF.equals(action)) {
       File outfile = null;
       if (serviceArgs.output != null) {
@@ -1506,10 +1506,10 @@ public class HoyaClient extends YarnClientImpl implements RunService,
    * @param masters number of masters
    * @return EXIT_SUCCESS if the #of nodes in a live cluster changed
    */
-  public int actionFlex(String clustername,
-                        int workers,
-                        int masters,
-                        boolean persist) throws
+  public int flex(String clustername,
+                  int workers,
+                  int masters,
+                  boolean persist) throws
                                          YarnException,
                                          IOException {
     verifyManagerSet();
