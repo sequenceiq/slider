@@ -235,6 +235,10 @@ public class HoyaAppMaster extends CompositeService
    */
   private final ReentrantLock AMExecutionStateLock = new ReentrantLock();
   private final Condition isAMCompleted = AMExecutionStateLock.newCondition();
+
+  /**
+   * Flag set if the AM is to be shutdown
+   */
   private final AtomicBoolean amCompletionFlag = new AtomicBoolean(false);
   private volatile boolean localProcessTerminated = false;
   private volatile boolean localProcessStarted = false;
@@ -304,7 +308,16 @@ public class HoyaAppMaster extends CompositeService
    */
   private final Map<ContainerId, ClusterNode> requestedNodes =
     new ConcurrentHashMap<ContainerId, ClusterNode>();
-  private int processExitCode;
+
+  /**
+   * Exit code set when the spawned process exits
+   */
+  private int spawnedProcessExitCode;
+  /**
+   * Flag to set if the process exit code was set before shutdown started
+   */
+  private boolean spawnedProcessExitedBeforeShutdownTriggered;
+  
   private ContainerId localContainerId;
 
 
@@ -455,7 +468,8 @@ public class HoyaAppMaster extends CompositeService
     // Register self with ResourceManager
     // This will start heartbeating to the RM
     address = HoyaUtils.getRmSchedulerAddress(asyncRMClient.getConfig());
-    log.info("Connecting to RM at {},address");
+    log.info("Connecting to RM at {},address tracking URL={}",
+             appMasterRpcPort, appMasterTrackingUrl);
     RegisterApplicationMasterResponse response = asyncRMClient
       .registerApplicationMaster(appMasterHostname,
                                  appMasterRpcPort,
@@ -562,8 +576,10 @@ public class HoyaAppMaster extends CompositeService
       
       //here see if the launch worked.
       if (localProcessTerminated) {
-        //exit faster
-        return processExitCode;
+        //exit without even starting a service
+        log.info("Exiting early as process terminated with exit code {}",
+                 spawnedProcessExitCode);
+        return spawnedProcessExitCode;
       }
 
       //now ask for the cluster nodes
@@ -576,9 +592,31 @@ public class HoyaAppMaster extends CompositeService
       finish();
     }
 
-    return success ? processExitCode : EXIT_TASK_LAUNCH_FAILURE;
+    return success ? mapProcessExitCodeToYarnExitCode(spawnedProcessExitCode)
+                   : EXIT_TASK_LAUNCH_FAILURE;
   }
 
+  /**
+   * Map an exit code from a process 
+   * @param exitCode
+   * @return an exit code
+   */
+  public int mapProcessExitCodeToYarnExitCode(int exitCode) {
+    if (!spawnedProcessExitedBeforeShutdownTriggered) {
+      //if triggered after shutdown, don't care about the exit code
+      return 0;
+    }
+    //else
+    switch (exitCode) {
+      case 0:
+        return 0;
+      case 1:
+        return EXIT_MASTER_PROCESS_FAILED;
+      default:
+        return exitCode;
+    }
+  }
+  
   /**
    * Build the configuration directory passed in or of the target FS
    * @return the file
@@ -666,7 +704,7 @@ public class HoyaAppMaster extends CompositeService
    */
   private synchronized void finish() {
     //stop the daemon & grab its exit code
-    Integer exitCode = stopHBase();
+    Integer exitCode = stopForkedProcess();
 
     // Join all launched threads
     // needed for when we time out
@@ -944,13 +982,6 @@ public class HoyaAppMaster extends CompositeService
     
 */
     reviewRequestAndReleaseNodes();
-
-/*
-    int completedContainerCount = numCompletedContainers.get();
-    if (completedContainerCount == numTotalContainers && noMaster) {
-      log.info("All containers have completed and there is no running master -stopping")
-      signalAMComplete();
-    }*/
 
   }
 
@@ -1335,7 +1366,6 @@ public class HoyaAppMaster extends CompositeService
 
     //now spawn the process -expect updates via callbacks
     hbaseMaster.spawnApplication();
-    
 
   }
 
@@ -1356,17 +1386,25 @@ public class HoyaAppMaster extends CompositeService
    */
   @Override // ApplicationEventHandler
   public void onApplicationExited(RunLongLivedApp application, int exitCode) {
-    log.info("Process has exited with exit code {}", exitCode);
     localProcessTerminated = true;
     synchronized (descriptionUpdateLock) {
-      processExitCode = exitCode;
-      masterNode.exitCode = processExitCode;
+      spawnedProcessExitCode = exitCode;
+      //did the process exit before the AM completion flag? If so
+      //a failure may be relevant
+      spawnedProcessExitedBeforeShutdownTriggered = ! amCompletionFlag.get();
+      masterNode.exitCode = spawnedProcessExitCode;
       masterNode.state = ClusterDescription.STATE_STOPPED;
     }
-    //tell the AM the cluster is complete 
-    signalAMComplete("HBase master exited with " + exitCode);
-  }
+    log.info("Process has exited with exit code {}, beforeShutdownTriggered={}",
+             exitCode,
+             spawnedProcessExitedBeforeShutdownTriggered);
 
+    //tell the AM the cluster is complete 
+    signalAMComplete("Spawned master exited with " + exitCode);
+  }
+  
+
+  
   /**
    * Get the path to hbase home
    * @return the hbase home path
@@ -1392,7 +1430,7 @@ public class HoyaAppMaster extends CompositeService
    * stop hbase process if it the running process var is not null
    * @return the hbase exit code -null if it is not running
    */
-  protected synchronized Integer stopHBase() {
+  protected synchronized Integer stopForkedProcess() {
     Integer exitCode;
     if (hbaseMaster != null) {
       hbaseMaster.stop();
