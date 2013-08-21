@@ -33,12 +33,12 @@ import org.junit.Test
  */
 @CompileStatic
 @Commons
-class TestCreateClusterRunning extends YarnMiniClusterTestBase {
+class TestCreateDuplicateLiveCluster extends YarnMiniClusterTestBase {
 
 
     @Test
     public void testCreateClusterRunning() throws Throwable {
-      String clustername = "TestCreateClusterRunning"
+      String clustername = "TestCreateDuplicateLiveCluster"
       createMiniCluster(clustername, createConfiguration(), 1, true)
 
       describe "create a masterless AM, while it is running, try to create" +
