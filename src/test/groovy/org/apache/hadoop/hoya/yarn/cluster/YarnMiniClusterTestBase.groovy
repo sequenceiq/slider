@@ -848,7 +848,7 @@ implements KeysForTests, HoyaExitCodes {
     JsonOutput.prettyPrint(json)
   }
   
-  void log(String text, ClusterDescription status) {
+  void dumpClusterDescription(String text, ClusterDescription status) {
     describe(text)
     log.info(prettyPrint(status.toJsonString()))
   }

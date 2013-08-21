@@ -52,7 +52,7 @@ class TestFreezeThawMasterlessAM extends YarnMiniClusterTestBase {
 
   @Test
   public void testFreezeThawMasterlessAM() throws Throwable {
-    String clustername = "TestStartMasterlessAM"
+    String clustername = "TestFreezeThawMasterlessAM"
     YarnConfiguration conf = createConfiguration()
     createMiniCluster(clustername, conf, 1, 1, 1, true, true)
     

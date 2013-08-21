@@ -47,7 +47,7 @@ class TestHBaseMasterOnHDFS extends YarnMiniClusterTestBase {
     
     basicHBaseClusterStartupSequence(hoyaClient)
     status = hoyaClient.getClusterStatus(clustername)
-    log("post-hbase-boot status", status)
+    dumpClusterDescription("post-hbase-boot status", status)
     //get the hbase status
     status = waitForHoyaWorkerCount(hoyaClient, clustername, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     waitForHBaseRegionServerCount(hoyaClient, clustername, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)

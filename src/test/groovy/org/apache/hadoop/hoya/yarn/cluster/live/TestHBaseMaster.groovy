@@ -56,7 +56,7 @@ class TestHBaseMaster extends YarnMiniClusterTestBase {
     
     //verify the #of region servers is as expected
     status = hoyaClient.getClusterStatus(clustername)
-    log("post-hbase-boot status", status)
+    dumpClusterDescription("post-hbase-boot status", status)
     //get the hbase status
     waitForHBaseRegionServerCount(hoyaClient, clustername, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     waitForHoyaWorkerCount(hoyaClient, clustername, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
