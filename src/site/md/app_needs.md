@@ -39,8 +39,12 @@ can continue
 * Handle kill as a normal shutdown mechanism.
 
 * Support multiple instances of the application running in the same cluster,
-with processes from the same or different application instances sharing
+  with processes from different application instances sharing
 the same servers.
+
+* Operate correctly when more than one role instance in the application is
+deployed on the same physical host. (If YARN adds anti-affinity options in 
+container requests this will no longer be a requirement)
 
 * Dynamically allocate any RPC or web ports -such as supporting 0 as the number
 of the port to listen on  in configuration options.
@@ -65,6 +69,8 @@ location such as `/etc`.
 (which triggers a container release) as a failure -and reacts to it by restarting
 the container.
 
+
+
 ## MUST NOT
 
 * Require human intervention at startup or termination.
@@ -87,7 +93,7 @@ If not, custom parsers/configuration generators will be required.
 
 * Provide a way for Hoya to get list of nodes in cluster and status. This will let Hoya detect failed worker nodes and react to it.
 
-* If a graceful decommissioning is preferred, have an RPC method that a Hoya provider can call to invoke this.
+* FUTURE: If a graceful decommissioning is preferred, have an RPC method that a Hoya provider can call to invoke this.
 
 * Be location aware from startup. Example: worker nodes to be allocated tables to serve based on which tables are
 stored locally/in-rack, rather than just randomly. This will accelerate startup time.
@@ -99,21 +105,22 @@ stored locally/in-rack, rather than just randomly. This will accelerate startup 
 
 * Support cluster size flexing: the dynamic addition and removal of nodes.
 
-* Ideally: report on load/cost of decommissioning.
-  E.g amount of data; app load. 
 
 * Support a management platform such as Apache Ambari -so that the operational
 state of a Hoya application can be monitored.
 
 ## MAY
 
-* Require a process that will run at a fixed location and whose termination
+* Include a single process that will run at a fixed location and whose termination
 can trigger application termination. Such a process will be executed
 in the same container as the Hoya AM, and so known before all other containers
 are requested. If a live cluster is unable to handle restart/migration of 
 such a process, then the Hoya application will be unable to handle
 Hoya AM restarts.
 
+* Ideally: report on load/cost of decommissioning.
+  E.g amount of data; app load. 
+  
 
 ## MAY NOT
 

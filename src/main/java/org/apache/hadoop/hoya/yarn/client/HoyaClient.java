@@ -253,6 +253,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                               + " :" +
                               findAllLiveInstances(null, clustername).get(0));
     }
+    log.info("Destroyed cluster {}", clustername);
     return EXIT_SUCCESS;
   }
 
@@ -1323,7 +1324,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     String address = host + ":" + port;
     if (host == null || 0 == port) {
       throw new HoyaException(EXIT_CONNECTIVTY_PROBLEM,
-                              "Hoya instance " + app.getName() + " isn't" +
+                              "Hoya YARN instance " + app.getName() + " isn't" +
                               " providing a valid address for the" +
                               " Hoya RPC protocol: " + address);
     }

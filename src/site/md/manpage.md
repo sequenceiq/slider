@@ -163,6 +163,22 @@ for the Hoya Cluster itself to start running. It can still take time after this 
 
 When stopping a cluster -the time for the YARN application to enter a finished state.
 
+### --workerinfoport port 
+
+port for the worker's web UI
+
+### --masterinfoport port 
+
+port for the masters's web UI
+
+### --masterheap number
+
+worker heap size
+
+### --workerheap number
+
+master heap size
+
 ### --amqueue queue
 
 Application Manager Queue Name. Applicable (and optional) in cluster create and start operations. Default value: "default"

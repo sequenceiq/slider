@@ -54,6 +54,7 @@ public class CommonArgs implements HoyaActions {
   public static final String ARG_CONFDIR = "--confdir";
   public static final String ARG_DEBUG = "--debug";
   public static final String ARG_FILESYSTEM = "--fs";
+  public static final String ARG_FILESYSTEM_LONG = "--filesystem";
   public static final String ARG_GENERATED_CONFDIR = "--generated_confdir";
   public static final String ARG_HBASE_HOME = "--hbasehome";
   public static final String ARG_HBASE_ZKPATH = "--hbasezkpath";
@@ -137,7 +138,7 @@ public class CommonArgs implements HoyaActions {
              converter = PathArgumentConverter.class)
   public Path confdir;
 
-  @Parameter(names = ARG_FILESYSTEM, description = "Filesystem URI",
+  @Parameter(names = {ARG_FILESYSTEM, ARG_FILESYSTEM_LONG}, description = "Filesystem URI",
              converter = URIArgumentConverter.class)
   public URI filesystemURL;
 

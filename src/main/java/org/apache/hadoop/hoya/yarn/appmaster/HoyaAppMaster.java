@@ -399,16 +399,6 @@ public class HoyaAppMaster extends CompositeService
     if (0 == clusterDescription.createTime) {
       clusterDescription.createTime = clusterDescription.startTime;
     }
-/*
-    clusterDescription.hbaseHome = serviceArgs.hbasehome;
-    clusterDescription.imagePath = serviceArgs.image;
-    clusterDescription.xHBaseMasterCommand = serviceArgs.xHBaseMasterCommand;
-    clusterDescription.masterInfoPort = serviceArgs.masterInfoPort;
-    clusterDescription.masters = serviceArgs.masters;
-    clusterDescription.workerHeap = serviceArgs.workerHeap;
-    clusterDescription.masterHeap = serviceArgs.masterHeap;
-*/
-
     YarnConfiguration conf = new YarnConfiguration(getConfig());
     InetSocketAddress address = YarnUtils.getRmSchedulerAddress(conf);
     log.info("RM is at {}", address);
