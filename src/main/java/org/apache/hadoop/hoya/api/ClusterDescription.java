@@ -32,6 +32,7 @@ import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.SerializationConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -316,6 +317,7 @@ public class ClusterDescription {
   public static ClusterDescription fromJson(String json)
     throws IOException, JsonParseException, JsonMappingException {
     ObjectMapper mapper = new ObjectMapper();
+    mapper.configure(SerializationConfig.Feature.INDENT_OUTPUT, true);
     try {
       return mapper.readValue(json, ClusterDescription.class);
     } catch (IOException e) {
