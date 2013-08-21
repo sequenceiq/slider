@@ -30,7 +30,6 @@ import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
-import org.apache.hadoop.hoya.tools.YarnUtils;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 
 import java.io.IOException;
@@ -151,7 +150,7 @@ public class HBaseClientProvider extends HBaseClusterCore implements
 
     log.debug("Saving the config to {}", sitePath);
     Map<String, LocalResource> confResources;
-    confResources = YarnUtils.submitDirectory(clusterFS,
+    confResources = HoyaUtils.submitDirectory(clusterFS,
                                               generatedConfDirPath,
                                               HoyaKeys.PROPAGATED_CONF_DIR_NAME);
     return confResources;

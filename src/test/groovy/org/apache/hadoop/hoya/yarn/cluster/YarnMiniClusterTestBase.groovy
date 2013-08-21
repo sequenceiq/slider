@@ -43,7 +43,6 @@ import org.apache.hadoop.hoya.providers.hbase.HBaseCommands
 import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.tools.HoyaUtils
-import org.apache.hadoop.hoya.tools.YarnUtils
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hadoop.hoya.yarn.KeysForTests
@@ -541,7 +540,7 @@ implements KeysForTests, HoyaExitCodes {
 
 
   public void logReport(ApplicationReport report) {
-    log.info(YarnUtils.reportToString(report))
+    log.info(HoyaUtils.reportToString(report))
   }
 
 

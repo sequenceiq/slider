@@ -95,4 +95,10 @@ public interface RoleKeys {
    */
   String JVM_OPTS = "jvm.opts";
 
+
+  /**
+   * All keys w/ env. are converted into env variables and passed down
+   */
+  String ENV_PREFIX = "env.";
+  
 }

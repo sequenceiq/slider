@@ -37,7 +37,6 @@ import org.apache.hadoop.hoya.exec.ApplicationEventHandler;
 import org.apache.hadoop.hoya.exec.RunLongLivedApp;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
-import org.apache.hadoop.hoya.tools.YarnUtils;
 import org.apache.hadoop.hoya.yarn.CommonArgs;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
 import org.apache.hadoop.ipc.ProtocolSignature;
@@ -327,7 +326,7 @@ public class HoyaAppMaster extends CompositeService
     String rmAddress = serviceArgs.rmAddress;
     if (rmAddress != null) {
       log.debug("Setting rm address from the command line: {}", rmAddress);
-      YarnUtils.setRmSchedulerAddress(conf, rmAddress);
+      HoyaUtils.setRmSchedulerAddress(conf, rmAddress);
     }
 
     super.serviceInit(conf);
@@ -400,7 +399,7 @@ public class HoyaAppMaster extends CompositeService
       clusterDescription.createTime = clusterDescription.startTime;
     }
     YarnConfiguration conf = new YarnConfiguration(getConfig());
-    InetSocketAddress address = YarnUtils.getRmSchedulerAddress(conf);
+    InetSocketAddress address = HoyaUtils.getRmSchedulerAddress(conf);
     log.info("RM is at {}", address);
     rpc = YarnRPC.create(conf);
 
@@ -444,7 +443,8 @@ public class HoyaAppMaster extends CompositeService
     // work out a port for the AM
     if (0 == clusterDescription.masterInfoPort) {
       int port =
-        YarnUtils.findFreePort(HBaseConfigFileOptions.DEFAULT_MASTER_INFO_PORT, 128);
+        HoyaUtils.findFreePort(HBaseConfigFileOptions.DEFAULT_MASTER_INFO_PORT,
+                               128);
       //need to get this to the app
       clusterDescription.masterInfoPort = port;
     }
@@ -454,7 +454,7 @@ public class HoyaAppMaster extends CompositeService
 
     // Register self with ResourceManager
     // This will start heartbeating to the RM
-    address = YarnUtils.getRmSchedulerAddress(asyncRMClient.getConfig());
+    address = HoyaUtils.getRmSchedulerAddress(asyncRMClient.getConfig());
     log.info("Connecting to RM at {},address");
     RegisterApplicationMasterResponse response = asyncRMClient
       .registerApplicationMaster(appMasterHostname,
@@ -539,6 +539,17 @@ public class HoyaAppMaster extends CompositeService
     } else {
       addLaunchedContainer(localContainerId, masterNode);
       Map<String, String> env = new HashMap<String, String>();
+      //now look at settings of Hadoop Auth, to avoid problem with
+      String fileLocation = System.getenv(UserGroupInformation.HADOOP_TOKEN_FILE_LOCATION);
+      if (fileLocation != null) {
+        File tokenFile= new File(fileLocation);
+        if (!tokenFile.exists()) {
+          log.warn("Token file {} specified in {} not found",tokenFile,
+                   UserGroupInformation.HADOOP_TOKEN_FILE_LOCATION);
+        }
+      }
+
+
       env.put("HBASE_LOG_DIR", buildHBaseLogdir());
       launchHBaseServer(clusterDescription,
                         launchSequence,

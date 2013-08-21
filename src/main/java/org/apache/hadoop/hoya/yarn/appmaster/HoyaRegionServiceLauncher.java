@@ -25,7 +25,6 @@ import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.ClusterNode;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
-import org.apache.hadoop.hoya.tools.YarnUtils;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
@@ -119,7 +118,7 @@ public class HoyaRegionServiceLauncher implements Runnable {
       Path generatedConfPath = new Path(owner.getDFSConfDir());
       Map<String, LocalResource> confResources;
       FileSystem fs = owner.getClusterFS();
-      confResources = YarnUtils.submitDirectory(fs,
+      confResources = HoyaUtils.submitDirectory(fs,
                                                 generatedConfPath,
                                                 HoyaKeys.PROPAGATED_CONF_DIR_NAME);
       localResources.putAll(confResources);
@@ -164,7 +163,7 @@ public class HoyaRegionServiceLauncher implements Runnable {
 
         String key = entry.getKey();
         LocalResource val = entry.getValue();
-        String envElt = key + "=" + YarnUtils.stringify(val.getResource());
+        String envElt = key + "=" + HoyaUtils.stringify(val.getResource());
         nodeEnv.add(envElt);
         log.info(envElt);
       }

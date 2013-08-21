@@ -43,7 +43,6 @@ import org.apache.hadoop.hoya.providers.hbase.HBaseCommands;
 import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions;
 import org.apache.hadoop.hoya.tools.Duration;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
-import org.apache.hadoop.hoya.tools.YarnUtils;
 import org.apache.hadoop.hoya.yarn.CommonArgs;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
 import org.apache.hadoop.hoya.yarn.appmaster.HoyaMasterServiceArgs;
@@ -480,8 +479,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
 
   public void verifyManagerSet() throws BadCommandArgumentsException {
-    InetSocketAddress rmAddr = YarnUtils.getRmAddress(getConfig());
-    if (!YarnUtils.isAddressDefined(rmAddr)) {
+    InetSocketAddress rmAddr = HoyaUtils.getRmAddress(getConfig());
+    if (!HoyaUtils.isAddressDefined(rmAddr)) {
       throw new BadCommandArgumentsException(
         "No valid Resource Manager address provided in the argument "
         + CommonArgs.ARG_MANAGER
@@ -626,7 +625,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     if (log.isDebugEnabled()) {
       for (String key : localResources.keySet()) {
         LocalResource val = localResources.get(key);
-        log.debug("{}={}", key, YarnUtils.stringify(val.getResource()));
+        log.debug("{}={}", key, HoyaUtils.stringify(val.getResource()));
       }
     }
 
@@ -658,9 +657,9 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     String rmAddr = serviceArgs.rmAddress;
     //spec out the RM address
-    if (isUnset(rmAddr) && YarnUtils.isRmSchedulerAddressDefined(config)) {
+    if (isUnset(rmAddr) && HoyaUtils.isRmSchedulerAddressDefined(config)) {
       rmAddr =
-        NetUtils.getHostPortString(YarnUtils.getRmSchedulerAddress(config));
+        NetUtils.getHostPortString(HoyaUtils.getRmSchedulerAddress(config));
     }
 
     //build up the args list, intially as anyting
@@ -742,7 +741,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                                  YarnApplicationState.ACCEPTED);
 
     //may have failed, so check that
-    if (YarnUtils.hasAppFinished(report)) {
+    if (HoyaUtils.hasAppFinished(report)) {
       exitCode = buildExitCode(appId, report);
     } else {
       //exit unless there is a wait
@@ -882,7 +881,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     // Set the type of resource - file or archive
     // archives are untarred at destination
     // we don't need the jar file to be untarred for now
-    LocalResource resource = YarnUtils.createAmResource(getClusterFS(),
+    LocalResource resource = HoyaUtils.createAmResource(getClusterFS(),
                                                         destPath,
                                                         LocalResourceType.FILE);
     return resource;
