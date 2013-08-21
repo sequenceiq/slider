@@ -23,6 +23,7 @@ import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.api.RoleKeys
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
 import org.apache.hadoop.hoya.providers.ProviderUtils
+import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.junit.Assert
@@ -183,28 +184,79 @@ class TestCommonArgParsing {
     }
   }
 
-  @Test
-  public void testRoleOptionTriples() throws Throwable {
+  /**
+   * Create some role-opt client args, so that multiple tests can use it 
+   * @return the args
+   */
+  public ClientArgs createRoleOptClientArgs() {
     ClientArgs clientArgs = createClientArgs([
         HoyaActions.ACTION_CREATE, 'cluster1',
         CommonArgs.ARG_ROLE, "master", "1",
+        CommonArgs.ARG_ROLEOPT, "master", "cheese", "swiss",
+        CommonArgs.ARG_ROLEOPT, "master", "env.CHEESE", "cheddar",
+        CommonArgs.ARG_ROLEOPT, "master", RoleKeys.YARN_CORES, 3,
+
         CommonArgs.ARG_ROLE, "worker", "2",
-        CommonArgs.ARG_ROLEOPT, "worker", RoleKeys.YARN_CORES,2,
-        CommonArgs.ARG_ROLEOPT, "worker", RoleKeys.JVM_HEAP,"65536",
-        CommonArgs.ARG_ROLEOPT, "master", RoleKeys.YARN_CORES,3,
+        CommonArgs.ARG_ROLEOPT, "worker", RoleKeys.YARN_CORES, 2,
+        CommonArgs.ARG_ROLEOPT, "worker", RoleKeys.JVM_HEAP, "65536",
+        CommonArgs.ARG_ROLEOPT, "worker", "env.CHEESE", "stilton",
     ])
+    return clientArgs
+  }
+
+  @Test
+  public void testRoleOptionParse() throws Throwable {
+    ClientArgs clientArgs = createRoleOptClientArgs()
     
     def tripleMaps = clientArgs.roleOptionMap
     def workerOpts = tripleMaps["worker"];
-    assert workerOpts.size() == 2
+    assert workerOpts.size() == 3
     assert workerOpts[RoleKeys.YARN_CORES] == "2"
     assert workerOpts[RoleKeys.JVM_HEAP] == "65536"
     
     def masterOpts = tripleMaps["master"];
-    assert masterOpts.size() == 1
+    assert masterOpts.size() == 3
     assert masterOpts[RoleKeys.YARN_CORES] == "3"
 
+    def clusterRoleMap = []
+  }
+
+  @Test
+  public void testRoleOptionsMerge() throws Throwable {
+    ClientArgs clientArgs = createRoleOptClientArgs()
     
+    def roleOpts = clientArgs.roleOptionMap
+
+    def clusterRoleMap = [
+        "master":["cheese":"french"],
+        "worker":["env.CHEESE":"french"]
+    ];
+    HoyaUtils.applyCommandLineOptsToRoleMap(clusterRoleMap, roleOpts);
+
+    def masterOpts = clusterRoleMap["master"];
+    assert masterOpts["cheese"] == "swiss"
+
+    def workerOpts = clusterRoleMap["worker"];
+    assert workerOpts["env.CHEESE"] == "stilton"
+  }
+
+  @Test
+  public void testEnvVariableApply() throws Throwable {
+    ClientArgs clientArgs = createRoleOptClientArgs()
+    
+    def roleOpts = clientArgs.roleOptionMap
+    def clusterRoleMap = [
+        "master": ["cheese": "french"],
+        "worker": ["env.CHEESE": "french"]
+    ];
+    HoyaUtils.applyCommandLineOptsToRoleMap(clusterRoleMap, roleOpts);
+
+    def workerOpts = clusterRoleMap["worker"];
+    assert workerOpts["env.CHEESE"] == "stilton";
+
+    Map<String, String> envmap = HoyaUtils.buildEnvMap(workerOpts);
+    assert envmap["CHEESE"] == "stilton";
+
   }
 
 

@@ -407,9 +407,9 @@ public class CommonArgs implements HoyaActions {
    * Create a map from a tuple list like ['worker','2','master','1] into a map
    * ['worker':'2',"master":'1'];
    * Duplicate entries also trigger errors
-   * @param description
-   * @param list
-   * @return
+   * @param description description for errors
+   * @param list list to conver to tuples
+   * @return the map of key value pairs -unordered.
    * @throws BadCommandArgumentsException odd #of arguments received
    */
   public Map<String, String> convertTupleListToMap(String description,

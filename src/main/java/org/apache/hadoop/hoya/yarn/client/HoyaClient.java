@@ -98,7 +98,6 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                                           HoyaExitCodes {
   protected static final Logger log = LoggerFactory.getLogger(HoyaClient.class);
 
-  // App master priority
   public static final int ACCEPT_TIME = 60000;
   public static final String E_CLUSTER_RUNNING = "cluster already running";
   public static final String E_ALREADY_EXISTS = "already exists";
@@ -303,15 +302,13 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     Map<String, Map<String, String>> clusterRoleMap = new HashMap<String, Map<String, String>>();
 
-    //TODO: delete
-    
 
     //build the role map from default; set the instances
     for (String roleName : supportedRoles) {
       Map<String, String> clusterRole =
         provider.createDefaultClusterRole(roleName);
       String instanceCount = roleMap.get(roleName);
-      if (instanceCount==null) {
+      if (instanceCount == null) {
         instanceCount = "0";
       }
       //this is here in case we want to extract from the provider
@@ -323,6 +320,12 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       clusterRole.put(RoleKeys.ROLE_INSTANCES, instanceCount);
       clusterRoleMap.put(roleName,clusterRole);
     }
+    
+    //now enhance the role option map with all command line options 
+    Map<String, Map<String, String>> commandOptions =
+      serviceArgs.getRoleOptionMap();
+    HoyaUtils.applyCommandLineOptsToRoleMap(clusterRoleMap, commandOptions);
+
     clusterSpec.roleopts = clusterRoleMap;
 
     //TODO: move from command line to full role values
@@ -349,7 +352,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     }
 
     //set up the master
-    clusterSpec.setDesiredInstanceCount(HBaseCommands.ROLE_MASTER, 1);
+    //clusterSpec.setDesiredInstanceCount(HBaseCommands.ROLE_MASTER, 1);
 
     clusterSpec.setRoleOpt(HBaseCommands.ROLE_MASTER,
                            RoleKeys.YARN_MEMORY,
@@ -361,7 +364,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     clusterSpec.setRoleOpt(HBaseCommands.ROLE_MASTER,
                            RoleKeys.YARN_CORES,
                            RoleKeys.DEF_YARN_CORES);
-    if (serviceArgs.masterInfoPort>=0) {
+    if (serviceArgs.masterInfoPort >= 0) {
       clusterSpec.setRoleOpt(HBaseCommands.ROLE_MASTER,
                              RoleKeys.APP_INFOPORT,
                              serviceArgs.masterInfoPort);
@@ -377,7 +380,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
         "No more than one master is currently supported");
     }
     clusterSpec.masters = masters;
-    clusterSpec.instances.put(HBaseCommands.ROLE_MASTER,masters);
+    clusterSpec.instances.put(HBaseCommands.ROLE_MASTER, masters);
     clusterSpec.masterHeap = masterHeap;
     clusterSpec.masterInfoPort = masterInfoPort;
     clusterSpec.workerInfoPort = workerInfoPort;
@@ -527,6 +530,15 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       }
     }
 
+    //do a quick dump of the values first
+    if (log.isDebugEnabled()) {
+      Map<String, Map<String, String>> roleopts = clusterSpec.roleopts;
+      for (Map.Entry<String, Map<String, String>> role : roleopts.entrySet()) {
+        log.debug("Role: " + role.getKey());
+        log.debug(HoyaUtils.stringifyMap(role.getValue()));
+      }
+    }
+    
     YarnClientApplication application = createApplication();
     ApplicationSubmissionContext appContext =
       application.getApplicationSubmissionContext();
@@ -560,8 +572,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       //the assumption here is that minimr cluster => this is a test run
       //and the classpath can look after itself
 
-      log.info(
-        "Copying JARs from local filesystem and add to local environment");
+      log.info("Copying JARs from local filesystem");
       // Copy the application master jar to the filesystem
       // Create a local resource to point to the destination jar path 
       String bindir = "";
@@ -599,14 +610,6 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     //build up the configuration -and have it add any other provider
     //specific artifacts to the local resource map
 
-    //do a quick dump of the values first
-    if (log.isDebugEnabled()) {
-      Map<String, Map<String, String>> roleopts = clusterSpec.roleopts;
-      for (Map.Entry<String, Map<String, String>> role: roleopts.entrySet()) {
-        log.debug("Role: " + role.getKey());
-        log.debug(HoyaUtils.stringifyMap(role.getValue()));
-      }
-    }
     
     Configuration config = getConfig();
     Map<String, LocalResource> confResources;
@@ -649,10 +652,13 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     // Set local resource info into app master container launch context
     amContainer.setLocalResources(localResources);
+    
+    
+    //build the environment
     Map<String, String> env = new HashMap<String, String>();
-
+    env = HoyaUtils.buildEnvMap(clusterSpec.getRole("master"));
     env.put("CLASSPATH", buildClasspath());
-
+    log.debug("Environment Map:\n{}",HoyaUtils.stringifyMap(env));
     amContainer.setEnvironment(env);
 
     String rmAddr = serviceArgs.rmAddress;

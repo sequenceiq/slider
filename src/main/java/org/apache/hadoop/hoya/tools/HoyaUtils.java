@@ -26,9 +26,11 @@ import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.MissingArgException;
 import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions;
+import org.apache.hadoop.hoya.yarn.client.HoyaClient;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.util.ExitUtil;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
@@ -473,15 +475,26 @@ public final class HoyaUtils {
     return builder.toString();
   }
 
-  
-  public static Map<String, String>  mergeMap(Map<String, String> dest,
-           Map<String, String> src) {
-    for (Map.Entry<String, String> entry: src.entrySet()) {
-      dest.put(entry.getKey(), entry.getValue());
+  /**
+   * Merge in one map to another -all entries in the second map are
+   * merged into the first -overwriting any duplicate keys.
+   * @param first first map -the updated one.
+   * @param second the map that is merged in
+   * @return the first map
+   */
+  public static Map<String, String>  mergeMap(Map<String, String> first,
+           Map<String, String> second) {
+    for (Map.Entry<String, String> entry: second.entrySet()) {
+      first.put(entry.getKey(), entry.getValue());
     }
-    return dest;
+    return first;
   }
 
+  /**
+   * Convert a map to a multi-line string for printing
+   * @param map map to stringify
+   * @return a string representation of the map
+   */
   public static String stringifyMap(Map<String, String> map) {
     StringBuilder builder =new StringBuilder();
     for (Map.Entry<String, String> entry: map.entrySet()) {
@@ -706,6 +719,50 @@ public final class HoyaUtils {
     }
   }
 
+  /**
+   * Build the environment map from a role option map, finding all entries
+   * beginning with "env.", adding them to a map of (prefix-removed)
+   * env vars
+   * @param roleOpts role options. This can be null, meaning the
+   * role is undefined
+   * @return a possibly empty map of environment variables.
+   */
+  public static Map<String, String> buildEnvMap(Map<String, String> roleOpts) {
+    Map<String, String> env = new HashMap<String, String>();
+    if (roleOpts != null) {
+      for (Map.Entry<String, String> entry:roleOpts.entrySet()) {
+        String key = entry.getKey();
+        if (key.startsWith(RoleKeys.ENV_PREFIX)) {
+          String envName = key.substring(RoleKeys.ENV_PREFIX.length());
+          if (!envName.isEmpty()) {
+            env.put(envName,entry.getValue());
+          }
+        }
+      }
+    }
+    return env;
+  }
+
+  /**
+   * Apply a set of command line options to a cluster role map
+   * @param clusterRoleMap cluster role map to merge onto
+   * @param commandOptions command opts
+   */
+  public static void applyCommandLineOptsToRoleMap(Map<String, Map<String, String>> clusterRoleMap,
+                                                   Map<String, Map<String, String>> commandOptions) {
+    for (String key: commandOptions.keySet()) {
+      Map<String, String> optionMap = commandOptions.get(key);
+      Map<String, String> existingMap = clusterRoleMap.get(key);
+      if (existingMap == null) {
+        existingMap = new HashMap<String, String>();
+      }
+      log.debug("Overwriting role options with command line values {}",
+                stringifyMap(optionMap));
+      mergeMap(existingMap, optionMap);
+      //set or overwrite the role
+      clusterRoleMap.put(key, existingMap);
+    }
+  }
 
   /**
    * This wrapps ApplicationReports and generates a string version

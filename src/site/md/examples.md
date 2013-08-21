@@ -65,42 +65,51 @@ copy to local
 
 NN up on http://ubuntu:50070/dfshealth.jsp
 RM yarn-daemon.sh --config $HADOOP_CONF_DIR start nodemanager
-zookeeper-3.4.5/bin/zkServer.sh start
+
+    zookeeper-3.4.5/bin/zkServer.sh start
 
 
-shutdown
+    # shutdown
+    ./zookeeper-3.4.5/bin/zkServer.sh stop
 
-./zookeeper-3.4.5/bin/zkServer.sh stop
 
-
+    # FS health
+    
  
 
  ## Create a Hoya Cluster
  
  
-    java -jar hoya/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya create cl1 --workers 1 --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000 --zkhosts localhost --image hdfs://ubuntu:9000/hbase.tar
+    java -jar target/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya create cl1 --workers 1 --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000 --zkhosts localhost --image hdfs://ubuntu:9000/hbase.tar
     
     # create the cluster
-    java -jar hoya/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya\
-    create cl1 --workers 1\
-    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000 --zkhosts localhost \
-    --image hdfs://ubuntu:9000/hbase.tar --confdir file:///home/stevel/conf/hbase/ \
-    --masterinfoport 8040 --masterheap 128 \
-    --workerinfoport 8041 --workerheap 128
+    java -jar target/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya\
+      create cl1 --workers 1\
+      --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000 --zkhosts localhost \
+      --image hdfs://ubuntu:9000/hbase.tar \
+      --confdir file:////Users/stevel/Projects/Hortonworks/Projects/hoya/src/test/configs/ubuntu/hbase \
+      --masterinfoport 8080 --masterheap 128 \
+      --roleopt master env.MALLOC_ARENA_MAX 4 \
+      --workerinfoport 8081 --workerheap 128 
 
     # freeze the cluster
-    java -jar hoya/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya\
+    java -jar target/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya\
     freeze cl1 \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000
 
     # thaw a cluster
-    java -jar hoya/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya\
+    java -jar target/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya \
     thaw cl1 \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000
 
     # destroy the cluster
-    java -jar hoya/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya\
+    java -jar target/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya\
     destroy cl1 \
+    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000
+
+    # list clusters
+    java -jar target/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya\
+    list cl1 \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000
     
     
