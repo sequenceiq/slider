@@ -41,6 +41,7 @@ public interface LauncherExitCodes {
    * Exit code when a client requested service termination: {@value}
    */
   int EXIT_CLIENT_INITIATED_SHUTDOWN  =  1;
+  
   /**
    * Exit code when targets could not be launched: {@value}
    */

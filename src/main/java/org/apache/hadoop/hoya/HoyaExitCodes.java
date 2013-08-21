@@ -65,5 +65,9 @@ public interface HoyaExitCodes extends LauncherExitCodes {
    */
   int EXIT_BAD_CLUSTER_STATE = 57;
 
+  /**
+   * A spawned master process failed 
+   */
+  int EXIT_MASTER_PROCESS_FAILED = 58;
 
 }
