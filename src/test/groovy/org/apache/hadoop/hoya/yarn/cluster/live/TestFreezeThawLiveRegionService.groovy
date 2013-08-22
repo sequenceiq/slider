@@ -57,7 +57,7 @@ class TestFreezeThawLiveRegionService extends YarnMiniClusterTestBase {
     killAllRegionServers();
     //now let's start the cluster up again
     ServiceLauncher launcher2 = thawHoyaCluster(clustername, [], true);
-    HoyaClient newCluster = launcher.getService() as HoyaClient
+    HoyaClient newCluster = launcher.service as HoyaClient
     basicHBaseClusterStartupSequence(newCluster)
 
     //get the hbase status
