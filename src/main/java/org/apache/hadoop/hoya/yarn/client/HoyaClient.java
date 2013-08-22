@@ -302,7 +302,6 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     Map<String, Map<String, String>> clusterRoleMap = new HashMap<String, Map<String, String>>();
 
-
     //build the role map from default; set the instances
     for (String roleName : supportedRoles) {
       Map<String, String> clusterRole =
@@ -534,7 +533,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     if (log.isDebugEnabled()) {
       Map<String, Map<String, String>> roleopts = clusterSpec.roleopts;
       for (Map.Entry<String, Map<String, String>> role : roleopts.entrySet()) {
-        log.debug("Role: " + role.getKey());
+        log.debug("Role: {}", role.getKey());
         log.debug(HoyaUtils.stringifyMap(role.getValue()));
       }
     }
@@ -583,10 +582,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                                         "hoya.jar"));
       //add lib classes that don't come automatically with YARN AM classpath
       String libdir = bindir + "lib/";
-      localResources.put("groovayll.jar", submitJarWithClass(GroovyObject.class,
-                                                             tempPath,
-                                                             libdir,
-                                                             "groovayll.jar"));
+
 
       localResources.put("jcommander.jar", submitJarWithClass(JCommander.class,
                                                               tempPath,
