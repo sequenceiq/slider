@@ -67,10 +67,22 @@ public interface HoyaKeys {
   int MIN_HEAP_SIZE = 0;
   String HBASE_LOG_DIR = "HBASE_LOG_DIR";
 
+  /**
+   * XML resource listing the standard Hoya providers
+   * {@value}
+   */
   String HOYA_XML ="org/apache/hadoop/hoya/hoya.xml";
 
+  /**
+   * pattern to identify a hoya provider
+   * {@value}
+   */
   String HOYA_PROVIDER_KEY = "hoya.provider.%s";
 
+  /**
+   * conf option set to point to where the config came from
+   * {@value}
+   */
   String KEY_HOYA_TEMPLATE_ORIGIN = "hoya.template.origin";
-  
+
 }

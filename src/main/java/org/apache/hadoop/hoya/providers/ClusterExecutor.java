@@ -18,5 +18,22 @@
 
 package org.apache.hadoop.hoya.providers;
 
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
+
+import java.util.Map;
+
 public interface ClusterExecutor extends ProviderCore {
+
+  /**
+   * Set up the entire container launch context
+   * @param ctx
+   * @param fs
+   * @param generatedConfPath
+   * @param role
+   */
+  void buildContainerLaunchContext(ContainerLaunchContext ctx,
+                                   FileSystem fs,
+                                   Path generatedConfPath, String role);
 }

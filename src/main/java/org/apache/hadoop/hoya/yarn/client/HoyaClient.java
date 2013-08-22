@@ -21,7 +21,6 @@ package org.apache.hadoop.hoya.yarn.client;
 import com.beust.jcommander.JCommander;
 import com.google.common.annotations.VisibleForTesting;
 import groovy.json.JsonOutput;
-import groovy.lang.GroovyObject;
 import groovy.transform.CompileStatic;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileAlreadyExistsException;
@@ -257,8 +256,10 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
   private ClientProvider getHadoopClusterBuilder(ClusterDescription clusterSpec)
     throws HoyaException {
+    String type = HoyaProviderFactory.HBASE;
+    
     HoyaProviderFactory factory =
-      HoyaProviderFactory.createHoyaProviderFactory("hbase");
+      HoyaProviderFactory.createHoyaProviderFactory(type);
     return factory.createBuilder();
   }
 
@@ -325,13 +326,12 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       serviceArgs.getRoleOptionMap();
     HoyaUtils.applyCommandLineOptsToRoleMap(clusterRoleMap, commandOptions);
 
-    clusterSpec.roleopts = clusterRoleMap;
+    clusterSpec.roles = clusterRoleMap;
 
     //TODO: move from command line to full role values
     int workers = serviceArgs.workers;
     int workerHeap = serviceArgs.workerHeap;
     validateNodeAndHeapValues("worker", workers, workerHeap);
-    clusterSpec.workers = workers;
     clusterSpec.workerHeap = workerHeap;
     clusterSpec.setDesiredInstanceCount(HBaseCommands.ROLE_WORKER, workers);
 
@@ -455,9 +455,6 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     log.debug("hBaseRootPath={}", hBaseRootPath);
     clusterSpec.hbaseDataPath = hBaseRootPath.toUri().toString();
 
-    //explicit hbase command set
-    clusterSpec.xHBaseMasterCommand = serviceArgs.xHBaseMasterCommand;
-
     //check for debug mode
     if (serviceArgs.xTest) {
       clusterSpec.setFlag(CommonArgs.ARG_X_TEST, true);
@@ -531,7 +528,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     //do a quick dump of the values first
     if (log.isDebugEnabled()) {
-      Map<String, Map<String, String>> roleopts = clusterSpec.roleopts;
+      Map<String, Map<String, String>> roleopts = clusterSpec.roles;
       for (Map.Entry<String, Map<String, String>> role : roleopts.entrySet()) {
         log.debug("Role: {}", role.getKey());
         log.debug(HoyaUtils.stringifyMap(role.getValue()));
@@ -651,8 +648,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     
     
     //build the environment
-    Map<String, String> env = new HashMap<String, String>();
-    env = HoyaUtils.buildEnvMap(clusterSpec.getRole("master"));
+    Map<String, String> env =
+      HoyaUtils.buildEnvMap(clusterSpec.getOrAddRole("master"));
     env.put("CLASSPATH", buildClasspath());
     log.debug("Environment Map:\n{}",HoyaUtils.stringifyMap(env));
     amContainer.setEnvironment(env);

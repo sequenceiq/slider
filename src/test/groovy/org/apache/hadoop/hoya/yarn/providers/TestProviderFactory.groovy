@@ -33,20 +33,20 @@ class TestProviderFactory {
   }
   @Test
   public void testLoadHBaseProvider() throws Throwable {
-    HoyaProviderFactory factory = HoyaProviderFactory.createHoyaProviderFactory(HBaseProviderFactory.APPLICATION_TYPE);
+    HoyaProviderFactory factory = HoyaProviderFactory.createHoyaProviderFactory(HBaseProviderFactory.HBASE);
     assert factory instanceof HBaseProviderFactory
   }
 
   @Test
   public void testCreateHBaseProviderBuilder() throws Throwable {
-    HoyaProviderFactory factory = HoyaProviderFactory.createHoyaProviderFactory(HBaseProviderFactory.APPLICATION_TYPE);
+    HoyaProviderFactory factory = HoyaProviderFactory.createHoyaProviderFactory(HBaseProviderFactory.HBASE);
     assert null != factory.createBuilder();
   }
 
   @Test
   public void testCreateHBaseProviderDeployer() throws Throwable {
-    HoyaProviderFactory factory = HoyaProviderFactory.createHoyaProviderFactory(HBaseProviderFactory.APPLICATION_TYPE);
-    assert null != factory.createDeployer();
+    HoyaProviderFactory factory = HoyaProviderFactory.createHoyaProviderFactory(HBaseProviderFactory.HBASE);
+    assert null != factory.createExecutor();
   }
   
   

@@ -69,9 +69,6 @@ The program can be used to create, pause, and shutdown HBase clusters. It can al
 
 1. The number of instances of each role can be varied dynamically.
 
-
-
-
 1. Users can flex a cluster: adding or removing instances of specific roles dynamically.
 If the cluster is running, the changes will have immediate effect. If the cluster
 is stopped, the flexed cluster size will be picked up when the cluster is next
@@ -88,7 +85,7 @@ build hoya
 
 in the same directory:
  
-    java -jar target/hoya-0.0.1-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya <ACTION> <OPTIONS>
+    java -jar target/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya <ACTION> <OPTIONS>
 
 * Later versions of Hoya will use a different version number
 
@@ -106,6 +103,13 @@ To use Hoya elsewhere, all JARs in that directory must be on the classpath.
 Configure the Hoya client. This allows the filesystem, zookeeper instance and other properties to be picked up from the configuration file, rather than on the command line.
 
 Important: *this configuration file is not propagated to the HBase cluster configuration*. It is purely for configuring the client itself. 
+
+### -D name=value
+
+Define a Hadoop configuration option which overrides any options in the configuration XML files of the image or in the image configuration directory. The values will be persisted. Configuration options are only passed to the cluster when creating or reconfiguring a cluster.
+### --option name value  / -O name value
+
+Set a cluster option. These are interpreted by specific cluster providers.
 
 ### --hbasehome localpath
 
@@ -138,10 +142,6 @@ The port on which the zookeeper processes are listening.
 ### --zkhosts host1[,host2,host3] 
 
 The list of hosts on which the ZK quorum is running.
-
-### -D name=value
-
-Define an HBase configuration option which overrides any options in the configuration XML files of the image or in the image configuration directory. The values will be persisted. Configuration options are only passed to the cluster when creating or reconfiguring a cluster.
 
 ### --fs filesystem-uri
 
@@ -199,20 +199,34 @@ This notifies the application that this is a test run, and that the application 
 1. Limit the number of attempts to start the AM to one.
 1. Enable verbose output in the client-AM RPC
 
-### --Xhbase-master-command
-The single command to execute on the HBase master as opposed to "master", in the command sequence:
 
-    hbase master start
+<!--- ======================================================================= -->
+
+## Options
+
+### HBase options
+
+`hbase.master.command`: The single command to execute on the HBase master,
+in the command sequence: `hbase master start`
 
 for example, if the parameter was
   
-    --Xhbase-master-command version
+    -O hbase.master.command version
 
 Hoya would would run the HBase master with the command
 
-    hbase version
+    hbase version start
 
 This would not actually create the master -as stated, it is for testing purposes.
+
+### General
+
+`hoya.test`
+
+This notifies the application that this is a test run, and that the application should behave in a way to aid testing. Currently all this does is
+
+1. Limit the number of attempts to start the AM to one.
+1. Enable verbose output in the client-AM RPC
 
 <!--- ======================================================================= -->
 

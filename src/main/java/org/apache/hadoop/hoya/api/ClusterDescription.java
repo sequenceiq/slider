@@ -26,6 +26,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
+import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
 import org.apache.hadoop.hoya.yarn.client.HoyaClient;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonParseException;
@@ -37,7 +38,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -64,6 +64,11 @@ public class ClusterDescription {
    * Name of the cluster
    */
   public String name;
+
+  /**
+   * Type of cluster
+   */
+  public String type = HoyaProviderFactory.DEFAULT_CLUSTER_TYPE;
 
   /**
    * State of the cluster
@@ -131,7 +136,6 @@ public class ClusterDescription {
 
   public String originConfigurationPath;
   public String generatedConfigurationPath;
-  public int workers;
   public int workerHeap;
   public int masters;
   public int masterHeap;
@@ -155,14 +159,11 @@ public class ClusterDescription {
    */
   public String imagePath;
 
-
-  public String xHBaseMasterCommand;
-
   /**
-   * Roles mapping to sub-maps
+   * cluster-specific options
    */
-  public Map<String, Object> roles =
-    new HashMap<String, Object>();
+  public Map<String, String> options =
+    new HashMap<String, String>();
 
   /**
    * Extra flags that can be used to communicate
@@ -189,8 +190,9 @@ public class ClusterDescription {
    * Role options, 
    * role -> option -> value
    */
-  public Map<String, Map<String, String>> roleopts =
+  public Map<String, Map<String, String>> roles =
     new HashMap<String, Map<String, String>>();
+
 
   /**
    * List of key-value pairs to add to a client config to set up the client
@@ -198,6 +200,10 @@ public class ClusterDescription {
   public Map<String, String> clientProperties =
     new HashMap<String, String>();
 
+
+  public ClusterDescription() {
+  }
+  
   /**
    * Verify that a cluster specification exists
    * @param clustername name of the cluster (For errors only)
@@ -226,38 +232,33 @@ public class ClusterDescription {
       return toJsonString();
     } catch (Exception e) {
       log.debug("Failed to convert CD to JSON ",e);
-      return OldtoString();
+      return super.toString();
     }
   }
 
-  public String OldtoString() {
-    StringBuilder builder = new StringBuilder();
-    builder.append("Hoya Cluster ").append(name).append('\n');
-    builder.append("State: ").append(state).append('\n');
-    if (startTime > 0) {
-      builder.append("Started: ");
-      builder.append(new Date(startTime).toLocaleString());
-    }
-    if (stopTime > 0) {
-      builder.append("Stopped: ");
-      builder.append(new Date(startTime).toLocaleString());
-    }
-    builder.append("Workers: ")
-           .append(workers)
-           .append("- Masters")
-           .append(masters)
-           .append('\n');
-    builder.append("ZK cluster: ").append(zkHosts).
-      append(" : ").append(zkPort).append('\n');
-    builder.append("ZK path: ").append(zkPath).append('\n');
-    for (Map.Entry<String, Integer> entry : instances.entrySet()) {
-      builder.append("Role")
-             .append(entry.getKey()).append(": ")
-             .append(entry.getValue()).append("\n");
-    }
-    return builder.toString();
+  /**
+   * Shallow clone
+   * @return a shallow clone
+   * @throws CloneNotSupportedException
+   */
+  @Override
+  public Object clone() throws CloneNotSupportedException {
+    return super.clone();
   }
 
+  /**
+   * A deep clone of the spec. This is done inefficiently with a ser/derser
+   * @return the cluster description
+   */
+  public ClusterDescription deepClone() {
+    try {
+      return fromJson(toJsonString());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+  
+  
   /**
    * Save a cluster description to a hadoop filesystem
    * @param fs filesystem
@@ -304,6 +305,7 @@ public class ClusterDescription {
                                        JsonGenerationException,
                                        JsonMappingException {
     ObjectMapper mapper = new ObjectMapper();
+    mapper.configure(SerializationConfig.Feature.INDENT_OUTPUT, true);
     return mapper.writeValueAsString(this);
   }
 
@@ -317,7 +319,6 @@ public class ClusterDescription {
   public static ClusterDescription fromJson(String json)
     throws IOException, JsonParseException, JsonMappingException {
     ObjectMapper mapper = new ObjectMapper();
-    mapper.configure(SerializationConfig.Feature.INDENT_OUTPUT, true);
     try {
       return mapper.readValue(json, ClusterDescription.class);
     } catch (IOException e) {
@@ -336,6 +337,46 @@ public class ClusterDescription {
   }
 
   /**
+   * Set a cluster option
+   * @param key
+   * @param val
+   */
+  public void setOption(String key, String val) {
+    options.put(key, val);
+  }
+
+
+  public void setOption(String option, int val) {
+    setOption(option, Integer.toString(val));
+  }
+  /**
+   * Get a cluster option or value
+   * 
+   * @param key
+   * @param defVal
+   * @return
+   */
+  public String getOption(String key, String defVal) {
+    String val = options.get(key);
+    return val != null ? val : defVal;
+  }
+
+
+  /**
+   * Get a role opt; use {@link Integer#decode(String)} so as to take hex
+   * oct and bin values too.
+   *
+   * @param option option name
+   * @param defVal default value
+   * @return parsed value
+   * @throws NumberFormatException if the role could not be parsed.
+   */
+  public int getOptionInt(String option, int defVal) {
+    String val = getOption(option, Integer.toString(defVal));
+    return Integer.decode(val);
+  }
+
+  /**
    * Get a role option
    * @param role role to get from
    * @param option option name
@@ -351,13 +392,33 @@ public class ClusterDescription {
     return val != null ? val : defVal;
   }
 
+  /**
+   * look up a role
+   * @param role role
+   * @return role mapping or null
+   */
   public Map<String, String> getRole(String role) {
-    return roleopts.get(role);
+    return roles.get(role);
+  }
+
+  /**
+   * Get a role -adding it to the roleopts map if
+   * none with that name exists
+   * @param role role
+   * @return role mapping
+   */
+  public Map<String, String> getOrAddRole(String role) {
+    Map<String, String> map = roles.get(role);
+    if (map==null) {
+      map = new HashMap<String, String>();
+    }
+    roles.put(role, map);
+    return map;
   }
 
   public Map<String, String> getMandatoryRole(String role) throws
                                                            BadConfigException {
-    Map<String, String> roleOptions = roleopts.get(role);
+    Map<String, String> roleOptions = roles.get(role);
     if (roleOptions == null) {
       throw new BadConfigException("Missing options for role " + role);
     }
@@ -380,21 +441,12 @@ public class ClusterDescription {
   }
 
   public void setRoleOpt(String role, String option, String val) {
-    Map<String, String> options = getRole(role);
-    if (options == null) {
-      options = new HashMap<String, String>();
-      roleopts.put(role, options);
-    }
+    Map<String, String> options = getOrAddRole(role);
     options.put(option, val);
   }
 
   public void setRoleOpt(String role, String option, int val) {
-    Map<String, String> options = getRole(role);
-    if (options == null) {
-      options = new HashMap<String, String>();
-      roleopts.put(role, options);
-    }
-    options.put(option, Integer.toString(val));
+    setRoleOpt(role, option, Integer.toString(val));
   }
 
   /**

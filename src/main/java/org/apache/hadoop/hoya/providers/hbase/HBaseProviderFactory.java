@@ -32,15 +32,13 @@ public class HBaseProviderFactory extends HoyaProviderFactory {
     super(conf);
   }
 
-  public static final String APPLICATION_TYPE = "hbase";
-  
   @Override
   public ClientProvider createBuilder() {
-    return new HBaseClusterProvider(getConf());
+    return new HBaseProvider(getConf());
   }
 
   @Override
-  public ClusterExecutor createDeployer() {
-    return new HBaseClusterProvider(getConf());
+  public ClusterExecutor createExecutor() {
+    return new HBaseProvider(getConf());
   }
 }

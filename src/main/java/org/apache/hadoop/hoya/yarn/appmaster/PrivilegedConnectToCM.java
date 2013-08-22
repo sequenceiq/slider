@@ -42,7 +42,7 @@ public class PrivilegedConnectToCM implements PrivilegedAction<ContainerManageme
   }
 
 
-  //  @Override
+  @Override
   public ContainerManagementProtocol run() {
     return ((ContainerManagementProtocol) appMaster.getProxy(
       ContainerManagementProtocol.class,

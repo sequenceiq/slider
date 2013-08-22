@@ -23,6 +23,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.NoSuchNodeException;
+import org.apache.hadoop.hoya.providers.ClusterExecutor;
+import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
+import org.apache.hadoop.hoya.providers.ProviderUtils;
 import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions;
 import org.apache.hadoop.hoya.providers.hbase.HBaseCommands;
 import org.apache.hadoop.hoya.HoyaExitCodes;
@@ -35,6 +38,7 @@ import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hadoop.hoya.exec.ApplicationEventHandler;
 import org.apache.hadoop.hoya.exec.RunLongLivedApp;
+import org.apache.hadoop.hoya.providers.hbase.HBaseProvider;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.CommonArgs;
@@ -218,17 +222,16 @@ public class HoyaAppMaster extends CompositeService
   private final AtomicInteger startFailedContainers = new AtomicInteger();
 
   /**
-   * Command to launch
+   * Launch threads -these need to unregister themselves after launch,
+   * to stop the leakage of threads on many cluster restarts
    */
-  private String hbaseCommand = HBaseCommands.MASTER;
-
-  // Launch threads
-  private final List<Thread> launchThreads = new ArrayList<Thread>();
+  private final Map<RoleLauncher, Thread> launchThreads = new HashMap<RoleLauncher, Thread>();
+  
   /**
    * Thread group for the launchers; gives them all a useful name
    * in stack dumps
    */
-  final ThreadGroup launcherThreadGroup = new ThreadGroup("launcher");
+  private final ThreadGroup launcherThreadGroup = new ThreadGroup("launcher");
 
   /**
    * model the state using locks and conditions
@@ -244,9 +247,12 @@ public class HoyaAppMaster extends CompositeService
   private volatile boolean localProcessStarted = false;
   private volatile boolean success;
 
-  private String[] argv;
-  /* Arguments passed in */
+
+  /** Arguments passed in : raw*/
   private HoyaMasterServiceArgs serviceArgs;
+
+  /** Arguments passed in : parsed*/
+  private String[] argv;
   
   
 
@@ -258,6 +264,10 @@ public class HoyaAppMaster extends CompositeService
    */
   public ClusterDescription clusterDescription = new ClusterDescription();
 
+  /**
+   * Log for changing cluster descriptions; kept tighter than
+   * class synchronization
+   */
   public final Object descriptionUpdateLock = new Object();
   
   
@@ -319,6 +329,7 @@ public class HoyaAppMaster extends CompositeService
   private boolean spawnedProcessExitedBeforeShutdownTriggered;
   
   private ContainerId localContainerId;
+  private ClusterExecutor provider;
 
 
   public HoyaAppMaster() {
@@ -411,6 +422,12 @@ public class HoyaAppMaster extends CompositeService
     if (0 == clusterDescription.createTime) {
       clusterDescription.createTime = clusterDescription.startTime;
     }
+    
+    //get our provider
+    provider = HoyaProviderFactory.createHoyaProviderFactory(
+      clusterDescription.type)
+                       .createExecutor();
+
     YarnConfiguration conf = new YarnConfiguration(getConfig());
     InetSocketAddress address = HoyaUtils.getRmSchedulerAddress(conf);
     log.info("RM is at {}", address);
@@ -476,16 +493,20 @@ public class HoyaAppMaster extends CompositeService
                                  appMasterTrackingUrl);
     configureContainerMemory(response);
 
+    clusterDescription.statusTime = System.currentTimeMillis();
+    clusterDescription.state = ClusterDescription.STATE_LIVE;
+    masterNode = new ClusterNode(hostname);
+    masterNode.containerId = localContainerId;
+    masterNode.role = HBaseCommands.ROLE_MASTER;
+    masterNode.uuid = UUID.randomUUID().toString();
+
+
     //before bothering to start the containers, bring up the
     //hbase master.
     //This ensures that if the master doesn't come up, less
     //cluster resources get wasted
 
     //start hbase command
-    //pull out the command line argument if set
-    if (clusterDescription.xHBaseMasterCommand != null) {
-      hbaseCommand = clusterDescription.xHBaseMasterCommand;
-    }
 
     File confDir = getLocalConfDir();
     if (!confDir.exists() || !confDir.isDirectory()) {
@@ -534,37 +555,31 @@ public class HoyaAppMaster extends CompositeService
         hBaseSiteXML);
     }
 
-    clusterDescription.statusTime = System.currentTimeMillis();
-    clusterDescription.state = ClusterDescription.STATE_LIVE;
-    masterNode = new ClusterNode(hostname);
-    masterNode.containerId = localContainerId;
-    masterNode.role = HBaseCommands.ROLE_MASTER;
-    masterNode.uuid = UUID.randomUUID().toString();
-    
-    List<String> launchSequence = new ArrayList<String>(8);
-    launchSequence.add(HBaseCommands.ARG_CONFIG);
-    launchSequence.add(confDir.getAbsolutePath());
-    launchSequence.add(hbaseCommand);
-    launchSequence.add(HBaseCommands.ACTION_START);
+    //look at settings of Hadoop Auth, to pick up a problem seen once
+    checkAndWarnForAuthTokenProblems();
+
 
     if (noMaster) {
       log.info("skipping master launch");
       localProcessStarted = true;
     } else {
       addLaunchedContainer(localContainerId, masterNode);
+
+      //pull out the command line argument if set
+      String masterCommand =
+        clusterDescription.getOption(HBaseProvider.OPTION_HBASE_MASTER_COMMAND,
+                                     HBaseCommands.MASTER);
+
       Map<String, String> env = new HashMap<String, String>();
-      //now look at settings of Hadoop Auth, to avoid problem with
-      String fileLocation = System.getenv(UserGroupInformation.HADOOP_TOKEN_FILE_LOCATION);
-      if (fileLocation != null) {
-        File tokenFile= new File(fileLocation);
-        if (!tokenFile.exists()) {
-          log.warn("Token file {} specified in {} not found",tokenFile,
-                   UserGroupInformation.HADOOP_TOKEN_FILE_LOCATION);
-        }
-      }
 
 
-      env.put("HBASE_LOG_DIR", buildHBaseLogdir());
+      env.put(HoyaKeys.HBASE_LOG_DIR, new ProviderUtils(log).getLogdir());
+      List<String> launchSequence = new ArrayList<String>(8);
+      launchSequence.add(HBaseCommands.ARG_CONFIG);
+      launchSequence.add(confDir.getAbsolutePath());
+      launchSequence.add(masterCommand);
+      launchSequence.add(HBaseCommands.ACTION_START);
+
       launchHBaseServer(clusterDescription,
                         launchSequence,
                         env);
@@ -594,6 +609,17 @@ public class HoyaAppMaster extends CompositeService
 
     return success ? mapProcessExitCodeToYarnExitCode(spawnedProcessExitCode)
                    : EXIT_TASK_LAUNCH_FAILURE;
+  }
+
+  private void checkAndWarnForAuthTokenProblems() {
+    String fileLocation = System.getenv(UserGroupInformation.HADOOP_TOKEN_FILE_LOCATION);
+    if (fileLocation != null) {
+      File tokenFile= new File(fileLocation);
+      if (!tokenFile.exists()) {
+        log.warn("Token file {} specified in {} not found",tokenFile,
+                 UserGroupInformation.HADOOP_TOKEN_FILE_LOCATION);
+      }
+    }
   }
 
   /**
@@ -639,28 +665,6 @@ public class HoyaAppMaster extends CompositeService
     return FileSystem.get(getConfig());
   }
 
-  /**
-   * build the log directory
-   * @return the log dir
-   */
-  public String buildHBaseLogdir() throws IOException {
-    String logdir = System.getenv("LOGDIR");
-    if (logdir == null) {
-      logdir =
-        "/tmp/hoya-" + UserGroupInformation.getCurrentUser().getShortUserName();
-    }
-    return logdir;
-  }
-
-  /**
-   * Build the log dir env variable for the containers
-   * @return the container's log dir
-   */
-  public String buildHBaseContainerLogdir() throws IOException {
-    return buildHBaseLogdir();
-  }
-  
-  
 
   /**
    * Block until it is signalled that the AM is done
@@ -705,24 +709,12 @@ public class HoyaAppMaster extends CompositeService
   private synchronized void finish() {
     //stop the daemon & grab its exit code
     Integer exitCode = stopForkedProcess();
+    joinAllLaunchedThreads();
 
-    // Join all launched threads
-    // needed for when we time out
-    // and we need to release containers
 
-    //first: take a snapshot of the thread list
-    List<Thread> liveThreads;
-    synchronized (launchThreads) {
-      liveThreads = new ArrayList<Thread>(launchThreads);
-    }
-    log.info("Waiting for the completion of {} threads", liveThreads.size());
-    for (Thread launchThread : liveThreads) {
-      try {
-        launchThread.join(LAUNCHER_THREAD_SHUTDOWN_TIME);
-      } catch (InterruptedException e) {
-        log.info("Exception thrown in thread join: " + e, e);
-      }
-    }
+    log.info("Releasing all containers");
+    //now release all containers
+    releaseAllContainers();
 
     // When the application completes, it should send a finish application
     // signal to the RM
@@ -756,6 +748,8 @@ public class HoyaAppMaster extends CompositeService
     }
   }
 
+
+
   /**
    * Get diagnostics info about containers
    */
@@ -769,6 +763,7 @@ public class HoyaAppMaster extends CompositeService
            " startFailed=" + startFailedContainers.get();
   }
 
+  //TODO: rework
   private void configureContainerMemory(RegisterApplicationMasterResponse response) {
     Resource maxResources =
       response.getMaximumResourceCapability();
@@ -841,6 +836,56 @@ public class HoyaAppMaster extends CompositeService
     return request;
   }
 
+
+  private void launchThread(RoleLauncher launcher, String name) {
+    Thread launchThread = new Thread(launcherThreadGroup,
+                                     launcher,
+                                     name);
+
+    // launch and start the container on a separate thread to keep
+    // the main thread unblocked
+    // as all containers may not be allocated at one go.
+    synchronized (launchThreads) {
+      launchThreads.put(launcher, launchThread);
+    }
+    launchThread.start();
+  }
+
+  /**
+   * Method called by a launcher thread when it has completed; 
+   * this removes the launcher of the map of active
+   * launching threads.
+   * @param launcher
+   */
+  public void launchedThreadCompleted(RoleLauncher launcher) {
+    synchronized (launchThreads) {
+      launchThreads.remove(launcher);
+    }    
+  }
+
+  /**
+   Join all launched threads
+   needed for when we time out
+   and we need to release containers
+   */
+  private void joinAllLaunchedThreads() {
+
+
+    //first: take a snapshot of the thread list
+    List<Thread> liveThreads;
+    synchronized (launchThreads) {
+      liveThreads = new ArrayList<Thread>(launchThreads.values());
+    }
+    log.info("Waiting for the completion of {} threads", liveThreads.size());
+    for (Thread launchThread : liveThreads) {
+      try {
+        launchThread.join(LAUNCHER_THREAD_SHUTDOWN_TIME);
+      } catch (InterruptedException e) {
+        log.info("Exception thrown in thread join: " + e, e);
+      }
+    }
+  }
+  
 /* =================================================================== */
 /* AMRMClientAsync callbacks */
 /* =================================================================== */
@@ -893,23 +938,15 @@ public class HoyaAppMaster extends CompositeService
                  container.getNodeHttpAddress(),
                  container.getResource());
 
-        HoyaRegionServiceLauncher launcher =
-          new HoyaRegionServiceLauncher(this,
-                                        container,
-                                        HBaseCommands.REGION_SERVER,
-                                        HBaseCommands.ROLE_WORKER);
-        Thread launchThread = new Thread(launcherThreadGroup,
-                                         launcher,
-                                         "container-" +
-                                         containerHostInfo);
-
-        // launch and start the container on a separate thread to keep
-        // the main thread unblocked
-        // as all containers may not be allocated at one go.
-        synchronized (launchThreads) {
-          launchThreads.add(launchThread);
-        }
-        launchThread.start();
+        RoleLauncher launcher =
+          new RoleLauncher(this,
+                           container,
+                           HBaseCommands.ROLE_WORKER,
+                           provider,
+                           clusterDescription.getOrAddRole(
+                             HBaseCommands.ROLE_WORKER));
+        launchThread(launcher, "container-" +
+                               containerHostInfo);
       }
     }
     //now discard those surplus containers
@@ -925,7 +962,7 @@ public class HoyaAppMaster extends CompositeService
       }
       asyncRMClient.releaseAssignedContainer(id);
     }
-    log.info("Diagnostics: "+ getContainerDiagnosticInfo());
+    log.info("Diagnostics: " + getContainerDiagnosticInfo());
   }
 
   @Override //AMRMClientAsync
@@ -1110,10 +1147,28 @@ public class HoyaAppMaster extends CompositeService
           "After releasing all worker nodes that could be free, there was an excess of {} nodes",
           excess);
       }
-
     }
   }
 
+  /**
+   * Shutdown operation: release all containers
+   */
+  void releaseAllContainers() {
+    desiredContainerCount = 0;
+    Collection<ContainerInfo> targets = containers.values();
+    for (ContainerInfo ci : targets) {
+        Container possible = ci.container;
+        ContainerId id = possible.getId();
+        if (!ci.released) {
+          log.info("Requesting release of container {}", id);
+          ci.released = true;
+          containersBeingReleased.put(id, possible);
+          numReleaseRequests.incrementAndGet();
+          asyncRMClient.releaseAssignedContainer(id);
+        }
+      }
+  }
+  
   /**
    * RM wants to shut down the AM
    */
@@ -1262,7 +1317,6 @@ public class HoyaAppMaster extends CompositeService
       }
       List<ClusterNode> nodes = enumNodesByRole(HBaseCommands.ROLE_WORKER);
       int workerCount = nodes.size();
-      clusterDescription.workers = workerCount;
       clusterDescription.setDesiredInstanceCount(HBaseCommands.ROLE_WORKER, workerCount);
       clusterDescription.instances = buildInstanceMap();
       Map<String, Long> stats = new HashMap<String, Long>();

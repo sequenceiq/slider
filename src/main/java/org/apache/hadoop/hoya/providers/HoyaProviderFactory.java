@@ -30,6 +30,10 @@ import org.slf4j.LoggerFactory;
  * Base class for factories
  */
 public abstract class HoyaProviderFactory extends Configured {
+  public static final String HBASE = "hbase";
+  
+  public static final String DEFAULT_CLUSTER_TYPE = HBASE;
+  
   protected static final Logger LOG =
     LoggerFactory.getLogger(HoyaProviderFactory.class);
   public static final String PROVIDER_NOT_FOUND =
@@ -47,7 +51,7 @@ public abstract class HoyaProviderFactory extends Configured {
 
   public abstract ClientProvider createBuilder();
 
-  public abstract ClusterExecutor createDeployer();
+  public abstract ClusterExecutor createExecutor();
 
   /**
    * Create a provider for a specific application
@@ -58,6 +62,9 @@ public abstract class HoyaProviderFactory extends Configured {
   public static HoyaProviderFactory createHoyaProviderFactory(String application) throws
                                                                                   HoyaException {
     Configuration conf = loadHoyaConfiguration();
+    if (application==null) {
+      application = DEFAULT_CLUSTER_TYPE;
+    }
     String providerKey = String.format(HoyaKeys.HOYA_PROVIDER_KEY, application);
     String classname = conf.getTrimmed(providerKey);
     if (classname == null) {

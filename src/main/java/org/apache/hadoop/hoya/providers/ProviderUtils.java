@@ -21,8 +21,10 @@ package org.apache.hadoop.hoya.providers;
 import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 
+import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -56,4 +58,17 @@ public class ProviderUtils implements RoleKeys {
     return HoyaUtils.getIntValue(role, RoleKeys.YARN_MEMORY, 0, 0, -1);
   }
 
+
+  /**
+   * build the log directory
+   * @return the log dir
+   */
+  public String getLogdir() throws IOException {
+    String logdir = System.getenv("LOGDIR");
+    if (logdir == null) {
+      logdir =
+        "/tmp/hoya-" + UserGroupInformation.getCurrentUser().getShortUserName();
+    }
+    return logdir;
+  }
 }

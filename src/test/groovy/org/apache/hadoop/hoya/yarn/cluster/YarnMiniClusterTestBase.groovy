@@ -40,6 +40,7 @@ import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.exceptions.WaitTimeoutException
 import org.apache.hadoop.hoya.providers.hbase.HBaseCommands
+import org.apache.hadoop.hoya.providers.hbase.HBaseProvider
 import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.tools.HoyaUtils
@@ -92,6 +93,9 @@ implements KeysForTests, HoyaExitCodes {
    */
   public static final int HBASE_CLUSTER_STARTUP_TO_LIVE_TIME = HBASE_CLUSTER_STARTUP_TIME
   public static final String HREGION = "HRegion"
+  public static final List<String> HBASE_VERSION_COMMAND_SEQUENCE = [
+      CommonArgs.ARG_OPTION, HBaseProvider.OPTION_HBASE_MASTER_COMMAND, "version",
+  ]
 
   protected MiniDFSCluster hdfsCluster
   protected MiniYARNCluster miniCluster;
@@ -820,13 +824,6 @@ implements KeysForTests, HoyaExitCodes {
       status = hoyaClient.getClusterStatus(clustername)
       Integer instances = status.instances[(HBaseCommands.ROLE_WORKER)];
       int workerCount = instances!=null? instances.intValue() : 0;
-      int statusWorkerCount = status.workers;
-      if (workerCount != statusWorkerCount) {
-        fail("Different in instance map count $workerCount" +
-                 " from attribute count $statusWorkerCount:" +
-                 "\n${prettyPrint(status.toJsonString())}")
-      }
-      workerCount = statusWorkerCount;
       if (workerCount == containerCount) {
         break;
       }

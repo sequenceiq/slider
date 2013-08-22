@@ -91,6 +91,13 @@ public class ClientArgs extends CommonArgs {
   /**
    * This is a listing of the roles to create
    */
+  @Parameter(names = {ARG_OPTION, ARG_OPTION_SHORT}, arity = 2,
+             description = "option <name> <value>")
+  public List<String> optionTuples = new ArrayList<String>(0);
+
+  /**
+   * This is a listing of the roles to create
+   */
   @Parameter(names = {ARG_ROLE}, arity = 2,
              description = "role <name> <count>")
   public List<String> roleTuples = new ArrayList<String>(0);

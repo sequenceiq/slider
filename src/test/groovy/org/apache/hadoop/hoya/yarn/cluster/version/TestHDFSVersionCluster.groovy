@@ -42,7 +42,7 @@ class TestHDFSVersionCluster extends YarnMiniClusterTestBase {
     createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
     ServiceLauncher launcher = createHoyaCluster(clustername,
                                                  0,
-                                                 [CommonArgs.ARG_X_HBASE_MASTER_COMMAND, "version"],
+                                                 HBASE_VERSION_COMMAND_SEQUENCE,
                                                  true,
                                                  true)
     assert launcher.serviceExitCode == 0

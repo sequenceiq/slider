@@ -33,6 +33,7 @@ import org.apache.hadoop.hoya.providers.ClusterExecutor;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
+import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,26 +48,31 @@ import java.util.Map;
  * This class implements both the client-side and server-side aspects
  * of an HBase Cluster
  */
-public class HBaseClusterProvider extends Configured implements
+public class HBaseProvider extends Configured implements
                                                           ProviderCore,
                                                           HBaseCommands,
                                                           ClientProvider,
                                                           ClusterExecutor {
 
+
+  public static final String OPTION_HBASE_MASTER_COMMAND =
+    "hbase.master.command";
+  
   public static final String ERROR_UNKNOWN_ROLE = "Unknown role ";
   protected static final Logger log =
-    LoggerFactory.getLogger(HBaseClusterProvider.class);
+    LoggerFactory.getLogger(HBaseProvider.class);
   protected static final String NAME = "hbase";
 
-  protected HBaseClusterProvider(Configuration conf) {
+  protected HBaseProvider(Configuration conf) {
     super(conf);
   }
   
   protected static final List<String> ROLES = new ArrayList<String>(1);
 
-  protected static final String ROLE_WORKER = "worker";
-  protected static final String ROLE_MASTER = "master";
-
+  public static final String ROLE_WORKER = "worker";
+  public static final String ROLE_MASTER = "master";
+  
+  
   static {
     ROLES.add(ROLE_WORKER);
     ROLES.add(ROLE_MASTER);
@@ -97,10 +103,10 @@ public class HBaseClusterProvider extends Configured implements
     rolemap.put(RoleKeys.ROLE_NAME, rolename);
     String heapSize;
     String infoPort;
-    if (rolename.equals(HBaseClusterProvider.ROLE_WORKER)) {
+    if (rolename.equals(HBaseProvider.ROLE_WORKER)) {
       heapSize = DEFAULT_HBASE_WORKER_HEAP;
       infoPort = DEFAULT_HBASE_WORKER_INFOPORT;
-    } else if (rolename.equals(HBaseClusterProvider.ROLE_MASTER)) {
+    } else if (rolename.equals(HBaseProvider.ROLE_MASTER)) {
       heapSize = DEFAULT_HBASE_MASTER_HEAP;
       infoPort = DEFAULT_HBASE_MASTER_INFOPORT;
     } else {
@@ -192,5 +198,13 @@ public class HBaseClusterProvider extends Configured implements
                                               generatedConfDirPath,
                                               HoyaKeys.PROPAGATED_CONF_DIR_NAME);
     return confResources;
+  }
+
+  @Override
+  public void buildContainerLaunchContext(ContainerLaunchContext ctx,
+                                          FileSystem fs,
+                                          Path generatedConfPath,
+                                          String role) {
+    //TODO
   }
 }

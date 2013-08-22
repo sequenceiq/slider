@@ -62,9 +62,7 @@ class TestVersionFromArchiveOnHDFS extends YarnMiniClusterTestBase {
     switchToImageDeploy = true
     ServiceLauncher launcher = createHoyaCluster(clustername,
                                                  0,
-                                                 [
-                                                     CommonArgs.ARG_X_HBASE_MASTER_COMMAND, "version",
-                                                 ],
+                                                 HBASE_VERSION_COMMAND_SEQUENCE,
                                                  true,
                                                  false)
     assert launcher.serviceExitCode == 0

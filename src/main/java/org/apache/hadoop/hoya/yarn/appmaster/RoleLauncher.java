@@ -20,6 +20,8 @@ package org.apache.hadoop.hoya.yarn.appmaster;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hoya.providers.ClusterExecutor;
+import org.apache.hadoop.hoya.providers.ProviderUtils;
 import org.apache.hadoop.hoya.providers.hbase.HBaseCommands;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
@@ -48,29 +50,33 @@ import java.util.Map;
 /**
  * Thread that runs on the AM to launch a region server.
  */
-public class HoyaRegionServiceLauncher implements Runnable {
+public class RoleLauncher implements Runnable {
   protected static final Logger log =
-    LoggerFactory.getLogger(HoyaRegionServiceLauncher.class);
+    LoggerFactory.getLogger(RoleLauncher.class);
 
   private final HoyaAppMaster owner;
 
   // Allocated container
   private final Container container;
-  private final String hbaseRole;
-  private final String hoyaRole;
+  private final String containerRole;
+  private final Map<String, String> roleOptions;
+  private final ClusterExecutor provider;
 
-  public HoyaRegionServiceLauncher(HoyaAppMaster owner,
-                                   Container container,
-                                   String hbaseRole,
-                                   String hoyaRole) {
+  public RoleLauncher(HoyaAppMaster owner,
+                      Container container,
+                      String role,
+                      ClusterExecutor provider,
+                      Map<String, String> roleOptions) {
     assert owner != null;
     assert container != null;
-    assert hbaseRole != null;
-    assert hoyaRole != null;
+    assert role != null;
+    assert roleOptions != null;
+    assert provider != null;
     this.owner = owner;
     this.container = container;
-    this.hbaseRole = hbaseRole;
-    this.hoyaRole = hoyaRole;
+    this.containerRole = role;
+    this.roleOptions = roleOptions;
+    this.provider = provider;
   }
 
   @Override
@@ -89,25 +95,21 @@ public class HoyaRegionServiceLauncher implements Runnable {
                                        cmAddress);
       user.addToken(token);
 
-      log.debug("Setting up container launch container for containerid={}",
-                container.getId());
+      log.debug("Launching container {} into role {}",
+                container.getId(),
+                containerRole);
+      FileSystem fs = owner.getClusterFS();
+      Path generatedConfPath = new Path(owner.getDFSConfDir());
 
       ContainerLaunchContext ctx = Records
         .newRecord(ContainerLaunchContext.class);
-/*
-
-    String jobUserName = Env.mandatory(ApplicationConstants.Environment.USER
-                                                           .key());
-//    ctx.setUser(jobUserName);
-    log.info("Setting user in ContainerLaunchContext to: $jobUserName");
-
-*/
       //now build up the configuration data    
+      provider.buildContainerLaunchContext(ctx, fs, generatedConfPath, containerRole);
 
       // Set the environment
-      Map<String, String> env = new HashMap<String, String>();
-//    env[EnvMappings.ENV_HBASE_OPTS] = ConfigHelper.build_JVM_opts(env);
-      env.put(HoyaKeys.HBASE_LOG_DIR, owner.buildHBaseContainerLogdir());
+      Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
+      env.put(HoyaKeys.HBASE_LOG_DIR,
+              new ProviderUtils(HoyaAppMaster.log).getLogdir());
 
       ctx.setEnvironment(env);
       //local resources
@@ -115,9 +117,7 @@ public class HoyaRegionServiceLauncher implements Runnable {
         new HashMap<String, LocalResource>();
 
       //add the configuration resources
-      Path generatedConfPath = new Path(owner.getDFSConfDir());
       Map<String, LocalResource> confResources;
-      FileSystem fs = owner.getClusterFS();
       confResources = HoyaUtils.submitDirectory(fs,
                                                 generatedConfPath,
                                                 HoyaKeys.PROPAGATED_CONF_DIR_NAME);
@@ -141,7 +141,7 @@ public class HoyaRegionServiceLauncher implements Runnable {
       command.add(HBaseCommands.ARG_CONFIG);
       command.add(HoyaKeys.PROPAGATED_CONF_DIR_NAME);
       //role is region server
-      command.add(hbaseRole);
+      command.add(HBaseCommands.REGION_SERVER);
       command.add(HBaseCommands.ACTION_START);
 
       //log details
@@ -169,12 +169,14 @@ public class HoyaRegionServiceLauncher implements Runnable {
       }
       node.command = cmdStr;
       node.name = container.getId().toString();
-      node.role = hoyaRole;
+      node.role = containerRole;
       node.environment = nodeEnv.toArray(new String[nodeEnv.size()]);
       owner.startContainer(container, ctx, node);
     } catch (IOException e) {
-      log.error("Exception thrown while trying to start region server: " + e,
+      log.error("Exception thrown while trying to start "+containerRole + ": " + e,
                 e);
+    } finally {
+      owner.launchedThreadCompleted(this);
     }
   }
 

@@ -60,7 +60,7 @@ class TestRoleOptPropagation extends YarnMiniClusterTestBase {
     assert unknownRole[MALLOC_ARENA] == "3"
     
     dumpClusterDescription("Remote CD",status)
-    
+
   }
 
 

@@ -21,10 +21,11 @@ package org.apache.hadoop.hoya.api;
 /**
  *  Keys for map entries in roles
  */
-public interface ClusterKeys {
+public interface OptionKeys {
 
-  String NAME = "NAME";
-  String COUNT = "COUNT";
-  String HEAP_SIZE = "HEAP_SIZE";
-  String INFO_PORT = "INFO_PORT";
+  /**
+   * option used on command line to set the test flag
+   * {@value}
+   */
+  String OPTION_TEST = "hoya.test";
 }

@@ -92,4 +92,12 @@ class TestClusterDescriptionMapping extends YarnMiniClusterTestBase {
     assert received.instances[HBaseCommands.ROLE_MASTER] == 1;
 
   }
+
+  @Test
+  public void testRoleMapLookup() throws Throwable {
+    ClusterDescription status = createCD()
+
+    assert null == status.getRole("undefined");
+    assert null != status.getOrAddRole("undefined");
+  }
 }

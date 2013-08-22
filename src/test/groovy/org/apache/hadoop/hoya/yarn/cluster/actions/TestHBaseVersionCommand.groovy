@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.cluster.actions
 import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.providers.hbase.HBaseProvider
 import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
@@ -41,9 +42,7 @@ class TestHBaseVersionCommand extends YarnMiniClusterTestBase {
     createMiniCluster(clustername, createConfiguration(), 1, true)
     ServiceLauncher launcher = createHoyaCluster(clustername,
                                  0,
-                                 [
-                                     CommonArgs.ARG_X_HBASE_MASTER_COMMAND, "version",
-                                 ],
+                                 HBASE_VERSION_COMMAND_SEQUENCE,
                                  true,
                                  true)
     assert launcher.serviceExitCode == 0

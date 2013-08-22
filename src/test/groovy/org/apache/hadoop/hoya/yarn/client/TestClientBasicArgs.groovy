@@ -64,7 +64,7 @@ class TestClientBasicArgs extends ServiceLauncherBaseTest {
     ServiceLauncher launcher = launch(HoyaClient,
                                       HoyaUtils.createConfiguration(),
                                       [
-                                          CommonArgs.ARG_X_TEST,
+                                          CommonArgs.ARG_DEBUG,
                                           ClientArgs.ACTION_HELP,
                                       ])
     assert 0 == launcher.serviceExitCode
@@ -75,7 +75,7 @@ class TestClientBasicArgs extends ServiceLauncherBaseTest {
     ServiceLauncher launcher = launch(HoyaClient,
                                       HoyaUtils.createConfiguration(),
                                       [
-                                          ClientArgs.ARG_X_HBASE_MASTER_COMMAND, "testo",
+                                          ClientArgs.ARG_WAIT, "60",
                                           ClientArgs.ACTION_HELP,
                                       ])
     assert 0 == launcher.serviceExitCode
