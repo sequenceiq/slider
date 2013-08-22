@@ -70,4 +70,7 @@ public interface HoyaKeys {
   String HOYA_XML ="org/apache/hadoop/hoya/hoya.xml";
 
   String HOYA_PROVIDER_KEY = "hoya.provider.%s";
+
+  String KEY_HOYA_TEMPLATE_ORIGIN = "hoya.template.origin";
+  
 }

@@ -40,4 +40,10 @@
    <name>hbase.regionserver.hlog.tolerable.lowreplication</name>
    <value>1</value>
  </property>
+  <!--just here to verify propagation of properties all the way to the AM-->
+  <property>
+    <name>hoya.unused.option</name>
+    <value>1</value>
+  </property>
+
 </configuration>

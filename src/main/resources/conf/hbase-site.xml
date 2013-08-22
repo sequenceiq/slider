@@ -29,6 +29,10 @@
   -->
 <configuration>
  <property>
+   <name>hoya.template.origin</name>
+   <value>resource</value>
+ </property>
+  <property>
    <name>hbase.cluster.distributed</name>
    <value>true</value>
  </property>

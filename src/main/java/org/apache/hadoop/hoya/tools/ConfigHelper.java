@@ -25,6 +25,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.io.IOUtils;
 import org.slf4j.Logger;
@@ -78,13 +79,14 @@ public class ConfigHelper {
    * @param map map
    * @return nothing
    */
-  public static void addConfigMap(Configuration config, Map<String, String> map) throws
-                                                                               BadConfigException {
+  public static void addConfigMap(Configuration config,
+                                  Map<String, String> map) throws
+                                                           BadConfigException {
     for (Map.Entry<String, String> mapEntry : map.entrySet()) {
       String value = mapEntry.getValue();
       String key = mapEntry.getKey();
-      if (value==null) {
-        throw new BadConfigException("Null value for property " +key);
+      if (value == null) {
+        throw new BadConfigException("Null value for property " + key);
       }
       config.set(key, value);
     }
@@ -142,8 +144,10 @@ public class ConfigHelper {
   }
 
   /**
-   * looks for the config under confdir/templateFile; if not there
-   * loads it from /conf/templateFile . 
+   * looks for the config under $confdir/$templateFilename; if not there
+   * loads it from /conf/templateFile.
+   * The property {@link HoyaKeys#KEY_HOYA_TEMPLATE_ORIGIN} is set to the
+   * origin to help debug what's happening
    */
   public static Configuration loadTemplateConfiguration(Configuration systemConf,
                                                         Path confdir,
@@ -154,14 +158,21 @@ public class ConfigHelper {
 
     Path templatePath = new Path(confdir, templateFilename);
     Configuration conf = new Configuration(false);
+    String origin;
     if (fs.exists(templatePath)) {
       log.debug("Loading template {}", templatePath);
       conf.addResource(templatePath);
+      origin = templatePath.toString();
     } else {
       log.debug("Template {} not found" +
                 " -reverting to classpath resource {}", templatePath, resource);
       conf.addResource(resource);
+      origin = "Resource " + resource;
     }
+    //force a get
+    conf.get(HoyaKeys.KEY_HOYA_TEMPLATE_ORIGIN);
+    conf.set(HoyaKeys.KEY_HOYA_TEMPLATE_ORIGIN, origin);
+    //now set the origin
     return conf;
   }
 
