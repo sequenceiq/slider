@@ -34,28 +34,29 @@ Build and install it locally, skipping the tests:
     mvn install -DskipTests
 
 You have to do this every morning to avoid the ASF nightly artifacts being picked up/
+ 
 
 ## building a compatible HBase version
 
 Checkout the HBase `hbase-0.95` branch from apache svn/github.  
 
-The maven command for building hbase artifacts with 2.1.1-SNAPSHOT is 
+The maven command for building hbase artifacts with 2.1.0-beta is 
 
-    mvn clean install assembly:single -DskipTests -Dmaven.javadoc.skip=true -Dhadoop.profile=2.0 -Dhadoop-two.version=2.1.1-SNAPSHOT 
+    mvn clean install assembly:single -DskipTests -Dmaven.javadoc.skip=true -Dhadoop.profile=2.0 -Dhadoop-two.version=2.1.0-beta 
 
 For building just the JAR files:
 
-    mvn clean install -DskipTests -Dhadoop.profile=2.0 -Dhadoop-two.version=2.1.1-SNAPSHOT
+    mvn clean install -DskipTests -Dhadoop.profile=2.0 -Dhadoop-two.version=2.1.0-beta
     
-This will create hbase-0.95.2-SNAPSHOT.tar.gz in the directory `hbase-assembly/target/` in
+This will create `hbase-0.95.3-SNAPSHOT.tar.gz` in the directory `hbase-assembly/target/` in
 the hbase source tree. 
 
 In that directory `hbase-assembly/target/`
 
-    gunzip hbase-0.95.2-SNAPSHOT-bin.tar.gz 
-    tar -xvf hbase-0.95.2-SNAPSHOT-bin.tar 
+    gunzip hbase-0.95.3-SNAPSHOT-bin.tar.gz 
+    tar -xvf hbase-0.95.3-SNAPSHOT-bin.tar 
 
-This will create an untarred directory `hbase-0.95.2-SNAPSHOT-bin` containing
+This will create an untarred directory `hbase-0.95.3-SNAPSHOT-bin` containing
 hbase. Both the `.tar.gz` and untarred file are needed for testing. Most
 tests just work directly with the untarred file as it saves time uploading
 and downloading then expanding the file.
@@ -65,11 +66,11 @@ see [http://hbase.apache.org/book/build.html](HBase building)
 
 *Tip:* you can force set a version in Maven by having it update all the POMs:
 
-    mvn versions:set -DnewVersion=0.95.2-SNAPSHOT
+    mvn versions:set -DnewVersion=0.95.4-SNAPSHOT
 
 # Testing
 
-the hbase tarball needs to be unzipped somewhere
+The hbase tarball needs to be unzipped somewhere and defined for Hoya to pick up
 
 You must have the file `src/test/resources/hoya-test.xml` (this
 is ignored by git), declaring where HBase is:
@@ -78,13 +79,13 @@ is ignored by git), declaring where HBase is:
     
       <property>
         <name>hoya.test.hbase_home</name>
-        <value> /Users/hoya/hbase/hbase-assembly/target/hbase-0.95.2-SNAPSHOT</value>
+        <value> /Users/hoya/hbase/hbase-assembly/target/hbase-0.95.3-SNAPSHOT</value>
         <description>HBASE Home</description>
       </property>
     
       <property>
         <name>hoya.test.hbase_tar</name>
-        <value>/Users/hoya/hbase/hbase-assembly/target/hbase-0.95.2-SNAPSHOT-bin.tar.gz</value>
+        <value>/Users/hoya/hbase/hbase-assembly/target/hbase-0.95.3-SNAPSHOT-bin.tar.gz</value>
         <description>HBASE archive URI</description>
       </property>
     

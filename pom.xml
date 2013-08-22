@@ -16,15 +16,15 @@
     <gmavenProviderSelection>2.0</gmavenProviderSelection>
     <groovy.version>2.1.4</groovy.version>
 <!-- 
-    <hadoop.version>2.1.0-beta</hadoop.version>
     <hadoop.version>3.0.0-SNAPSHOT</hadoop.version>
--->
     <hadoop.version>2.1.1-SNAPSHOT</hadoop.version>
+-->
+    <hadoop.version>2.1.0-beta</hadoop.version>
 
 <!--
-    <hbase.version>0.94.9-SNAPSHOT</hbase.version>
- -->   
     <hbase.version>0.95.2-SNAPSHOT</hbase.version>
+ -->   
+    <hbase.version>0.95.3-SNAPSHOT</hbase.version>
 
     
     <jackson.version>1.9.7</jackson.version>
@@ -39,12 +39,15 @@
     <maven.javadoc.version>2.8</maven.javadoc.version>
     <maven.project.version>2.4</maven.project.version>
   </properties>
-<!--  <repositories>
+  
+  
+  <repositories>
     <repository>
       <id>ASF Staging</id>
       <url>https://repository.apache.org/content/groups/staging/</url>
     </repository>
-  </repositories>-->
+  </repositories>
+  
   <build>
     <plugins>
       <plugin>
@@ -277,7 +280,7 @@
   <profiles>
     <profile>
       <!-- staged artifacts from the ASF -->
-      <id>staged</id>
+      <id>staging</id>
       <repositories>
         <repository>
           <id>ASF Staging</id>

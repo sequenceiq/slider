@@ -12,12 +12,12 @@
   limitations under the License. See accompanying LICENSE file.
 -->
   
- # Examples
+# Examples
 
  
- ## Setup
+## Setup
  
- ### Setting up a YARN cluster
+### Setting up a YARN cluster
  
 For simple local demos, a Hadoop pseudo-distributed cluster will suffice -if on a VM then
 its configuration should be changed to use a public (machine public) IP.
@@ -32,14 +32,16 @@ its configuration should be changed to use a public (machine public) IP.
     hdfs namenode -format ubuntu
   
 
-get hbase in
+
+## get hbase in
 
 copy to local 
 
-    hbase-0.95.2-SNAPSHOT-bin.tar 
+    hbase-0.95.3-SNAPSHOT-bin.tar 
 
 
-    hdfs dfs -copyFromLocal hbase-0.95.2-SNAPSHOT-bin.tar hdfs://ubuntu:9000/hbase.tar
+    hdfs dfs -rm hdfs://ubuntu:9000/hbase.tar
+    hdfs dfs -copyFromLocal hbase-0.95.3-SNAPSHOT-bin.tar hdfs://ubuntu:9000/hbase.tar
     hdfs dfs -ls hdfs://ubuntu:9000/
 
 # start all the services
@@ -63,7 +65,7 @@ copy to local
     
 
 
-NN up on http://ubuntu:50070/dfshealth.jsp
+NN up on [http://ubuntu:50070/dfshealth.jsp](http://ubuntu:50070/dfshealth.jsp)
 RM yarn-daemon.sh --config $HADOOP_CONF_DIR start nodemanager
 
     zookeeper-3.4.5/bin/zkServer.sh start

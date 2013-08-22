@@ -363,8 +363,10 @@ public class CommonArgs implements HoyaActions {
 
     int minArgs = (Integer) actionOpts.get(1);
     int actionArgSize = actionArgs.size();
+/*
     LOG.debug("Action {} expected #args={} actual #args={}", action, minArgs,
               actionArgSize);
+*/
     if (minArgs > actionArgSize) {
       throw new BadCommandArgumentsException(ERROR_NOT_ENOUGH_ARGUMENTS + action
                                              + " in " +

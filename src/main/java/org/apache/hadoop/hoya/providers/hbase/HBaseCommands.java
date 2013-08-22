@@ -71,22 +71,17 @@ public interface HBaseCommands {
   /**
    *  name of the hbase subdir in the archive:  {@value}
    */
-  String HBASE_ARCHIVE_SUBDIR = "hbase-0.95.2-SNAPSHOT";
+  String HBASE_ARCHIVE_SUBDIR = "hbase-0.95.3-SNAPSHOT";
   /**
    *  name of the site conf to generate :  {@value}
    */
   String HBASE_SITE = "hbase-site.xml";
   /**
-   * name of the template file to use for cluster-specific
-   * customisations:  {@value}
-   */
-  String HBASE_TEMPLATE = HBASE_SITE;
-  /**
    * Template stored in the hoya classpath -to use if there is
    * no site-specific template
    *  {@value}
    */
-  String HBASE_TEMPLATE_RESOURCE = "/conf/" + HBASE_TEMPLATE;
+  String HBASE_TEMPLATE_RESOURCE = "/conf/" + HBASE_SITE;
 
 
   String DEFAULT_HBASE_WORKER_HEAP = "256M";
