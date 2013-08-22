@@ -36,11 +36,11 @@ public class HBaseProviderFactory extends HoyaProviderFactory {
   
   @Override
   public ClientProvider createBuilder() {
-    return new HBaseClientProvider(getConf());
+    return new HBaseClusterProvider(getConf());
   }
 
   @Override
   public ClusterExecutor createDeployer() {
-    return new HBaseClusterExecutor(getConf());
+    return new HBaseClusterProvider(getConf());
   }
 }

@@ -20,6 +20,7 @@ package org.apache.hadoop.hoya.providers.hbase;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaKeys;
@@ -28,22 +29,59 @@ import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.providers.ClientProvider;
+import org.apache.hadoop.hoya.providers.ClusterExecutor;
+import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-public class HBaseClientProvider extends HBaseClusterCore implements
-                                                          ClientProvider {
+/**
+ * This class implements both the client-side and server-side aspects
+ * of an HBase Cluster
+ */
+public class HBaseClusterProvider extends Configured implements
+                                                          ProviderCore,
+                                                          HBaseCommands,
+                                                          ClientProvider,
+                                                          ClusterExecutor {
 
   public static final String ERROR_UNKNOWN_ROLE = "Unknown role ";
+  protected static final Logger log =
+    LoggerFactory.getLogger(HBaseClusterProvider.class);
+  protected static final String NAME = "hbase";
 
-  public HBaseClientProvider(Configuration conf) {
+  protected HBaseClusterProvider(Configuration conf) {
     super(conf);
   }
+  
+  protected static final List<String> ROLES = new ArrayList<String>(1);
+
+  protected static final String ROLE_WORKER = "worker";
+  protected static final String ROLE_MASTER = "master";
+
+  static {
+    ROLES.add(ROLE_WORKER);
+    ROLES.add(ROLE_MASTER);
+  }
+
+  @Override
+  public String getName() {
+    return NAME;
+  }
+
+  @Override
+  public List<String> getRoles() {
+    return ROLES;
+  }
+
 
   /**
    * Create the default cluster role instance for a named
@@ -59,10 +97,10 @@ public class HBaseClientProvider extends HBaseClusterCore implements
     rolemap.put(RoleKeys.ROLE_NAME, rolename);
     String heapSize;
     String infoPort;
-    if (rolename.equals(HBaseClusterCore.ROLE_WORKER)) {
+    if (rolename.equals(HBaseClusterProvider.ROLE_WORKER)) {
       heapSize = DEFAULT_HBASE_WORKER_HEAP;
       infoPort = DEFAULT_HBASE_WORKER_INFOPORT;
-    } else if (rolename.equals(HBaseClusterCore.ROLE_MASTER)) {
+    } else if (rolename.equals(HBaseClusterProvider.ROLE_MASTER)) {
       heapSize = DEFAULT_HBASE_MASTER_HEAP;
       infoPort = DEFAULT_HBASE_MASTER_INFOPORT;
     } else {
@@ -73,7 +111,6 @@ public class HBaseClientProvider extends HBaseClusterCore implements
     return rolemap;
   }
 
-
   /**
    * Build the conf dir from the service arguments, adding the hbase root
    * to the FS root dir.
@@ -82,11 +119,11 @@ public class HBaseClientProvider extends HBaseClusterCore implements
    * @return a map of the dynamic bindings for this Hoya instance
    */
   @VisibleForTesting
-  public Map<String, String> buildSiteConfFromServiceArguments(ClusterDescription clusterSpec) throws
-                                                                                               BadConfigException {
+  public Map<String, String> buildSiteConfFromSpec(ClusterDescription clusterSpec)
+    throws BadConfigException {
 
     Map<String, String> master = clusterSpec.getMandatoryRole(ROLE_MASTER);
-    
+
     Map<String, String> worker = clusterSpec.getMandatoryRole(ROLE_WORKER);
 
     Map<String, String> sitexml = new HashMap<String, String>();
@@ -96,17 +133,18 @@ public class HBaseClientProvider extends HBaseClusterCore implements
 
     sitexml.put(HBaseConfigFileOptions.KEY_HBASE_MASTER_INFO_PORT, master.get(
       RoleKeys.APP_INFOPORT));
-    sitexml.put(HBaseConfigFileOptions.KEY_HBASE_ROOTDIR, clusterSpec.hbaseDataPath);
+    sitexml.put(HBaseConfigFileOptions.KEY_HBASE_ROOTDIR,
+                clusterSpec.hbaseDataPath);
     sitexml.put(HBaseConfigFileOptions.KEY_REGIONSERVER_INFO_PORT,
                 worker.get(RoleKeys.APP_INFOPORT));
-    sitexml.put(HBaseConfigFileOptions.KEY_REGIONSERVER_PORT,"0");
+    sitexml.put(HBaseConfigFileOptions.KEY_REGIONSERVER_PORT, "0");
     sitexml.put(HBaseConfigFileOptions.KEY_ZNODE_PARENT, clusterSpec.zkPath);
     sitexml.put(HBaseConfigFileOptions.KEY_ZOOKEEPER_PORT,
                 Integer.toString(clusterSpec.zkPort));
-    sitexml.put(HBaseConfigFileOptions.KEY_ZOOKEEPER_QUORUM, clusterSpec.zkHosts);
+    sitexml.put(HBaseConfigFileOptions.KEY_ZOOKEEPER_QUORUM,
+                clusterSpec.zkHosts);
     return sitexml;
   }
-
 
   /**
    * This builds up the site configuration for the AM and downstream services;
@@ -125,26 +163,26 @@ public class HBaseClientProvider extends HBaseClusterCore implements
                                                                 ClusterDescription clusterSpec,
                                                                 Path originConfDirPath,
                                                                 Path generatedConfDirPath) throws
-                                                                        IOException,
-                                                                        BadConfigException {
-    Configuration templateConf = ConfigHelper.loadTemplateConfiguration(
+                                                                                           IOException,
+                                                                                           BadConfigException {
+    Configuration siteConf = ConfigHelper.loadTemplateConfiguration(
       serviceConf,
       originConfDirPath,
-      HBaseCommands.HBASE_TEMPLATE,
+      HBaseCommands.HBASE_SITE,
       HBaseCommands.HBASE_TEMPLATE_RESOURCE);
 
     //construct the cluster configuration values
-    Map<String, String> clusterConfMap = buildSiteConfFromServiceArguments(
+    Map<String, String> clusterConfMap = buildSiteConfFromSpec(
       clusterSpec);
     //merge them
-    ConfigHelper.addConfigMap(templateConf, clusterConfMap);
+    ConfigHelper.addConfigMap(siteConf, clusterConfMap);
 
     if (log.isDebugEnabled()) {
-      ConfigHelper.dumpConf(templateConf);
+      ConfigHelper.dumpConf(siteConf);
     }
 
     Path sitePath = ConfigHelper.generateConfig(serviceConf,
-                                                templateConf,
+                                                siteConf,
                                                 generatedConfDirPath,
                                                 HBaseCommands.HBASE_SITE);
 
