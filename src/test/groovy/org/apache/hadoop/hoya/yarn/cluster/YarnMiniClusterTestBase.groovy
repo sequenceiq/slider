@@ -37,6 +37,7 @@ import org.apache.hadoop.hdfs.MiniDFSCluster
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.ClusterNode
+import org.apache.hadoop.hoya.api.OptionKeys
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.exceptions.WaitTimeoutException
 import org.apache.hadoop.hoya.providers.hbase.HBaseCommands
@@ -462,7 +463,7 @@ implements KeysForTests, HoyaExitCodes {
         CommonArgs.ARG_ZKPORT, ZKPort.toString(),
         ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
         ClientArgs.ARG_FILESYSTEM, fsDefaultName,
-        CommonArgs.ARG_X_TEST,
+        CommonArgs.ARG_OPTION, OptionKeys.OPTION_TEST, "true",
         CommonArgs.ARG_CONFDIR, getConfDir()
     ]
     

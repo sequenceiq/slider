@@ -24,6 +24,7 @@ import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.ClusterNode
+import org.apache.hadoop.hoya.api.RoleKeys
 import org.apache.hadoop.hoya.providers.hbase.HBaseCommands
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
@@ -41,8 +42,11 @@ class TestClusterDescriptionMapping extends YarnMiniClusterTestBase {
     ClusterDescription cd = new ClusterDescription();
     cd.name = "test"
     cd.state = ClusterDescription.STATE_LIVE;
-    cd.masters = 1;
-    cd.instances = [(HBaseCommands.ROLE_MASTER): 1]
+    cd.roles = [
+        (HBaseCommands.ROLE_MASTER): [
+            (RoleKeys.ROLE_INSTANCES):"1"
+          ]
+        ]
     ClusterNode node = new ClusterNode("masternode")
     cd.startTime = System.currentTimeMillis()
 
@@ -77,7 +81,8 @@ class TestClusterDescriptionMapping extends YarnMiniClusterTestBase {
     ClusterDescription original = createCD()
     ClusterDescription received = roundTrip(original)
 
-    assert received.instances[HBaseCommands.ROLE_MASTER] == 1;
+    assert received.getDesiredInstanceCount(HBaseCommands.ROLE_MASTER, 0) == 1
+
   }
 
   @Test
@@ -87,9 +92,9 @@ class TestClusterDescriptionMapping extends YarnMiniClusterTestBase {
     URI fileURI = file.toURI()
     Path path = new Path(fileURI.toString());
     HadoopFS fileSystem = HadoopFS.get(fileURI, HoyaUtils.createConfiguration())
-    original.save(fileSystem, path, false)
+    original.save(fileSystem, path, true)
     ClusterDescription received = ClusterDescription.load(fileSystem, path)
-    assert received.instances[HBaseCommands.ROLE_MASTER] == 1;
+    assert received.getDesiredInstanceCount(HBaseCommands.ROLE_MASTER,0) == 1
 
   }
 

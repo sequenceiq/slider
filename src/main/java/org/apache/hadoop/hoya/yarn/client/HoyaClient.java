@@ -31,6 +31,7 @@ import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.ClusterNode;
 import org.apache.hadoop.hoya.api.HoyaAppMasterProtocol;
+import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
@@ -40,6 +41,7 @@ import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
 import org.apache.hadoop.hoya.providers.hbase.HBaseCommands;
 import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions;
+import org.apache.hadoop.hoya.providers.hbase.HBaseProvider;
 import org.apache.hadoop.hoya.tools.Duration;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.CommonArgs;
@@ -297,16 +299,24 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     clusterSpec.name = clustername;
     clusterSpec.state = ClusterDescription.STATE_INCOMPLETE;
     clusterSpec.createTime = System.currentTimeMillis();
+    //build up the options map
+    clusterSpec.options = provider.getDefaultClusterOptions();
+    HoyaUtils.mergeMap(clusterSpec.options, serviceArgs.getOptionsMap());
 
+
+    //get the list of supported roles
     List<String> supportedRoles = provider.getRoles();
+    //and any extra
     Map<String, String> roleMap = serviceArgs.getRoleMap();
 
-    Map<String, Map<String, String>> clusterRoleMap = new HashMap<String, Map<String, String>>();
+    Map<String, Map<String, String>> clusterRoleMap =
+      new HashMap<String, Map<String, String>>();
 
     //build the role map from default; set the instances
     for (String roleName : supportedRoles) {
       Map<String, String> clusterRole =
         provider.createDefaultClusterRole(roleName);
+      //get the command line instance count
       String instanceCount = roleMap.get(roleName);
       if (instanceCount == null) {
         instanceCount = "0";
@@ -318,9 +328,9 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       HoyaUtils.parseAndValidate("count of role " + roleName, instanceCount,
                                  defInstances, 0, -1);
       clusterRole.put(RoleKeys.ROLE_INSTANCES, instanceCount);
-      clusterRoleMap.put(roleName,clusterRole);
+      clusterRoleMap.put(roleName, clusterRole);
     }
-    
+
     //now enhance the role option map with all command line options 
     Map<String, Map<String, String>> commandOptions =
       serviceArgs.getRoleOptionMap();
@@ -332,7 +342,6 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     int workers = serviceArgs.workers;
     int workerHeap = serviceArgs.workerHeap;
     validateNodeAndHeapValues("worker", workers, workerHeap);
-    clusterSpec.workerHeap = workerHeap;
     clusterSpec.setDesiredInstanceCount(HBaseCommands.ROLE_WORKER, workers);
 
     clusterSpec.setRoleOpt(HBaseCommands.ROLE_WORKER,
@@ -351,7 +360,6 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     }
 
     //set up the master
-    //clusterSpec.setDesiredInstanceCount(HBaseCommands.ROLE_MASTER, 1);
 
     clusterSpec.setRoleOpt(HBaseCommands.ROLE_MASTER,
                            RoleKeys.YARN_MEMORY,
@@ -378,12 +386,16 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       throw new BadCommandArgumentsException(
         "No more than one master is currently supported");
     }
-    clusterSpec.masters = masters;
-    clusterSpec.instances.put(HBaseCommands.ROLE_MASTER, masters);
-    clusterSpec.masterHeap = masterHeap;
-    clusterSpec.masterInfoPort = masterInfoPort;
-    clusterSpec.workerInfoPort = workerInfoPort;
+    clusterSpec.setDesiredInstanceCount(HBaseCommands.ROLE_MASTER, masters);
 
+    clusterSpec.setRoleOpt(HBaseCommands.ROLE_MASTER,
+                           RoleKeys.APP_INFOPORT,
+                           masterInfoPort);
+
+    clusterSpec.setRoleOpt(HBaseCommands.ROLE_WORKER,
+                           RoleKeys.APP_INFOPORT,
+                           workerInfoPort);
+    
     //HBase home or image
     if (serviceArgs.image != null) {
       if (!isUnset(serviceArgs.hbasehome)) {
@@ -454,11 +466,6 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     log.debug("hBaseRootPath={}", hBaseRootPath);
     clusterSpec.hbaseDataPath = hBaseRootPath.toUri().toString();
-
-    //check for debug mode
-    if (serviceArgs.xTest) {
-      clusterSpec.setFlag(CommonArgs.ARG_X_TEST, true);
-    }
 
     //here the configuration is set up. Mark the 
     clusterSpec.state = ClusterDescription.STATE_SUBMITTED;
@@ -544,7 +551,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     //app type used in service enum;
     appContext.setApplicationType(HoyaKeys.APP_TYPE);
 
-    if (clusterSpec.getFlag(CommonArgs.ARG_X_TEST, false)) {
+    if (clusterSpec.getOptionBool(OptionKeys.OPTION_TEST, false)) {
       //test flag set
       appContext.setMaxAppAttempts(1);
     }
@@ -932,35 +939,6 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
   private String getAppName() {
     return "hoya";
-  }
-
-  /**
-   * Build the conf dir from the service arguments, adding the hbase root
-   * to the FS root dir.
-   * This the configuration used by HBase directly
-   * TODO: migrate
-   * @param hbaseRoot
-   * @return a map of the dynamic bindings for this Hoya instance
-   */
-  @VisibleForTesting
-  public Map<String, String> buildConfMapFromServiceArguments(ClusterDescription clusterSpec,
-                                                              Map<String, String> roleMap) {
-    Map<String, String> envMap = new HashMap<String, String>();
-
-    envMap.put(HBaseConfigFileOptions.KEY_HBASE_CLUSTER_DISTRIBUTED, "true");
-    envMap.put(HBaseConfigFileOptions.KEY_HBASE_MASTER_PORT, "0");
-    
-    envMap.put(HBaseConfigFileOptions.KEY_HBASE_MASTER_INFO_PORT,
-               Integer.toString(clusterSpec.masterInfoPort));
-    envMap.put(HBaseConfigFileOptions.KEY_HBASE_ROOTDIR, clusterSpec.hbaseDataPath);
-    envMap.put(HBaseConfigFileOptions.KEY_REGIONSERVER_INFO_PORT,
-               Integer.toString(clusterSpec.workerInfoPort));
-    envMap.put(HBaseConfigFileOptions.KEY_REGIONSERVER_PORT, "0");
-    envMap.put(HBaseConfigFileOptions.KEY_ZNODE_PARENT, clusterSpec.zkPath);
-    envMap.put(HBaseConfigFileOptions.KEY_ZOOKEEPER_PORT,
-               Integer.toString(clusterSpec.zkPort));
-    envMap.put(HBaseConfigFileOptions.KEY_ZOOKEEPER_QUORUM, clusterSpec.zkHosts);
-    return envMap;
   }
 
   /**

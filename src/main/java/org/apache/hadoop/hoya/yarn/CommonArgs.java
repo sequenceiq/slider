@@ -76,8 +76,6 @@ public class CommonArgs implements HoyaActions {
   public static final String ARG_ZKPORT = "--zkport";
   public static final String ARG_ZKHOSTS = "--zkhosts";
 
-  public static final String ARG_X_TEST = "--Xtest";
-
   /** for testing only: {@value} */
 
   @Deprecated
@@ -160,9 +158,6 @@ public class CommonArgs implements HoyaActions {
              description = "Resource manager hostname:port ",
              required = false)
   public String rmAddress;
-
-  @Parameter(names = ARG_X_TEST, description = "Enable Hoya test mode")
-  public boolean xTest = false;
 
   @Parameter(names = ARG_USER,
              description = "Username if not the current user")

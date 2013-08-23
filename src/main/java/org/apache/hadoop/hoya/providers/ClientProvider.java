@@ -53,4 +53,6 @@ public interface ClientProvider extends ProviderCore {
                                                          Path generatedConfDirPath) throws
                                                                                     IOException,
                                                                                     BadConfigException;
+
+  Map<String, String> getDefaultClusterOptions();
 }

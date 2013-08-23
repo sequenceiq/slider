@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.appmaster;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.NoSuchNodeException;
 import org.apache.hadoop.hoya.providers.ClusterExecutor;
@@ -128,6 +129,7 @@ public class HoyaAppMaster extends CompositeService
   public static final int MAX_TOLERABLE_FAILURES = 10;
   public static final String ROLE_UNKNOWN = "unknown";
   public static final int HEARTBEAT_INTERVAL = 1000;
+  public static final int DEFAULT_CONTAINER_MEMORY_FOR_WORKER = 10;
 
   /** YARN RPC to communicate with the Resource Manager or Node Manager */
   private YarnRPC rpc;
@@ -154,7 +156,7 @@ public class HoyaAppMaster extends CompositeService
   /**
    * container memory
    */
-  private int containerMemory = 10;
+  private int containerMemory = DEFAULT_CONTAINER_MEMORY_FOR_WORKER;
   /** Priority of the request*/
   private int requestPriority;
 
@@ -471,15 +473,20 @@ public class HoyaAppMaster extends CompositeService
 
 
     // work out a port for the AM
-    if (0 == clusterDescription.masterInfoPort) {
-      int port =
+    int infoport = clusterDescription.getRoleOptInt(HBaseCommands.ROLE_MASTER,
+                                                 RoleKeys.APP_INFOPORT,
+                                                 0);
+    if (0 == infoport) {
+      infoport =
         HoyaUtils.findFreePort(HBaseConfigFileOptions.DEFAULT_MASTER_INFO_PORT,
                                128);
       //need to get this to the app
-      clusterDescription.masterInfoPort = port;
+      
+      clusterDescription.setRoleOpt(HBaseCommands.ROLE_MASTER,
+                                     RoleKeys.APP_INFOPORT, infoport);
     }
     appMasterTrackingUrl =
-      "http://" + appMasterHostname + ":" + clusterDescription.masterInfoPort;
+      "http://" + appMasterHostname + ":" + infoport;
 
 
     // Register self with ResourceManager
@@ -540,7 +547,7 @@ public class HoyaAppMaster extends CompositeService
       siteConf.getInt(HBaseConfigFileOptions.KEY_ZOOKEEPER_PORT, 0);
     clusterDescription.zkPath = siteConf.get(HBaseConfigFileOptions.KEY_ZNODE_PARENT);
 
-    noMaster = clusterDescription.masters <= 0;
+    noMaster = clusterDescription.getDesiredInstanceCount(HBaseProvider.ROLE_MASTER,1) <= 0;
     log.debug(" Contents of {}", hBaseSiteXML);
 
     for (String key : confKeys) {
@@ -767,10 +774,9 @@ public class HoyaAppMaster extends CompositeService
   private void configureContainerMemory(RegisterApplicationMasterResponse response) {
     Resource maxResources =
       response.getMaximumResourceCapability();
-    containerMemory = 0;
-    if (clusterDescription.workerHeap != 0) {
-      containerMemory = clusterDescription.workerHeap;
-    }
+    containerMemory = clusterDescription.getRoleOptInt(HBaseProvider.ROLE_WORKER,
+                                                          RoleKeys.YARN_MEMORY,
+                                                          DEFAULT_CONTAINER_MEMORY_FOR_WORKER);
     log.info("Setting container ask to {} from max of {}",
              containerMemory,
              maxResources);
@@ -1029,7 +1035,7 @@ public class HoyaAppMaster extends CompositeService
    */
   public int maximumContainerFailureLimit() {
 
-    return clusterDescription.getFlag(CommonArgs.ARG_X_TEST,false) ? 1 : MAX_TOLERABLE_FAILURES;
+    return clusterDescription.getOptionBool(OptionKeys.OPTION_TEST,false) ? 1 : MAX_TOLERABLE_FAILURES;
   }
 
   /**

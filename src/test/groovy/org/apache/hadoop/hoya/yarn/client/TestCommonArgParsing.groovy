@@ -22,7 +22,6 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.api.RoleKeys
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
-import org.apache.hadoop.hoya.providers.ProviderUtils
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.HoyaActions
@@ -218,7 +217,6 @@ class TestCommonArgParsing {
     assert masterOpts.size() == 3
     assert masterOpts[RoleKeys.YARN_CORES] == "3"
 
-    def clusterRoleMap = []
   }
 
   @Test

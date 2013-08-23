@@ -136,11 +136,6 @@ public class ClusterDescription {
 
   public String originConfigurationPath;
   public String generatedConfigurationPath;
-  public int workerHeap;
-  public int masters;
-  public int masterHeap;
-  public int masterInfoPort;
-  public int workerInfoPort;
   public String zkHosts;
   public int zkPort;
   public String zkPath;
@@ -164,14 +159,6 @@ public class ClusterDescription {
    */
   public Map<String, String> options =
     new HashMap<String, String>();
-
-  /**
-   * Extra flags that can be used to communicate
-   * between client & server; and across versions.
-   * Presence of a value is seen as marking the flag as true
-   */
-  public Map<String, Boolean> flags =
-    new HashMap<String, Boolean>();
 
   /**
    * Statistics
@@ -327,15 +314,6 @@ public class ClusterDescription {
     }
   }
 
-  public boolean getFlag(String flag, boolean defVal) {
-    Boolean b = flags.get(flag);
-    return (b != null) ? b : defVal;
-  }
-
-  public void setFlag(String flag, boolean val) {
-    flags.put(flag, val);
-  }
-
   /**
    * Set a cluster option
    * @param key
@@ -345,10 +323,14 @@ public class ClusterDescription {
     options.put(key, val);
   }
 
-
   public void setOption(String option, int val) {
     setOption(option, Integer.toString(val));
   }
+
+  public void setOption(String option, boolean val) {
+    setOption(option, Boolean.toString(val));
+  }
+  
   /**
    * Get a cluster option or value
    * 
@@ -374,6 +356,17 @@ public class ClusterDescription {
   public int getOptionInt(String option, int defVal) {
     String val = getOption(option, Integer.toString(defVal));
     return Integer.decode(val);
+  }
+
+  /**
+   * Get an option as a boolean. Note that {@link Boolean#valueOf(String)}
+   * is used for parsing -its policy of what is true vs false applies.
+   * @param option name
+   * @param defVal default
+   * @return the option.
+   */
+  public boolean getOptionBool(String option, boolean defVal) {
+    return Boolean.valueOf(getOption(option,Boolean.toString(defVal)));
   }
 
   /**

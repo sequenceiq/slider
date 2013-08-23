@@ -118,6 +118,12 @@ public class ClientArgs extends CommonArgs {
   public Map<String, String> getRoleMap() throws BadCommandArgumentsException {
     return convertTupleListToMap("roles", roleTuples);
   }
+  
+  public Map<String, String> getOptionsMap() throws BadCommandArgumentsException {
+    return convertTupleListToMap("options", optionTuples);
+  }
+  
+  
 
   /**
    * map of actions -> (explanation, min #of entries [, max no.])

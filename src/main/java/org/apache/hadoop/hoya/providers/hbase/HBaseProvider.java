@@ -90,6 +90,16 @@ public class HBaseProvider extends Configured implements
 
 
   /**
+   * Get a map of all the default options for the cluster; values
+   * that can be overridden by user defaults after
+   * @return a possibly emtpy map of default cluster options.
+   */
+  @Override
+  public Map<String, String> getDefaultClusterOptions() {
+    return new HashMap<String, String>();
+  }
+  
+  /**
    * Create the default cluster role instance for a named
    * cluster role; 
    *
