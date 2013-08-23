@@ -35,10 +35,12 @@ import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -52,7 +54,7 @@ public class HBaseProvider extends Configured implements
                                                           ProviderCore,
                                                           HBaseCommands,
                                                           ClientProvider,
-                                                          ClusterExecutor {
+                                                          ClusterExecutor{
 
 
   public static final String OPTION_HBASE_MASTER_COMMAND =
@@ -210,6 +212,32 @@ public class HBaseProvider extends Configured implements
     return confResources;
   }
 
+  /**
+   * Update the AM resource with any local needs
+   * @param capability capability to update
+   */
+  @Override
+  public void prepareAMResourceRequirements(ClusterDescription clusterSpec,
+                                            Resource capability) {
+    //no-op unless you want to add more memory
+    capability.setMemory(clusterSpec.getRoleOptInt(ROLE_MASTER,
+                                                   RoleKeys.YARN_MEMORY,
+                                                   capability.getMemory()));
+    capability.setVirtualCores(1);
+  }
+
+
+  /**
+   * Any operations to the service data before launching the AM
+   * @param clusterSpec cspec
+   * @param serviceData map of service data
+   */
+  @Override
+  public void prepareAMServiceData(ClusterDescription clusterSpec,
+                                   Map<String, ByteBuffer> serviceData) {
+    
+  }
+  
   @Override
   public void buildContainerLaunchContext(ContainerLaunchContext ctx,
                                           FileSystem fs,
@@ -217,4 +245,6 @@ public class HBaseProvider extends Configured implements
                                           String role) {
     //TODO
   }
+  
+  
 }

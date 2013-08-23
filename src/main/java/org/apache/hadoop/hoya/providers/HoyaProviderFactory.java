@@ -22,6 +22,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
+import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,6 +55,17 @@ public abstract class HoyaProviderFactory extends Configured {
   public abstract ClusterExecutor createExecutor();
 
   /**
+   * Create the relevant provider 
+   * @param cd
+   * @return
+   * @throws HoyaException
+   */
+  public static HoyaProviderFactory createHoyaProviderFactory(ClusterDescription cd) throws
+                                                                                        HoyaException {
+    return createHoyaProviderFactory(cd.type);
+  }
+  
+  /**
    * Create a provider for a specific application
    * @param application app
    * @return app instance
@@ -62,7 +74,7 @@ public abstract class HoyaProviderFactory extends Configured {
   public static HoyaProviderFactory createHoyaProviderFactory(String application) throws
                                                                                   HoyaException {
     Configuration conf = loadHoyaConfiguration();
-    if (application==null) {
+    if (application == null) {
       application = DEFAULT_CLUSTER_TYPE;
     }
     String providerKey = String.format(HoyaKeys.HOYA_PROVIDER_KEY, application);

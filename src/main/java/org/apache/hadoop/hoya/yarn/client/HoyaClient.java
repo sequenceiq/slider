@@ -106,11 +106,11 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   public static final String E_UNKNOWN_CLUSTER = "Unknown cluster ";
   public static final String E_DESTROY_CREATE_RACE_CONDITION =
     "created while it was being destroyed";
+  public static final int DEFAULT_AM_MEMORY = 10;
   private int amPriority = 0;
   // Queue for App master
   private String amQueue = "default";
-  // Amt. of memory resource to request for to run the App Master
-  private int amMemory = 10;
+
 
   private String[] argv;
   private ClientArgs serviceArgs;
@@ -254,12 +254,18 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     return EXIT_SUCCESS;
   }
 
+  /**
+   * Get the builder for this cluster
+   * @param clusterSpec
+   * @return
+   * @throws HoyaException
+   */
   private ClientProvider getHadoopClusterBuilder(ClusterDescription clusterSpec)
     throws HoyaException {
-    String type = HoyaProviderFactory.HBASE;
+    
 
     HoyaProviderFactory factory =
-      HoyaProviderFactory.createHoyaProviderFactory(type);
+      HoyaProviderFactory.createHoyaProviderFactory(clusterSpec);
     return factory.createBuilder();
   }
 
@@ -280,8 +286,12 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     ClusterDescription clusterSpec = new ClusterDescription();
 
     //Provider 
+    //TODO: include type from command line
     ClientProvider provider = getHadoopClusterBuilder(clusterSpec);
 
+    //remember this
+    clusterSpec.type = provider.getName();
+    
     if (isUnset(serviceArgs.zkhosts)) {
       throw new BadCommandArgumentsException("Required argument "
                                              + CommonArgs.ARG_ZKHOSTS
@@ -338,7 +348,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     //TODO: move from command line to full role values
     int workers = serviceArgs.workers;
     int workerHeap = serviceArgs.workerHeap;
-    validateNodeAndHeapValues("worker", workers, workerHeap);
+    validateNodeAndHeapValues(HBaseCommands.ROLE_WORKER, workers, workerHeap);
     clusterSpec.setDesiredInstanceCount(HBaseCommands.ROLE_WORKER, workers);
 
     clusterSpec.setRoleOpt(HBaseCommands.ROLE_WORKER,
@@ -376,8 +386,6 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     int masters = serviceArgs.masters;
     int masterHeap = serviceArgs.masterHeap;
-    int masterInfoPort = serviceArgs.masterInfoPort;
-    int workerInfoPort = serviceArgs.workerInfoPort;
     validateNodeAndHeapValues("master", masters, masterHeap);
     if (masters > 1) {
       throw new BadCommandArgumentsException(
@@ -385,13 +393,6 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     }
     clusterSpec.setDesiredInstanceCount(HBaseCommands.ROLE_MASTER, masters);
 
-    clusterSpec.setRoleOpt(HBaseCommands.ROLE_MASTER,
-                           RoleKeys.APP_INFOPORT,
-                           masterInfoPort);
-
-    clusterSpec.setRoleOpt(HBaseCommands.ROLE_WORKER,
-                           RoleKeys.APP_INFOPORT,
-                           workerInfoPort);
 
     //HBase home or image
     if (serviceArgs.image != null) {
@@ -459,11 +460,11 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     HoyaUtils.copyDirectory(getConfig(), origConfPath, generatedConfPath);
 
     //HBase
-    Path hBaseRootPath =
+    Path datapath =
       new Path(clusterDirectory, HoyaKeys.HBASE_DATA_DIR_NAME);
 
-    log.debug("hBaseRootPath={}", hBaseRootPath);
-    clusterSpec.hbaseDataPath = hBaseRootPath.toUri().toString();
+    log.debug("datapath={}", datapath);
+    clusterSpec.hbaseDataPath = datapath.toUri().toString();
 
     //here the configuration is set up. Mark the 
     clusterSpec.state = ClusterDescription.STATE_SUBMITTED;
@@ -527,7 +528,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       imagePath = null;
       if (isUnset(clusterSpec.hbaseHome)) {
         throw new HoyaException(EXIT_BAD_CLUSTER_STATE,
-                                "Neither an image path or hbase home were specified");
+                                "Neither an image path or binary home dir were specified");
       }
     }
 
@@ -540,6 +541,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       }
     }
 
+    
     YarnClientApplication application = createApplication();
     ApplicationSubmissionContext appContext =
       application.getApplicationSubmissionContext();
@@ -708,13 +710,17 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     amContainer.setCommands(commands);
     // Set up resource type requirements
     Resource capability = Records.newRecord(Resource.class);
-    capability.setMemory(amMemory);
-    //capability.setVirtualCores(1);
+    // Amt. of memory resource to request for to run the App Master
+    capability.setMemory(DEFAULT_AM_MEMORY);
+    capability.setVirtualCores(1);
+    provider.prepareAMResourceRequirements(clusterSpec, capability);
     appContext.setResource(capability);
     Map<String, ByteBuffer> serviceData = new HashMap<String, ByteBuffer>();
     // Service data is a binary blob that can be passed to the application
     // Not needed in this scenario
+    provider.prepareAMServiceData(clusterSpec, serviceData);
     amContainer.setServiceData(serviceData);
+
 
     // The following are not required for launching an application master 
     // amContainer.setContainerId(containerId);

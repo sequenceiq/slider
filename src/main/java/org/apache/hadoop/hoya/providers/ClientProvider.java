@@ -25,8 +25,10 @@ import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.Resource;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Map;
 
 /**
@@ -55,4 +57,10 @@ public interface ClientProvider extends ProviderCore {
                                                                                     BadConfigException;
 
   Map<String, String> getDefaultClusterOptions();
+
+  void prepareAMResourceRequirements(ClusterDescription clusterSpec,
+                                     Resource capability);
+
+  void prepareAMServiceData(ClusterDescription clusterSpec,
+                            Map<String, ByteBuffer> serviceData);
 }
