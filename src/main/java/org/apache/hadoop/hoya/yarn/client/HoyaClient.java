@@ -401,7 +401,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
         throw new BadCommandArgumentsException("only one of "
                                                + CommonArgs.ARG_IMAGE
                                                + " and " +
-                                               CommonArgs.ARG_HBASE_HOME +
+                                               CommonArgs.ARG_APP_HOME +
                                                " can be provided");
       }
       clusterSpec.imagePath = serviceArgs.image.toUri().toString();
@@ -409,12 +409,12 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       //the alternative is HBase home, which now MUST be set
       if (isUnset(serviceArgs.hbasehome)) {
         //both args have been set
-        throw new BadCommandArgumentsException("Either " + ClientArgs.ARG_IMAGE
+        throw new BadCommandArgumentsException("Either " + CommonArgs.ARG_IMAGE
                                                + " or " +
-                                               CommonArgs.ARG_HBASE_HOME +
+                                               CommonArgs.ARG_APP_HOME +
                                                " must be provided");
       }
-      clusterSpec.hbaseHome = serviceArgs.hbasehome;
+      clusterSpec.applicationHome = serviceArgs.hbasehome;
     }
 
     //set up the ZK binding
@@ -526,7 +526,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       imagePath = createPathThatMustExist(csip);
     } else {
       imagePath = null;
-      if (isUnset(clusterSpec.hbaseHome)) {
+      if (isUnset(clusterSpec.applicationHome)) {
         throw new HoyaException(EXIT_BAD_CLUSTER_STATE,
                                 "Neither an image path or binary home dir were specified");
       }
@@ -786,7 +786,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                                                           BadCommandArgumentsException {
     if (count < 0) {
       throw new BadCommandArgumentsException(
-        "requested no of " + name + " nodes is too low: " + count);
+        "requested no of %s nodes is too low: %d " , name, count);
     }
 
     if (heap < HoyaKeys.MIN_HEAP_SIZE) {
@@ -1421,6 +1421,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     }
     //then, if this is not a file write, print it
     if (toPrint) {
+      //not logged
       System.out.println(writer.toString());
     }
     return EXIT_SUCCESS;

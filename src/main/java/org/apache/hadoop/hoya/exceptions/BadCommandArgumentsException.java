@@ -19,11 +19,12 @@
 package org.apache.hadoop.hoya.exceptions;
 
 public class BadCommandArgumentsException extends HoyaException {
-  public BadCommandArgumentsException(String s) {
-    super(EXIT_COMMAND_ARGUMENT_ERROR, s);
+  public BadCommandArgumentsException(String s, Object... args) {
+    super(EXIT_COMMAND_ARGUMENT_ERROR, s, args);
   }
 
-  public BadCommandArgumentsException(String s, Throwable throwable) {
-    super(EXIT_COMMAND_ARGUMENT_ERROR, throwable, s);
+  public BadCommandArgumentsException(Throwable throwable, String message,
+                                      Object... args) {
+    super(EXIT_COMMAND_ARGUMENT_ERROR, throwable, message, args);
   }
 }

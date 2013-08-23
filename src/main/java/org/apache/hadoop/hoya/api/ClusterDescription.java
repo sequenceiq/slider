@@ -147,7 +147,7 @@ public class ClusterDescription {
   /**
    * HBase home: if non-empty defines where a copy of HBase is preinstalled
    */
-  public String hbaseHome;
+  public String applicationHome;
 
   /**
    * The path in HDFS where the HBase image must go

@@ -61,12 +61,14 @@ public class RoleLauncher implements Runnable {
   private final String containerRole;
   private final Map<String, String> roleOptions;
   private final ClusterExecutor provider;
+  private final ClusterDescription clusterSpec;
 
   public RoleLauncher(HoyaAppMaster owner,
                       Container container,
                       String role,
                       ClusterExecutor provider,
-                      Map<String, String> roleOptions) {
+                      ClusterDescription clusterSpec,
+                        Map<String, String> roleOptions) {
     assert owner != null;
     assert container != null;
     assert role != null;
@@ -77,6 +79,7 @@ public class RoleLauncher implements Runnable {
     this.containerRole = role;
     this.roleOptions = roleOptions;
     this.provider = provider;
+    this.clusterSpec = clusterSpec;
   }
 
   @Override
@@ -104,62 +107,19 @@ public class RoleLauncher implements Runnable {
       ContainerLaunchContext ctx = Records
         .newRecord(ContainerLaunchContext.class);
       //now build up the configuration data    
-      provider.buildContainerLaunchContext(ctx, fs, generatedConfPath, containerRole);
+      provider.buildContainerLaunchContext(ctx, fs,
+                                           generatedConfPath,
+                                           containerRole,
+                                           clusterSpec,
+                                           roleOptions);
 
-      // Set the environment
-      Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
-      env.put(HoyaKeys.HBASE_LOG_DIR,
-              new ProviderUtils(HoyaAppMaster.log).getLogdir());
-
-      ctx.setEnvironment(env);
-      //local resources
-      Map<String, LocalResource> localResources =
-        new HashMap<String, LocalResource>();
-
-      //add the configuration resources
-      Map<String, LocalResource> confResources;
-      confResources = HoyaUtils.submitDirectory(fs,
-                                                generatedConfPath,
-                                                HoyaKeys.PROPAGATED_CONF_DIR_NAME);
-      localResources.putAll(confResources);
-
-      //Add binaries
-      ClusterDescription clusterSpec = owner.clusterDescription;
-      //now add the image if it was set
-      if (clusterSpec.imagePath != null) {
-        Path imagePath = new Path(clusterSpec.imagePath);
-        log.info("using image path {}", imagePath);
-        HoyaUtils.maybeAddImagePath(fs, localResources, imagePath);
-      }
-      ctx.setLocalResources(localResources);
-
-      List<String> command = new ArrayList<String>();
-      //this must stay relative if it is an image
-      command.add(owner.buildHBaseBinPath(clusterSpec).toString());
-
-      //config dir is relative to the generated file
-      command.add(HBaseCommands.ARG_CONFIG);
-      command.add(HoyaKeys.PROPAGATED_CONF_DIR_NAME);
-      //role is region server
-      command.add(HBaseCommands.REGION_SERVER);
-      command.add(HBaseCommands.ACTION_START);
-
-      //log details
-      command.add(
-        "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/out.txt");
-      command.add(
-        "2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/err.txt");
-
-      String cmdStr = HoyaUtils.join(command, " ");
-
-      List<String> commands = new ArrayList<String>();
-      commands.add(cmdStr);
-      ctx.setCommands(commands);
-      log.info("Starting container with command: {}", cmdStr);
 
       ClusterNode node = new ClusterNode();
+      String commandLine = ctx.getCommands().get(0);
+      log.info("Starting container with command: {}", commandLine);
+      Map<String, LocalResource> lr = ctx.getLocalResources();
       List<String> nodeEnv = new ArrayList<String>();
-      for (Map.Entry<String, LocalResource> entry : localResources.entrySet()) {
+      for (Map.Entry<String, LocalResource> entry : lr.entrySet()) {
 
         String key = entry.getKey();
         LocalResource val = entry.getValue();
@@ -167,7 +127,7 @@ public class RoleLauncher implements Runnable {
         nodeEnv.add(envElt);
         log.info(envElt);
       }
-      node.command = cmdStr;
+      node.command = commandLine;
       node.name = container.getId().toString();
       node.role = containerRole;
       node.environment = nodeEnv.toArray(new String[nodeEnv.size()]);

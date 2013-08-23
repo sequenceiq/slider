@@ -56,7 +56,7 @@ public class CommonArgs implements HoyaActions {
   public static final String ARG_FILESYSTEM = "--fs";
   public static final String ARG_FILESYSTEM_LONG = "--filesystem";
   public static final String ARG_GENERATED_CONFDIR = "--generated_confdir";
-  public static final String ARG_HBASE_HOME = "--hbasehome";
+  public static final String ARG_APP_HOME = "--apphome";
   public static final String ARG_HBASE_ZKPATH = "--hbasezkpath";
   public static final String ARG_HELP = "--help";
   public static final String ARG_IMAGE = "--image";
@@ -98,7 +98,6 @@ public class CommonArgs implements HoyaActions {
   @Deprecated
   public static final String ARG_MASTER_INFO_PORT = "--masterinfoport";
 
-
   /**
    * ERROR Strings
    */
@@ -116,12 +115,10 @@ public class CommonArgs implements HoyaActions {
   public static final String ERROR_TOO_MANY_ARGUMENTS =
     "Too many arguments for action:";
 
-
   public static final String ARG_RESOURCE_MANAGER = "--rm";
 
   protected static final Logger LOG = LoggerFactory.getLogger(CommonArgs.class);
   public static final String ERROR_DUPLICATE_ENTRY = "Duplicate entry for ";
-
 
   @Parameter
   public List<String> parameters = new ArrayList<String>();
@@ -141,10 +138,6 @@ public class CommonArgs implements HoyaActions {
   @Parameter(names = {ARG_FILESYSTEM, ARG_FILESYSTEM_LONG}, description = "Filesystem URI",
              converter = URIArgumentConverter.class)
   public URI filesystemURL;
-
-  @Parameter(names = ARG_HBASE_HOME,
-             description = "Home directory for a pre-installed HBase version")
-  public String hbasehome;
 
   @Parameter(names = ARG_HBASE_ZKPATH,
              description = "Zookeeper path for the HBase nodes")
@@ -185,13 +178,10 @@ public class CommonArgs implements HoyaActions {
   public List<String> definitions = new ArrayList<String>();
   public Map<String, String> definitionMap = new HashMap<String, String>();
 
-
   @Parameter(names = {"--m", ARG_MANAGER},
              description = "hostname:port of the YARN resource manager")
   public String manager;
 
-
-  
   @Parameter(names = {ARG_WORKERS},
              description = "The number of worker nodes")
   public int workers = 0;
@@ -265,8 +255,7 @@ public class CommonArgs implements HoyaActions {
    */
   public String getClusterName() {
     return (actionArgs == null || actionArgs.isEmpty() || args.length < 2) ?
-           null
-                                                                           : args[1];
+           null : args[1];
   }
 
   public CommonArgs(String[] args) {
@@ -296,12 +285,9 @@ public class CommonArgs implements HoyaActions {
     try {
       commander.parse(args);
     } catch (ParameterException e) {
-      throw new BadCommandArgumentsException(e.toString()
-                                             + (args != null
-                                                ? (" in " +
-                                                   HoyaUtils.join(args, " "))
-                                                : ""),
-                                             e);
+      throw new BadCommandArgumentsException(e, "%s in %s", 
+        e.toString(),
+        (args != null ? ( HoyaUtils.join(args, " ")) : "[]"));
     }
   }
 
@@ -365,16 +351,14 @@ public class CommonArgs implements HoyaActions {
               actionArgSize);
 */
     if (minArgs > actionArgSize) {
-      throw new BadCommandArgumentsException(ERROR_NOT_ENOUGH_ARGUMENTS + action
-                                             + " in " +
-                                             HoyaUtils.join(actionArgs, " "));
+      throw new BadCommandArgumentsException(
+        ERROR_NOT_ENOUGH_ARGUMENTS + action + " in " + HoyaUtils.join(actionArgs, " "));
     }
     int maxArgs =
       (actionOpts.size() == 3) ? ((Integer) actionOpts.get(2)) : minArgs;
     if (actionArgSize > maxArgs) {
-      throw new BadCommandArgumentsException(ERROR_TOO_MANY_ARGUMENTS + action
-                                             + " in " +
-                                             HoyaUtils.join(actionArgs, " "));
+      throw new BadCommandArgumentsException(
+        ERROR_TOO_MANY_ARGUMENTS + action + " in " + HoyaUtils.join(actionArgs, " "));
     }
   }
 

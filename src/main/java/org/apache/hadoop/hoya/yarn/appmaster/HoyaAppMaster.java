@@ -42,7 +42,6 @@ import org.apache.hadoop.hoya.exec.RunLongLivedApp;
 import org.apache.hadoop.hoya.providers.hbase.HBaseProvider;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
-import org.apache.hadoop.hoya.yarn.CommonArgs;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
 import org.apache.hadoop.ipc.ProtocolSignature;
 import org.apache.hadoop.ipc.RPC;
@@ -557,8 +556,8 @@ public class HoyaAppMaster extends CompositeService
     }
     if (clusterDescription.zkPort == 0) {
       throw new BadCommandArgumentsException(
-        "ZK port property not provided at" +
-        HBaseConfigFileOptions.KEY_ZOOKEEPER_PORT + " in configuration file " +
+        "ZK port property not provided at %s in configuration file %s",
+        HBaseConfigFileOptions.KEY_ZOOKEEPER_PORT,
         hBaseSiteXML);
     }
 
@@ -949,6 +948,7 @@ public class HoyaAppMaster extends CompositeService
                            container,
                            HBaseCommands.ROLE_WORKER,
                            provider,
+                           clusterDescription,
                            clusterDescription.getOrAddRole(
                              HBaseCommands.ROLE_WORKER));
         launchThread(launcher, "container-" +
@@ -1470,20 +1470,7 @@ public class HoyaAppMaster extends CompositeService
    * @return the hbase home path
    */
   public File buildHBaseBinPath(ClusterDescription cd) {
-    File hbaseScript = new File(buildHBaseDir(cd),
-                                HBaseCommands.HBASE_SCRIPT);
-    return hbaseScript;
-  }
-
-  public File buildHBaseDir(ClusterDescription cd) {
-    File hbasedir;
-    if (cd.imagePath != null) {
-      hbasedir = new File(new File(HoyaKeys.HBASE_LOCAL),
-                          HBaseCommands.HBASE_ARCHIVE_SUBDIR);
-    } else {
-      hbasedir = new File(cd.hbaseHome);
-    }
-    return hbasedir;
+    return HBaseProvider.buildHBaseBinPath(cd);
   }
 
   /**

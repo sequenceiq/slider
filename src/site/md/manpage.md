@@ -107,13 +107,17 @@ Important: *this configuration file is not propagated to the HBase cluster confi
 ### -D name=value
 
 Define a Hadoop configuration option which overrides any options in the configuration XML files of the image or in the image configuration directory. The values will be persisted. Configuration options are only passed to the cluster when creating or reconfiguring a cluster.
+
 ### --option name value  / -O name value
 
 Set a cluster option. These are interpreted by specific cluster providers.
 
-### --hbasehome localpath
+### --apphome localpath
 
-A path to hbase home for a hoya cluster. If set when a Hoya cluster is created, the cluster will run with the version of HBase pre-installed on the nodes.
+A path to the home dir of a pre-installed application. If set when a Hoya
+cluster is created, the cluster will run with the binaries pre-installed
+on the nodes at this location
+
 
 ### --image dfspath
 
@@ -202,31 +206,6 @@ This notifies the application that this is a test run, and that the application 
 
 <!--- ======================================================================= -->
 
-## Options
-
-### HBase options
-
-`hbase.master.command`: The single command to execute on the HBase master,
-in the command sequence: `hbase master start`
-
-for example, if the parameter was
-  
-    -O hbase.master.command version
-
-Hoya would would run the HBase master with the command
-
-    hbase version start
-
-This would not actually create the master -as stated, it is for testing purposes.
-
-### General
-
-`hoya.test`
-
-This notifies the application that this is a test run, and that the application should behave in a way to aid testing. Currently all this does is
-
-1. Limit the number of attempts to start the AM to one.
-1. Enable verbose output in the client-AM RPC
 
 <!--- ======================================================================= -->
 
@@ -333,8 +312,40 @@ Example valid names:
 The latter two cluster names are considered equivalent
 
 <!--- ======================================================================= -->
+## Cluster Options
 
-## Options for Roles
+Cluster options are intended to apply across a cluster, are set with the 
+`--option` or `-O` arguments, and are saved in the `options {}` clause
+in the JSON specification.
+
+### HBase options
+
+`hbase.master.command`: The single command to execute on the HBase master,
+in the command sequence: `hbase master start`
+
+for example, if the parameter was
+  
+    -O hbase.master.command version
+
+Hoya would would run the HBase master with the command
+
+    hbase version start
+
+This would not actually create the master -as stated, it is for testing purposes.
+
+### General
+
+`hoya.test`
+
+This notifies the application that this is a test run, and that the application should behave in a way to aid testing. Currently all this does is
+
+1. Limit the number of attempts to start the AM to one.
+1. Enable verbose output in the client-AM RPC
+
+
+<!--- ======================================================================= -->
+
+## Role Options
 
 Here are some role options that are intended to be common across roles, though
 it is up to the provider and role whether or not an option is used.

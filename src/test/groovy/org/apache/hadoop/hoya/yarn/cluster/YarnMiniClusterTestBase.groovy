@@ -356,7 +356,7 @@ implements KeysForTests, HoyaExitCodes {
     } else {
       assert HBaseHome 
       assert new File(HBaseHome).exists();
-      return [CommonArgs.ARG_HBASE_HOME, HBaseHome]
+      return [CommonArgs.ARG_APP_HOME, HBaseHome]
     }
   }
 

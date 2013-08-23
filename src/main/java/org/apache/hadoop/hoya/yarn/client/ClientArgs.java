@@ -69,7 +69,7 @@ public class ClientArgs extends CommonArgs {
   public String format = FORMAT_XML;
 
   //--wait [timeout]
-  @Parameter(names = "--wait",
+  @Parameter(names = {ARG_WAIT},
              description = "time to wait for an action to complete")
   public int waittime = 0;
 
@@ -78,11 +78,15 @@ public class ClientArgs extends CommonArgs {
    the full path to a .tar or .tar.gz path containing an HBase image.
    */
   @Parameter(names = ARG_IMAGE,
-             description = "The full path to a .tar or .tar.gz path containing an HBase image",
+             description = "The full path to a .tar or .tar.gz path containing the application",
              converter = PathArgumentConverter.class)
   public Path image;
 
-  @Parameter(names = "--persist",
+  @Parameter(names = ARG_APP_HOME,
+             description = "Home directory of a pre-installed application")
+  public String hbasehome;
+  
+  @Parameter(names = {ARG_PERSIST},
              description = "flag to indicate whether a flex change should be persisted (default=true)",
              arity = 1)
   public boolean persist;

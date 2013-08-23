@@ -31,14 +31,18 @@ import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.ClusterExecutor;
 import org.apache.hadoop.hoya.providers.ProviderCore;
+import org.apache.hadoop.hoya.providers.ProviderUtils;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
+import org.apache.hadoop.hoya.yarn.appmaster.HoyaAppMaster;
+import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -64,6 +68,7 @@ public class HBaseProvider extends Configured implements
   protected static final Logger log =
     LoggerFactory.getLogger(HBaseProvider.class);
   protected static final String NAME = "hbase";
+  private static final ProviderUtils providerUtils = new ProviderUtils(log);
 
   protected HBaseProvider(Configuration conf) {
     super(conf);
@@ -242,9 +247,80 @@ public class HBaseProvider extends Configured implements
   public void buildContainerLaunchContext(ContainerLaunchContext ctx,
                                           FileSystem fs,
                                           Path generatedConfPath,
-                                          String role) {
-    //TODO
+                                          String role,
+                                          ClusterDescription clusterSpec,
+                                          Map<String, String> roleOptions
+                                          ) throws IOException {
+    // Set the environment
+    Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
+    env.put(HoyaKeys.HBASE_LOG_DIR,providerUtils.getLogdir());
+
+    ctx.setEnvironment(env);
+
+    //local resources
+    Map<String, LocalResource> localResources =
+      new HashMap<String, LocalResource>();
+
+    //add the configuration resources
+    Map<String, LocalResource> confResources;
+    confResources = HoyaUtils.submitDirectory(fs,
+                                              generatedConfPath,
+                                              HoyaKeys.PROPAGATED_CONF_DIR_NAME);
+    localResources.putAll(confResources);
+    //Add binaries
+    //now add the image if it was set
+    if (clusterSpec.imagePath != null) {
+      Path imagePath = new Path(clusterSpec.imagePath);
+      log.info("using image path {}", imagePath);
+      HoyaUtils.maybeAddImagePath(fs, localResources, imagePath);
+    }
+    ctx.setLocalResources(localResources);
+
+
+    List<String> command = new ArrayList<String>();
+    //this must stay relative if it is an image
+    command.add(buildHBaseBinPath(clusterSpec).toString());
+
+    //config dir is relative to the generated file
+    command.add(HBaseCommands.ARG_CONFIG);
+    command.add(HoyaKeys.PROPAGATED_CONF_DIR_NAME);
+    //role is region server
+    command.add(HBaseCommands.REGION_SERVER);
+    command.add(HBaseCommands.ACTION_START);
+
+    //log details
+    command.add(
+      "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/out.txt");
+    command.add(
+      "2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/err.txt");
+
+    String cmdStr = HoyaUtils.join(command, " ");
+
+    List<String> commands = new ArrayList<String>();
+    commands.add(cmdStr);
+    ctx.setCommands(commands);
+
   }
-  
-  
+
+
+  /**
+   * Get the path to hbase home
+   * @return the hbase home path
+   */
+  public static File buildHBaseBinPath(ClusterDescription cd) {
+    File hbaseScript = new File(buildHBaseDir(cd),
+                                HBaseCommands.HBASE_SCRIPT);
+    return hbaseScript;
+  }
+
+  public static File buildHBaseDir(ClusterDescription cd) {
+    File hbasedir;
+    if (cd.imagePath != null) {
+      hbasedir = new File(new File(HoyaKeys.HBASE_LOCAL),
+                          HBaseCommands.HBASE_ARCHIVE_SUBDIR);
+    } else {
+      hbasedir = new File(cd.applicationHome);
+    }
+    return hbasedir;
+  }
 }

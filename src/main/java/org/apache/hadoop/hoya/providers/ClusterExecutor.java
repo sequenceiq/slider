@@ -20,8 +20,10 @@ package org.apache.hadoop.hoya.providers;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 
+import java.io.IOException;
 import java.util.Map;
 
 public interface ClusterExecutor extends ProviderCore {
@@ -35,5 +37,8 @@ public interface ClusterExecutor extends ProviderCore {
    */
   void buildContainerLaunchContext(ContainerLaunchContext ctx,
                                    FileSystem fs,
-                                   Path generatedConfPath, String role);
+                                   Path generatedConfPath, String role,
+                                   ClusterDescription clusterSpec,
+                                   Map<String, String> roleOptions) throws
+                                                                        IOException;
 }
