@@ -24,10 +24,12 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
+import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.exceptions.MissingArgException;
 import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions;
 import org.apache.hadoop.hoya.yarn.client.HoyaClient;
@@ -273,10 +275,22 @@ public final class HoyaUtils {
   public static Path createHoyaClusterDirPath(FileSystem fs,
                                               String clustername) throws
                                                                   IOException {
-    Path hoyaPath = getBaseHoyaPath(fs);
-    Path instancePath = new Path(hoyaPath, "cluster/" + clustername);
+    Path instancePath = buildHoyaClusterDirPath(fs, clustername);
     fs.mkdirs(instancePath);
     return instancePath;
+  }
+
+  /**
+   * Build up the path string for a cluster instance -no attempt to
+   * create the directory is made
+   * @param fs filesystem
+   * @param clustername name of the cluster
+   * @return the path for persistent data
+   */
+  public static Path buildHoyaClusterDirPath(FileSystem fs,
+                                              String clustername) {
+    Path hoyaPath = getBaseHoyaPath(fs);
+    return new Path(hoyaPath, HoyaKeys.CLUSTER_DIRECTORY +"/" + clustername);
   }
 
   /**
@@ -762,6 +776,62 @@ public final class HoyaUtils {
       //set or overwrite the role
       clusterRoleMap.put(key, existingMap);
     }
+  }
+
+  /**
+   * Perform any post-load cluster validation. This may include loading
+   * a provider and having it check it
+   * @param fileSystem FS
+   * @param clusterSpecPath path to cspec
+   * @param clusterSpec the cluster spec to validate
+   */
+  public static void verifySpecificationValidity(FileSystem fileSystem,
+                                                 Path clusterSpecPath,
+                                                 ClusterDescription clusterSpec) throws
+                                                                          HoyaException {
+    if (clusterSpec.state == ClusterDescription.STATE_INCOMPLETE) {
+      throw new HoyaException(HoyaExitCodes.EXIT_BAD_CLUSTER_STATE,
+                              HoyaClient.E_INCOMPLETE_CLUSTER_SPEC + clusterSpecPath);
+    }
+  }
+
+  /**
+   * Load a cluster spec then validate it
+   * @param fileSystem FS
+   * @param clusterSpecPath path to cspec
+   * @return the cluster spec
+   * @throws IOException IO problems
+   * @throws HoyaException cluster location, spec problems
+   */
+  public static ClusterDescription loadAndValidateClusterSpec(FileSystem filesystem,
+                      Path clusterSpecPath) throws IOException, HoyaException {
+    ClusterDescription clusterSpec =
+      ClusterDescription.load(filesystem, clusterSpecPath);
+    //spec is loaded, just look at its state;
+    verifySpecificationValidity(filesystem, clusterSpecPath, clusterSpec);
+    return clusterSpec;
+  }
+
+  /**
+   * Locate a cluster specification in the FS. This includes a check to verify
+   * that the file is there.
+   * @param filesystem filesystem
+   * @param clustername name of the cluster
+   * @return the path to the spec.
+   * @throws IOException IO problems
+   * @throws HoyaException if the path isn't there
+   */
+  public static Path locateClusterSpecification(FileSystem filesystem,
+                                                String clustername) throws
+                                                                    IOException,
+                                                                    HoyaException {
+    Path clusterDirectory =
+      buildHoyaClusterDirPath(filesystem, clustername);
+    Path clusterSpecPath =
+      new Path(clusterDirectory, HoyaKeys.CLUSTER_SPECIFICATION_FILE);
+    ClusterDescription.verifyClusterSpecExists(clustername, filesystem,
+                                               clusterSpecPath);
+    return clusterSpecPath;
   }
 
   /**

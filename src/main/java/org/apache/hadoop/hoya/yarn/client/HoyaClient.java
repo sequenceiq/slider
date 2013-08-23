@@ -237,7 +237,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     //create the directory path
     FileSystem fs = getClusterFS();
-    Path clusterDirectory = HoyaUtils.createHoyaClusterDirPath(fs, clustername);
+    Path clusterDirectory = HoyaUtils.buildHoyaClusterDirPath(fs, clustername);
     //delete the directory;
     fs.delete(clusterDirectory, true);
 
@@ -541,7 +541,6 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       }
     }
 
-    
     YarnClientApplication application = createApplication();
     ApplicationSubmissionContext appContext =
       application.getApplicationSubmissionContext();
@@ -1438,30 +1437,14 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     //load spec
     verifyFileSystemArgSet();
-    Path clusterDirectory =
-      HoyaUtils.createHoyaClusterDirPath(getClusterFS(), clustername);
     Path clusterSpecPath = locateClusterSpecification(clustername);
 
     ClusterDescription clusterSpec =
-      ClusterDescription.load(getClusterFS(), clusterSpecPath);
-    //spec is loaded, just look at its state
-    verifySpecificationValidity(clusterSpecPath, clusterSpec);
+      HoyaUtils.loadAndValidateClusterSpec(getClusterFS(), clusterSpecPath);
+    Path clusterDirectory =
+      HoyaUtils.buildHoyaClusterDirPath(getClusterFS(), clustername);
 
     return executeClusterCreation(clusterDirectory, clusterSpec);
-  }
-
-  /**
-   * Perform any post-load cluster validation
-   * @param clusterSpecPath
-   * @param clusterSpec
-   */
-  public void verifySpecificationValidity(Path clusterSpecPath,
-                                          ClusterDescription clusterSpec) throws
-                                                                          HoyaException {
-    if (clusterSpec.state == ClusterDescription.STATE_INCOMPLETE) {
-      throw new HoyaException(EXIT_BAD_CLUSTER_STATE,
-                              E_INCOMPLETE_CLUSTER_SPEC + clusterSpecPath);
-    }
   }
 
   /**
@@ -1474,13 +1457,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                                              YarnException,
                                                              IOException {
     FileSystem fs = getClusterFS();
-    Path clusterDirectory =
-      HoyaUtils.createHoyaClusterDirPath(fs, clustername);
-    Path clusterSpecPath =
-      new Path(clusterDirectory, HoyaKeys.CLUSTER_SPECIFICATION_FILE);
-    ClusterDescription.verifyClusterSpecExists(clustername, fs,
-                                               clusterSpecPath);
-    return clusterSpecPath;
+    return HoyaUtils.locateClusterSpecification(fs, clustername);
   }
 
   /**
@@ -1502,19 +1479,18 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       throw new BadCommandArgumentsException(
         "Requested number of workers is out of range");
     }
-    Path clusterDirectory =
-      HoyaUtils.createHoyaClusterDirPath(getClusterFS(), clustername);
     Path clusterSpecPath = locateClusterSpecification(clustername);
+    FileSystem fs = getClusterFS();
     ClusterDescription clusterSpec =
-      ClusterDescription.load(getClusterFS(), clusterSpecPath);
-    //spec is loaded, just look at its state;
-    verifySpecificationValidity(clusterSpecPath, clusterSpec);
+      HoyaUtils.loadAndValidateClusterSpec(fs, clusterSpecPath);
     clusterSpec.setDesiredInstanceCount(HBaseCommands.ROLE_WORKER, workers);
 
     log.debug("Flexed cluster specification (new workers={}) : \n{}",
               workers,
               clusterSpec);
     if (persist) {
+      Path clusterDirectory =
+        HoyaUtils.buildHoyaClusterDirPath(getClusterFS(), clustername);
       log.debug("Saving the cluster specification to {}", clusterSpecPath);
       //save the specification
       if (!HoyaUtils.updateClusterSpecification(getClusterFS(),

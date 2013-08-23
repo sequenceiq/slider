@@ -32,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -96,23 +97,39 @@ public class ConfigHelper {
   /**
    * Generate a config file in a destination directory on a given filesystem
    * @param systemConf system conf used for creating filesystems
+   * @param confToSave config to save
    * @param confdir the directory path where the file is to go
    * @param filename the filename
-   * @return the destination path
+   * @return the destination path where the file was saved
+   * @throws IOException IO problems
    */
   public static Path generateConfig(Configuration systemConf,
-                                    Configuration generatingConf,
+                                    Configuration confToSave,
                                     Path confdir,
                                     String filename) throws IOException {
     FileSystem fs = FileSystem.get(confdir.toUri(), systemConf);
     Path destPath = new Path(confdir, filename);
+    saveConfig(fs, destPath, confToSave);
+    return destPath;
+  }
+
+  /**
+   * Save a config
+   * @param fs filesystem
+   * @param destPath dest to save
+   * @param confToSave  config to save
+   * @throws IOException IO problems
+   */
+  public static void saveConfig(FileSystem fs,
+                                Path destPath,
+                                Configuration confToSave) throws
+                                                              IOException {
     FSDataOutputStream fos = fs.create(destPath);
     try {
-      generatingConf.writeXml(fos);
+      confToSave.writeXml(fos);
     } finally {
       IOUtils.closeStream(fos);
     }
-    return destPath;
   }
 
   /**
@@ -121,7 +138,7 @@ public class ConfigHelper {
    * @param filename the filename
    * @return the destination path
    */
-  public static File generateConfig(Configuration generatingConf,
+  public static File saveConfig(Configuration generatingConf,
                                     File confdir,
                                     String filename) throws IOException {
 
@@ -148,15 +165,42 @@ public class ConfigHelper {
    * loads it from /conf/templateFile.
    * The property {@link HoyaKeys#KEY_HOYA_TEMPLATE_ORIGIN} is set to the
    * origin to help debug what's happening
+   * @param systemConf system conf
+   * @param confdir conf dir in FS
+   * @param templateFilename filename in the confdir
+   * @param fallbackResource resource to fall back on
+   * @return loaded conf
+   * @throws IOException IO problems
    */
   public static Configuration loadTemplateConfiguration(Configuration systemConf,
                                                         Path confdir,
                                                         String templateFilename,
-                                                        String resource) throws
+                                                        String fallbackResource) throws
                                                                          IOException {
     FileSystem fs = FileSystem.get(confdir.toUri(), systemConf);
 
     Path templatePath = new Path(confdir, templateFilename);
+    return loadTemplateConfiguration(fs, templatePath, fallbackResource);
+  }
+
+  /**
+   * looks for the config under $confdir/$templateFilename; if not there
+   * loads it from /conf/templateFile.
+   * The property {@link HoyaKeys#KEY_HOYA_TEMPLATE_ORIGIN} is set to the
+   * origin to help debug what's happening
+   * @param fs Filesystem
+   * @param confdir conf dir in FS
+   * @param templateFilename filename in the confdir
+   * @param fallbackResource resource to fall back on, or "" for no fallback
+   * @return loaded conf
+   * @throws IOException IO problems
+   * @throws FileNotFoundException if the path doesn't have a file and there
+   * was no fallback.
+   */
+  public static Configuration loadTemplateConfiguration(FileSystem fs,
+                                                        Path templatePath,
+                                                        String fallbackResource) throws
+                                                                                 IOException {
     Configuration conf = new Configuration(false);
     String origin;
     if (fs.exists(templatePath)) {
@@ -164,10 +208,13 @@ public class ConfigHelper {
       conf.addResource(templatePath);
       origin = templatePath.toString();
     } else {
+      if (fallbackResource.isEmpty()) {
+        throw new FileNotFoundException("No config file found at " + templatePath);
+      }
       log.debug("Template {} not found" +
-                " -reverting to classpath resource {}", templatePath, resource);
-      conf.addResource(resource);
-      origin = "Resource " + resource;
+                " -reverting to classpath resource {}", templatePath, fallbackResource);
+      conf.addResource(fallbackResource);
+      origin = "Resource " + fallbackResource;
     }
     //force a get
     conf.get(HoyaKeys.KEY_HOYA_TEMPLATE_ORIGIN);

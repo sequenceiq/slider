@@ -85,4 +85,5 @@ public interface HoyaKeys {
    */
   String KEY_HOYA_TEMPLATE_ORIGIN = "hoya.template.origin";
 
+  String CLUSTER_DIRECTORY = "cluster";
 }

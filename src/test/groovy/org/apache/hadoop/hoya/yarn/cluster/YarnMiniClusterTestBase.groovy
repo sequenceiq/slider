@@ -448,7 +448,7 @@ implements KeysForTests, HoyaExitCodes {
     assert miniCluster != null
     if (deleteExistingData) {
       HadoopFS dfs = HadoopFS.get(new URI(fsDefaultName), miniCluster.config)
-      Path clusterDir = HoyaUtils.createHoyaClusterDirPath(dfs, clustername)
+      Path clusterDir = HoyaUtils.buildHoyaClusterDirPath(dfs, clustername)
       log.info("deleting customer data at $clusterDir")
       //this is a safety check to stop us doing something stupid like deleting /
       assert clusterDir.toString().contains("/.hoya/")
