@@ -1193,17 +1193,26 @@ public class HoyaAppMaster extends CompositeService
   }
 
   /**
-   * Use this as a generic heartbeater: 
-   * 0 = not started, 50 = live, 100 = finished
-   * @return
+   * heartbeat operation; return the ratio of requested
+   * to actual
+   * @return progress
    */
   @Override //AMRMClientAsync
   public float getProgress() {
-    if (hbaseMaster == null) {
-      return 0.0f;
-    } else {
-      return 50.0f;
+    float percentage = 0;
+    int desired;
+    float actual;
+    synchronized (descriptionUpdateLock) {
+      desired = desiredContainerCount;
+      actual = numAllocatedContainers.get();
     }
+    if (desired==0) {
+      percentage = 100;
+    } else {
+      percentage = actual / desired;
+    }
+    log.debug("Heartbeat, percentage =%f%%", percentage);
+    return percentage;
   }
 
   @Override //AMRMClientAsync

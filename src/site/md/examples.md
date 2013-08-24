@@ -90,9 +90,11 @@ RM yarn-daemon.sh --config $HADOOP_CONF_DIR start nodemanager
       --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000 --zkhosts localhost \
       --image hdfs://ubuntu:9000/hbase.tar \
       --confdir file:////Users/stevel/Projects/Hortonworks/Projects/hoya/src/test/configs/ubuntu/hbase \
-      --masterinfoport 8080 --masterheap 128 \
+      --roleopt master app.infoport 8080 \
+      --roleopt master jvm.heap 128 \
       --roleopt master env.MALLOC_ARENA_MAX 4 \
-      --workerinfoport 8081 --workerheap 128 
+      --roleopt worker app.infoport 8081 \
+      --roleopt worker jvm.heap 128 
 
     # freeze the cluster
     java -jar target/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya\
