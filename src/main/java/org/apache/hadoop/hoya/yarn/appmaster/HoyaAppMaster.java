@@ -1091,6 +1091,7 @@ public class HoyaAppMaster extends CompositeService
     log.debug("in reviewRequestAndReleaseNodes()");
     if (amCompletionFlag.get()) {
       log.info("Ignoring node review operation: shutdown in progress");
+      return;
     }
     
     int expected = desiredContainerCount;
