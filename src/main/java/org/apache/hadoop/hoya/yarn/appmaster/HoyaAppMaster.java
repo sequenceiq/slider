@@ -323,7 +323,7 @@ public class HoyaAppMaster extends CompositeService
   /**
    * Exit code set when the spawned process exits
    */
-  private int spawnedProcessExitCode;
+  private volatile int spawnedProcessExitCode;
   /**
    * Flag to set if the process exit code was set before shutdown started
    */
