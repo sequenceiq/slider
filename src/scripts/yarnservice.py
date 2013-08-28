@@ -24,7 +24,7 @@ WORK IN PROGRESS, IGNORE
 this is the python script to deploy a YARN service
 
 It uses a JSON config file 
-  --cfile configuration file (JSON format)
+  --jfile configuration file (JSON format)
   -class classname
   -Dname=value -arbitrary value to pass down to the JVM
   --java: any JVM arg
@@ -35,8 +35,11 @@ It uses a JSON config file
   # -xJ name=value JVM options. No: this is just another param
   -xF file  file to load next. Files are loaded in order. 
   -xD name=value again, values are loaded in order
+  -xU undefine
+  -xX main class, 'eXecute'
+
   --  end of arguments
-  -xX main class
+  
 
 """
 
@@ -46,13 +49,13 @@ import sys
 import simplejson
 
 
-KEY_CFILE = "-xF"
+KEY_JFILE = "-xF"
 KEY_DEF = "-xD"
 KEY_UNDEF = "-xU"
 KEY_EXEC = "-xX"
 KEY_ARGS = "--"
 
-COMMANDS = [KEY_CFILE, KEY_DEF, KEY_EXEC]
+COMMANDS = [KEY_JFILE, KEY_DEF, KEY_EXEC]
 
 #
 
@@ -72,7 +75,7 @@ def pop_required_arg(arglist, previousArg) :
   return head
 
 
-def parse_one_cfile(filename) :
+def parse_one_jfile(filename) :
   """
   read in the given config file
   """
@@ -80,29 +83,29 @@ def parse_one_cfile(filename) :
   return parsed
 
 # hand down sys.argv:
-def extract_cfiles(args) :
-  """ takes a list of arg strings and separates them into cfile references
+def extract_jfiles(args) :
+  """ takes a list of arg strings and separates them into jfile references
   and other arguments.
   """
   l = len(args)
   stripped = []
-  cfiles = []
+  jfiles = []
   index = 0
   while index < l :
     elt = args[index]
     index += 1
-    if KEY_CFILE == elt :
+    if KEY_JFILE == elt :
       # a match
       if index == l :
         #overshoot
-        raise Exception("Missing filename after " + KEY_CFILE)
+        raise Exception("Missing filename after " + KEY_JFILE)
       filename = args[index]
-      debug("cfile " + filename)
-      cfiles.append(filename)
+      debug("jfile " + filename)
+      jfiles.append(filename)
       index += 1
     else :
       stripped.append(elt)
-  return cfiles, stripped
+  return jfiles, stripped
 
 
 def extract_args(args) :
@@ -110,15 +113,15 @@ def extract_args(args) :
   Take a list of args, parse them or fail, generating a dictionary of actions
   Return: dictionary and all leftover arguments
   """
-  cfiles = []
+  jfiles = []
   execs = []
   defs = []
   remainder = []
   while len(args) :
     # the next call cannot fail, because of the len(args)
     arg = pop_required_arg(args, "")
-    if KEY_CFILE == arg :
-      cfiles.append(pop_required_arg(args, KEY_CFILE))
+    if KEY_JFILE == arg :
+      jfiles.append(pop_required_arg(args, KEY_JFILE))
     elif KEY_DEF == arg :
       defs.append((KEY_DEF, pop_required_arg(args, KEY_DEF)))
     elif KEY_UNDEF == arg :
@@ -132,7 +135,7 @@ def extract_args(args) :
       remainder.append(arg)
       #build the action list
   actions = {
-    KEY_CFILE : cfiles,
+    KEY_JFILE : jfiles,
     KEY_EXEC : execs,
     KEY_DEF : defs,
     KEY_ARGS : remainder
@@ -167,16 +170,16 @@ def merge_json(conf, json) :
   return conf
 
 
-def merge_cfile(conf, filename) :
-  json = parse_one_cfile(filename)
+def merge_jfile(conf, filename) :
+  json = parse_one_jfile(filename)
   return merge_json(conf, json)
 
 
-def merge_cfile_list(conf, cfiles) :
-  """ merge a list of cfiles on top of a conf dict
+def merge_jfile_list(conf, jfiles) :
+  """ merge a list of jfiles on top of a conf dict
   """
-  for cfile in cfiles :
-    conf = merge_cfile(conf, cfile)
+  for jfile in jfiles :
+    conf = merge_jfile(conf, jfile)
   return conf
 
 
@@ -265,14 +268,14 @@ def apply_local_definitions(conf, definitions) :
 
 #def parse_args(conf, args) :
 #  """
-#   split an arg string, parse the cfiles & merge over the conf
-#  (configuration, args[]) -> (conf', stripped, cfiles[])
+#   split an arg string, parse the jfiles & merge over the conf
+#  (configuration, args[]) -> (conf', stripped, jfiles[])
 #  """
-#  (cfiles, stripped) = extract_cfiles(args)
+#  (jfiles, stripped) = extract_jfiles(args)
 #
 #  actions = extract_args(args)
-#  cfiles = actions[KEY_CFILE]
-#  conf = merge_cfile_list(conf, cfiles)
+#  jfiles = actions[KEY_JFILE]
+#  conf = merge_jfile_list(conf, jfiles)
 #  return conf, actions
 
 
@@ -351,10 +354,10 @@ def start(conf, stripped_args) :
 
 
 def main() :
-#  (conf, stripped, cfiles) = parse_args({}, sys.argv[1 :])
+#  (conf, stripped, jfiles) = parse_args({}, sys.argv[1 :])
   actions = extract_args(sys.argv[1 :])
-  cfiles = actions[KEY_CFILE]
-  conf = merge_cfile_list({}, cfiles)
+  jfiles = actions[KEY_JFILE]
+  conf = merge_jfile_list({}, jfiles)
   apply_local_definitions(conf, actions[KEY_DEF])
   exec_args = actions[KEY_ARGS]
 
