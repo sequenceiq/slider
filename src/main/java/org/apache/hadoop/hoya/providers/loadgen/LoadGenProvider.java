@@ -31,6 +31,7 @@ import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.ClusterExecutor;
 import org.apache.hadoop.hoya.providers.ProviderCore;
+import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys;
 import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions;
@@ -57,15 +58,10 @@ import java.util.Map;
  */
 public class LoadGenProvider extends Configured implements
                                                           ProviderCore,
-                                                          HBaseKeys,
+                                                          LoadGenKeys,
                                                           ClientProvider,
                                                           ClusterExecutor{
 
-
-  public static final String OPTION_HBASE_MASTER_COMMAND =
-    "hbase.master.command";
-  
-  public static final String ERROR_UNKNOWN_ROLE = "Unknown role ";
   protected static final Logger log =
     LoggerFactory.getLogger(LoadGenProvider.class);
   protected static final String NAME = "hbase";
@@ -74,16 +70,23 @@ public class LoadGenProvider extends Configured implements
   protected LoadGenProvider(Configuration conf) {
     super(conf);
   }
-  
-  protected static final List<String> ROLES = new ArrayList<String>(1);
 
-  public static final String ROLE_WORKER = "worker";
-  public static final String ROLE_MASTER = "master";
-  
-  
+  /**
+   * List of roles
+   */
+  protected static final List<ProviderRole> ROLES =
+    new ArrayList<ProviderRole>();
+
+  /**
+   * Initialize role list
+   */
   static {
-    ROLES.add(ROLE_WORKER);
-    ROLES.add(ROLE_MASTER);
+    ROLES.add(new ProviderRole(ROLE_MASTER, 1, true));
+    ROLES.add(new ProviderRole(ROLE_CPULOAD, 2));
+    ROLES.add(new ProviderRole(ROLE_FAILING, 3));
+    ROLES.add(new ProviderRole(ROLE_GENERAL1, 4 ));
+    ROLES.add(new ProviderRole(ROLE_GENERAL2, 5));
+    ROLES.add(new ProviderRole(ROLE_IOLOAD, 6));
   }
 
   @Override
@@ -92,7 +95,7 @@ public class LoadGenProvider extends Configured implements
   }
 
   @Override
-  public List<String> getRoles() {
+  public List<ProviderRole> getRoles() {
     return ROLES;
   }
 
@@ -119,19 +122,28 @@ public class LoadGenProvider extends Configured implements
                                                                        HoyaException {
     Map<String, String> rolemap = new HashMap<String, String>();
     rolemap.put(RoleKeys.ROLE_NAME, rolename);
-    String heapSize;
-    String infoPort;
-    if (rolename.equals(LoadGenProvider.ROLE_WORKER)) {
-      heapSize = DEFAULT_HBASE_WORKER_HEAP;
-      infoPort = DEFAULT_HBASE_WORKER_INFOPORT;
-    } else if (rolename.equals(LoadGenProvider.ROLE_MASTER)) {
-      heapSize = DEFAULT_HBASE_MASTER_HEAP;
-      infoPort = DEFAULT_HBASE_MASTER_INFOPORT;
-    } else {
-      throw new HoyaException(ERROR_UNKNOWN_ROLE + rolename);
+    rolemap.put(KEY_WORKTIME,DEFAULT_WORKTIME);
+    rolemap.put(KEY_SLEEPTIME,DEFAULT_SLEEPTIME);
+    rolemap.put(KEY_EXITCODE,DEFAULT_EXITCODE);
+    rolemap.put(KEY_P_EXIT,DEFAULT_P_EXIT);
+    rolemap.put(RoleKeys.JVM_HEAP, DEFAULT_ROLE_HEAP);
+    rolemap.put(RoleKeys.YARN_CORES, DEFAULT_ROLE_YARN_VCORES);
+    rolemap.put(RoleKeys.YARN_MEMORY, DEFAULT_ROLE_YARN_RAM);
+
+    if (rolename.equals(ROLE_MASTER)) {
+      rolemap.put(RoleKeys.JVM_HEAP, DEFAULT_MASTER_HEAP);
+      rolemap.put(RoleKeys.YARN_CORES, DEFAULT_MASTER_YARN_VCORES);
+      rolemap.put(RoleKeys.YARN_MEMORY, DEFAULT_MASTER_YARN_RAM);
+
+    } else if (rolename.equals(ROLE_CPULOAD)) {
+      rolemap.put(KEY_CPUHEAVY, "true");
+    } else if (rolename.equals(ROLE_IOLOAD)) {
+      rolemap.put(KEY_READHEAVY, "true");
+      rolemap.put(KEY_WRITEHEAVY, "true");
+    } else if (rolename.equals(ROLE_FAILING)) {
+      rolemap.put(KEY_EXITCODE, "32");
+      rolemap.put(KEY_LIFETIME, "60");
     }
-    rolemap.put(RoleKeys.APP_INFOPORT, infoPort);
-    rolemap.put(RoleKeys.JVM_HEAP, heapSize);
     return rolemap;
   }
 
@@ -146,27 +158,9 @@ public class LoadGenProvider extends Configured implements
   public Map<String, String> buildSiteConfFromSpec(ClusterDescription clusterSpec)
     throws BadConfigException {
 
-    Map<String, String> master = clusterSpec.getMandatoryRole(ROLE_MASTER);
-
-    Map<String, String> worker = clusterSpec.getMandatoryRole(ROLE_WORKER);
 
     Map<String, String> sitexml = new HashMap<String, String>();
 
-    sitexml.put(HBaseConfigFileOptions.KEY_HBASE_CLUSTER_DISTRIBUTED, "true");
-    sitexml.put(HBaseConfigFileOptions.KEY_HBASE_MASTER_PORT, "0");
-
-    sitexml.put(HBaseConfigFileOptions.KEY_HBASE_MASTER_INFO_PORT, master.get(
-      RoleKeys.APP_INFOPORT));
-    sitexml.put(HBaseConfigFileOptions.KEY_HBASE_ROOTDIR,
-                clusterSpec.hbaseDataPath);
-    sitexml.put(HBaseConfigFileOptions.KEY_REGIONSERVER_INFO_PORT,
-                worker.get(RoleKeys.APP_INFOPORT));
-    sitexml.put(HBaseConfigFileOptions.KEY_REGIONSERVER_PORT, "0");
-    sitexml.put(HBaseConfigFileOptions.KEY_ZNODE_PARENT, clusterSpec.zkPath);
-    sitexml.put(HBaseConfigFileOptions.KEY_ZOOKEEPER_PORT,
-                Integer.toString(clusterSpec.zkPort));
-    sitexml.put(HBaseConfigFileOptions.KEY_ZOOKEEPER_QUORUM,
-                clusterSpec.zkHosts);
     return sitexml;
   }
 

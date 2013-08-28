@@ -18,15 +18,21 @@
 
 package org.apache.hadoop.hoya.providers;
 
-import org.apache.hadoop.conf.Configuration;
+/**
+ * Provider role and key for use in app requests
+ */
+public class ProviderRole {
+  public final String name;
+  public final int key;
+  public final boolean excludeFromFlexing; 
 
-import java.util.List;
+  public ProviderRole(String name, int key) {
+    this(name, key, false);
+  }
 
-public interface ProviderCore {
-
-  String getName();
-
-  List<ProviderRole> getRoles();
-  
-  Configuration getConf();
+  public ProviderRole(String name, int key, boolean excludeFromFlexing) {
+    this.name = name;
+    this.key = key;
+    this.excludeFromFlexing = excludeFromFlexing;
+  }
 }

@@ -31,6 +31,7 @@ import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.ClusterExecutor;
 import org.apache.hadoop.hoya.providers.ProviderCore;
+import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
@@ -69,13 +70,18 @@ public class HBaseProvider extends Configured implements
   protected HBaseProvider(Configuration conf) {
     super(conf);
   }
-  
-  protected static final List<String> ROLES = new ArrayList<String>(1);
 
+  /**
+   * List of roles
+   */
+  protected static final List<ProviderRole> ROLES = new ArrayList<ProviderRole>();
 
+  /**
+   * Initialize role list
+   */
   static {
-    ROLES.add(HBaseKeys.ROLE_WORKER);
-    ROLES.add(HBaseKeys.ROLE_MASTER);
+    ROLES.add(new ProviderRole(HBaseKeys.ROLE_WORKER, 1, true));
+    ROLES.add(new ProviderRole(HBaseKeys.ROLE_MASTER, 2));
   }
 
   @Override
@@ -84,7 +90,7 @@ public class HBaseProvider extends Configured implements
   }
 
   @Override
-  public List<String> getRoles() {
+  public List<ProviderRole> getRoles() {
     return ROLES;
   }
 
@@ -283,6 +289,8 @@ public class HBaseProvider extends Configured implements
     //role is region server
     command.add(HBaseKeys.REGION_SERVER);
     command.add(HBaseKeys.ACTION_START);
+/*    command.add("-D httpfs.log.dir = "+
+                ApplicationConstants.LOG_DIR_EXPANSION_VAR);*/
 
     //log details
     command.add(

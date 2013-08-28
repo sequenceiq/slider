@@ -39,6 +39,7 @@ import org.apache.hadoop.hoya.exceptions.NoSuchNodeException;
 import org.apache.hadoop.hoya.exceptions.WaitTimeoutException;
 import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
+import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys;
 import org.apache.hadoop.hoya.tools.Duration;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
@@ -303,7 +304,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
 
     //get the list of supported roles
-    List<String> supportedRoles = provider.getRoles();
+    List<ProviderRole> supportedRoles = provider.getRoles();
     //and any extra
     Map<String, String> roleMap = serviceArgs.getRoleMap();
 
@@ -311,7 +312,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       new HashMap<String, Map<String, String>>();
 
     //build the role map from default; set the instances
-    for (String roleName : supportedRoles) {
+    for (ProviderRole role : supportedRoles) {
+      String roleName = role.name;
       Map<String, String> clusterRole =
         provider.createDefaultClusterRole(roleName);
       //get the command line instance count
