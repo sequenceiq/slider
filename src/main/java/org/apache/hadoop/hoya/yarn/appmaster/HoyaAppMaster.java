@@ -343,7 +343,6 @@ public class HoyaAppMaster extends CompositeService
 
   @Override //AbstractService
   public synchronized void serviceInit(Configuration conf) throws Exception {
-    HoyaUtils.patchConfiguration(conf);
     //sort out the location of the AM
     serviceArgs.applyDefinitions(conf);
     serviceArgs.applyFileSystemURL(conf);
@@ -362,14 +361,16 @@ public class HoyaAppMaster extends CompositeService
 
   /**
    * pick up the args from the service launcher
+   * @param config
    * @param args argument list
    */
   @Override // RunService
-  public void setArgs(String... args) throws Exception {
+  public Configuration bindArgs(Configuration config, String... args) throws Exception {
     this.argv = args;
     serviceArgs = new HoyaMasterServiceArgs(argv);
     serviceArgs.parse();
     serviceArgs.postProcess();
+    return HoyaUtils.patchConfiguration(config);
   }
 
 
