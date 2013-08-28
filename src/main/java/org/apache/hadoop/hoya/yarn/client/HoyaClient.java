@@ -39,7 +39,7 @@ import org.apache.hadoop.hoya.exceptions.NoSuchNodeException;
 import org.apache.hadoop.hoya.exceptions.WaitTimeoutException;
 import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
-import org.apache.hadoop.hoya.providers.hbase.HBaseCommands;
+import org.apache.hadoop.hoya.providers.hbase.HBaseKeys;
 import org.apache.hadoop.hoya.tools.Duration;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.CommonArgs;
@@ -84,9 +84,11 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 /**
  * Client service for Hoya
@@ -123,35 +125,24 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   public HoyaClient() {
   }
 
-  /**
-   * Constructor that takes the command line arguments and parses them
-   * via {@link RunService#setArgs(String...)}. That method 
-   * MUST NOT be called afterwards.
-   * @param args argument list to be treated as both raw and processed
-   * arguments.
-   */
-  public HoyaClient(String... args) throws Exception {
-    setArgs(args);
-  }
-
   @Override //Service
   public String getName() {
     return "Hoya";
   }
 
   @Override
-  public void setArgs(String... args) throws Exception {
+  public Configuration bindArgs(Configuration config, String... args) throws Exception {
     this.argv = args;
     serviceArgs = new ClientArgs(args);
     serviceArgs.parse();
     serviceArgs.postProcess();
+    return HoyaUtils.patchConfiguration(config);
   }
 
   @Override
   protected void serviceInit(Configuration conf) throws Exception {
     serviceArgs.applyDefinitions(conf);
     serviceArgs.applyFileSystemURL(conf);
-    HoyaUtils.patchConfiguration(conf);
     super.serviceInit(conf);
   }
 
@@ -348,38 +339,38 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     //TODO: move from command line to full role values
     int workers = serviceArgs.workers;
     int workerHeap = serviceArgs.workerHeap;
-    validateNodeAndHeapValues(HBaseCommands.ROLE_WORKER, workers, workerHeap);
-    clusterSpec.setDesiredInstanceCount(HBaseCommands.ROLE_WORKER, workers);
+    validateNodeAndHeapValues(HBaseKeys.ROLE_WORKER, workers, workerHeap);
+    clusterSpec.setDesiredInstanceCount(HBaseKeys.ROLE_WORKER, workers);
 
-    clusterSpec.setRoleOpt(HBaseCommands.ROLE_WORKER,
+    clusterSpec.setRoleOpt(HBaseKeys.ROLE_WORKER,
                            RoleKeys.YARN_MEMORY,
                            workerHeap);
-    clusterSpec.setRoleOpt(HBaseCommands.ROLE_WORKER,
+    clusterSpec.setRoleOpt(HBaseKeys.ROLE_WORKER,
                            RoleKeys.JVM_HEAP,
                            workerHeap);
-    clusterSpec.setRoleOpt(HBaseCommands.ROLE_WORKER,
+    clusterSpec.setRoleOpt(HBaseKeys.ROLE_WORKER,
                            RoleKeys.YARN_CORES,
                            RoleKeys.DEF_YARN_CORES);
     if (serviceArgs.workerInfoPort >= 0) {
-      clusterSpec.setRoleOpt(HBaseCommands.ROLE_WORKER,
+      clusterSpec.setRoleOpt(HBaseKeys.ROLE_WORKER,
                              RoleKeys.APP_INFOPORT,
                              serviceArgs.workerInfoPort);
     }
 
     //set up the master
 
-    clusterSpec.setRoleOpt(HBaseCommands.ROLE_MASTER,
+    clusterSpec.setRoleOpt(HBaseKeys.ROLE_MASTER,
                            RoleKeys.YARN_MEMORY,
                            serviceArgs.masterHeap);
-    clusterSpec.setRoleOpt(HBaseCommands.ROLE_MASTER,
+    clusterSpec.setRoleOpt(HBaseKeys.ROLE_MASTER,
                            RoleKeys.JVM_HEAP,
                            serviceArgs.masterHeap);
 
-    clusterSpec.setRoleOpt(HBaseCommands.ROLE_MASTER,
+    clusterSpec.setRoleOpt(HBaseKeys.ROLE_MASTER,
                            RoleKeys.YARN_CORES,
                            RoleKeys.DEF_YARN_CORES);
     if (serviceArgs.masterInfoPort >= 0) {
-      clusterSpec.setRoleOpt(HBaseCommands.ROLE_MASTER,
+      clusterSpec.setRoleOpt(HBaseKeys.ROLE_MASTER,
                              RoleKeys.APP_INFOPORT,
                              serviceArgs.masterInfoPort);
     }
@@ -391,7 +382,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       throw new BadCommandArgumentsException(
         "No more than one master is currently supported");
     }
-    clusterSpec.setDesiredInstanceCount(HBaseCommands.ROLE_MASTER, masters);
+    clusterSpec.setDesiredInstanceCount(HBaseKeys.ROLE_MASTER, masters);
 
 
     //HBase home or image
@@ -1136,11 +1127,12 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   @VisibleForTesting
   public List<ApplicationReport> listHoyaInstances(String user)
     throws YarnException, IOException {
-    List<ApplicationReport> allApps = getApplications();
+    Set<String> types = new HashSet<String>(1);
+    types.add(HoyaKeys.APP_TYPE);
+    List<ApplicationReport> allApps = getApplications(types);
     List<ApplicationReport> results = new ArrayList<ApplicationReport>();
     for (ApplicationReport report : allApps) {
-      if (report.getApplicationType().equals(HoyaKeys.APP_TYPE)
-          && (user == null || user.equals(report.getUser()))) {
+      if (user == null || user.equals(report.getUser())) {
         results.add(report);
       }
     }
@@ -1483,7 +1475,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     FileSystem fs = getClusterFS();
     ClusterDescription clusterSpec =
       HoyaUtils.loadAndValidateClusterSpec(fs, clusterSpecPath);
-    clusterSpec.setDesiredInstanceCount(HBaseCommands.ROLE_WORKER, workers);
+    clusterSpec.setDesiredInstanceCount(HBaseKeys.ROLE_WORKER, workers);
 
     log.debug("Flexed cluster specification (new workers={}) : \n{}",
               workers,

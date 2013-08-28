@@ -19,7 +19,7 @@
 package org.apache.hadoop.hoya.yarn.cluster
 
 import groovy.util.logging.Commons
-import org.apache.hadoop.hoya.providers.hbase.HBaseCommands
+import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.junit.Test
 
 /**
@@ -42,7 +42,7 @@ class TestCreateMiniClusterCreation extends YarnMiniClusterTestBase {
     assert hbaseBinDir.exists() && hbaseHomeDir.isDirectory()
     File hbaseShell = new File(hbaseBinDir, "hbase")
     assert hbaseShell.exists()
-    File hbaseSite = new File(hbaseHomeDir, "conf/" + HBaseCommands.HBASE_SITE);
+    File hbaseSite = new File(hbaseHomeDir, "conf/" + HBaseKeys.HBASE_SITE);
     assert hbaseSite.exists()
 
   }

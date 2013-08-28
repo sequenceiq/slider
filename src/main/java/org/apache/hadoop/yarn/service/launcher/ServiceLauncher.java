@@ -116,7 +116,7 @@ public class ServiceLauncher
 
   /**
    * Launch the service, by creating it, initing it, starting it and then
-   * maybe running it. {@link RunService#setArgs(String[])} is invoked
+   * maybe running it. {@link RunService#bindArgs(Configuration, String...)} is invoked
    * on the service between creation and init.
    *
    * All exceptions that occur are propagated upwards.
@@ -157,9 +157,10 @@ public class ServiceLauncher
     RunService runService = null;
 
     if (service instanceof RunService) {
-      //if its a runService, pass in the arguments (hopefully before init)
+      //if its a runService, pass in the conf and arguments before init)
       runService = (RunService) service;
-      runService.setArgs(processedArgs);
+      configuration = runService.bindArgs(configuration, processedArgs);
+      assert configuration != null : "null configuration returned by bindArgs()";
     }
 
     //some class constructors init; here this is picked up on.

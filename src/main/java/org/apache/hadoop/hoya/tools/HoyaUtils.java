@@ -340,17 +340,20 @@ public final class HoyaUtils {
 
   /**
    * Take an existing conf and patch it for Hoya's needs. Useful
-   * in Service.init methods where a shared config is being
+   * in Service.init & RunService methods where a shared config is being
    * passed in
    * @param conf configuration
+   * @return the patched configuration
    */
-  public static void patchConfiguration(Configuration conf) {
+  
+  public static Configuration patchConfiguration(Configuration conf) {
 
     //if the fallback option is NOT set, enable it.
     //if it is explicitly set to anything -leave alone
     if (conf.get(HBaseConfigFileOptions.IPC_CLIENT_FALLBACK_TO_SIMPLE_AUTH) == null) {
       conf.set(HBaseConfigFileOptions.IPC_CLIENT_FALLBACK_TO_SIMPLE_AUTH, "true");
     }
+    return conf;
   }
 
   /**

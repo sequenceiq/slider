@@ -28,7 +28,7 @@ import org.apache.hadoop.hoya.providers.ClusterExecutor;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
 import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions;
-import org.apache.hadoop.hoya.providers.hbase.HBaseCommands;
+import org.apache.hadoop.hoya.providers.hbase.HBaseKeys;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
@@ -353,7 +353,6 @@ public class HoyaAppMaster extends CompositeService
       log.debug("Setting rm address from the command line: {}", rmAddress);
       HoyaUtils.setRmSchedulerAddress(conf, rmAddress);
     }
-
     super.serviceInit(conf);
   }
   
@@ -472,7 +471,7 @@ public class HoyaAppMaster extends CompositeService
 
 
     // work out a port for the AM
-    int infoport = clusterDescription.getRoleOptInt(HBaseCommands.ROLE_MASTER,
+    int infoport = clusterDescription.getRoleOptInt(HBaseKeys.ROLE_MASTER,
                                                  RoleKeys.APP_INFOPORT,
                                                  0);
     if (0 == infoport) {
@@ -481,7 +480,7 @@ public class HoyaAppMaster extends CompositeService
                                128);
       //need to get this to the app
       
-      clusterDescription.setRoleOpt(HBaseCommands.ROLE_MASTER,
+      clusterDescription.setRoleOpt(HBaseKeys.ROLE_MASTER,
                                      RoleKeys.APP_INFOPORT, infoport);
     }
     appMasterTrackingUrl =
@@ -503,7 +502,7 @@ public class HoyaAppMaster extends CompositeService
     clusterDescription.state = ClusterDescription.STATE_LIVE;
     masterNode = new ClusterNode(hostname);
     masterNode.containerId = localContainerId;
-    masterNode.role = HBaseCommands.ROLE_MASTER;
+    masterNode.role = HBaseKeys.ROLE_MASTER;
     masterNode.uuid = UUID.randomUUID().toString();
 
 
@@ -523,7 +522,7 @@ public class HoyaAppMaster extends CompositeService
     }
 
     //now validate the dir by loading in a hadoop-site.xml file from it
-    File hBaseSiteXML = new File(confDir, HBaseCommands.HBASE_SITE);
+    File hBaseSiteXML = new File(confDir, HBaseKeys.HBASE_SITE);
     if (!hBaseSiteXML.exists()) {
       StringBuilder builder = new StringBuilder();
       String[] confDirEntries = confDir.list();
@@ -531,7 +530,7 @@ public class HoyaAppMaster extends CompositeService
         builder.append(entry).append("\n");
       }
       throw new FileNotFoundException(
-        "Conf dir " + confDir + " doesn't contain " + HBaseCommands.HBASE_SITE +
+        "Conf dir " + confDir + " doesn't contain " + HBaseKeys.HBASE_SITE +
         "\n" + builder);
     }
 
@@ -546,7 +545,8 @@ public class HoyaAppMaster extends CompositeService
       siteConf.getInt(HBaseConfigFileOptions.KEY_ZOOKEEPER_PORT, 0);
     clusterDescription.zkPath = siteConf.get(HBaseConfigFileOptions.KEY_ZNODE_PARENT);
 
-    noMaster = clusterDescription.getDesiredInstanceCount(HBaseProvider.ROLE_MASTER,1) <= 0;
+    noMaster = clusterDescription.getDesiredInstanceCount(
+      HBaseKeys.ROLE_MASTER,1) <= 0;
     log.debug(" Contents of {}", hBaseSiteXML);
 
     for (String key : confKeys) {
@@ -573,18 +573,18 @@ public class HoyaAppMaster extends CompositeService
 
       //pull out the command line argument if set
       String masterCommand =
-        clusterDescription.getOption(HBaseProvider.OPTION_HBASE_MASTER_COMMAND,
-                                     HBaseCommands.MASTER);
+        clusterDescription.getOption(HBaseConfigFileOptions.OPTION_HBASE_MASTER_COMMAND,
+                                     HBaseKeys.MASTER);
 
       Map<String, String> env = new HashMap<String, String>();
 
 
       env.put(HoyaKeys.HBASE_LOG_DIR, new ProviderUtils(log).getLogdir());
       List<String> launchSequence = new ArrayList<String>(8);
-      launchSequence.add(HBaseCommands.ARG_CONFIG);
+      launchSequence.add(HBaseKeys.ARG_CONFIG);
       launchSequence.add(confDir.getAbsolutePath());
       launchSequence.add(masterCommand);
-      launchSequence.add(HBaseCommands.ACTION_START);
+      launchSequence.add(HBaseKeys.ACTION_START);
 
       launchHBaseServer(clusterDescription,
                         launchSequence,
@@ -773,7 +773,7 @@ public class HoyaAppMaster extends CompositeService
   private void configureContainerMemory(RegisterApplicationMasterResponse response) {
     Resource maxResources =
       response.getMaximumResourceCapability();
-    containerMemory = clusterDescription.getRoleOptInt(HBaseProvider.ROLE_WORKER,
+    containerMemory = clusterDescription.getRoleOptInt(HBaseKeys.ROLE_WORKER,
                                                           RoleKeys.YARN_MEMORY,
                                                           DEFAULT_CONTAINER_MEMORY_FOR_WORKER);
     log.info("Setting container ask to {} from max of {}",
@@ -946,11 +946,11 @@ public class HoyaAppMaster extends CompositeService
         RoleLauncher launcher =
           new RoleLauncher(this,
                            container,
-                           HBaseCommands.ROLE_WORKER,
+                           HBaseKeys.ROLE_WORKER,
                            provider,
                            clusterDescription,
                            clusterDescription.getOrAddRole(
-                             HBaseCommands.ROLE_WORKER));
+                             HBaseKeys.ROLE_WORKER));
         launchThread(launcher, "container-" +
                                containerHostInfo);
       }
@@ -1062,7 +1062,7 @@ public class HoyaAppMaster extends CompositeService
   private synchronized boolean flexClusterNodes(ClusterDescription updated) throws
                                                              IOException {
 
-    int workers = updated.getDesiredInstanceCount(HBaseCommands.ROLE_WORKER,
+    int workers = updated.getDesiredInstanceCount(HBaseKeys.ROLE_WORKER,
                                                   desiredContainerCount);
     log.info("HoyaAppMasterApi.flexClusterNodes({})", workers);
     
@@ -1076,7 +1076,7 @@ public class HoyaAppMaster extends CompositeService
     //update the #of workers
     desiredContainerCount = workers;
     //and in the role map
-    clusterDescription.setDesiredInstanceCount(HBaseCommands.ROLE_WORKER, workers);
+    clusterDescription.setDesiredInstanceCount(HBaseKeys.ROLE_WORKER, workers);
 
     // ask for more containers if needed
     reviewRequestAndReleaseNodes();
@@ -1109,7 +1109,7 @@ public class HoyaAppMaster extends CompositeService
       //more workers needed than we have -ask for more
       for (int i = 0; i < delta; i++) {
         AMRMClient.ContainerRequest containerAsk =
-          buildContainerRequest(HBaseCommands.ROLE_WORKER);
+          buildContainerRequest(HBaseKeys.ROLE_WORKER);
         log.info("Container ask is {}", containerAsk);
         numActiveRequests.addAndGet(1);
         asyncRMClient.addContainerRequest(containerAsk);
@@ -1330,9 +1330,9 @@ public class HoyaAppMaster extends CompositeService
           masterNode.output = new String[0];
         }
       }
-      List<ClusterNode> nodes = enumNodesByRole(HBaseCommands.ROLE_WORKER);
+      List<ClusterNode> nodes = enumNodesByRole(HBaseKeys.ROLE_WORKER);
       int workerCount = nodes.size();
-      clusterDescription.setDesiredInstanceCount(HBaseCommands.ROLE_WORKER, workerCount);
+      clusterDescription.setDesiredInstanceCount(HBaseKeys.ROLE_WORKER, workerCount);
       clusterDescription.instances = buildInstanceMap();
       Map<String, Long> stats = new HashMap<String, Long>();
       stats.put(STAT_CONTAINERS_REQUESTED, numActiveRequests.longValue());

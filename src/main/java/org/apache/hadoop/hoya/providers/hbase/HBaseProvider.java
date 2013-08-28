@@ -34,7 +34,6 @@ import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
-import org.apache.hadoop.hoya.yarn.appmaster.HoyaAppMaster;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -56,14 +55,11 @@ import java.util.Map;
  */
 public class HBaseProvider extends Configured implements
                                                           ProviderCore,
-                                                          HBaseCommands,
+                                                          HBaseKeys,
                                                           ClientProvider,
                                                           ClusterExecutor{
 
 
-  public static final String OPTION_HBASE_MASTER_COMMAND =
-    "hbase.master.command";
-  
   public static final String ERROR_UNKNOWN_ROLE = "Unknown role ";
   protected static final Logger log =
     LoggerFactory.getLogger(HBaseProvider.class);
@@ -76,13 +72,10 @@ public class HBaseProvider extends Configured implements
   
   protected static final List<String> ROLES = new ArrayList<String>(1);
 
-  public static final String ROLE_WORKER = "worker";
-  public static final String ROLE_MASTER = "master";
-  
-  
+
   static {
-    ROLES.add(ROLE_WORKER);
-    ROLES.add(ROLE_MASTER);
+    ROLES.add(HBaseKeys.ROLE_WORKER);
+    ROLES.add(HBaseKeys.ROLE_MASTER);
   }
 
   @Override
@@ -120,10 +113,10 @@ public class HBaseProvider extends Configured implements
     rolemap.put(RoleKeys.ROLE_NAME, rolename);
     String heapSize;
     String infoPort;
-    if (rolename.equals(HBaseProvider.ROLE_WORKER)) {
+    if (rolename.equals(HBaseKeys.ROLE_WORKER)) {
       heapSize = DEFAULT_HBASE_WORKER_HEAP;
       infoPort = DEFAULT_HBASE_WORKER_INFOPORT;
-    } else if (rolename.equals(HBaseProvider.ROLE_MASTER)) {
+    } else if (rolename.equals(HBaseKeys.ROLE_MASTER)) {
       heapSize = DEFAULT_HBASE_MASTER_HEAP;
       infoPort = DEFAULT_HBASE_MASTER_INFOPORT;
     } else {
@@ -145,9 +138,11 @@ public class HBaseProvider extends Configured implements
   public Map<String, String> buildSiteConfFromSpec(ClusterDescription clusterSpec)
     throws BadConfigException {
 
-    Map<String, String> master = clusterSpec.getMandatoryRole(ROLE_MASTER);
+    Map<String, String> master = clusterSpec.getMandatoryRole(
+      HBaseKeys.ROLE_MASTER);
 
-    Map<String, String> worker = clusterSpec.getMandatoryRole(ROLE_WORKER);
+    Map<String, String> worker = clusterSpec.getMandatoryRole(
+      HBaseKeys.ROLE_WORKER);
 
     Map<String, String> sitexml = new HashMap<String, String>();
 
@@ -191,8 +186,8 @@ public class HBaseProvider extends Configured implements
     Configuration siteConf = ConfigHelper.loadTemplateConfiguration(
       serviceConf,
       originConfDirPath,
-      HBaseCommands.HBASE_SITE,
-      HBaseCommands.HBASE_TEMPLATE_RESOURCE);
+      HBaseKeys.HBASE_SITE,
+      HBaseKeys.HBASE_TEMPLATE_RESOURCE);
 
     //construct the cluster configuration values
     Map<String, String> clusterConfMap = buildSiteConfFromSpec(
@@ -207,7 +202,7 @@ public class HBaseProvider extends Configured implements
     Path sitePath = ConfigHelper.generateConfig(serviceConf,
                                                 siteConf,
                                                 generatedConfDirPath,
-                                                HBaseCommands.HBASE_SITE);
+                                                HBaseKeys.HBASE_SITE);
 
     log.debug("Saving the config to {}", sitePath);
     Map<String, LocalResource> confResources;
@@ -225,9 +220,10 @@ public class HBaseProvider extends Configured implements
   public void prepareAMResourceRequirements(ClusterDescription clusterSpec,
                                             Resource capability) {
     //no-op unless you want to add more memory
-    capability.setMemory(clusterSpec.getRoleOptInt(ROLE_MASTER,
-                                                   RoleKeys.YARN_MEMORY,
-                                                   capability.getMemory()));
+    capability.setMemory(clusterSpec.getRoleOptInt(
+      HBaseKeys.ROLE_MASTER,
+      RoleKeys.YARN_MEMORY,
+      capability.getMemory()));
     capability.setVirtualCores(1);
   }
 
@@ -282,11 +278,11 @@ public class HBaseProvider extends Configured implements
     command.add(buildHBaseBinPath(clusterSpec).toString());
 
     //config dir is relative to the generated file
-    command.add(HBaseCommands.ARG_CONFIG);
+    command.add(HBaseKeys.ARG_CONFIG);
     command.add(HoyaKeys.PROPAGATED_CONF_DIR_NAME);
     //role is region server
-    command.add(HBaseCommands.REGION_SERVER);
-    command.add(HBaseCommands.ACTION_START);
+    command.add(HBaseKeys.REGION_SERVER);
+    command.add(HBaseKeys.ACTION_START);
 
     //log details
     command.add(
@@ -309,7 +305,7 @@ public class HBaseProvider extends Configured implements
    */
   public static File buildHBaseBinPath(ClusterDescription cd) {
     File hbaseScript = new File(buildHBaseDir(cd),
-                                HBaseCommands.HBASE_SCRIPT);
+                                HBaseKeys.HBASE_SCRIPT);
     return hbaseScript;
   }
 
@@ -317,7 +313,7 @@ public class HBaseProvider extends Configured implements
     File hbasedir;
     if (cd.imagePath != null) {
       hbasedir = new File(new File(HoyaKeys.HBASE_LOCAL),
-                          HBaseCommands.HBASE_ARCHIVE_SUBDIR);
+                          HBaseKeys.HBASE_ARCHIVE_SUBDIR);
     } else {
       hbasedir = new File(cd.applicationHome);
     }

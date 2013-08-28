@@ -56,4 +56,6 @@ public interface HBaseConfigFileOptions {
   String IPC_CLIENT_FALLBACK_TO_SIMPLE_AUTH =
     "ipc.client.fallback-to-simple-auth-allowed";
 
+  String OPTION_HBASE_MASTER_COMMAND =
+    "hbase.master.command";
 }

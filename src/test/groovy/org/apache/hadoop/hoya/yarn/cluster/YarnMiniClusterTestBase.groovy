@@ -40,8 +40,7 @@ import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.api.OptionKeys
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.exceptions.WaitTimeoutException
-import org.apache.hadoop.hoya.providers.hbase.HBaseCommands
-import org.apache.hadoop.hoya.providers.hbase.HBaseProvider
+import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.tools.HoyaUtils
@@ -95,7 +94,7 @@ implements KeysForTests, HoyaExitCodes {
   public static final int HBASE_CLUSTER_STARTUP_TO_LIVE_TIME = HBASE_CLUSTER_STARTUP_TIME
   public static final String HREGION = "HRegion"
   public static final List<String> HBASE_VERSION_COMMAND_SEQUENCE = [
-      CommonArgs.ARG_OPTION, HBaseProvider.OPTION_HBASE_MASTER_COMMAND, "version",
+      CommonArgs.ARG_OPTION, HBaseConfigFileOptions.OPTION_HBASE_MASTER_COMMAND, "version",
   ]
 
   protected MiniDFSCluster hdfsCluster
@@ -579,7 +578,7 @@ implements KeysForTests, HoyaExitCodes {
 
   public void assertHBaseMasterNotStopped(HoyaClient hoyaClient,
                                           String clustername) {
-    String[] nodes = hoyaClient.listNodesByRole(HBaseCommands.ROLE_MASTER);
+    String[] nodes = hoyaClient.listNodesByRole(HBaseKeys.ROLE_MASTER);
     int masterNodeCount = nodes.length;
     assert masterNodeCount> 0;
     ClusterNode node = hoyaClient.getNode(nodes[0]);
@@ -693,7 +692,7 @@ implements KeysForTests, HoyaExitCodes {
    */
   public boolean spinForClusterStartup(HoyaClient hoyaClient, long spintime)
   throws WaitTimeoutException, IOException, HoyaException {
-    int state = hoyaClient.waitForRoleInstanceLive(HBaseCommands.MASTER, spintime);
+    int state = hoyaClient.waitForRoleInstanceLive(HBaseKeys.MASTER, spintime);
     return state == ClusterDescription.STATE_LIVE;
   }
 
@@ -759,7 +758,7 @@ implements KeysForTests, HoyaExitCodes {
 
 
   public ClusterStatus basicHBaseClusterStartupSequence(HoyaClient hoyaClient) {
-    int hbaseState = hoyaClient.waitForRoleInstanceLive(HBaseCommands.ROLE_MASTER,
+    int hbaseState = hoyaClient.waitForRoleInstanceLive(HBaseKeys.ROLE_MASTER,
                                                         HBASE_CLUSTER_STARTUP_TIME);
     assert hbaseState == ClusterDescription.STATE_LIVE
     //sleep for a bit to give things a chance to go live
@@ -823,13 +822,13 @@ implements KeysForTests, HoyaExitCodes {
     duration.start()
     while (true) {
       status = hoyaClient.getClusterStatus(clustername)
-      Integer instances = status.instances[(HBaseCommands.ROLE_WORKER)];
+      Integer instances = status.instances[(HBaseKeys.ROLE_WORKER)];
       int workerCount = instances!=null? instances.intValue() : 0;
       if (workerCount == containerCount) {
         break;
       }
       
-      String[] nodes = hoyaClient.listNodesByRole(HBaseCommands.ROLE_MASTER);
+      String[] nodes = hoyaClient.listNodesByRole(HBaseKeys.ROLE_MASTER);
       if (duration.limitExceeded) {
         describe("Cluster region server count of $containerCount not met")
         log.info(prettyPrint(status.toJsonString()))

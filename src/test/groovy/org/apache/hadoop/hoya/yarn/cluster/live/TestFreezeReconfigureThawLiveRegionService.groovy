@@ -23,9 +23,8 @@ import groovy.util.logging.Commons
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hbase.ClusterStatus
-import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.api.ClusterDescription
-import org.apache.hadoop.hoya.providers.hbase.HBaseCommands
+import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
@@ -75,7 +74,7 @@ class TestFreezeReconfigureThawLiveRegionService extends YarnMiniClusterTestBase
     Path specPath = HoyaUtils.locateClusterSpecification(dfs, clustername);
     ClusterDescription persistedSpec = HoyaUtils.loadAndValidateClusterSpec(dfs, specPath);
     Path confdir = new Path(persistedSpec.originConfigurationPath);
-    Path hbaseSiteXML = new Path(confdir, HBaseCommands.HBASE_SITE)
+    Path hbaseSiteXML = new Path(confdir, HBaseKeys.HBASE_SITE)
     Configuration originalConf = ConfigHelper.loadTemplateConfiguration(dfs, hbaseSiteXML, "");
     //patch
     String patchedText = "patched-after-freeze"
