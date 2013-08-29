@@ -125,11 +125,11 @@ implements KeysForTests, HoyaExitCodes {
    * Stop any running cluster that has been added
    */
   public void stopRunningClusters() {
-    clustersToTeardown.each { HoyaClient hoyaClient -> 
+    clustersToTeardown.each { HoyaClient hoyaClient ->
       try {
-        maybeStopCluster(hoyaClient,"");
+        maybeStopCluster(hoyaClient, "");
       } catch (Exception e) {
-        log.warn("While stopping cluster " +e , e);
+        log.warn("While stopping cluster " + e, e);
       }
     }
   }
