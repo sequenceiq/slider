@@ -19,6 +19,12 @@ uses Hadoop 2.1 and needs a version of HBase built against that.
 
 Here's how to set this up.
 
+## Before you begin
+
+You will need a version of Maven 3.x, set up with enough memory
+
+    MAVEN_OPTS=-Xms256m -Xmx512m -Djava.awt.headless=true
+
 ## Building a compatible Hadoop version
 
 During development, Hoya is built against a local version of Hadoop branch 2.1.x,
@@ -68,7 +74,15 @@ see [http://hbase.apache.org/book/build.html](HBase building)
 
     mvn versions:set -DnewVersion=0.95.4-SNAPSHOT
 
-# Testing
+## Building Accumulo
+
+    mvn clean package -Passemble -DskipTests
+
+This creates an accumulo tarball in
+
+    accumulo/assemble/target/accumulo-1.6.0-SNAPSHOT-bin.tar.gz
+
+## Testing
 
 The hbase tarball needs to be unzipped somewhere and defined for Hoya to pick up
 
@@ -79,13 +93,25 @@ is ignored by git), declaring where HBase is:
     
       <property>
         <name>hoya.test.hbase_home</name>
-        <value> /Users/hoya/hbase/hbase-assembly/target/hbase-0.95.3-SNAPSHOT</value>
+        <value>/Users/hoya/hbase/hbase-assembly/target/hbase-0.95.3-SNAPSHOT</value>
         <description>HBASE Home</description>
       </property>
     
       <property>
         <name>hoya.test.hbase_tar</name>
         <value>/Users/hoya/hbase/hbase-assembly/target/hbase-0.95.3-SNAPSHOT-bin.tar.gz</value>
+        <description>HBASE archive URI</description>
+      </property> 
+         
+      <property>
+        <name>hoya.test.accumulo_home</name>
+        <value>/Users/hoya/hbase/hbase-assembly/target/accumulo-1.6.0-SNAPSHOT-bin.tar</value>
+        <description>HBASE Home</description>
+      </property>
+    
+      <property>
+        <name>hoya.test.accumulo_tar</name>
+        <value>/Users/hoya/accumulo/assemble/target/accumulo-1.6.0-SNAPSHOT-bin.tar.gz</value>
         <description>HBASE archive URI</description>
       </property>
     
@@ -148,7 +174,7 @@ After every test run: do a `jps -v` to look for any leftover HBase services
 
 Here is a handy bash command to do this
 
-  jps -l | grep HRegion | awk '{print $1}' | xargs kill -9
+    jps -l | grep HRegion | awk '{print $1}' | xargs kill -9
 
 # Notes
 
