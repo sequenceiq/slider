@@ -19,7 +19,6 @@
 package org.apache.hadoop.hoya.yarn
 
 import groovy.transform.CompileStatic
-import groovy.util.logging.Commons
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.zookeeper.MiniZooKeeperCluster

@@ -29,6 +29,10 @@ public interface RoleKeys {
    * Number needed 
    */
   String ROLE_INSTANCES = "role.instances";
+    /**
+   * Number needed 
+   */
+  String ROLE_ACTUAL_INSTANCES = "role.instances";
   
   /**
    * 

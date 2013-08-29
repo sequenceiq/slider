@@ -114,15 +114,17 @@ public class ClusterDescription {
    * When was the cluster created?
    */
   public long createTime;
+  
   /**
    * When was the cluster last started?
    */
   public long startTime;
 
   /**
-   * When was the cluster last stopped: should be 0 if the cluster is live
+   * When was the cluster last updated
    */
-  public long stopTime;
+  public long updateTime;
+  
   /**
    * when was this status document created
    */
@@ -163,8 +165,8 @@ public class ClusterDescription {
   /**
    * Statistics
    */
-  public Map<String, Long> stats =
-    new HashMap<String, Long>();
+  public Map<String, Map<String, Integer>> stats =
+    new HashMap<String, Map<String, Integer>>();
 
   /**
    * Instances: role->count
@@ -191,6 +193,7 @@ public class ClusterDescription {
   public ClusterDescription() {
   }
   
+
   /**
    * Verify that a cluster specification exists
    * @param clustername name of the cluster (For errors only)
@@ -282,6 +285,20 @@ public class ClusterDescription {
     return fromJson(json);
   }
 
+  /**
+   * Make a deep copy of the class
+   * @param source source
+   * @return the copy
+   */
+  public static ClusterDescription copy(ClusterDescription source) {
+    //currently the copy is done by a generate/save. Inefficient but it goes
+    //down the tree nicely
+    try {
+      return fromJson(source.toJsonString());
+    } catch (IOException e) {
+      throw new RuntimeException("ClusterDescription copy failed " + e, e);
+    }
+  }
 
   /**
    * Convert to a JSON string
@@ -458,5 +475,23 @@ public class ClusterDescription {
    */
   public int getDesiredInstanceCount(String role, int defVal) {
     return getRoleOptInt(role, RoleKeys.ROLE_INSTANCES, defVal);
+  }
+  
+  /**
+   * Set the actual instance count
+   * @param role role
+   * @param val value
+   */
+  public void setActualInstanceCount(String role, int val) {
+    setRoleOpt(role, RoleKeys.ROLE_ACTUAL_INSTANCES, val);
+  }
+
+  /**
+   * Get the actual instance count;
+   * @param role role
+   * @return the current count -falling back to 0
+   */
+  public int getActualInstanceCount(String role) {
+    return getRoleOptInt(role, RoleKeys.ROLE_ACTUAL_INSTANCES, 0);
   }
 }
