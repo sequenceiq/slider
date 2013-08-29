@@ -32,7 +32,6 @@ import org.junit.Test
  * test create a live region service
  */
 @CompileStatic
-@Commons
 class TestFailedRegionService extends YarnMiniClusterTestBase {
 
   @Test

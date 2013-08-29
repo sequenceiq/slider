@@ -38,7 +38,6 @@ import org.apache.hadoop.fs.FileSystem as HadoopFS
  * Test of RM creation. This is so the later test's prereq's can be met
  */
 @CompileStatic
-@Commons
 class TestFreezeReconfigureThawLiveRegionService extends YarnMiniClusterTestBase {
 
   @Test

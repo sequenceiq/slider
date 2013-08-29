@@ -27,7 +27,6 @@ import org.junit.Test
  * Create a master against the File:// fs
  */
 @CompileStatic
-@Commons
 class TestClusterFlexDownToZero extends YarnMiniClusterTestBase {
 
   @Test

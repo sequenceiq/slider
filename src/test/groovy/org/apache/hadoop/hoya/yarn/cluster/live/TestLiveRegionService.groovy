@@ -20,6 +20,7 @@ package org.apache.hadoop.hoya.yarn.cluster.live
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
+import groovy.util.logging.Slf4j
 import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.yarn.ZKIntegration
@@ -32,7 +33,6 @@ import org.junit.Test
  * test create a live region service
  */
 @CompileStatic
-@Commons
 class TestLiveRegionService extends YarnMiniClusterTestBase {
 
   @Test

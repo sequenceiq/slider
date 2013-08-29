@@ -35,7 +35,6 @@ import org.junit.Test
  * bringing up full clusters
  */
 @CompileStatic
-@Commons
 class TestFreezeUnknownCluster extends YarnMiniClusterTestBase {
 
   @Test

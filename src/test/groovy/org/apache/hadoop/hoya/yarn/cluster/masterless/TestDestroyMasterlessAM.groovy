@@ -33,7 +33,6 @@ import org.junit.Test
  * bringing up full clusters
  */
 //@CompileStatic
-@Commons
 class TestDestroyMasterlessAM extends YarnMiniClusterTestBase {
 
   @Test

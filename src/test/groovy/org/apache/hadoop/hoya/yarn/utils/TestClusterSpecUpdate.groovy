@@ -20,6 +20,7 @@ package org.apache.hadoop.hoya.yarn.utils
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
+import groovy.util.logging.Slf4j
 import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.api.ClusterDescription
@@ -31,7 +32,7 @@ import org.junit.Test
 /**
  * Test that the cluster spec can be updated
  */
-@Commons
+@Slf4j
 @CompileStatic
 class TestClusterSpecUpdate extends YarnMiniClusterTestBase {
   private Path testDirPath

@@ -32,9 +32,7 @@ import org.junit.Test
  * bringing up full clusters
  */
 @CompileStatic
-@Commons
 class TestCreateDuplicateLiveCluster extends YarnMiniClusterTestBase {
-
 
     @Test
     public void testCreateClusterRunning() throws Throwable {

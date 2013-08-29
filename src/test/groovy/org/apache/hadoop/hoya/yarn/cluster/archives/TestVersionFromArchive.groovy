@@ -33,7 +33,6 @@ import org.junit.Test
  * Test of RM creation. This is so the later test's prereq's can be met
  */
 @CompileStatic
-@Commons
 class TestVersionFromArchive extends YarnMiniClusterTestBase {
 
   @Test

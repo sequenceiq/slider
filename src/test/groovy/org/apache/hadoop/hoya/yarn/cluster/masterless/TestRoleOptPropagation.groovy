@@ -30,7 +30,6 @@ import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
 @CompileStatic
-@Commons
 class TestRoleOptPropagation extends YarnMiniClusterTestBase {
 
   @Test

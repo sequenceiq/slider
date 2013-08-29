@@ -32,7 +32,6 @@ import org.junit.Test
  * create a live cluster from the image
  */
 @CompileStatic
-@Commons
 class TestLiveClusterFromArchive extends YarnMiniClusterTestBase {
 
   @Test

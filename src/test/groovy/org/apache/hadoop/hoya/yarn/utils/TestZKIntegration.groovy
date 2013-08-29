@@ -20,6 +20,7 @@ package org.apache.hadoop.hoya.yarn.utils
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Commons
+import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.ZKIntegration
@@ -30,7 +31,7 @@ import org.apache.zookeeper.data.Stat
 import org.junit.Before
 import org.junit.Test
 
-@Commons
+@Slf4j
 @CompileStatic
 
 class TestZKIntegration extends YarnMiniClusterTestBase implements KeysForTests {

@@ -32,7 +32,6 @@ import org.junit.Test
  * bringing up full clusters
  */
 @CompileStatic
-@Commons
 class TestThawUnknownCluster extends YarnMiniClusterTestBase {
 
   @Test

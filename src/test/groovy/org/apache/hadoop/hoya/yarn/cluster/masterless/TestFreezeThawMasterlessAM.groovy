@@ -37,7 +37,6 @@ import org.junit.Test
  * create masterless AMs and work with them. This is faster than
  * bringing up full clusters
  */
-@Commons
 @CompileStatic
 class TestFreezeThawMasterlessAM extends YarnMiniClusterTestBase {
 

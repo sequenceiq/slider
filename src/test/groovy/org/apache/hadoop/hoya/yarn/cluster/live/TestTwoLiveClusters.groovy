@@ -28,7 +28,6 @@ import org.junit.Test
 
 
 //@CompileStatic
-@Commons
 class TestTwoLiveClusters extends YarnMiniClusterTestBase {
 
   /**
