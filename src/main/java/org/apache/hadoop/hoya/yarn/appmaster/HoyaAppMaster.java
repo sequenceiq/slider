@@ -70,6 +70,7 @@ import org.apache.hadoop.yarn.client.api.async.NMClientAsync;
 import org.apache.hadoop.yarn.client.api.async.impl.NMClientAsyncImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.hadoop.yarn.ipc.YarnRPC;
 import org.apache.hadoop.yarn.service.launcher.RunService;
 import org.apache.hadoop.yarn.util.ConverterUtils;
@@ -102,6 +103,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * It does not tag interface methods as @Override as the groovyc plugin
  * for maven seems to build in Java 5 syntax, not java6
  */
+@SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
 public class HoyaAppMaster extends CompositeService
   implements AMRMClientAsync.CallbackHandler,
              NMClientAsync.CallbackHandler,
@@ -180,25 +182,19 @@ public class HoyaAppMaster extends CompositeService
   /**
    *  This is the number of containers which we desire for HoyaAM to maintain
    */
-  private int desiredContainerCount = 0;
+  //private int desiredContainerCount = 0;
 
   /**
    * Counter for completed containers ( complete denotes successful or failed )
    */
   private final AtomicInteger numCompletedContainers = new AtomicInteger();
 
-  /**
-   This is the count of containers that have been requested from the RM
-   but which have not been delivered. When flexing we have to take this
-   into account when calculating how many to ask for
-   */
-  private final AtomicInteger numActiveRequests = new AtomicInteger();
 
   /**
    * counter of how many outstanding release requests we have. 
    * As containers are released this should decrease
    */
-  private final AtomicInteger numReleaseRequests = new AtomicInteger();
+//  private final AtomicInteger numReleaseRequests = new AtomicInteger();
 
   /**
    *  Allocated container count so that we know how many containers has the RM
@@ -208,7 +204,7 @@ public class HoyaAppMaster extends CompositeService
    *  received
    *  
    */
-  private final AtomicInteger numAllocatedContainers = new AtomicInteger();
+//  private final AtomicInteger numAllocatedContainers = new AtomicInteger();
 
   /**
    *   Count of failed containers
@@ -774,13 +770,11 @@ public class HoyaAppMaster extends CompositeService
    * Get diagnostics info about containers
    */
   private String getContainerDiagnosticInfo() {
-    return " desired=" + desiredContainerCount +
-           " requested=" + numActiveRequests.get() +
-           " allocated=" + numAllocatedContainers.get() +
-           " completed=" + numCompletedContainers.get() +
-           " failed=" + numFailedContainers.get() +
-           " started=" + startedContainers.get() +
-           " startFailed=" + startFailedContainers.get();
+    StringBuilder builder = new StringBuilder();
+    for (RoleStatus roleStatus: roleStatusMap.values()) {
+        builder.append(roleStatus).append('\n');
+    }
+    return builder.toString();
   }
 
   //TODO: rework
@@ -820,9 +814,9 @@ public class HoyaAppMaster extends CompositeService
    * Setup the request that will be sent to the RM for the container ask.
    *
    *
-   * @param role@return the setup ResourceRequest to be sent to RM
+   * @param role @return the setup ResourceRequest to be sent to RM
    */
-  private AMRMClient.ContainerRequest buildContainerRequest(String role) {
+  private AMRMClient.ContainerRequest buildContainerRequest(RoleStatus role) {
     // setup requirements for hosts
     // using * as any host initially
     String[] hosts = null;
@@ -833,17 +827,14 @@ public class HoyaAppMaster extends CompositeService
     Resource capability = Records.newRecord(Resource.class);
     synchronized (clusterDescription) {
       // Set up resource requirements from role valuesx
-      capability.setVirtualCores(clusterDescription.getRoleOptInt(role,
+      String name = role.getName();
+      capability.setVirtualCores(clusterDescription.getRoleOptInt(name,
                                   YARN_CORES,
                                   DEF_YARN_CORES));
-      capability.setMemory(clusterDescription.getRoleOptInt(role,
+      capability.setMemory(clusterDescription.getRoleOptInt(name,
                                                             YARN_MEMORY,
                                                             DEF_YARN_MEMORY));
-/*      pri.setPriority(clusterDescription.getRoleOptInt(role,
-                                                       YARN_PRIORITY,
-                                                       DEF_YARN_PRIORITY));*/
-
-      pri.setPriority(0);
+      pri.setPriority(role.getPriority());
     }
     AMRMClient.ContainerRequest request;
     request = new AMRMClient.ContainerRequest(capability,
@@ -905,6 +896,47 @@ public class HoyaAppMaster extends CompositeService
     }
   }
   
+  
+  private int getRoleKey(Container c) {
+    return c.getPriority().getPriority();
+  }
+
+  /**
+   * Look up a role from its key -or fail 
+   * 
+   * @param key key to resolve
+   * @return the status
+   * @throws YarnRuntimeException on no match
+   */
+  private RoleStatus lookupRoleStatus(int key)  {
+    RoleStatus rs = roleStatusMap.get(key);
+    if (rs==null) {
+      throw new YarnRuntimeException("Cannot find role for role key " + key);
+    }
+    return rs;
+  }
+  
+  private RoleStatus lookupRole(String name) {
+    for (RoleStatus roleStatus : roleStatusMap.values()) {
+      if (roleStatus.getName().equals(name)) {
+        return roleStatus;
+      }
+    }
+    throw new YarnRuntimeException("Cannot find role for role " + name);
+
+  }
+
+  /**
+   * Look up a role from its key -or fail 
+   *
+   * @param c container in a role
+   * @return the status
+   * @throws YarnRuntimeException on no match
+   */
+  private RoleStatus lookupRoleStatus(Container c) {
+    return lookupRoleStatus(getRoleKey(c));
+  }
+  
 /* =================================================================== */
 /* AMRMClientAsync callbacks */
 /* =================================================================== */
@@ -914,6 +946,7 @@ public class HoyaAppMaster extends CompositeService
    * @param allocatedContainers list of containers that are now ready to be
    * given work
    */
+  @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
   @Override //AMRMClientAsync
   public void onContainersAllocated(List<Container> allocatedContainers) {
     log.info("onContainersAllocated({})",
@@ -925,20 +958,19 @@ public class HoyaAppMaster extends CompositeService
                                  container.getNodeId().getPort();
       int allocated;
       int desired;
-      synchronized (this) {
+      //get the role
+      RoleStatus role = lookupRoleStatus(container);
+      synchronized (role) {
         //sync on all container details. Even though these are atomic,
         //we don't really want multiple updates happening simultaneously
         log.info(getContainerDiagnosticInfo());
         //dec requested count
-        if (numActiveRequests.decrementAndGet()<0) {
-          log.warn("numActiveRequests is negative -resetting");
-          numActiveRequests.set(0);
-        }
+        role.decRequested();
         //inc allocated count
-        allocated = numAllocatedContainers.incrementAndGet();
+        allocated =role.incActual();
 
         //look for (race condition) where we get more back than we asked
-        desired = desiredContainerCount;
+        desired = role.getDesired();
       }
       if ( allocated > desired) {
         log.info("Discarding surplus container {} on {}", container.getId(),
@@ -957,14 +989,15 @@ public class HoyaAppMaster extends CompositeService
                  container.getNodeHttpAddress(),
                  container.getResource());
 
+        String roleName = role.getName();
         RoleLauncher launcher =
           new RoleLauncher(this,
                            container,
-                           ROLE_WORKER,
+                           roleName,
                            provider,
                            clusterDescription,
                            clusterDescription.getOrAddRole(
-                             ROLE_WORKER));
+                             roleName));
         launchThread(launcher, "container-" +
                                containerHostInfo);
       }
@@ -976,9 +1009,9 @@ public class HoyaAppMaster extends CompositeService
                id.getApplicationAttemptId(),
                container.getNodeId().getHost(),
                container.getNodeId().getPort());
-      synchronized (this) {
-        containersBeingReleased.put(id, container);
-        numReleaseRequests.incrementAndGet();
+      RoleStatus role = lookupRoleStatus(container);
+      synchronized (role) {
+        role.incReleasing();
       }
       asyncRMClient.releaseAssignedContainer(id);
     }
@@ -1008,16 +1041,12 @@ public class HoyaAppMaster extends CompositeService
       if (containersBeingReleased.containsKey(id)) {
         log.info("Container was queued for release");
         markCompleted = true;
-        containersBeingReleased.remove(id);
-        if (numReleaseRequests.decrementAndGet()<0) {
-          log.warn("Number of release requests has gone negative -resetting (was {})",
-                   numReleaseRequests.get());
-          numReleaseRequests.set(0);
+        Container container = containersBeingReleased.remove(id);
+        RoleStatus roleStatus = lookupRoleStatus(container);
+        synchronized (roleStatus) {
+          roleStatus.decReleasing();
+          roleStatus.decActual();
         }
-      }
-      if (markCompleted) {
-        //if it isn't a failure , decrement the container pool
-        noteContainerCompleted();
       }
     }
 
@@ -1052,15 +1081,6 @@ public class HoyaAppMaster extends CompositeService
     return clusterDescription.getOptionBool(OptionKeys.OPTION_TEST,false) ? 1 : MAX_TOLERABLE_FAILURES;
   }
 
-  /**
-   * Handle completion of a container by decrementing the requested and alloc'd numbers
-   */
-  private synchronized void noteContainerCompleted() {
-    if (numAllocatedContainers.decrementAndGet()<0) {
-      log.warn("numAllocatedContainers has gone negative -resetting");
-      numAllocatedContainers.set(0);
-    }
-  }
 
   /**
    * Implementation of cluster flexing.
@@ -1076,21 +1096,24 @@ public class HoyaAppMaster extends CompositeService
   private synchronized boolean flexClusterNodes(ClusterDescription updated) throws
                                                              IOException {
 
-    int workers = updated.getDesiredInstanceCount(ROLE_WORKER,
-                                                  desiredContainerCount);
-    log.info("HoyaAppMasterApi.flexClusterNodes({})", workers);
-    
-    log.info("Flexing cluster count from {} to {}", desiredContainerCount,
-             workers);
-    if (desiredContainerCount == workers) {
-      //no-op
-      log.info("Flex is a no-op");
-      return false;
+    //TODO: Support all roles
+    String rolename = ROLE_WORKER;
+    RoleStatus role = lookupRole(rolename);
+    synchronized (role) {
+      int current = role.getDesired();
+      int desired = updated.getDesiredInstanceCount(rolename, current);
+
+      log.info("Flexing {} count from {} to {}", rolename, current, desired);
+      if (current == desired) {
+        //no-op
+        log.info("Flex is a no-op");
+      } else {
+        //update the #of desired
+        role.setDesired(desired);
+        //and in the role map
+        clusterDescription.setDesiredInstanceCount(rolename, desired);
+      }
     }
-    //update the #of workers
-    desiredContainerCount = workers;
-    //and in the role map
-    clusterDescription.setDesiredInstanceCount(ROLE_WORKER, workers);
 
     // ask for more containers if needed
     reviewRequestAndReleaseNodes();
@@ -1107,38 +1130,37 @@ public class HoyaAppMaster extends CompositeService
       return;
     }
 
-    for (Map.Entry<Integer, RoleStatus> entry : roleStatusMap.entrySet()) {
-      RoleStatus roleStatus = entry.getValue();
+    for (RoleStatus roleStatus : roleStatusMap.values()) {
       if (!roleStatus.getExcludeFromFlexing()) {
         reviewOneRole(roleStatus);
       }
     }
   }
 
+  @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
   private void reviewOneRole(RoleStatus role) {
+    int delta;
+    String details;
+    int expected;
     synchronized (role) {
-      
+      delta = role.getDelta();
+      details = role.toString();
+      expected = role.getDesired();
     }
-    int expected = desiredContainerCount;
-    int activeRequests = numActiveRequests.get();
 
-    int alloced = numAllocatedContainers.get();
-    int inuse = activeRequests + alloced;
-    int delta = expected - inuse;
-
-    log.info( "desired={}, activeRequests={}, allocated={} in use={} delta={}",
-      expected, activeRequests, alloced, inuse, delta);
-    log.info(getContainerDiagnosticInfo());
+    log.info(details);
 
     if (delta > 0) {
-      log.info("Asking for {} more worker(s) for a total of {} (activeRequests={} alloced={})",
-               delta, expected, activeRequests, alloced);
+      log.info("Asking for {} more worker(s) for a total of {} ",
+               delta, expected);
       //more workers needed than we have -ask for more
       for (int i = 0; i < delta; i++) {
         AMRMClient.ContainerRequest containerAsk =
-          buildContainerRequest(ROLE_WORKER);
+          buildContainerRequest(role);
         log.info("Container ask is {}", containerAsk);
-        numActiveRequests.addAndGet(1);
+        synchronized (role) {
+          role.incRequested();
+        }
         asyncRMClient.addContainerRequest(containerAsk);
       }
     } else if (delta < 0) {
@@ -1167,7 +1189,9 @@ public class HoyaAppMaster extends CompositeService
             log.info("Requesting release of container {}", id);
             ci.released = true;
             containersBeingReleased.put(id, possible);
-            numReleaseRequests.incrementAndGet();
+            synchronized (role) {
+              role.incReleasing();
+            }
             asyncRMClient.releaseAssignedContainer(id);
             excess--;
           }
@@ -1187,7 +1211,6 @@ public class HoyaAppMaster extends CompositeService
    * Shutdown operation: release all containers
    */
   void releaseAllContainers() {
-    desiredContainerCount = 0;
     Collection<ContainerInfo> targets = containers.values();
     for (ContainerInfo ci : targets) {
         Container possible = ci.container;
@@ -1196,7 +1219,11 @@ public class HoyaAppMaster extends CompositeService
           log.info("Requesting release of container {}", id);
           ci.released = true;
           containersBeingReleased.put(id, possible);
-          numReleaseRequests.incrementAndGet();
+          RoleStatus roleStatus = lookupRoleStatus(possible);
+          synchronized (roleStatus) {
+            roleStatus.incReleasing();
+            roleStatus.getDesired();
+          }
           asyncRMClient.releaseAssignedContainer(id);
         }
       }
@@ -1227,13 +1254,15 @@ public class HoyaAppMaster extends CompositeService
   @Override //AMRMClientAsync
   public float getProgress() {
     float percentage = 0;
-    int desired;
-    float actual;
-    synchronized (descriptionUpdateLock) {
-      desired = desiredContainerCount;
-      actual = numAllocatedContainers.get();
+    int desired =0 ;
+    float actual = 0;
+    for (RoleStatus role : roleStatusMap.values()) {
+      synchronized (role) {
+        desired += role.getDesired();
+        actual += role.getActual();
+      }
     }
-    if (desired==0) {
+    if (desired == 0) {
       percentage = 100;
     } else {
       percentage = actual / desired;
@@ -1362,6 +1391,7 @@ public class HoyaAppMaster extends CompositeService
       clusterDescription.setDesiredInstanceCount(ROLE_WORKER, workerCount);
       clusterDescription.instances = buildInstanceMap();
       Map<String, Long> stats = new HashMap<String, Long>();
+/*
       stats.put(STAT_CONTAINERS_REQUESTED, numActiveRequests.longValue());
       stats.put(STAT_CONTAINERS_ALLOCATED, numAllocatedContainers.longValue());
       stats.put(STAT_CONTAINERS_COMPLETED, numCompletedContainers.longValue());
@@ -1369,6 +1399,7 @@ public class HoyaAppMaster extends CompositeService
       stats.put(STAT_CONTAINERS_STARTED, startedContainers.longValue());
       stats.put(STAT_CONTAINERS_STARTED_FAILED,
                 startFailedContainers.longValue());
+*/
       clusterDescription.stats = stats;
     }
   }

@@ -80,8 +80,8 @@ public class HBaseProvider extends Configured implements
    * Initialize role list
    */
   static {
-    ROLES.add(new ProviderRole(HBaseKeys.ROLE_WORKER, 1, true));
-    ROLES.add(new ProviderRole(HBaseKeys.ROLE_MASTER, 2));
+    ROLES.add(new ProviderRole(HBaseKeys.ROLE_WORKER, 1));
+    ROLES.add(new ProviderRole(HBaseKeys.ROLE_MASTER, 2,true));
   }
 
   @Override

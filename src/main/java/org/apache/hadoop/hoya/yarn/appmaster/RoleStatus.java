@@ -70,6 +70,10 @@ public class RoleStatus {
   public int getKey() {
     return key;
   }
+  
+  public int getPriority() {
+    return getKey();
+  }
 
   public boolean getExcludeFromFlexing() {
     return excludeFromFlexing;
@@ -91,6 +95,18 @@ public class RoleStatus {
     this.actual = actual;
   }
 
+
+  public int incActual() {
+    return ++actual;
+  }
+
+  public int decActual() {
+    if (0 > --actual) {
+      actual = 0;
+    }
+    return actual;
+  }
+  
   public int getRequested() {
     return requested;
   }
@@ -99,12 +115,33 @@ public class RoleStatus {
     this.requested = requested;
   }
 
+  public int incRequested() {
+    return ++requested;
+  }
+  
+  public int decRequested() {
+    if (0 > --requested) {
+      requested = 0;
+    }
+    return requested;
+  }
   public int getReleasing() {
     return releasing;
   }
 
   public void setReleasing(int releasing) {
     this.releasing = releasing;
+  }
+  
+  public int incReleasing() {
+    return ++releasing;
+  }
+
+  public int decReleasing() {
+    if(0 > --releasing) {
+      releasing=0;
+    }
+    return releasing;
   }
 
   public int getFailed() {
