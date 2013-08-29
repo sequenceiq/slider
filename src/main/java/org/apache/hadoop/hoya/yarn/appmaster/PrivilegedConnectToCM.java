@@ -27,9 +27,6 @@ import java.security.PrivilegedAction;
 /**
  * Implement privileged connection to the CM
  *
- * This is done in Java because of runtime errors
- * when trying to run <code>doAs()</code> operations
- * in groovy.
  */
 public class PrivilegedConnectToCM implements PrivilegedAction<ContainerManagementProtocol> {
   final HoyaAppMaster appMaster;
@@ -42,7 +39,7 @@ public class PrivilegedConnectToCM implements PrivilegedAction<ContainerManageme
   }
 
 
-  @Override
+  @Override //PrivilegedAction
   public ContainerManagementProtocol run() {
     return ((ContainerManagementProtocol) appMaster.getProxy(
       ContainerManagementProtocol.class,
