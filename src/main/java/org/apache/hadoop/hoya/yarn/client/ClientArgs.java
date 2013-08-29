@@ -36,7 +36,6 @@ import java.util.Map;
 /**
  * Args list for JCommanderification
  */
-@CompileStatic
 
 public class ClientArgs extends CommonArgs {
 

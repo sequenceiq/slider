@@ -79,7 +79,7 @@ is ignored by git), declaring where HBase is:
     
       <property>
         <name>hoya.test.hbase_home</name>
-        <value> /Users/hoya/hbase/hbase-assembly/target/hbase-0.95.3-SNAPSHOT</value>
+        <value>/Users/hoya/hbase/hbase-assembly/target/hbase-0.95.3-SNAPSHOT</value>
         <description>HBASE Home</description>
       </property>
     
