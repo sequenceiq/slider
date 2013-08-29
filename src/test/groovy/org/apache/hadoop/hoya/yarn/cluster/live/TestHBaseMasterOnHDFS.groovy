@@ -19,7 +19,6 @@
 package org.apache.hadoop.hoya.yarn.cluster.live
 
 import groovy.transform.CompileStatic
-import groovy.util.logging.Commons
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
@@ -48,7 +47,7 @@ class TestHBaseMasterOnHDFS extends YarnMiniClusterTestBase {
     status = hoyaClient.getClusterStatus(clustername)
     dumpClusterDescription("post-hbase-boot status", status)
     //get the hbase status
-    status = waitForHoyaWorkerCount(hoyaClient, clustername, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+    status = waitForHoyaWorkerCount(hoyaClient, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     waitForHBaseRegionServerCount(hoyaClient, clustername, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
     clusterActionFreeze(hoyaClient, clustername)

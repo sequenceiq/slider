@@ -22,8 +22,7 @@
 
 package org.apache.hadoop.hoya.yarn.cluster.archives
 
-import groovy.transform.CompileStatic
-import groovy.util.logging.Commons
+import groovy.util.logging.Slf4j
 import org.apache.hadoop.fs.FileUtil
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.api.ClusterDescription
@@ -39,6 +38,7 @@ import org.junit.Test
  * Test of RM creation. This is so the later test's prereq's can be met
  */
 //@CompileStatic
+@Slf4j
 class TestVersionFromArchiveOnHDFS extends YarnMiniClusterTestBase {
 
   String uploadedImage;

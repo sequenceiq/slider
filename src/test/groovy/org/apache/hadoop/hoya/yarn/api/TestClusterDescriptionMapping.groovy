@@ -19,8 +19,6 @@
 package org.apache.hadoop.hoya.yarn.api
 
 import groovy.transform.CompileStatic
-import groovy.util.logging.Commons
-import groovy.util.logging.Slf4j
 import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.api.ClusterDescription

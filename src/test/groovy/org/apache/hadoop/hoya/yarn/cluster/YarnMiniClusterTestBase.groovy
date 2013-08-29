@@ -40,6 +40,7 @@ import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.api.OptionKeys
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.exceptions.WaitTimeoutException
+import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.hoya.tools.Duration
@@ -49,7 +50,6 @@ import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.MicroZKCluster
 import org.apache.hadoop.hoya.yarn.ZKIntegration
-import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.service.ServiceOperations
@@ -810,38 +810,49 @@ implements KeysForTests, HoyaExitCodes {
     }
     return clustat;
   }
- 
+
   
   /**
    * Spin waiting for the Hoya worker count to match expected
    * @param hoyaClient client
-   * @param clustername cluster name
-   * @param containerCount RS count
+   * @param desiredCount RS count
    * @param timeout timeout
    */
   public ClusterDescription waitForHoyaWorkerCount(HoyaClient hoyaClient,
-                                                     String clustername,
-                                                     int containerCount,
+                                                     int desiredCount,
                                                      int timeout) {
+    return waitForRoleCount(hoyaClient, HBaseKeys.ROLE_WORKER, desiredCount, timeout)
+  }
+
+  /**
+   * Spin waiting for the Hoya role count to match expected
+   * @param hoyaClient client
+   * @param role role to look for
+   * @param desiredCount RS count
+   * @param timeout timeout
+   */
+  public ClusterDescription waitForRoleCount(HoyaClient hoyaClient, String role, int desiredCount, int timeout) {
+    String clustername = hoyaClient.deployedClusterName;
     ClusterDescription status = null
     Duration duration = new Duration(timeout);
     duration.start()
     while (true) {
       status = hoyaClient.getClusterStatus(clustername)
-      Integer instances = status.instances[(HBaseKeys.ROLE_WORKER)];
-      int workerCount = instances!=null? instances.intValue() : 0;
-      if (workerCount == containerCount) {
+      
+      Integer instances = status.instances[role];
+      int instanceCount = instances != null ? instances.intValue() : 0;
+      if (instanceCount == desiredCount) {
         break;
       }
-      
-      String[] nodes = hoyaClient.listNodesByRole(HBaseKeys.ROLE_MASTER);
+
+      String[] nodes = hoyaClient.listNodesByRole(role);
       if (duration.limitExceeded) {
-        describe("Cluster region server count of $containerCount not met")
+        describe("Cluster region server count of $desiredCount not met")
         log.info(prettyPrint(status.toJsonString()))
-        fail("Expected $containerCount HBase region servers," +
-             " but saw $workerCount instances after $timeout millis [$nodes] ")
+        fail("Expected $desiredCount nodes in role $role," +
+             " but saw $instanceCount instances after $timeout millis [$nodes] ")
       }
-      log.info("Waiting for $containerCount workers -got $workerCount and nodes $nodes")
+      log.info("Waiting for $desiredCount workers -got $instanceCount and nodes $nodes")
       Thread.sleep(1000)
     }
     return status
@@ -879,7 +890,7 @@ implements KeysForTests, HoyaExitCodes {
 
       //verify the #of region servers is as expected
       //get the hbase status
-      waitForHoyaWorkerCount(hoyaClient, clustername, workers, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+      waitForHoyaWorkerCount(hoyaClient, workers, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
       log.info("Hoya worker count at $workers, waiting for region servers to match")
       waitForHBaseRegionServerCount(hoyaClient, clustername, workers, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
@@ -887,7 +898,7 @@ implements KeysForTests, HoyaExitCodes {
       describe("Flexing from $workers worker(s) to $flexTarget worker")
       boolean flexed
       flexed = 0 == hoyaClient.flex(clustername, flexTarget, 0, persist)
-      waitForHoyaWorkerCount(hoyaClient, clustername, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+      waitForHoyaWorkerCount(hoyaClient,flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
       if (testHBaseAfter) {
         waitForHBaseRegionServerCount(hoyaClient, clustername, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
       }

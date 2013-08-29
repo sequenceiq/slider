@@ -18,11 +18,13 @@
 
 package org.apache.hadoop.hoya.yarn.providers
 
+import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory
 import org.apache.hadoop.hoya.providers.hbase.HBaseProviderFactory
 import org.junit.Test
 
+@Slf4j
 class TestProviderFactory {
 
 

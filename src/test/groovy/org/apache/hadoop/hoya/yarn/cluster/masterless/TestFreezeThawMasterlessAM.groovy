@@ -19,14 +19,10 @@
 package org.apache.hadoop.hoya.yarn.cluster.masterless
 
 import groovy.transform.CompileStatic
-import groovy.util.logging.Commons
+import groovy.util.logging.Slf4j
 import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.hoya.HoyaExitCodes
-import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.tools.HoyaUtils
-import org.apache.hadoop.hoya.yarn.HoyaActions
-import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.conf.YarnConfiguration
@@ -38,6 +34,8 @@ import org.junit.Test
  * bringing up full clusters
  */
 @CompileStatic
+@Slf4j
+
 class TestFreezeThawMasterlessAM extends YarnMiniClusterTestBase {
 
   File getConfDirFile() {

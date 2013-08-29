@@ -18,7 +18,7 @@
 
 package org.apache.hadoop.hoya.yarn.cluster.live
 
-import groovy.util.logging.Commons
+import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
@@ -26,8 +26,9 @@ import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
-
 //@CompileStatic
+@Slf4j
+
 class TestTwoLiveClusters extends YarnMiniClusterTestBase {
 
   /**
@@ -51,8 +52,8 @@ class TestTwoLiveClusters extends YarnMiniClusterTestBase {
     ClusterDescription status = hoyaClient.getClusterStatus(clustername1)
     dumpClusterDescription("post-hbase-boot status", status)
     //get the hbase status
+    waitForHoyaWorkerCount(hoyaClient, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     waitForHBaseRegionServerCount(hoyaClient, clustername1, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-    waitForHoyaWorkerCount(hoyaClient, clustername1, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
     //now here comes cluster #2
     String clustername2 = "TestTwoLiveClusters-b"
@@ -67,8 +68,8 @@ class TestTwoLiveClusters extends YarnMiniClusterTestBase {
     addToTeardown(cluster2Client);
 
     basicHBaseClusterStartupSequence(cluster2Client)
+    waitForHoyaWorkerCount(cluster2Client, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     waitForHBaseRegionServerCount(cluster2Client, clustername2, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-    waitForHoyaWorkerCount(cluster2Client, clustername2, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
     //and now verify that cluster 1 is still happy
     waitForHBaseRegionServerCount(hoyaClient, clustername1, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)

@@ -19,12 +19,8 @@
 package org.apache.hadoop.hoya.yarn.cluster.masterless
 
 import groovy.transform.CompileStatic
-import groovy.util.logging.Commons
-import org.apache.hadoop.hoya.HoyaExitCodes
-import org.apache.hadoop.hoya.exceptions.HoyaException
+import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.yarn.HoyaActions
-import org.apache.hadoop.hoya.yarn.client.ClientArgs
-import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
@@ -35,6 +31,8 @@ import org.junit.Test
  * bringing up full clusters
  */
 @CompileStatic
+@Slf4j
+
 class TestFreezeUnknownCluster extends YarnMiniClusterTestBase {
 
   @Test

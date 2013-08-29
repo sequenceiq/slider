@@ -18,7 +18,7 @@
 
 package org.apache.hadoop.hoya.yarn.cluster.actions
 
-import groovy.util.logging.Commons
+import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
@@ -33,6 +33,7 @@ import org.junit.Test
  * Test of RM creation. This is so the later test's prereq's can be met
  */
 //@CompileStatic
+@Slf4j
 class TestActionStatus extends YarnMiniClusterTestBase {
 
   @Before

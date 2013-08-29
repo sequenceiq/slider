@@ -19,7 +19,7 @@
 package org.apache.hadoop.hoya.yarn.cluster.live
 
 import groovy.transform.CompileStatic
-import groovy.util.logging.Commons
+import groovy.util.logging.Slf4j
 import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
@@ -31,6 +31,8 @@ import org.junit.Test
  * test create a live region service
  */
 @CompileStatic
+@Slf4j
+
 class TestLiveTwoNodeRegionService extends YarnMiniClusterTestBase {
 
   @Test
@@ -54,7 +56,7 @@ class TestLiveTwoNodeRegionService extends YarnMiniClusterTestBase {
 
 
 
-    status = waitForHoyaWorkerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+    status = waitForHoyaWorkerCount(hoyaClient, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     //get the hbase status
     waitForHBaseRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 

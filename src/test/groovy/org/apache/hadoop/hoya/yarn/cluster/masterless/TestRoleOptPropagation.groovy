@@ -19,10 +19,8 @@
 package org.apache.hadoop.hoya.yarn.cluster.masterless
 
 import groovy.transform.CompileStatic
-import groovy.util.logging.Commons
-import org.apache.hadoop.hoya.HoyaExitCodes
+import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.api.ClusterDescription
-import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
@@ -30,6 +28,8 @@ import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
 @CompileStatic
+@Slf4j
+
 class TestRoleOptPropagation extends YarnMiniClusterTestBase {
 
   @Test

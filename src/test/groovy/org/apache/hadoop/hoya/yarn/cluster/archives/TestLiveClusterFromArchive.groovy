@@ -21,7 +21,7 @@
 package org.apache.hadoop.hoya.yarn.cluster.archives
 
 import groovy.transform.CompileStatic
-import groovy.util.logging.Commons
+import groovy.util.logging.Slf4j
 import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
@@ -32,6 +32,7 @@ import org.junit.Test
  * create a live cluster from the image
  */
 @CompileStatic
+@Slf4j
 class TestLiveClusterFromArchive extends YarnMiniClusterTestBase {
 
   @Test
@@ -49,7 +50,7 @@ class TestLiveClusterFromArchive extends YarnMiniClusterTestBase {
 
     //get the hbase status
     waitForHBaseRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-    waitForHoyaWorkerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+    waitForHoyaWorkerCount(hoyaClient, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
     clusterActionFreeze(hoyaClient, clustername)
   }

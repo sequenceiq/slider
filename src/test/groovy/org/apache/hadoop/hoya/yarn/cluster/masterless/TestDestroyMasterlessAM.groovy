@@ -18,7 +18,7 @@
 
 package org.apache.hadoop.hoya.yarn.cluster.masterless
 
-import groovy.util.logging.Commons
+import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.CommonArgs
@@ -33,6 +33,8 @@ import org.junit.Test
  * bringing up full clusters
  */
 //@CompileStatic
+@Slf4j
+
 class TestDestroyMasterlessAM extends YarnMiniClusterTestBase {
 
   @Test
