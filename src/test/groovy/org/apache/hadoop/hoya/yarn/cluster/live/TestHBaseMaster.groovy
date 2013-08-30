@@ -19,6 +19,7 @@
 package org.apache.hadoop.hoya.yarn.cluster.live
 
 import groovy.transform.CompileStatic
+import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.yarn.ZKIntegration
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
@@ -30,6 +31,8 @@ import org.junit.Test
  * Create a master against the File:// fs
  */
 @CompileStatic
+@Slf4j
+
 class TestHBaseMaster extends YarnMiniClusterTestBase {
 
   @Test
