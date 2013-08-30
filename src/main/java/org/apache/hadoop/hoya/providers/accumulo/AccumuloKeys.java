@@ -16,19 +16,19 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hoya.providers.loadgen;
+package org.apache.hadoop.hoya.providers.accumulo;
 
 /**
  * Any keys related to load generation
  */
-public interface LoadGenKeys {
+public interface AccumuloKeys {
 
   String ROLE_MASTER = "master";
   String ROLE_IOLOAD = "ioload";
-  String ROLE_CPULOAD = "cpuload";
-  String ROLE_FAILING = "failing";
-  String ROLE_GENERAL1 = "general1";
-  String ROLE_GENERAL2 = "general2";
+  String ROLE_TABLET = "cpuload";
+  String ROLE_GARBAGE_COLLECTOR = "failing";
+  String ROLE_MONITOR = "general1";
+  String ROLE_TRACER = "general2";
 
   String KEY_SLEEPTIME = "load.sleeptime";
 
@@ -61,5 +61,5 @@ public interface LoadGenKeys {
   String DEFAULT_ROLE_HEAP = DEFAULT_MASTER_HEAP;
   String DEFAULT_ROLE_YARN_RAM = DEFAULT_MASTER_YARN_RAM;
 
-  String PROVIDER_NAME = "loadgen";
+  String PROVIDER_NAME = "accumulo";
 }

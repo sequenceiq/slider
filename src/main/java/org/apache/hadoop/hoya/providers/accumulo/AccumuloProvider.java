@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hoya.providers.loadgen;
+package org.apache.hadoop.hoya.providers.accumulo;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.conf.Configuration;
@@ -55,17 +55,17 @@ import java.util.Map;
  * This class implements both the client-side and server-side aspects
  * of an HBase Cluster
  */
-public class LoadGenProvider extends Configured implements
+public class AccumuloProvider extends Configured implements
                                                           ProviderCore,
-                                                          LoadGenKeys,
+                                                          AccumuloKeys,
                                                           ClientProvider,
                                                           ClusterExecutor{
 
   protected static final Logger log =
-    LoggerFactory.getLogger(LoadGenProvider.class);
+    LoggerFactory.getLogger(AccumuloProvider.class);
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
 
-  protected LoadGenProvider(Configuration conf) {
+  protected AccumuloProvider(Configuration conf) {
     super(conf);
   }
 
@@ -80,11 +80,10 @@ public class LoadGenProvider extends Configured implements
    */
   static {
     ROLES.add(new ProviderRole(ROLE_MASTER, 1, true));
-    ROLES.add(new ProviderRole(ROLE_CPULOAD, 2));
-    ROLES.add(new ProviderRole(ROLE_FAILING, 3));
-    ROLES.add(new ProviderRole(ROLE_GENERAL1, 4 ));
-    ROLES.add(new ProviderRole(ROLE_GENERAL2, 5));
-    ROLES.add(new ProviderRole(ROLE_IOLOAD, 6));
+    ROLES.add(new ProviderRole(ROLE_TABLET, 2));
+    ROLES.add(new ProviderRole(ROLE_GARBAGE_COLLECTOR, 3));
+    ROLES.add(new ProviderRole(ROLE_MONITOR, 4 ));
+    ROLES.add(new ProviderRole(ROLE_TRACER, 5));
   }
 
   @Override
@@ -133,12 +132,12 @@ public class LoadGenProvider extends Configured implements
       rolemap.put(RoleKeys.YARN_CORES, DEFAULT_MASTER_YARN_VCORES);
       rolemap.put(RoleKeys.YARN_MEMORY, DEFAULT_MASTER_YARN_RAM);
 
-    } else if (rolename.equals(ROLE_CPULOAD)) {
+    } else if (rolename.equals(ROLE_TABLET)) {
       rolemap.put(KEY_CPUHEAVY, "true");
     } else if (rolename.equals(ROLE_IOLOAD)) {
       rolemap.put(KEY_READHEAVY, "true");
       rolemap.put(KEY_WRITEHEAVY, "true");
-    } else if (rolename.equals(ROLE_FAILING)) {
+    } else if (rolename.equals(ROLE_GARBAGE_COLLECTOR)) {
       rolemap.put(KEY_EXITCODE, "32");
       rolemap.put(KEY_LIFETIME, "60");
     }
