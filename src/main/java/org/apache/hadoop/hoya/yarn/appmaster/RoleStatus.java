@@ -21,7 +21,7 @@ package org.apache.hadoop.hoya.yarn.appmaster;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 
 /**
- * Models the ongoing status of a role. 
+ * Models the ongoing status of all nodes in role. 
  * Nothing here is synchronized: grab the whole instance to update.
  */
 public class RoleStatus {
@@ -35,9 +35,9 @@ public class RoleStatus {
    * currently mapped to priority
    */
   private final int key;
-  
+
   private final boolean excludeFromFlexing;
-  
+
   private int desired, actual, requested, releasing;
   private int failed, started, startFailed, completed;
 
@@ -70,7 +70,7 @@ public class RoleStatus {
   public int getKey() {
     return key;
   }
-  
+
   public int getPriority() {
     return getKey();
   }
@@ -106,7 +106,7 @@ public class RoleStatus {
     }
     return actual;
   }
-  
+
   public int getRequested() {
     return requested;
   }
@@ -118,13 +118,14 @@ public class RoleStatus {
   public int incRequested() {
     return ++requested;
   }
-  
+
   public int decRequested() {
     if (0 > --requested) {
       requested = 0;
     }
     return requested;
   }
+
   public int getReleasing() {
     return releasing;
   }
@@ -132,14 +133,14 @@ public class RoleStatus {
   public void setReleasing(int releasing) {
     this.releasing = releasing;
   }
-  
+
   public int incReleasing() {
     return ++releasing;
   }
 
   public int decReleasing() {
-    if(0 > --releasing) {
-      releasing=0;
+    if (0 > --releasing) {
+      releasing = 0;
     }
     return releasing;
   }
@@ -187,7 +188,7 @@ public class RoleStatus {
     //don't know how to view these. Are they in-use or not?
     //inuse += releasing;
     int delta = desired - inuse;
-    if (delta<0) {
+    if (delta < 0) {
       //if we are releasing, remove the number that are already released.
       delta += releasing;
       //but never switch to a positive
