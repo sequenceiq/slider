@@ -34,4 +34,12 @@ public class ContainerInfo {
    */
   public boolean released;
   public String role;
+
+  @Override
+  public String toString() {
+    return "ContainerInfo{" +
+           "container=" + container +
+           ", role='" + role + '\'' +
+           '}';
+  }
 }
