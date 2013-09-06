@@ -916,7 +916,7 @@ public class HoyaAppMaster extends CompositeService
     return rs;
   }
   
-  private RoleStatus lookupRole(String name) {
+  private RoleStatus lookupRoleStatus(String name) {
     for (RoleStatus roleStatus : roleStatusMap.values()) {
       if (roleStatus.getName().equals(name)) {
         return roleStatus;
@@ -1022,31 +1022,46 @@ public class HoyaAppMaster extends CompositeService
   public synchronized void onContainersCompleted(List<ContainerStatus> completedContainers) {
     log.info("onContainersCompleted([{}]", completedContainers.size());
     for (ContainerStatus status : completedContainers) {
-      ContainerId id = status.getContainerId();
+      ContainerId containerId = status.getContainerId();
       log.info("Container Completion for" +
                " containerID={}," +
                " state={}," +
                " exitStatus={}," +
                " diagnostics={}",
-               id, status.getState(),
+               containerId, status.getState(),
                status.getExitStatus(),
                status.getDiagnostics());
 
       // non complete containers should not be here
       assert (status.getState() == ContainerState.COMPLETE);
-      //record the complete node's details for the status report
-      updateCompletedNode(status);
-      boolean markCompleted =
-        status.getExitStatus() != ContainerExitStatus.ABORTED;
-      if (containersBeingReleased.containsKey(id)) {
+
+      if (containersBeingReleased.containsKey(containerId)) {
         log.info("Container was queued for release");
-        markCompleted = true;
-        Container container = containersBeingReleased.remove(id);
+        Container container = containersBeingReleased.remove(containerId);
         RoleStatus roleStatus = lookupRoleStatus(container);
         synchronized (roleStatus) {
           roleStatus.decReleasing();
           roleStatus.decActual();
         }
+      } else {
+        //a container has failed and its role needs to be decremented
+        ContainerInfo containerInfo = containers.remove(containerId);
+        if (containerInfo != null) {
+          Container container = containerInfo.container;
+          String rolename = containerInfo.role;
+          log.info("Failed container in role {}", rolename);
+          RoleStatus roleStatus = lookupRoleStatus(rolename);
+          if (roleStatus != null) {
+            roleStatus.decActual();
+          } else {
+            log.error("Failed container of unknown role {}", rolename);
+          }
+        } else {
+          log.error("Notified of completed container that is not in the list" +
+                    "of active containers");
+        }
+        //record the complete node's details; this pulls it from the livenode set 
+        updateCompletedNode(status);
       }
     }
 
@@ -1056,17 +1071,7 @@ public class HoyaAppMaster extends CompositeService
     // are completing. If too many complete, abort the application
     // TODO: this needs to be better thought about (and maybe something to
     // better handle in Yarn for long running apps)
-/*
 
-    if ((numCompletedContainers.addAndGet(completedContainers.size())
-            >= maximumContainerFailureLimit()) &&
-        numCompletedContainers.get() == numTotalContainers) {
-      log.info("Too many containers " +numCompletedContainers.get() +
-              "  completed unexpectedly -stopping")
-      signalAMComplete();
-    }
-    
-*/
     reviewRequestAndReleaseNodes();
 
   }
@@ -1599,14 +1604,14 @@ public class HoyaAppMaster extends CompositeService
   @Override //  NMClientAsync.CallbackHandler 
   public void onContainerStopped(ContainerId containerId) {
     log.info("onContainerStopped {} ", containerId);
-    containers.remove(containerId);
     //Removing live container?
-    synchronized (clusterSpecLock) {
+/*    synchronized (clusterSpecLock) {
+      containers.remove(containerId);
       ClusterNode node = liveNodes.remove(containerId);
-      if (node!=null) {
+      if (node != null) {
         completedNodes.put(containerId, node);
       }
-    }
+    }*/
   }
 
   @Override //  NMClientAsync.CallbackHandler 
@@ -1671,11 +1676,15 @@ public class HoyaAppMaster extends CompositeService
     log.error("Failed to query the status of Container {}", containerId);
   }
 
+
+  //TODO: what handling should we be doing here vs. RM notifications?
   @Override //  NMClientAsync.CallbackHandler 
   public void onStopContainerError(ContainerId containerId, Throwable t) {
     log.error("Failed to stop Container {}", containerId);
+/*
     containers.remove(containerId);
     ClusterNode node = failNode(containerId, t);
+*/
   }
 
   /**
