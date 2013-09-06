@@ -18,11 +18,11 @@
 
 package org.apache.hadoop.hoya.exec;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hadoop.io.IOUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -43,7 +43,14 @@ import java.util.Set;
 public class RunLongLivedApp implements Runnable {
   public static final int STREAM_READER_SLEEP_TIME = 200;
   public static final int RECENT_LINE_LOG_LIMIT = 64;
-  Log LOG = LogFactory.getLog(RunLongLivedApp.class);
+  /**
+   * Class log
+   */
+  static final Logger LOG = LoggerFactory.getLogger(RunLongLivedApp.class);
+  /**
+   * Log supplied in the constructor for the spawned process
+   */
+  final Logger processLog;
   private final ProcessBuilder builder;
   private Process process;
   private Exception exception;
@@ -58,12 +65,14 @@ public class RunLongLivedApp implements Runnable {
 
   private ApplicationEventHandler applicationEventHandler;
 
-  public RunLongLivedApp(String... commands) {
+  public RunLongLivedApp(Logger processLog, String... commands) {
+    this.processLog = processLog;
     builder = new ProcessBuilder(commands);
     initBuilder();
   }
 
-  public RunLongLivedApp(List<String> commands) {
+  public RunLongLivedApp(Logger processLog, List<String> commands) {
+    this.processLog = processLog;
     builder = new ProcessBuilder(commands);
     initBuilder();
   }
@@ -84,8 +93,13 @@ public class RunLongLivedApp implements Runnable {
     this.applicationEventHandler = applicationEventHandler;
   }
 
+  /**
+   * Add an entry to the environment
+   * @param key key -must not be null
+   * @param val value 
+   */
   public void putEnv(String key, String val) {
-    if (val == null) {
+    if (key == null) {
       throw new RuntimeException("Null value for key " + key);
     }
     builder.environment().put(key, val);
@@ -105,14 +119,27 @@ public class RunLongLivedApp implements Runnable {
     }
   }
 
+  /**
+   * Get the process environment
+   * @param key
+   * @return
+   */
   public String getEnv(String key) {
     return builder.environment().get(key);
   }
 
+  /**
+   * Get the process reference
+   * @return the process -null if the process is  not started
+   */
   public Process getProcess() {
     return process;
   }
 
+  /**
+   * Get any exception raised by the process
+   * @return an exception or null
+   */
   public Exception getException() {
     return exception;
   }
@@ -125,7 +152,10 @@ public class RunLongLivedApp implements Runnable {
     return getCommands().get(0);
   }
 
-
+  /**
+   * probe to see if the process is running
+   * @return true iff the process has been started and is not yet finished
+   */
   public boolean isRunning() {
     return process != null && !done;
   }
@@ -138,6 +168,9 @@ public class RunLongLivedApp implements Runnable {
     return exitCode;
   }
 
+  /**
+   * Stop the process if it is running
+   */
   public void stop() {
     if (!isRunning()) {
       return;
@@ -237,7 +270,7 @@ public class RunLongLivedApp implements Runnable {
     execThread = spawnIntoThread();
     execThread.start();
     processStreamReader =
-      new ProcessStreamReader(LOG, STREAM_READER_SLEEP_TIME);
+      new ProcessStreamReader(processLog, STREAM_READER_SLEEP_TIME);
     logThread = new Thread(processStreamReader);
     logThread.start();
   }
@@ -283,10 +316,10 @@ public class RunLongLivedApp implements Runnable {
    */
 
   private class ProcessStreamReader implements Runnable {
-    private final Log streamLog;
+    private final Logger streamLog;
     private final int sleepTime;
 
-    private ProcessStreamReader(Log streamLog, int sleepTime) {
+    private ProcessStreamReader(Logger streamLog, int sleepTime) {
       this.streamLog = streamLog;
       this.sleepTime = sleepTime;
     }
@@ -372,7 +405,7 @@ public class RunLongLivedApp implements Runnable {
         //get here, done time
 
         //print the current error line then stream through the rest
-        streamLog.error(errorLine);
+        streamLog.error(errorLine.toString());
         String line = errReader.readLine();
         while (line != null) {
           streamLog.error(line);
@@ -383,7 +416,7 @@ public class RunLongLivedApp implements Runnable {
           recordRecentLine(line, true);
         }
         //now do the info line
-        streamLog.info(outLine);
+        streamLog.info(outLine.toString());
         line = outReader.readLine();
         while (line != null) {
           streamLog.info(line);

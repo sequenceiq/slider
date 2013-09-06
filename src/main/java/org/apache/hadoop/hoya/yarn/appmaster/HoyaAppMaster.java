@@ -115,7 +115,8 @@ public class HoyaAppMaster extends CompositeService
              RoleKeys {
   protected static final Logger log =
     LoggerFactory.getLogger(HoyaAppMaster.class);
-
+  protected static final Logger LOG_AM_PROCESS =
+    LoggerFactory.getLogger("org.apache.hadoop.hoya.yarn.appmaster.HoyaAppMaster.master");
   /**
    * How long to expect launcher threads to shut down on AM termination:
    * {@value}
@@ -1497,7 +1498,7 @@ public class HoyaAppMaster extends CompositeService
       throw new BadCommandArgumentsException("Missing script " + scriptPath);
     }
     commands.add(0, scriptPath);
-    hbaseMaster = new RunLongLivedApp(commands);
+    hbaseMaster = new RunLongLivedApp(LOG_AM_PROCESS, commands);
     hbaseMaster.setApplicationEventHandler(this);
     //set the env variable mapping
     hbaseMaster.putEnvMap(env);
