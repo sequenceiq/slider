@@ -849,8 +849,8 @@ implements KeysForTests, HoyaExitCodes {
       if (duration.limitExceeded) {
         describe("Cluster region server count of $desiredCount not met")
         log.info(prettyPrint(status.toJsonString()))
-        fail("Expected $desiredCount nodes in role $role," +
-             " but saw $instanceCount instances after $timeout millis [$nodes] ")
+        fail("Expected $desiredCount nodes in role $role,\n" +
+             " but saw $instanceCount instances after $timeout millis [$nodes] in \n$status ")
       }
       log.info("Waiting for $desiredCount workers -got $instanceCount and nodes $nodes")
       Thread.sleep(1000)
