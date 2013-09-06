@@ -37,7 +37,7 @@ class TestFailedRegionService extends YarnMiniClusterTestBase {
   @Test
   public void testFailedRegionService() throws Throwable {
     String clustername = "TestFailedRegionService"
-    int regionServerCount = 1
+    int regionServerCount = 2
     createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
     describe(" Create a single region service cluster then kill the RS");
 
