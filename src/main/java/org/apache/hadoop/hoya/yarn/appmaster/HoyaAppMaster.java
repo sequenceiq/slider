@@ -55,7 +55,6 @@ import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterRespo
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Container;
-import org.apache.hadoop.yarn.api.records.ContainerExitStatus;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.ContainerState;
@@ -162,20 +161,9 @@ public class HoyaAppMaster extends CompositeService
    */
   private int containerMemory = DEFAULT_CONTAINER_MEMORY_FOR_WORKER;
 
-  /**
-   * Hash map of the containers we have
-   */
-  private final ConcurrentMap<ContainerId, ContainerInfo> containers =
-    new ConcurrentHashMap<ContainerId, ContainerInfo>();
+  private final ContainerTracker containerTracker = new ContainerTracker();
 
-  /**
-   * Hash map of the containers we have released, but we
-   * are still awaiting acknowledgements on. Any failure of these
-   * containers is treated as a successful outcome
-   */
-  private final ConcurrentMap<ContainerId, Container> containersBeingReleased =
-    new ConcurrentHashMap<ContainerId, Container>();
-
+  
   private final Map<Integer, RoleStatus> roleStatusMap = new HashMap<Integer, RoleStatus>(); 
   
   /**
@@ -256,7 +244,15 @@ public class HoyaAppMaster extends CompositeService
    * class synchronization
    */
   public final Object clusterSpecLock = new Object();
-  
+
+
+  /**
+   * Map of requested nodes. This records the command used to start it,
+   * resources, etc. When container started callback is received,
+   * the node is promoted from here to the containerMap
+   */
+  private final Map<ContainerId, ClusterNode> requestedNodes =
+    new ConcurrentHashMap<ContainerId, ClusterNode>();
   
   /**
    * List of completed nodes. This isn't kept in the CD as it gets too
@@ -295,13 +291,6 @@ public class HoyaAppMaster extends CompositeService
    */
   private ClusterNode masterNode;
 
-  /**
-   * Map of requested nodes. This records the command used to start it,
-   * resources, etc. When container started callback is received,
-   * the node is promoted from here to the containerMap
-   */
-  private final Map<ContainerId, ClusterNode> requestedNodes =
-    new ConcurrentHashMap<ContainerId, ClusterNode>();
 
   /**
    * Exit code set when the spawned process exits
@@ -1035,9 +1024,9 @@ public class HoyaAppMaster extends CompositeService
       // non complete containers should not be here
       assert (status.getState() == ContainerState.COMPLETE);
 
-      if (containersBeingReleased.containsKey(containerId)) {
+      if (getContainersBeingReleased().containsKey(containerId)) {
         log.info("Container was queued for release");
-        Container container = containersBeingReleased.remove(containerId);
+        Container container = getContainersBeingReleased().remove(containerId);
         RoleStatus roleStatus = lookupRoleStatus(container);
         synchronized (roleStatus) {
           roleStatus.decReleasing();
@@ -1045,7 +1034,7 @@ public class HoyaAppMaster extends CompositeService
         }
       } else {
         //a container has failed and its role needs to be decremented
-        ContainerInfo containerInfo = containers.remove(containerId);
+        ContainerInfo containerInfo = getActiveContainers().remove(containerId);
         if (containerInfo != null) {
           Container container = containerInfo.container;
           String rolename = containerInfo.role;
@@ -1193,7 +1182,7 @@ public class HoyaAppMaster extends CompositeService
 
       //then pick some containers to kill
       int excess = -delta;
-      Collection<ContainerInfo> targets = containers.values();
+      Collection<ContainerInfo> targets = getActiveContainers().values();
       for (ContainerInfo ci : targets) {
         if (excess > 0) {
           Container possible = ci.container;
@@ -1201,7 +1190,7 @@ public class HoyaAppMaster extends CompositeService
           if (!ci.released) {
             log.info("Requesting release of container {}", id);
             ci.released = true;
-            containersBeingReleased.put(id, possible);
+            getContainersBeingReleased().put(id, possible);
             synchronized (role) {
               role.incReleasing();
             }
@@ -1227,14 +1216,14 @@ public class HoyaAppMaster extends CompositeService
    * Shutdown operation: release all containers
    */
   void releaseAllContainers() {
-    Collection<ContainerInfo> targets = containers.values();
+    Collection<ContainerInfo> targets = getActiveContainers().values();
     for (ContainerInfo ci : targets) {
         Container possible = ci.container;
         ContainerId id = possible.getId();
         if (!ci.released) {
           log.info("Requesting release of container {}", id);
           ci.released = true;
-          containersBeingReleased.put(id, possible);
+          getContainersBeingReleased().put(id, possible);
           RoleStatus roleStatus = lookupRoleStatus(possible);
           synchronized (roleStatus) {
             roleStatus.incReleasing();
@@ -1597,7 +1586,7 @@ public class HoyaAppMaster extends CompositeService
     containerInfo.container = container;
     containerInfo.role = node.role;
     containerInfo.createTime = System.currentTimeMillis();
-    containers.putIfAbsent(container.getId(), containerInfo);
+    getActiveContainers().putIfAbsent(container.getId(), containerInfo);
     nmClientAsync.startContainerAsync(container, ctx);
   }
 
@@ -1631,7 +1620,7 @@ public class HoyaAppMaster extends CompositeService
       node.state = ClusterDescription.STATE_LIVE;
       node.uuid = UUID.randomUUID().toString();
       addLaunchedContainer(containerId, node);
-      cinfo = containers.get(containerId);
+      cinfo = getActiveContainers().get(containerId);
     }
     if (cinfo != null) {
       cinfo.startTime = System.currentTimeMillis();
@@ -1649,7 +1638,7 @@ public class HoyaAppMaster extends CompositeService
   @Override //  NMClientAsync.CallbackHandler 
   public void onStartContainerError(ContainerId containerId, Throwable t) {
     log.error("Failed to start Container " + containerId, t);
-    containers.remove(containerId);
+    getActiveContainers().remove(containerId);
     numFailedContainers.incrementAndGet();
     startFailedContainers.incrementAndGet();
     synchronized (clusterSpecLock) {
@@ -1707,5 +1696,21 @@ public class HoyaAppMaster extends CompositeService
       }
     }
     return node;
+  }
+
+  /**
+   * Get allt he active containers
+   */
+  private ConcurrentMap<ContainerId, ContainerInfo> getActiveContainers() {
+    return containerTracker.getActiveContainers();
+  }
+
+  /**
+   * The containers we have released, but we
+   * are still awaiting acknowledgements on. Any failure of these
+   * containers is treated as a successful outcome
+   */
+  private ConcurrentMap<ContainerId, Container> getContainersBeingReleased() {
+    return containerTracker.getContainersBeingReleased();
   }
 }
