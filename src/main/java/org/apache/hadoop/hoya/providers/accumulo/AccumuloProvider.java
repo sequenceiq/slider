@@ -119,10 +119,7 @@ public class AccumuloProvider extends Configured implements
                                                                        HoyaException {
     Map<String, String> rolemap = new HashMap<String, String>();
     rolemap.put(RoleKeys.ROLE_NAME, rolename);
-    rolemap.put(KEY_WORKTIME,DEFAULT_WORKTIME);
-    rolemap.put(KEY_SLEEPTIME,DEFAULT_SLEEPTIME);
-    rolemap.put(KEY_EXITCODE,DEFAULT_EXITCODE);
-    rolemap.put(KEY_P_EXIT,DEFAULT_P_EXIT);
+
     rolemap.put(RoleKeys.JVM_HEAP, DEFAULT_ROLE_HEAP);
     rolemap.put(RoleKeys.YARN_CORES, DEFAULT_ROLE_YARN_VCORES);
     rolemap.put(RoleKeys.YARN_MEMORY, DEFAULT_ROLE_YARN_RAM);
@@ -133,13 +130,9 @@ public class AccumuloProvider extends Configured implements
       rolemap.put(RoleKeys.YARN_MEMORY, DEFAULT_MASTER_YARN_RAM);
 
     } else if (rolename.equals(ROLE_TABLET)) {
-      rolemap.put(KEY_CPUHEAVY, "true");
-    } else if (rolename.equals(ROLE_IOLOAD)) {
-      rolemap.put(KEY_READHEAVY, "true");
-      rolemap.put(KEY_WRITEHEAVY, "true");
+    } else if (rolename.equals(ROLE_TRACER)) {
     } else if (rolename.equals(ROLE_GARBAGE_COLLECTOR)) {
-      rolemap.put(KEY_EXITCODE, "32");
-      rolemap.put(KEY_LIFETIME, "60");
+    } else if (rolename.equals(ROLE_MONITOR)) {
     }
     return rolemap;
   }

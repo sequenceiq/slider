@@ -19,40 +19,16 @@
 package org.apache.hadoop.hoya.providers.accumulo;
 
 /**
- * Any keys related to load generation
+ * Any keys related to acculumulo
  */
 public interface AccumuloKeys {
-
+  String PROVIDER_NAME = "accumulo";
+  
   String ROLE_MASTER = "master";
-  String ROLE_IOLOAD = "ioload";
-  String ROLE_TABLET = "cpuload";
-  String ROLE_GARBAGE_COLLECTOR = "failing";
-  String ROLE_MONITOR = "general1";
-  String ROLE_TRACER = "general2";
-
-  String KEY_SLEEPTIME = "load.sleeptime";
-
-  String DEFAULT_SLEEPTIME = "10";
-  
-  /**
-  work time, set to -1 or less for "forever":
-   */
-  String KEY_WORKTIME = "load.worktime";
-  
-  String DEFAULT_WORKTIME = "1";
-
-  String KEY_LIFETIME = "load.lifetime";
-  String DEFAULT_LIFETIME = "-1";
-
-  String KEY_P_EXIT = "load.pfail";
-  String DEFAULT_P_EXIT = "0";
-  String KEY_EXITCODE = "load.exitcode";
-  String DEFAULT_EXITCODE = "0";
-
-  String KEY_READHEAVY = "load.readheavy";
-  String KEY_WRITEHEAVY = "load.writeheavy";
-  String KEY_SEEKHEAVY = "load.seekheavy";
-  String KEY_CPUHEAVY = "load.cpuheavy";
+  String ROLE_TABLET = "tablet";
+  String ROLE_GARBAGE_COLLECTOR = "gc";
+  String ROLE_MONITOR = "monitor";
+  String ROLE_TRACER = "tracer";
 
   String DEFAULT_MASTER_HEAP = "256";
   String DEFAULT_MASTER_YARN_RAM = "384";
@@ -61,5 +37,34 @@ public interface AccumuloKeys {
   String DEFAULT_ROLE_HEAP = DEFAULT_MASTER_HEAP;
   String DEFAULT_ROLE_YARN_RAM = DEFAULT_MASTER_YARN_RAM;
 
-  String PROVIDER_NAME = "accumulo";
+// org.apache.hadoop.hoya.providers.accumulo.conf
+
+  String VERSION = "version";
+
+  String ACTION_START = "start";
+  String ACTION_STOP = "stop";
+
+  /**
+   * Config directory : {@value}
+   */
+  String ARG_CONFIG = "--config";
+  /**
+   *  name of the hbase script relative to the hbase root dir:  {@value}
+   */
+  String START_SCRIPT = "bin/accumulo";
+  /**
+   *  name of the hbase subdir in the archive:  {@value}
+   */
+  String ARCHIVE_SUBDIR = "accumulo-1.6.0-SNAPSHOT";
+  /**
+   *  name of the site conf to generate :  {@value}
+   */
+  String SITE_XML = "accumulo-site.xml";
+  /**
+   * Template stored in the hoya classpath -to use if there is
+   * no site-specific template
+   *  {@value}
+   */
+  String CONF_RESOURCE = "org.apache.hadoop.hoya.providers.accumulo.conf";
+  String SITE_XML_RESOURCE = CONF_RESOURCE + SITE_XML;
 }

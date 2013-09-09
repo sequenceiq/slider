@@ -34,5 +34,9 @@ public interface KeysForTests extends HoyaKeys {
 
   String HOYA_TEST_HBASE_HOME = "hoya.test.hbase_home";
   String HOYA_TEST_HBASE_TAR = "hoya.test.hbase_tar";
-  public String HOYA_TEST = "hoya-test.xml"
+
+  String HOYA_TEST_ACCUMULO_HOME = "hoya.test.accumulo.home";
+  String HOYA_TEST_ACCUMULO_TAR = "hoya.test.accumulo.tar";
+
+  String HOYA_TEST = "hoya-test.xml"
 }
