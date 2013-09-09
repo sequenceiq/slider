@@ -175,10 +175,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       exitCode = actionExists(clusterName);
     } else if (HoyaActions.ACTION_FLEX.equals(action)) {
       validateClusterName(clusterName);
-      exitCode = flex(clusterName,
-                      serviceArgs.workers,
-                      serviceArgs.masters,
-                      serviceArgs.persist);
+      exitCode = actionFlex(clusterName);
     } else if (HoyaActions.ACTION_GETCONF.equals(action)) {
       File outfile = null;
       if (serviceArgs.output != null) {
@@ -1180,6 +1177,30 @@ public class HoyaClient extends YarnClientImpl implements RunService,
    * @return exit code
    */
   @VisibleForTesting
+  public int actionFlex(String name) throws YarnException, IOException {
+    verifyManagerSet();
+    log.debug("actionFlex({})", name);
+    Map<String, Integer> roleInstances = new HashMap<String, Integer>();
+    Map<String, String> roleMap = serviceArgs.getRoleMap();
+    for (Map.Entry<String, String> roleEntry : roleMap.entrySet()) {
+      String key = roleEntry.getKey();
+      String val = roleEntry.getValue();
+      try {
+        roleInstances.put(key, Integer.valueOf(val));
+      } catch (NumberFormatException e) {
+        throw new BadCommandArgumentsException("Requested count of role %s" +
+                                               " is not a number: \"%s\"",
+                                               key, val);
+      }
+    }
+    return flex(name, roleInstances, serviceArgs.persist);
+  }
+  /**
+   * Implement the islive action: probe for a cluster of the given name existing
+   *
+   * @return exit code
+   */
+  @VisibleForTesting
   public int actionExists(String name) throws YarnException, IOException {
     verifyManagerSet();
     log.debug("actionExists({})", name);
@@ -1454,26 +1475,32 @@ public class HoyaClient extends YarnClientImpl implements RunService,
    * @return EXIT_SUCCESS if the #of nodes in a live cluster changed
    */
   public int flex(String clustername,
-                  int workers,
-                  int masters,
+                  Map<String, Integer> roleInstances,
                   boolean persist) throws
                                    YarnException,
                                    IOException {
     verifyManagerSet();
     validateClusterName(clustername);
-    if (workers < 0) {
-      throw new BadCommandArgumentsException(
-        "Requested number of workers is out of range");
-    }
     Path clusterSpecPath = locateClusterSpecification(clustername);
     FileSystem fs = getClusterFS();
     ClusterDescription clusterSpec =
       HoyaUtils.loadAndValidateClusterSpec(fs, clusterSpecPath);
-    clusterSpec.setDesiredInstanceCount(HBaseKeys.ROLE_WORKER, workers);
 
-    log.debug("Flexed cluster specification (new workers={}) : \n{}",
-              workers,
-              clusterSpec);
+    for (Map.Entry<String, Integer> entry : roleInstances.entrySet()) {
+      String name = entry.getKey();
+      int workers = entry.getValue();
+      if (workers < 0) {
+        throw new BadCommandArgumentsException(
+          "Requested number of "+name +" instances is out of range");
+      }
+
+
+      clusterSpec.setDesiredInstanceCount(name, workers);
+
+      log.debug("Flexed cluster specification (new " + name +"workers={}) : \n{}",
+                workers,
+                clusterSpec);
+    }
     if (persist) {
       Path clusterDirectory =
         HoyaUtils.buildHoyaClusterDirPath(getClusterFS(), clustername);
@@ -1485,7 +1512,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                                 clusterSpec)) {
         log.warn("Failed to save new cluster size to {}", clusterSpecPath);
       } else {
-        log.info("New cluster size: {} persisted", workers);
+        log.debug("New cluster size: persisted");
       }
     }
     int exitCode = EXIT_FALSE;
@@ -1494,7 +1521,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     verifyManagerSet();
     ApplicationReport instance = findInstance(getUsername(), clustername);
     if (instance != null) {
-      log.info("Flexing running cluster to size {}", workers);
+      log.info("Flexing running cluster");
       HoyaAppMasterProtocol appMaster = connect(instance);
       if (appMaster.flexCluster(clusterSpec.toJsonString())) {
         log.info("Cluster size updated");

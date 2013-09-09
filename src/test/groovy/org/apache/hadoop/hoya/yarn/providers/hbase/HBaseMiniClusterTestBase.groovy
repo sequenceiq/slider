@@ -272,7 +272,9 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
       //start to add some more workers
       describe("Flexing from $workers worker(s) to $flexTarget worker");
       boolean flexed;
-      flexed = 0 == hoyaClient.flex(clustername, flexTarget, 0, persist);
+      flexed = 0 == hoyaClient.flex(clustername,
+                                    [(HBaseKeys.ROLE_WORKER): flexTarget],
+                                    persist);
       waitForHoyaWorkerCount(hoyaClient, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME);
       if (testHBaseAfter) {
         waitForHBaseRegionServerCount(hoyaClient, clustername, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME);
