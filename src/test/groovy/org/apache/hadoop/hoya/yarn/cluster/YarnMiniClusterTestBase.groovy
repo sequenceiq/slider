@@ -631,18 +631,7 @@ implements KeysForTests, HoyaExitCodes {
   }
 
 
-  
-  /**
-   * Spin waiting for the Hoya worker count to match expected
-   * @param hoyaClient client
-   * @param desiredCount RS count
-   * @param timeout timeout
-   */
-  public ClusterDescription waitForHoyaWorkerCount(HoyaClient hoyaClient,
-                                                     int desiredCount,
-                                                     int timeout) {
-    return waitForRoleCount(hoyaClient, HBaseKeys.ROLE_WORKER, desiredCount, timeout)
-  }
+
 
   /**
    * Spin waiting for the Hoya role count to match expected

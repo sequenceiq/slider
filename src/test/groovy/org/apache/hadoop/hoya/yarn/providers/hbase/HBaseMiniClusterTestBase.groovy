@@ -284,6 +284,17 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
 
   }
 
+  /**
+   * Spin waiting for the Hoya worker count to match expected
+   * @param hoyaClient client
+   * @param desiredCount RS count
+   * @param timeout timeout
+   */
+  public ClusterDescription waitForHoyaWorkerCount(HoyaClient hoyaClient,
+                                                   int desiredCount,
+                                                   int timeout) {
+    return waitForRoleCount(hoyaClient, HBaseKeys.ROLE_WORKER, desiredCount, timeout)
+  }
   public String getHBaseHome() {
     YarnConfiguration conf = getTestConfiguration()
     String hbaseHome = conf.getTrimmed(KeysForTests.HOYA_TEST_HBASE_HOME)
