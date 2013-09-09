@@ -22,14 +22,14 @@ import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
-import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
+import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
 //@CompileStatic
 @Slf4j
 
-class TestTwoLiveClusters extends YarnMiniClusterTestBase {
+class TestTwoLiveClusters extends HBaseMiniClusterTestBase {
 
   /**
    * Create two clusters simultaneously and verify that their lifecycle is
@@ -60,7 +60,7 @@ class TestTwoLiveClusters extends YarnMiniClusterTestBase {
 
     launcher = createHoyaCluster(clustername2, regionServerCount,
                                  [
-                                 CommonArgs.ARG_HBASE_ZKPATH, "/$clustername2",
+                                     CommonArgs.ARG_APP_ZKPATH, "/$clustername2",
                                  ],
                                  true,
                                  true)

@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.cluster.masterless
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
@@ -41,14 +42,14 @@ class TestRoleOptPropagation extends YarnMiniClusterTestBase {
 
     String MALLOC_ARENA = "env.MALLOC_ARENA_MAX"
     ServiceLauncher launcher = createHoyaCluster(clustername,
-               0,
-               [
-                 CommonArgs.ARG_MASTERS, "0",
-                 CommonArgs.ARG_ROLEOPT, "master", MALLOC_ARENA, "4",
-                 CommonArgs.ARG_ROLEOPT, "unknown", MALLOC_ARENA, "3",
-               ],
-               true,
-               true)
+                                                 0,
+                                                 [
+                                                     CommonArgs.ARG_ROLE, HBaseKeys.ROLE_MASTER, "0",
+                                                     CommonArgs.ARG_ROLEOPT, "master", MALLOC_ARENA, "4",
+                                                     CommonArgs.ARG_ROLEOPT, "unknown", MALLOC_ARENA, "3",
+                                                 ],
+                                                 true,
+                                                 true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
     ClusterDescription status = hoyaClient.clusterStatus

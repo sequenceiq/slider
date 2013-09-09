@@ -57,7 +57,7 @@ public class CommonArgs implements HoyaActions {
   public static final String ARG_FILESYSTEM_LONG = "--filesystem";
   public static final String ARG_GENERATED_CONFDIR = "--generated_confdir";
   public static final String ARG_APP_HOME = "--apphome";
-  public static final String ARG_HBASE_ZKPATH = "--hbasezkpath";
+  public static final String ARG_APP_ZKPATH = "--zkpath";
   public static final String ARG_HELP = "--help";
   public static final String ARG_IMAGE = "--image";
   public static final String ARG_MANAGER = "--manager";
@@ -139,8 +139,8 @@ public class CommonArgs implements HoyaActions {
              converter = URIArgumentConverter.class)
   public URI filesystemURL;
 
-  @Parameter(names = ARG_HBASE_ZKPATH,
-             description = "Zookeeper path for the HBase nodes")
+  @Parameter(names = ARG_APP_ZKPATH,
+             description = "Zookeeper path for the application")
   public String hbasezkpath;
 
   @Parameter(names = ARG_HELP, help = true)
@@ -183,33 +183,40 @@ public class CommonArgs implements HoyaActions {
   public String manager;
 
   @Parameter(names = {ARG_WORKERS},
-             description = "The number of worker nodes")
-  public int workers = 0;
+             description = "Deprecated: The number of worker nodes")
+  @Deprecated
+  public int workers = -1;
 
-  @Parameter(names = {ARG_MASTERS}, description = "The number of master nodes")
-  public int masters = 1;
+  @Parameter(names = {ARG_MASTERS}, description = "Deprecated: The number of master nodes")
+  @Deprecated
+  public int masters = -1;
 
   @Parameter(names = {ARG_MASTER_HEAP},
-             description = "Master heap size in MB")
-  public int masterHeap = RoleKeys.DEF_YARN_MEMORY;
+             description = "Deprecated: Master heap size in MB")
+  @Deprecated
+  public int masterHeap = -1;
 
   //--masterinfoport [port]
   @Parameter(names = ARG_MASTER_INFO_PORT,
-             description = "The web UI port that the Master should bind to")
+             description = "Deprecated: The web UI port that the Master should bind to")
+  @Deprecated
   public int masterInfoPort = -1;
 
   //--workerinfoport [port]
   @Parameter(names = ARG_WORKER_INFO_PORT,
-             description = "The web UI port that the Workers should bind to")
+             description = "Deprecated: The web UI port that the Workers should bind to")
+  @Deprecated
+
   public int workerInfoPort = -1;
 
   @Parameter(names = {ARG_OUTPUT, "-o"},
              description = "Output file for the configuration data")
   public String output;
 
-  @Parameter(names = {ARG_WORKER_HEAP, "--regionserverheap"},
-             description = "Worker heap size in MB")
-  public int workerHeap = RoleKeys.DEF_YARN_MEMORY;
+  @Parameter(names = {ARG_WORKER_HEAP},
+             description = "Deprecated: Worker heap size in MB")
+  @Deprecated
+  public int workerHeap = -1;
 
   @Parameter(names = ARG_X_HBASE_MASTER_COMMAND,
              description = "Testing only: hbase command to exec on the master")
@@ -352,13 +359,15 @@ public class CommonArgs implements HoyaActions {
 */
     if (minArgs > actionArgSize) {
       throw new BadCommandArgumentsException(
-        ERROR_NOT_ENOUGH_ARGUMENTS + action + " in " + HoyaUtils.join(actionArgs, " "));
+        ERROR_NOT_ENOUGH_ARGUMENTS + action + " in \"" +
+        HoyaUtils.join(actionArgs, " ") + "\"");
     }
     int maxArgs =
       (actionOpts.size() == 3) ? ((Integer) actionOpts.get(2)) : minArgs;
     if (actionArgSize > maxArgs) {
       throw new BadCommandArgumentsException(
-        ERROR_TOO_MANY_ARGUMENTS + action + " in " + HoyaUtils.join(actionArgs, " "));
+        ERROR_TOO_MANY_ARGUMENTS + action
+        + " in \"" + HoyaUtils.join(actionArgs, " ") + "\"");
     }
   }
 

@@ -21,7 +21,7 @@ package org.apache.hadoop.hoya.yarn.cluster.flexing
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
+import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.junit.Test
 
 /**
@@ -29,11 +29,11 @@ import org.junit.Test
  */
 @CompileStatic
 @Slf4j
-class TestClusterFlex2DownTo1 extends YarnMiniClusterTestBase {
+class TestClusterFlex2DownTo1 extends HBaseMiniClusterTestBase {
 
   @Test
   public void testClusterFlex2DownTo1() throws Throwable {
-    assert flexClusterTestRun("TestClusterFlex2DownTo1", 2, 1, true, false)
+    assert flexHBaseClusterTestRun("TestClusterFlex2DownTo1", 2, 1, true, false)
   }
 
 

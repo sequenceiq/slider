@@ -23,7 +23,7 @@ import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
-import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
+import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.api.records.ApplicationId
 import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.api.records.YarnApplicationState
@@ -38,7 +38,7 @@ import org.junit.Test
 @CompileStatic
 @Slf4j
 
-class TestCreateMasterlessAM extends YarnMiniClusterTestBase {
+class TestCreateMasterlessAM extends HBaseMiniClusterTestBase {
 
   @Test
   public void testCreateMasterlessAM() throws Throwable {
@@ -48,9 +48,6 @@ class TestCreateMasterlessAM extends YarnMiniClusterTestBase {
 
     //launch fake master
     String clustername = "TestCreateMasterlessAM"
-    String zk = microZKCluster.zkBindingString
-    String hbaseHome = HBaseHome
-    String rmAddr = RMAddr
     ServiceLauncher launcher
     launcher = createMasterlessAM(clustername, 0, true, false)
     HoyaClient hoyaClient = (HoyaClient) launcher.service

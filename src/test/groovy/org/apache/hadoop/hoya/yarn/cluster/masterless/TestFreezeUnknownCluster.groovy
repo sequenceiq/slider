@@ -21,7 +21,7 @@ package org.apache.hadoop.hoya.yarn.cluster.masterless
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.yarn.HoyaActions
-import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
+import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
@@ -33,7 +33,7 @@ import org.junit.Test
 @CompileStatic
 @Slf4j
 
-class TestFreezeUnknownCluster extends YarnMiniClusterTestBase {
+class TestFreezeUnknownCluster extends HBaseMiniClusterTestBase {
 
   @Test
   public void testFreezeUnknownCluster() throws Throwable {

@@ -27,22 +27,14 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.FileUtil
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.hbase.ClusterStatus
-import org.apache.hadoop.hbase.HBaseConfiguration
-import org.apache.hadoop.hbase.ServerName
-import org.apache.hadoop.hbase.client.HBaseAdmin
-import org.apache.hadoop.hbase.client.HConnection
-import org.apache.hadoop.hbase.client.HConnectionManager
 import org.apache.hadoop.hdfs.MiniDFSCluster
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.api.ClusterDescription
-import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.api.OptionKeys
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.exceptions.WaitTimeoutException
 import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
-import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.CommonArgs
@@ -79,7 +71,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 @CompileStatic
 @Slf4j
-public class YarnMiniClusterTestBase extends ServiceLauncherBaseTest
+public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest
 implements KeysForTests, HoyaExitCodes {
 
   /**
@@ -115,7 +107,6 @@ implements KeysForTests, HoyaExitCodes {
     describe("teardown")
     stopRunningClusters();
     stopMiniCluster();
-    killAllRegionServers();
   }
 
   protected void addToTeardown(HoyaClient client) {
@@ -301,16 +292,6 @@ implements KeysForTests, HoyaExitCodes {
     return launcher;
   }
 
-  /**
-   * Kill all the region servers
-   * <code>
-   *    jps -l | grep HRegion | awk '{print $1}' | kill -9
-   *  </code>
-   */
-  public void killAllRegionServers() {
-    killJavaProcesses(HREGION);
-  }
-
   
   /**
    * Kill any java process with the given grep pattern
@@ -431,9 +412,13 @@ implements KeysForTests, HoyaExitCodes {
    * @return launcher which will have executed the command.
    */
   public ServiceLauncher createMasterlessAM(String clustername, int size, boolean deleteExistingData, boolean blockUntilRunning) {
+    Map<String, Integer> roles = [
+        (HBaseKeys.ROLE_MASTER): 0,
+        (HBaseKeys.ROLE_WORKER): size,
+    ];
     return createHoyaCluster(clustername,
-                             size,
-                             [CommonArgs.ARG_MASTERS, "0"],
+                             roles,
+                             [],
                              deleteExistingData,
                              blockUntilRunning)
   }
@@ -449,6 +434,18 @@ implements KeysForTests, HoyaExitCodes {
    * @return launcher which will have executed the command.
    */
   public ServiceLauncher createHoyaCluster(String clustername, int size, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
+    Map<String, Integer> roles = [
+        (HBaseKeys.ROLE_MASTER): 1,
+        (HBaseKeys.ROLE_WORKER): size,
+    ];
+    return createHoyaCluster(clustername,
+                             roles,
+                             extraArgs,
+                             deleteExistingData,
+                             blockUntilRunning)
+
+  }
+  public ServiceLauncher createHoyaCluster(String clustername, Map<String, Integer> roles, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
     assert clustername != null
     assert miniCluster != null
     if (deleteExistingData) {
@@ -460,18 +457,24 @@ implements KeysForTests, HoyaExitCodes {
       dfs.delete(clusterDir, true)
     }
 
+
+    List<String> roleList = [];
+    roles.each { String role, Integer val -> 
+      log.info("Role $role := $val")
+      roleList << CommonArgs.ARG_ROLE << role << Integer.toString(val)
+    }
+    
     List<String> argsList = [
         HoyaActions.ACTION_CREATE, clustername,
-        CommonArgs.ARG_WORKERS, Integer.toString(size),
         ClientArgs.ARG_MANAGER, RMAddr,
         CommonArgs.ARG_ZKHOSTS, ZKHosts,
         CommonArgs.ARG_ZKPORT, ZKPort.toString(),
         ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
         ClientArgs.ARG_FILESYSTEM, fsDefaultName,
         CommonArgs.ARG_OPTION, OptionKeys.OPTION_TEST, "true",
-        CommonArgs.ARG_CONFDIR, getConfDir()
+        CommonArgs.ARG_CONFDIR, confDir
     ]
-    
+    argsList += roleList;
     argsList += HBaseImageCommands
     
     if (extraArgs != null) {
@@ -492,7 +495,7 @@ implements KeysForTests, HoyaExitCodes {
   }
 
   public String getConfDir() {
-    return getResourceConfDirURI()
+    return resourceConfDirURI
   }
 
   /**
@@ -535,22 +538,26 @@ implements KeysForTests, HoyaExitCodes {
    * @return
    */
   public File getResourceConfDir() {
-    File f = new File("src/main/resources/conf").absoluteFile
-    assert f.exists()
-    return f
+    File f = new File(testConfigurationPath).absoluteFile;
+    assert f.exists();
+    return f;
+  }
+
+  public String getTestConfigurationPath() {
+    fail("Not implemented");
   }
 
   /**
    get a URI string to the resource conf dir that is suitable for passing down
    to the AM -and works even when the default FS is hdfs
    */
-  public String getResourceConfDirURI() {
+  public String getResourceConfDirURI() {;
     return resourceConfDir.absoluteFile.toURI().toString()
   }
 
 
   public void logReport(ApplicationReport report) {
-    log.info(HoyaUtils.reportToString(report))
+    log.info(HoyaUtils.reportToString(report));
   }
 
 
@@ -565,9 +572,9 @@ implements KeysForTests, HoyaExitCodes {
    */
   public ApplicationReport waitForClusterLive(HoyaClient hoyaClient) {
     ApplicationReport report = hoyaClient.monitorAppToRunning(
-        new Duration(CLUSTER_GO_LIVE_TIME))
+        new Duration(CLUSTER_GO_LIVE_TIME));
     assertNotNull("Cluster did not go live in the time $CLUSTER_GO_LIVE_TIME", report);
-    return report
+    return report;
   }
 
   /**
@@ -582,68 +589,6 @@ implements KeysForTests, HoyaExitCodes {
     }
   }
 
-  public void assertHBaseMasterNotStopped(HoyaClient hoyaClient,
-                                          String clustername) {
-    String[] nodes = hoyaClient.listNodesByRole(HBaseKeys.ROLE_MASTER);
-    int masterNodeCount = nodes.length;
-    assert masterNodeCount> 0;
-    ClusterNode node = hoyaClient.getNode(nodes[0]);
-    if (node.state >= ClusterDescription.STATE_STOPPED) {
-      //stopped, not what is wanted
-      log.error("HBase master has stopped")
-      log.error(node.toString())
-      fail("HBase master has stopped " + node.diagnostics)
-    }
-  }
-
-  /**
-   * Create an HBase config to work with
-   * @param hoyaClient hoya client
-   * @param clustername cluster
-   * @return an hbase config extended with the custom properties from the
-   * cluster, including the binding to the HBase cluster
-   */
-  public Configuration createHBaseConfiguration(HoyaClient hoyaClient) {
-    Configuration siteConf = fetchHBaseClientSiteConfig(hoyaClient)
-    Configuration conf = HBaseConfiguration.create(siteConf);
-/*
-    
-    conf.setInt(HConstants.HBASE_CLIENT_RETRIES_NUMBER, 0);
-    conf.setInt("zookeeper.recovery.retry", 0)
-
-*/
-    return conf
-  }
-
-  /**
-   * Fetch the current hbase site config from the Hoya AM, from the 
-   * <code>hBaseClientProperties</code> field of the ClusterDescription
-   * @param hoyaClient client
-   * @param clustername name of the cluster
-   * @return the site config
-   */
-  public Configuration fetchHBaseClientSiteConfig(HoyaClient hoyaClient) {
-    ClusterDescription status = hoyaClient.getClusterStatus();
-    Configuration siteConf = new Configuration(false)
-    status.clientProperties.each { String key, String val ->
-      siteConf.set(key, val, "hoya cluster");
-    }
-    return siteConf
-  }
-
-  /**
-   * Create an (unshared) HConnection talking to the hbase service that
-   * Hoya should be running
-   * @param hoyaClient hoya client
-   * @param clustername the name of the Hoya cluster
-   * @return the connection
-   */
-  public HConnection createHConnection(HoyaClient hoyaClient) {
-    Configuration clientConf = createHBaseConfiguration(hoyaClient)
-    HConnection hbaseConnection = HConnectionManager.createConnection(clientConf)
-    return hbaseConnection;
-  }
-
   public ExecutorService createExecutorService() {
     ThreadPoolExecutor pool = new ThreadPoolExecutor(1, 1,
                                                      1000L,
@@ -653,40 +598,6 @@ implements KeysForTests, HoyaExitCodes {
     return pool;
   }
 
-  /**
-   * get a string representation of an HBase cluster status
-   * @param status cluster status
-   * @return a summary for printing
-   */
-  String statusToString(ClusterStatus status) {
-    StringBuilder builder = new StringBuilder();
-    builder << "Cluster " << status.clusterId
-    builder << " @ " << status.master << " version " << status.HBaseVersion
-    builder << "\nlive [\n"
-    if (!status.servers.empty) {
-      status.servers.each() { ServerName name ->
-        builder << " Server "<< name << " :" << status.getLoad(name) << "\n"
-      }
-    } else {
-    }
-    builder << "]\n"
-    if (status.deadServers > 0) {
-      builder << "\n dead servers=${status.deadServers}"
-    }
-    return builder.toString()
-  }
-
-  public ClusterStatus getHBaseClusterStatus(HoyaClient hoyaClient) {
-    try {
-      HConnection hbaseConnection = createHConnection(hoyaClient)
-      HBaseAdmin hBaseAdmin = new HBaseAdmin(hbaseConnection)
-      ClusterStatus hBaseClusterStatus = hBaseAdmin.clusterStatus
-      return hBaseClusterStatus
-    } catch (NoSuchMethodError e) {
-      throw new Exception("Using an incompatible version of HBase!", e)
-    }
-    
-  }
 
   /**
    * Wait for the hbase master to be live (or past it in the lifecycle)
@@ -738,78 +649,6 @@ implements KeysForTests, HoyaExitCodes {
     return exitCode
   }
 
-  /**
-   * Ask the AM for the site configuration -then dump it
-   * @param hoyaClient
-   * @param clustername
-   */
-  public void dumpHBaseClientConf(HoyaClient hoyaClient) {
-    Configuration conf = fetchHBaseClientSiteConfig(hoyaClient)
-    describe("AM-generated site configuration")
-    ConfigHelper.dumpConf(conf)
-  }
-
-  /**
-   * Create a full HBase configuration by merging the AM data with
-   * the rest of the local settings. This is the config that would
-   * be used by any clients
-   * @param hoyaClient hoya client
-   * @param clustername name of the cluster
-   */
-  public void dumpFullHBaseConf(HoyaClient hoyaClient) {
-    Configuration conf = createHBaseConfiguration(hoyaClient)
-    describe("HBase site configuration from AM")
-    ConfigHelper.dumpConf(conf)
-  }
-
-
-  public ClusterStatus basicHBaseClusterStartupSequence(HoyaClient hoyaClient) {
-    int hbaseState = hoyaClient.waitForRoleInstanceLive(HBaseKeys.ROLE_MASTER,
-                                                        HBASE_CLUSTER_STARTUP_TIME);
-    assert hbaseState == ClusterDescription.STATE_LIVE
-    //sleep for a bit to give things a chance to go live
-    assert spinForClusterStartup(hoyaClient, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-
-    //grab the conf from the status and verify the ZK binding matches
-
-    ClusterStatus clustat = getHBaseClusterStatus(hoyaClient)
-    describe("HBASE CLUSTER STATUS \n " + statusToString(clustat));
-    return clustat
-  }
-
-  /**
-   * Spin waiting for the RS count to match expected
-   * @param hoyaClient client
-   * @param clustername cluster name
-   * @param regionServerCount RS count
-   * @param timeout timeout
-   */
-  public ClusterStatus waitForHBaseRegionServerCount(HoyaClient hoyaClient,
-                                                     String clustername,
-                                                     int regionServerCount,
-                                                     int timeout) {
-    Duration duration = new Duration(timeout);
-    duration.start()
-    ClusterStatus clustat = null;
-    while (true) {
-      clustat = getHBaseClusterStatus(hoyaClient)
-      int workerCount = clustat.servers.size()
-      if (workerCount == regionServerCount) {
-        break;
-      }
-      if (duration.limitExceeded) {
-        describe("Cluster region server count of $regionServerCount not met:")
-        log.info(statusToString(clustat))
-        ClusterDescription status = hoyaClient.getClusterStatus(clustername);
-        fail("Expected $regionServerCount YARN region servers," +
-             " but  after $timeout millis saw $workerCount in ${statusToString(clustat)}" +
-             " \n ${prettyPrint(status.toJsonString())}");
-      }
-      log.info("Waiting for $regionServerCount region servers -got $workerCount")
-      Thread.sleep(1000)
-    }
-    return clustat;
-  }
 
   
   /**
@@ -875,40 +714,5 @@ implements KeysForTests, HoyaExitCodes {
   }
 
 
-  public boolean flexClusterTestRun(String clustername, int workers, int flexTarget, boolean persist, boolean testHBaseAfter) {
-    createMiniCluster(clustername, createConfiguration(),
-                      1,
-                      true)
-    //now launch the cluster
-    HoyaClient hoyaClient = null
-    ServiceLauncher launcher = createHoyaCluster(clustername, workers, [], true, true)
-    hoyaClient = (HoyaClient) launcher.service
-    try {
-      basicHBaseClusterStartupSequence(hoyaClient)
-
-      describe("Waiting for initial worker count of $workers")
-
-      //verify the #of region servers is as expected
-      //get the hbase status
-      waitForHoyaWorkerCount(hoyaClient, workers, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-      log.info("Hoya worker count at $workers, waiting for region servers to match")
-      waitForHBaseRegionServerCount(hoyaClient, clustername, workers, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-
-      //start to add some more workers
-      describe("Flexing from $workers worker(s) to $flexTarget worker")
-      boolean flexed
-      flexed = 0 == hoyaClient.flex(clustername, flexTarget, 0, persist)
-      waitForHoyaWorkerCount(hoyaClient,flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-      if (testHBaseAfter) {
-        waitForHBaseRegionServerCount(hoyaClient, clustername, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-      }
-      return flexed
-    } finally {
-      maybeStopCluster(hoyaClient,"")
-    }
-
-
-  }
-  
 
 }

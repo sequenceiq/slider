@@ -83,7 +83,7 @@ public class ClientArgs extends CommonArgs {
 
   @Parameter(names = ARG_APP_HOME,
              description = "Home directory of a pre-installed application")
-  public String hbasehome;
+  public String appHomeDir;
   
   @Parameter(names = {ARG_PERSIST},
              description = "flag to indicate whether a flex change should be persisted (default=true)",

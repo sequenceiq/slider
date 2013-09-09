@@ -167,21 +167,7 @@ for the Hoya Cluster itself to start running. It can still take time after this 
 
 When stopping a cluster -the time for the YARN application to enter a finished state.
 
-### --workerinfoport port 
 
-port for the worker's web UI
-
-### --masterinfoport port 
-
-port for the masters's web UI
-
-### --masterheap number
-
-worker heap size
-
-### --workerheap number
-
-master heap size
 
 ### --amqueue queue
 
@@ -234,7 +220,7 @@ If not, an error code is returned.
 with the rule that a new Hoya cluster can be created if an existing cluster exists in any
 of the YARN termination states.
 
-### create \<cluster> --fs filesystem --workers workers --confdir dir --zkhosts zkhosts \[--image path] \[--hbasehome hbasehomedir] \[--zkport port] \[--hbasezkpath zkpath]\[ \[--waittime time] \[--workerheap heapsize] \[--masters masters] \[--masterheap heapsize]
+### create \<cluster> --fs filesystem --confdir dir --zkhosts zkhosts \[--image path] \[--hbasehome hbasehomedir] \[--zkport port] \[--zkpath zkpath]\[ \[--waittime time] \[--role <name> <count>]*  \[--roleopt <name> <value>]* 
 
 Create a cluster of the given ZK name, using the specified image. The minimum and maximum nodes define the number of region servers to be created; an HBase master is always created. If a configuration directory is specified, it's configuration files override those in the image. 
 
@@ -261,7 +247,7 @@ The same zookeeper bindings as before will be used.
 If a cluster is already running, this is a no-op
 
 
-### flex \<cluster> \[--workers count] \[--persist true|false]
+### flex \<cluster> \[--role rolename count]* \[--persist true|false]
 
 Flex the number of workers in a cluster to the new value. If greater than before -nodes will be added. If less, nodes will be removed  from the cluster. 
 The persist flag (default = true) indicates whether or not the new worker count should be persisted and used the next time the cluster is started up. Set this to false if the flexed cluster size is only to be applied to a live cluster.
@@ -392,7 +378,8 @@ These should be interpreted by all providers that start a JVM in the specific ro
 
 This creates a cluster `mycluster` with four workers
 
-    java -jar target/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya create mycluster --workers 4
+    java -jar target/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya create mycluster\
+     --role workers 4
 
 
 ## Notes

@@ -82,11 +82,12 @@ RM yarn-daemon.sh --config $HADOOP_CONF_DIR start nodemanager
  ## Create a Hoya Cluster
  
  
-    java -jar target/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya create cl1 --workers 1 --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000 --zkhosts localhost --image hdfs://ubuntu:9000/hbase.tar
+    java -jar target/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya create cl1 \
+    --role workers 1 --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000 --zkhosts localhost --image hdfs://ubuntu:9000/hbase.tar
     
     # create the cluster
     java -jar target/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya\
-      create cl1 --workers 4\
+      create cl1 --role workers 4\
       --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000 --zkhosts localhost \
       --image hdfs://ubuntu:9000/hbase.tar \
       --confdir file:////Users/stevel/Projects/Hortonworks/Projects/hoya/src/test/configs/ubuntu/hbase \

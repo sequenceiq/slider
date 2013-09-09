@@ -76,12 +76,16 @@ public class HBaseProvider extends Configured implements
    */
   protected static final List<ProviderRole> ROLES = new ArrayList<ProviderRole>();
 
+  public static final int KEY_WORKER = 1;
+
+  public static final int KEY_MASTER = 2;
+
   /**
    * Initialize role list
    */
   static {
-    ROLES.add(new ProviderRole(HBaseKeys.ROLE_WORKER, 1));
-    ROLES.add(new ProviderRole(HBaseKeys.ROLE_MASTER, 2,true));
+    ROLES.add(new ProviderRole(HBaseKeys.ROLE_WORKER, KEY_WORKER));
+    ROLES.add(new ProviderRole(HBaseKeys.ROLE_MASTER, KEY_MASTER, true));
   }
 
   @Override
@@ -117,19 +121,16 @@ public class HBaseProvider extends Configured implements
                                                                        HoyaException {
     Map<String, String> rolemap = new HashMap<String, String>();
     rolemap.put(RoleKeys.ROLE_NAME, rolename);
-    String heapSize;
-    String infoPort;
     if (rolename.equals(HBaseKeys.ROLE_WORKER)) {
-      heapSize = DEFAULT_HBASE_WORKER_HEAP;
-      infoPort = DEFAULT_HBASE_WORKER_INFOPORT;
+      rolemap.put(RoleKeys.APP_INFOPORT, DEFAULT_HBASE_WORKER_INFOPORT);
+      rolemap.put(RoleKeys.JVM_HEAP, DEFAULT_HBASE_WORKER_HEAP);
     } else if (rolename.equals(HBaseKeys.ROLE_MASTER)) {
-      heapSize = DEFAULT_HBASE_MASTER_HEAP;
-      infoPort = DEFAULT_HBASE_MASTER_INFOPORT;
+      rolemap.put(RoleKeys.ROLE_INSTANCES, "1");
+      rolemap.put(RoleKeys.APP_INFOPORT, DEFAULT_HBASE_MASTER_INFOPORT);
+      rolemap.put(RoleKeys.JVM_HEAP, DEFAULT_HBASE_MASTER_HEAP);
     } else {
       throw new HoyaException(ERROR_UNKNOWN_ROLE + rolename);
     }
-    rolemap.put(RoleKeys.APP_INFOPORT, infoPort);
-    rolemap.put(RoleKeys.JVM_HEAP, heapSize);
     return rolemap;
   }
 

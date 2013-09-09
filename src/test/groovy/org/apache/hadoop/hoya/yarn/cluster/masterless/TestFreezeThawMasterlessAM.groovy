@@ -24,7 +24,7 @@ import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
-import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
+import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
@@ -36,7 +36,7 @@ import org.junit.Test
 @CompileStatic
 @Slf4j
 
-class TestFreezeThawMasterlessAM extends YarnMiniClusterTestBase {
+class TestFreezeThawMasterlessAM extends HBaseMiniClusterTestBase {
 
   File getConfDirFile() {
     return new File("target/TestStartMasterlessAMconf")

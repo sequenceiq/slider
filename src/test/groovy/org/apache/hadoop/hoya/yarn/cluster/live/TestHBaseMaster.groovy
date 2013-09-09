@@ -23,7 +23,7 @@ import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.yarn.ZKIntegration
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
-import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
+import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
@@ -33,7 +33,7 @@ import org.junit.Test
 @CompileStatic
 @Slf4j
 
-class TestHBaseMaster extends YarnMiniClusterTestBase {
+class TestHBaseMaster extends HBaseMiniClusterTestBase {
 
   @Test
   public void testHBaseMaster() throws Throwable {
@@ -42,7 +42,7 @@ class TestHBaseMaster extends YarnMiniClusterTestBase {
     //make sure that ZK is up and running at the binding string
     ZKIntegration zki = createZKIntegrationInstance(ZKBinding, clustername, false, false, 5000)
     log.info("ZK up at $zki");
-    //now launch the cluster
+    //now launch the cluster with 1 region server
     int regionServerCount = 1
     ServiceLauncher launcher = createHoyaCluster(clustername, regionServerCount, [], true, true) 
     HoyaClient hoyaClient = (HoyaClient) launcher.service

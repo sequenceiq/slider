@@ -23,7 +23,7 @@ package org.apache.hadoop.hoya.yarn.cluster.version
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
-import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
+import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
@@ -31,7 +31,7 @@ import org.junit.Test
  * Test of RM creation. This is so the later test's prereq's can be met
  */
 @Slf4j
-class TestHDFSVersionCluster extends YarnMiniClusterTestBase {
+class TestHDFSVersionCluster extends HBaseMiniClusterTestBase {
 
   @Test
   public void testClusterAMrunningVersionCommand() throws Throwable {

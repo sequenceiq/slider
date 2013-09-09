@@ -23,7 +23,7 @@ import groovy.util.logging.Slf4j
 import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
-import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
+import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
@@ -32,7 +32,7 @@ import org.junit.Test
  */
 @CompileStatic
 @Slf4j
-class TestFailedRegionService extends YarnMiniClusterTestBase {
+class TestFailedRegionService extends HBaseMiniClusterTestBase {
 
   @Test
   public void testFailedRegionService() throws Throwable {
@@ -54,7 +54,7 @@ class TestFailedRegionService extends YarnMiniClusterTestBase {
     //get the hbase status
     ClusterStatus hbaseStat = waitForHBaseRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     
-    log.info("Initial cluster status : ${statusToString(hbaseStat)}");
+    log.info("Initial cluster status : ${hbaseStatusToString(hbaseStat)}");
     describe("running processes")
     log.info(lsJavaProcesses(HREGION))
     describe("about to kill servers")
@@ -72,7 +72,7 @@ class TestFailedRegionService extends YarnMiniClusterTestBase {
 
     hbaseStat = waitForHBaseRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
-    log.info("Updated cluster status : ${statusToString(hbaseStat)}");
+    log.info("Updated cluster status : ${hbaseStatusToString(hbaseStat)}");
 
   }
 

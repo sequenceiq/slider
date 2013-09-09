@@ -24,7 +24,7 @@ import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.yarn.ZKIntegration
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
-import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
+import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
@@ -33,7 +33,7 @@ import org.junit.Test
  */
 @CompileStatic
 @Slf4j
-class TestLiveRegionService extends YarnMiniClusterTestBase {
+class TestLiveRegionService extends HBaseMiniClusterTestBase {
 
   @Test
   public void testLiveRegionServiceSingleNode() throws Throwable {

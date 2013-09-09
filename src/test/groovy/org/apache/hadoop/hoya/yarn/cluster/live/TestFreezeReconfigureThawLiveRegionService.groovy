@@ -29,7 +29,7 @@ import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
-import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
+import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
@@ -38,7 +38,7 @@ import org.junit.Test
  */
 @CompileStatic
 @Slf4j
-class TestFreezeReconfigureThawLiveRegionService extends YarnMiniClusterTestBase {
+class TestFreezeReconfigureThawLiveRegionService extends HBaseMiniClusterTestBase {
 
   @Test
   public void testFreezeReconfigureThawLiveRegionService() throws Throwable {
@@ -59,7 +59,7 @@ class TestFreezeReconfigureThawLiveRegionService extends YarnMiniClusterTestBase
     clustat = waitForHBaseRegionServerCount(hoyaClient, clustername, regionServerCount,
                             HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     describe("Cluster status")
-    log.info(statusToString(clustat));
+    log.info(hbaseStatusToString(clustat));
     
 
     clusterActionFreeze(hoyaClient, clustername)

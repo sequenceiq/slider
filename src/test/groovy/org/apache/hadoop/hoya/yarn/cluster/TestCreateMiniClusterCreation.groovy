@@ -20,6 +20,7 @@ package org.apache.hadoop.hoya.yarn.cluster
 
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
+import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.junit.Test
 
 /**
@@ -28,7 +29,7 @@ import org.junit.Test
 //@CompileStatic
 @Slf4j
 
-class TestCreateMiniClusterCreation extends YarnMiniClusterTestBase {
+class TestCreateMiniClusterCreation extends HBaseMiniClusterTestBase {
 
   @Test
   public void testHoyaTestConfigFound() throws Throwable {

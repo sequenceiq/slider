@@ -19,18 +19,18 @@
 package org.apache.hadoop.hoya.yarn.cluster.flexing
 
 import groovy.util.logging.Slf4j
-import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
+import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.junit.Test
 
 /**
  * Create a master against the File:// fs
  */
 @Slf4j
-class TestClusterFlex0To1 extends YarnMiniClusterTestBase {
+class TestClusterFlex0To1 extends HBaseMiniClusterTestBase {
 
   @Test
   public void testClusterFlexUp() throws Throwable {
-    assert flexClusterTestRun("TestClusterFlexUp", 0, 1, true, false)
+    assert flexHBaseClusterTestRun("TestClusterFlexUp", 0, 1, true, false)
   }
 
 }

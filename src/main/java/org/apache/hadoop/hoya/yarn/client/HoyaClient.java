@@ -293,6 +293,15 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       throw new BadCommandArgumentsException("Missing argument "
                                              + CommonArgs.ARG_CONFDIR);
     }
+    //reject obsolete arguments now
+    verifyObsoleteArgUnset(ClientArgs.ARG_WORKERS, serviceArgs.workers);
+    verifyObsoleteArgUnset(ClientArgs.ARG_WORKER_HEAP, serviceArgs.workerHeap);
+    verifyObsoleteArgUnset(ClientArgs.ARG_WORKER_INFO_PORT,
+                           serviceArgs.workerInfoPort);
+    verifyObsoleteArgUnset(ClientArgs.ARG_MASTERS, serviceArgs.masters);
+    verifyObsoleteArgUnset(ClientArgs.ARG_MASTER_HEAP, serviceArgs.masterHeap);
+    verifyObsoleteArgUnset(ClientArgs.ARG_MASTER_INFO_PORT,
+                           serviceArgs.masterInfoPort);
 
 
     clusterSpec.name = clustername;
@@ -338,58 +347,29 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     clusterSpec.roles = clusterRoleMap;
 
-    //TODO: move from command line to full role values
-    int workers = serviceArgs.workers;
-    int workerHeap = serviceArgs.workerHeap;
-    validateNodeAndHeapValues(HBaseKeys.ROLE_WORKER, workers, workerHeap);
-    clusterSpec.setDesiredInstanceCount(HBaseKeys.ROLE_WORKER, workers);
 
-    clusterSpec.setRoleOpt(HBaseKeys.ROLE_WORKER,
-                           RoleKeys.YARN_MEMORY,
-                           workerHeap);
-    clusterSpec.setRoleOpt(HBaseKeys.ROLE_WORKER,
-                           RoleKeys.JVM_HEAP,
-                           workerHeap);
+    validateNodeCount(HBaseKeys.ROLE_WORKER,
+                      clusterSpec.getDesiredInstanceCount(HBaseKeys.ROLE_WORKER,
+                                                          0), 0, -1);
+
     clusterSpec.setRoleOpt(HBaseKeys.ROLE_WORKER,
                            RoleKeys.YARN_CORES,
                            RoleKeys.DEF_YARN_CORES);
-    if (serviceArgs.workerInfoPort >= 0) {
-      clusterSpec.setRoleOpt(HBaseKeys.ROLE_WORKER,
-                             RoleKeys.APP_INFOPORT,
-                             serviceArgs.workerInfoPort);
-    }
 
     //set up the master
 
     clusterSpec.setRoleOpt(HBaseKeys.ROLE_MASTER,
-                           RoleKeys.YARN_MEMORY,
-                           serviceArgs.masterHeap);
-    clusterSpec.setRoleOpt(HBaseKeys.ROLE_MASTER,
-                           RoleKeys.JVM_HEAP,
-                           serviceArgs.masterHeap);
-
-    clusterSpec.setRoleOpt(HBaseKeys.ROLE_MASTER,
                            RoleKeys.YARN_CORES,
                            RoleKeys.DEF_YARN_CORES);
-    if (serviceArgs.masterInfoPort >= 0) {
-      clusterSpec.setRoleOpt(HBaseKeys.ROLE_MASTER,
-                             RoleKeys.APP_INFOPORT,
-                             serviceArgs.masterInfoPort);
-    }
 
-    int masters = serviceArgs.masters;
-    int masterHeap = serviceArgs.masterHeap;
-    validateNodeAndHeapValues("master", masters, masterHeap);
-    if (masters > 1) {
-      throw new BadCommandArgumentsException(
-        "No more than one master is currently supported");
-    }
-    clusterSpec.setDesiredInstanceCount(HBaseKeys.ROLE_MASTER, masters);
+    validateNodeCount("master",
+                      clusterSpec.getDesiredInstanceCount(HBaseKeys.ROLE_MASTER, 0),
+                      0,
+                      1);
 
-
-    //HBase home or image
+    //App home or image
     if (serviceArgs.image != null) {
-      if (!isUnset(serviceArgs.hbasehome)) {
+      if (!isUnset(serviceArgs.appHomeDir)) {
         //both args have been set
         throw new BadCommandArgumentsException("only one of "
                                                + CommonArgs.ARG_IMAGE
@@ -399,15 +379,15 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       }
       clusterSpec.imagePath = serviceArgs.image.toUri().toString();
     } else {
-      //the alternative is HBase home, which now MUST be set
-      if (isUnset(serviceArgs.hbasehome)) {
+      //the alternative is app home, which now MUST be set
+      if (isUnset(serviceArgs.appHomeDir)) {
         //both args have been set
         throw new BadCommandArgumentsException("Either " + CommonArgs.ARG_IMAGE
                                                + " or " +
                                                CommonArgs.ARG_APP_HOME +
                                                " must be provided");
       }
-      clusterSpec.applicationHome = serviceArgs.hbasehome;
+      clusterSpec.applicationHome = serviceArgs.appHomeDir;
     }
 
     //set up the ZK binding
@@ -465,6 +445,14 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     //here is where all the work is done
     return executeClusterCreation(clusterDirectory, clusterSpec);
+  }
+
+  private void verifyObsoleteArgUnset(String argname, int argVal) throws
+                                                                  BadCommandArgumentsException {
+    if (argVal !=-1) {
+      throw new BadCommandArgumentsException("Option {} no longer supported",
+                                             argname);
+    }
   }
 
   public void verifyFileSystemArgSet() throws BadCommandArgumentsException {
@@ -769,21 +757,25 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
   /**
    * Validate the node count and heap size values of a node class 
+   *
    * @param name node class name
    * @param count requested node count
-   * @param heap requested heap size
+   * @param min requested heap size
+   * @param max
    * @throws BadCommandArgumentsException if the values are out of range
    */
-  public void validateNodeAndHeapValues(String name, int count, int heap) throws
-                                                                          BadCommandArgumentsException {
-    if (count < 0) {
+  public void validateNodeCount(String name,
+                                int count,
+                                int min,
+                                int max) throws BadCommandArgumentsException {
+    if (count < min) {
       throw new BadCommandArgumentsException(
-        "requested no of %s nodes is too low: %d " , name, count);
+        "requested no of %s nodes: %d is below the minimum of %d" , name, count, min);
     }
-
-    if (heap < HoyaKeys.MIN_HEAP_SIZE) {
+    if (max > 0 && count > max) {
       throw new BadCommandArgumentsException(
-        "requested heap size of " + name + " nodes is too low: " + count);
+        "requested no of %s nodes: %d is above the maximum of %d", name, count,
+        max);
     }
 
   }

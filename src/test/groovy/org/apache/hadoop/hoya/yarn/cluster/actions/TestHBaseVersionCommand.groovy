@@ -23,7 +23,7 @@ import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
-import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
+import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
@@ -32,17 +32,17 @@ import org.junit.Test
  */
 @CompileStatic
 @Slf4j
-class TestHBaseVersionCommand extends YarnMiniClusterTestBase {
+class TestHBaseVersionCommand extends HBaseMiniClusterTestBase {
 
   @Test
   public void testHBaseVersionCommand() throws Throwable {
     String clustername = "TestHBaseVersionCommand"
     createMiniCluster(clustername, createConfiguration(), 1, true)
     ServiceLauncher launcher = createHoyaCluster(clustername,
-                                 0,
-                                 HBASE_VERSION_COMMAND_SEQUENCE,
-                                 true,
-                                 true)
+                                                 0,
+                                                 HBASE_VERSION_COMMAND_SEQUENCE,
+                                                 true,
+                                                 true)
     assert launcher.serviceExitCode == 0
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     hoyaClient.monitorAppToRunning(new Duration(CLUSTER_GO_LIVE_TIME))
