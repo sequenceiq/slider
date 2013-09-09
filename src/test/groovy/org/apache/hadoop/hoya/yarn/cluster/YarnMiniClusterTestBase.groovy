@@ -56,6 +56,7 @@ import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
 import org.junit.After
 import org.junit.Assume
+import org.junit.Before
 import org.junit.Rule
 import org.junit.rules.Timeout
 
@@ -102,6 +103,11 @@ implements KeysForTests, HoyaExitCodes {
   @Rule
   public final Timeout testTimeout = new Timeout(10*60*1000); 
 
+  @Before
+  public void setup() {
+    
+  }
+  
   @After
   public void teardown() {
     describe("teardown")
@@ -311,40 +317,6 @@ implements KeysForTests, HoyaExitCodes {
     return bash.text
   }
 
-  
-  public String getHBaseHome() {
-    YarnConfiguration conf = getTestConfiguration()
-    String hbaseHome = conf.getTrimmed(HOYA_TEST_HBASE_HOME)
-    return hbaseHome
-  }
-
-  public String getHBaseArchive() {
-    YarnConfiguration conf = getTestConfiguration()
-    return conf.getTrimmed(HOYA_TEST_HBASE_TAR)
-  }
-
-  public void assumeHBaseArchive() {
-    String hbaseArchive = getHBaseArchive()
-    Assume.assumeTrue("Hbase Archive conf option not set " + HOYA_TEST_HBASE_TAR,
-                      hbaseArchive != null && hbaseArchive != "")
-  }
-
-  /**
-   * Get the arguments needed to point to HBase for these tests
-   * @return
-   */
-  public List<String> getHBaseImageCommands() {
-    if (switchToImageDeploy) {
-      assert HBaseArchive
-      File f = new File(HBaseArchive)
-      assert f.exists()
-      return [CommonArgs.ARG_IMAGE, f.toURI().toString()]
-    } else {
-      assert HBaseHome 
-      assert new File(HBaseHome).exists();
-      return [CommonArgs.ARG_APP_HOME, HBaseHome]
-    }
-  }
 
 
   public YarnConfiguration getTestConfiguration() {
@@ -475,7 +447,7 @@ implements KeysForTests, HoyaExitCodes {
         CommonArgs.ARG_CONFDIR, confDir
     ]
     argsList += roleList;
-    argsList += HBaseImageCommands
+    argsList += imageCommands
     
     if (extraArgs != null) {
       argsList += extraArgs;
@@ -496,6 +468,15 @@ implements KeysForTests, HoyaExitCodes {
 
   public String getConfDir() {
     return resourceConfDirURI
+  }
+
+  /**
+   * Get the list of commands needed to bind to this image
+   * @return
+   */
+  public List<String> getImageCommands() {
+    fail("Not implemented");
+    return [];
   }
 
   /**

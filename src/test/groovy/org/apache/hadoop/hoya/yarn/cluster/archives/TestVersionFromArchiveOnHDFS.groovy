@@ -72,12 +72,6 @@ class TestVersionFromArchiveOnHDFS extends HBaseMiniClusterTestBase {
     waitForAppToFinish(hoyaClient)
   }
 
-  @Override
-  String getHBaseHome() {
-    fail("The test should not have looked for HBase-home, but instead the image")
-    null
-  }
-
   /**
    * Override this so that the path is set up with the HDFS copy
    * @return
@@ -88,7 +82,7 @@ class TestVersionFromArchiveOnHDFS extends HBaseMiniClusterTestBase {
   }
 
 
-  public List<String> getHBaseImageCommands() {
+  public List<String> getImageCommands() {
     [CommonArgs.ARG_IMAGE, uploadedImage]
   }
 

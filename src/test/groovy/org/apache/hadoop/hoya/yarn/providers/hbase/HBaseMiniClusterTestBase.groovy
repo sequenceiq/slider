@@ -32,9 +32,13 @@ import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.hoya.tools.Duration
+import org.apache.hadoop.hoya.yarn.CommonArgs
+import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
+import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
+import org.junit.Assume
 
 /**
  * test base for all hbase clusters
@@ -42,6 +46,28 @@ import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 @CompileStatic
 @Slf4j
 public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
+
+  @Override
+  public String getTestConfigurationPath() {
+    return "src/main/resources/conf"
+  }
+
+  @Override
+  void setup() {
+    super.setup()
+    assumeHBaseArchive();
+    assumeHBaseHome();
+  }
+
+  /**
+   * Teardown kills region servers
+   */
+  @Override
+  void teardown() {
+    super.teardown();
+    killAllRegionServers();
+  }
+
 
   /**
    * Kill all the region servers
@@ -51,16 +77,6 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
    */
   public void killAllRegionServers() {
     killJavaProcesses(HREGION);
-  }
-
-  public String getTestConfigurationPath() {
-    return "src/main/resources/conf"
-  }
-
-  @Override
-  void teardown() {
-    super.teardown();
-    killAllRegionServers();
   }
 
 
@@ -266,6 +282,51 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
       maybeStopCluster(hoyaClient, "");
     }
 
+  }
+
+  public String getHBaseHome() {
+    YarnConfiguration conf = getTestConfiguration()
+    String hbaseHome = conf.getTrimmed(KeysForTests.HOYA_TEST_HBASE_HOME)
+    return hbaseHome
+  }
+
+  public String getHBaseArchive() {
+    YarnConfiguration conf = getTestConfiguration()
+    return conf.getTrimmed(KeysForTests.HOYA_TEST_HBASE_TAR)
+  }
+
+  public void assumeHBaseArchive() {
+    String hbaseArchive = HBaseArchive
+    Assume.assumeTrue("Hbase Archive conf option not set " + KeysForTests.HOYA_TEST_HBASE_TAR,
+                      hbaseArchive != null && hbaseArchive != "")
+  }
+
+  /**
+   * Assume that HBase home is defined. This does not check that the
+   * path is valid -that is expected to be a failure on tests that require
+   * HBase home to be set.
+   */
+  public void assumeHBaseHome() {
+    Assume.assumeTrue("Hbase Archive conf option not set " + KeysForTests.HOYA_TEST_HBASE_HOME,
+                      HBaseHome != null && HBaseHome != "")
+  }
+
+  
+  /**
+   * Get the arguments needed to point to HBase for these tests
+   * @return
+   */
+  public List<String> getImageCommands() {
+    if (switchToImageDeploy) {
+      assert HBaseArchive
+      File f = new File(HBaseArchive)
+      assert f.exists()
+      return [CommonArgs.ARG_IMAGE, f.toURI().toString()]
+    } else {
+      assert HBaseHome
+      assert new File(HBaseHome).exists();
+      return [CommonArgs.ARG_APP_HOME, HBaseHome]
+    }
   }
 
 }

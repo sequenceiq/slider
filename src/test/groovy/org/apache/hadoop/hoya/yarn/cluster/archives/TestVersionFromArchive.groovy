@@ -54,9 +54,4 @@ class TestVersionFromArchive extends HBaseMiniClusterTestBase {
     waitForAppToFinish(hoyaClient)
   }
 
-  @Override
-  String getHBaseHome() {
-    fail("The test should not have looked for HBase-home, but instead the image")
-    null
-  }
 }
