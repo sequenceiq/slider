@@ -81,7 +81,8 @@ public interface HBaseKeys {
    * no site-specific template
    *  {@value}
    */
-  String HBASE_TEMPLATE_RESOURCE = "/conf/" + HBASE_SITE;
+  String HBASE_CONF_RESOURCE = "/org/apache/hadoop/hoya/providers/hbase/conf/";
+  String HBASE_TEMPLATE_RESOURCE = HBASE_CONF_RESOURCE + HBASE_SITE;
 
 
   String DEFAULT_HBASE_WORKER_HEAP = "256M";
