@@ -43,9 +43,11 @@ class TestRoleOptPropagation extends HBaseMiniClusterTestBase {
 
     String MALLOC_ARENA = "env.MALLOC_ARENA_MAX"
     ServiceLauncher launcher = createHoyaCluster(clustername,
-                                                 0,
                                                  [
-                                                     CommonArgs.ARG_ROLE, HBaseKeys.ROLE_MASTER, "0",
+                                                     (HBaseKeys.ROLE_MASTER): 0,
+                                                     (HBaseKeys.ROLE_WORKER): 0,
+                                                 ],
+                                                 [
                                                      CommonArgs.ARG_ROLEOPT, "master", MALLOC_ARENA, "4",
                                                      CommonArgs.ARG_ROLEOPT, "unknown", MALLOC_ARENA, "3",
                                                  ],
