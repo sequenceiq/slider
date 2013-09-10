@@ -7,8 +7,43 @@
   <name>Hoya: HBase on YARN</name>
   <version>0.3-SNAPSHOT</version>
   <description>
+    Hoya is designed to deploy Apache HBase on YARN; it can also
+    support other applications for which *Providers* have been written.
   </description>
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+    </license>
+  </licenses>
 
+  <developers>
+    <developer>
+      <id>steveloughran</id>
+      <name>Steve Loughran</name>
+      <timezone>0</timezone>
+      <organization>Hortonworks</organization>
+      <organizationUrl>http://www.hortonworks.com</organizationUrl>
+    </developer>
+    
+    <developer>
+      <id>billierinaldi</id>
+      <name>Billie Rinaldi</name>
+      <timezone>-5</timezone>
+      <organization>Hortonworks</organization>
+      <organizationUrl>http://www.hortonworks.com</organizationUrl>
+    </developer>
+
+    <developer>
+      <id>ddraj</id>
+      <name>Devaraj Das</name>
+      <timezone>-8</timezone>
+      <organization>Hortonworks</organization>
+      <organizationUrl>http://www.hortonworks.com</organizationUrl>
+    </developer>
+
+  </developers>
+  
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
@@ -42,10 +77,14 @@
   
   
   <repositories>
+<!--
+    
     <repository>
       <id>ASF Staging</id>
       <url>https://repository.apache.org/content/groups/staging/</url>
     </repository>
+    
+-->
   </repositories>
   
   <build>
@@ -111,6 +150,12 @@
           <forkMode>always</forkMode>
           <forkedProcessTimeoutInSeconds>9000</forkedProcessTimeoutInSeconds>
           <argLine>-Xmx1024m -XX:+HeapDumpOnOutOfMemoryError</argLine>
+          <failIfNoTests>true</failIfNoTests>
+          <trimStackTrace>false</trimStackTrace>
+<!--
+          <redirectTestOutputToFile>true</redirectTestOutputToFile>
+-->
+
           <systemPropertyVariables>
             <java.net.preferIPv4Stack>true</java.net.preferIPv4Stack>
             <java.awt.headless>true</java.awt.headless>
@@ -127,7 +172,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
-        <version>2.1</version>
+        <version>2.8</version>
         <executions>
           <execution>
             <id>copy-dependencies</id>
@@ -167,6 +212,47 @@
       
     </plugins>
   </build>
+
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-report-plugin</artifactId>
+        <version>2.16</version>
+        <configuration>
+          <showSuccess>false</showSuccess>
+          <outputDirectory>${basedir}/target/surefire-reports</outputDirectory>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-site-plugin</artifactId>
+        <version>3.3</version>
+        <configuration>
+          <outputDirectory>${basedir}/target/surefire-reports</outputDirectory>
+        </configuration>
+<!--
+        <reportSets>
+          <reportSet>
+            <reports>
+              <report>report-only</report>
+            </reports>
+          </reportSet>
+        </reportSets>
+-->
+
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-project-info-reports-plugin</artifactId>
+        <version>2.6</version>
+        <configuration>
+          <dependencyLocationsEnabled>false</dependencyLocationsEnabled>
+        </configuration>
+      </plugin>
+    </plugins>
+  </reporting>
 
   <dependencies>
     <dependency>

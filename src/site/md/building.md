@@ -21,9 +21,13 @@ Here's how to set this up.
 
 ## Before you begin
 
-You will need a version of Maven 3.x, set up with enough memory
+You will need a version of Maven 3.0, set up with enough memory
 
     MAVEN_OPTS=-Xms256m -Xmx512m -Djava.awt.headless=true
+
+
+*Important*: As of September 10, 2013, Maven 3.1 is not supported due to
+[https://cwiki.apache.org/confluence/display/MAVEN/AetherClassNotFound](version issues).
 
 ## Building a compatible Hadoop version
 
@@ -76,7 +80,7 @@ see [http://hbase.apache.org/book/build.html](HBase building)
 
 ## Building Accumulo
 
-    mvn clean package -Passemble -DskipTests
+    mvn clean package -Passemble -DskipTests -Dhadoop.profile=2.0
 
 This creates an accumulo tarball in
 
