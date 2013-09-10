@@ -199,15 +199,26 @@ This notifies the application that this is a test run, and that the application 
 
 CLUSTER COMMANDS
 
-### list \<cluster>
 
-List running Hoya clusters visible to the user.
 
-If a cluster name is given and there is no running cluster with that name, an error is returned. 
+### build \<cluster> --fs filesystem --confdir dir --zkhosts zkhosts \[--image path] \[--apphome apphomedir] \[--zkport port] \[--zkpath zkpath]\[ \[--waittime time] \[--role <name> <count>]*  \[--roleopt <name> <value>]* \[--provider provider]
 
-### status \<cluster>
+Build a cluster specification of the given name, with the specific options.
 
-Get the status of the named Hoya cluster
+The cluster is not started; this can be done later with a `thaw` command.
+
+### create \<cluster> --fs filesystem --confdir dir --zkhosts zkhosts \[--image path] \[--apphome apphomedir] \[--zkport port] \[--zkpath zkpath]\[ \[--waittime time] \[--role <name> <count>]*  \[--roleopt <name> <value>]* 
+
+Build and run a cluster of the given name, using the specified image. If a configuration directory is specified, it's configuration files override those in the image. 
+
+The `--waittime` parameter, if provided, specifies the time to wait until the YARN application is actually running. Even after the YARN application has started, there may be some delay for the HBase cluster to start up.
+
+### destroy \<cluster>
+
+Destroy a (stopped) cluster.
+
+Important: This deletes all the database data.
+
 
 ### exists \<cluster>
 
@@ -220,32 +231,6 @@ If not, an error code is returned.
 with the rule that a new Hoya cluster can be created if an existing cluster exists in any
 of the YARN termination states.
 
-### create \<cluster> --fs filesystem --confdir dir --zkhosts zkhosts \[--image path] \[--hbasehome hbasehomedir] \[--zkport port] \[--zkpath zkpath]\[ \[--waittime time] \[--role <name> <count>]*  \[--roleopt <name> <value>]* 
-
-Create a cluster of the given ZK name, using the specified image. The minimum and maximum nodes define the number of region servers to be created; an HBase master is always created. If a configuration directory is specified, it's configuration files override those in the image. 
-
-The waittime parameter, if provided, specifies the time to wait until the YARN application is actually running. Even after the YARN application has started, there may be some delay for the HBase cluster to start up.
-
-### destroy \<cluster>
-
-Destroy a (stopped) cluster.
-
-Important: This deletes all the database data.
-
-### freeze \<cluster>  \[--waittime time]
-freeze the cluster. The HBase cluster is scheduled to be destroyed. The cluster settings are retained in HDFS.
-
-The `--waittime` argument can specify a time in seconds to wait for the cluster to be destroyed.
-
-If an unknown (or already frozen) cluster is named, no error is returned.
-
-### thaw \<cluster>
-
-Resume a frozen cluster: recreate the cluster from its previous state. This will include a best-effort attempt to create the same number of nodes as before, though their locations may be different.
-The same zookeeper bindings as before will be used.
-
-If a cluster is already running, this is a no-op
-
 
 ### flex \<cluster> \[--role rolename count]* \[--persist true|false]
 
@@ -256,10 +241,37 @@ This operation has a return value of 0 if the size of a running cluster was chan
 
 It returns -1 if there is no running cluster, or the size of the flexed cluster matches that of the original -in which case the cluster state does not change.
 
+### freeze \<cluster>  \[--waittime time]
+freeze the cluster. The HBase cluster is scheduled to be destroyed. The cluster settings are retained in HDFS.
+
+The `--waittime` argument can specify a time in seconds to wait for the cluster to be destroyed.
+
+If an unknown (or already frozen) cluster is named, no error is returned.
+
+
 ### getconf \<cluster>  \[--out file] \[--format xml|properties]
 
 Get the configuration properties needed for hbase clients to connect to the cluster. Hadoop XML format files (the default) and Java properties files can be generated.
 The output can be streamed to the console in `stdout`, or it can be saved to a file.
+
+### list \<cluster>
+
+List running Hoya clusters visible to the user.
+
+If a cluster name is given and there is no running cluster with that name, an error is returned. 
+
+### status \<cluster>
+
+Get the status of the named Hoya cluster
+
+
+
+### thaw \<cluster>
+
+Resume a frozen cluster: recreate the cluster from its previous state. This will include a best-effort attempt to create the same number of nodes as before, though their locations may be different.
+The same zookeeper bindings as before will be used.
+
+If a cluster is already running, this is a no-op
 
 ## Unimplemented
 

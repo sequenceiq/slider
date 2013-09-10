@@ -24,19 +24,20 @@ package org.apache.hadoop.hoya.yarn;
  * are listed here to ensure the names are consistent
  */
 public interface HoyaActions {
+  String ACTION_BUILD = "build";
   String ACTION_CREATE = "create";
   String ACTION_DESTROY = "destroy";
+  String ACTION_EXISTS = "exists";
   String ACTION_GETSIZE = "getsize";
   String ACTION_FLEX = "flex";
+  String ACTION_FREEZE = "freeze";
   String ACTION_GETCONF = "getconf";
   String ACTION_HELP = "help";
-  String ACTION_EXISTS = "exists";
   String ACTION_LIST = "list";
   String ACTION_MIGRATE = "migrate";
   String ACTION_PREFLIGHT = "preflight";
   String ACTION_RECONFIGURE = "reconfigure";
   String ACTION_REIMAGE = "reimage";
   String ACTION_THAW = "thaw";
-  String ACTION_FREEZE = "freeze";
   String ACTION_STATUS = "status";
 }

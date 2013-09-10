@@ -51,13 +51,13 @@ import java.util.Map;
 public class CommonArgs implements HoyaActions {
 
   public static final String ARG_ACTION = "--action";
+  public static final String ARG_APP_HOME = "--apphome";
+  public static final String ARG_APP_ZKPATH = "--zkpath";
   public static final String ARG_CONFDIR = "--confdir";
   public static final String ARG_DEBUG = "--debug";
   public static final String ARG_FILESYSTEM = "--fs";
   public static final String ARG_FILESYSTEM_LONG = "--filesystem";
   public static final String ARG_GENERATED_CONFDIR = "--generated_confdir";
-  public static final String ARG_APP_HOME = "--apphome";
-  public static final String ARG_APP_ZKPATH = "--zkpath";
   public static final String ARG_HELP = "--help";
   public static final String ARG_IMAGE = "--image";
   public static final String ARG_MANAGER = "--manager";
@@ -65,12 +65,11 @@ public class CommonArgs implements HoyaActions {
   public static final String ARG_OUTPUT = "--output";
   public static final String ARG_OPTION = "--option";
   public static final String ARG_OPTION_SHORT = "-O";
-
-
+  public static final String ARG_PROVIDER = "--provider";
   public static final String ARG_ROLE = "--role";
+
+
   public static final String ARG_ROLEOPT = "--roleopt";
-
-
   public static final String ARG_USER = "--user";
 
   public static final String ARG_ZKPORT = "--zkport";

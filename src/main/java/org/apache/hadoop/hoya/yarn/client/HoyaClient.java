@@ -160,8 +160,10 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     int exitCode = EXIT_SUCCESS;
     String clusterName = serviceArgs.getClusterName();
     //actions
-    if (HoyaActions.ACTION_CREATE.equals(action)) {
-      validateClusterName(clusterName);
+    if (HoyaActions.ACTION_BUILD.equals(action)) {
+      actionBuild(clusterName);
+      exitCode = EXIT_SUCCESS;
+    } else if (HoyaActions.ACTION_CREATE.equals(action)) {
       exitCode = actionCreate(clusterName);
     } else if (HoyaActions.ACTION_FREEZE.equals(action)) {
       exitCode = actionFreeze(clusterName, serviceArgs.waittime);
@@ -249,28 +251,62 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   }
 
   /**
-   * Get the builder for this cluster
-   * @param clusterSpec
-   * @return
-   * @throws HoyaException
+   * Get the provider for this cluster
+   * @param clusterSpec cluster spec
+   * @return the provider instance
+   * @throws HoyaException problems building the provider
    */
-  private ClientProvider getHadoopClusterBuilder(ClusterDescription clusterSpec)
+  private ClientProvider createClientProvider(ClusterDescription clusterSpec)
     throws HoyaException {
-    
-
     HoyaProviderFactory factory =
       HoyaProviderFactory.createHoyaProviderFactory(clusterSpec);
     return factory.createBuilder();
   }
 
   /**
+   * Get the provider for this cluster
+   * @param provider the name of the provider
+   * @return the provider instance
+   * @throws HoyaException problems building the provider
+   */
+  private ClientProvider createClientProvider(String provider)
+    throws HoyaException {
+    HoyaProviderFactory factory =
+      HoyaProviderFactory.createHoyaProviderFactory(provider);
+    return factory.createBuilder();
+  }
+
+  /**
    * Create the cluster -saving the arguments to a specification file first
+   * 
+   * @param clustername cluster name
+   * @return the status code
+   * @throws YarnException Yarn problems
+   * @throws IOException other problems
+   * @throws BadCommandArgumentsException bad arguments.
    */
   private int actionCreate(String clustername) throws
                                                YarnException,
                                                IOException {
 
+    actionBuild(clustername);
+    //here is where all the work is done
+    return startCluster(clustername);
+  }
+  
+  /**
+   * Build up the cluster specification/directory 
+   * @param clustername cluster name
+   * @throws YarnException Yarn problems
+   * @throws IOException other problems
+   * @throws BadCommandArgumentsException bad arguments.
+   */
+  private void actionBuild(String clustername) throws
+                                               YarnException,
+                                               IOException {
+
     //verify that a live cluster isn't there
+    validateClusterName(clustername);
     verifyNoLiveClusters(clustername);
     //check for arguments that are mandatory with this action
 
@@ -281,7 +317,11 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     //Provider 
     //TODO: include type from command line
-    ClientProvider provider = getHadoopClusterBuilder(clusterSpec);
+    String providerName = serviceArgs.provider;
+    if (providerName==null || providerName.isEmpty()){
+      throw new BadCommandArgumentsException("Missing provider");
+    }
+    ClientProvider provider = createClientProvider(providerName);
 
     //remember this
     clusterSpec.type = provider.getName();
@@ -435,17 +475,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     clusterSpec.state = ClusterDescription.STATE_SUBMITTED;
     clusterSpec.save(fs, clusterSpecPath, true);
 
-    //here is where all the work is done
-    return executeClusterCreation(clusterDirectory, clusterSpec);
   }
 
-  private void verifyObsoleteArgUnset(String argname, int argVal) throws
-                                                                  BadCommandArgumentsException {
-    if (argVal !=-1) {
-      throw new BadCommandArgumentsException("Option {} no longer supported",
-                                             argname);
-    }
-  }
 
   public void verifyFileSystemArgSet() throws BadCommandArgumentsException {
     if (serviceArgs.filesystemURL == null) {
@@ -472,8 +503,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
    * @param clusterSpec cluster specification
    * @return the exit code from the operation
    */
-  public int executeClusterCreation(Path clusterDirectory,
-                                    ClusterDescription clusterSpec) throws
+  public int executeClusterStart(Path clusterDirectory,
+                                 ClusterDescription clusterSpec) throws
                                                                     YarnException,
                                                                     IOException {
 
@@ -483,7 +514,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     validateClusterName(clustername);
     verifyNoLiveClusters(clustername);
     //Provider 
-    ClientProvider provider = getHadoopClusterBuilder(clusterSpec);
+    ClientProvider provider = createClientProvider(clusterSpec);
     //make sure it is valid;
 
     Path generatedConfDirPath =
@@ -1439,6 +1470,21 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     //load spec
     verifyFileSystemArgSet();
+    return startCluster(clustername);
+  }
+
+  /**
+   * Load and start a cluster specification.
+   * This assumes that all validation of args and cluster state
+   * have already taken place
+   * @param clustername name of the cluster.
+   * @return the exit code
+   * @throws YarnException
+   * @throws IOException
+   */
+  private int startCluster(String clustername) throws
+                                               YarnException,
+                                               IOException {
     Path clusterSpecPath = locateClusterSpecification(clustername);
 
     ClusterDescription clusterSpec =
@@ -1446,7 +1492,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     Path clusterDirectory =
       HoyaUtils.buildHoyaClusterDirPath(getClusterFS(), clustername);
 
-    return executeClusterCreation(clusterDirectory, clusterSpec);
+    return executeClusterStart(clusterDirectory, clusterSpec);
   }
 
   /**

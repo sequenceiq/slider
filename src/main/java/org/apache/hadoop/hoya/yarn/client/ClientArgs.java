@@ -23,6 +23,7 @@ import groovy.transform.CompileStatic;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
+import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
 import org.apache.hadoop.hoya.tools.PathArgumentConverter;
 import org.apache.hadoop.hoya.yarn.CommonArgs;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
@@ -85,6 +86,11 @@ public class ClientArgs extends CommonArgs {
              description = "Home directory of a pre-installed application")
   public String appHomeDir;
   
+  @Parameter(names = ARG_PROVIDER,
+             description = "Provider of the specific cluster application")
+  public String provider = HoyaProviderFactory.DEFAULT_CLUSTER_TYPE;
+  
+  
   @Parameter(names = {ARG_PERSIST},
              description = "flag to indicate whether a flex change should be persisted (default=true)",
              arity = 1)
@@ -137,7 +143,8 @@ public class ClientArgs extends CommonArgs {
     new HashMap<String, List<Object>>();
 
   static {
-    ACTIONS.put(ACTION_CREATE, t("Create a Hoya cluster", 1));
+    ACTIONS.put(ACTION_BUILD, t("Build a Hoya cluster specification -but do not start it", 1));
+    ACTIONS.put(ACTION_CREATE, t("Create a live Hoya cluster", 1));
     ACTIONS.put(ACTION_DESTROY,
                 t("Destroy a Hoya cluster (which must be stopped)", 1));
     ACTIONS.put(ACTION_FLEX, t("Flex a Hoya cluster", 1));
@@ -190,8 +197,7 @@ public class ClientArgs extends CommonArgs {
    * @throws BadCommandArgumentsException odd #of arguments received
    */
   public Map<String, Map<String, String>> convertTripleListToMaps(String description,
-                                                                  List<String> list) throws
-                                                                                     BadCommandArgumentsException {
+          List<String> list) throws BadCommandArgumentsException {
     Map<String, Map<String, String>> results =
       new HashMap<String, Map<String, String>>();
     if (list != null && !list.isEmpty()) {
