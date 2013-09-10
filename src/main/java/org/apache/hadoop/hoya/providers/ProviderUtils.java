@@ -19,6 +19,7 @@
 package org.apache.hadoop.hoya.providers;
 
 import org.apache.hadoop.hoya.api.RoleKeys;
+import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -70,5 +71,31 @@ public class ProviderUtils implements RoleKeys {
         "/tmp/hoya-" + UserGroupInformation.getCurrentUser().getShortUserName();
     }
     return logdir;
+  }
+
+
+  /**
+   * Validate the node count and heap size values of a node class 
+   *
+   * @param name node class name
+   * @param count requested node count
+   * @param min requested heap size
+   * @param max
+   * @throws BadCommandArgumentsException if the values are out of range
+   */
+  public void validateNodeCount(String name,
+                                int count,
+                                int min,
+                                int max) throws BadCommandArgumentsException {
+    if (count < min) {
+      throw new BadCommandArgumentsException(
+        "requested no of %s nodes: %d is below the minimum of %d", name, count,
+        min);
+    }
+    if (max > 0 && count > max) {
+      throw new BadCommandArgumentsException(
+        "requested no of %s nodes: %d is above the maximum of %d", name, count,
+        max);
+    }
   }
 }

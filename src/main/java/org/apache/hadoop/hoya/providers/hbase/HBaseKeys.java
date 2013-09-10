@@ -18,6 +18,8 @@
 
 package org.apache.hadoop.hoya.providers.hbase;
 
+import org.apache.hadoop.hoya.HoyaKeys;
+
 /*
 Usage: hbase <command>
 where <command> an option from one of these categories:
@@ -47,7 +49,7 @@ PACKAGE MANAGEMENT
 public interface HBaseKeys {
 
   String ROLE_WORKER = "worker";
-  String ROLE_MASTER = "master";
+  String ROLE_MASTER = HoyaKeys.ROLE_MASTER;
   
   /** {@value */
   String MASTER = "master";
@@ -89,4 +91,6 @@ public interface HBaseKeys {
   String DEFAULT_HBASE_MASTER_HEAP = "256M";
   String DEFAULT_HBASE_WORKER_INFOPORT = "0";
   String DEFAULT_HBASE_MASTER_INFOPORT = "0";
+  String PROVIDER_HBASE = "hbase";
+  String HBASE_LOG_DIR = "HBASE_LOG_DIR";
 }

@@ -43,7 +43,7 @@ class TestLiveClusterFromArchive extends HBaseMiniClusterTestBase {
 
     //now launch the cluster
     switchToImageDeploy = true
-    ServiceLauncher launcher = createHoyaCluster(clustername, regionServerCount, [], true, true)
+    ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount, [], true, true)
 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient)

@@ -40,7 +40,7 @@ class TestFreezeThawLiveRegionService extends HBaseMiniClusterTestBase {
     int regionServerCount = 1
     createMiniCluster(clustername, createConfiguration(), 1, true)
     describe("Create a cluster, freeze it, thaw it and verify that it came back")
-    ServiceLauncher launcher = createHoyaCluster(clustername, regionServerCount, [], true, true)
+    ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount, [], true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)

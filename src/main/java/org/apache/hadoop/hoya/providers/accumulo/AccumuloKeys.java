@@ -18,13 +18,16 @@
 
 package org.apache.hadoop.hoya.providers.accumulo;
 
+import org.apache.hadoop.hoya.HoyaKeys;
+
 /**
  * Any keys related to acculumulo
  */
 public interface AccumuloKeys {
-  String PROVIDER_NAME = "accumulo";
+  String PROVIDER_ACCUMULO = "accumulo";
   
-  String ROLE_MASTER = "master";
+  String ROLE_MASTER = HoyaKeys.ROLE_MASTER;
+
   String ROLE_TABLET = "tablet";
   String ROLE_GARBAGE_COLLECTOR = "gc";
   String ROLE_MONITOR = "monitor";
@@ -60,11 +63,12 @@ public interface AccumuloKeys {
    *  name of the site conf to generate :  {@value}
    */
   String SITE_XML = "accumulo-site.xml";
+
   /**
    * Template stored in the hoya classpath -to use if there is
    * no site-specific template
    *  {@value}
    */
-  String CONF_RESOURCE = "org.apache.hadoop.hoya.providers.accumulo.conf";
+  String CONF_RESOURCE = "/org/apache/hadoop/hoya/providers/accumulo/conf";
   String SITE_XML_RESOURCE = CONF_RESOURCE + SITE_XML;
 }

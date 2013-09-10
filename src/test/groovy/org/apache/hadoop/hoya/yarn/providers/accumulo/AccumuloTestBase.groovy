@@ -21,22 +21,14 @@ package org.apache.hadoop.hoya.yarn.providers.accumulo
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.hbase.ClusterStatus
-import org.apache.hadoop.hbase.HBaseConfiguration
-import org.apache.hadoop.hbase.ServerName
-import org.apache.hadoop.hbase.client.HBaseAdmin
-import org.apache.hadoop.hbase.client.HConnection
-import org.apache.hadoop.hbase.client.HConnectionManager
 import org.apache.hadoop.hoya.api.ClusterDescription
-import org.apache.hadoop.hoya.api.ClusterNode
-import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
-import org.apache.hadoop.hoya.tools.ConfigHelper
-import org.apache.hadoop.hoya.tools.Duration
+import org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.conf.YarnConfiguration
+import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Assume
 
 /**
@@ -44,11 +36,21 @@ import org.junit.Assume
  */
 @CompileStatic
 @Slf4j
-public class AccumuloTestBase extends YarnMiniClusterTestBase{
+public class AccumuloTestBase extends YarnMiniClusterTestBase {
+
+  public static final int ACCUMULO_CLUSTER_STARTUP_TIME = 3 * 60 * 1000
+  public static final int ACCUMULO_CLUSTER_STOP_TIME = 1 * 60 * 1000
+
+  /**
+   * The time to sleep before trying to talk to the HBase Master and
+   * expect meaningful results.
+   */
+  public static final int ACCUMULO_CLUSTER_STARTUP_TO_LIVE_TIME = ACCUMULO_CLUSTER_STARTUP_TIME
+
 
   @Override
   public String getTestConfigurationPath() {
-    return "src/main/resources" + HBaseKeys.HBASE_CONF_RESOURCE; 
+    return "src/main/resources" + AccumuloKeys.CONF_RESOURCE; 
   }
 
   @Override
@@ -59,7 +61,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase{
   }
 
   /**
-   * Teardown kills region servers
+   * Teardown 
    */
   @Override
   void teardown() {
@@ -84,13 +86,13 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase{
 
   public String getServiceHome() {
     YarnConfiguration conf = getTestConfiguration()
-    String hbaseHome = conf.getTrimmed(KeysForTests.HOYA_TEST_HBASE_HOME)
+    String hbaseHome = conf.getTrimmed(KeysForTests.HOYA_TEST_ACCUMULO_HOME)
     return hbaseHome
   }
 
   public String getArchiveKey() {
     YarnConfiguration conf = getTestConfiguration()
-    return conf.getTrimmed(KeysForTests.HOYA_TEST_HBASE_TAR)
+    return conf.getTrimmed(KeysForTests.HOYA_TEST_ACCUMULO_TAR)
   }
 
   public void assumeArchiveDefined() {
@@ -126,4 +128,28 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase{
     }
   }
 
+  /**
+   * Create a full cluster with a master & the requested no. of region servers
+   * @param clustername cluster name
+   * @param tablets # of nodes
+   * @param extraArgs list of extra args to add to the creation command
+   * @param deleteExistingData should the data of any existing cluster
+   * of this name be deleted
+   * @param blockUntilRunning block until the AM is running
+   * @return launcher which will have executed the command.
+   */
+  public ServiceLauncher createAccCluster(String clustername, int tablets, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
+    Map<String, Integer> roles = [
+        (AccumuloKeys.ROLE_MASTER): 1,
+        (AccumuloKeys.ROLE_TABLET): tablets,
+    ];
+    extraArgs << CommonArgs.ARG_PROVIDER << AccumuloKeys.PROVIDER_ACCUMULO;
+    
+    return createHoyaCluster(clustername,
+                             roles,
+                             extraArgs,
+                             deleteExistingData,
+                             blockUntilRunning)
+
+  }
 }

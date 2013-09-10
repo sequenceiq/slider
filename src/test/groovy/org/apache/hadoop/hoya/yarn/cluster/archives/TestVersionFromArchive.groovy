@@ -42,7 +42,7 @@ class TestVersionFromArchive extends HBaseMiniClusterTestBase {
     String clustername = "TestVersionFromArchive"
     createMiniCluster(clustername, createConfiguration(), 1, true)
     switchToImageDeploy = true
-    ServiceLauncher launcher = createHoyaCluster(clustername,
+    ServiceLauncher launcher = createHBaseCluster(clustername,
                                                  0,
                                                  HBASE_VERSION_COMMAND_SEQUENCE,
                                                  true,

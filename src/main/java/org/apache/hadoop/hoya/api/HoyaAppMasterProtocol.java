@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.api;
 
+import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.exceptions.NoSuchNodeException;
 import org.apache.hadoop.ipc.VersionedProtocol;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -48,7 +49,8 @@ public interface HoyaAppMasterProtocol extends VersionedProtocol {
    * @return true if the spec changed
    * @throws IOException IO problems
    */
-  public boolean flexCluster(String clusterSpec) throws IOException;
+  public boolean flexCluster(String clusterSpec) throws IOException,
+                                                        HoyaException;
 
   /**
    * Get the current cluster status

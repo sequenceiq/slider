@@ -59,7 +59,7 @@ class TestVersionFromArchiveOnHDFS extends HBaseMiniClusterTestBase {
     Path hbasePath = hdfsCluster.fileSystem.resolvePath(remoteUnresolvedArchive)
     uploadedImage = hbasePath.toUri().toString()
     switchToImageDeploy = true
-    ServiceLauncher launcher = createHoyaCluster(clustername,
+    ServiceLauncher launcher = createHBaseCluster(clustername,
                                                  0,
                                                  HBASE_VERSION_COMMAND_SEQUENCE,
                                                  true,

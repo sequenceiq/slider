@@ -26,13 +26,15 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.RoleKeys;
+import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.providers.ClientProvider;
-import org.apache.hadoop.hoya.providers.ClusterExecutor;
+import org.apache.hadoop.hoya.providers.ServerProvider;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
+import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions;
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
@@ -59,7 +61,7 @@ public class AccumuloProvider extends Configured implements
                                                           ProviderCore,
                                                           AccumuloKeys,
                                                           ClientProvider,
-                                                          ClusterExecutor{
+                                                          ServerProvider {
 
   protected static final Logger log =
     LoggerFactory.getLogger(AccumuloProvider.class);
@@ -88,7 +90,7 @@ public class AccumuloProvider extends Configured implements
 
   @Override
   public String getName() {
-    return PROVIDER_NAME;
+    return PROVIDER_ACCUMULO;
   }
 
   @Override
@@ -154,6 +156,51 @@ public class AccumuloProvider extends Configured implements
     return sitexml;
   }
 
+  @Override
+  public int getDefaultMasterInfoPort() {
+    return 0;
+  }
+
+  @Override
+  public String getSiteXMLFilename() {
+    return SITE_XML;
+  }
+
+
+  /**
+   * Build time review and update of the cluster specification
+   * @param clusterSpec spec
+   */
+  @Override // Client
+  public void reviewAndUpdateClusterSpec(ClusterDescription clusterSpec) throws
+                                                                         HoyaException {
+
+    validateClusterSpec(clusterSpec);
+  }
+
+  /**
+   * Validate the cluster specification. This can be invoked on both
+   * server and client
+   * @param clusterSpec
+   */
+  @Override // Client and Server
+  public void validateClusterSpec(ClusterDescription clusterSpec) throws
+                                                                  HoyaException {
+    providerUtils.validateNodeCount(AccumuloKeys.ROLE_TABLET,
+                                    clusterSpec.getDesiredInstanceCount(
+                                      HBaseKeys.ROLE_WORKER,
+                                      0), 0, -1);
+
+
+    providerUtils.validateNodeCount(HoyaKeys.ROLE_MASTER,
+                                    clusterSpec.getDesiredInstanceCount(
+                                      HoyaKeys.ROLE_MASTER,
+                                      0),
+                                    0,
+                                    1);
+  }
+
+
   /**
    * This builds up the site configuration for the AM and downstream services;
    * the path is added to the cluster spec so that launchers in the 
@@ -176,8 +223,8 @@ public class AccumuloProvider extends Configured implements
     Configuration siteConf = ConfigHelper.loadTemplateConfiguration(
       serviceConf,
       originConfDirPath,
-      HBaseKeys.HBASE_SITE,
-      HBaseKeys.HBASE_TEMPLATE_RESOURCE);
+      AccumuloKeys.SITE_XML,
+      AccumuloKeys.SITE_XML_RESOURCE);
 
     //construct the cluster configuration values
     Map<String, String> clusterConfMap = buildSiteConfFromSpec(
@@ -238,7 +285,7 @@ public class AccumuloProvider extends Configured implements
                                           ) throws IOException {
     // Set the environment
     Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
-    env.put(HoyaKeys.HBASE_LOG_DIR,providerUtils.getLogdir());
+    env.put(HBaseKeys.HBASE_LOG_DIR,providerUtils.getLogdir());
 
     ctx.setEnvironment(env);
 
@@ -301,11 +348,41 @@ public class AccumuloProvider extends Configured implements
   public static File buildHBaseDir(ClusterDescription cd) {
     File hbasedir;
     if (cd.imagePath != null) {
-      hbasedir = new File(new File(HoyaKeys.HBASE_LOCAL),
+      hbasedir = new File(new File(HoyaKeys.LOCAL_TARBALL_INSTALL_SUBDIR),
                           HBaseKeys.HBASE_ARCHIVE_SUBDIR);
     } else {
       hbasedir = new File(cd.applicationHome);
     }
     return hbasedir;
   }
+
+  @Override
+  public List<String> buildProcessCommand(ClusterDescription cd,
+                                          File confDir,
+                                          Map<String, String> env) throws
+                                                                   IOException,
+                                                                   HoyaException {
+    env.put(HBaseKeys.HBASE_LOG_DIR, new ProviderUtils(log).getLogdir());
+    //pull out the command line argument if set
+    String masterCommand =
+      cd.getOption(
+        HBaseConfigFileOptions.OPTION_HBASE_MASTER_COMMAND,
+        HBaseKeys.MASTER);
+    List<String> launchSequence = new ArrayList<String>(8);
+    //prepend the hbase command itself
+    File binHbaseSh = buildHBaseBinPath(cd);
+    String scriptPath = binHbaseSh.getAbsolutePath();
+    if (!binHbaseSh.exists()) {
+      throw new BadCommandArgumentsException("Missing script " + scriptPath);
+    }
+    launchSequence.add(0, scriptPath);
+    launchSequence.add(HBaseKeys.ARG_CONFIG);
+    launchSequence.add(confDir.getAbsolutePath());
+    launchSequence.add(masterCommand);
+    launchSequence.add(HBaseKeys.ACTION_START);
+    return launchSequence;
+  }
+
+  
+
 }

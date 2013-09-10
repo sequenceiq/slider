@@ -44,7 +44,7 @@ class TestLiveTwoNodeRegionService extends HBaseMiniClusterTestBase {
 
     describe(" Create a two node region service cluster");
     //now launch the cluster
-    ServiceLauncher launcher = createHoyaCluster(clustername, regionServerCount, [], true, true)
+    ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount, [], true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)

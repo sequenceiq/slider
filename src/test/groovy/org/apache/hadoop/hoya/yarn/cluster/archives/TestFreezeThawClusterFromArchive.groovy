@@ -41,7 +41,7 @@ class TestFreezeThawClusterFromArchive extends HBaseMiniClusterTestBase {
     int regionServerCount = 1
     createMiniCluster(clustername, createConfiguration(), 1, true)
     switchToImageDeploy = true
-    ServiceLauncher launcher = createHoyaCluster(clustername, regionServerCount, [], true, true)
+    ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount, [], true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)
     log.info("${status.toJsonString()}")

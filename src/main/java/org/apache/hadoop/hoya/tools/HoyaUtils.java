@@ -425,7 +425,7 @@ public final class HoyaUtils {
       LocalResource resource = createAmResource(clusterFS,
                                                 imagePath,
                                                 LocalResourceType.ARCHIVE);
-      localResources.put(HoyaKeys.HBASE_LOCAL, resource);
+      localResources.put(HoyaKeys.LOCAL_TARBALL_INSTALL_SUBDIR, resource);
       return true;
     } else {
       return false;
@@ -707,6 +707,10 @@ public final class HoyaUtils {
   }
 
   public static int findFreePort(int start, int limit) {
+    if (start==0) {
+      //bail out if the default is "dont care"
+      return 0;
+    }
     int found = 0;
     int port = start;
     int finish = start + limit;
@@ -871,5 +875,13 @@ public final class HoyaUtils {
     return dest;
   }
   
-  
+  public static String listDir(File dir) {
+    StringBuilder builder = new StringBuilder();
+    String[] confDirEntries = dir.list();
+    for (String entry : confDirEntries) {
+      builder.append(entry).append("\n");
+    }
+    return builder.toString();
+  }
+
 }

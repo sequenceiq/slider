@@ -86,6 +86,7 @@ implements KeysForTests, HoyaExitCodes {
    * expect meaningful results.
    */
   public static final int HBASE_CLUSTER_STARTUP_TO_LIVE_TIME = HBASE_CLUSTER_STARTUP_TIME
+  
   public static final String HREGION = "HRegion"
   public static final List<String> HBASE_VERSION_COMMAND_SEQUENCE = [
       CommonArgs.ARG_OPTION, HBaseConfigFileOptions.OPTION_HBASE_MASTER_COMMAND, "version",
@@ -404,7 +405,7 @@ implements KeysForTests, HoyaExitCodes {
    * @param blockUntilRunning block until the AM is running
    * @return launcher which will have executed the command.
    */
-  public ServiceLauncher createHoyaCluster(String clustername, int size, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
+  public ServiceLauncher createHBaseCluster(String clustername, int size, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
     Map<String, Integer> roles = [
         (HBaseKeys.ROLE_MASTER): 1,
         (HBaseKeys.ROLE_WORKER): size,

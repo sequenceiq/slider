@@ -40,7 +40,6 @@ import org.apache.hadoop.hoya.exceptions.WaitTimeoutException;
 import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
 import org.apache.hadoop.hoya.providers.ProviderRole;
-import org.apache.hadoop.hoya.providers.hbase.HBaseKeys;
 import org.apache.hadoop.hoya.tools.Duration;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.CommonArgs;
@@ -110,6 +109,10 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   public static final String E_DESTROY_CREATE_RACE_CONDITION =
     "created while it was being destroyed";
   public static final int DEFAULT_AM_MEMORY = 10;
+  public static final String HOYA_JAR = "hoya.jar";
+  public static final String JCOMMANDER_JAR = "jcommander.jar";
+  public static final String SLF4J_JAR = "slf4j.jar";
+  public static final String SLF4J_LOG4J_JAR = "slf4j-log4j.jar";
   private int amPriority = 0;
   // Queue for App master
   private String amQueue = "default";
@@ -260,7 +263,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     throws HoyaException {
     HoyaProviderFactory factory =
       HoyaProviderFactory.createHoyaProviderFactory(clusterSpec);
-    return factory.createBuilder();
+    return factory.createClientProvider();
   }
 
   /**
@@ -273,7 +276,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     throws HoyaException {
     HoyaProviderFactory factory =
       HoyaProviderFactory.createHoyaProviderFactory(provider);
-    return factory.createBuilder();
+    return factory.createClientProvider();
   }
 
   /**
@@ -315,27 +318,15 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     //build up the initial cluster specification
     ClusterDescription clusterSpec = new ClusterDescription();
 
+    requireArgumentSet(CommonArgs.ARG_ZKHOSTS, serviceArgs.zkhosts);
+    requireArgumentSet(CommonArgs.ARG_CONFDIR, serviceArgs.confdir);
     //Provider 
-    //TODO: include type from command line
-    String providerName = serviceArgs.provider;
-    if (providerName==null || providerName.isEmpty()){
-      throw new BadCommandArgumentsException("Missing provider");
-    }
-    ClientProvider provider = createClientProvider(providerName);
+    requireArgumentSet(CommonArgs.ARG_PROVIDER, serviceArgs.provider);
+
+    ClientProvider provider = createClientProvider(serviceArgs.provider);
 
     //remember this
     clusterSpec.type = provider.getName();
-    
-    if (isUnset(serviceArgs.zkhosts)) {
-      throw new BadCommandArgumentsException("Required argument "
-                                             + CommonArgs.ARG_ZKHOSTS
-                                             + " missing");
-    }
-    if (serviceArgs.confdir == null) {
-      throw new BadCommandArgumentsException("Missing argument "
-                                             + CommonArgs.ARG_CONFDIR);
-    }
-
     clusterSpec.name = clustername;
     clusterSpec.state = ClusterDescription.STATE_INCOMPLETE;
     clusterSpec.createTime = System.currentTimeMillis();
@@ -378,26 +369,6 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     HoyaUtils.applyCommandLineOptsToRoleMap(clusterRoleMap, commandOptions);
 
     clusterSpec.roles = clusterRoleMap;
-
-
-    validateNodeCount(HBaseKeys.ROLE_WORKER,
-                      clusterSpec.getDesiredInstanceCount(HBaseKeys.ROLE_WORKER,
-                                                          0), 0, -1);
-
-    clusterSpec.setRoleOpt(HBaseKeys.ROLE_WORKER,
-                           RoleKeys.YARN_CORES,
-                           RoleKeys.DEF_YARN_CORES);
-
-    //set up the master
-
-    clusterSpec.setRoleOpt(HBaseKeys.ROLE_MASTER,
-                           RoleKeys.YARN_CORES,
-                           RoleKeys.DEF_YARN_CORES);
-
-    validateNodeCount("master",
-                      clusterSpec.getDesiredInstanceCount(HBaseKeys.ROLE_MASTER, 0),
-                      0,
-                      1);
 
     //App home or image
     if (serviceArgs.image != null) {
@@ -464,26 +435,42 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     //then build up the generated path
     HoyaUtils.copyDirectory(getConfig(), origConfPath, generatedConfPath);
 
-    //HBase
+    //Data Directory
     Path datapath =
-      new Path(clusterDirectory, HoyaKeys.HBASE_DATA_DIR_NAME);
+      new Path(clusterDirectory, HoyaKeys.DATA_DIR_NAME);
 
     log.debug("datapath={}", datapath);
-    clusterSpec.hbaseDataPath = datapath.toUri().toString();
+    clusterSpec.dataPath = datapath.toUri().toString();
 
-    //here the configuration is set up. Mark the 
-    clusterSpec.state = ClusterDescription.STATE_SUBMITTED;
+    //final specification review
+    provider.reviewAndUpdateClusterSpec(clusterSpec);
+    
+    //here the configuration is set up. Mark it
+    clusterSpec.state = ClusterDescription.STATE_CREATED;
     clusterSpec.save(fs, clusterSpecPath, true);
 
   }
 
-
-  public void verifyFileSystemArgSet() throws BadCommandArgumentsException {
-    if (serviceArgs.filesystemURL == null) {
+  private void requireArgumentSet(String argname, String argfield) throws
+                                                                   BadCommandArgumentsException {
+    if (isUnset(argfield)) {
       throw new BadCommandArgumentsException("Required argument "
-                                             + CommonArgs.ARG_FILESYSTEM
+                                             + argname
                                              + " missing");
     }
+  }
+ private void requireArgumentSet(String argname, Object argfield) throws
+                                                                   BadCommandArgumentsException {
+    if (argfield == null) {
+      throw new BadCommandArgumentsException("Required argument "
+                                             + argname
+                                             + " missing");
+    }
+  }
+
+
+  public void verifyFileSystemArgSet() throws BadCommandArgumentsException {
+    requireArgumentSet(CommonArgs.ARG_FILESYSTEM, serviceArgs.filesystemURL);
   }
 
 
@@ -523,7 +510,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       createPathThatMustExist(clusterSpec.originConfigurationPath);
 
     //now build up the image path
-    //TODO: move to provider/make generic
+    //TODO: consider supporting apps that don't have an image path
     Path imagePath;
     String csip = clusterSpec.imagePath;
     if (!isUnset(csip)) {
@@ -535,6 +522,9 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                 "Neither an image path or binary home dir were specified");
       }
     }
+
+    //final specification review
+    provider.validateClusterSpec(clusterSpec);
 
     //do a quick dump of the values first
     if (log.isDebugEnabled()) {
@@ -583,30 +573,30 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       // Create a local resource to point to the destination jar path 
       String bindir = "";
       //add this class
-      localResources.put("hoya.jar", submitJarWithClass(this.getClass(),
+      localResources.put(HOYA_JAR, submitJarWithClass(this.getClass(),
                                                         tempPath,
                                                         bindir,
-                                                        "hoya.jar"));
+                                                        HOYA_JAR));
       //add lib classes that don't come automatically with YARN AM classpath
       String libdir = bindir + "lib/";
 
 
-      localResources.put("jcommander.jar", submitJarWithClass(JCommander.class,
+      localResources.put(JCOMMANDER_JAR, submitJarWithClass(JCommander.class,
                                                               tempPath,
                                                               libdir,
-                                                              "jcommander.jar"));
+                                                              JCOMMANDER_JAR));
 
 
-      localResources.put("slf4j.jar", submitJarWithClass(Logger.class,
+      localResources.put(SLF4J_JAR, submitJarWithClass(Logger.class,
                                                          tempPath,
                                                          libdir,
-                                                         "slf4j.jar"));
+                                                         SLF4J_JAR));
 
-      localResources.put("slf4j-log4j.jar",
+      localResources.put(SLF4J_LOG4J_JAR,
                          submitJarWithClass(Log4jLoggerAdapter.class,
                                             tempPath,
                                             libdir,
-                                            "slf4j-log4j.jar"));
+                                            SLF4J_LOG4J_JAR));
 
     }
 
@@ -776,31 +766,6 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       }
     }
     return exitCode;
-  }
-
-  /**
-   * Validate the node count and heap size values of a node class 
-   *
-   * @param name node class name
-   * @param count requested node count
-   * @param min requested heap size
-   * @param max
-   * @throws BadCommandArgumentsException if the values are out of range
-   */
-  public void validateNodeCount(String name,
-                                int count,
-                                int min,
-                                int max) throws BadCommandArgumentsException {
-    if (count < min) {
-      throw new BadCommandArgumentsException(
-        "requested no of %s nodes: %d is below the minimum of %d" , name, count, min);
-    }
-    if (max > 0 && count > max) {
-      throw new BadCommandArgumentsException(
-        "requested no of %s nodes: %d is above the maximum of %d", name, count,
-        max);
-    }
-
   }
 
   /**

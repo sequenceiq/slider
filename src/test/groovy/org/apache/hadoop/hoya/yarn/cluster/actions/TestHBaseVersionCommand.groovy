@@ -38,7 +38,7 @@ class TestHBaseVersionCommand extends HBaseMiniClusterTestBase {
   public void testHBaseVersionCommand() throws Throwable {
     String clustername = "TestHBaseVersionCommand"
     createMiniCluster(clustername, createConfiguration(), 1, true)
-    ServiceLauncher launcher = createHoyaCluster(clustername,
+    ServiceLauncher launcher = createHBaseCluster(clustername,
                                                  0,
                                                  HBASE_VERSION_COMMAND_SEQUENCE,
                                                  true,

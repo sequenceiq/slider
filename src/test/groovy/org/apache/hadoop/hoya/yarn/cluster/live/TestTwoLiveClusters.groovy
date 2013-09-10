@@ -42,7 +42,7 @@ class TestTwoLiveClusters extends HBaseMiniClusterTestBase {
     String clustername1 = "TestTwoLiveClusters-a"
     //now launch the cluster
     int regionServerCount = 1
-    ServiceLauncher launcher = createHoyaCluster(clustername1, regionServerCount, [], true, true) 
+    ServiceLauncher launcher = createHBaseCluster(clustername1, regionServerCount, [], true, true) 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
 
@@ -58,7 +58,7 @@ class TestTwoLiveClusters extends HBaseMiniClusterTestBase {
     //now here comes cluster #2
     String clustername2 = "TestTwoLiveClusters-b"
 
-    launcher = createHoyaCluster(clustername2, regionServerCount,
+    launcher = createHBaseCluster(clustername2, regionServerCount,
                                  [
                                      CommonArgs.ARG_APP_ZKPATH, "/$clustername2",
                                  ],

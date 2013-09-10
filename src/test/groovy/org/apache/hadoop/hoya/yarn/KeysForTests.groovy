@@ -32,8 +32,8 @@ public interface KeysForTests extends HoyaKeys {
   int WAIT_TIME = 120;
   String WAIT_TIME_ARG = WAIT_TIME.toString()
 
-  String HOYA_TEST_HBASE_HOME = "hoya.test.hbase_home";
-  String HOYA_TEST_HBASE_TAR = "hoya.test.hbase_tar";
+  String HOYA_TEST_HBASE_HOME = "hoya.test.hbase.home";
+  String HOYA_TEST_HBASE_TAR = "hoya.test.hbase.tar";
 
   String HOYA_TEST_ACCUMULO_HOME = "hoya.test.accumulo.home";
   String HOYA_TEST_ACCUMULO_TAR = "hoya.test.accumulo.tar";

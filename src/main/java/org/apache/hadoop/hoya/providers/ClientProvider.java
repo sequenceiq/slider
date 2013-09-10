@@ -22,6 +22,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -63,4 +64,10 @@ public interface ClientProvider extends ProviderCore {
 
   void prepareAMServiceData(ClusterDescription clusterSpec,
                             Map<String, ByteBuffer> serviceData);
+
+  void reviewAndUpdateClusterSpec(ClusterDescription clusterSpec) throws
+                                                                  HoyaException;
+
+  void validateClusterSpec(ClusterDescription clusterSpec) throws
+                                                           HoyaException;
 }

@@ -24,6 +24,7 @@ import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
+import org.apache.hadoop.hoya.providers.hbase.HBaseKeys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,9 +32,8 @@ import org.slf4j.LoggerFactory;
  * Base class for factories
  */
 public abstract class HoyaProviderFactory extends Configured {
-  public static final String HBASE = "hbase";
-  
-  public static final String DEFAULT_CLUSTER_TYPE = HBASE;
+
+  public static final String DEFAULT_CLUSTER_TYPE = HBaseKeys.PROVIDER_HBASE;
   
   protected static final Logger LOG =
     LoggerFactory.getLogger(HoyaProviderFactory.class);
@@ -50,9 +50,9 @@ public abstract class HoyaProviderFactory extends Configured {
   protected HoyaProviderFactory() {
   }
 
-  public abstract ClientProvider createBuilder();
+  public abstract ClientProvider createClientProvider();
 
-  public abstract ClusterExecutor createExecutor();
+  public abstract ServerProvider createServerProvider();
 
   /**
    * Create the relevant provider 

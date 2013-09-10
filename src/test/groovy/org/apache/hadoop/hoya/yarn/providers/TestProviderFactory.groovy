@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.providers
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory
+import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.providers.hbase.HBaseProviderFactory
 import org.junit.Test
 
@@ -35,20 +36,20 @@ class TestProviderFactory {
   }
   @Test
   public void testLoadHBaseProvider() throws Throwable {
-    HoyaProviderFactory factory = HoyaProviderFactory.createHoyaProviderFactory(HBaseProviderFactory.HBASE);
+    HoyaProviderFactory factory = HoyaProviderFactory.createHoyaProviderFactory(HBaseKeys.PROVIDER_HBASE);
     assert factory instanceof HBaseProviderFactory
   }
 
   @Test
-  public void testCreateHBaseProviderBuilder() throws Throwable {
-    HoyaProviderFactory factory = HoyaProviderFactory.createHoyaProviderFactory(HBaseProviderFactory.HBASE);
-    assert null != factory.createBuilder();
+  public void testCreateClientHBaseProvider() throws Throwable {
+    HoyaProviderFactory factory = HoyaProviderFactory.createHoyaProviderFactory(HBaseKeys.PROVIDER_HBASE);
+    assert null != factory.createClientProvider();
   }
 
   @Test
-  public void testCreateHBaseProviderDeployer() throws Throwable {
-    HoyaProviderFactory factory = HoyaProviderFactory.createHoyaProviderFactory(HBaseProviderFactory.HBASE);
-    assert null != factory.createExecutor();
+  public void testCreateHBaseServerProvider() throws Throwable {
+    HoyaProviderFactory factory = HoyaProviderFactory.createHoyaProviderFactory(HBaseKeys.PROVIDER_HBASE);
+    assert null != factory.createServerProvider();
   }
   
   

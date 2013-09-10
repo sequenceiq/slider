@@ -29,7 +29,7 @@ import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.providers.ClientProvider;
-import org.apache.hadoop.hoya.providers.ClusterExecutor;
+import org.apache.hadoop.hoya.providers.ServerProvider;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
@@ -59,7 +59,7 @@ public class LoadGenProvider extends Configured implements
                                                           ProviderCore,
                                                           LoadGenKeys,
                                                           ClientProvider,
-                                                          ClusterExecutor{
+                                                          ServerProvider {
 
   protected static final Logger log =
     LoggerFactory.getLogger(LoadGenProvider.class);
@@ -162,6 +162,16 @@ public class LoadGenProvider extends Configured implements
     return sitexml;
   }
 
+  @Override
+  public void reviewAndUpdateClusterSpec(ClusterDescription clusterSpec) throws
+                                                                         HoyaException {
+  }
+
+  @Override
+  public void validateClusterSpec(ClusterDescription clusterSpec) throws
+                                                                  HoyaException {
+  }
+
   /**
    * This builds up the site configuration for the AM and downstream services;
    * the path is added to the cluster spec so that launchers in the 
@@ -246,7 +256,7 @@ public class LoadGenProvider extends Configured implements
                                           ) throws IOException {
     // Set the environment
     Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
-    env.put(HoyaKeys.HBASE_LOG_DIR,providerUtils.getLogdir());
+    env.put(HBaseKeys.HBASE_LOG_DIR,providerUtils.getLogdir());
 
     ctx.setEnvironment(env);
 
@@ -309,11 +319,30 @@ public class LoadGenProvider extends Configured implements
   public static File buildHBaseDir(ClusterDescription cd) {
     File hbasedir;
     if (cd.imagePath != null) {
-      hbasedir = new File(new File(HoyaKeys.HBASE_LOCAL),
+      hbasedir = new File(new File(HoyaKeys.LOCAL_TARBALL_INSTALL_SUBDIR),
                           HBaseKeys.HBASE_ARCHIVE_SUBDIR);
     } else {
       hbasedir = new File(cd.applicationHome);
     }
     return hbasedir;
+  }
+
+  @Override
+  public int getDefaultMasterInfoPort() {
+    return 0;
+  }
+
+  @Override
+  public String getSiteXMLFilename() {
+    return null;
+  }
+
+  @Override
+  public List<String> buildProcessCommand(ClusterDescription cd,
+                                          File confDir,
+                                          Map<String, String> env) throws
+                                                                   IOException,
+                                                                   HoyaException {
+    return null;
   }
 }

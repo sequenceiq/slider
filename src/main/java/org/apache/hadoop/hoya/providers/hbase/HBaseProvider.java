@@ -26,10 +26,11 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.RoleKeys;
+import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.providers.ClientProvider;
-import org.apache.hadoop.hoya.providers.ClusterExecutor;
+import org.apache.hadoop.hoya.providers.ServerProvider;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
@@ -56,9 +57,9 @@ import java.util.Map;
  */
 public class HBaseProvider extends Configured implements
                                                           ProviderCore,
-                                                          HBaseKeys,
+                                                          HBaseKeys, HoyaKeys,
                                                           ClientProvider,
-                                                          ClusterExecutor{
+                                                          ServerProvider {
 
 
   public static final String ERROR_UNKNOWN_ROLE = "Unknown role ";
@@ -121,6 +122,8 @@ public class HBaseProvider extends Configured implements
                                                                        HoyaException {
     Map<String, String> rolemap = new HashMap<String, String>();
     rolemap.put(RoleKeys.ROLE_NAME, rolename);
+    rolemap.put(RoleKeys.YARN_CORES, Integer.toString(RoleKeys.DEF_YARN_CORES));
+    rolemap.put(RoleKeys.YARN_MEMORY, Integer.toString(RoleKeys.DEF_YARN_MEMORY));
     if (rolename.equals(HBaseKeys.ROLE_WORKER)) {
       rolemap.put(RoleKeys.APP_INFOPORT, DEFAULT_HBASE_WORKER_INFOPORT);
       rolemap.put(RoleKeys.JVM_HEAP, DEFAULT_HBASE_WORKER_HEAP);
@@ -159,7 +162,7 @@ public class HBaseProvider extends Configured implements
     sitexml.put(HBaseConfigFileOptions.KEY_HBASE_MASTER_INFO_PORT, master.get(
       RoleKeys.APP_INFOPORT));
     sitexml.put(HBaseConfigFileOptions.KEY_HBASE_ROOTDIR,
-                clusterSpec.hbaseDataPath);
+                clusterSpec.dataPath);
     sitexml.put(HBaseConfigFileOptions.KEY_REGIONSERVER_INFO_PORT,
                 worker.get(RoleKeys.APP_INFOPORT));
     sitexml.put(HBaseConfigFileOptions.KEY_REGIONSERVER_PORT, "0");
@@ -171,6 +174,49 @@ public class HBaseProvider extends Configured implements
     return sitexml;
   }
 
+  @Override
+  public int getDefaultMasterInfoPort() {
+    return HBaseConfigFileOptions.DEFAULT_MASTER_INFO_PORT;
+  }
+
+  @Override
+  public String getSiteXMLFilename() {
+    return HBASE_SITE;
+  }
+
+  /**
+   * Build time review and update of the cluster specification
+   * @param clusterSpec spec
+   */
+  @Override // Client
+  public void reviewAndUpdateClusterSpec(ClusterDescription clusterSpec) throws
+                                                                         HoyaException{
+
+    validateClusterSpec(clusterSpec);
+  }
+
+  /**
+   * Validate the cluster specification. This can be invoked on both
+   * server and client
+   * @param clusterSpec
+   */
+  @Override // Client and Server
+  public void validateClusterSpec(ClusterDescription clusterSpec) throws
+                                                                  HoyaException {
+    providerUtils.validateNodeCount(HBaseKeys.ROLE_WORKER,
+                                    clusterSpec.getDesiredInstanceCount(
+                                      HBaseKeys.ROLE_WORKER,
+                                      0), 0, -1);
+
+
+    providerUtils.validateNodeCount(HoyaKeys.ROLE_MASTER,
+                                    clusterSpec.getDesiredInstanceCount(
+                                      HoyaKeys.ROLE_MASTER,
+                                      0),
+                                    0,
+                                    1);
+  }
+  
   /**
    * This builds up the site configuration for the AM and downstream services;
    * the path is added to the cluster spec so that launchers in the 
@@ -240,13 +286,13 @@ public class HBaseProvider extends Configured implements
    * @param clusterSpec cspec
    * @param serviceData map of service data
    */
-  @Override
+  @Override  //Client
   public void prepareAMServiceData(ClusterDescription clusterSpec,
                                    Map<String, ByteBuffer> serviceData) {
     
   }
   
-  @Override
+  @Override  // server
   public void buildContainerLaunchContext(ContainerLaunchContext ctx,
                                           FileSystem fs,
                                           Path generatedConfPath,
@@ -256,7 +302,7 @@ public class HBaseProvider extends Configured implements
                                           ) throws IOException {
     // Set the environment
     Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
-    env.put(HoyaKeys.HBASE_LOG_DIR,providerUtils.getLogdir());
+    env.put(HBASE_LOG_DIR,providerUtils.getLogdir());
 
     ctx.setEnvironment(env);
 
@@ -312,20 +358,47 @@ public class HBaseProvider extends Configured implements
    * Get the path to hbase home
    * @return the hbase home path
    */
-  public static File buildHBaseBinPath(ClusterDescription cd) {
+  public File buildHBaseBinPath(ClusterDescription cd) {
     File hbaseScript = new File(buildHBaseDir(cd),
                                 HBaseKeys.HBASE_SCRIPT);
     return hbaseScript;
   }
 
-  public static File buildHBaseDir(ClusterDescription cd) {
-    File hbasedir;
+  public File buildHBaseDir(ClusterDescription cd) {
+    File dir;
     if (cd.imagePath != null) {
-      hbasedir = new File(new File(HoyaKeys.HBASE_LOCAL),
+      dir = new File(new File(HoyaKeys.LOCAL_TARBALL_INSTALL_SUBDIR),
                           HBaseKeys.HBASE_ARCHIVE_SUBDIR);
     } else {
-      hbasedir = new File(cd.applicationHome);
+      dir = new File(cd.applicationHome);
     }
-    return hbasedir;
+    return dir;
+  }
+  
+  @Override
+  public List<String> buildProcessCommand(ClusterDescription cd,
+                                          File confDir,
+                                          Map<String, String> env) throws
+                                                                   IOException,
+                                                                   HoyaException {
+    env.put(HBASE_LOG_DIR, new ProviderUtils(log).getLogdir());
+    //pull out the command line argument if set
+    String masterCommand =
+      cd.getOption(
+        HBaseConfigFileOptions.OPTION_HBASE_MASTER_COMMAND,
+        MASTER);
+    List<String> launchSequence = new ArrayList<String>(8);
+    //prepend the hbase command itself
+    File binHbaseSh = buildHBaseBinPath(cd);
+    String scriptPath = binHbaseSh.getAbsolutePath();
+    if (!binHbaseSh.exists()) {
+      throw new BadCommandArgumentsException("Missing script " + scriptPath);
+    }
+    launchSequence.add(0, scriptPath);
+    launchSequence.add(ARG_CONFIG);
+    launchSequence.add(confDir.getAbsolutePath());
+    launchSequence.add(masterCommand);
+    launchSequence.add(ACTION_START);
+    return launchSequence; 
   }
 }

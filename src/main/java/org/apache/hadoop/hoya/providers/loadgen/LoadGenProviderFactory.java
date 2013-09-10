@@ -20,7 +20,7 @@ package org.apache.hadoop.hoya.providers.loadgen;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hoya.providers.ClientProvider;
-import org.apache.hadoop.hoya.providers.ClusterExecutor;
+import org.apache.hadoop.hoya.providers.ServerProvider;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
 
 public class LoadGenProviderFactory extends HoyaProviderFactory {
@@ -33,12 +33,12 @@ public class LoadGenProviderFactory extends HoyaProviderFactory {
   }
 
   @Override
-  public ClientProvider createBuilder() {
+  public ClientProvider createClientProvider() {
     return new LoadGenProvider(getConf());
   }
 
   @Override
-  public ClusterExecutor createExecutor() {
+  public ServerProvider createServerProvider() {
     return new LoadGenProvider(getConf());
   }
 }

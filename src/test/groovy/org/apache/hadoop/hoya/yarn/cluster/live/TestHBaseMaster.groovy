@@ -44,7 +44,7 @@ class TestHBaseMaster extends HBaseMiniClusterTestBase {
     log.info("ZK up at $zki");
     //now launch the cluster with 1 region server
     int regionServerCount = 1
-    ServiceLauncher launcher = createHoyaCluster(clustername, regionServerCount, [], true, true) 
+    ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount, [], true, true) 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)

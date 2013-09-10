@@ -39,7 +39,7 @@ class TestHBaseMasterOnHDFS extends HBaseMiniClusterTestBase {
     createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
     log.info("HDFS is at $fsDefaultName")
     assert fsDefaultName.startsWith("hdfs://")
-    ServiceLauncher launcher = createHoyaCluster(clustername, 1, [], true, true) 
+    ServiceLauncher launcher = createHBaseCluster(clustername, 1, [], true, true) 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)

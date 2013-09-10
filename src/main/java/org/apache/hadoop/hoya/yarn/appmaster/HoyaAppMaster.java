@@ -24,12 +24,10 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.NoSuchNodeException;
-import org.apache.hadoop.hoya.providers.ClusterExecutor;
+import org.apache.hadoop.hoya.providers.ServerProvider;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
 import org.apache.hadoop.hoya.providers.ProviderRole;
-import org.apache.hadoop.hoya.providers.ProviderUtils;
 import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions;
-import org.apache.hadoop.hoya.providers.hbase.HBaseKeys;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
@@ -40,7 +38,6 @@ import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hadoop.hoya.exec.ApplicationEventHandler;
 import org.apache.hadoop.hoya.exec.RunLongLivedApp;
-import org.apache.hadoop.hoya.providers.hbase.HBaseProvider;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
@@ -78,7 +75,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -108,7 +104,7 @@ public class HoyaAppMaster extends CompositeService
              NMClientAsync.CallbackHandler,
              RunService,
              HoyaExitCodes,
-            HBaseKeys,
+             HoyaKeys,
              HoyaAppMasterProtocol,
              ApplicationEventHandler,
              RoleKeys {
@@ -168,10 +164,6 @@ public class HoyaAppMaster extends CompositeService
   private ApplicationAttemptId appAttemptID;
   // App Master configuration
 
-  /**
-   * container memory
-   */
-  private int containerMemory = DEFAULT_CONTAINER_MEMORY_FOR_WORKER;
 
   private final ContainerTracker containerTracker = new ContainerTracker();
 
@@ -295,7 +287,7 @@ public class HoyaAppMaster extends CompositeService
   /**
    * the hbase master runner
    */
-  private RunLongLivedApp hbaseMaster;
+  private RunLongLivedApp masterProcess;
 
   /**
    * The master node. This is a shared reference with the clusterDescription;
@@ -321,8 +313,19 @@ public class HoyaAppMaster extends CompositeService
   /**
   * Provider of this cluster
    */
-  private ClusterExecutor provider;
+  private ServerProvider provider;
 
+  /**
+   * Record of the max no. of cores allowed in this cluster
+   */
+  private int containerMaxCores;
+
+
+  /**
+   * limit container memory
+   */
+  private int containerMaxMemory
+    ;
   /**
    * Service Constructor
    */
@@ -412,10 +415,17 @@ public class HoyaAppMaster extends CompositeService
 
     
     //get our provider
+    
+    String providerType = clusterSpec.type;
+    log.info("Cluster provider type is {}", providerType);
     HoyaProviderFactory factory =
       HoyaProviderFactory.createHoyaProviderFactory(
-        clusterSpec.type);
-    provider = factory.createExecutor();
+        providerType);
+    provider = factory.createServerProvider();
+
+    //verify that the cluster specification is now valid
+    provider.validateClusterSpec(clusterSpec);
+
 
     YarnConfiguration conf = new YarnConfiguration(getConfig());
     InetSocketAddress address = HoyaUtils.getRmSchedulerAddress(conf);
@@ -473,8 +483,7 @@ public class HoyaAppMaster extends CompositeService
                                                  0);
     if (0 == infoport) {
       infoport =
-        HoyaUtils.findFreePort(HBaseConfigFileOptions.DEFAULT_MASTER_INFO_PORT,
-                               128);
+        HoyaUtils.findFreePort(provider.getDefaultMasterInfoPort(), 128);
       //need to get this to the app
       
       clusterSpec.setRoleOpt(ROLE_MASTER,
@@ -494,7 +503,10 @@ public class HoyaAppMaster extends CompositeService
       .registerApplicationMaster(appMasterHostname,
                                  appMasterRpcPort,
                                  appMasterTrackingUrl);
-    configureContainerMemory(response);
+    Resource maxResources =
+      response.getMaximumResourceCapability();
+    containerMaxMemory = maxResources.getMemory();
+    containerMaxCores = maxResources.getVirtualCores();
 
 
     masterNode = new ClusterNode(hostname);
@@ -504,63 +516,58 @@ public class HoyaAppMaster extends CompositeService
 
 
     //before bothering to start the containers, bring up the
-    //hbase master.
+    //master.
     //This ensures that if the master doesn't come up, less
     //cluster resources get wasted
 
-    //start hbase command
 
     File confDir = getLocalConfDir();
     if (!confDir.exists() || !confDir.isDirectory()) {
 
       throw new BadCommandArgumentsException(
-        "Configuration directory " + confDir +
-        " doesn't exist");
+        "Configuration directory %s doesn't exist", confDir);
     }
 
     //now validate the dir by loading in a hadoop-site.xml file from it
-    File hBaseSiteXML = new File(confDir, HBASE_SITE);
-    if (!hBaseSiteXML.exists()) {
-      StringBuilder builder = new StringBuilder();
-      String[] confDirEntries = confDir.list();
-      for (String entry : confDirEntries) {
-        builder.append(entry).append("\n");
-      }
-      throw new FileNotFoundException(
-        "Conf dir " + confDir + " doesn't contain " + HBASE_SITE +
-        "\n" + builder);
+    String siteXMLFilename = provider.getSiteXMLFilename();
+    File siteXML = new File(confDir, siteXMLFilename);
+    if (!siteXML.exists()) {
+      throw new BadCommandArgumentsException(
+        "Configuration directory %s doesn't contain %s - listing is %s",
+        confDir, siteXMLFilename, HoyaUtils.listDir(confDir));
     }
 
     //now read it in
-    Configuration siteConf = ConfigHelper.loadConfFromFile(hBaseSiteXML);
-    
+    Configuration siteConf = ConfigHelper.loadConfFromFile(siteXML);
     TreeSet<String> confKeys = ConfigHelper.sortedConfigKeys(siteConf);
     //update the values
+    log.debug(" Contents of {}", siteXML);
 
+    /*
     clusterSpec.zkHosts = siteConf.get(HBaseConfigFileOptions.KEY_ZOOKEEPER_QUORUM);
     clusterSpec.zkPort =
       siteConf.getInt(HBaseConfigFileOptions.KEY_ZOOKEEPER_PORT, 0);
     clusterSpec.zkPath = siteConf.get(HBaseConfigFileOptions.KEY_ZNODE_PARENT);
+*/
 
-    noMaster = clusterSpec.getDesiredInstanceCount(
-      ROLE_MASTER,1) <= 0;
-    log.debug(" Contents of {}", hBaseSiteXML);
+    noMaster = clusterSpec.getDesiredInstanceCount(ROLE_MASTER, 1) <= 0;
 
+    //copy into cluster status. From here on spec is only changed on a flex
+    // (when only some aspects of the spec are picked up)
+    clusterStatus = ClusterDescription.copy(clusterSpec);
+
+//     Add the client properties
     for (String key : confKeys) {
       String val = siteConf.get(key);
       log.debug("{}={}", key, val);
-      clusterSpec.clientProperties.put(key, val);
+      clusterStatus.clientProperties.put(key, val);
     }
     if (clusterSpec.zkPort == 0) {
       throw new BadCommandArgumentsException(
         "ZK port property not provided at %s in configuration file %s",
         HBaseConfigFileOptions.KEY_ZOOKEEPER_PORT,
-        hBaseSiteXML);
+        siteXML);
     }
-
-    //copy into cluster status. From here on spect should be frozen
-    clusterStatus = ClusterDescription.copy(clusterSpec);
-
 
     clusterStatus.state = ClusterDescription.STATE_CREATED;
     clusterStatus.startTime = System.currentTimeMillis();
@@ -580,24 +587,15 @@ public class HoyaAppMaster extends CompositeService
     } else {
       addLaunchedContainer(AppMasterContainerID, masterNode);
 
-      //pull out the command line argument if set
-      String masterCommand =
-        clusterSpec.getOption(HBaseConfigFileOptions.OPTION_HBASE_MASTER_COMMAND,
-                                     MASTER);
 
       Map<String, String> env = new HashMap<String, String>();
 
+      List<String> launchSequence =
+        provider.buildProcessCommand(clusterSpec, confDir, env);
 
-      env.put(HoyaKeys.HBASE_LOG_DIR, new ProviderUtils(log).getLogdir());
-      List<String> launchSequence = new ArrayList<String>(8);
-      launchSequence.add(ARG_CONFIG);
-      launchSequence.add(confDir.getAbsolutePath());
-      launchSequence.add(masterCommand);
-      launchSequence.add(ACTION_START);
-
-      launchHBaseServer(clusterSpec,
-                        launchSequence,
-                        env);
+      launchMasterProcess(clusterSpec,
+                          launchSequence,
+                          env);
     }
 
     try {
@@ -774,20 +772,6 @@ public class HoyaAppMaster extends CompositeService
         builder.append(roleStatus).append('\n');
     }
     return builder.toString();
-  }
-
-  //TODO: rework
-  private void configureContainerMemory(RegisterApplicationMasterResponse response) {
-    synchronized (clusterSpecLock) {
-      Resource maxResources =
-        response.getMaximumResourceCapability();
-      containerMemory = clusterSpec.getRoleOptInt(ROLE_WORKER,
-                                                            RoleKeys.YARN_MEMORY,
-                                                            DEFAULT_CONTAINER_MEMORY_FOR_WORKER);
-      log.info("Setting container ask to {} from max of {}",
-               containerMemory,
-               maxResources);
-    }
   }
 
   public Object getProxy(Class protocol, InetSocketAddress addr) {
@@ -1318,9 +1302,13 @@ public class HoyaAppMaster extends CompositeService
   }
 
   @Override   //HoyaAppMasterApi
-  public boolean flexCluster(String newClusterSpec) throws IOException {
+  public boolean flexCluster(String newClusterSpec) throws IOException,
+                                                           HoyaException {
     ClusterDescription updated =
       ClusterDescription.fromJson(newClusterSpec);
+    //verify that the cluster specification is now valid
+    provider.validateClusterSpec(updated);
+
     return flexClusterNodes(updated);
   }
 
@@ -1388,16 +1376,16 @@ public class HoyaAppMaster extends CompositeService
     synchronized (clusterSpecLock) {
       clusterStatus.statusTime = t;
       if (masterNode != null) {
-        if (hbaseMaster != null) {
-          masterNode.command = HoyaUtils.join(hbaseMaster.getCommands(), " ");
-          if (hbaseMaster.isRunning()) {
+        if (masterProcess != null) {
+          masterNode.command = HoyaUtils.join(masterProcess.getCommands(), " ");
+          if (masterProcess.isRunning()) {
             masterNode.state = ClusterDescription.STATE_LIVE;
           } else {
             masterNode.state = ClusterDescription.STATE_STOPPED;
-            masterNode.diagnostics = "Exit code = " + hbaseMaster.getExitCode();
+            masterNode.diagnostics = "Exit code = " + masterProcess.getExitCode();
           }
           //pull in recent lines of output from the HBase master
-          List<String> output = hbaseMaster.getRecentOutput();
+          List<String> output = masterProcess.getRecentOutput();
           masterNode.output = output.toArray(new String[output.size()]);
         } else {
           masterNode.state = ClusterDescription.STATE_DESTROYED;
@@ -1484,34 +1472,29 @@ public class HoyaAppMaster extends CompositeService
   }
 
   /**
-   * Launch the hbase server
+   * Launch the master server
+   *
    * @param commands list of commands -bin/hbase is inserted on the front
    * @param env environment variables above those generated by
    * @throws IOException IO problems
    * @throws HoyaException anything internal
    */
-  protected synchronized void launchHBaseServer(ClusterDescription cd,
-                                                List<String> commands,
-                                                Map<String, String> env)
+  protected synchronized void launchMasterProcess(ClusterDescription cd,
+                                                  List<String> commands,
+                                                  Map<String, String> env)
     throws IOException, HoyaException {
-    if (hbaseMaster != null) {
-      throw new HoyaInternalStateException("trying to launch hbase server" +
+    if (masterProcess != null) {
+      throw new HoyaInternalStateException("trying to launch master process" +
                                            " when one is already running");
     }
-    //prepend the hbase command itself
-    File binHbaseSh = buildHBaseBinPath(cd);
-    String scriptPath = binHbaseSh.getAbsolutePath();
-    if (!binHbaseSh.exists()) {
-      throw new BadCommandArgumentsException("Missing script " + scriptPath);
-    }
-    commands.add(0, scriptPath);
-    hbaseMaster = new RunLongLivedApp(LOG_AM_PROCESS, commands);
-    hbaseMaster.setApplicationEventHandler(this);
+
+    masterProcess = new RunLongLivedApp(LOG_AM_PROCESS, commands);
+    masterProcess.setApplicationEventHandler(this);
     //set the env variable mapping
-    hbaseMaster.putEnvMap(env);
+    masterProcess.putEnvMap(env);
 
     //now spawn the process -expect updates via callbacks
-    hbaseMaster.spawnApplication();
+    masterProcess.spawnApplication();
 
   }
 
@@ -1549,25 +1532,16 @@ public class HoyaAppMaster extends CompositeService
     signalAMComplete("Spawned master exited with " + exitCode);
   }
 
-  
-  /**
-   * Get the path to hbase home
-   * @return the hbase home path
-   */
-  public File buildHBaseBinPath(ClusterDescription cd) {
-    return HBaseProvider.buildHBaseBinPath(cd);
-  }
-
   /**
    * stop hbase process if it the running process var is not null
    * @return the hbase exit code -null if it is not running
    */
   protected synchronized Integer stopForkedProcess() {
     Integer exitCode;
-    if (hbaseMaster != null) {
-      hbaseMaster.stop();
-      exitCode = hbaseMaster.getExitCode();
-      hbaseMaster = null;
+    if (masterProcess != null) {
+      masterProcess.stop();
+      exitCode = masterProcess.getExitCode();
+      masterProcess = null;
     } else {
       exitCode = null;
     }

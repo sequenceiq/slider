@@ -39,7 +39,7 @@ class TestHDFSVersionCluster extends HBaseMiniClusterTestBase {
 
     String clustername = "TestHDFSVersionCluster"
     createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
-    ServiceLauncher launcher = createHoyaCluster(clustername,
+    ServiceLauncher launcher = createHBaseCluster(clustername,
                                                  0,
                                                  HBASE_VERSION_COMMAND_SEQUENCE,
                                                  true,

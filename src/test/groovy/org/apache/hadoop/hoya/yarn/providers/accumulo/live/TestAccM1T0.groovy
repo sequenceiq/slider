@@ -16,54 +16,43 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.cluster.live
+package org.apache.hadoop.hoya.yarn.providers.accumulo.live
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys
 import org.apache.hadoop.hoya.yarn.ZKIntegration
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
-import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
+import org.apache.hadoop.hoya.yarn.providers.accumulo.AccumuloTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
-/**
- * test create a live region service
- */
 @CompileStatic
 @Slf4j
-class TestLiveRegionService extends HBaseMiniClusterTestBase {
+class TestAccM1T0 extends AccumuloTestBase {
 
   @Test
-  public void testLiveRegionServiceSingleNode() throws Throwable {
-    String clustername = "TestLiveRegionService"
-    int regionServerCount = 1
+  public void testAccM1T0() throws Throwable {
+    String clustername = "TestAccM1T0"
+    int tabcount = 1
     createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
-    describe(" Create a single region service cluster");
+    describe(" Create an accumulo cluster");
 
     //make sure that ZK is up and running at the binding string
     ZKIntegration zki = createZKIntegrationInstance(ZKBinding, clustername, false, false, 5000)
     log.info("ZK up at $zki");
     //now launch the cluster
-    ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount, [], true, true)
+    ServiceLauncher launcher = createAccCluster(clustername, 0, [], true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
     ClusterDescription status = hoyaClient.getClusterStatus(clustername)
     log.info("${status.toJsonString()}")
-    assert ZKHosts == status.zkHosts
-    assert ZKPort == status.zkPort
-
-    dumpFullHBaseConf(hoyaClient)
-
-    ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient)
 
 
-    status = waitForHoyaWorkerCount(hoyaClient, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+    status = waitForRoleCount(hoyaClient, AccumuloKeys.ROLE_MASTER,1, ACCUMULO_CLUSTER_STARTUP_TO_LIVE_TIME)
     describe("Cluster status")
     log.info(prettyPrint(status.toJsonString()))
-    //get the hbase status
-    waitForHBaseRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
   }
 

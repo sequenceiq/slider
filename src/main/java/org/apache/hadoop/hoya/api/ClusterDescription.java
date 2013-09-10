@@ -144,7 +144,7 @@ public class ClusterDescription {
   /**
    * This is where the data goes
    */
-  public String hbaseDataPath;
+  public String dataPath;
 
   /**
    * HBase home: if non-empty defines where a copy of HBase is preinstalled

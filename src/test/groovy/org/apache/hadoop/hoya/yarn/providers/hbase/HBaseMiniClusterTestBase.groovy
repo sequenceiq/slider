@@ -256,7 +256,7 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
                       true);
     //now launch the cluster
     HoyaClient hoyaClient = null;
-    ServiceLauncher launcher = createHoyaCluster(clustername, workers, [], true, true);
+    ServiceLauncher launcher = createHBaseCluster(clustername, workers, [], true, true);
     hoyaClient = (HoyaClient) launcher.service;
     try {
       basicHBaseClusterStartupSequence(hoyaClient);

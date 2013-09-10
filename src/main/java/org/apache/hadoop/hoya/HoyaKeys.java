@@ -24,6 +24,8 @@ package org.apache.hadoop.hoya;
  */
 public interface HoyaKeys {
 
+  String ROLE_MASTER = "master";
+  
   /**
    * The path under which cluster and temp data are stored
    * {@value}
@@ -33,7 +35,7 @@ public interface HoyaKeys {
   /**
    *  name of the relative path to install hBase into:  {@value}
    */
-  String HBASE_LOCAL = "hbaselocal";
+  String LOCAL_TARBALL_INSTALL_SUBDIR = "local";
 
 
   /**
@@ -61,11 +63,10 @@ public interface HoyaKeys {
   String PROPAGATED_CONF_DIR_NAME = "conf";
   String GENERATED_CONF_DIR_NAME = "generated";
   String ORIG_CONF_DIR_NAME = "original";
-  String HBASE_DATA_DIR_NAME = "hbase";
+  String DATA_DIR_NAME = "hbase";
   String CLUSTER_SPECIFICATION_FILE = "cluster.json";
 
   int MIN_HEAP_SIZE = 0;
-  String HBASE_LOG_DIR = "HBASE_LOG_DIR";
 
   /**
    * XML resource listing the standard Hoya providers

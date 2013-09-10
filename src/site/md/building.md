@@ -96,13 +96,13 @@ is ignored by git), declaring where HBase is:
     <configuration>
     
       <property>
-        <name>hoya.test.hbase_home</name>
+        <name>hoya.test.hbase.home</name>
         <value>/Users/hoya/hbase/hbase-assembly/target/hbase-0.95.3-SNAPSHOT</value>
         <description>HBASE Home</description>
       </property>
     
       <property>
-        <name>hoya.test.hbase_tar</name>
+        <name>hoya.test.hbase.tar</name>
         <value>/Users/hoya/hbase/hbase-assembly/target/hbase-0.95.3-SNAPSHOT-bin.tar.gz</value>
         <description>HBASE archive URI</description>
       </property> 

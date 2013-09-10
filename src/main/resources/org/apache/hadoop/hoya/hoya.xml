@@ -27,4 +27,8 @@
     <name>hoya.provider.hbase</name>
     <value>org.apache.hadoop.hoya.providers.hbase.HBaseProviderFactory</value>
   </property>
+  <property>
+    <name>hoya.provider.accumulo</name>
+    <value>org.apache.hadoop.hoya.providers.accumulo.AccumuloProviderFactory</value>
+  </property>
 </configuration>
