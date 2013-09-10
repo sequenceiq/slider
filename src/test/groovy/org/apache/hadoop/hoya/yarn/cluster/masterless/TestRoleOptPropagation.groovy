@@ -25,13 +25,14 @@ import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
+import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
 @CompileStatic
 @Slf4j
 
-class TestRoleOptPropagation extends YarnMiniClusterTestBase {
+class TestRoleOptPropagation extends HBaseMiniClusterTestBase {
 
   @Test
   public void testRoleOptPropagation() throws Throwable {
