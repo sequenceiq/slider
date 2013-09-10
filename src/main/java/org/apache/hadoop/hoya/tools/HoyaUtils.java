@@ -853,5 +853,23 @@ public final class HoyaUtils {
       return appReportToString(report, "\n");
     }
   }
+
+  public static Map<String, Map<String, String>> deepClone(Map<String, Map<String, String>> src) {
+    Map<String, Map<String, String>> dest =
+      new HashMap<String, Map<String, String>>();
+    for (Map.Entry<String, Map<String, String>> entry : src.entrySet()) {
+      dest.put(entry.getKey(), stringMapClone(entry.getValue()));
+    }
+    return dest;
+  }
+
+  public static Map<String, String> stringMapClone(Map<String, String> src) {
+    Map<String, String> dest =  new HashMap<String, String>();
+    for (Map.Entry<String, String> entry : src.entrySet()) {
+      dest.put(entry.getKey(), entry.getValue());
+    }
+    return dest;
+  }
+  
   
 }

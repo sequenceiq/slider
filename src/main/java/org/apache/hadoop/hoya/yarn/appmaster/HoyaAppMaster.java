@@ -114,18 +114,30 @@ public class HoyaAppMaster extends CompositeService
              RoleKeys {
   protected static final Logger log =
     LoggerFactory.getLogger(HoyaAppMaster.class);
+  /**
+   * Log for the forked master process
+   */
   protected static final Logger LOG_AM_PROCESS =
     LoggerFactory.getLogger("org.apache.hadoop.hoya.yarn.appmaster.HoyaAppMaster.master");
+
+  /**
+   * log for YARN events
+   */
+  protected static final Logger LOG_YARN =
+    LoggerFactory.getLogger("org.apache.hadoop.hoya.yarn.appmaster.HoyaAppMaster.yarn");
+  
   /**
    * How long to expect launcher threads to shut down on AM termination:
    * {@value}
    */
   public static final int LAUNCHER_THREAD_SHUTDOWN_TIME = 10000;
+  
   /**
    * time to wait from shutdown signal being rx'd to telling
    * the AM: {@value}
    */
   public static final int TERMINATION_SIGNAL_PROPAGATION_DELAY = 1000;
+  
   /**
    * Max failures to tolerate for the containers
    */
@@ -938,8 +950,7 @@ public class HoyaAppMaster extends CompositeService
   @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
   @Override //AMRMClientAsync
   public void onContainersAllocated(List<Container> allocatedContainers) {
-    log.info("onContainersAllocated({})",
-             allocatedContainers.size());
+    LOG_YARN.info("onContainersAllocated({})", allocatedContainers.size());
     List<Container> surplus = new ArrayList<Container>();
     for (Container container : allocatedContainers) {
       String containerHostInfo = container.getNodeId().getHost()
@@ -1009,10 +1020,10 @@ public class HoyaAppMaster extends CompositeService
 
   @Override //AMRMClientAsync
   public synchronized void onContainersCompleted(List<ContainerStatus> completedContainers) {
-    log.info("onContainersCompleted([{}]", completedContainers.size());
+    LOG_YARN.info("onContainersCompleted([{}]", completedContainers.size());
     for (ContainerStatus status : completedContainers) {
       ContainerId containerId = status.getContainerId();
-      log.info("Container Completion for" +
+      LOG_YARN.info("Container Completion for" +
                " containerID={}," +
                " state={}," +
                " exitStatus={}," +
@@ -1029,6 +1040,7 @@ public class HoyaAppMaster extends CompositeService
         Container container = getContainersBeingReleased().remove(containerId);
         RoleStatus roleStatus = lookupRoleStatus(container);
         synchronized (roleStatus) {
+          log.info("decrementing role count for role {}", roleStatus.getName()); 
           roleStatus.decReleasing();
           roleStatus.decActual();
         }
@@ -1036,7 +1048,6 @@ public class HoyaAppMaster extends CompositeService
         //a container has failed and its role needs to be decremented
         ContainerInfo containerInfo = getActiveContainers().remove(containerId);
         if (containerInfo != null) {
-          Container container = containerInfo.container;
           String rolename = containerInfo.role;
           log.info("Failed container in role {}", rolename);
           RoleStatus roleStatus = lookupRoleStatus(rolename);
@@ -1049,9 +1060,9 @@ public class HoyaAppMaster extends CompositeService
           log.error("Notified of completed container that is not in the list" +
                     "of active containers");
         }
-        //record the complete node's details; this pulls it from the livenode set 
-        updateCompletedNode(status);
       }
+      //record the complete node's details; this pulls it from the livenode set 
+      updateCompletedNode(status);
     }
 
     // ask for more containers if any failed
@@ -1090,6 +1101,7 @@ public class HoyaAppMaster extends CompositeService
   private boolean flexClusterNodes(ClusterDescription updated) throws
                                                              IOException {
 
+    long now = System.currentTimeMillis();
     synchronized (clusterSpecLock) {
       //we assume that the spec is valid
       //TODO: more validation?
@@ -1098,19 +1110,21 @@ public class HoyaAppMaster extends CompositeService
       //propagate info from cluster, which is role table
 
       Map<String, Map<String, String>> roles = clusterSpec.roles;
-      Map<String, Map<String, String>> roleclone = clusterSpec.roles;
-      for (Map.Entry<String, Map<String, String>> entry : roles.entrySet()) {
-        Map<String, String> map = new HashMap<String, String>(entry.getValue());
-        roleclone.put(entry.getKey(), map);
-      }
-      clusterStatus.roles = roleclone;
-      clusterStatus.updateTime = System.currentTimeMillis();
+      clusterStatus.roles = HoyaUtils.deepClone(roles);
+      clusterStatus.updateTime = now;
       
       //now update every role's desired count.
       //if there are no instance values, that role count goes to zero
       for (RoleStatus roleStatus : roleStatusMap.values()) {
         synchronized (roleStatus) {
-          roleStatus.setDesired(clusterSpec.getDesiredInstanceCount(roleStatus.getName(), 0));
+          int currentDesired = roleStatus.getDesired();
+          String role = roleStatus.getName();
+          int desiredInstanceCount =
+            clusterSpec.getDesiredInstanceCount(role, -1);
+          if (currentDesired != desiredInstanceCount) {
+            log.info("Role {} flexed from {} to {}",role,currentDesired,desiredInstanceCount );
+            roleStatus.setDesired(desiredInstanceCount);
+          }
         }
       }
     }
@@ -1239,6 +1253,7 @@ public class HoyaAppMaster extends CompositeService
    */
   @Override //AMRMClientAsync
   public void onShutdownRequest() {
+    LOG_YARN.info("Shutdown Request received");
     signalAMComplete("Shutdown requested from RM");
   }
 
@@ -1248,7 +1263,7 @@ public class HoyaAppMaster extends CompositeService
    */
   @Override //AMRMClientAsync
   public void onNodesUpdated(List<NodeReport> updatedNodes) {
-    log.info("Nodes updated");
+    LOG_YARN.info("Nodes updated");
   }
 
   /**
@@ -1272,14 +1287,14 @@ public class HoyaAppMaster extends CompositeService
     } else {
       percentage = actual / desired;
     }
-    log.debug("Heartbeat, percentage ={}", percentage);
+//    log.debug("Heartbeat, percentage ={}", percentage);
     return percentage;
   }
 
   @Override //AMRMClientAsync
   public void onError(Throwable e) {
     //callback says it's time to finish
-    log.error("AMRMClientAsync.onError() received " + e, e);
+    LOG_YARN.error("AMRMClientAsync.onError() received " + e, e);
     signalAMComplete("AMRMClientAsync.onError() received " + e);
   }
   
@@ -1303,12 +1318,11 @@ public class HoyaAppMaster extends CompositeService
   }
 
   @Override   //HoyaAppMasterApi
-  public boolean flexCluster(String clusterSpec) throws IOException {
+  public boolean flexCluster(String newClusterSpec) throws IOException {
     ClusterDescription updated =
-      ClusterDescription.fromJson(clusterSpec);
+      ClusterDescription.fromJson(newClusterSpec);
     return flexClusterNodes(updated);
   }
-
 
   @Override   //HoyaAppMasterApi
   public long getProtocolVersion(String protocol, long clientVersion) throws
@@ -1433,7 +1447,7 @@ public class HoyaAppMaster extends CompositeService
    */
   private void updateCompletedNode(ContainerStatus completed) {
 
-    //add the node
+    //remove the node
     synchronized (clusterSpecLock) {
       ContainerId id = completed.getContainerId();
       ClusterNode node = liveNodes.remove(id);
@@ -1460,14 +1474,13 @@ public class HoyaAppMaster extends CompositeService
       log.warn("Unknown role for node {}", node);
       node.role = ROLE_UNKNOWN;
     }
-    if (node.uuid==null) {
+    if (node.uuid == null) {
       node.uuid = UUID.randomUUID().toString();
       log.warn("creating UUID for node {}", node);
     }
     synchronized (clusterSpecLock) {
       liveNodes.put(node.containerId, node);
     }
-
   }
 
   /**
@@ -1535,7 +1548,6 @@ public class HoyaAppMaster extends CompositeService
     //tell the AM the cluster is complete 
     signalAMComplete("Spawned master exited with " + exitCode);
   }
-  
 
   
   /**
@@ -1606,7 +1618,7 @@ public class HoyaAppMaster extends CompositeService
   @Override //  NMClientAsync.CallbackHandler 
   public void onContainerStarted(ContainerId containerId,
                                  Map<String, ByteBuffer> allServiceResponse) {
-    log.debug("Started Container {} ", containerId);
+    LOG_YARN.info("Started Container {} ", containerId);
     startedContainers.incrementAndGet();
     ContainerInfo cinfo = null;
     //update the model
@@ -1637,7 +1649,7 @@ public class HoyaAppMaster extends CompositeService
 
   @Override //  NMClientAsync.CallbackHandler 
   public void onStartContainerError(ContainerId containerId, Throwable t) {
-    log.error("Failed to start Container " + containerId, t);
+    LOG_YARN.error("Failed to start Container " + containerId, t);
     getActiveContainers().remove(containerId);
     numFailedContainers.incrementAndGet();
     startFailedContainers.incrementAndGet();
@@ -1655,21 +1667,21 @@ public class HoyaAppMaster extends CompositeService
   @Override //  NMClientAsync.CallbackHandler 
   public void onContainerStatusReceived(ContainerId containerId,
                                         ContainerStatus containerStatus) {
-    log.debug("Container Status: id={}, status={}", containerId,
+    LOG_YARN.debug("Container Status: id={}, status={}", containerId,
               containerStatus);
   }
 
   @Override //  NMClientAsync.CallbackHandler 
   public void onGetContainerStatusError(
     ContainerId containerId, Throwable t) {
-    log.error("Failed to query the status of Container {}", containerId);
+    LOG_YARN.error("Failed to query the status of Container {}", containerId);
   }
 
 
   //TODO: what handling should we be doing here vs. RM notifications?
   @Override //  NMClientAsync.CallbackHandler 
   public void onStopContainerError(ContainerId containerId, Throwable t) {
-    log.error("Failed to stop Container {}", containerId);
+    LOG_YARN.warn("Failed to stop Container {}", containerId);
 /*
     containers.remove(containerId);
     ClusterNode node = failNode(containerId, t);

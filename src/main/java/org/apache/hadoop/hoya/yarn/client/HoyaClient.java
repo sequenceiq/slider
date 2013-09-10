@@ -203,6 +203,11 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     return exitCode;
   }
 
+  /**
+   * verify that the supplied cluster name is valid
+   * @param clustername cluster name
+   * @throws BadCommandArgumentsException if it is invalid
+   */
   protected void validateClusterName(String clustername) throws
                                                          BadCommandArgumentsException {
     if (!HoyaUtils.isClusternameValid(clustername)) {
@@ -1487,18 +1492,19 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       HoyaUtils.loadAndValidateClusterSpec(fs, clusterSpecPath);
 
     for (Map.Entry<String, Integer> entry : roleInstances.entrySet()) {
-      String name = entry.getKey();
-      int workers = entry.getValue();
-      if (workers < 0) {
+      String role = entry.getKey();
+      int count = entry.getValue();
+      if (count < 0) {
         throw new BadCommandArgumentsException(
-          "Requested number of "+name +" instances is out of range");
+          "Requested number of "+role +" instances is out of range");
       }
 
 
-      clusterSpec.setDesiredInstanceCount(name, workers);
+      clusterSpec.setDesiredInstanceCount(role, count);
 
-      log.debug("Flexed cluster specification (new " + name +"workers={}) : \n{}",
-                workers,
+      log.debug("Flexed cluster specification ( {} -> {}) : \n{}",
+                role,
+                count,
                 clusterSpec);
     }
     if (persist) {
