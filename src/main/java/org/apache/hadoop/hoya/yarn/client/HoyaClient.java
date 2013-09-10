@@ -295,16 +295,6 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       throw new BadCommandArgumentsException("Missing argument "
                                              + CommonArgs.ARG_CONFDIR);
     }
-    //reject obsolete arguments now
-    verifyObsoleteArgUnset(ClientArgs.ARG_WORKERS, serviceArgs.workers);
-    verifyObsoleteArgUnset(ClientArgs.ARG_WORKER_HEAP, serviceArgs.workerHeap);
-    verifyObsoleteArgUnset(ClientArgs.ARG_WORKER_INFO_PORT,
-                           serviceArgs.workerInfoPort);
-    verifyObsoleteArgUnset(ClientArgs.ARG_MASTERS, serviceArgs.masters);
-    verifyObsoleteArgUnset(ClientArgs.ARG_MASTER_HEAP, serviceArgs.masterHeap);
-    verifyObsoleteArgUnset(ClientArgs.ARG_MASTER_INFO_PORT,
-                           serviceArgs.masterInfoPort);
-
 
     clusterSpec.name = clustername;
     clusterSpec.state = ClusterDescription.STATE_INCOMPLETE;
@@ -393,8 +383,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     }
 
     //set up the ZK binding
-    String zookeeperRoot = serviceArgs.hbasezkpath;
-    if (isUnset(serviceArgs.hbasezkpath)) {
+    String zookeeperRoot = serviceArgs.appZKPath;
+    if (isUnset(serviceArgs.appZKPath)) {
       zookeeperRoot =
         "/yarnapps_" + getAppName() + "_" + getUsername() + "_" + clustername;
     }

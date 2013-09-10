@@ -82,21 +82,6 @@ public class CommonArgs implements HoyaActions {
   public static final String ARG_X_HBASE_MASTER_COMMAND =
     "--Xhbase-master-command";
 
-  /*
-  Deprecated with transition to roles
-   */
-  @Deprecated
-  public static final String ARG_WORKERS = "--workers";
-  @Deprecated
-  public static final String ARG_WORKER_HEAP = "--workerheap";
-  @Deprecated
-  public static final String ARG_WORKER_INFO_PORT = "--workerinfoport";
-  @Deprecated
-  public static final String ARG_MASTERS = "--masters";
-  @Deprecated
-  public static final String ARG_MASTER_HEAP = "--masterheap";
-  @Deprecated
-  public static final String ARG_MASTER_INFO_PORT = "--masterinfoport";
 
   /**
    * ERROR Strings
@@ -141,7 +126,7 @@ public class CommonArgs implements HoyaActions {
 
   @Parameter(names = ARG_APP_ZKPATH,
              description = "Zookeeper path for the application")
-  public String hbasezkpath;
+  public String appZKPath;
 
   @Parameter(names = ARG_HELP, help = true)
   public boolean help;
@@ -182,41 +167,9 @@ public class CommonArgs implements HoyaActions {
              description = "hostname:port of the YARN resource manager")
   public String manager;
 
-  @Parameter(names = {ARG_WORKERS},
-             description = "Deprecated: The number of worker nodes")
-  @Deprecated
-  public int workers = -1;
-
-  @Parameter(names = {ARG_MASTERS}, description = "Deprecated: The number of master nodes")
-  @Deprecated
-  public int masters = -1;
-
-  @Parameter(names = {ARG_MASTER_HEAP},
-             description = "Deprecated: Master heap size in MB")
-  @Deprecated
-  public int masterHeap = -1;
-
-  //--masterinfoport [port]
-  @Parameter(names = ARG_MASTER_INFO_PORT,
-             description = "Deprecated: The web UI port that the Master should bind to")
-  @Deprecated
-  public int masterInfoPort = -1;
-
-  //--workerinfoport [port]
-  @Parameter(names = ARG_WORKER_INFO_PORT,
-             description = "Deprecated: The web UI port that the Workers should bind to")
-  @Deprecated
-
-  public int workerInfoPort = -1;
-
   @Parameter(names = {ARG_OUTPUT, "-o"},
              description = "Output file for the configuration data")
   public String output;
-
-  @Parameter(names = {ARG_WORKER_HEAP},
-             description = "Deprecated: Worker heap size in MB")
-  @Deprecated
-  public int workerHeap = -1;
 
   @Parameter(names = ARG_X_HBASE_MASTER_COMMAND,
              description = "Testing only: hbase command to exec on the master")
