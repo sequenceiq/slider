@@ -27,6 +27,7 @@ import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
+import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.client.HoyaClient;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonParseException;
@@ -374,6 +375,13 @@ public class ClusterDescription {
     String val = getOption(option, Integer.toString(defVal));
     return Integer.decode(val);
   }
+
+  public void verifyOptionSet(String key) throws BadConfigException {
+    if (HoyaUtils.isUnset(getOption(key, null))) {
+      throw new BadConfigException("Unset cluster option %s", key);
+    }
+  }
+
 
   /**
    * Get an option as a boolean. Note that {@link Boolean#valueOf(String)}

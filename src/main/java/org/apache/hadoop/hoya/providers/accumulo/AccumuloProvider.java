@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.hoya.providers.accumulo;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
@@ -30,10 +29,10 @@ import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.providers.ClientProvider;
-import org.apache.hadoop.hoya.providers.ServerProvider;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
+import org.apache.hadoop.hoya.providers.ServerProvider;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -56,10 +55,10 @@ import java.util.Map;
  * of an HBase Cluster
  */
 public class AccumuloProvider extends Configured implements
-                                                          ProviderCore,
-                                                          AccumuloKeys,
-                                                          ClientProvider,
-                                                          ServerProvider {
+                                                 ProviderCore,
+                                                 AccumuloKeys,
+                                                 ClientProvider,
+                                                 ServerProvider {
 
   protected static final Logger log =
     LoggerFactory.getLogger(AccumuloProvider.class);
@@ -82,7 +81,7 @@ public class AccumuloProvider extends Configured implements
     ROLES.add(new ProviderRole(ROLE_MASTER, 1, true));
     ROLES.add(new ProviderRole(ROLE_TABLET, 2));
     ROLES.add(new ProviderRole(ROLE_GARBAGE_COLLECTOR, 3));
-    ROLES.add(new ProviderRole(ROLE_MONITOR, 4 ));
+    ROLES.add(new ProviderRole(ROLE_MONITOR, 4));
     ROLES.add(new ProviderRole(ROLE_TRACER, 5));
   }
 
@@ -106,7 +105,7 @@ public class AccumuloProvider extends Configured implements
   public Map<String, String> getDefaultClusterOptions() {
     return new HashMap<String, String>();
   }
-  
+
   /**
    * Create the default cluster role instance for a named
    * cluster role; 
@@ -144,7 +143,6 @@ public class AccumuloProvider extends Configured implements
    * @param clusterSpec this is the cluster specification used to define this
    * @return a map of the dynamic bindings for this Hoya instance
    */
-  @VisibleForTesting
   public Map<String, String> buildSiteConfFromSpec(ClusterDescription clusterSpec)
     throws BadConfigException {
 
@@ -176,28 +174,6 @@ public class AccumuloProvider extends Configured implements
     validateClusterSpec(clusterSpec);
   }
 
-  /**
-   * Validate the cluster specification. This can be invoked on both
-   * server and client
-   * @param clusterSpec
-   */
-  @Override // Client and Server
-  public void validateClusterSpec(ClusterDescription clusterSpec) throws
-                                                                  HoyaException {
-    providerUtils.validateNodeCount(AccumuloKeys.ROLE_TABLET,
-                                    clusterSpec.getDesiredInstanceCount(
-                                      AccumuloKeys.ROLE_TABLET,
-                                      0), 0, -1);
-
-
-    providerUtils.validateNodeCount(HoyaKeys.ROLE_MASTER,
-                                    clusterSpec.getDesiredInstanceCount(
-                                      HoyaKeys.ROLE_MASTER,
-                                      0),
-                                    0,
-                                    1);
-  }
-
 
   /**
    * This builds up the site configuration for the AM and downstream services;
@@ -210,7 +186,7 @@ public class AccumuloProvider extends Configured implements
    * @param generatedConfDirPath path to place generated artifacts
    * @return a map of name to local resource to add to the AM launcher
    */
-  @Override
+  @Override //client
   public Map<String, LocalResource> prepareAMAndConfigForLaunch(FileSystem clusterFS,
                                                                 Configuration serviceConf,
                                                                 ClusterDescription clusterSpec,
@@ -251,7 +227,7 @@ public class AccumuloProvider extends Configured implements
    * Update the AM resource with any local needs
    * @param capability capability to update
    */
-  @Override
+  @Override //client
   public void prepareAMResourceRequirements(ClusterDescription clusterSpec,
                                             Resource capability) {
     //no-op unless you want to add more memory
@@ -267,25 +243,79 @@ public class AccumuloProvider extends Configured implements
    * @param clusterSpec cspec
    * @param serviceData map of service data
    */
-  @Override
+  @Override //client
   public void prepareAMServiceData(ClusterDescription clusterSpec,
                                    Map<String, ByteBuffer> serviceData) {
-    
+
   }
-  
-  @Override
+
+   /*
+   ======================================================================
+   Client and Server interface below here
+   ======================================================================
+  */
+
+
+  /**
+   * Validate the cluster specification. This can be invoked on both
+   * server and client
+   * @param clusterSpec
+   */
+  @Override // Client and Server
+  public void validateClusterSpec(ClusterDescription clusterSpec) throws
+                                                                  HoyaException {
+    providerUtils.validateNodeCount(AccumuloKeys.ROLE_TABLET,
+                                    clusterSpec.getDesiredInstanceCount(
+                                      AccumuloKeys.ROLE_TABLET,
+                                      0), 0, -1);
+
+
+    providerUtils.validateNodeCount(HoyaKeys.ROLE_MASTER,
+                                    clusterSpec.getDesiredInstanceCount(
+                                      HoyaKeys.ROLE_MASTER,
+                                      0),
+                                    0,
+                                    1);
+    clusterSpec.verifyOptionSet(AccumuloKeys.OPTION_ZK_HOME);
+    clusterSpec.verifyOptionSet(AccumuloKeys.OPTION_HADOOP_HOME);
+  }
+
+  private String cmd(Object ...args) {
+    List<String> list = new ArrayList<String>(args.length);
+    for (Object arg : args) {
+      list.add(arg.toString());
+    }
+    return HoyaUtils.join(list, " ");
+  }
+
+
+  /*
+   ======================================================================
+   Server interface below here
+   ======================================================================
+  */
+  @Override //server
   public void buildContainerLaunchContext(ContainerLaunchContext ctx,
                                           FileSystem fs,
                                           Path generatedConfPath,
                                           String role,
                                           ClusterDescription clusterSpec,
                                           Map<String, String> roleOptions
-                                          ) throws IOException {
+                                         ) throws IOException {
     // Set the environment
     Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
-//    env.put(HBaseKeys.HBASE_LOG_DIR,providerUtils.getLogdir());
+    env.put(ACCUMULO_LOG_DIR, providerUtils.getLogdir());
+    String hadoop_home = ApplicationConstants.Environment.HADOOP_COMMON_HOME.$();
+    hadoop_home = clusterSpec.getOption(HADOOP_HOME, hadoop_home);
+    env.put(HADOOP_HOME, hadoop_home);
+    env.put(HADOOP_PREFIX, hadoop_home);
+    env.put(ACCUMULO_HOME,
+            convertToAppRelativePath(buildImageDir(clusterSpec)));
+    env.put(ACCUMULO_CONF_DIR,
+            convertToAppRelativePath(HoyaKeys.PROPAGATED_CONF_DIR_NAME));
+    env.put(ZOOKEEPER_HOME,clusterSpec.getOption(OPTION_ZK_HOME,""));
 
-    ctx.setEnvironment(env);
+            ctx.setEnvironment(env);
 
     //local resources
     Map<String, LocalResource> localResources =
@@ -306,19 +336,19 @@ public class AccumuloProvider extends Configured implements
     }
     ctx.setLocalResources(localResources);
 
-
+    List<String> commands = new ArrayList<String>();
+    commands.add(cmd("export",HADOOP_HOME,"\"$HADOOP_HOME\""));
+    commands.add(cmd("export", ZOOKEEPER_HOME,"\"$ZOOKEEPER_HOME\""));
+    
+    
     List<String> command = new ArrayList<String>();
     //this must stay relative if it is an image
     command.add(buildScriptBinPath(clusterSpec).toString());
 
     //config dir is relative to the generated file
-/* TODO
-    command.add(HBaseKeys.ARG_CONFIG);
     command.add(HoyaKeys.PROPAGATED_CONF_DIR_NAME);
-*/
     //role is region server
-    command.add(AccumuloKeys.CREATE_TABLET);
-    command.add(AccumuloKeys.ACTION_START);
+    command.add(role);
 
     //log details
     command.add(
@@ -328,7 +358,7 @@ public class AccumuloProvider extends Configured implements
 
     String cmdStr = HoyaUtils.join(command, " ");
 
-    List<String> commands = new ArrayList<String>();
+
     commands.add(cmdStr);
     ctx.setCommands(commands);
 
@@ -341,14 +371,26 @@ public class AccumuloProvider extends Configured implements
    */
   public static File buildScriptBinPath(ClusterDescription cd) {
     return new File(buildImageDir(cd), AccumuloKeys.START_SCRIPT);
-    
   }
 
+  public String convertToAppRelativePath(File file) {
+    return convertToAppRelativePath(file.getPath());
+  }
+
+  private String convertToAppRelativePath(String path) {
+    return ApplicationConstants.Environment.HOME.$() + "/" + path;
+  }
+
+  /**
+   * Build the image dir. This path is relative and only valid at the far end
+   * @param cd cluster spec
+   * @return a relative path to accumulp home
+   */
   public static File buildImageDir(ClusterDescription cd) {
     File basedir;
     if (cd.imagePath != null) {
       basedir = new File(new File(HoyaKeys.LOCAL_TARBALL_INSTALL_SUBDIR),
-                          AccumuloKeys.ARCHIVE_SUBDIR);
+                         AccumuloKeys.ARCHIVE_SUBDIR);
     } else {
       basedir = new File(cd.applicationHome);
     }
@@ -384,6 +426,5 @@ public class AccumuloProvider extends Configured implements
     return launchSequence;
   }
 
-  
 
 }

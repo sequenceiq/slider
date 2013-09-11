@@ -58,6 +58,8 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
     super.setup()
     assumeArchiveDefined();
     assumeServiceHome();
+    YarnConfiguration conf = testConfiguration
+    assumeOtherSettings(conf)
   }
 
   /**
@@ -85,13 +87,13 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
   }
 
   public String getServiceHome() {
-    YarnConfiguration conf = getTestConfiguration()
+    YarnConfiguration conf = testConfiguration
     String hbaseHome = conf.getTrimmed(KeysForTests.HOYA_TEST_ACCUMULO_HOME)
     return hbaseHome
   }
 
   public String getArchiveKey() {
-    YarnConfiguration conf = getTestConfiguration()
+    YarnConfiguration conf = testConfiguration
     return conf.getTrimmed(KeysForTests.HOYA_TEST_ACCUMULO_TAR)
   }
 
@@ -110,7 +112,11 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
     Assume.assumeTrue("Hbase Archive conf option not set " + KeysForTests.HOYA_TEST_ACCUMULO_HOME,
                       serviceHome != null && serviceHome != "")
   }
-  
+  public void assumeOtherSettings(YarnConfiguration conf) {
+    assumeConfOptionSet(conf, AccumuloKeys.OPTION_ZK_HOME)
+  }
+
+
   /**
    * Get the arguments needed to point to HBase for these tests
    * @return
@@ -149,11 +155,21 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
 
   public ServiceLauncher createAccCluster(String clustername, Map<String, Integer> roles, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
     extraArgs << CommonArgs.ARG_PROVIDER << AccumuloKeys.PROVIDER_ACCUMULO;
+    
+    YarnConfiguration conf = testConfiguration
+    addOption(extraArgs, conf, AccumuloKeys.OPTION_ZK_HOME)
+    addOption(extraArgs, conf, AccumuloKeys.OPTION_HADOOP_HOME)
 
     return createHoyaCluster(clustername,
                              roles,
                              extraArgs,
                              deleteExistingData,
                              blockUntilRunning)
+  }
+
+  public void addOption(List<String> extraArgs, YarnConfiguration conf, String option) {
+    assert conf.getTrimmed(option);
+    extraArgs << CommonArgs.ARG_OPTION <<
+    option << conf.getTrimmed(option)
   }
 }

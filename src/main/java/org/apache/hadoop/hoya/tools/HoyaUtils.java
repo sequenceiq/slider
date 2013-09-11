@@ -74,6 +74,18 @@ public final class HoyaUtils {
   private HoyaUtils() {
   }
 
+  /**
+   * Implementation of set-ness, groovy definition of true/false for a string
+   * @param s
+   * @return
+   */
+  public static boolean isUnset(String s) {
+    return s == null || s.isEmpty();
+  }
+
+  public static boolean isSet(String s) {
+    return !isUnset(s);
+  }
   public static void deleteDirectoryTree(File dir) throws IOException {
     if (dir.exists()) {
       if (dir.isDirectory()) {

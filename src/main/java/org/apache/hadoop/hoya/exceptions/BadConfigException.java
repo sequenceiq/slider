@@ -27,4 +27,8 @@ public class BadConfigException extends HoyaException {
     super(EXIT_BAD_CONFIGURATION, s);
   }
 
+  public BadConfigException(String message, Object... args) {
+    super(EXIT_BAD_CONFIGURATION, message, args);
+  }
+
 }

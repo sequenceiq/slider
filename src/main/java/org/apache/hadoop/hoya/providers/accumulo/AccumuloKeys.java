@@ -33,6 +33,10 @@ public interface AccumuloKeys {
   String ROLE_MONITOR = "monitor";
   String ROLE_TRACER = "tracer";
 
+  String OPTION_ZK_TAR = "zk.image.path";  
+  String OPTION_ZK_HOME = "zk.home";  
+  String OPTION_HADOOP_HOME = "hadoop.home";  
+
   String DEFAULT_MASTER_HEAP = "256";
   String DEFAULT_MASTER_YARN_RAM = "384";
   String DEFAULT_MASTER_YARN_VCORES = "1";
@@ -78,4 +82,18 @@ public interface AccumuloKeys {
    */
   String CONF_RESOURCE = "/org/apache/hadoop/hoya/providers/accumulo/conf";
   String SITE_XML_RESOURCE = CONF_RESOURCE + SITE_XML;
+  String ACCUMULO_HOME = "ACCUMULO_HOME";
+
+  String ACCUMULO_CONF_DIR = "ACCUMULO_CONF_DIR";
+  String ACCUMULO_LOG_DIR = "ACCUMULO_LOG_DIR";
+  String ACCUMULO_GENERAL_OPTS = "ACCUMULO_GENERAL_OPTS";
+  String HADOOP_HOME = "HADOOP_HOME";
+  String ZOOKEEPER_HOME = "ZOOKEEPER_HOME";
+
+  /**
+   * ":"-separated list of extra jars 
+   * 
+   */
+  String ACCUMULO_XTRAJARS = "ACCUMULO_XTRAJARS";
+  String HADOOP_PREFIX = "HADOOP_PREFIX" ;
 }

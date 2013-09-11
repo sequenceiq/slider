@@ -29,6 +29,7 @@ import org.apache.hadoop.fs.FileUtil
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hdfs.MiniDFSCluster
 import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.OptionKeys
 import org.apache.hadoop.hoya.exceptions.HoyaException
@@ -55,6 +56,7 @@ import org.apache.hadoop.yarn.service.launcher.ServiceLaunchException
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
 import org.junit.After
+import org.junit.Assume
 import org.junit.Before
 import org.junit.Rule
 import org.junit.rules.Timeout
@@ -89,7 +91,7 @@ implements KeysForTests, HoyaExitCodes {
   
   public static final String HREGION = "HRegion"
   public static final List<String> HBASE_VERSION_COMMAND_SEQUENCE = [
-      CommonArgs.ARG_OPTION, OPTION_HOYA_MASTER_COMMAND, "version",
+      CommonArgs.ARG_OPTION, HoyaKeys.OPTION_HOYA_MASTER_COMMAND, "version",
   ]
 
   protected MiniDFSCluster hdfsCluster
@@ -326,6 +328,10 @@ implements KeysForTests, HoyaExitCodes {
     return conf
   }
 
+  public void assumeConfOptionSet(YarnConfiguration conf, String key) {
+    Assume.assumeNotNull("npt defined " + key, conf.get(key))
+  }
+  
   protected String getRMAddr() {
     assert miniCluster != null
     String addr = miniCluster.config.get(YarnConfiguration.RM_ADDRESS)
