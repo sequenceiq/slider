@@ -25,6 +25,7 @@ import org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys
 import org.apache.hadoop.hoya.yarn.ZKIntegration
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.accumulo.AccumuloTestBase
+import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
@@ -46,12 +47,14 @@ class TestAccM1T0 extends AccumuloTestBase {
     ServiceLauncher launcher = createAccCluster(clustername, 0, [], true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
-    ClusterDescription status = hoyaClient.getClusterStatus(clustername)
-    log.info("${status.toJsonString()}")
 
 
-    status = waitForRoleCount(hoyaClient, AccumuloKeys.ROLE_MASTER,1, ACCUMULO_CLUSTER_STARTUP_TO_LIVE_TIME)
+    waitWhileClusterExists(hoyaClient, 30000);
+    assert hoyaClient.applicationReport.yarnApplicationState == YarnApplicationState.RUNNING
+    waitForRoleCount(hoyaClient, AccumuloKeys.ROLE_MASTER, 1, ACCUMULO_CLUSTER_STARTUP_TO_LIVE_TIME)
     describe("Cluster status")
+    ClusterDescription status = hoyaClient.getClusterStatus(clustername)
+    status = hoyaClient.getClusterStatus(clustername)
     log.info(prettyPrint(status.toJsonString()))
 
   }

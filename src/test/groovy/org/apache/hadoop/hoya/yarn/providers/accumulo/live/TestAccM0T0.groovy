@@ -40,7 +40,6 @@ class TestAccM0T0 extends AccumuloTestBase {
 
     //make sure that ZK is up and running at the binding string
     ZKIntegration zki = createZKIntegrationInstance(ZKBinding, clustername, false, false, 5000)
-    log.info("ZK up at $zki");
     //now launch the cluster
     ServiceLauncher launcher = createAccCluster(clustername, 
                                                 [(AccumuloKeys.ROLE_MASTER): 0],

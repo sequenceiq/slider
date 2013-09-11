@@ -1012,17 +1012,31 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     return monitorAppToState(applicationId, desiredState, duration);
   }
 
+
   /**
-   * Monitor the submitted application for reaching the requested state.
-   * Will also report if the app reaches a later state (failed, killed, etc)
-   * Kill application if duration!= null & time expires. 
-   * @param appId Application Id of application to be monitored
-   * @param duration how long to wait -must be more than 0
-   * @param desiredState desired state.
-   * @return the application report -null on a timeout
-   * @throws YarnException
+   * Get the report of a this application
+   * @return the app report or null if it could not be found.
    * @throws IOException
+   * @throws YarnException
    */
+  public ApplicationReport getApplicationReport() throws
+                                                  IOException,
+                                                  YarnException {
+    return getApplicationReport(applicationId);
+  }
+
+
+    /**
+     * Monitor the submitted application for reaching the requested state.
+     * Will also report if the app reaches a later state (failed, killed, etc)
+     * Kill application if duration!= null & time expires. 
+     * @param appId Application Id of application to be monitored
+     * @param duration how long to wait -must be more than 0
+     * @param desiredState desired state.
+     * @return the application report -null on a timeout
+     * @throws YarnException
+     * @throws IOException
+     */
   @VisibleForTesting
   public ApplicationReport monitorAppToState(
     ApplicationId appId, YarnApplicationState desiredState, Duration duration)
