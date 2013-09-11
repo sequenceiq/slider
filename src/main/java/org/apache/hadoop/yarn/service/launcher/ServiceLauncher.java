@@ -172,8 +172,11 @@ public class ServiceLauncher
     if (runService != null) {
       //assume that runnable services are meant to run from here
       exitCode = runService.runService();
+      LOG.debug("Service exited with exit code " + exitCode);
+
     } else {
       //run the service until it stops or an interrupt happens on a different thread.
+      LOG.debug("waiting for service threads to terminate");
       service.waitForServiceToStop(0);
     }
     //exit
