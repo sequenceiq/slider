@@ -99,7 +99,7 @@ public class RunLongLivedApp implements Runnable {
    * @param val value 
    */
   public void putEnv(String key, String val) {
-    if (key == null) {
+    if (val == null) {
       throw new RuntimeException("Null value for key " + key);
     }
     builder.environment().put(key, val);
