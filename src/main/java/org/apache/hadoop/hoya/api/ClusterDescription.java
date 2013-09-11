@@ -360,6 +360,21 @@ public class ClusterDescription {
     String val = options.get(key);
     return val != null ? val : defVal;
   }
+  
+  /**
+   * Get a cluster option or value
+   * 
+   * @param key
+   * @param defVal
+   * @return
+   */
+  public String getMandatoryOption(String key) throws BadConfigException {
+    String val = options.get(key);
+    if (key == null) {
+      throw new BadConfigException("Missing option " + key);
+    }
+    return val ;
+  }
 
 
   /**
