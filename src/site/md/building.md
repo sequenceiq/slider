@@ -44,7 +44,16 @@ Build and install it locally, skipping the tests:
     mvn install -DskipTests
 
 You have to do this every morning to avoid the ASF nightly artifacts being picked up/
- 
+
+To make a tarball for use in test runs:
+
+    #On  osx
+    mvn package -Pdist -Dtar -DskipTests -Dmaven.javadoc.skip=true 
+    
+    # on linux
+    mvn package -Pdist -Pnative -Dtar -DskipTests -Dmaven.javadoc.skip=true 
+
+This takes time so try to avoid doing this.
 
 ## building a compatible HBase version
 
@@ -82,7 +91,8 @@ see [http://hbase.apache.org/book/build.html](HBase building)
 
     mvn clean package -Passemble -DskipTests -Dhadoop.profile=2.0
 
-This creates an accumulo tarball in
+This creates an accumulo tar.gz file in `assemble/target/`. Unzip then untar
+this, to create a .tar file and an expanded directory
 
     accumulo/assemble/target/accumulo-1.6.0-SNAPSHOT-bin.tar.gz
 
