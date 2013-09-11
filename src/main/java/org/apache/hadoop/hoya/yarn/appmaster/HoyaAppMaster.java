@@ -760,6 +760,7 @@ public class HoyaAppMaster extends CompositeService
     ;
     
     String exitCodeString = exitCode != null ? exitCode.toString() : "n/a";
+    //if there were failed containers and the app isn't already down as failing, it is now
     if (numFailedContainers.get() != 0 &&  appStatus == FinalApplicationStatus.SUCCEEDED) {
       appStatus = FinalApplicationStatus.FAILED;
       appMessage = "Completed with "+ numFailedContainers.get()+" failed containers: "
@@ -833,11 +834,11 @@ public class HoyaAppMaster extends CompositeService
       // Set up resource requirements from role valuesx
       String name = role.getName();
       capability.setVirtualCores(clusterSpec.getRoleOptInt(name,
-                                                                  YARN_CORES,
-                                                                  DEF_YARN_CORES));
+                                                           YARN_CORES,
+                                                           DEF_YARN_CORES));
       capability.setMemory(clusterSpec.getRoleOptInt(name,
-                                                            YARN_MEMORY,
-                                                            DEF_YARN_MEMORY));
+                                                     YARN_MEMORY,
+                                                     DEF_YARN_MEMORY));
       pri.setPriority(role.getPriority());
     }
     AMRMClient.ContainerRequest request;

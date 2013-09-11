@@ -47,6 +47,7 @@ import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.service.ServiceOperations
 import org.apache.hadoop.yarn.api.records.ApplicationReport
+import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.server.MiniYARNCluster
 import org.apache.hadoop.yarn.server.resourcemanager.ResourceManager
@@ -569,11 +570,15 @@ implements KeysForTests, HoyaExitCodes {
    * it to shut down cleanly
    * @param hoyaClient client to talk to
    */
-  public void waitForAppToFinish(HoyaClient hoyaClient) {
-    if (!hoyaClient.monitorAppToCompletion(new Duration(WAIT_TIME))) {
+  public ApplicationReport waitForAppToFinish(HoyaClient hoyaClient) {
+
+    ApplicationReport report = hoyaClient.monitorAppToState(new Duration(WAIT_TIME),
+                                                            YarnApplicationState.FINISHED);
+    if (report == null) {
       log.info("Forcibly killing application")
       hoyaClient.forceKillApplication("timed out waiting for application to complete");
     }
+    return report;
   }
 
   public ExecutorService createExecutorService() {
@@ -637,6 +642,13 @@ implements KeysForTests, HoyaExitCodes {
   }
 
 
+  public void waitWhileClusterExists(HoyaClient client, int timeout) {
+    Duration duration = new Duration(timeout);
+    duration.start()
+    while(client.actionExists(client.deployedClusterName) && !duration.limitExceeded) {
+      sleep(1000);
+    }
+  }
 
 
   /**

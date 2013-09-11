@@ -927,7 +927,6 @@ public class HoyaClient extends YarnClientImpl implements RunService,
    * @throws YarnException YARN or app issues
    * @throws IOException IO problems
    */
-  @VisibleForTesting
   public int monitorAppToCompletion(Duration duration)
     throws YarnException, IOException {
 
