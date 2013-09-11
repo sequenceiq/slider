@@ -127,9 +127,10 @@ public class RoleLauncher implements Runnable {
       node.role = containerRole;
       node.environment = nodeEnv.toArray(new String[nodeEnv.size()]);
       owner.startContainer(container, ctx, node);
-    } catch (IOException e) {
-      log.error("Exception thrown while trying to start "+containerRole + ": " + e,
-                e);
+    } catch (Exception e) {
+      log.error(
+        "Exception thrown while trying to start " + containerRole + ": " + e,
+        e);
     } finally {
       owner.launchedThreadCompleted(this);
     }
