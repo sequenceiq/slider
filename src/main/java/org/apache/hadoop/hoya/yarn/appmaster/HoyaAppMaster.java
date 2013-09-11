@@ -220,7 +220,7 @@ public class HoyaAppMaster extends CompositeService
   private final AtomicBoolean amCompletionFlag = new AtomicBoolean(false);
   private volatile boolean localProcessTerminated = false;
   private volatile boolean localProcessStarted = false;
-  private volatile boolean success;
+  private volatile boolean success = true;
 
 
   /** Arguments passed in : raw*/
@@ -300,6 +300,7 @@ public class HoyaAppMaster extends CompositeService
    * Exit code set when the spawned process exits
    */
   private volatile int spawnedProcessExitCode;
+  private volatile int mappedProcessExitCode;
   /**
    * Flag to set if the process exit code was set before shutdown started
    */
@@ -326,6 +327,8 @@ public class HoyaAppMaster extends CompositeService
    */
   private int containerMaxMemory
     ;
+  private String amCompletionReason;
+
   /**
    * Service Constructor
    */
@@ -384,11 +387,13 @@ public class HoyaAppMaster extends CompositeService
     int exitCode = EXIT_SUCCESS;
     if (action.equals(HoyaActions.ACTION_HELP)) {
       log.info(getName() + serviceArgs.usage());
+      exitCode = HoyaExitCodes.EXIT_USAGE;
     } else if (action.equals(HoyaActions.ACTION_CREATE)) {
       exitCode = createAndRunCluster(actionArgs.get(0));
     } else {
       throw new HoyaException("Unimplemented: " + action);
     }
+    log.info("Exiting HoyaAM; final exit code = {}", exitCode);
     return exitCode;
   }
 
@@ -600,14 +605,13 @@ public class HoyaAppMaster extends CompositeService
 
     try {
       //if we get here: success
-      success = true;
       
       //here see if the launch worked.
       if (localProcessTerminated) {
         //exit without even starting a service
         log.info("Exiting early as process terminated with exit code {}",
                  spawnedProcessExitCode);
-        return spawnedProcessExitCode;
+        return buildExitCode();
       }
 
       //now ask for the cluster nodes
@@ -620,8 +624,7 @@ public class HoyaAppMaster extends CompositeService
       finish();
     }
 
-    return success ? mapProcessExitCodeToYarnExitCode(spawnedProcessExitCode)
-                   : EXIT_TASK_LAUNCH_FAILURE;
+    return buildExitCode();
   }
 
   private void checkAndWarnForAuthTokenProblems() {
@@ -635,21 +638,25 @@ public class HoyaAppMaster extends CompositeService
     }
   }
 
+  private int buildExitCode() {
+    if (spawnedProcessExitedBeforeShutdownTriggered) {
+      return mappedProcessExitCode;
+    }
+    return success ? EXIT_SUCCESS
+                   : EXIT_TASK_LAUNCH_FAILURE;
+  }
+
   /**
    * Map an exit code from a process 
    * @param exitCode
    * @return an exit code
    */
   public int mapProcessExitCodeToYarnExitCode(int exitCode) {
-    if (!spawnedProcessExitedBeforeShutdownTriggered) {
-      //if triggered after shutdown, don't care about the exit code
-      return 0;
-    }
-    //else
     switch (exitCode) {
-      case 0:
-        return 0;
-      case 1:
+      case EXIT_SUCCESS:
+        return EXIT_SUCCESS;
+      //remap from a planned shutdown to a failure
+      case EXIT_CLIENT_INITIATED_SHUTDOWN:
         return EXIT_MASTER_PROCESS_FAILED;
       default:
         return exitCode;
@@ -706,7 +713,8 @@ public class HoyaAppMaster extends CompositeService
    * Declare that the AM is complete
    */
   public void signalAMComplete(String reason) {
-    log.info("Triggering shutdown of the AM: {}", reason);
+    amCompletionReason = reason;
+    log.info("Triggering shutdown of the AM: {}", amCompletionReason);
     AMExecutionStateLock.lock();
     try {
       amCompletionFlag.set(true);
@@ -720,8 +728,24 @@ public class HoyaAppMaster extends CompositeService
    * shut down the cluster 
    */
   private synchronized void finish() {
+    FinalApplicationStatus appStatus;
+    String appMessage = "Completed";
+    appStatus = FinalApplicationStatus.SUCCEEDED;
     //stop the daemon & grab its exit code
-    Integer exitCode = stopForkedProcess();
+    Integer exitCode = null;
+    if (spawnedProcessExitedBeforeShutdownTriggered) {
+      exitCode = mappedProcessExitCode;
+      success = false;
+      appStatus = FinalApplicationStatus.FAILED;
+      appMessage = String.format("Forked process failed, mapped exit code=%s raw=%s",
+                                 exitCode,
+                                 spawnedProcessExitCode);
+
+    } else {
+      //stopped the forked process but don't worry about its exit code
+      exitCode = stopForkedProcess();
+      log.debug("Stopping forked process: exit code={}",exitCode);
+    }
     joinAllLaunchedThreads();
 
 
@@ -733,15 +757,10 @@ public class HoyaAppMaster extends CompositeService
     // signal to the RM
     log.info("Application completed. Signalling finish to RM");
 
-    FinalApplicationStatus appStatus;
-    String appMessage = null;
-    success = true;
+    ;
+    
     String exitCodeString = exitCode != null ? exitCode.toString() : "n/a";
-    if (numFailedContainers.get() == 0) {
-      appStatus = FinalApplicationStatus.SUCCEEDED;
-      appMessage = "completed. Local daemon exit code = " 
-                   + exitCodeString;
-    } else {
+    if (numFailedContainers.get() != 0 &&  appStatus == FinalApplicationStatus.SUCCEEDED) {
       appStatus = FinalApplicationStatus.FAILED;
       appMessage = "Completed with "+ numFailedContainers.get()+" failed containers: "
                    + " Local daemon exit code =  " +
@@ -871,12 +890,15 @@ public class HoyaAppMaster extends CompositeService
     synchronized (launchThreads) {
       liveThreads = new ArrayList<Thread>(launchThreads.values());
     }
-    log.info("Waiting for the completion of {} threads", liveThreads.size());
-    for (Thread launchThread : liveThreads) {
-      try {
-        launchThread.join(LAUNCHER_THREAD_SHUTDOWN_TIME);
-      } catch (InterruptedException e) {
-        log.info("Exception thrown in thread join: " + e, e);
+    int size = liveThreads.size();
+    if (size > 0) {
+      log.info("Waiting for the completion of {} threads", size);
+      for (Thread launchThread : liveThreads) {
+        try {
+          launchThread.join(LAUNCHER_THREAD_SHUTDOWN_TIME);
+        } catch (InterruptedException e) {
+          log.info("Exception thrown in thread join: " + e, e);
+        }
       }
     }
   }
@@ -1517,19 +1539,24 @@ public class HoyaAppMaster extends CompositeService
   public void onApplicationExited(RunLongLivedApp application, int exitCode) {
     localProcessTerminated = true;
     synchronized (clusterSpecLock) {
-      spawnedProcessExitCode = exitCode;
       //did the process exit before the AM completion flag? If so
       //a failure may be relevant
       spawnedProcessExitedBeforeShutdownTriggered = ! amCompletionFlag.get();
-      masterNode.exitCode = spawnedProcessExitCode;
-      masterNode.state = ClusterDescription.STATE_STOPPED;
+      spawnedProcessExitCode = exitCode;
+      mappedProcessExitCode = mapProcessExitCodeToYarnExitCode(exitCode);
+      if (spawnedProcessExitedBeforeShutdownTriggered) {
+        success = false;
+        masterNode.exitCode = mappedProcessExitCode;
+        masterNode.state = ClusterDescription.STATE_STOPPED;
+      }
     }
-    log.info("Process has exited with exit code {}, beforeShutdownTriggered={}",
+    log.info("Process has exited with exit code {} mapped to {}, beforeShutdownTriggered={}",
              exitCode,
+             mappedProcessExitCode,
              spawnedProcessExitedBeforeShutdownTriggered);
 
     //tell the AM the cluster is complete 
-    signalAMComplete("Spawned master exited with " + exitCode);
+    signalAMComplete("Spawned master exited with raw " + exitCode + " mapped to " +mappedProcessExitCode);
   }
 
   /**
