@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.providers;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 
@@ -43,7 +44,8 @@ public interface ServerProvider extends ProviderCore {
                                    Path generatedConfPath, String role,
                                    ClusterDescription clusterSpec,
                                    Map<String, String> roleOptions) throws
-                                                                        IOException;
+                                                                    IOException,
+                                                                    HoyaException;
   int getDefaultMasterInfoPort();
 
   String getSiteXMLFilename();
