@@ -143,13 +143,17 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
         (AccumuloKeys.ROLE_MASTER): 1,
         (AccumuloKeys.ROLE_TABLET): tablets,
     ];
+    return createAccCluster(clustername, roles, extraArgs, deleteExistingData, blockUntilRunning);
+
+  }
+
+  public ServiceLauncher createAccCluster(String clustername, Map<String, Integer> roles, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
     extraArgs << CommonArgs.ARG_PROVIDER << AccumuloKeys.PROVIDER_ACCUMULO;
-    
+
     return createHoyaCluster(clustername,
                              roles,
                              extraArgs,
                              deleteExistingData,
                              blockUntilRunning)
-
   }
 }

@@ -73,7 +73,7 @@ class TestFreezeReconfigureThawLiveRegionService extends HBaseMiniClusterTestBas
     Path specPath = HoyaUtils.locateClusterSpecification(dfs, clustername);
     ClusterDescription persistedSpec = HoyaUtils.loadAndValidateClusterSpec(dfs, specPath);
     Path confdir = new Path(persistedSpec.originConfigurationPath);
-    Path hbaseSiteXML = new Path(confdir, HBaseKeys.HBASE_SITE)
+    Path hbaseSiteXML = new Path(confdir, HBaseKeys.SITE_XML)
     Configuration originalConf = ConfigHelper.loadTemplateConfiguration(dfs, hbaseSiteXML, "");
     //patch
     String patchedText = "patched-after-freeze"

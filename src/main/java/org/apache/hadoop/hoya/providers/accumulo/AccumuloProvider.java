@@ -34,8 +34,6 @@ import org.apache.hadoop.hoya.providers.ServerProvider;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
-import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions;
-import org.apache.hadoop.hoya.providers.hbase.HBaseKeys;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -188,7 +186,7 @@ public class AccumuloProvider extends Configured implements
                                                                   HoyaException {
     providerUtils.validateNodeCount(AccumuloKeys.ROLE_TABLET,
                                     clusterSpec.getDesiredInstanceCount(
-                                      HBaseKeys.ROLE_WORKER,
+                                      AccumuloKeys.ROLE_TABLET,
                                       0), 0, -1);
 
 
@@ -239,7 +237,7 @@ public class AccumuloProvider extends Configured implements
     Path sitePath = ConfigHelper.generateConfig(serviceConf,
                                                 siteConf,
                                                 generatedConfDirPath,
-                                                HBaseKeys.HBASE_SITE);
+                                                AccumuloKeys.SITE_XML);
 
     log.debug("Saving the config to {}", sitePath);
     Map<String, LocalResource> confResources;
@@ -285,7 +283,7 @@ public class AccumuloProvider extends Configured implements
                                           ) throws IOException {
     // Set the environment
     Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
-    env.put(HBaseKeys.HBASE_LOG_DIR,providerUtils.getLogdir());
+//    env.put(HBaseKeys.HBASE_LOG_DIR,providerUtils.getLogdir());
 
     ctx.setEnvironment(env);
 
@@ -311,14 +309,16 @@ public class AccumuloProvider extends Configured implements
 
     List<String> command = new ArrayList<String>();
     //this must stay relative if it is an image
-    command.add(buildHBaseBinPath(clusterSpec).toString());
+    command.add(buildScriptBinPath(clusterSpec).toString());
 
     //config dir is relative to the generated file
+/* TODO
     command.add(HBaseKeys.ARG_CONFIG);
     command.add(HoyaKeys.PROPAGATED_CONF_DIR_NAME);
+*/
     //role is region server
-    command.add(HBaseKeys.REGION_SERVER);
-    command.add(HBaseKeys.ACTION_START);
+    command.add(AccumuloKeys.CREATE_TABLET);
+    command.add(AccumuloKeys.ACTION_START);
 
     //log details
     command.add(
@@ -336,24 +336,23 @@ public class AccumuloProvider extends Configured implements
 
 
   /**
-   * Get the path to hbase home
-   * @return the hbase home path
+   * Get the path to the script
+   * @return the script
    */
-  public static File buildHBaseBinPath(ClusterDescription cd) {
-    File hbaseScript = new File(buildHBaseDir(cd),
-                                HBaseKeys.HBASE_SCRIPT);
-    return hbaseScript;
+  public static File buildScriptBinPath(ClusterDescription cd) {
+    return new File(buildImageDir(cd), AccumuloKeys.START_SCRIPT);
+    
   }
 
-  public static File buildHBaseDir(ClusterDescription cd) {
-    File hbasedir;
+  public static File buildImageDir(ClusterDescription cd) {
+    File basedir;
     if (cd.imagePath != null) {
-      hbasedir = new File(new File(HoyaKeys.LOCAL_TARBALL_INSTALL_SUBDIR),
-                          HBaseKeys.HBASE_ARCHIVE_SUBDIR);
+      basedir = new File(new File(HoyaKeys.LOCAL_TARBALL_INSTALL_SUBDIR),
+                          AccumuloKeys.ARCHIVE_SUBDIR);
     } else {
-      hbasedir = new File(cd.applicationHome);
+      basedir = new File(cd.applicationHome);
     }
-    return hbasedir;
+    return basedir;
   }
 
   @Override
@@ -362,24 +361,26 @@ public class AccumuloProvider extends Configured implements
                                           Map<String, String> env) throws
                                                                    IOException,
                                                                    HoyaException {
-    env.put(HBaseKeys.HBASE_LOG_DIR, new ProviderUtils(log).getLogdir());
+//    env.put(HBaseKeys.HBASE_LOG_DIR, new ProviderUtils(log).getLogdir());
     //pull out the command line argument if set
     String masterCommand =
       cd.getOption(
-        HBaseConfigFileOptions.OPTION_HBASE_MASTER_COMMAND,
-        HBaseKeys.MASTER);
+        HoyaKeys.OPTION_HOYA_MASTER_COMMAND,
+        AccumuloKeys.CREATE_MASTER);
     List<String> launchSequence = new ArrayList<String>(8);
     //prepend the hbase command itself
-    File binHbaseSh = buildHBaseBinPath(cd);
-    String scriptPath = binHbaseSh.getAbsolutePath();
-    if (!binHbaseSh.exists()) {
+    File binScriptSh = buildScriptBinPath(cd);
+    String scriptPath = binScriptSh.getAbsolutePath();
+    if (!binScriptSh.exists()) {
       throw new BadCommandArgumentsException("Missing script " + scriptPath);
     }
     launchSequence.add(0, scriptPath);
+/* todo
     launchSequence.add(HBaseKeys.ARG_CONFIG);
     launchSequence.add(confDir.getAbsolutePath());
+*/
     launchSequence.add(masterCommand);
-    launchSequence.add(HBaseKeys.ACTION_START);
+    launchSequence.add(AccumuloKeys.ACTION_START);
     return launchSequence;
   }
 

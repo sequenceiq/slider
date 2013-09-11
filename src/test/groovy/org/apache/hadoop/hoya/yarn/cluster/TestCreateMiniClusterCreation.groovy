@@ -44,7 +44,7 @@ class TestCreateMiniClusterCreation extends HBaseMiniClusterTestBase {
     assert hbaseBinDir.exists() && hbaseHomeDir.isDirectory()
     File hbaseShell = new File(hbaseBinDir, "hbase")
     assert hbaseShell.exists()
-    File hbaseSite = new File(hbaseHomeDir, "conf/" + HBaseKeys.HBASE_SITE);
+    File hbaseSite = new File(hbaseHomeDir, "conf/" + HBaseKeys.SITE_XML);
     assert hbaseSite.exists()
 
   }

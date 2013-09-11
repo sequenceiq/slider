@@ -194,7 +194,7 @@ public class LoadGenProvider extends Configured implements
     Configuration siteConf = ConfigHelper.loadTemplateConfiguration(
       serviceConf,
       originConfDirPath,
-      HBaseKeys.HBASE_SITE,
+      HBaseKeys.SITE_XML,
       HBaseKeys.HBASE_TEMPLATE_RESOURCE);
 
     //construct the cluster configuration values
@@ -210,7 +210,7 @@ public class LoadGenProvider extends Configured implements
     Path sitePath = ConfigHelper.generateConfig(serviceConf,
                                                 siteConf,
                                                 generatedConfDirPath,
-                                                HBaseKeys.HBASE_SITE);
+                                                HBaseKeys.SITE_XML);
 
     log.debug("Saving the config to {}", sitePath);
     Map<String, LocalResource> confResources;
@@ -320,7 +320,7 @@ public class LoadGenProvider extends Configured implements
     File hbasedir;
     if (cd.imagePath != null) {
       hbasedir = new File(new File(HoyaKeys.LOCAL_TARBALL_INSTALL_SUBDIR),
-                          HBaseKeys.HBASE_ARCHIVE_SUBDIR);
+                          HBaseKeys.ARCHIVE_SUBDIR);
     } else {
       hbasedir = new File(cd.applicationHome);
     }

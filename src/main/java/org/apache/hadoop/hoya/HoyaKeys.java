@@ -87,4 +87,10 @@ public interface HoyaKeys {
   String KEY_HOYA_TEMPLATE_ORIGIN = "hoya.template.origin";
 
   String CLUSTER_DIRECTORY = "cluster";
+  /**
+   * Command to issue to override any specific role in the in-AM master
+   * script. Used for things like issuing a version command in testing
+   */
+  String OPTION_HOYA_MASTER_COMMAND =
+    "hoya.master.command";
 }

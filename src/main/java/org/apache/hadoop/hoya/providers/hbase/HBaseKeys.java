@@ -73,18 +73,18 @@ public interface HBaseKeys {
   /**
    *  name of the hbase subdir in the archive:  {@value}
    */
-  String HBASE_ARCHIVE_SUBDIR = "hbase-0.95.3-SNAPSHOT";
+  String ARCHIVE_SUBDIR = "hbase-0.95.3-SNAPSHOT";
   /**
    *  name of the site conf to generate :  {@value}
    */
-  String HBASE_SITE = "hbase-site.xml";
+  String SITE_XML = "hbase-site.xml";
   /**
    * Template stored in the hoya classpath -to use if there is
    * no site-specific template
    *  {@value}
    */
   String HBASE_CONF_RESOURCE = "/org/apache/hadoop/hoya/providers/hbase/conf/";
-  String HBASE_TEMPLATE_RESOURCE = HBASE_CONF_RESOURCE + HBASE_SITE;
+  String HBASE_TEMPLATE_RESOURCE = HBASE_CONF_RESOURCE + SITE_XML;
 
 
   String DEFAULT_HBASE_WORKER_HEAP = "256M";

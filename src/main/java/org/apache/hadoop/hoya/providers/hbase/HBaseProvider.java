@@ -181,7 +181,7 @@ public class HBaseProvider extends Configured implements
 
   @Override
   public String getSiteXMLFilename() {
-    return HBASE_SITE;
+    return SITE_XML;
   }
 
   /**
@@ -239,7 +239,7 @@ public class HBaseProvider extends Configured implements
     Configuration siteConf = ConfigHelper.loadTemplateConfiguration(
       serviceConf,
       originConfDirPath,
-      HBaseKeys.HBASE_SITE,
+      HBaseKeys.SITE_XML,
       HBaseKeys.HBASE_TEMPLATE_RESOURCE);
 
     //construct the cluster configuration values
@@ -255,7 +255,7 @@ public class HBaseProvider extends Configured implements
     Path sitePath = ConfigHelper.generateConfig(serviceConf,
                                                 siteConf,
                                                 generatedConfDirPath,
-                                                HBaseKeys.HBASE_SITE);
+                                                HBaseKeys.SITE_XML);
 
     log.debug("Saving the config to {}", sitePath);
     Map<String, LocalResource> confResources;
@@ -368,7 +368,7 @@ public class HBaseProvider extends Configured implements
     File dir;
     if (cd.imagePath != null) {
       dir = new File(new File(HoyaKeys.LOCAL_TARBALL_INSTALL_SUBDIR),
-                          HBaseKeys.HBASE_ARCHIVE_SUBDIR);
+                          HBaseKeys.ARCHIVE_SUBDIR);
     } else {
       dir = new File(cd.applicationHome);
     }
@@ -385,7 +385,7 @@ public class HBaseProvider extends Configured implements
     //pull out the command line argument if set
     String masterCommand =
       cd.getOption(
-        HBaseConfigFileOptions.OPTION_HBASE_MASTER_COMMAND,
+        OPTION_HOYA_MASTER_COMMAND,
         MASTER);
     List<String> launchSequence = new ArrayList<String>(8);
     //prepend the hbase command itself

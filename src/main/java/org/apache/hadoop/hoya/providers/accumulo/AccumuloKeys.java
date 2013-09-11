@@ -44,6 +44,13 @@ public interface AccumuloKeys {
 
   String VERSION = "version";
 
+  String CREATE_MASTER = ROLE_MASTER;
+  String CREATE_GC = ROLE_GARBAGE_COLLECTOR;
+  String CREATE_TABLET = ROLE_TABLET;
+  String CREATE_MONITOR = ROLE_MONITOR;
+  String CREATE_TRACER  = ROLE_TRACER;
+
+
   String ACTION_START = "start";
   String ACTION_STOP = "stop";
 

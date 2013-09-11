@@ -89,7 +89,7 @@ implements KeysForTests, HoyaExitCodes {
   
   public static final String HREGION = "HRegion"
   public static final List<String> HBASE_VERSION_COMMAND_SEQUENCE = [
-      CommonArgs.ARG_OPTION, HBaseConfigFileOptions.OPTION_HBASE_MASTER_COMMAND, "version",
+      CommonArgs.ARG_OPTION, OPTION_HOYA_MASTER_COMMAND, "version",
   ]
 
   protected MiniDFSCluster hdfsCluster
