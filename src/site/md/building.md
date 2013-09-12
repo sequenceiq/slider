@@ -89,12 +89,27 @@ see [http://hbase.apache.org/book/build.html](HBase building)
 
 ## Building Accumulo
 
-    mvn clean package -Passemble -DskipTests -Dhadoop.profile=2.0
+In the accumulo project directory:
+
+    mvn clean package -Passemble -DskipTests -Dhadoop.profile=2.0  -Dmaven.javadoc.skip=true 
 
 This creates an accumulo tar.gz file in `assemble/target/`. Unzip then untar
 this, to create a .tar file and an expanded directory
 
-    accumulo/assemble/target/accumulo-1.6.0-SNAPSHOT-bin.tar.gz
+    accumulo/assemble/target/accumulo-1.6.0-SNAPSHOT-bin.tar
+    
+ This can be done with the command sequence
+    
+    pushd assemble/target/
+    gunzip -f accumulo-1.6.0-SNAPSHOT-bin.tar.gz 
+    tar -xvf accumulo-1.6.0-SNAPSHOT-bin.tar 
+    popd
+    
+    
+this 
+    
+    
+    
 
 ## Testing
 

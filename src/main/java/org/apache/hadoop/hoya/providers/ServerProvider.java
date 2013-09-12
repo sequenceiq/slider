@@ -52,7 +52,8 @@ public interface ServerProvider extends ProviderCore {
 
   List<String> buildProcessCommand(ClusterDescription cd,
                                    File confDir,
-                                   Map<String, String> env) throws
+                                   Map<String, String> env,
+                                   String masterCommand) throws
                                                                    IOException,
                                                                    HoyaException;
 

@@ -340,7 +340,8 @@ public class LoadGenProvider extends Configured implements
   @Override
   public List<String> buildProcessCommand(ClusterDescription cd,
                                           File confDir,
-                                          Map<String, String> env) throws
+                                          Map<String, String> env,
+                                          String masterCommand) throws
                                                                    IOException,
                                                                    HoyaException {
     return null;

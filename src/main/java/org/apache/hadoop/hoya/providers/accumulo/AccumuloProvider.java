@@ -24,6 +24,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
@@ -49,6 +50,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * This class implements both the client-side and server-side aspects
@@ -103,7 +105,11 @@ public class AccumuloProvider extends Configured implements
    */
   @Override
   public Map<String, String> getDefaultClusterOptions() {
-    return new HashMap<String, String>();
+    HashMap<String, String> options = new HashMap<String, String>();
+    //create an instance ID
+    options.put(OptionKeys.OPTION_SITE_PREFIX + AccumuloConfigFileOptions.INSTANCE_SECRET,
+                UUID.randomUUID().toString());
+    return options;
   }
 
   /**
@@ -143,12 +149,43 @@ public class AccumuloProvider extends Configured implements
    * @param clusterSpec this is the cluster specification used to define this
    * @return a map of the dynamic bindings for this Hoya instance
    */
+  @Override
   public Map<String, String> buildSiteConfFromSpec(ClusterDescription clusterSpec)
     throws BadConfigException {
 
 
+    Map<String, String> master = clusterSpec.getMandatoryRole(
+      AccumuloKeys.ROLE_MASTER);
+
+    Map<String, String> worker = clusterSpec.getMandatoryRole(
+      AccumuloKeys.ROLE_TABLET);
+
     Map<String, String> sitexml = new HashMap<String, String>();
 
+
+    providerUtils.propagateSiteOptions(clusterSpec, sitexml);
+
+
+    sitexml.put(AccumuloConfigFileOptions.KEY_WALOG,
+                clusterSpec.dataPath);
+
+    int zkPort = clusterSpec.zkPort;
+    String zkHosts = clusterSpec.zkHosts;
+    
+    //parse the hosts
+    String[] hostlist = zkHosts.split(",",0);
+    StringBuilder builder = new StringBuilder();
+    boolean first = true;
+    for (String host : hostlist) {
+      if (first) {
+        first = false;
+        builder.append(",");
+      }
+      builder.append(host).append(":").append(zkPort);
+    }
+
+    sitexml.put(AccumuloConfigFileOptions.KEY_ZOOKEEPER_QUORUM,
+                builder.toString());
     return sitexml;
   }
 
@@ -402,9 +439,11 @@ public class AccumuloProvider extends Configured implements
 
   /**
    * build up the in-container master comand
+   *
    * @param clusterSpec
    * @param confDir
    * @param env
+   * @param masterCommand
    * @return
    * @throws IOException
    * @throws HoyaException
@@ -412,7 +451,8 @@ public class AccumuloProvider extends Configured implements
   @Override //server
   public List<String> buildProcessCommand(ClusterDescription clusterSpec,
                                           File confDir,
-                                          Map<String, String> env) throws
+                                          Map<String, String> env,
+                                          String masterCommand) throws
                                                                    IOException,
                                                                    HoyaException {
 //    env.put(HBaseKeys.HBASE_LOG_DIR, new ProviderUtils(log).getLogdir());
@@ -432,21 +472,19 @@ public class AccumuloProvider extends Configured implements
             new File(dot, HoyaKeys.PROPAGATED_CONF_DIR_NAME).getAbsolutePath());
     env.put(ZOOKEEPER_HOME, clusterSpec.getMandatoryOption(OPTION_ZK_HOME));
 
-    //pull out the command line argument if set
-    String masterCommand =
-      clusterSpec.getOption(
-        HoyaKeys.OPTION_HOYA_MASTER_COMMAND,
-        AccumuloKeys.CREATE_MASTER);
-    List<String> launchSequence = new ArrayList<String>(8);
+    //set the service to run if unset
+    if (masterCommand == null) {
+      masterCommand = AccumuloKeys.CREATE_MASTER;
+    }
     //prepend the hbase command itself
     File binScriptSh = buildScriptBinPath(clusterSpec);
     String scriptPath = binScriptSh.getAbsolutePath();
     if (!binScriptSh.exists()) {
       throw new BadCommandArgumentsException("Missing script " + scriptPath);
     }
+    List<String> launchSequence = new ArrayList<String>(8);
     launchSequence.add(0, scriptPath);
     launchSequence.add(masterCommand);
-//    launchSequence.add(AccumuloKeys.ACTION_START);
     return launchSequence;
   }
 

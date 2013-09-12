@@ -48,3 +48,9 @@ adding the HBase tar file as a resource, and HBase JARs on the classpath.
 1. In the AM, setting up the launchers for the various roles.
 1. In the AM, helping monitor the state of launched role instances. (Once liveness monitoring is implemented)
 
+## AM Architecture
+
+The AM always has the role "master". It is a Yarn service, following the YARN lifecycle.
+
+It supports the addition of sub-services supplied by the provider.
+

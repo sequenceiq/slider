@@ -18,6 +18,8 @@
 
 package org.apache.hadoop.hoya.providers;
 
+import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
@@ -98,4 +100,22 @@ public class ProviderUtils implements RoleKeys {
         max);
     }
   }
-}
+
+  /**
+   * copy all options beginning site. into the site.xml
+   * @param clusterSpec cluster specificatin
+   * @param sitexml XML file to build up
+   */
+  public void propagateSiteOptions(ClusterDescription clusterSpec,
+                                    Map<String, String> sitexml) {
+    Map<String, String> options = clusterSpec.options;
+    for (Map.Entry<String, String> entry : options.entrySet()) {
+      String key = entry.getKey();
+      if (key.startsWith(OptionKeys.OPTION_SITE_PREFIX)) {
+        String envName = key.substring(OptionKeys.OPTION_SITE_PREFIX.length());
+        if (!envName.isEmpty()) {
+          sitexml.put(envName, entry.getValue());
+        }
+      }
+    }
+  }}

@@ -16,21 +16,27 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hoya.api;
+package org.apache.hadoop.hoya.yarn.appmaster;
 
-/**
- *  Keys for map entries in roles
- */
-public interface OptionKeys {
+import org.apache.hadoop.hoya.HoyaExitCodes;
+import org.apache.hadoop.yarn.service.launcher.LauncherExitCodes;
 
-  /**
-   * option used on command line to set the test flag
-   * {@value}
-   */
-  String OPTION_TEST = "hoya.test";
+public class AMUtils {
 
   /**
-   * Prefix for site.xml options
+   * Map an exit code from a process 
+   * @param exitCode
+   * @return an exit code
    */
-  String OPTION_SITE_PREFIX = "site.";
+  public static int mapProcessExitCodeToYarnExitCode(int exitCode) {
+    switch (exitCode) {
+      case LauncherExitCodes.EXIT_SUCCESS:
+        return LauncherExitCodes.EXIT_SUCCESS;
+      //remap from a planned shutdown to a failure
+      case LauncherExitCodes.EXIT_CLIENT_INITIATED_SHUTDOWN:
+        return HoyaExitCodes.EXIT_MASTER_PROCESS_FAILED;
+      default:
+        return exitCode;
+    }
+  }
 }

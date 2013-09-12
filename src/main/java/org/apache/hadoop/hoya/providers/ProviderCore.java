@@ -19,8 +19,11 @@
 package org.apache.hadoop.hoya.providers;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.exceptions.BadConfigException;
 
 import java.util.List;
+import java.util.Map;
 
 public interface ProviderCore {
 
@@ -29,4 +32,7 @@ public interface ProviderCore {
   List<ProviderRole> getRoles();
   
   Configuration getConf();
+
+  Map<String, String> buildSiteConfFromSpec(ClusterDescription clusterSpec)
+    throws BadConfigException;
 }

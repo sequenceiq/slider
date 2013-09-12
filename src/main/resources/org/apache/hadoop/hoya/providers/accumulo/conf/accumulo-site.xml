@@ -113,6 +113,11 @@
       $HADOOP_CONF_DIR,
       $HADOOP_PREFIX/[^.].*.jar,
       $HADOOP_PREFIX/lib/[^.].*.jar,
+      $HADOOP_PREFIX/share/hadoop/common/.*.jar,
+      $HADOOP_PREFIX/share/hadoop/common/lib/.*.jar,
+      $HADOOP_PREFIX/share/hadoop/hdfs/.*.jar,
+      $HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,
+      $HADOOP_PREFIX/share/hadoop/yarn/.*.jar,
     </value>
     <description>Classpaths that accumulo checks for updates and class files.</description>
   </property>

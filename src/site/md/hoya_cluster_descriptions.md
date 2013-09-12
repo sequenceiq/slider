@@ -15,6 +15,14 @@
 # Hoya Cluster Descriptions
 
 
+### Cluster-wide options
+
+Cluster wide options are used to configure the application itself.
+
+All options beginning with the prefix `site.` are converted into 
+site XML options for the specific application (assuming they take a site XML 
+configuration file).
+
 ## Roles
 
 ### Standard Role Options
@@ -22,5 +30,5 @@
 ### Env variables
  
  
-All role options beginning with "env." are automatically converted to
+All role options beginning with `env.` are automatically converted to
 environment variables set for that container

@@ -93,4 +93,7 @@ public interface HoyaKeys {
    */
   String OPTION_HOYA_MASTER_COMMAND =
     "hoya.master.command";
+
+  String OPTION_SITE_PREFIX = "site.";
+  
 }

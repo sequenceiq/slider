@@ -34,6 +34,7 @@ import org.apache.hadoop.hoya.providers.ServerProvider;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
+import org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -155,7 +156,8 @@ public class HBaseProvider extends Configured implements
       HBaseKeys.ROLE_WORKER);
 
     Map<String, String> sitexml = new HashMap<String, String>();
-
+    providerUtils.propagateSiteOptions(clusterSpec, sitexml);
+    
     sitexml.put(HBaseConfigFileOptions.KEY_HBASE_CLUSTER_DISTRIBUTED, "true");
     sitexml.put(HBaseConfigFileOptions.KEY_HBASE_MASTER_PORT, "0");
 
@@ -378,22 +380,23 @@ public class HBaseProvider extends Configured implements
   @Override
   public List<String> buildProcessCommand(ClusterDescription cd,
                                           File confDir,
-                                          Map<String, String> env) throws
+                                          Map<String, String> env,
+                                          String masterCommand) throws
                                                                    IOException,
                                                                    HoyaException {
     env.put(HBASE_LOG_DIR, new ProviderUtils(log).getLogdir());
     //pull out the command line argument if set
-    String masterCommand =
-      cd.getOption(
-        OPTION_HOYA_MASTER_COMMAND,
-        MASTER);
-    List<String> launchSequence = new ArrayList<String>(8);
+    //set the service to run if unset
+    if (masterCommand == null) {
+      masterCommand = MASTER;
+    }
     //prepend the hbase command itself
     File binHbaseSh = buildHBaseBinPath(cd);
     String scriptPath = binHbaseSh.getAbsolutePath();
     if (!binHbaseSh.exists()) {
       throw new BadCommandArgumentsException("Missing script " + scriptPath);
     }
+    List<String> launchSequence = new ArrayList<String>(8);
     launchSequence.add(0, scriptPath);
     launchSequence.add(ARG_CONFIG);
     launchSequence.add(confDir.getAbsolutePath());

@@ -47,6 +47,8 @@ import org.apache.hadoop.ipc.Server;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.service.CompositeService;
+import org.apache.hadoop.service.Service;
+import org.apache.hadoop.service.ServiceStateChangeListener;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
@@ -106,7 +108,7 @@ public class HoyaAppMaster extends CompositeService
              HoyaExitCodes,
              HoyaKeys,
              HoyaAppMasterProtocol,
-             ApplicationEventHandler,
+             ServiceStateChangeListener,
              RoleKeys {
   protected static final Logger log =
     LoggerFactory.getLogger(HoyaAppMaster.class);
@@ -222,6 +224,21 @@ public class HoyaAppMaster extends CompositeService
   private volatile boolean localProcessStarted = false;
   private volatile boolean success = true;
 
+  /**
+   * the forked process
+   */
+  private ForkedProcessService masterProcess;
+
+  /**
+   * Exit code set when the spawned process exits
+   */
+  private volatile int spawnedProcessExitCode;
+  private volatile int mappedProcessExitCode;
+  /**
+   * Flag to set if the process exit code was set before shutdown started
+   */
+  private boolean spawnedProcessExitedBeforeShutdownTriggered;
+
 
   /** Arguments passed in : raw*/
   private HoyaMasterServiceArgs serviceArgs;
@@ -284,10 +301,6 @@ public class HoyaAppMaster extends CompositeService
    */
   private boolean noMaster;
 
-  /**
-   * the hbase master runner
-   */
-  private RunLongLivedApp masterProcess;
 
   /**
    * The master node. This is a shared reference with the clusterDescription;
@@ -295,16 +308,6 @@ public class HoyaAppMaster extends CompositeService
    */
   private ClusterNode masterNode;
 
-
-  /**
-   * Exit code set when the spawned process exits
-   */
-  private volatile int spawnedProcessExitCode;
-  private volatile int mappedProcessExitCode;
-  /**
-   * Flag to set if the process exit code was set before shutdown started
-   */
-  private boolean spawnedProcessExitedBeforeShutdownTriggered;
 
   /**
    * ID of the AM container
@@ -595,8 +598,11 @@ public class HoyaAppMaster extends CompositeService
 
       Map<String, String> env = new HashMap<String, String>();
 
+      String masterCommand = clusterSpec.getOption(
+        HoyaKeys.OPTION_HOYA_MASTER_COMMAND, null);
+
       List<String> launchSequence =
-        provider.buildProcessCommand(clusterSpec, confDir, env);
+        provider.buildProcessCommand(clusterSpec, confDir, env, masterCommand);
 
       launchMasterProcess(clusterSpec,
                           launchSequence,
@@ -1400,14 +1406,13 @@ public class HoyaAppMaster extends CompositeService
       clusterStatus.statusTime = t;
       if (masterNode != null) {
         if (masterProcess != null) {
-          masterNode.command = HoyaUtils.join(masterProcess.getCommands(), " ");
-          if (masterProcess.isRunning()) {
-            masterNode.state = ClusterDescription.STATE_LIVE;
-          } else {
-            masterNode.state = ClusterDescription.STATE_STOPPED;
-            masterNode.diagnostics = "Exit code = " + masterProcess.getExitCode();
-          }
-          //pull in recent lines of output from the HBase master
+          masterNode.command = masterProcess.getCommandLine();
+          masterNode.state = masterProcess.isProcessStarted() ?
+                             ClusterDescription.STATE_LIVE :
+                             ClusterDescription.STATE_STOPPED;
+
+          masterNode.diagnostics = "Exit code = " + masterProcess.getExitCode();
+          //pull in recent lines of output
           List<String> output = masterProcess.getRecentOutput();
           masterNode.output = output.toArray(new String[output.size()]);
         } else {
@@ -1510,58 +1515,53 @@ public class HoyaAppMaster extends CompositeService
       throw new HoyaInternalStateException("trying to launch master process" +
                                            " when one is already running");
     }
-
-    masterProcess = new RunLongLivedApp(LOG_AM_PROCESS, commands);
-    masterProcess.setApplicationEventHandler(this);
-    //set the env variable mapping
-    masterProcess.putEnvMap(env);
-
-    //now spawn the process -expect updates via callbacks
-    masterProcess.spawnApplication();
-
-  }
-
-  @Override // ApplicationEventHandler
-  public void onApplicationStarted(RunLongLivedApp application) {
-    log.info("Process has started");
-    localProcessStarted = true;
-    synchronized (clusterSpecLock) {
-      masterNode.state = ClusterDescription.STATE_LIVE;
-    }
+    masterProcess = new ForkedProcessService(this,"master", clusterSpec, true);
+    masterProcess.init(getConfig());
+    masterProcess.start();
+    masterProcess.exec(env, commands);
+    //register the service for lifecycle management; when this service
+    //is terminated, so is the master process
+    masterProcess.registerServiceListener(this);
+    addService(masterProcess);
   }
 
   /**
-   * This is the callback on the HBaseMaster process 
-   * -it's raised when that process terminates
-   * @param application application
-   * @param exitCode exit code
+   * Received on listening service termination.
+   * @param service the service that has changed.
    */
-  @Override // ApplicationEventHandler
-  public void onApplicationExited(RunLongLivedApp application, int exitCode) {
-    localProcessTerminated = true;
-    synchronized (clusterSpecLock) {
-      //did the process exit before the AM completion flag? If so
-      //a failure may be relevant
-      spawnedProcessExitedBeforeShutdownTriggered = ! amCompletionFlag.get();
+  @Override
+  public void stateChanged(Service service) {
+    if (service == masterProcess) {
+      //its the current master process in play
+      int exitCode = masterProcess.getExitCode();
       spawnedProcessExitCode = exitCode;
       mappedProcessExitCode = mapProcessExitCodeToYarnExitCode(exitCode);
-      if (spawnedProcessExitedBeforeShutdownTriggered) {
-        success = false;
-        masterNode.exitCode = mappedProcessExitCode;
-        masterNode.state = ClusterDescription.STATE_STOPPED;
+      if (masterProcess.isEarlyExitIsFailure() && !amCompletionFlag.get()) {
+        //this wasn't expected: the process finished early
+        spawnedProcessExitedBeforeShutdownTriggered = true;
+        log.info(
+          "Process has exited with exit code {} mapped to {} -triggering termination",
+          exitCode,
+          mappedProcessExitCode);
+
+        //tell the AM the cluster is complete 
+        signalAMComplete(
+          "Spawned master exited with raw " + exitCode + " mapped to " +
+          mappedProcessExitCode);
+      } else {
+        //we don't care
+        log.info(
+          "Process has exited with exit code {} mapped to {} -ignoring",
+          exitCode,
+          mappedProcessExitCode);
+
       }
     }
-    log.info("Process has exited with exit code {} mapped to {}, beforeShutdownTriggered={}",
-             exitCode,
-             mappedProcessExitCode,
-             spawnedProcessExitedBeforeShutdownTriggered);
-
-    //tell the AM the cluster is complete 
-    signalAMComplete("Spawned master exited with raw " + exitCode + " mapped to " +mappedProcessExitCode);
   }
 
+
   /**
-   * stop hbase process if it the running process var is not null
+   * stop forked process if it the running process var is not null
    * @return the hbase exit code -null if it is not running
    */
   protected synchronized Integer stopForkedProcess() {

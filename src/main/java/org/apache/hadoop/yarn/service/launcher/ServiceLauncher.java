@@ -23,7 +23,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.service.Service;
-import org.apache.hadoop.service.ServiceStateException;
 import org.apache.hadoop.util.ExitUtil;
 import org.apache.hadoop.util.ShutdownHookManager;
 import org.apache.hadoop.util.VersionInfo;
@@ -198,7 +197,8 @@ public class ServiceLauncher
   public Service instantiateService(Configuration conf) throws
                                                         ClassNotFoundException,
                                                         InstantiationException,
-                                                        IllegalAccessException {
+                                                        IllegalAccessException,
+                                                        ExitUtil.ExitException {
     configuration = conf;
 
     //Instantiate the class -this requires the service to have a public
@@ -208,7 +208,8 @@ public class ServiceLauncher
     Object instance = serviceClass.newInstance();
     if (!(instance instanceof Service)) {
       //not a service
-      throw new ServiceStateException("Not a Service: " + serviceClassName);
+      throw new ExitUtil.ExitException(EXIT_BAD_CONFIGURATION,
+                                       "Not a Service: " + serviceClassName);
     }
 
     service = (Service) instance;
@@ -266,6 +267,14 @@ public class ServiceLauncher
   }
 
   /**
+   * Exit off an exception. This can be subclassed for testing
+   * @param ee exit exception
+   */
+  protected void exit(ExitUtil.ExitException ee) {
+    ExitUtil.terminate(ee.status, ee);
+  }
+
+  /**
    * Get the service name via {@link Service#getName()}.
    * If the service is not instantiated, the classname is returned instead.
    * @return the service name
@@ -298,8 +307,8 @@ public class ServiceLauncher
     //Currently the config just the default
     Configuration conf = new Configuration();
     String[] processedArgs = extractConfigurationArgs(conf, args);
-    int exitCode = launchServiceRobustly(conf, processedArgs);
-    exit(exitCode);
+    ExitUtil.ExitException ee = launchServiceRobustly(conf, processedArgs);
+    exit(ee);
   }
 
   /**
@@ -355,39 +364,45 @@ public class ServiceLauncher
    * @param conf configuration to use
    * @param processedArgs command line after the launcher-specific arguments have
    * been stripped out
-   * @return an exit code.
+   * @return an exit exception, which will have a status code of 0 if it worked
    */
-  public int launchServiceRobustly(Configuration conf,
+  public ExitUtil.ExitException launchServiceRobustly(Configuration conf,
                                    String[] processedArgs) {
-    int exitCode;
+    ExitUtil.ExitException exitException;
     try {
-      exitCode = launchService(conf, processedArgs, true);
+      int exitCode = launchService(conf, processedArgs, true);
       if (service != null) {
         Throwable failure = service.getFailureCause();
         if (failure != null) {
+          //the service exited with a failure.
+          //check what state it is in
           Service.STATE failureState = service.getFailureState();
           if (failureState == Service.STATE.STOPPED) {
             //the failure occurred during shutdown, not important enough to bother
             //the user as it may just scare them
             LOG.debug("Failure during shutdown", failure);
           } else {
+            //throw it for the catch handlers to deal with
             throw failure;
           }
         }
       }
+      exitException = new ExitUtil.ExitException(exitCode, "In " + serviceClassName);
       //either the service succeeded, or an error was only raised during shutdown, 
       //which we don't worry that much about
-    } catch (ExitUtil.ExitException exitException) {
-      exitCode = exitException.status;
+    } catch (ExitUtil.ExitException ee) {
+      exitException = ee;
     } catch (Throwable thrown) {
+      int exitCode;
       LOG.error("While running " + getServiceName() + ":" + thrown, thrown);
       if (thrown instanceof GetExceptionExitCode) {
         exitCode = ((GetExceptionExitCode) thrown).getExitCode();
       } else {
         exitCode = EXIT_EXCEPTION_THROWN;
       }
+      exitException = new ExitUtil.ExitException(exitCode, thrown);
     }
-    return exitCode;
+    return exitException;
   }
 
   /**
