@@ -36,8 +36,6 @@ import org.apache.hadoop.hoya.api.HoyaAppMasterProtocol;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
-import org.apache.hadoop.hoya.exec.ApplicationEventHandler;
-import org.apache.hadoop.hoya.exec.RunLongLivedApp;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
@@ -652,23 +650,6 @@ public class HoyaAppMaster extends CompositeService
                    : EXIT_TASK_LAUNCH_FAILURE;
   }
 
-  /**
-   * Map an exit code from a process 
-   * @param exitCode
-   * @return an exit code
-   */
-  public int mapProcessExitCodeToYarnExitCode(int exitCode) {
-    switch (exitCode) {
-      case EXIT_SUCCESS:
-        return EXIT_SUCCESS;
-      //remap from a planned shutdown to a failure
-      case EXIT_CLIENT_INITIATED_SHUTDOWN:
-        return EXIT_MASTER_PROCESS_FAILED;
-      default:
-        return exitCode;
-    }
-  }
-  
   /**
    * Build the configuration directory passed in or of the target FS
    * @return the file
@@ -1535,7 +1516,8 @@ public class HoyaAppMaster extends CompositeService
       //its the current master process in play
       int exitCode = masterProcess.getExitCode();
       spawnedProcessExitCode = exitCode;
-      mappedProcessExitCode = mapProcessExitCodeToYarnExitCode(exitCode);
+      mappedProcessExitCode =
+        AMUtils.mapProcessExitCodeToYarnExitCode(exitCode);
       if (masterProcess.isEarlyExitIsFailure() && !amCompletionFlag.get()) {
         //this wasn't expected: the process finished early
         spawnedProcessExitedBeforeShutdownTriggered = true;
