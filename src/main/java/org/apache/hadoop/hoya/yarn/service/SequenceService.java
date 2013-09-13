@@ -40,15 +40,6 @@ public class SequenceService extends AbstractService implements
 
   protected static final Logger log =
     LoggerFactory.getLogger(SequenceService.class);
-  /**
-   * Policy on shutdown: attempt to close everything (purest) or
-   * only try to close started services (which assumes
-   * that the service implementations may not handle the stop() operation
-   * except when started.
-   * Irrespective of this policy, if a child service fails during
-   * its init() or start() operations, it will have stop() called on it.
-   */
-  protected static final boolean STOP_ONLY_STARTED_SERVICES = false;
 
   /**
    * list of services
@@ -60,6 +51,10 @@ public class SequenceService extends AbstractService implements
     super(name);
   }
 
+  /**
+   * Get the current service -which may be null
+   * @return service running
+   */
   public Service getCurrentService() {
     return currentService;
   }
@@ -81,7 +76,6 @@ public class SequenceService extends AbstractService implements
 
   /**
    * Stop the current service: this may trigger the starting of the next
-   * (though not if this service is stopped)
    */
   public void stopCurrentService() {
     //stop current service.
@@ -124,6 +118,7 @@ public class SequenceService extends AbstractService implements
         "Cannot start a child service when not started");
     }
     if (serviceList.isEmpty()) {
+      //nothing left to run
       return false;
     }
     if (currentService!=null && currentService.getFailureCause()!=null) {
@@ -154,6 +149,12 @@ public class SequenceService extends AbstractService implements
     return true;
   }
 
+  /**
+   * State change event relays service stop events to
+   * {@link #onServiceCompleted(Service)}. Subclasses can
+   * extend that with extra logic
+   * @param service the service that has changed.
+   */
   @Override
   public void stateChanged(Service service) {
     if (service == currentService && service.isInState(STATE.STOPPED)) {
