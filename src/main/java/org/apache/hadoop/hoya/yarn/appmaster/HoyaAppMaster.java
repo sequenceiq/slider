@@ -226,8 +226,9 @@ public class HoyaAppMaster extends CompositeService
   /**
    * the forked process
    */
+  
   private ForkedProcessService masterProcess;
-
+  
   /**
    * Exit code set when the spawned process exits
    */
@@ -597,17 +598,8 @@ public class HoyaAppMaster extends CompositeService
       addLaunchedContainer(AppMasterContainerID, masterNode);
 
 
-      Map<String, String> env = new HashMap<String, String>();
 
-      String masterCommand = clusterSpec.getOption(
-        HoyaKeys.OPTION_HOYA_MASTER_COMMAND, null);
-
-      List<String> launchSequence =
-        provider.buildProcessCommand(clusterSpec, confDir, env, masterCommand);
-
-      launchMasterProcess("master", clusterSpec,
-                          launchSequence,
-                          env);
+      launchMasterProcess("master", clusterSpec, confDir);
     }
 
     try {
@@ -1499,14 +1491,21 @@ public class HoyaAppMaster extends CompositeService
    */
   protected synchronized void launchMasterProcess(String name,
                                                   ClusterDescription cd,
-                                                  List<String> commands,
-                                                  Map<String, String> env)
+                                                  File confDir)
     throws IOException, HoyaException {
+    Map<String, String> env = new HashMap<String, String>();
+
+    String masterCommand = cd.getOption(
+      HoyaKeys.OPTION_HOYA_MASTER_COMMAND, null);
+
+    List<String> commands =
+      provider.buildProcessCommand(clusterSpec, confDir, env, masterCommand);
+
     if (masterProcess != null) {
       throw new HoyaInternalStateException("trying to launch "+ name +" process" +
                                            " when one is already running");
     }
-    masterProcess = new ForkedProcessService(this,name, clusterSpec, true);
+    masterProcess = new ForkedProcessService(this,name, cd, true);
     masterProcess.init(getConfig());
     masterProcess.start();
     masterProcess.exec(env, commands);
