@@ -70,7 +70,7 @@ public class ForkedProcessService extends AbstractService implements
                               ClusterDescription clusterSpec,
                               boolean earlyExitIsFailure) {
     super("name");
-    this.name = name; 
+    this.name = name;
     this.owner = owner;
     this.clusterSpec = clusterSpec;
     this.earlyExitIsFailure =
@@ -121,14 +121,13 @@ public class ForkedProcessService extends AbstractService implements
 
   }
 
-
-  @Override
+  @Override // ApplicationEventHandler
   public synchronized void onApplicationStarted(RunLongLivedApp application) {
     log.info("Process has started");
     processStarted = true;
   }
 
-  @Override
+  @Override // ApplicationEventHandler
   public void onApplicationExited(RunLongLivedApp application,
                                   int exitCode) {
     synchronized (this) {
@@ -138,10 +137,14 @@ public class ForkedProcessService extends AbstractService implements
       processTerminatedBeforeServiceStopped =
         getServiceState() != STATE.STOPPED;
       log.info("Process has exited with exit code {}", exitCode);
-      if (exitCode != 0 && getFailureCause()!=null) {
+      if (exitCode != 0 && getFailureCause() != null) {
         //error
-        noteFailure(new ExitUtil.ExitException(exitCode,
-                                               name + " exited with code " + exitCode));
+        ExitUtil.ExitException ee =
+          new ExitUtil.ExitException(exitCode,
+                                     name + " exited with code " +
+                                     exitCode);
+        ee.initCause(getFailureCause());
+        noteFailure(ee);
       }
     }
     //now stop itself

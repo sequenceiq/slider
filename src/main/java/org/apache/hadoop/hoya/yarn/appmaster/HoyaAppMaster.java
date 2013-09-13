@@ -429,7 +429,9 @@ public class HoyaAppMaster extends CompositeService
       HoyaProviderFactory.createHoyaProviderFactory(
         providerType);
     provider = factory.createServerProvider();
-
+    provider.init(getConfig());
+    provider.start();
+    addService(provider);
     //verify that the cluster specification is now valid
     provider.validateClusterSpec(clusterSpec);
 

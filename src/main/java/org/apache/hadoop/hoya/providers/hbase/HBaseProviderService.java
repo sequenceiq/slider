@@ -226,7 +226,6 @@ public class HBaseProviderService extends AbstractProviderService implements
 
   }
 
-
   @Override
   public List<String> buildProcessCommand(ClusterDescription cd,
                                           File confDir,
