@@ -52,7 +52,6 @@ public class ForkedProcessService extends AbstractService implements
   private final String name;
   private boolean processTerminated = false;
   private boolean processStarted = false;
-  private boolean processTerminatedBeforeServiceStopped = false;
   private RunLongLivedApp process;
   private Map<String, String> environment;
   private List<String> commands;
@@ -123,8 +122,6 @@ public class ForkedProcessService extends AbstractService implements
       processTerminated = true;
       this.exitCode = exitCode;
       //note whether or not the service had already stopped
-      processTerminatedBeforeServiceStopped =
-        getServiceState() != STATE.STOPPED;
       log.info("Process has exited with exit code {}", exitCode);
       if (exitCode != 0 && getFailureCause() != null) {
         //error
