@@ -29,13 +29,14 @@ import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.providers.ClientProvider;
-import org.apache.hadoop.hoya.providers.ServerProvider;
+import org.apache.hadoop.hoya.providers.ProviderService;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
+import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -58,8 +59,7 @@ import java.util.Map;
 public class LoadGenProvider extends Configured implements
                                                           ProviderCore,
                                                           LoadGenKeys,
-                                                          ClientProvider,
-                                                          ServerProvider {
+                                                          ClientProvider {
 
   protected static final Logger log =
     LoggerFactory.getLogger(LoadGenProvider.class);
@@ -246,7 +246,7 @@ public class LoadGenProvider extends Configured implements
     
   }
   
-  @Override
+//  @Override
   public void buildContainerLaunchContext(ContainerLaunchContext ctx,
                                           FileSystem fs,
                                           Path generatedConfPath,
@@ -327,17 +327,17 @@ public class LoadGenProvider extends Configured implements
     return hbasedir;
   }
 
-  @Override
+//  @Override
   public int getDefaultMasterInfoPort() {
     return 0;
   }
 
-  @Override
+//  @Override
   public String getSiteXMLFilename() {
     return null;
   }
 
-  @Override
+//  @Override
   public List<String> buildProcessCommand(ClusterDescription cd,
                                           File confDir,
                                           Map<String, String> env,

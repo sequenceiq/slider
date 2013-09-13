@@ -53,6 +53,8 @@ public interface HoyaKeys {
    */
 
   String JAVA_HEADLESS = "-Djava.awt.headless=true";
+  String FORMAT_D_CLUSTER_NAME = "-Dhoya.cluster.name=%s";
+  String FORMAT_D_CLUSTER_TYPE = "-Dhoya.app.type=%s";
 
 
   /**

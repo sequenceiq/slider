@@ -68,6 +68,4 @@ public interface ClientProvider extends ProviderCore {
   void reviewAndUpdateClusterSpec(ClusterDescription clusterSpec) throws
                                                                   HoyaException;
 
-  void validateClusterSpec(ClusterDescription clusterSpec) throws
-                                                           HoyaException;
 }

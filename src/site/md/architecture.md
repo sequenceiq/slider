@@ -52,5 +52,6 @@ adding the HBase tar file as a resource, and HBase JARs on the classpath.
 
 The AM always has the role "master". It is a Yarn service, following the YARN lifecycle.
 
-It supports the addition of sub-services supplied by the provider.
+It supports the addition of sub-services supplied by the provider; these are expected
+(but not always) processes.
 

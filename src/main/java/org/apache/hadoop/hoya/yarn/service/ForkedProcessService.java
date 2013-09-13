@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.appmaster;
+package org.apache.hadoop.hoya.yarn.service;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hoya.api.ClusterDescription;
@@ -24,7 +24,9 @@ import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.exec.ApplicationEventHandler;
 import org.apache.hadoop.hoya.exec.RunLongLivedApp;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
+import org.apache.hadoop.hoya.yarn.appmaster.HoyaAppMaster;
 import org.apache.hadoop.service.AbstractService;
+import org.apache.hadoop.util.ExitUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +48,7 @@ public class ForkedProcessService extends AbstractService implements
   protected static final Logger log =
     LoggerFactory.getLogger(ForkedProcessService.class);
 
+  private final String name;
   private final HoyaAppMaster owner;
   private final ClusterDescription clusterSpec;
   private final boolean earlyExitIsFailure;
@@ -67,6 +70,7 @@ public class ForkedProcessService extends AbstractService implements
                               ClusterDescription clusterSpec,
                               boolean earlyExitIsFailure) {
     super("name");
+    this.name = name; 
     this.owner = owner;
     this.clusterSpec = clusterSpec;
     this.earlyExitIsFailure =
@@ -133,14 +137,23 @@ public class ForkedProcessService extends AbstractService implements
       //note whether or not the service had already stopped
       processTerminatedBeforeServiceStopped =
         getServiceState() != STATE.STOPPED;
+      log.info("Process has exited with exit code {}", exitCode);
+      if (exitCode != 0 && getFailureCause()!=null) {
+        //error
+        noteFailure(new ExitUtil.ExitException(exitCode,
+                                               name + " exited with code " + exitCode));
+      }
     }
-    log.info("Process has exited with exit code {}", exitCode);
     //now stop itself
     if (!isInState(STATE.STOPPED)) {
       stop();
     }
   }
 
+  /**
+   * flag for use by the AM
+   * @return the status
+   */
   public boolean isEarlyExitIsFailure() {
     return earlyExitIsFailure;
   }

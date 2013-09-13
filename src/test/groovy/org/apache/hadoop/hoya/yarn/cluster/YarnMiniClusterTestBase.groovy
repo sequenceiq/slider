@@ -94,6 +94,9 @@ implements KeysForTests, HoyaExitCodes {
   public static final List<String> HBASE_VERSION_COMMAND_SEQUENCE = [
       CommonArgs.ARG_OPTION, HoyaKeys.OPTION_HOYA_MASTER_COMMAND, "version",
   ]
+  public static final int SIGTERM = -15
+  public static final int SIGKILL = -9
+  public static final String SERVICE_LAUNCHER = "ServiceLauncher"
 
   protected MiniDFSCluster hdfsCluster
   protected MiniYARNCluster miniCluster;
@@ -306,21 +309,35 @@ implements KeysForTests, HoyaExitCodes {
    * Kill any java process with the given grep pattern
    * @param grepString string to grep for
    */
-  public void killJavaProcesses(String grepString) {
-    Process bash = ["bash", "-c", "jps -l | grep ${grepString} | awk '{print \$1}' | xargs kill -9"].execute()
-    log.info(bash.text)
+  public void killJavaProcesses(String grepString, int value) {
+
+    GString bashCommand = "jps -l| grep ${grepString} | awk '{print \$1}' | xargs kill $value"
+    log.info("Bash command = $bashCommand" )
+    Process bash = ["bash", "-c", bashCommand].execute()
+    bash.waitFor()
+    
+    log.info(bash.in.text)
+    log.error(bash.err.text)
   }
 
    /**
    * List any java process with the given grep pattern
    * @param grepString string to grep for
    */
-  public String lsJavaProcesses(String grepString) {
-    Process bash = ["bash", "-c", "jps -l | grep ${grepString} | awk '{print \$1}' "].execute()
-    return bash.text
+  public String lsJavaProcesses() {
+    Process bash = ["jps","-v"].execute()
+    bash.waitFor()
+    String out = bash.in.text
+    log.info(out)
+    String err = bash.err.text
+    log.error(err)
+    return out + "\n" + err
   }
 
 
+  public void killServiceLaunchers(int value) {
+    killJavaProcesses(SERVICE_LAUNCHER, value);
+  }
 
   public YarnConfiguration getTestConfiguration() {
     YarnConfiguration conf = createConfiguration()

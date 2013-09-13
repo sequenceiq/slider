@@ -20,7 +20,7 @@ package org.apache.hadoop.hoya.yarn.appmaster;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hoya.providers.ServerProvider;
+import org.apache.hadoop.hoya.providers.ProviderService;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.ClusterNode;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
@@ -36,7 +36,6 @@ import org.apache.hadoop.yarn.util.Records;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,13 +54,13 @@ public class RoleLauncher implements Runnable {
   private final Container container;
   private final String containerRole;
   private final Map<String, String> roleOptions;
-  private final ServerProvider provider;
+  private final ProviderService provider;
   private final ClusterDescription clusterSpec;
 
   public RoleLauncher(HoyaAppMaster owner,
                       Container container,
                       String role,
-                      ServerProvider provider,
+                      ProviderService provider,
                       ClusterDescription clusterSpec,
                         Map<String, String> roleOptions) {
     assert owner != null;

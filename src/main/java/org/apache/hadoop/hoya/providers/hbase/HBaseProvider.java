@@ -30,11 +30,10 @@ import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.providers.ClientProvider;
-import org.apache.hadoop.hoya.providers.ServerProvider;
+import org.apache.hadoop.hoya.providers.ProviderService;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
-import org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -59,8 +58,7 @@ import java.util.Map;
 public class HBaseProvider extends Configured implements
                                                           ProviderCore,
                                                           HBaseKeys, HoyaKeys,
-                                                          ClientProvider,
-                                                          ServerProvider {
+                                                          ClientProvider {
 
 
   public static final String ERROR_UNKNOWN_ROLE = "Unknown role ";
@@ -176,16 +174,6 @@ public class HBaseProvider extends Configured implements
     return sitexml;
   }
 
-  @Override
-  public int getDefaultMasterInfoPort() {
-    return HBaseConfigFileOptions.DEFAULT_MASTER_INFO_PORT;
-  }
-
-  @Override
-  public String getSiteXMLFilename() {
-    return SITE_XML;
-  }
-
   /**
    * Build time review and update of the cluster specification
    * @param clusterSpec spec
@@ -293,115 +281,20 @@ public class HBaseProvider extends Configured implements
                                    Map<String, ByteBuffer> serviceData) {
     
   }
-  
-  @Override  // server
-  public void buildContainerLaunchContext(ContainerLaunchContext ctx,
-                                          FileSystem fs,
-                                          Path generatedConfPath,
-                                          String role,
-                                          ClusterDescription clusterSpec,
-                                          Map<String, String> roleOptions
-                                          ) throws IOException {
-    // Set the environment
-    Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
-    env.put(HBASE_LOG_DIR,providerUtils.getLogdir());
-
-    ctx.setEnvironment(env);
-
-    //local resources
-    Map<String, LocalResource> localResources =
-      new HashMap<String, LocalResource>();
-
-    //add the configuration resources
-    Map<String, LocalResource> confResources;
-    confResources = HoyaUtils.submitDirectory(fs,
-                                              generatedConfPath,
-                                              HoyaKeys.PROPAGATED_CONF_DIR_NAME);
-    localResources.putAll(confResources);
-    //Add binaries
-    //now add the image if it was set
-    if (clusterSpec.imagePath != null) {
-      Path imagePath = new Path(clusterSpec.imagePath);
-      log.info("using image path {}", imagePath);
-      HoyaUtils.maybeAddImagePath(fs, localResources, imagePath);
-    }
-    ctx.setLocalResources(localResources);
-
-
-    List<String> command = new ArrayList<String>();
-    //this must stay relative if it is an image
-    command.add(buildHBaseBinPath(clusterSpec).toString());
-
-    //config dir is relative to the generated file
-    command.add(HBaseKeys.ARG_CONFIG);
-    command.add(HoyaKeys.PROPAGATED_CONF_DIR_NAME);
-    //role is region server
-    command.add(HBaseKeys.REGION_SERVER);
-    command.add(HBaseKeys.ACTION_START);
-/*    command.add("-D httpfs.log.dir = "+
-                ApplicationConstants.LOG_DIR_EXPANSION_VAR);*/
-
-    //log details
-    command.add(
-      "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/out.txt");
-    command.add(
-      "2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/err.txt");
-
-    String cmdStr = HoyaUtils.join(command, " ");
-
-    List<String> commands = new ArrayList<String>();
-    commands.add(cmdStr);
-    ctx.setCommands(commands);
-
-  }
 
 
   /**
    * Get the path to hbase home
    * @return the hbase home path
    */
-  public File buildHBaseBinPath(ClusterDescription cd) {
-    File hbaseScript = new File(buildHBaseDir(cd),
+  public  File buildHBaseBinPath(ClusterDescription cd) {
+    return new File(buildHBaseDir(cd),
                                 HBaseKeys.HBASE_SCRIPT);
-    return hbaseScript;
   }
 
-  public File buildHBaseDir(ClusterDescription cd) {
-    File dir;
-    if (cd.imagePath != null) {
-      dir = new File(new File(HoyaKeys.LOCAL_TARBALL_INSTALL_SUBDIR),
-                          HBaseKeys.ARCHIVE_SUBDIR);
-    } else {
-      dir = new File(cd.applicationHome);
-    }
-    return dir;
+  public  File buildHBaseDir(ClusterDescription cd) {
+    String archiveSubdir = HBaseKeys.ARCHIVE_SUBDIR;
+    return providerUtils.buildImageDir(cd, archiveSubdir);
   }
   
-  @Override
-  public List<String> buildProcessCommand(ClusterDescription cd,
-                                          File confDir,
-                                          Map<String, String> env,
-                                          String masterCommand) throws
-                                                                   IOException,
-                                                                   HoyaException {
-    env.put(HBASE_LOG_DIR, new ProviderUtils(log).getLogdir());
-    //pull out the command line argument if set
-    //set the service to run if unset
-    if (masterCommand == null) {
-      masterCommand = MASTER;
-    }
-    //prepend the hbase command itself
-    File binHbaseSh = buildHBaseBinPath(cd);
-    String scriptPath = binHbaseSh.getAbsolutePath();
-    if (!binHbaseSh.exists()) {
-      throw new BadCommandArgumentsException("Missing script " + scriptPath);
-    }
-    List<String> launchSequence = new ArrayList<String>(8);
-    launchSequence.add(0, scriptPath);
-    launchSequence.add(ARG_CONFIG);
-    launchSequence.add(confDir.getAbsolutePath());
-    launchSequence.add(masterCommand);
-    launchSequence.add(ACTION_START);
-    return launchSequence; 
-  }
 }

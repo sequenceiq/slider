@@ -16,29 +16,32 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hoya.providers.hbase;
+package org.apache.hadoop.hoya.providers;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hoya.providers.ClientProvider;
-import org.apache.hadoop.hoya.providers.ProviderService;
-import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
+import org.apache.hadoop.hoya.tools.HoyaUtils;
+import org.apache.hadoop.hoya.yarn.service.SequenceService;
 
-public class HBaseProviderFactory extends HoyaProviderFactory {
+import java.util.ArrayList;
+import java.util.List;
 
-  public HBaseProviderFactory() {
+public abstract class AbstractProviderService extends SequenceService implements
+                                                                      ProviderService {
+
+  public AbstractProviderService(String name) {
+    super(name);
   }
 
-  public HBaseProviderFactory(Configuration conf) {
-    super(conf);
+  protected String cmd(Object... args) {
+    List<String> list = new ArrayList<String>(args.length);
+    for (Object arg : args) {
+      list.add(arg.toString());
+    }
+    return HoyaUtils.join(list, " ");
   }
 
   @Override
-  public ClientProvider createClientProvider() {
-    return new HBaseProvider(getConf());
-  }
-
-  @Override
-  public ProviderService createServerProvider() {
-    return new HBaseProviderService();
+  public Configuration getConf() {
+    return getConfig();
   }
 }

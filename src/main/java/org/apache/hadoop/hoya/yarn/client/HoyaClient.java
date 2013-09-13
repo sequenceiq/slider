@@ -667,6 +667,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     //insert any JVM options);
     commands.add(HoyaKeys.JAVA_FORCE_IPV4);
     commands.add(HoyaKeys.JAVA_HEADLESS);
+    commands.add(String.format(HoyaKeys.FORMAT_D_CLUSTER_NAME, clustername));
+    commands.add(String.format(HoyaKeys.FORMAT_D_CLUSTER_TYPE, provider.getName()));
     //add the generic sevice entry point
     commands.add(ServiceLauncher.ENTRY_POINT);
     //immeiately followed by the classname

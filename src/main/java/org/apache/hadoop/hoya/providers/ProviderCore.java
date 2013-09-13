@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.providers;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
+import org.apache.hadoop.hoya.exceptions.HoyaException;
 
 import java.util.List;
 import java.util.Map;
@@ -35,4 +36,7 @@ public interface ProviderCore {
 
   Map<String, String> buildSiteConfFromSpec(ClusterDescription clusterSpec)
     throws BadConfigException;
+
+  void validateClusterSpec(ClusterDescription clusterSpec) throws
+                                                           HoyaException;
 }

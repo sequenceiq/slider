@@ -33,7 +33,6 @@ import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
-import org.apache.hadoop.hoya.providers.ServerProvider;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -59,8 +58,7 @@ import java.util.UUID;
 public class AccumuloProvider extends Configured implements
                                                  ProviderCore,
                                                  AccumuloKeys,
-                                                 ClientProvider,
-                                                 ServerProvider {
+                                                 ClientProvider {
 
   protected static final Logger log =
     LoggerFactory.getLogger(AccumuloProvider.class);
@@ -85,6 +83,11 @@ public class AccumuloProvider extends Configured implements
     ROLES.add(new ProviderRole(ROLE_GARBAGE_COLLECTOR, 3));
     ROLES.add(new ProviderRole(ROLE_MONITOR, 4));
     ROLES.add(new ProviderRole(ROLE_TRACER, 5));
+  }
+  
+  public static List<ProviderRole> getProviderRoles() {
+    return ROLES;
+
   }
 
   @Override
@@ -119,7 +122,7 @@ public class AccumuloProvider extends Configured implements
    * @param rolename role name
    * @return a node that can be added to the JSON
    */
-  @Override
+  @Override 
   public Map<String, String> createDefaultClusterRole(String rolename) throws
                                                                        HoyaException {
     Map<String, String> rolemap = new HashMap<String, String>();
@@ -149,7 +152,7 @@ public class AccumuloProvider extends Configured implements
    * @param clusterSpec this is the cluster specification used to define this
    * @return a map of the dynamic bindings for this Hoya instance
    */
-  @Override
+  @Override // ProviderCore
   public Map<String, String> buildSiteConfFromSpec(ClusterDescription clusterSpec)
     throws BadConfigException {
 
@@ -189,15 +192,6 @@ public class AccumuloProvider extends Configured implements
     return sitexml;
   }
 
-  @Override
-  public int getDefaultMasterInfoPort() {
-    return 0;
-  }
-
-  @Override
-  public String getSiteXMLFilename() {
-    return SITE_XML;
-  }
 
 
   /**
@@ -317,92 +311,6 @@ public class AccumuloProvider extends Configured implements
     clusterSpec.verifyOptionSet(AccumuloKeys.OPTION_HADOOP_HOME);
   }
 
-  private String cmd(Object... args) {
-    List<String> list = new ArrayList<String>(args.length);
-    for (Object arg : args) {
-      list.add(arg.toString());
-    }
-    return HoyaUtils.join(list, " ");
-  }
-
-
-  /*
-   ======================================================================
-   Server interface below here
-   ======================================================================
-  */
-  @Override //server
-  public void buildContainerLaunchContext(ContainerLaunchContext ctx,
-                                          FileSystem fs,
-                                          Path generatedConfPath,
-                                          String role,
-                                          ClusterDescription clusterSpec,
-                                          Map<String, String> roleOptions
-                                         ) throws
-                                           IOException,
-                                           BadConfigException {
-    // Set the environment
-    Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
-    env.put(ACCUMULO_LOG_DIR, providerUtils.getLogdir());
-    String hadoop_home =
-      ApplicationConstants.Environment.HADOOP_COMMON_HOME.$();
-    hadoop_home = clusterSpec.getOption(OPTION_HADOOP_HOME, hadoop_home);
-    env.put(HADOOP_HOME, clusterSpec.getMandatoryOption(OPTION_HADOOP_HOME));
-    env.put(HADOOP_PREFIX, hadoop_home);
-    env.put(ACCUMULO_HOME,
-            convertToAppRelativePath(buildImageDir(clusterSpec)));
-    env.put(ACCUMULO_CONF_DIR,
-            convertToAppRelativePath(HoyaKeys.PROPAGATED_CONF_DIR_NAME));
-    env.put(ZOOKEEPER_HOME, clusterSpec.getMandatoryOption(OPTION_ZK_HOME));
-
-    ctx.setEnvironment(env);
-
-    //local resources
-    Map<String, LocalResource> localResources =
-      new HashMap<String, LocalResource>();
-
-    //add the configuration resources
-    Map<String, LocalResource> confResources;
-    confResources = HoyaUtils.submitDirectory(fs,
-                                              generatedConfPath,
-                                              HoyaKeys.PROPAGATED_CONF_DIR_NAME);
-    localResources.putAll(confResources);
-    //Add binaries
-    //now add the image if it was set
-    if (clusterSpec.imagePath != null) {
-      Path imagePath = new Path(clusterSpec.imagePath);
-      log.info("using image path {}", imagePath);
-      HoyaUtils.maybeAddImagePath(fs, localResources, imagePath);
-    }
-    ctx.setLocalResources(localResources);
-
-    List<String> commands = new ArrayList<String>();
-    commands.add(cmd("export", HADOOP_HOME, "\"$HADOOP_HOME\""));
-    commands.add(cmd("export", ZOOKEEPER_HOME, "\"$ZOOKEEPER_HOME\""));
-
-
-    List<String> command = new ArrayList<String>();
-    //this must stay relative if it is an image
-    command.add(buildScriptBinPath(clusterSpec).toString());
-
-    //config dir is relative to the generated file
-    command.add(HoyaKeys.PROPAGATED_CONF_DIR_NAME);
-    //role is region server
-    command.add(role);
-
-    //log details
-    command.add(
-      "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/out.txt");
-    command.add(
-      "2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/err.txt");
-
-    String cmdStr = HoyaUtils.join(command, " ");
-
-
-    commands.add(cmdStr);
-    ctx.setCommands(commands);
-
-  }
 
 
   /**
@@ -410,16 +318,11 @@ public class AccumuloProvider extends Configured implements
    * @return the script
    */
   public static File buildScriptBinPath(ClusterDescription cd) {
-    return new File(buildImageDir(cd), AccumuloKeys.START_SCRIPT);
+    String startScript = AccumuloKeys.START_SCRIPT;
+    return new File(buildImageDir(cd), startScript);
   }
 
-  public String convertToAppRelativePath(File file) {
-    return convertToAppRelativePath(file.getPath());
-  }
 
-  private String convertToAppRelativePath(String path) {
-    return ApplicationConstants.Environment.HOME.$() + "/" + path;
-  }
 
   /**
    * Build the image dir. This path is relative and only valid at the far end
@@ -427,66 +330,7 @@ public class AccumuloProvider extends Configured implements
    * @return a relative path to accumulp home
    */
   public static File buildImageDir(ClusterDescription cd) {
-    File basedir;
-    if (cd.imagePath != null) {
-      basedir = new File(new File(HoyaKeys.LOCAL_TARBALL_INSTALL_SUBDIR),
-                         AccumuloKeys.ARCHIVE_SUBDIR);
-    } else {
-      basedir = new File(cd.applicationHome);
-    }
-    return basedir;
+    return providerUtils.buildImageDir(cd, AccumuloKeys.ARCHIVE_SUBDIR);
   }
-
-  /**
-   * build up the in-container master comand
-   *
-   * @param clusterSpec
-   * @param confDir
-   * @param env
-   * @param masterCommand
-   * @return
-   * @throws IOException
-   * @throws HoyaException
-   */
-  @Override //server
-  public List<String> buildProcessCommand(ClusterDescription clusterSpec,
-                                          File confDir,
-                                          Map<String, String> env,
-                                          String masterCommand) throws
-                                                                   IOException,
-                                                                   HoyaException {
-//    env.put(HBaseKeys.HBASE_LOG_DIR, new ProviderUtils(log).getLogdir());
-    env.put(ACCUMULO_LOG_DIR, providerUtils.getLogdir());
-    String hadoop_home = System.getenv(HADOOP_HOME);
-    hadoop_home = clusterSpec.getOption(OPTION_HADOOP_HOME, hadoop_home);
-    if (hadoop_home == null) {
-      throw new BadConfigException(
-        "Undefined env variable/config option: " + HADOOP_HOME);
-    }
-    env.put(HADOOP_HOME, hadoop_home);
-    env.put(HADOOP_PREFIX, hadoop_home);
-    File image = buildImageDir(clusterSpec);
-    File dot = new File(".");
-    env.put(ACCUMULO_HOME, image.getAbsolutePath());
-    env.put(ACCUMULO_CONF_DIR,
-            new File(dot, HoyaKeys.PROPAGATED_CONF_DIR_NAME).getAbsolutePath());
-    env.put(ZOOKEEPER_HOME, clusterSpec.getMandatoryOption(OPTION_ZK_HOME));
-
-    //set the service to run if unset
-    if (masterCommand == null) {
-      masterCommand = AccumuloKeys.CREATE_MASTER;
-    }
-    //prepend the hbase command itself
-    File binScriptSh = buildScriptBinPath(clusterSpec);
-    String scriptPath = binScriptSh.getAbsolutePath();
-    if (!binScriptSh.exists()) {
-      throw new BadCommandArgumentsException("Missing script " + scriptPath);
-    }
-    List<String> launchSequence = new ArrayList<String>(8);
-    launchSequence.add(0, scriptPath);
-    launchSequence.add(masterCommand);
-    return launchSequence;
-  }
-
 
 }

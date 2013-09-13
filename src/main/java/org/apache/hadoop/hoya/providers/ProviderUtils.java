@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.providers;
 
+import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.api.RoleKeys;
@@ -25,8 +26,10 @@ import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.slf4j.Logger;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
@@ -118,4 +121,33 @@ public class ProviderUtils implements RoleKeys {
         }
       }
     }
-  }}
+  }
+
+  /**
+   * Build the image dir. This path is relative and only valid at the far end
+   * @param cd cluster spec
+   * @param archiveSubdir subdir
+   * @return a relative path to the tar
+   */
+  public File buildImageDir(ClusterDescription cd,
+                                   String archiveSubdir) {
+    File basedir;
+    if (cd.imagePath != null) {
+      basedir = new File(new File(HoyaKeys.LOCAL_TARBALL_INSTALL_SUBDIR),
+                         archiveSubdir);
+    } else {
+      basedir = new File(cd.applicationHome);
+    }
+    return basedir;
+  }
+
+  public static String convertToAppRelativePath(File file) {
+    return convertToAppRelativePath(file.getPath());
+  }
+
+  public static String convertToAppRelativePath(String path) {
+    return ApplicationConstants.Environment.HOME.$() + "/" + path;
+  }
+
+
+}

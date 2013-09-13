@@ -27,7 +27,7 @@ You will need a version of Maven 3.0, set up with enough memory
 
 
 *Important*: As of September 10, 2013, Maven 3.1 is not supported due to
-[https://cwiki.apache.org/confluence/display/MAVEN/AetherClassNotFound](version issues).
+[version issues](https://cwiki.apache.org/confluence/display/MAVEN/AetherClassNotFound).
 
 ## Building a compatible Hadoop version
 
@@ -59,6 +59,9 @@ This takes time so try to avoid doing this.
 
 Checkout the HBase `hbase-0.95` branch from apache svn/github.  
 
+    git clone git://git.apache.org/hbase.git
+    git remote rename origin apache
+    
 The maven command for building hbase artifacts with 2.1.0-beta is 
 
     mvn clean install assembly:single -DskipTests -Dmaven.javadoc.skip=true -Dhadoop.profile=2.0 -Dhadoop-two.version=2.1.0-beta 
@@ -81,7 +84,7 @@ tests just work directly with the untarred file as it saves time uploading
 and downloading then expanding the file.
 
 For more information (including recommended Maven memory configuration options),
-see [http://hbase.apache.org/book/build.html](HBase building)
+see [HBase building](http://hbase.apache.org/book/build.html)
 
 *Tip:* you can force set a version in Maven by having it update all the POMs:
 
@@ -106,9 +109,7 @@ this, to create a .tar file and an expanded directory
     popd
     
     
-this 
-    
-    
+
     
 
 ## Testing
