@@ -45,7 +45,18 @@ public class SequenceService extends AbstractService implements
    * list of services
    */
   private final List<Service> serviceList = new ArrayList<Service>();
+
+  /**
+   * The current service.
+   * Volatile -may change & so should be read into a 
+   * local variable before working with
+   */
   private volatile Service currentService;
+  /*
+  the previous service -the last one that finished. 
+  Null if one did not finish yet
+   */
+  private volatile Service previousService;
 
   public SequenceService(String name) {
     super(name);
@@ -57,6 +68,10 @@ public class SequenceService extends AbstractService implements
    */
   public Service getCurrentService() {
     return currentService;
+  }
+
+  public Service getPreviousService() {
+    return previousService;
   }
 
   /**

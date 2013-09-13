@@ -21,17 +21,20 @@ package org.apache.hadoop.hoya.providers;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.api.ClusterNode;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
+import org.apache.hadoop.yarn.service.launcher.ExitCodeProvider;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-public interface ProviderService extends ProviderCore , Service {
+public interface ProviderService extends ProviderCore , Service,
+                                         ExitCodeProvider {
 
   /**
    * Set up the entire container launch context
@@ -58,4 +61,10 @@ public interface ProviderService extends ProviderCore , Service {
                                                                    IOException,
                                                                    HoyaException;
 
+  void exec(ClusterDescription cd,
+            File confDir,
+            Map<String, String> env) throws    IOException,
+                                                        HoyaException;
+
+  boolean buildStatusReport(ClusterNode masterNode);
 }

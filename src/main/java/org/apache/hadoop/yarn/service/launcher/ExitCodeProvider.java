@@ -22,7 +22,7 @@ package org.apache.hadoop.yarn.service.launcher;
  * Get the exit code of an exception. Making it an interface allows
  * us to retrofit exit codes onto existing classes
  */
-public interface GetExceptionExitCode {
+public interface ExitCodeProvider {
 
   /**
    * Method to get the exit code

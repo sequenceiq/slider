@@ -224,4 +224,10 @@ public class AccumuloProviderService extends AbstractProviderService implements
                                                                                    BadConfigException {
     return clientProvider.buildSiteConfFromSpec(clusterSpec);
   }
+
+  @Override
+  public void exec(ClusterDescription cd,
+                   File confDir,
+                   Map<String, String> env) throws IOException, HoyaException {
+  }
 }

@@ -35,11 +35,9 @@ import org.apache.hadoop.hoya.api.ClusterNode;
 import org.apache.hadoop.hoya.api.HoyaAppMasterProtocol;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
-import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
-import org.apache.hadoop.hoya.yarn.service.ForkedProcessService;
 import org.apache.hadoop.ipc.ProtocolSignature;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.Server;
@@ -111,11 +109,6 @@ public class HoyaAppMaster extends CompositeService
              RoleKeys {
   protected static final Logger log =
     LoggerFactory.getLogger(HoyaAppMaster.class);
-  /**
-   * Log for the forked master process
-   */
-  protected static final Logger LOG_AM_PROCESS =
-    LoggerFactory.getLogger("org.apache.hadoop.hoya.yarn.appmaster.HoyaAppMaster.master");
 
   /**
    * log for YARN events
@@ -223,12 +216,6 @@ public class HoyaAppMaster extends CompositeService
   private volatile boolean localProcessStarted = false;
   private volatile boolean success = true;
 
-  /**
-   * the forked process
-   */
-  
-  private ForkedProcessService masterProcess;
-  
   /**
    * Exit code set when the spawned process exits
    */
@@ -421,9 +408,7 @@ public class HoyaAppMaster extends CompositeService
 
     clusterSpec = ClusterDescription.load(fs, clusterSpecPath);
 
-    
     //get our provider
-    
     String providerType = clusterSpec.type;
     log.info("Cluster provider type is {}", providerType);
     HoyaProviderFactory factory =
@@ -596,10 +581,7 @@ public class HoyaAppMaster extends CompositeService
       localProcessStarted = true;
     } else {
       addLaunchedContainer(AppMasterContainerID, masterNode);
-
-
-
-      launchMasterProcess("master", clusterSpec, confDir);
+      launchProviderService("master", clusterSpec, confDir);
     }
 
     try {
@@ -729,7 +711,7 @@ public class HoyaAppMaster extends CompositeService
     } else {
       //stopped the forked process but don't worry about its exit code
       exitCode = stopForkedProcess();
-      log.debug("Stopping forked process: exit code={}",exitCode);
+      log.debug("Stopping forked process: exit code={}", exitCode);
     }
     joinAllLaunchedThreads();
 
@@ -1382,20 +1364,7 @@ public class HoyaAppMaster extends CompositeService
     synchronized (clusterSpecLock) {
       clusterStatus.statusTime = t;
       if (masterNode != null) {
-        if (masterProcess != null) {
-          masterNode.command = masterProcess.getCommandLine();
-          masterNode.state = masterProcess.isProcessStarted() ?
-                             ClusterDescription.STATE_LIVE :
-                             ClusterDescription.STATE_STOPPED;
-
-          masterNode.diagnostics = "Exit code = " + masterProcess.getExitCode();
-          //pull in recent lines of output
-          List<String> output = masterProcess.getRecentOutput();
-          masterNode.output = output.toArray(new String[output.size()]);
-        } else {
-          masterNode.state = ClusterDescription.STATE_DESTROYED;
-          masterNode.output = new String[0];
-        }
+          provider.buildStatusReport(masterNode);
       }
       clusterStatus.stats = new HashMap<String, Map<String, Integer>>();
       for (RoleStatus role : roleStatusMap.values()) {
@@ -1487,30 +1456,15 @@ public class HoyaAppMaster extends CompositeService
    * @throws IOException IO problems
    * @throws HoyaException anything internal
    */
-  protected synchronized void launchMasterProcess(String name,
-                                                  ClusterDescription cd,
-                                                  File confDir)
+  protected synchronized void launchProviderService(String name,
+                                                    ClusterDescription cd,
+                                                    File confDir)
     throws IOException, HoyaException {
     Map<String, String> env = new HashMap<String, String>();
+    provider.exec(cd,confDir,env);
 
-    String masterCommand = cd.getOption(
-      HoyaKeys.OPTION_HOYA_MASTER_COMMAND, null);
-
-    List<String> commands =
-      provider.buildProcessCommand(cd, confDir, env, masterCommand);
-
-    if (masterProcess != null) {
-      throw new HoyaInternalStateException("trying to launch "+ name +" process" +
-                                           " when one is already running");
-    }
-    masterProcess = new ForkedProcessService(name, cd);
-    addService(masterProcess);
-    masterProcess.init(getConfig());
-    masterProcess.build(env, commands);
-    //register the service for lifecycle management; when this service
-    //is terminated, so is the master process
-    masterProcess.registerServiceListener(this);
-    masterProcess.start();
+    provider.registerServiceListener(this);
+    provider.start();
   }
 
 /* =================================================================== */
@@ -1523,9 +1477,9 @@ public class HoyaAppMaster extends CompositeService
    */
   @Override //ServiceStateChangeListener
   public void stateChanged(Service service) {
-    if (service == masterProcess) {
+    if (service == provider) {
       //its the current master process in play
-      int exitCode = masterProcess.getExitCode();
+      int exitCode = provider.getExitCode();
       spawnedProcessExitCode = exitCode;
       mappedProcessExitCode =
         AMUtils.mapProcessExitCodeToYarnExitCode(exitCode);
@@ -1555,18 +1509,11 @@ public class HoyaAppMaster extends CompositeService
 
   /**
    * stop forked process if it the running process var is not null
-   * @return the hbase exit code -null if it is not running
+   * @return the process exit code
    */
   protected synchronized Integer stopForkedProcess() {
-    Integer exitCode;
-    if (masterProcess != null) {
-      masterProcess.stop();
-      exitCode = masterProcess.getExitCode();
-      masterProcess = null;
-    } else {
-      exitCode = null;
-    }
-    return exitCode;
+    provider.stop();
+    return  provider.getExitCode();
   }
 
   /**
@@ -1673,14 +1620,9 @@ public class HoyaAppMaster extends CompositeService
   }
 
 
-  //TODO: what handling should we be doing here vs. RM notifications?
   @Override //  NMClientAsync.CallbackHandler 
   public void onStopContainerError(ContainerId containerId, Throwable t) {
     LOG_YARN.warn("Failed to stop Container {}", containerId);
-/*
-    containers.remove(containerId);
-    ClusterNode node = failNode(containerId, t);
-*/
   }
 
   /**
