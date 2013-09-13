@@ -395,8 +395,8 @@ public class ServiceLauncher
     } catch (Throwable thrown) {
       int exitCode;
       LOG.error("While running " + getServiceName() + ":" + thrown, thrown);
-      if (thrown instanceof GetExceptionExitCode) {
-        exitCode = ((GetExceptionExitCode) thrown).getExitCode();
+      if (thrown instanceof ExitCodeProvider) {
+        exitCode = ((ExitCodeProvider) thrown).getExitCode();
       } else {
         exitCode = EXIT_EXCEPTION_THROWN;
       }

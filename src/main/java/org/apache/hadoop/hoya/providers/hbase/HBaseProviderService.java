@@ -20,7 +20,6 @@ package org.apache.hadoop.hoya.providers.hbase;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaKeys;
@@ -30,24 +29,20 @@ import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.providers.AbstractProviderService;
-import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderService;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
-import org.apache.hadoop.hoya.providers.accumulo.AccumuloProvider;
-import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
+import org.apache.hadoop.hoya.yarn.service.ForkedProcessService;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -252,5 +247,39 @@ public class HBaseProviderService extends AbstractProviderService implements
     launchSequence.add(masterCommand);
     launchSequence.add(ACTION_START);
     return launchSequence; 
+  }
+
+  /**
+   * Run this service
+   * @param cd
+   * @param confDir
+   * @param env
+   * @throws IOException
+   * @throws HoyaException
+   */
+  public void exec(ClusterDescription cd,
+                                  File confDir,
+                                  Map<String, String> env) throws
+                                                        IOException,
+                                                        HoyaException {
+    ForkedProcessService masterProcess;
+    String masterCommand = cd.getOption(
+      HoyaKeys.OPTION_HOYA_MASTER_COMMAND, null);
+
+    List<String> commands =
+      buildProcessCommand(cd, confDir, env, masterCommand);
+
+    masterProcess = new ForkedProcessService(getName(), cd);
+    addService(masterProcess);
+    masterProcess.init(getConfig());
+    masterProcess.build(env, commands);
+    //register the service for lifecycle management; when this service
+    //is terminated, so is the master process
+    addService(masterProcess);
+    //if we are already running, start this service
+    if (isInState(STATE.STARTED)) {
+      startNextService();
+    }
+
   }
 }

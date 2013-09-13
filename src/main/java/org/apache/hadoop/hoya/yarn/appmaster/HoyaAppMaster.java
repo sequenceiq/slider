@@ -766,8 +766,6 @@ public class HoyaAppMaster extends CompositeService
     }
   }
 
-
-
   /**
    * Get diagnostics info about containers
    */
@@ -1499,20 +1497,20 @@ public class HoyaAppMaster extends CompositeService
       HoyaKeys.OPTION_HOYA_MASTER_COMMAND, null);
 
     List<String> commands =
-      provider.buildProcessCommand(clusterSpec, confDir, env, masterCommand);
+      provider.buildProcessCommand(cd, confDir, env, masterCommand);
 
     if (masterProcess != null) {
       throw new HoyaInternalStateException("trying to launch "+ name +" process" +
                                            " when one is already running");
     }
-    masterProcess = new ForkedProcessService(this,name, cd, true);
+    masterProcess = new ForkedProcessService(name, cd);
+    addService(masterProcess);
     masterProcess.init(getConfig());
-    masterProcess.start();
-    masterProcess.exec(env, commands);
+    masterProcess.build(env, commands);
     //register the service for lifecycle management; when this service
     //is terminated, so is the master process
     masterProcess.registerServiceListener(this);
-    addService(masterProcess);
+    masterProcess.start();
   }
 
 /* =================================================================== */
@@ -1531,7 +1529,7 @@ public class HoyaAppMaster extends CompositeService
       spawnedProcessExitCode = exitCode;
       mappedProcessExitCode =
         AMUtils.mapProcessExitCodeToYarnExitCode(exitCode);
-      if (masterProcess.isEarlyExitIsFailure() && !amCompletionFlag.get()) {
+      if (!amCompletionFlag.get()) {
         //this wasn't expected: the process finished early
         spawnedProcessExitedBeforeShutdownTriggered = true;
         log.info(

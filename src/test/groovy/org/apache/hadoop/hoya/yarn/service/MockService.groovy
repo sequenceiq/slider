@@ -20,12 +20,12 @@ package org.apache.hadoop.hoya.yarn.service
 
 import org.apache.hadoop.service.AbstractService
 import org.apache.hadoop.service.ServiceStateException
-import org.apache.hadoop.yarn.service.launcher.GetExceptionExitCode
+import org.apache.hadoop.yarn.service.launcher.ExitCodeProvider
 
 /**
  * Little mock service to simulate delays
  */
-class MockService extends AbstractService implements GetExceptionExitCode {
+class MockService extends AbstractService implements ExitCodeProvider {
 
   boolean fail = false;
   int exitCode;
