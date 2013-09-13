@@ -38,7 +38,7 @@ import java.util.List;
 public class SequenceService extends AbstractService implements
                                                      ServiceStateChangeListener {
 
-  protected static final Logger log =
+  private static final Logger log =
     LoggerFactory.getLogger(SequenceService.class);
 
   /**
@@ -85,23 +85,15 @@ public class SequenceService extends AbstractService implements
 
   @Override
   protected void serviceStop() throws Exception {
-    stopCurrentService();
-    super.serviceStop();
-  }
-
-  /**
-   * Stop the current service: this may trigger the starting of the next
-   */
-  public void stopCurrentService() {
     //stop current service.
     //this triggers a callback that is caught and ignored
     Service current = currentService;
+    previousService = current;
+    currentService = null;
     if (current != null) {
-      currentService = null;
       current.stop();
     }
   }
-
 
   /**
    * Get an unmodifiable list of services
@@ -136,9 +128,10 @@ public class SequenceService extends AbstractService implements
       //nothing left to run
       return false;
     }
-    if (currentService!=null && currentService.getFailureCause()!=null) {
+    if (currentService != null && currentService.getFailureCause() != null) {
       //did the last service fail? Is this caused by some premature callback?
-      log.debug("Not starting next service due to a failure of {}", currentService);
+      log.debug("Not starting next service due to a failure of {}",
+                currentService);
       return false;
     }
     //bear in mind that init & start can fail, which
@@ -183,6 +176,7 @@ public class SequenceService extends AbstractService implements
    */
   protected void onServiceCompleted(Service service) {
     log.info("Running service stopped: {}", service);
+    previousService = currentService;
     //start the next service if we are not stopped ourselves
     if (isInState(STATE.STARTED)) {
       //start the next service
@@ -199,6 +193,10 @@ public class SequenceService extends AbstractService implements
         //stop and expect the notification to go upstream
         stop();
       }
+    } else {
+      //not started, so just note that the current service
+      //has gone away
+      currentService = null;
     }
   }
 
@@ -217,6 +215,6 @@ public class SequenceService extends AbstractService implements
   @Override
   public synchronized String toString() {
     return super.toString() + "; current service " + currentService
-      +"; queued service count=" + serviceList.size();
+           + "; queued service count=" + serviceList.size();
   }
 }

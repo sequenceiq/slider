@@ -18,11 +18,13 @@
 
 package org.apache.hadoop.hoya.yarn.service
 
+import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.service.Service
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
 import org.junit.Test
 
+@Slf4j
 class TestSequenceService extends ServiceLauncherBaseTest {
 
 
@@ -32,7 +34,6 @@ class TestSequenceService extends ServiceLauncherBaseTest {
     ss.stop();
   }
 
-
   @Test
   public void testSequence() throws Throwable {
     MockService one = new MockService("one", false, 100)
@@ -41,6 +42,28 @@ class TestSequenceService extends ServiceLauncherBaseTest {
     assert ss.waitForServiceToStop(1000);
     assert one.isInState(Service.STATE.STOPPED)
     assert two.isInState(Service.STATE.STOPPED)
+    assert ss.previousService == two
+  }
+
+  @Test
+  public void testNotificationInSequence() throws Throwable {
+    boolean notified = false;
+    EventCallback ecb = new EventCallback() {
+      @Override
+      void eventCallbackEvent() {
+        log.info("EventCallback")
+        notified = true;
+      }
+    }
+    MockService one = new MockService("one", false, 100)
+    EventNotifyingService ens = new EventNotifyingService(ecb, 100);
+    MockService two = new MockService("two", false, 100)
+    SequenceService ss = startService([one, ens, two])
+    assert ss.waitForServiceToStop(1000);
+    assert one.isInState(Service.STATE.STOPPED)
+    assert ens.isInState(Service.STATE.STOPPED)
+    assert two.isInState(Service.STATE.STOPPED)
+    assert notified
   }
 
   @Test
@@ -51,7 +74,10 @@ class TestSequenceService extends ServiceLauncherBaseTest {
     assert ss.waitForServiceToStop(1000);
     assert one.isInState(Service.STATE.STOPPED)
     assert two.isInState(Service.STATE.NOTINITED)
+    assert ss.previousService == one
+
   }
+  
 
 
   @Test
@@ -72,16 +98,29 @@ class TestSequenceService extends ServiceLauncherBaseTest {
     assert three.isInState(Service.STATE.NOTINITED)
   }
 
+  @Test
+  public void testSequenceInSequence() throws Throwable {
+    MockService one = new MockService("one", false, 100)
+    MockService two = new MockService("two", false, 100)
+    SequenceService ss = buildService([one, two])
+    SequenceService outer = startService([ss])
+    
+    assert outer.waitForServiceToStop(1000);
+    assert one.isInState(Service.STATE.STOPPED)
+    assert two.isInState(Service.STATE.STOPPED)
+  }
 
+  public SequenceService startService(List<Service> services) {
+    SequenceService ss = buildService(services)
+    //expect service to start and stay started
+    ss.start();
+    return ss
+  }
 
-
-
-  public SequenceService startService(List<MockService> services) {
+  public SequenceService buildService(List<Service> services) {
     SequenceService ss = new SequenceService("test")
     services.each { ss.addService(it) }
     ss.init(new Configuration())
-    //expect service to start and stay started
-    ss.start();
     return ss
   }
 
