@@ -67,12 +67,12 @@ public class ForkedProcessService extends AbstractService implements
     this.name = name;
   }
 
-  @Override
+  @Override //AbstractService
   protected void serviceInit(Configuration conf) throws Exception {
     super.serviceInit(conf);
   }
 
-  @Override
+  @Override //AbstractService
   protected void serviceStart() throws Exception {
     if (process == null) {
       throw new ServiceStateException("Subprocess not yet configured");
@@ -81,7 +81,7 @@ public class ForkedProcessService extends AbstractService implements
     process.spawnApplication();
   }
 
-  @Override
+  @Override //AbstractService
   protected void serviceStop() throws Exception {
     if (process != null) {
       process.stop();
@@ -148,7 +148,7 @@ public class ForkedProcessService extends AbstractService implements
   }
 
 
-  @Override
+  @Override // ExitCodeProvider
   public int getExitCode() {
     return exitCode;
   }
