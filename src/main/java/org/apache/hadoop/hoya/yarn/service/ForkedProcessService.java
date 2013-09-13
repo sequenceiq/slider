@@ -26,6 +26,7 @@ import org.apache.hadoop.hoya.exec.RunLongLivedApp;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.appmaster.HoyaAppMaster;
 import org.apache.hadoop.service.AbstractService;
+import org.apache.hadoop.service.Service;
 import org.apache.hadoop.util.ExitUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,7 +50,7 @@ public class ForkedProcessService extends AbstractService implements
     LoggerFactory.getLogger(ForkedProcessService.class);
 
   private final String name;
-  private final HoyaAppMaster owner;
+  private final Service owner;
   private final ClusterDescription clusterSpec;
   private final boolean earlyExitIsFailure;
   private boolean processTerminated = false;
@@ -65,7 +66,7 @@ public class ForkedProcessService extends AbstractService implements
    */
   private int exitCode;
 
-  public ForkedProcessService(HoyaAppMaster owner,
+  public ForkedProcessService(Service owner,
                               String name,
                               ClusterDescription clusterSpec,
                               boolean earlyExitIsFailure) {
