@@ -19,7 +19,6 @@
 package org.apache.hadoop.hoya.yarn.service;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.exec.ApplicationEventHandler;
 import org.apache.hadoop.hoya.exec.RunLongLivedApp;
@@ -51,7 +50,6 @@ public class ForkedProcessService extends AbstractService implements
     LoggerFactory.getLogger(ForkedProcessService.class);
 
   private final String name;
-  private final ClusterDescription clusterSpec;
   private boolean processTerminated = false;
   private boolean processStarted = false;
   private boolean processTerminatedBeforeServiceStopped = false;
@@ -65,11 +63,9 @@ public class ForkedProcessService extends AbstractService implements
    */
   private int exitCode;
 
-  public ForkedProcessService(String name,
-                              ClusterDescription clusterSpec) {
+  public ForkedProcessService(String name) {
     super("name");
     this.name = name;
-    this.clusterSpec = clusterSpec;
   }
 
   @Override
