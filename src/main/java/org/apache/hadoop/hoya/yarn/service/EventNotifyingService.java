@@ -19,6 +19,8 @@
 package org.apache.hadoop.hoya.yarn.service;
 
 import org.apache.hadoop.service.AbstractService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A service that calls the supplied callback when it is started -after the 
@@ -27,7 +29,8 @@ import org.apache.hadoop.service.AbstractService;
  * that don't 
  */
 public class EventNotifyingService extends AbstractService implements Runnable {
-
+  protected static final Logger log =
+    LoggerFactory.getLogger(EventNotifyingService.class);
   private final EventCallback callback;
   private final int delay;
 
@@ -40,6 +43,7 @@ public class EventNotifyingService extends AbstractService implements Runnable {
 
   @Override
   protected void serviceStart() throws Exception {
+    log.debug("Notifying {} after a delay of {} millis", callback, delay);
     new Thread(this, "event").start();
   }
 
@@ -52,6 +56,7 @@ public class EventNotifyingService extends AbstractService implements Runnable {
 
       }
     }
+    log.debug("Notifying {}", callback);
     callback.eventCallbackEvent();
     stop();
   }
