@@ -1668,14 +1668,14 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     while (!live) {
       //see if there is a node in that role yet
       String[] containers = appMaster.listNodesByRole(role);
-      int masterNodeCount = containers.length;
-      ClusterNode master = null;
-      if (masterNodeCount != 0) {
+      int roleCount = containers.length;
+      ClusterNode roleInstance = null;
+      if (roleCount != 0) {
 
         //if there is, get the node
-        master = getNode(appMaster, containers[0]);
-        if (master != null) {
-          state = master.state;
+        roleInstance = getNode(appMaster, containers[0]);
+        if (roleInstance != null) {
+          state = roleInstance.state;
           live = state >= ClusterDescription.STATE_LIVE;
         }
       }
@@ -1685,9 +1685,9 @@ public class HoyaClient extends YarnClientImpl implements RunService,
             String.format("Timeout after %d millis" +
                           " waiting for a live instance of type %s; " +
                           "instances found %d %s",
-                          timeout, role, masterNodeCount,
-                          (master != null
-                           ? (" instance -" + master.toString())
+                          timeout, role, roleCount,
+                          (roleInstance != null
+                           ? (" instance -\n" + roleInstance.toString())
                            : "")
                          ));
         } else {
