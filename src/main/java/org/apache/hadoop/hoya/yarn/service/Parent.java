@@ -18,5 +18,9 @@
 
 package org.apache.hadoop.hoya.yarn.service;
 
-public class Parent {
+import org.apache.hadoop.service.Service;
+
+public interface Parent {
+
+  void addService(Service service);
 }
