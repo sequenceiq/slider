@@ -35,7 +35,7 @@ import java.util.List;
  * only work with one service
  */
 
-public class SequenceService extends AbstractService implements
+public class SequenceService extends AbstractService implements Parent,
                                                      ServiceStateChangeListener {
 
   private static final Logger log =
@@ -58,9 +58,19 @@ public class SequenceService extends AbstractService implements
    */
   private volatile Service previousService;
 
-  public SequenceService(String name) {
+  /**
+   * Create a service sequence with the given list of services
+   * @param name service name
+   * @param offspring initial sequence
+   */
+   public SequenceService(String name, Service...offspring) {
     super(name);
+     for (Service service : offspring) {
+       addService(service);
+     }
   }
+  
+  
 
   /**
    * Get the current service -which may be null
@@ -205,7 +215,7 @@ public class SequenceService extends AbstractService implements
    * {@link SequenceService}
    * @param service the {@link Service} to be added
    */
-  protected void addService(Service service) {
+  public void addService(Service service) {
     log.debug("Adding service {} ", service.getName());
     synchronized (serviceList) {
       serviceList.add(service);
