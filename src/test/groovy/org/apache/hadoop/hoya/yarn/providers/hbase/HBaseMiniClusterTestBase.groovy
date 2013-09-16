@@ -117,10 +117,10 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
    * @param clustername the name of the Hoya cluster
    * @return the connection
    */
-  public HConnection createHConnection(HoyaClient hoyaClient) {
-    Configuration clientConf = createHBaseConfiguration(hoyaClient);
+  
+  public HConnection createHConnection(Configuration clientConf) {
     HConnection hbaseConnection = HConnectionManager.createConnection(clientConf);
-    return hbaseConnection;
+    return hbaseConnection
   }
 
   /**
@@ -148,7 +148,9 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
 
   public ClusterStatus getHBaseClusterStatus(HoyaClient hoyaClient) {
     try {
-      HConnection hbaseConnection = createHConnection(hoyaClient);
+      Configuration clientConf1 = createHBaseConfiguration(hoyaClient)
+      HConnection hbaseConnection1 = createHConnection(clientConf1)
+      HConnection hbaseConnection = hbaseConnection1;
       HBaseAdmin hBaseAdmin = new HBaseAdmin(hbaseConnection);
       ClusterStatus hBaseClusterStatus = hBaseAdmin.clusterStatus;
       return hBaseClusterStatus;

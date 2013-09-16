@@ -34,7 +34,7 @@ public class AccumuloProviderFactory extends HoyaProviderFactory {
 
   @Override
   public ClientProvider createClientProvider() {
-    return new AccumuloProvider(getConf());
+    return new AccumuloClientProvider(getConf());
   }
 
   @Override

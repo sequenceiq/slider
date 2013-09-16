@@ -19,6 +19,7 @@
 package org.apache.hadoop.hoya.providers;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.ClusterNode;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
@@ -27,7 +28,10 @@ import org.apache.hadoop.hoya.yarn.service.ForkedProcessService;
 import org.apache.hadoop.hoya.yarn.service.Parent;
 import org.apache.hadoop.hoya.yarn.service.SequenceService;
 import org.apache.hadoop.service.Service;
+import org.apache.hadoop.util.ExitUtil;
 import org.apache.hadoop.yarn.service.launcher.ExitCodeProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -39,9 +43,15 @@ import java.util.Map;
  * add sequences of operations, and propagates service failures
  * upstream
  */
-public abstract class AbstractProviderService extends SequenceService implements
-                                                                      ProviderService {
-
+public abstract class AbstractProviderService
+                          extends SequenceService
+                          implements
+                            ProviderCore,
+                            HoyaKeys,
+                            ProviderService {
+  protected static final Logger log =
+    LoggerFactory.getLogger(AbstractProviderService.class);
+  
   public AbstractProviderService(String name) {
     super(name);
   }
@@ -66,12 +76,16 @@ public abstract class AbstractProviderService extends SequenceService implements
 
   @Override // ExitCodeProvider
   public int getExitCode() {
-    Service prev = getPreviousService();
-    if (prev != null && prev instanceof ExitCodeProvider) {
-      return ((ExitCodeProvider) prev).getExitCode();
-    } else {
-      return 0;
+    Throwable cause = getFailureCause();
+    if (cause != null) {
+      //failed for some reason
+      if (cause instanceof ExitUtil.ExitException) {
+        ExitUtil.ExitException exitException = (ExitUtil.ExitException) cause;
+        return exitException.getExitCode();
+      }
     }
+    ForkedProcessService lastProc = latestProcess();
+    return lastProc.getExitCode();
   }
 
   /**

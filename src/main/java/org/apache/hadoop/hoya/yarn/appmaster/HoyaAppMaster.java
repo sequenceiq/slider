@@ -98,8 +98,6 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * This is the AM, which directly implements the callbacks from the AM and NM
- * It does not tag interface methods as @Override as the groovyc plugin
- * for maven seems to build in Java 5 syntax, not java6
  */
 @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
 public class HoyaAppMaster extends CompositeService
@@ -1566,7 +1564,7 @@ public class HoyaAppMaster extends CompositeService
       } else {
         //we don't care
         log.info(
-          "Process has exited with exit code {} mapped to {} -ignoring",
+          "Process has exited with exit code {} mapped to {} -ignoring as app has finished",
           exitCode,
           mappedProcessExitCode);
       }

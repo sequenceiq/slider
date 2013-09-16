@@ -271,7 +271,7 @@ public class RunLongLivedApp implements Runnable {
     execThread.start();
     processStreamReader =
       new ProcessStreamReader(processLog, STREAM_READER_SLEEP_TIME);
-    logThread = new Thread(processStreamReader);
+    logThread = new Thread(processStreamReader, "IO");
     logThread.start();
   }
 

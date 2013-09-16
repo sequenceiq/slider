@@ -34,7 +34,7 @@ public class HBaseProviderFactory extends HoyaProviderFactory {
 
   @Override
   public ClientProvider createClientProvider() {
-    return new HBaseProvider(getConf());
+    return new HBaseClientProvider(getConf());
   }
 
   @Override

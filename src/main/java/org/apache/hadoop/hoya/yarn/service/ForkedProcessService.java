@@ -37,7 +37,8 @@ import java.util.Map;
 
 /**
  * Service wrapper for an external program that is launched and can/will terminate.
- * It will notify the owner on events
+ * This service is notified when the subprocess terminates, and stops itself 
+ * and converts a non-zero exit code into a failure exception
  */
 public class ForkedProcessService extends AbstractService implements
                                                           ApplicationEventHandler,
@@ -123,13 +124,13 @@ public class ForkedProcessService extends AbstractService implements
       this.exitCode = exitCode;
       //note whether or not the service had already stopped
       log.info("Process has exited with exit code {}", exitCode);
-      if (exitCode != 0 && getFailureCause() != null) {
+      if (exitCode != 0) {
         //error
         ExitUtil.ExitException ee =
           new ExitUtil.ExitException(exitCode,
                                      name + " exited with code " +
                                      exitCode);
-        ee.initCause(getFailureCause());
+        log.debug("Noting failure",ee);
         noteFailure(ee);
       }
     }

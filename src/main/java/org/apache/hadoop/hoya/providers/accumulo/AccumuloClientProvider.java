@@ -16,28 +16,25 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hoya.providers.hbase;
+package org.apache.hadoop.hoya.providers.accumulo;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.api.RoleKeys;
-import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.providers.ClientProvider;
-import org.apache.hadoop.hoya.providers.ProviderService;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
-import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.slf4j.Logger;
@@ -50,47 +47,50 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * This class implements both the client-side and server-side aspects
  * of an HBase Cluster
  */
-public class HBaseProvider extends Configured implements
-                                                          ProviderCore,
-                                                          HBaseKeys, HoyaKeys,
-                                                          ClientProvider {
+public class AccumuloClientProvider extends Configured implements
+                                                 ProviderCore,
+                                                 AccumuloKeys,
+                                                 ClientProvider {
 
-
-  public static final String ERROR_UNKNOWN_ROLE = "Unknown role ";
   protected static final Logger log =
-    LoggerFactory.getLogger(HBaseProvider.class);
-  protected static final String NAME = "hbase";
+    LoggerFactory.getLogger(AccumuloClientProvider.class);
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
 
-  protected HBaseProvider(Configuration conf) {
+  protected AccumuloClientProvider(Configuration conf) {
     super(conf);
   }
 
   /**
    * List of roles
    */
-  protected static final List<ProviderRole> ROLES = new ArrayList<ProviderRole>();
-
-  public static final int KEY_WORKER = 1;
-
-  public static final int KEY_MASTER = 2;
+  protected static final List<ProviderRole> ROLES =
+    new ArrayList<ProviderRole>();
 
   /**
    * Initialize role list
    */
   static {
-    ROLES.add(new ProviderRole(HBaseKeys.ROLE_WORKER, KEY_WORKER));
-    ROLES.add(new ProviderRole(HBaseKeys.ROLE_MASTER, KEY_MASTER, true));
+    ROLES.add(new ProviderRole(ROLE_MASTER, 1, true));
+    ROLES.add(new ProviderRole(ROLE_TABLET, 2));
+    ROLES.add(new ProviderRole(ROLE_GARBAGE_COLLECTOR, 3));
+    ROLES.add(new ProviderRole(ROLE_MONITOR, 4));
+    ROLES.add(new ProviderRole(ROLE_TRACER, 5));
+  }
+  
+  public static List<ProviderRole> getProviderRoles() {
+    return ROLES;
+
   }
 
   @Override
   public String getName() {
-    return NAME;
+    return PROVIDER_ACCUMULO;
   }
 
   @Override
@@ -106,9 +106,13 @@ public class HBaseProvider extends Configured implements
    */
   @Override
   public Map<String, String> getDefaultClusterOptions() {
-    return new HashMap<String, String>();
+    HashMap<String, String> options = new HashMap<String, String>();
+    //create an instance ID
+    options.put(OptionKeys.OPTION_SITE_PREFIX + AccumuloConfigFileOptions.INSTANCE_SECRET,
+                UUID.randomUUID().toString());
+    return options;
   }
-  
+
   /**
    * Create the default cluster role instance for a named
    * cluster role; 
@@ -116,25 +120,51 @@ public class HBaseProvider extends Configured implements
    * @param rolename role name
    * @return a node that can be added to the JSON
    */
-  @Override
+  @Override 
   public Map<String, String> createDefaultClusterRole(String rolename) throws
                                                                        HoyaException {
     Map<String, String> rolemap = new HashMap<String, String>();
     rolemap.put(RoleKeys.ROLE_NAME, rolename);
-    rolemap.put(RoleKeys.YARN_CORES, Integer.toString(RoleKeys.DEF_YARN_CORES));
-    rolemap.put(RoleKeys.YARN_MEMORY, Integer.toString(RoleKeys.DEF_YARN_MEMORY));
-    if (rolename.equals(HBaseKeys.ROLE_WORKER)) {
-      rolemap.put(RoleKeys.APP_INFOPORT, DEFAULT_HBASE_WORKER_INFOPORT);
-      rolemap.put(RoleKeys.JVM_HEAP, DEFAULT_HBASE_WORKER_HEAP);
-    } else if (rolename.equals(HBaseKeys.ROLE_MASTER)) {
-      rolemap.put(RoleKeys.ROLE_INSTANCES, "1");
-      rolemap.put(RoleKeys.APP_INFOPORT, DEFAULT_HBASE_MASTER_INFOPORT);
-      rolemap.put(RoleKeys.JVM_HEAP, DEFAULT_HBASE_MASTER_HEAP);
-    } else {
-      throw new HoyaException(ERROR_UNKNOWN_ROLE + rolename);
+
+    rolemap.put(RoleKeys.JVM_HEAP, DEFAULT_ROLE_HEAP);
+    rolemap.put(RoleKeys.YARN_CORES, DEFAULT_ROLE_YARN_VCORES);
+    rolemap.put(RoleKeys.YARN_MEMORY, DEFAULT_ROLE_YARN_RAM);
+
+    if (rolename.equals(ROLE_MASTER)) {
+      rolemap.put(RoleKeys.JVM_HEAP, DEFAULT_MASTER_HEAP);
+      rolemap.put(RoleKeys.YARN_CORES, DEFAULT_MASTER_YARN_VCORES);
+      rolemap.put(RoleKeys.YARN_MEMORY, DEFAULT_MASTER_YARN_RAM);
+
+    } else if (rolename.equals(ROLE_TABLET)) {
+    } else if (rolename.equals(ROLE_TRACER)) {
+    } else if (rolename.equals(ROLE_GARBAGE_COLLECTOR)) {
+    } else if (rolename.equals(ROLE_MONITOR)) {
     }
     return rolemap;
   }
+
+  void propagateKeys(Map<String, String> sitexml, Configuration conf, String ... keys) {
+    for (String key : keys) {
+      propagate(sitexml, conf, key, key);
+    }
+  }
+
+  /**
+   * Propagate a key's value from the conf to the site, ca
+   * @param sitexml
+   * @param conf
+   * @param key
+   * @param dest
+   */
+  private void propagate(Map<String, String> sitexml,
+                         Configuration conf,
+                         String key, String dest) {
+    String v = conf.get(key);
+    if (v!=null) {
+      sitexml.put(dest, v);
+    }
+  }
+
 
   /**
    * Build the conf dir from the service arguments, adding the hbase root
@@ -143,36 +173,53 @@ public class HBaseProvider extends Configured implements
    * @param clusterSpec this is the cluster specification used to define this
    * @return a map of the dynamic bindings for this Hoya instance
    */
-  @VisibleForTesting
+  @Override // ProviderCore
   public Map<String, String> buildSiteConfFromSpec(ClusterDescription clusterSpec)
     throws BadConfigException {
 
+
     Map<String, String> master = clusterSpec.getMandatoryRole(
-      HBaseKeys.ROLE_MASTER);
+      AccumuloKeys.ROLE_MASTER);
 
     Map<String, String> worker = clusterSpec.getMandatoryRole(
-      HBaseKeys.ROLE_WORKER);
+      AccumuloKeys.ROLE_TABLET);
 
     Map<String, String> sitexml = new HashMap<String, String>();
-    providerUtils.propagateSiteOptions(clusterSpec, sitexml);
-    
-    sitexml.put(HBaseConfigFileOptions.KEY_HBASE_CLUSTER_DISTRIBUTED, "true");
-    sitexml.put(HBaseConfigFileOptions.KEY_HBASE_MASTER_PORT, "0");
 
-    sitexml.put(HBaseConfigFileOptions.KEY_HBASE_MASTER_INFO_PORT, master.get(
-      RoleKeys.APP_INFOPORT));
-    sitexml.put(HBaseConfigFileOptions.KEY_HBASE_ROOTDIR,
+
+    providerUtils.propagateSiteOptions(clusterSpec, sitexml);
+
+    propagateKeys(sitexml, getConf(),
+                  DFSConfigKeys.FS_DEFAULT_NAME_KEY
+                 );
+    //insert the old fs name key
+    propagate(sitexml, getConf(),
+              DFSConfigKeys.FS_DEFAULT_NAME_KEY,
+              HoyaKeys.FS_DEFAULT_NAME);
+    sitexml.put(AccumuloConfigFileOptions.KEY_WALOG,
                 clusterSpec.dataPath);
-    sitexml.put(HBaseConfigFileOptions.KEY_REGIONSERVER_INFO_PORT,
-                worker.get(RoleKeys.APP_INFOPORT));
-    sitexml.put(HBaseConfigFileOptions.KEY_REGIONSERVER_PORT, "0");
-    sitexml.put(HBaseConfigFileOptions.KEY_ZNODE_PARENT, clusterSpec.zkPath);
-    sitexml.put(HBaseConfigFileOptions.KEY_ZOOKEEPER_PORT,
-                Integer.toString(clusterSpec.zkPort));
-    sitexml.put(HBaseConfigFileOptions.KEY_ZOOKEEPER_QUORUM,
-                clusterSpec.zkHosts);
+
+    int zkPort = clusterSpec.zkPort;
+    String zkHosts = clusterSpec.zkHosts;
+    
+    //parse the hosts
+    String[] hostlist = zkHosts.split(",",0);
+    StringBuilder builder = new StringBuilder();
+    boolean first = true;
+    for (String host : hostlist) {
+      if (first) {
+        first = false;
+        builder.append(",");
+      }
+      builder.append(host).append(":").append(zkPort);
+    }
+
+    sitexml.put(AccumuloConfigFileOptions.KEY_ZOOKEEPER_QUORUM,
+                builder.toString());
     return sitexml;
   }
+
+
 
   /**
    * Build time review and update of the cluster specification
@@ -180,33 +227,12 @@ public class HBaseProvider extends Configured implements
    */
   @Override // Client
   public void reviewAndUpdateClusterSpec(ClusterDescription clusterSpec) throws
-                                                                         HoyaException{
+                                                                         HoyaException {
 
     validateClusterSpec(clusterSpec);
   }
 
-  /**
-   * Validate the cluster specification. This can be invoked on both
-   * server and client
-   * @param clusterSpec
-   */
-  @Override // Client and Server
-  public void validateClusterSpec(ClusterDescription clusterSpec) throws
-                                                                  HoyaException {
-    providerUtils.validateNodeCount(HBaseKeys.ROLE_WORKER,
-                                    clusterSpec.getDesiredInstanceCount(
-                                      HBaseKeys.ROLE_WORKER,
-                                      0), 0, -1);
 
-
-    providerUtils.validateNodeCount(HoyaKeys.ROLE_MASTER,
-                                    clusterSpec.getDesiredInstanceCount(
-                                      HoyaKeys.ROLE_MASTER,
-                                      0),
-                                    0,
-                                    1);
-  }
-  
   /**
    * This builds up the site configuration for the AM and downstream services;
    * the path is added to the cluster spec so that launchers in the 
@@ -218,7 +244,7 @@ public class HBaseProvider extends Configured implements
    * @param generatedConfDirPath path to place generated artifacts
    * @return a map of name to local resource to add to the AM launcher
    */
-  @Override
+  @Override //client
   public Map<String, LocalResource> prepareAMAndConfigForLaunch(FileSystem clusterFS,
                                                                 Configuration serviceConf,
                                                                 ClusterDescription clusterSpec,
@@ -229,8 +255,8 @@ public class HBaseProvider extends Configured implements
     Configuration siteConf = ConfigHelper.loadTemplateConfiguration(
       serviceConf,
       originConfDirPath,
-      HBaseKeys.SITE_XML,
-      HBaseKeys.HBASE_TEMPLATE_RESOURCE);
+      AccumuloKeys.SITE_XML,
+      AccumuloKeys.SITE_XML_RESOURCE);
 
     //construct the cluster configuration values
     Map<String, String> clusterConfMap = buildSiteConfFromSpec(
@@ -245,7 +271,7 @@ public class HBaseProvider extends Configured implements
     Path sitePath = ConfigHelper.generateConfig(serviceConf,
                                                 siteConf,
                                                 generatedConfDirPath,
-                                                HBaseKeys.SITE_XML);
+                                                AccumuloKeys.SITE_XML);
 
     log.debug("Saving the config to {}", sitePath);
     Map<String, LocalResource> confResources;
@@ -259,14 +285,13 @@ public class HBaseProvider extends Configured implements
    * Update the AM resource with any local needs
    * @param capability capability to update
    */
-  @Override
+  @Override //client
   public void prepareAMResourceRequirements(ClusterDescription clusterSpec,
                                             Resource capability) {
     //no-op unless you want to add more memory
-    capability.setMemory(clusterSpec.getRoleOptInt(
-      HBaseKeys.ROLE_MASTER,
-      RoleKeys.YARN_MEMORY,
-      capability.getMemory()));
+    capability.setMemory(clusterSpec.getRoleOptInt(ROLE_MASTER,
+                                                   RoleKeys.YARN_MEMORY,
+                                                   capability.getMemory()));
     capability.setVirtualCores(1);
   }
 
@@ -276,25 +301,63 @@ public class HBaseProvider extends Configured implements
    * @param clusterSpec cspec
    * @param serviceData map of service data
    */
-  @Override  //Client
+  @Override //client
   public void prepareAMServiceData(ClusterDescription clusterSpec,
                                    Map<String, ByteBuffer> serviceData) {
-    
+
   }
+
+   /*
+   ======================================================================
+   Client and Server interface below here
+   ======================================================================
+  */
 
 
   /**
-   * Get the path to hbase home
-   * @return the hbase home path
+   * Validate the cluster specification. This can be invoked on both
+   * server and client
+   * @param clusterSpec
    */
-  public  File buildHBaseBinPath(ClusterDescription cd) {
-    return new File(buildHBaseDir(cd),
-                                HBaseKeys.HBASE_SCRIPT);
+  @Override // Client and Server
+  public void validateClusterSpec(ClusterDescription clusterSpec) throws
+                                                                  HoyaException {
+    providerUtils.validateNodeCount(AccumuloKeys.ROLE_TABLET,
+                                    clusterSpec.getDesiredInstanceCount(
+                                      AccumuloKeys.ROLE_TABLET,
+                                      0), 0, -1);
+
+
+    providerUtils.validateNodeCount(HoyaKeys.ROLE_MASTER,
+                                    clusterSpec.getDesiredInstanceCount(
+                                      HoyaKeys.ROLE_MASTER,
+                                      0),
+                                    0,
+                                    1);
+    clusterSpec.verifyOptionSet(AccumuloKeys.OPTION_ZK_HOME);
+    clusterSpec.verifyOptionSet(AccumuloKeys.OPTION_HADOOP_HOME);
   }
 
-  public  File buildHBaseDir(ClusterDescription cd) {
-    String archiveSubdir = HBaseKeys.ARCHIVE_SUBDIR;
-    return providerUtils.buildImageDir(cd, archiveSubdir);
+
+
+  /**
+   * Get the path to the script
+   * @return the script
+   */
+  public static File buildScriptBinPath(ClusterDescription cd) {
+    String startScript = AccumuloKeys.START_SCRIPT;
+    return new File(buildImageDir(cd), startScript);
   }
-  
+
+
+
+  /**
+   * Build the image dir. This path is relative and only valid at the far end
+   * @param cd cluster spec
+   * @return a relative path to accumulp home
+   */
+  public static File buildImageDir(ClusterDescription cd) {
+    return providerUtils.buildImageDir(cd, AccumuloKeys.ARCHIVE_SUBDIR);
+  }
+
 }
