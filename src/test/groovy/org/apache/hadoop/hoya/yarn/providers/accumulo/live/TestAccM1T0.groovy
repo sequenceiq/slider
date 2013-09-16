@@ -57,6 +57,10 @@ class TestAccM1T0 extends AccumuloTestBase {
     status = hoyaClient.getClusterStatus(clustername)
     log.info(prettyPrint(status.toJsonString()))
 
+    //now give the cluster a bit of time to actually start work
+    sleep(10000)
+    status = hoyaClient.getClusterStatus(clustername)
+
   }
 
 }
