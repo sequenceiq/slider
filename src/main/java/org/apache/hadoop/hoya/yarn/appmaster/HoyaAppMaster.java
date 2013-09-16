@@ -38,6 +38,7 @@ import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
+import org.apache.hadoop.hoya.yarn.service.EventCallback;
 import org.apache.hadoop.ipc.ProtocolSignature;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.Server;
@@ -106,7 +107,8 @@ public class HoyaAppMaster extends CompositeService
              HoyaKeys,
              HoyaAppMasterProtocol,
              ServiceStateChangeListener,
-             RoleKeys {
+             RoleKeys,
+             EventCallback {
   protected static final Logger log =
     LoggerFactory.getLogger(HoyaAppMaster.class);
 
@@ -328,6 +330,15 @@ public class HoyaAppMaster extends CompositeService
   }
 
 /* =================================================================== */
+/* Object methods */
+/* =================================================================== */
+
+  @Override
+  public String toString() {
+    return super.toString();
+  }
+
+  /* =================================================================== */
 /* service lifecycle methods */
 /* =================================================================== */
 
@@ -582,25 +593,15 @@ public class HoyaAppMaster extends CompositeService
     if (noMaster) {
       log.info("skipping master launch");
       localProcessStarted = true;
+      eventCallbackEvent();
     } else {
       addLaunchedContainer(AppMasterContainerID, masterNode);
+      //launch the provider; this is expected to trigger a callback that
+      //brings up the service
       launchProviderService("master", clusterSpec, confDir);
     }
 
     try {
-      //if we get here: success
-
-      //here see if the launch worked.
-      if (localProcessTerminated) {
-        //exit without even starting a service
-        log.info("Exiting early as process terminated with exit code {}",
-                 spawnedProcessExitCode);
-        return buildExitCode();
-      }
-
-      //now ask for the cluster nodes
-      flexClusterNodes(clusterSpec);
-
       //now block waiting to be told to exit the process
       waitForAMCompletionSignal();
       //shutdown time
@@ -1370,7 +1371,6 @@ public class HoyaAppMaster extends CompositeService
    */
   private void updateClusterStatus() {
 
-
     long t = System.currentTimeMillis();
     synchronized (clusterSpecLock) {
       clusterStatus.statusTime = t;
@@ -1472,15 +1472,36 @@ public class HoyaAppMaster extends CompositeService
                                                     File confDir)
     throws IOException, HoyaException {
     Map<String, String> env = new HashMap<String, String>();
-    provider.exec(cd, confDir, env);
+    provider.exec(cd, confDir, env, this);
 
     provider.registerServiceListener(this);
     provider.start();
   }
 
-/* =================================================================== */
-/* ServiceStateChangeListener */
-/* =================================================================== */
+  /* =================================================================== */
+  /* EventCallback */
+  /* =================================================================== */
+
+  @Override // EventCallback
+  public void eventCallbackEvent() {
+    //signalled that the child process is up.
+    //declare ourselves live in the cluster description
+    masterNode.state = ClusterDescription.STATE_LIVE;
+    localProcessStarted = true;
+    //now ask for the cluster nodes
+    try {
+      flexClusterNodes(clusterSpec);
+    } catch (IOException e) {
+      //this happens in a separate thread, so the ability to act is limited
+      log.error("Failed to flex cluster nodes",e);
+      //declare a failure
+      finish();
+    }
+  }
+
+  /* =================================================================== */
+  /* ServiceStateChangeListener */
+  /* =================================================================== */
 
   /**
    * Received on listening service termination.
@@ -1512,7 +1533,6 @@ public class HoyaAppMaster extends CompositeService
           "Process has exited with exit code {} mapped to {} -ignoring",
           exitCode,
           mappedProcessExitCode);
-
       }
     }
   }

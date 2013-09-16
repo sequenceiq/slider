@@ -22,8 +22,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.ClusterNode;
-import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
+import org.apache.hadoop.hoya.yarn.service.EventCallback;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.service.launcher.ExitCodeProvider;
@@ -33,7 +33,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-public interface ProviderService extends ProviderCore , Service,
+public interface ProviderService extends ProviderCore, Service,
                                          ExitCodeProvider {
 
   /**
@@ -50,6 +50,7 @@ public interface ProviderService extends ProviderCore , Service,
                                    Map<String, String> roleOptions) throws
                                                                     IOException,
                                                                     HoyaException;
+
   int getDefaultMasterInfoPort();
 
   String getSiteXMLFilename();
@@ -58,13 +59,14 @@ public interface ProviderService extends ProviderCore , Service,
                                    File confDir,
                                    Map<String, String> env,
                                    String masterCommand) throws
-                                                                   IOException,
-                                                                   HoyaException;
+                                                         IOException,
+                                                         HoyaException;
 
   void exec(ClusterDescription cd,
             File confDir,
-            Map<String, String> env) throws    IOException,
-                                                        HoyaException;
+            Map<String, String> env,
+            EventCallback execInProgress) throws IOException,
+                                                 HoyaException;
 
   boolean buildStatusReport(ClusterNode masterNode);
 }

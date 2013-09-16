@@ -21,14 +21,17 @@ package org.apache.hadoop.hoya.providers;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.ClusterNode;
+import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.service.ForkedProcessService;
 import org.apache.hadoop.hoya.yarn.service.SequenceService;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.yarn.service.launcher.ExitCodeProvider;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public abstract class AbstractProviderService extends SequenceService implements
                                                                       ProviderService {
@@ -98,5 +101,48 @@ public abstract class AbstractProviderService extends SequenceService implements
       return false;
     }
 
+  }
+
+  /**
+   * if we are already running, start this service
+   */
+  protected void maybeStartCommandSequence() {
+    if (isInState(STATE.STARTED)) {
+      startNextService();
+    }
+  }
+
+  /**
+   * Create a new forked process service with the given
+   * name, environment and command list -then add it as a child
+   * for execution in the sequence.
+   * 
+   * @param name command name
+   * @param env environment
+   * @param commands command line
+   * @throws IOException
+   * @throws HoyaException
+   */
+  protected void queueCommand(String name,
+                              Map<String, String> env,
+                              List<String> commands) throws
+                                                 IOException,
+                                                 HoyaException {
+    ForkedProcessService masterProcess = buildProcess(name, env, commands);
+    //register the service for lifecycle management; when this service
+    //is terminated, so is the master process
+    addService(masterProcess);
+  }
+
+  public  ForkedProcessService buildProcess(String name,
+                                            Map<String, String> env,
+                                            List<String> commands) throws
+                                                                   IOException,
+                                                                   HoyaException {
+    ForkedProcessService masterProcess;
+    masterProcess = new ForkedProcessService(name);
+    masterProcess.init(getConfig());
+    masterProcess.build(env, commands);
+    return masterProcess;
   }
 }
