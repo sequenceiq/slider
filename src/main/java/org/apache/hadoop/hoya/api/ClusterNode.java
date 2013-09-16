@@ -91,9 +91,12 @@ public class ClusterNode {
   public String toString() {
     StringBuilder builder = new StringBuilder();
     builder.append(name).append(": ").append(state).append("\n");
+    builder.append("state: ").append(state).append("\n");
     builder.append("role: ").append(role).append("\n");
     builder.append("uuid: ").append(uuid).append("\n");
-    builder.append(command).append("\n");
+    if (command != null) {
+      builder.append("command: " + command).append("\n");
+    }
     if (output != null) {
       for (String line : output) {
         builder.append(line).append("\n");
