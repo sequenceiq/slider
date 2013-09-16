@@ -110,6 +110,20 @@ class TestSequenceService extends ServiceLauncherBaseTest {
     assert two.isInState(Service.STATE.STOPPED)
   }
 
+
+  @Test
+  public void testVarargsCtor() throws Throwable {
+    MockService one = new MockService("one", false, 100)
+    MockService two = new MockService("two", false, 100)
+    SequenceService ss = new SequenceService("test", one, two);
+    ss.init(new Configuration())
+    ss.start();
+    assert ss.waitForServiceToStop(1000);
+    assert one.isInState(Service.STATE.STOPPED)
+    assert two.isInState(Service.STATE.STOPPED)
+
+
+  }
   public SequenceService startService(List<Service> services) {
     SequenceService ss = buildService(services)
     //expect service to start and stay started
