@@ -97,5 +97,16 @@ public interface HoyaKeys {
     "hoya.master.command";
 
   String OPTION_SITE_PREFIX = "site.";
-  
+
+
+  /**
+   * Time in milliseconds to wait after forking the in-AM master
+   * process before attempting to start up the containers. 
+   * A shorter value brings the cluster up faster, but means that if the
+   * master process fails (due to a bad configuration), then time
+   * is wasted starting containers on a cluster that isn't going to come
+   * up
+   */
+  String OPTION_CONTAINER_STARTUP_DELAY = "hoya.container.startup.delay";
+  int CONTAINER_STARTUP_DELAY = 5000;
 }
