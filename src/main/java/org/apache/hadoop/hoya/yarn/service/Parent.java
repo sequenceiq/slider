@@ -22,7 +22,7 @@ import org.apache.hadoop.service.Service;
 
 import java.util.List;
 
-public interface Parent {
+public interface Parent extends Service {
 
   void addService(Service service);
 

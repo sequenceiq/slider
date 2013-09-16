@@ -21,6 +21,10 @@ package org.apache.hadoop.hoya.yarn.service;
 import org.apache.hadoop.service.CompositeService;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.service.ServiceStateChangeListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 /**
  * An extended composite service which not only makes the 
@@ -30,13 +34,27 @@ import org.apache.hadoop.service.ServiceStateChangeListener;
 public class CompoundService extends CompositeService implements Parent,
                                                                  ServiceStateChangeListener {
 
+  protected static final Logger log =
+    LoggerFactory.getLogger(CompoundService.class);
+
   public CompoundService(String name) {
     super(name);
   }
-  
-  
+
+
   public CompoundService() {
     super("CompoundService");
+  }
+
+  /**
+   * Varargs constructor
+   * @param children children
+   */
+  public CompoundService(Service ... children) {
+    this();
+    for (Service child : children) {
+      addService(child);
+    }
   }
 
   /**
@@ -53,21 +71,41 @@ public class CompoundService extends CompositeService implements Parent,
    * When this service is started, any service stopping with a failure
    * exception is converted immediately into a failure of this service, 
    * storing the failure and stopping ourselves.
-   * @param service the service that has changed.
+   * @param child the service that has changed.
    */
   @Override
-  public void stateChanged(Service service) {
-    //if that service stopped while we are running:
-    if (isInState(STATE.STARTED) && service.isInState(STATE.STOPPED)) {
-        //did the service fail? if so: propagate
-        Throwable failureCause = service.getFailureCause();
-        if (failureCause != null) {
-          //failure. Convert to an exception
-          Exception e = HoyaServiceUtils.convertToException(failureCause);
-          //flip ourselves into the failed state
-          noteFailure(e);
+  public void stateChanged(Service child) {
+    //if that child stopped while we are running:
+    if (isInState(STATE.STARTED) && child.isInState(STATE.STOPPED)) {
+      // a child service has stopped
+      //did the child fail? if so: propagate
+      Throwable failureCause = child.getFailureCause();
+      if (failureCause != null) {
+        log.info("Child service " + child + " failed", failureCause);
+        //failure. Convert to an exception
+        Exception e = HoyaServiceUtils.convertToException(failureCause);
+        //flip ourselves into the failed state
+        noteFailure(e);
+        stop();
+      } else {
+        log.info("Child service completed {}", child);
+        if (areAllChildrenStopped()) {
+          log.info("All children are halted: stopping");
           stop();
         }
+      }
     }
+  }
+
+  private boolean areAllChildrenStopped() {
+    List<Service> children = getServices();
+    boolean stopped = true;
+    for (Service child : children) {
+      if (!child.isInState(STATE.STOPPED)) {
+        stopped = false;
+        break;
+      }
+    }
+    return stopped;
   }
 }
