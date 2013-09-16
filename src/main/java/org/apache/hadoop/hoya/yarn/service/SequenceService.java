@@ -105,14 +105,6 @@ public class SequenceService extends AbstractService implements Parent,
     }
   }
 
-  /**
-   * Get an unmodifiable list of services
-   * @return a list of child services at the time of invocation -
-   * added services will not be picked up.
-   */
-  public synchronized List<Service> getServices() {
-    return Collections.unmodifiableList(serviceList);
-  }
 
   /**
    * Start the next service in the list.
@@ -184,11 +176,22 @@ public class SequenceService extends AbstractService implements Parent,
    * handler for service completion: base class starts the next service
    * @param service service that has completed
    */
-  protected void onServiceCompleted(Service service) {
+  protected synchronized void onServiceCompleted(Service service) {
     log.info("Running service stopped: {}", service);
     previousService = currentService;
+    
+
     //start the next service if we are not stopped ourselves
     if (isInState(STATE.STARTED)) {
+
+      //did the service fail? if so: propagate
+      Throwable failureCause = service.getFailureCause();
+      if (failureCause != null) {
+        Exception e = HoyaServiceUtils.convertToException(failureCause);
+        noteFailure(e);
+        stop();
+      }
+      
       //start the next service
       boolean started;
       try {
@@ -215,6 +218,7 @@ public class SequenceService extends AbstractService implements Parent,
    * {@link SequenceService}
    * @param service the {@link Service} to be added
    */
+  @Override //Parent
   public void addService(Service service) {
     log.debug("Adding service {} ", service.getName());
     synchronized (serviceList) {
@@ -222,7 +226,17 @@ public class SequenceService extends AbstractService implements Parent,
     }
   }
 
-  @Override
+  /**
+   * Get an unmodifiable list of services
+   * @return a list of child services at the time of invocation -
+   * added services will not be picked up.
+   */
+  @Override //Parent
+  public synchronized List<Service> getServices() {
+    return Collections.unmodifiableList(serviceList);
+  }
+
+  @Override // Object
   public synchronized String toString() {
     return super.toString() + "; current service " + currentService
            + "; queued service count=" + serviceList.size();

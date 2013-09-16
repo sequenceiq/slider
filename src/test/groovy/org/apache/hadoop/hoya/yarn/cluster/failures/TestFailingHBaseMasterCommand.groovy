@@ -59,7 +59,9 @@ class TestFailingHBaseMasterCommand extends HBaseMiniClusterTestBase {
     addToTeardown(hoyaClient);
 
     ApplicationReport report = waitForAppToFinish(hoyaClient);
-    assert report != null;
+    if (report==null) {
+      fail("Timeout: application did not fail");
+    }
     assert report.finalApplicationStatus == FinalApplicationStatus.FAILED;
     
   }

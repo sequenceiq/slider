@@ -24,7 +24,6 @@ import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
-import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
@@ -61,10 +60,8 @@ class TestRoleOptPropagation extends HBaseMiniClusterTestBase {
 
     Map<String, String> unknownRole = status.getRole("unknown");
     assert unknownRole[MALLOC_ARENA] == "3"
-    
-    dumpClusterDescription("Remote CD",status)
 
+    dumpClusterDescription("Remote CD", status)
   }
-
 
 }

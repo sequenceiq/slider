@@ -18,18 +18,11 @@
 
 package org.apache.hadoop.hoya.yarn.service;
 
-import org.apache.hadoop.service.Service;
+public class HoyaServiceUtils {
 
-import java.util.List;
-
-public interface Parent {
-
-  void addService(Service service);
-
-  /**
-   * Get an unmodifiable list of services
-   * @return a list of child services at the time of invocation -
-   * added services will not be picked up.
-   */
-  List<Service> getServices();
+  public static Exception convertToException(Throwable failureCause) {
+    return (failureCause instanceof Exception) ?
+                      (Exception)failureCause
+                      : new Exception(failureCause);
+  }
 }

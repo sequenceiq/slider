@@ -24,6 +24,7 @@ import org.apache.hadoop.hoya.api.ClusterNode;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.service.ForkedProcessService;
+import org.apache.hadoop.hoya.yarn.service.Parent;
 import org.apache.hadoop.hoya.yarn.service.SequenceService;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.yarn.service.launcher.ExitCodeProvider;
@@ -33,6 +34,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * The base class for provider services. It lets the implementations
+ * add sequences of operations, and propagates service failures
+ * upstream
+ */
 public abstract class AbstractProviderService extends SequenceService implements
                                                                       ProviderService {
 
@@ -40,6 +46,11 @@ public abstract class AbstractProviderService extends SequenceService implements
     super(name);
   }
 
+  /**
+   * Build a string command from a list of objects
+   * @param args arguments
+   * @return a space separated string of all the arguments' string values
+   */
   protected String cmd(Object... args) {
     List<String> list = new ArrayList<String>(args.length);
     for (Object arg : args) {
@@ -62,17 +73,37 @@ public abstract class AbstractProviderService extends SequenceService implements
       return 0;
     }
   }
-  
+
+  /**
+   * Return the latest forked process service that ran
+   * @return
+   */
   protected ForkedProcessService latestProcess() {
     Service current = getCurrentService();
     Service prev = getPreviousService();
-    
-    Service latest = current!=null? current:prev;
+
+    Service latest = current != null ? current : prev;
     if (latest instanceof ForkedProcessService) {
       return (ForkedProcessService) latest;
     } else {
-      return null;
+      //its a composite object, so look inside it for a process
+      if (latest instanceof Parent) {
+        return getFPSFromParentService((Parent) latest);
+      } else {
+        //no match
+        return null;
+      }
     }
+  }
+
+  protected ForkedProcessService getFPSFromParentService(Parent parent) {
+    List<Service> services = parent.getServices();
+    for (Service s : services) {
+      if (s instanceof ForkedProcessService) {
+        return (ForkedProcessService) s;
+      }
+    }
+    return null;
   }
 
   /**
@@ -83,7 +114,7 @@ public abstract class AbstractProviderService extends SequenceService implements
    */
   @Override
   public boolean buildStatusReport(ClusterNode masterNode) {
-    ForkedProcessService masterProcess = latestProcess ();
+    ForkedProcessService masterProcess = latestProcess();
     if (masterProcess != null) {
       masterNode.command = masterProcess.getCommandLine();
       masterNode.state = masterProcess.isProcessStarted() ?
@@ -97,7 +128,7 @@ public abstract class AbstractProviderService extends SequenceService implements
       return true;
     } else {
       masterNode.state = ClusterDescription.STATE_CREATED;
-      masterNode.output = new String[0];
+      masterNode.output = new String[] {"Master process not running"};
       return false;
     }
 
@@ -116,7 +147,7 @@ public abstract class AbstractProviderService extends SequenceService implements
    * Create a new forked process service with the given
    * name, environment and command list -then add it as a child
    * for execution in the sequence.
-   * 
+   *
    * @param name command name
    * @param env environment
    * @param commands command line
@@ -126,19 +157,19 @@ public abstract class AbstractProviderService extends SequenceService implements
   protected void queueCommand(String name,
                               Map<String, String> env,
                               List<String> commands) throws
-                                                 IOException,
-                                                 HoyaException {
+                                                     IOException,
+                                                     HoyaException {
     ForkedProcessService masterProcess = buildProcess(name, env, commands);
     //register the service for lifecycle management; when this service
     //is terminated, so is the master process
     addService(masterProcess);
   }
 
-  public  ForkedProcessService buildProcess(String name,
-                                            Map<String, String> env,
-                                            List<String> commands) throws
-                                                                   IOException,
-                                                                   HoyaException {
+  public ForkedProcessService buildProcess(String name,
+                                           Map<String, String> env,
+                                           List<String> commands) throws
+                                                                  IOException,
+                                                                  HoyaException {
     ForkedProcessService masterProcess;
     masterProcess = new ForkedProcessService(name);
     masterProcess.init(getConfig());

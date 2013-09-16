@@ -31,6 +31,7 @@ import org.apache.hadoop.hdfs.MiniDFSCluster
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.api.OptionKeys
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.exceptions.WaitTimeoutException
@@ -593,9 +594,25 @@ implements KeysForTests, HoyaExitCodes {
                                                             YarnApplicationState.FINISHED);
     if (report == null) {
       log.info("Forcibly killing application")
+      dumpClusterStatus(hoyaClient, "final application status")
+      //list all the nodes' details
+      List<ClusterNode> nodes = listNodesInRole(hoyaClient, "")
+      if (nodes.empty) {
+        log.info("No live nodes")
+      }
+      nodes.each { ClusterNode node -> log.info(node.toString())}
       hoyaClient.forceKillApplication("timed out waiting for application to complete");
     }
     return report;
+  }
+
+  public void dumpClusterStatus(HoyaClient hoyaClient, String text) {
+    ClusterDescription status = hoyaClient.getClusterStatus();
+    dumpClusterDescription(text, status)
+  }
+
+  List<ClusterNode> listNodesInRole(HoyaClient hoyaClient, String role) {
+    return hoyaClient.listClusterNodesInRole(role)
   }
 
   public ExecutorService createExecutorService() {
@@ -689,7 +706,7 @@ implements KeysForTests, HoyaExitCodes {
         break;
       }
 
-      String[] nodes = hoyaClient.listNodesByRole(role);
+      String[] nodes = hoyaClient.listNodeUUIDsByRole(role);
       if (duration.limitExceeded) {
         describe("Cluster region server count of $desiredCount not met")
         log.info(prettyPrint(status.toJsonString()))

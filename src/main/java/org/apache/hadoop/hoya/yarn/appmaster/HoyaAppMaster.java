@@ -80,10 +80,13 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -303,7 +306,7 @@ public class HoyaAppMaster extends CompositeService
   /**
    * ID of the AM container
    */
-  private ContainerId AppMasterContainerID;
+  private ContainerId appMasterContainerID;
 
   /**
    * Provider of this cluster
@@ -440,10 +443,10 @@ public class HoyaAppMaster extends CompositeService
     log.info("RM is at {}", address);
     rpc = YarnRPC.create(conf);
 
-    AppMasterContainerID = ConverterUtils.toContainerId(
+    appMasterContainerID = ConverterUtils.toContainerId(
       HoyaUtils.mandatoryEnvVariable(
         ApplicationConstants.Environment.CONTAINER_ID.name()));
-    appAttemptID = AppMasterContainerID.getApplicationAttemptId();
+    appAttemptID = appMasterContainerID.getApplicationAttemptId();
 
     ApplicationId appid = appAttemptID.getApplicationId();
     log.info("Hoya AM for ID {}", appid.getId());
@@ -518,10 +521,15 @@ public class HoyaAppMaster extends CompositeService
     containerMaxCores = maxResources.getVirtualCores();
 
 
+    /**
+     * The master node is special, so it is kept track of
+     */
     masterNode = new ClusterNode(hostname);
-    masterNode.containerId = AppMasterContainerID;
+    masterNode.containerId = appMasterContainerID;
     masterNode.role = ROLE_MASTER;
     masterNode.uuid = UUID.randomUUID().toString();
+    //it is also added to the set of live nodes
+    liveNodes.put(appMasterContainerID, masterNode);
 
 
     //before bothering to start the containers, bring up the
@@ -595,7 +603,7 @@ public class HoyaAppMaster extends CompositeService
       localProcessStarted = true;
       eventCallbackEvent();
     } else {
-      addLaunchedContainer(AppMasterContainerID, masterNode);
+      addLaunchedContainer(appMasterContainerID, masterNode);
       //launch the provider; this is expected to trigger a callback that
       //brings up the service
       launchProviderService("master", clusterSpec, confDir);
@@ -1325,7 +1333,7 @@ public class HoyaAppMaster extends CompositeService
   }
 
   @Override
-  public String[] listNodesByRole(String role) {
+  public String[] listNodeUUIDsByRole(String role) {
     List<ClusterNode> nodes = enumNodesByRole(role);
     String[] result = new String[nodes.size()];
     int count = 0;
@@ -1335,30 +1343,58 @@ public class HoyaAppMaster extends CompositeService
     return result;
   }
 
+  /**
+   * Enum all nodes by role. 
+   * @param role
+   * @return
+   */
   public List<ClusterNode> enumNodesByRole(String role) {
     List<ClusterNode> nodes = new ArrayList<ClusterNode>();
-    synchronized (clusterSpecLock) {
-      for (ClusterNode node : liveNodes.values()) {
-        if (role.equals(node.role)) {
+    List<ClusterNode> allClusterNodes = getAllClusterNodes();
+      for (ClusterNode node : allClusterNodes) {
+        if (role.isEmpty() || role.equals(node.role)) {
           nodes.add(node);
         }
       }
-    }
     return nodes;
+  }
+
+  private List<ClusterNode> getAllClusterNodes() {
+    List<ClusterNode> allClusterNodes;
+    synchronized (clusterSpecLock) {
+      Collection<ClusterNode> values = liveNodes.values();
+      allClusterNodes = new ArrayList<ClusterNode>(values);
+      //allClusterNodes.add(masterNode);
+    }
+    return allClusterNodes;
   }
 
   @Override
   public String getNode(String uuid) throws IOException, NoSuchNodeException {
-    //todo: optimise
-    synchronized (clusterSpecLock) {
-      for (ClusterNode node : liveNodes.values()) {
-        if (uuid.equals(node.uuid)) {
-          return node.toJsonString();
-        }
+    List<ClusterNode> nodes = getAllClusterNodes();
+    for (ClusterNode node : nodes) {
+      if (uuid.equals(node.uuid)) {
+        return node.toJsonString();
       }
     }
     //at this point: no node
     throw new NoSuchNodeException(uuid);
+  }
+
+  @Override
+  public String[] getClusterNodes(String[] uuids) throws IOException {
+    //first, a hashmap of those uuids is built up
+    Set<String> uuidSet = new HashSet<String>(Arrays.asList(uuids));
+    List<String> nodes = new ArrayList<String>(uuids.length);
+    List<ClusterNode> clusterNodes = getAllClusterNodes();
+
+    for (ClusterNode node : clusterNodes) {
+      if (uuidSet.contains(node.uuid)) {
+        nodes.add(node.toJsonString());
+      }
+    }
+    //at this point: a possibly empty list of nodes
+    return nodes.toArray(new String[nodes.size()]);
   }
 
   
@@ -1404,7 +1440,7 @@ public class HoyaAppMaster extends CompositeService
    */
   private Map<String, Integer> buildInstanceMap() {
     Map<String, Integer> map = new HashMap<String, Integer>();
-    for (ClusterNode node : liveNodes.values()) {
+    for (ClusterNode node : getAllClusterNodes()) {
       Integer entry = map.get(node.role);
       int current = entry != null ? entry : 0;
       current++;

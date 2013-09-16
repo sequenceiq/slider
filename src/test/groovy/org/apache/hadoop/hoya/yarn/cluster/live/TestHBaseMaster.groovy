@@ -56,8 +56,8 @@ class TestHBaseMaster extends HBaseMiniClusterTestBase {
     basicHBaseClusterStartupSequence(hoyaClient)
     
     //verify the #of region servers is as expected
-    status = hoyaClient.getClusterStatus(clustername)
-    dumpClusterDescription("post-hbase-boot status", status)
+    dumpClusterStatus(hoyaClient, "post-hbase-boot status")
+
     //get the hbase status
     waitForHBaseRegionServerCount(hoyaClient, clustername, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     waitForHoyaWorkerCount(hoyaClient, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)

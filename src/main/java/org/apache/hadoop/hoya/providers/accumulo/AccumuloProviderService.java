@@ -29,10 +29,9 @@ import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.providers.AbstractProviderService;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
-import org.apache.hadoop.hoya.providers.ProviderService;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
-import org.apache.hadoop.service.CompositeService;
+import org.apache.hadoop.hoya.yarn.service.EventCallback;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -47,8 +46,8 @@ import java.util.List;
 import java.util.Map;
 
 public class AccumuloProviderService extends AbstractProviderService implements
-                                                        ProviderCore,
-                                                        AccumuloKeys {
+                                                                     ProviderCore,
+                                                                     AccumuloKeys {
 
   protected static final Logger log =
     LoggerFactory.getLogger(AccumuloProvider.class);
@@ -111,10 +110,10 @@ public class AccumuloProviderService extends AbstractProviderService implements
     env.put(HADOOP_HOME, clusterSpec.getMandatoryOption(OPTION_HADOOP_HOME));
     env.put(HADOOP_PREFIX, hadoop_home);
     env.put(ACCUMULO_HOME,
-            providerUtils.convertToAppRelativePath(
+            ProviderUtils.convertToAppRelativePath(
               AccumuloProvider.buildImageDir(clusterSpec)));
     env.put(ACCUMULO_CONF_DIR,
-            providerUtils.convertToAppRelativePath(
+            ProviderUtils.convertToAppRelativePath(
               HoyaKeys.PROPAGATED_CONF_DIR_NAME));
     env.put(ZOOKEEPER_HOME, clusterSpec.getMandatoryOption(OPTION_ZK_HOME));
 
@@ -160,7 +159,6 @@ public class AccumuloProviderService extends AbstractProviderService implements
       "2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/err.txt");
 
     String cmdStr = HoyaUtils.join(command, " ");
-
 
     commands.add(cmdStr);
     ctx.setCommands(commands);
@@ -228,6 +226,35 @@ public class AccumuloProviderService extends AbstractProviderService implements
   @Override
   public void exec(ClusterDescription cd,
                    File confDir,
-                   Map<String, String> env) throws IOException, HoyaException {
+                   Map<String, String> env,
+                   EventCallback execInProgress) throws
+                                                 IOException,
+                                                 HoyaException {
+    boolean inited = isInited(cd);
+    if (!inited) {
+      log.info("Initializing accumulo datastore {}", cd.dataPath);
+      List<String> commands =
+        buildProcessCommand(cd, confDir, env, "init");
+      queueCommand(getName(), env, commands);
+    }
+    //now add the main operation
+    String masterCommand =
+      cd.getOption(HoyaKeys.OPTION_HOYA_MASTER_COMMAND, null);
+
+    List<String> commands =
+      buildProcessCommand(cd, confDir, env, masterCommand);
+    queueCommand(getName(), env, commands);
+
+    //now trigger the command sequence
+    maybeStartCommandSequence();
+
+  }
+
+  private boolean isInited(ClusterDescription cd) throws IOException {
+    Path path = new Path(cd.dataPath);
+    FileSystem fs = FileSystem.get(path.toUri(), getConf());
+    Path accumuloInited = new Path(cd.dataPath, "accumulo");
+
+    return fs.exists(accumuloInited);
   }
 }

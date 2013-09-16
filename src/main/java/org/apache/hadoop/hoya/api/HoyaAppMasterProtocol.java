@@ -61,11 +61,11 @@ public interface HoyaAppMasterProtocol extends VersionedProtocol {
 
   /**
    * List all running nodes in a role
-   * @param role node role
+   * @param role node role. "" is special: all roles
    * @return a possibly empty array of nodes
    * @throws IOException IO problems
    */
-  public String[] listNodesByRole(String role) throws IOException;
+  public String[] listNodeUUIDsByRole(String role) throws IOException;
 
   /**
    * Get the JSON-formatted {@link ClusterNode} details on a node
@@ -75,6 +75,15 @@ public interface HoyaAppMasterProtocol extends VersionedProtocol {
    * @throws IOException IO problems
    */
   public String getNode(String uuid) throws IOException, NoSuchNodeException;
+
+  /**
+   * Get the JSON-formatted {@link ClusterNode} details on a list of nodes.
+   * <i>Important: the order of the results are undefined</i>
+   * @param uuid the UUIDs
+   * @return array of cluster nodes
+   * @throws IOException IO problems
+   */
+  public String[] getClusterNodes(String[] uuids) throws IOException;
 
   public static final String STAT_CONTAINERS_REQUESTED = "containers.requested";
   public static final String STAT_CONTAINERS_ALLOCATED = "containers.allocated";

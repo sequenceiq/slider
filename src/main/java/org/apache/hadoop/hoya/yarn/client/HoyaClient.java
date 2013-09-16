@@ -85,6 +85,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -1590,13 +1591,72 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     return getClusterStatus(getDeployedClusterName());
   }
 
+  /**
+   * List all node UUIDs in a role
+   * @param role role name or "" for all 
+   * @return an array of UUID strings
+   * @throws IOException
+   * @throws YarnException
+   */
   @VisibleForTesting
-  public String[] listNodesByRole(String role) throws
+  public String[] listNodeUUIDsByRole(String role) throws
                                                IOException,
                                                YarnException {
     HoyaAppMasterProtocol appMaster = bondToCluster(getDeployedClusterName());
-    return appMaster.listNodesByRole(role);
+    return appMaster.listNodeUUIDsByRole(role);
   }
+
+
+  /**
+   * List all nodes in a role. This is a double round trip: once to list
+   * the nodes in a role, another to get their details
+   *
+   * @param role
+   * @return an array of ContainerNode instances
+   * @throws IOException
+   * @throws YarnException
+   */
+  @VisibleForTesting
+  public List<ClusterNode> listClusterNodesInRole(String role) throws
+                                               IOException,
+                                               YarnException {
+    HoyaAppMasterProtocol appMaster = bondToCluster(getDeployedClusterName());
+    String[] uuids = appMaster.listNodeUUIDsByRole(role);
+    String[] nodes = appMaster.getClusterNodes(uuids);
+    return convertNodeJsonToClusterNodes(nodes);
+  }
+
+  /**
+   * Get the details on a list of uuids
+   * @param uuids 
+   * @return a possibly empty list of node details
+   * @throws IOException
+   * @throws YarnException
+   */
+  @VisibleForTesting
+  public List<ClusterNode> listClusterNodes(String[] uuids) throws
+                                               IOException,
+                                               YarnException {
+
+    if (uuids.length == 0) {
+      //short cut on an empty list
+      return new LinkedList<ClusterNode>();
+    }
+    HoyaAppMasterProtocol appMaster = bondToCluster(getDeployedClusterName());
+
+    String[] nodes = appMaster.getClusterNodes(uuids);
+    return convertNodeJsonToClusterNodes(nodes);
+  }
+
+  private List<ClusterNode> convertNodeJsonToClusterNodes(String[] nodes) throws
+                                                                          IOException {
+    List<ClusterNode> nodeList = new ArrayList<ClusterNode>(nodes.length);
+    for (String node : nodes) {
+      nodeList.add(ClusterNode.fromJson(node));
+    }
+    return nodeList;
+  }
+
 
   /**
    * Get a node from the AM
@@ -1667,7 +1727,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     log.info("Waiting {} millis for a live node in role {}", timeout, role);
     while (!live) {
       //see if there is a node in that role yet
-      String[] containers = appMaster.listNodesByRole(role);
+      String[] containers = appMaster.listNodeUUIDsByRole(role);
       int roleCount = containers.length;
       ClusterNode roleInstance = null;
       if (roleCount != 0) {

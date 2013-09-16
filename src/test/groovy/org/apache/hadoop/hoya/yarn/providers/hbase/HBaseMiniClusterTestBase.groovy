@@ -82,7 +82,7 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
 
   public void assertHBaseMasterNotStopped(HoyaClient hoyaClient,
                                           String clustername) {
-    String[] nodes = hoyaClient.listNodesByRole(HBaseKeys.ROLE_MASTER);
+    String[] nodes = hoyaClient.listNodeUUIDsByRole(HBaseKeys.ROLE_MASTER);
     int masterNodeCount = nodes.length;
     assert masterNodeCount > 0;
     ClusterNode node = hoyaClient.getNode(nodes[0]);

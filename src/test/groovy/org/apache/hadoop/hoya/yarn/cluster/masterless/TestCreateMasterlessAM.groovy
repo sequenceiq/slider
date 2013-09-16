@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.cluster.masterless
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
@@ -56,6 +57,31 @@ class TestCreateMasterlessAM extends HBaseMiniClusterTestBase {
     ApplicationReport report = waitForClusterLive(hoyaClient)
     logReport(report)
     List<ApplicationReport> apps = hoyaClient.applications;
+    
+    //get some of its status
+    dumpClusterStatus(hoyaClient,"masterless application status")
+    List<ClusterNode> clusterNodes = hoyaClient.listClusterNodesInRole("master")
+    assert clusterNodes.size() == 1
+
+    ClusterNode masterNode = clusterNodes[0]
+    log.info("Master node = ${masterNode}");
+
+    List<ClusterNode> nodes
+    String[] uuids = hoyaClient.listNodeUUIDsByRole("master")
+    assert uuids.length == 1;
+    nodes = hoyaClient.listClusterNodes(uuids);
+    assert nodes.size() == 1;
+
+    nodes = listNodesInRole(hoyaClient, "master")
+    assert nodes.size() == 1;
+    nodes = listNodesInRole(hoyaClient, "")
+    assert nodes.size() == 1;
+    ClusterNode master = nodes[0]
+    assert master.role == "master"
+
+
+
+
     String username = hoyaClient.username
     describe("list of all applications")
     logApplications(apps)
@@ -110,8 +136,8 @@ class TestCreateMasterlessAM extends HBaseMiniClusterTestBase {
     ApplicationReport reportFor = hoyaClient.getApplicationReport(i2AppID)
     
     //downgrade this to a fail
-    Assume.assumeTrue(YarnApplicationState.FINISHED <= report.yarnApplicationState)
-    assert YarnApplicationState.FINISHED <= report.yarnApplicationState
+//    Assume.assumeTrue(YarnApplicationState.FINISHED <= report.yarnApplicationState)
+    assert YarnApplicationState.FINISHED <= reportFor.yarnApplicationState
 
 
     ApplicationReport instance3 = hoyaClient.findInstance(username, clustername)
