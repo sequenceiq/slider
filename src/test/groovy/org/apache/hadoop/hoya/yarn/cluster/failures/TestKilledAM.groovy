@@ -20,7 +20,9 @@ package org.apache.hadoop.hoya.yarn.cluster.failures
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.ClusterStatus
+import org.apache.hadoop.hbase.HConstants
 import org.apache.hadoop.hbase.client.HBaseAdmin
 import org.apache.hadoop.hbase.client.HConnection
 import org.apache.hadoop.hoya.api.ClusterDescription
@@ -57,11 +59,15 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
     status = waitForHoyaWorkerCount(hoyaClient, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     //get the hbase status
     ClusterStatus hbaseStat = waitForHBaseRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-    
+
     log.info("Initial cluster status : ${hbaseStatusToString(hbaseStat)}");
-    HConnection hbaseConnection = createHConnection(hoyaClient)
-    
-    
+    Configuration clientConf = createHBaseConfiguration(hoyaClient)
+    clientConf.setInt(HConstants.HBASE_CLIENT_RETRIES_NUMBER,1);
+    HConnection hbaseConnection
+    hbaseConnection = createHConnection(clientConf)
+
+
+
     describe("running processes")
     lsJavaProcesses()
     describe("killing services")
@@ -74,10 +80,15 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
     describe("final listing")
     lsJavaProcesses();
     //expect hbase connection to have failed
+
+    hbaseConnection = createHConnection(clientConf)
     HBaseAdmin hBaseAdmin = new HBaseAdmin(hbaseConnection);
-    ClusterStatus hBaseClusterStatus = hBaseAdmin.clusterStatus;
+    try {
+      ClusterStatus hBaseClusterStatus = hBaseAdmin.getClusterStatus();
+      fail("expected cluster status fail")
+    } catch (Exception e) {
+      log.info("Exception raised was ", e)
+    }
   }
-
-
 
 }
