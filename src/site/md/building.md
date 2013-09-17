@@ -48,12 +48,19 @@ You have to do this every morning to avoid the ASF nightly artifacts being picke
 To make a tarball for use in test runs:
 
     #On  osx
-    mvn package -Pdist -Dtar -DskipTests -Dmaven.javadoc.skip=true 
+    mvn clean package -Pdist -Dtar -DskipTests -Dmaven.javadoc.skip=true 
     
     # on linux
     mvn package -Pdist -Pnative -Dtar -DskipTests -Dmaven.javadoc.skip=true 
 
 This takes time so try to avoid doing this.
+
+Then expand this
+
+    pushd hadoop-dist/target/
+    gunzip hadoop-2.1.2-SNAPSHOT.tar.gz 
+    tar -xvf hadoop-2.1.2-SNAPSHOT.tar 
+    popd
 
 ## building a compatible HBase version
 
@@ -62,23 +69,23 @@ Checkout the HBase `hbase-0.95` branch from apache svn/github.
     git clone git://git.apache.org/hbase.git
     git remote rename origin apache
     
-The maven command for building hbase artifacts with 2.1.0-beta is 
+The maven command for building hbase artifacts against this hadoop version is 
 
-    mvn clean install assembly:single -DskipTests -Dmaven.javadoc.skip=true -Dhadoop.profile=2.0 -Dhadoop-two.version=2.1.0-beta 
+    mvn clean install assembly:single -DskipTests -Dmaven.javadoc.skip=true -Dhadoop.profile=2.0 -Dhadoop-two.version=2.1.2-SNAPSHOT
 
 For building just the JAR files:
 
-    mvn clean install -DskipTests -Dhadoop.profile=2.0 -Dhadoop-two.version=2.1.0-beta
+    mvn clean install -DskipTests -Dhadoop.profile=2.0 -Dhadoop-two.version=2.1.2-beta
     
-This will create `hbase-0.95.3-SNAPSHOT.tar.gz` in the directory `hbase-assembly/target/` in
+This will create `hbase-0.97.0-SNAPSHOT.tar.gz` in the directory `hbase-assembly/target/` in
 the hbase source tree. 
 
-In that directory `hbase-assembly/target/`
+    pushd hbase-assembly/target
+    gunzip hbase-0.97.0-SNAPSHOT-bin.tar.gz 
+    tar -xvf hbase-0.97.0-SNAPSHOT-bin.tar
+    popd
 
-    gunzip hbase-0.95.3-SNAPSHOT-bin.tar.gz 
-    tar -xvf hbase-0.95.3-SNAPSHOT-bin.tar 
-
-This will create an untarred directory `hbase-0.95.3-SNAPSHOT-bin` containing
+This will create an untarred directory `hbase-0.97.0-SNAPSHOT-bin` containing
 hbase. Both the `.tar.gz` and untarred file are needed for testing. Most
 tests just work directly with the untarred file as it saves time uploading
 and downloading then expanding the file.
@@ -88,13 +95,14 @@ see [HBase building](http://hbase.apache.org/book/build.html)
 
 *Tip:* you can force set a version in Maven by having it update all the POMs:
 
-    mvn versions:set -DnewVersion=0.95.4-SNAPSHOT
+    mvn versions:set -DnewVersion=0.97.1-SNAPSHOT
 
 ## Building Accumulo
 
 In the accumulo project directory:
 
-    mvn clean package -Passemble -DskipTests -Dhadoop.profile=2.0  -Dmaven.javadoc.skip=true 
+    mvn clean install -DskipTests
+    mvn package -Passemble -DskipTests -Dhadoop.profile=2.0  -Dmaven.javadoc.skip=true 
 
 This creates an accumulo tar.gz file in `assemble/target/`. Unzip then untar
 this, to create a .tar file and an expanded directory
@@ -108,13 +116,10 @@ this, to create a .tar file and an expanded directory
     tar -xvf accumulo-1.6.0-SNAPSHOT-bin.tar 
     popd
     
-    
-
-    
 
 ## Testing
 
-The hbase tarball needs to be unzipped somewhere and defined for Hoya to pick up
+### Configuring Hoya to locate the relevant artifacts
 
 You must have the file `src/test/resources/hoya-test.xml` (this
 is ignored by git), declaring where HBase is:
@@ -123,13 +128,13 @@ is ignored by git), declaring where HBase is:
     
       <property>
         <name>hoya.test.hbase.home</name>
-        <value>/Users/hoya/hbase/hbase-assembly/target/hbase-0.95.3-SNAPSHOT</value>
+        <value>/Users/hoya/hbase/hbase-assembly/target/hbase-0.97.0-SNAPSHOT</value>
         <description>HBASE Home</description>
       </property>
     
       <property>
         <name>hoya.test.hbase.tar</name>
-        <value>/Users/hoya/hbase/hbase-assembly/target/hbase-0.95.3-SNAPSHOT-bin.tar.gz</value>
+        <value>/Users/hoya/hbase/hbase-assembly/target/hbase-0.97.0-SNAPSHOT-bin.tar.gz</value>
         <description>HBASE archive URI</description>
       </property> 
          
@@ -144,7 +149,21 @@ is ignored by git), declaring where HBase is:
         <value>/Users/hoya/accumulo/assemble/target/accumulo-1.6.0-SNAPSHOT-bin.tar.gz</value>
         <description>HBASE archive URI</description>
       </property>
+      
+      <property>
+        <name>zk.home</name>
+        <value>
+          /Users/hoya/Apps/zookeeper</value>
+        <description>Zookeeper home dir on target systems</description>
+      </property>
     
+      <property>
+        <name>hadoop.home</name>
+        <value>
+          /Users/hoya/hadoop-trunk/hadoop-dist/target/hadoop-2.1.2-SNAPSHOT</value>
+        <description>Hadoop home dir on target systems</description>
+      </property>
+      
     </configuration>
     
 

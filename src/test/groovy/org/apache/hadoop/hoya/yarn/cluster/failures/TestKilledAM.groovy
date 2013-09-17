@@ -25,6 +25,7 @@ import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hbase.HConstants
 import org.apache.hadoop.hbase.client.HBaseAdmin
 import org.apache.hadoop.hbase.client.HConnection
+import org.apache.hadoop.hbase.client.RetriesExhaustedException
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
@@ -86,7 +87,7 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
     try {
       ClusterStatus hBaseClusterStatus = hBaseAdmin.getClusterStatus();
       fail("expected cluster status fail")
-    } catch (Exception e) {
+    } catch (RetriesExhaustedException e) {
       log.info("Exception raised was ", e)
     }
   }
