@@ -39,8 +39,9 @@ public interface HoyaAppMasterProtocol extends VersionedProtocol {
   /**
    * Stop the cluster
    * @throws IOException IO problems
+   * @param message
    */
-  public void stopCluster() throws IOException;
+  public void stopCluster(String message) throws IOException;
 
   /**
    * Flex the cluster. 

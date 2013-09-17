@@ -37,7 +37,7 @@ class TestAccM1T0 extends AccumuloTestBase {
   public void testAccM1T0() throws Throwable {
     String clustername = "TestAccM1T0"
     int tabcount = 1
-    createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
+    createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, false)
     describe(" Create an accumulo cluster");
 
     //make sure that ZK is up and running at the binding string
@@ -53,13 +53,16 @@ class TestAccM1T0 extends AccumuloTestBase {
     assert hoyaClient.applicationReport.yarnApplicationState == YarnApplicationState.RUNNING
     waitForRoleCount(hoyaClient, AccumuloKeys.ROLE_MASTER, 1, ACCUMULO_CLUSTER_STARTUP_TO_LIVE_TIME)
     describe("Cluster status")
-    ClusterDescription status = hoyaClient.getClusterStatus(clustername)
+    ClusterDescription status
     status = hoyaClient.getClusterStatus(clustername)
     log.info(prettyPrint(status.toJsonString()))
 
     //now give the cluster a bit of time to actually start work
-    sleep(10000)
+    log.info("Sleeping for a while")
+    sleep(60000);
+    log.info("Finishing")
     status = hoyaClient.getClusterStatus(clustername)
+    maybeStopCluster(hoyaClient,clustername,"shut down $clustername")
 
   }
 

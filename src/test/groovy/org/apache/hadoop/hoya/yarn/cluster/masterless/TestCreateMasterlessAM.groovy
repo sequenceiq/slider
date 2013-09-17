@@ -29,7 +29,6 @@ import org.apache.hadoop.yarn.api.records.ApplicationId
 import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
-import org.junit.Assume
 import org.junit.Test
 
 /**

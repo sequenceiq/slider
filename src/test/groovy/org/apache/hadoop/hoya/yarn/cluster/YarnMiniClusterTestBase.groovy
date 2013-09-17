@@ -131,7 +131,7 @@ implements KeysForTests, HoyaExitCodes {
   public void stopRunningClusters() {
     clustersToTeardown.each { HoyaClient hoyaClient ->
       try {
-        maybeStopCluster(hoyaClient, "");
+        maybeStopCluster(hoyaClient, "", "teardown");
       } catch (Exception e) {
         log.warn("While stopping cluster " + e, e);
       }
@@ -646,14 +646,14 @@ implements KeysForTests, HoyaExitCodes {
    * @param clustername name of cluster to teardown
    * @return
    */
-  public int maybeStopCluster(HoyaClient hoyaClient, String clustername) {
+  public int maybeStopCluster(HoyaClient hoyaClient, String clustername, String message = "stopping cluster") {
     if (hoyaClient != null) {
       if (!clustername) {
         clustername = hoyaClient.deployedClusterName;
       }
       //only stop a cluster that exists
       if (clustername) {
-        return clusterActionFreeze(hoyaClient, clustername);
+        return clusterActionFreeze(hoyaClient, clustername, message);
       }  
     }
     return 0;
@@ -666,11 +666,12 @@ implements KeysForTests, HoyaExitCodes {
    * @param clustername cluster
    * @return the exit code
    */
-  public int clusterActionFreeze(HoyaClient hoyaClient, String clustername) {
+  public int clusterActionFreeze(HoyaClient hoyaClient, String clustername, String message = "action freeze") {
     log.info("Freezing cluster $clustername")
-    int exitCode = hoyaClient.actionFreeze(clustername, HBASE_CLUSTER_STOP_TIME);
+    int exitCode = hoyaClient.actionFreeze(clustername, HBASE_CLUSTER_STOP_TIME,
+                                           message);
     if (exitCode != 0) {
-      log.warn("HBase app shutdown failed with error code $exitCode")
+      log.warn("Cluster freeze failed with error code $exitCode")
     }
     return exitCode
   }

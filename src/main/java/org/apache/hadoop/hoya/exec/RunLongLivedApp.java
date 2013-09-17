@@ -169,7 +169,8 @@ public class RunLongLivedApp implements Runnable {
   }
 
   /**
-   * Stop the process if it is running
+   * Stop the process if it is running.
+   * This will trigger an application completion event with the given exit code
    */
   public void stop() {
     if (!isRunning()) {
@@ -187,7 +188,6 @@ public class RunLongLivedApp implements Runnable {
     for (String arg : builder.command()) {
       buffer.append('"').append(arg).append("\" ");
     }
-//    dumpEnv(buffer);
     return buffer.toString();
   }
 

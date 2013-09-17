@@ -96,4 +96,9 @@ public interface AccumuloKeys {
    */
   String ACCUMULO_XTRAJARS = "ACCUMULO_XTRAJARS";
   String HADOOP_PREFIX = "HADOOP_PREFIX" ;
+  int INIT_TIMEOUT_DEFAULT = 20000;
+  /**
+   * timeout in millis for init to complete
+   */
+  String OPTION_ACCUMULO_INIT_TIMEOUT = "accumulo.init.timeout";
 }

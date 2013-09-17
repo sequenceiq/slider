@@ -42,6 +42,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -54,9 +55,9 @@ import java.util.UUID;
  * of an HBase Cluster
  */
 public class AccumuloClientProvider extends Configured implements
-                                                 ProviderCore,
-                                                 AccumuloKeys,
-                                                 ClientProvider {
+                                                       ProviderCore,
+                                                       AccumuloKeys,
+                                                       ClientProvider {
 
   protected static final Logger log =
     LoggerFactory.getLogger(AccumuloClientProvider.class);
@@ -82,7 +83,7 @@ public class AccumuloClientProvider extends Configured implements
     ROLES.add(new ProviderRole(ROLE_MONITOR, 4));
     ROLES.add(new ProviderRole(ROLE_TRACER, 5));
   }
-  
+
   public static List<ProviderRole> getProviderRoles() {
     return ROLES;
 
@@ -108,8 +109,9 @@ public class AccumuloClientProvider extends Configured implements
   public Map<String, String> getDefaultClusterOptions() {
     HashMap<String, String> options = new HashMap<String, String>();
     //create an instance ID
-    options.put(OptionKeys.OPTION_SITE_PREFIX + AccumuloConfigFileOptions.INSTANCE_SECRET,
-                UUID.randomUUID().toString());
+    options.put(
+      OptionKeys.OPTION_SITE_PREFIX + AccumuloConfigFileOptions.INSTANCE_SECRET,
+      UUID.randomUUID().toString());
     return options;
   }
 
@@ -120,7 +122,7 @@ public class AccumuloClientProvider extends Configured implements
    * @param rolename role name
    * @return a node that can be added to the JSON
    */
-  @Override 
+  @Override
   public Map<String, String> createDefaultClusterRole(String rolename) throws
                                                                        HoyaException {
     Map<String, String> rolemap = new HashMap<String, String>();
@@ -143,7 +145,9 @@ public class AccumuloClientProvider extends Configured implements
     return rolemap;
   }
 
-  void propagateKeys(Map<String, String> sitexml, Configuration conf, String ... keys) {
+  void propagateKeys(Map<String, String> sitexml,
+                     Configuration conf,
+                     String... keys) {
     for (String key : keys) {
       propagate(sitexml, conf, key, key);
     }
@@ -153,15 +157,15 @@ public class AccumuloClientProvider extends Configured implements
    * Propagate a key's value from the conf to the site, ca
    * @param sitexml
    * @param conf
-   * @param key
-   * @param dest
+   * @param srckey
+   * @param destkey
    */
   private void propagate(Map<String, String> sitexml,
                          Configuration conf,
-                         String key, String dest) {
-    String v = conf.get(key);
-    if (v!=null) {
-      sitexml.put(dest, v);
+                         String srckey, String destkey) {
+    String val = conf.get(srckey);
+    if (val != null) {
+      sitexml.put(destkey, val);
     }
   }
 
@@ -196,29 +200,28 @@ public class AccumuloClientProvider extends Configured implements
     propagate(sitexml, getConf(),
               DFSConfigKeys.FS_DEFAULT_NAME_KEY,
               HoyaKeys.FS_DEFAULT_NAME);
-    sitexml.put(AccumuloConfigFileOptions.KEY_WALOG,
-                clusterSpec.dataPath);
+    String dataPath = clusterSpec.dataPath;
+    Path path = new Path(dataPath);
+    URI parentUri = path.toUri();
+    String authority = parentUri.getAuthority();
+    String fspath =
+      parentUri.getScheme() + ":" + (authority==null?"":authority) + "/";
+    sitexml.put(AccumuloConfigFileOptions.INSTANCE_DFS_URI, fspath);
+    sitexml.put(AccumuloConfigFileOptions.INSTANCE_DFS_DIR,
+                parentUri.getPath());
 
     int zkPort = clusterSpec.zkPort;
     String zkHosts = clusterSpec.zkHosts;
-    
-    //parse the hosts
-    String[] hostlist = zkHosts.split(",",0);
-    StringBuilder builder = new StringBuilder();
-    boolean first = true;
-    for (String host : hostlist) {
-      if (first) {
-        first = false;
-        builder.append(",");
-      }
-      builder.append(host).append(":").append(zkPort);
-    }
 
-    sitexml.put(AccumuloConfigFileOptions.KEY_ZOOKEEPER_QUORUM,
-                builder.toString());
+    //parse the hosts
+    String[] hostlist = zkHosts.split(",", 0);
+    String quorum = HoyaUtils.join(hostlist, ":" + zkPort + ",");
+    //this quorum has a trailing comma
+    quorum = quorum.substring(0, quorum.length() - 1);
+    sitexml.put(AccumuloConfigFileOptions.ZOOKEEPER_HOST, quorum);
+                
     return sitexml;
   }
-
 
 
   /**
@@ -339,7 +342,6 @@ public class AccumuloClientProvider extends Configured implements
   }
 
 
-
   /**
    * Get the path to the script
    * @return the script
@@ -348,7 +350,6 @@ public class AccumuloClientProvider extends Configured implements
     String startScript = AccumuloKeys.START_SCRIPT;
     return new File(buildImageDir(cd), startScript);
   }
-
 
 
   /**

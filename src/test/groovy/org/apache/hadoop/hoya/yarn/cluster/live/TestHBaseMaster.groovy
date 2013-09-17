@@ -63,7 +63,6 @@ class TestHBaseMaster extends HBaseMiniClusterTestBase {
     waitForHoyaWorkerCount(hoyaClient, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
 
-    clusterActionFreeze(hoyaClient, clustername)
 
   }
 

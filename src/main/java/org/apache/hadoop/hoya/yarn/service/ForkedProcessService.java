@@ -34,6 +34,8 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Service wrapper for an external program that is launched and can/will terminate.
@@ -42,7 +44,8 @@ import java.util.Map;
  */
 public class ForkedProcessService extends AbstractService implements
                                                           ApplicationEventHandler,
-                                                          ExitCodeProvider {
+                                                          ExitCodeProvider,
+                                                          Runnable {
 
   /**
    * Log for the forked master process
@@ -51,17 +54,21 @@ public class ForkedProcessService extends AbstractService implements
     LoggerFactory.getLogger(ForkedProcessService.class);
 
   private final String name;
-  private boolean processTerminated = false;
+  private final AtomicBoolean processTerminated = new AtomicBoolean(false);
+  ;
   private boolean processStarted = false;
   private RunLongLivedApp process;
   private Map<String, String> environment;
   private List<String> commands;
   private String commandLine;
+  private int executionTimeout = -1;
+  private int timeoutCode = 1;
 
   /**
    * Exit code set when the spawned process exits
    */
-  private int exitCode;
+  private AtomicInteger exitCode = new AtomicInteger(0);
+  private Thread timeoutThread;
 
   public ForkedProcessService(String name) {
     super("name");
@@ -84,9 +91,19 @@ public class ForkedProcessService extends AbstractService implements
 
   @Override //AbstractService
   protected void serviceStop() throws Exception {
+    completed(0);
     if (process != null) {
       process.stop();
     }
+  }
+
+  /**
+   * Set the timeout by which time a process must have finished -or -1 for forever
+   * @param timeout timeout in milliseconds
+   */
+  public void setTimeout(int timeout, int code) {
+    this.executionTimeout = timeout;
+    this.timeoutCode = code;
   }
 
   /**
@@ -98,8 +115,8 @@ public class ForkedProcessService extends AbstractService implements
    */
   public void build(Map<String, String> environment,
                     List<String> commands) throws
-                                          IOException,
-                                          HoyaException {
+                                           IOException,
+                                           HoyaException {
     assert process == null;
     this.commands = commands;
     this.commandLine = HoyaUtils.join(commands, " ");
@@ -114,24 +131,22 @@ public class ForkedProcessService extends AbstractService implements
   public synchronized void onApplicationStarted(RunLongLivedApp application) {
     log.info("Process has started");
     processStarted = true;
+    if (executionTimeout > 0) {
+      timeoutThread = new Thread(this);
+      timeoutThread.start();
+    }
   }
 
   @Override // ApplicationEventHandler
   public void onApplicationExited(RunLongLivedApp application,
-                                  int exitCode) {
+                                  int exitC) {
     synchronized (this) {
-      processTerminated = true;
-      this.exitCode = exitCode;
+      completed(exitC);
       //note whether or not the service had already stopped
-      log.info("Process has exited with exit code {}", exitCode);
-      if (exitCode != 0) {
-        //error
-        ExitUtil.ExitException ee =
-          new ExitUtil.ExitException(exitCode,
-                                     name + " exited with code " +
-                                     exitCode);
-        log.debug("Noting failure",ee);
-        noteFailure(ee);
+      log.info("Process has exited with exit code {}", exitC);
+      if (exitC != 0) {
+        reportFailure(exitC, name + " failed with code " +
+                             exitC);
       }
     }
     //now stop itself
@@ -140,8 +155,55 @@ public class ForkedProcessService extends AbstractService implements
     }
   }
 
-  public synchronized boolean isProcessTerminated() {
-    return processTerminated;
+  private void reportFailure(int exitC, String text) {
+    this.exitCode.set(exitC);
+    //error
+    ExitUtil.ExitException ee =
+      new ExitUtil.ExitException(exitC,
+                                 text);
+    log.debug("Noting failure", ee);
+    noteFailure(ee);
+  }
+
+  /**
+   * handle timeout response by escalating it to a failure
+   */
+  @Override
+  public void run() {
+    try {
+      synchronized (processTerminated) {
+        if (!processTerminated.get()) {
+          processTerminated.wait(executionTimeout);
+        }
+      }
+
+    } catch (InterruptedException e) {
+      //assume signalled; exit
+    }
+    //check the status; if the marker isn't true, bail
+    if (!processTerminated.getAndSet(true)) {
+      log.info("process timeout: reporting error code {}", timeoutCode);
+
+      //timeout
+      if (isInState(STATE.STARTED)) {
+        //trigger a failure
+        process.stop();
+      }
+      reportFailure(timeoutCode, name + ": timeout after " + executionTimeout
+                   + " millis: exit code =" + timeoutCode);
+    }
+  }
+
+  protected void completed(int exitCode) {
+    this.exitCode.set(exitCode);
+    processTerminated.set(true);
+    synchronized (processTerminated) {
+      processTerminated.notify();
+    }
+  }
+
+  public boolean isProcessTerminated() {
+    return processTerminated.get();
   }
 
   public synchronized boolean isProcessStarted() {
@@ -151,7 +213,7 @@ public class ForkedProcessService extends AbstractService implements
 
   @Override // ExitCodeProvider
   public int getExitCode() {
-    return exitCode;
+    return exitCode.get();
   }
 
   public String getCommandLine() {

@@ -52,7 +52,7 @@ class TestLiveClusterFromArchive extends HBaseMiniClusterTestBase {
     waitForHBaseRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     waitForHoyaWorkerCount(hoyaClient, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
-    clusterActionFreeze(hoyaClient, clustername)
+    clusterActionFreeze(hoyaClient, clustername,"end of run")
   }
 
 }

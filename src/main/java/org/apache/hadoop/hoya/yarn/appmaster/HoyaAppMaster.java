@@ -1302,9 +1302,9 @@ public class HoyaAppMaster extends CompositeService
   }
 
   @Override   //HoyaAppMasterApi
-  public void stopCluster() throws IOException {
-    log.info("HoyaAppMasterApi.stopCluster()");
-    signalAMComplete("stopCluster() invoked");
+  public void stopCluster(String message) throws IOException {
+    log.info("HoyaAppMasterApi.stopCluster: {}",message);
+    signalAMComplete("stopCluster: " + message);
   }
 
   @Override   //HoyaAppMasterApi

@@ -65,7 +65,7 @@ public interface HoyaKeys {
   String PROPAGATED_CONF_DIR_NAME = "conf";
   String GENERATED_CONF_DIR_NAME = "generated";
   String ORIG_CONF_DIR_NAME = "original";
-  String DATA_DIR_NAME = "hbase";
+  String DATA_DIR_NAME = "database";
   String CLUSTER_SPECIFICATION_FILE = "cluster.json";
 
   int MIN_HEAP_SIZE = 0;

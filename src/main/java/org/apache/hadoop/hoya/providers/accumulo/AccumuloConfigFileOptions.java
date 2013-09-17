@@ -28,33 +28,26 @@ package org.apache.hadoop.hoya.providers.accumulo;
  */
 public interface AccumuloConfigFileOptions {
 
-  String KEY_HBASE_CLUSTER_DISTRIBUTED = "hbase.cluster.distributed";
-  String KEY_WALOG = "walog";
-
-  String KEY_ZOOKEEPER_QUORUM = "zookeeper";
-  //HConstants.ZOOKEEPER_QUORUM;
-  String KEY_ZOOKEEPER_PORT = "hbase.zookeeper.property.clientPort";
-  //HConstants.ZOOKEEPER_CLIENT_PORT;
-  String KEY_ZNODE_PARENT = "zookeeper.znode.parent";
-
-
-  int DEFAULT_MASTER_PORT = 60000;
-  int DEFAULT_MASTER_INFO_PORT = 60010;
-
-  String KEY_HBASE_MASTER_PORT = "hbase.master.port";
-  String KEY_HBASE_MASTER_INFO_PORT = "hbase.master.info.port";
-
-  int HBASE_ZK_PORT = 2181; // HConstants.DEFAULT_ZOOKEPER_CLIENT_PORT;
-
-
-  String KEY_REGIONSERVER_PORT = "hbase.regionserver.port";
-  String KEY_REGIONSERVER_INFO_PORT = "hbase.regionserver.info.port";
 
   /**
-   * needed to relax constraints in negotiations, including tests
+   * quorum style, comma separated list of hostname:port values
    */
-  String IPC_CLIENT_FALLBACK_TO_SIMPLE_AUTH =
-    "ipc.client.fallback-to-simple-auth-allowed";
+  String ZOOKEEPER_HOST = "instance.zookeeper.host";
+
+  /**
+   * URI to the filesystem
+   */
+  String INSTANCE_DFS_URI = "instance.dfs.uri";
+
+  /**
+   * Dir under the DFS URI
+   */
+  String INSTANCE_DFS_DIR = "instance.dfs.dir";
+
 
   String INSTANCE_SECRET = "instance.secret";
+  String MASTER_PORT_CLIENT = "master.port.client";
+  String MONITOR_PORT_CLIENT = "monitor.port.client";
+
+  String TRACE_PORT_CLIENT = "trace.port.client";
 }

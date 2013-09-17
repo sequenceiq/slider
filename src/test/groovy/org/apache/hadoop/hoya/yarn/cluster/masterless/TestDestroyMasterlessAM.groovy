@@ -49,7 +49,7 @@ class TestDestroyMasterlessAM extends HBaseMiniClusterTestBase {
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
 
-    clusterActionFreeze(hoyaClient, clustername)
+    clusterActionFreeze(hoyaClient, clustername,"stopping first cluster")
     waitForAppToFinish(hoyaClient)
     
     //now try to create instance #2, and expect an in-use failure

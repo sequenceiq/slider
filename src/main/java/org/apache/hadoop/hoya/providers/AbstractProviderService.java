@@ -168,15 +168,16 @@ public abstract class AbstractProviderService
    * @throws IOException
    * @throws HoyaException
    */
-  protected void queueCommand(String name,
+  protected ForkedProcessService queueCommand(String name,
                               Map<String, String> env,
                               List<String> commands) throws
                                                      IOException,
                                                      HoyaException {
-    ForkedProcessService masterProcess = buildProcess(name, env, commands);
+    ForkedProcessService process = buildProcess(name, env, commands);
     //register the service for lifecycle management; when this service
     //is terminated, so is the master process
-    addService(masterProcess);
+    addService(process);
+    return process;
   }
 
   public ForkedProcessService buildProcess(String name,
@@ -184,10 +185,10 @@ public abstract class AbstractProviderService
                                            List<String> commands) throws
                                                                   IOException,
                                                                   HoyaException {
-    ForkedProcessService masterProcess;
-    masterProcess = new ForkedProcessService(name);
-    masterProcess.init(getConfig());
-    masterProcess.build(env, commands);
-    return masterProcess;
+    ForkedProcessService process;
+    process = new ForkedProcessService(name);
+    process.init(getConfig());
+    process.build(env, commands);
+    return process;
   }
 }

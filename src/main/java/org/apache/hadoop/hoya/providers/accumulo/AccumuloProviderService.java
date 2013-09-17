@@ -251,12 +251,18 @@ public class AccumuloProviderService extends AbstractProviderService implements
                    EventCallback execInProgress) throws
                                                  IOException,
                                                  HoyaException {
+
     boolean inited = isInited(cd);
     if (!inited) {
       log.info("Initializing accumulo datastore {}", cd.dataPath);
       List<String> commands =
         buildProcessCommand(cd, confDir, env, "init");
-      queueCommand(getName(), env, commands);
+      ForkedProcessService initProcess =
+        queueCommand(getName(), env, commands);
+      //add a timeout to this process
+      initProcess.setTimeout(
+        cd.getOptionInt(OPTION_ACCUMULO_INIT_TIMEOUT,
+                        INIT_TIMEOUT_DEFAULT),1);
     }
     //now add the main operation along with 
     //an event notifier.
@@ -267,15 +273,15 @@ public class AccumuloProviderService extends AbstractProviderService implements
       buildProcessCommand(cd, confDir, env, masterCommand);
 
     ForkedProcessService masterProcess = buildProcess(getName(), env, commands);
-    CompoundService composite = new CompoundService(getName());
-    composite.addService(masterProcess);
-    composite.addService(new EventNotifyingService(execInProgress,
-                                                   cd.getOptionInt(
-                                                     OPTION_CONTAINER_STARTUP_DELAY,
-                                                     CONTAINER_STARTUP_DELAY)));
+    CompoundService compound = new CompoundService(getName());
+    compound.addService(masterProcess);
+    compound.addService(new EventNotifyingService(execInProgress,
+                                         cd.getOptionInt(
+                                           OPTION_CONTAINER_STARTUP_DELAY,
+                                           CONTAINER_STARTUP_DELAY)));
     //register the service for lifecycle management; when this service
     //is terminated, so is the master process
-    addService(composite);
+    addService(compound);
     
     //now trigger the command sequence
     maybeStartCommandSequence();
@@ -291,6 +297,10 @@ public class AccumuloProviderService extends AbstractProviderService implements
   private boolean isInited(ClusterDescription cd) throws IOException {
     Path path = new Path(cd.dataPath);
     FileSystem fs = FileSystem.get(path.toUri(), getConf());
+    if (!fs.exists(path)) {
+      log.info("Creating data directory {}", path);
+      fs.mkdirs(path);
+    }
     Path accumuloInited = new Path(cd.dataPath, "instance_id");
     return fs.exists(accumuloInited);
   }

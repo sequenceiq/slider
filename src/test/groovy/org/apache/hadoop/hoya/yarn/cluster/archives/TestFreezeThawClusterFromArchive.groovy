@@ -52,7 +52,7 @@ class TestFreezeThawClusterFromArchive extends HBaseMiniClusterTestBase {
                             HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
 
-    clusterActionFreeze(hoyaClient, clustername)
+    clusterActionFreeze(hoyaClient, clustername, "test freeze")
     describe("Restarting cluster")
     killAllRegionServers();
 

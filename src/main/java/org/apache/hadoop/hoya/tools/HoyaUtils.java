@@ -467,6 +467,13 @@ public final class HoyaUtils {
     return b.toString();
   }
 
+  /**
+   * Join an array of strings with a separator that appears after every
+   * instance in the list -including at the end
+   * @param collection strings
+   * @param separator separator string
+   * @return the list
+   */
   public static String join(String[] collection, String separator) {
     StringBuilder b = new StringBuilder();
     for (String o : collection) {
@@ -475,6 +482,31 @@ public final class HoyaUtils {
     }
     return b.toString();
   }
+
+  /**
+   * Join an array of strings with a separator that appears after every
+   * instance in the list -except at the end
+   * @param collection strings
+   * @param separator separator string
+   * @return the list
+   */
+  public static String joinWithInnerSeparator(String separator,
+                                              String... collection) {
+    StringBuilder b = new StringBuilder();
+    boolean first = true;
+
+    for (String o : collection) {
+      if (first) {
+        first = false;
+      } else {
+        b.append(separator);
+      }
+      b.append(o);
+      b.append(separator);
+    }
+    return b.toString();
+  }
+
 
   public static String mandatoryEnvVariable(String key) {
     String v = System.getenv(key);

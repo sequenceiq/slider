@@ -170,7 +170,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     } else if (HoyaActions.ACTION_CREATE.equals(action)) {
       exitCode = actionCreate(clusterName);
     } else if (HoyaActions.ACTION_FREEZE.equals(action)) {
-      exitCode = actionFreeze(clusterName, serviceArgs.waittime);
+      exitCode = actionFreeze(clusterName, serviceArgs.waittime, "stopping cluster");
     } else if (HoyaActions.ACTION_THAW.equals(action)) {
       exitCode = actionThaw(clusterName);
     } else if (HoyaActions.ACTION_DESTROY.equals(action)) {
@@ -439,6 +439,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     //Data Directory
     Path datapath =
       new Path(clusterDirectory, HoyaKeys.DATA_DIR_NAME);
+    //create the data dir
+    fs.mkdirs(datapath);
 
     log.debug("datapath={}", datapath);
     clusterSpec.dataPath = datapath.toUri().toString();
@@ -1354,10 +1356,12 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
   /**
    * Stop the cluster
+   *
    * @param clustername cluster name
+   * @param text
    * @return the cluster name
    */
-  public int actionFreeze(String clustername, int waittime) throws
+  public int actionFreeze(String clustername, int waittime, String text) throws
                                                             YarnException,
                                                             IOException {
     verifyManagerSet();
@@ -1379,7 +1383,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       return EXIT_SUCCESS;
     }
     HoyaAppMasterProtocol appMaster = connect(app);
-    appMaster.stopCluster();
+    appMaster.stopCluster(text);
     log.debug("Cluster stop command issued");
     if (waittime > 0) {
       monitorAppToState(app.getApplicationId(),

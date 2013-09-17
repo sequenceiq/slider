@@ -19,7 +19,6 @@
 package org.apache.hadoop.hoya.yarn.cluster.live
 
 import groovy.util.logging.Slf4j
-import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
@@ -75,8 +74,8 @@ class TestTwoLiveClusters extends HBaseMiniClusterTestBase {
     waitForHBaseRegionServerCount(hoyaClient, clustername1, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
 
-    clusterActionFreeze(cluster2Client, clustername2)
-    clusterActionFreeze(hoyaClient, clustername1)
+    clusterActionFreeze(cluster2Client, clustername2,"freeze cluster 2")
+    clusterActionFreeze(hoyaClient, clustername1,"Freeze cluster 1")
 
   }
 
