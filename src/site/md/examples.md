@@ -27,7 +27,7 @@ its configuration should be changed to use a public (machine public) IP.
 # preamble
 
     export HADOOP_CONF_DIR=/home/stevel/conf
-    export PATH=/home/stevel/hadoop/bin:/home/stevel/hadoop/sbin:~/zookeeper-3.4.5/bin:$PATH
+    export PATH=/home/hoya/hadoop/bin:/home/hoya/hadoop/sbin:~/zookeeper-3.4.5/bin:$PATH
     
     hdfs namenode -format ubuntu
   
@@ -37,11 +37,11 @@ its configuration should be changed to use a public (machine public) IP.
 
 copy to local 
 
-    hbase-0.95.3-SNAPSHOT-bin.tar 
+    hbase-0.97.0-SNAPSHOT-bin.tar 
 
 
     hdfs dfs -rm hdfs://ubuntu:9000/hbase.tar
-    hdfs dfs -copyFromLocal hbase-0.95.3-SNAPSHOT-bin.tar hdfs://ubuntu:9000/hbase.tar
+    hdfs dfs -copyFromLocal hbase-0.97.0-SNAPSHOT-bin.tar hdfs://ubuntu:9000/hbase.tar
     hdfs dfs -ls hdfs://ubuntu:9000/
 
 # start all the services
@@ -90,7 +90,7 @@ RM yarn-daemon.sh --config $HADOOP_CONF_DIR start nodemanager
       create cl1 --role workers 4\
       --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000 --zkhosts localhost \
       --image hdfs://ubuntu:9000/hbase.tar \
-      --confdir file:////Users/stevel/Projects/Hortonworks/Projects/hoya/src/test/configs/ubuntu/hbase \
+      --confdir file:////home/hoya/Projects/hoya/src/test/configs/ubuntu/hbase \
       --roleopt master app.infoport 8080 \
       --roleopt master jvm.heap 128 \
       --roleopt master env.MALLOC_ARENA_MAX 4 \
