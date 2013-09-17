@@ -205,7 +205,7 @@ public class AccumuloClientProvider extends Configured implements
     URI parentUri = path.toUri();
     String authority = parentUri.getAuthority();
     String fspath =
-      parentUri.getScheme() + ":" + (authority==null?"":authority) + "/";
+      parentUri.getScheme() + ":" + (authority == null ? "" : authority) + "/";
     sitexml.put(AccumuloConfigFileOptions.INSTANCE_DFS_URI, fspath);
     sitexml.put(AccumuloConfigFileOptions.INSTANCE_DFS_DIR,
                 parentUri.getPath());
@@ -219,7 +219,7 @@ public class AccumuloClientProvider extends Configured implements
     //this quorum has a trailing comma
     quorum = quorum.substring(0, quorum.length() - 1);
     sitexml.put(AccumuloConfigFileOptions.ZOOKEEPER_HOST, quorum);
-                
+
     return sitexml;
   }
 
@@ -309,12 +309,6 @@ public class AccumuloClientProvider extends Configured implements
                                    Map<String, ByteBuffer> serviceData) {
 
   }
-
-   /*
-   ======================================================================
-   Client and Server interface below here
-   ======================================================================
-  */
 
 
   /**

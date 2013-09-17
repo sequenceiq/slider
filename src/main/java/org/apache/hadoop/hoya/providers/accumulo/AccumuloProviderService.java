@@ -30,6 +30,7 @@ import org.apache.hadoop.hoya.providers.AbstractProviderService;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
+import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.service.CompoundService;
 import org.apache.hadoop.hoya.yarn.service.EventCallback;
@@ -133,6 +134,9 @@ public class AccumuloProviderService extends AbstractProviderService implements
                                               generatedConfPath,
                                               HoyaKeys.PROPAGATED_CONF_DIR_NAME);
     localResources.putAll(confResources);
+    
+    
+    
     //Add binaries
     //now add the image if it was set
     if (clusterSpec.imagePath != null) {
@@ -251,6 +255,20 @@ public class AccumuloProviderService extends AbstractProviderService implements
                    EventCallback execInProgress) throws
                                                  IOException,
                                                  HoyaException {
+
+
+    //now pull in these files and do a bit of last-minute validation
+    File siteXML = new File(confDir,SITE_XML);
+    Configuration accumuloSite = ConfigHelper.loadConfFromFile(
+      siteXML); 
+    String zkQuorum =
+      accumuloSite.get(AccumuloConfigFileOptions.ZOOKEEPER_HOST);
+    if (zkQuorum == null) {
+      throw new BadConfigException("Accumulo site.xml %s does not contain %s",
+                                   siteXML,
+                                   AccumuloConfigFileOptions.ZOOKEEPER_HOST);
+    } 
+    //now need to test this
 
     boolean inited = isInited(cd);
     if (!inited) {
