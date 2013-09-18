@@ -7,5 +7,6 @@
 .project
 .settings
 target
+conf
 src/test/resources/hoya-test.xml
 

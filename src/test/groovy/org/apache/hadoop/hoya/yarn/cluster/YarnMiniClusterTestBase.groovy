@@ -37,13 +37,14 @@ import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.exceptions.WaitTimeoutException
 import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
+import org.apache.hadoop.hoya.tools.BlockingZKWatcher
 import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.MicroZKCluster
-import org.apache.hadoop.hoya.yarn.ZKIntegration
+import org.apache.hadoop.hoya.tools.ZKIntegration
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.service.ServiceOperations
@@ -57,6 +58,8 @@ import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fifo.FifoSchedule
 import org.apache.hadoop.yarn.service.launcher.ServiceLaunchException
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
+import org.apache.zookeeper.WatchedEvent
+import org.apache.zookeeper.Watcher
 import org.junit.After
 import org.junit.Assume
 import org.junit.Before
@@ -162,25 +165,20 @@ implements KeysForTests, HoyaExitCodes {
     log.info("");
   }
 
+  
   public ZKIntegration createZKIntegrationInstance(String zkQuorum, String clusterName, boolean createClusterPath, boolean canBeReadOnly, int timeout) {
-    AtomicBoolean connectedFlag = new AtomicBoolean(false)
+    
+    BlockingZKWatcher watcher = new BlockingZKWatcher();
     ZKIntegration zki = ZKIntegration.newInstance(zkQuorum,
                                                   USERNAME,
                                                   clusterName,
                                                   createClusterPath,
-                                                  canBeReadOnly) {
-      //connection callback
-      synchronized (connectedFlag) {
-        log.info("ZK binding callback received")
-        connectedFlag.set(true)
-        connectedFlag.notify()
-      }
-    }
+                                                  canBeReadOnly, watcher) 
     zki.init()
     //here the callback may or may not have occurred.
     //optionally wait for it
     if (timeout > 0) {
-      waitForZKConnection(connectedFlag, timeout)
+      watcher.waitForZKConnection(timeout)
     }
     //if we get here, the binding worked
     log.info("Connected: ${zki}")

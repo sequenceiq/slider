@@ -16,41 +16,38 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn
+package org.apache.hadoop.hoya.tools;
 
-import groovy.transform.CompileStatic
-import org.apache.hadoop.hoya.tools.ZKCallback
-import org.apache.zookeeper.CreateMode
-import org.apache.zookeeper.KeeperException
-import org.apache.zookeeper.WatchedEvent
-import org.apache.zookeeper.Watcher
-import org.apache.zookeeper.ZooDefs
-import org.apache.zookeeper.ZooKeeper
-import org.apache.zookeeper.data.ACL
-import org.apache.zookeeper.data.Stat
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.ZooDefs;
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.data.ACL;
+import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.atomic.AtomicBoolean
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * This is a class used to register Hoya instances in ZK
- * As of Aug 2013 it is not in active use.
- */
-@CompileStatic
+
 public class ZKIntegration implements Watcher {
 
 /**
  * Base path for services
  */
-  static String ZK_SERVICES = "services";
+  public static String ZK_SERVICES = "services";
   /**
    * Base path for all Hoya references
    */
-  static String ZK_HOYA = "hoya";
-  static String ZK_USERS = "users";
-  static String SVC_HOYA = "/" + ZK_SERVICES + "/" + ZK_HOYA;
-  static String SVC_HOYA_USERS = SVC_HOYA + "/" + ZK_USERS;
+  public static String ZK_HOYA = "hoya";
+  public static String ZK_USERS = "users";
+  public static String SVC_HOYA = "/" + ZK_SERVICES + "/" + ZK_HOYA;
+  public static String SVC_HOYA_USERS = SVC_HOYA + "/" + ZK_USERS;
 
   public static List<String> ZK_USERS_PATH_LIST = new ArrayList<String>();
   static {
@@ -61,7 +58,7 @@ public class ZKIntegration implements Watcher {
 
   public static int SESSION_TIMEOUT = 5000;
   protected static final Logger log =
-    LoggerFactory.getLogger(ZKIntegration.class)
+    LoggerFactory.getLogger(ZKIntegration.class);
   private ZooKeeper zookeeper;
   private final String username;
   private final String clustername;
@@ -73,7 +70,7 @@ public class ZKIntegration implements Watcher {
  */
   private final AtomicBoolean toInit = new AtomicBoolean(false);
   private final boolean createClusterPath;
-  private final Closure watchEventHandler;
+  private final Watcher watchEventHandler;
   private final String zkConnection;
   private final boolean canBeReadOnly;
 
@@ -82,7 +79,7 @@ public class ZKIntegration implements Watcher {
                           String clustername,
                           boolean canBeReadOnly,
                           boolean createClusterPath,
-                          Closure watchEventHandler
+                          Watcher watchEventHandler
   ) throws IOException {
     this.username = username;
     this.clustername = clustername;
@@ -109,7 +106,7 @@ public class ZKIntegration implements Watcher {
    * @return
    * @throws IOException
    */
-  public static newInstance(String zkConnection, String username, String clustername, boolean createClusterPath, boolean canBeReadOnly, Closure watchEventHandler) throws IOException {
+  public static ZKIntegration newInstance(String zkConnection, String username, String clustername, boolean createClusterPath, boolean canBeReadOnly, Watcher watchEventHandler) throws IOException {
 
     return new ZKIntegration(zkConnection,
                              username,
@@ -119,36 +116,38 @@ public class ZKIntegration implements Watcher {
                              watchEventHandler);
   }
 
-  String getClusterPath() {
+  public String getClusterPath() {
     return mkClusterPath(username, clustername);
   }
 
-  boolean getConnected() {
+  public boolean getConnected() {
     return zookeeper.getState().isConnected();
   }
 
-  boolean getAlive() {
+  public boolean getAlive() {
     return zookeeper.getState().isAlive();
   }
 
-  ZooKeeper.States getState() {
+  public ZooKeeper.States getState() {
     return zookeeper.getState();
   }
 
-  Stat getClusterStat() {
+  public Stat getClusterStat() throws KeeperException, InterruptedException {
     return stat(getClusterPath());
   }
 
-  boolean exists(String path) {
+  public boolean exists(String path) throws
+                                     KeeperException,
+                                     InterruptedException {
     return stat(path) != null;
   }
 
-  Stat stat(String path) {
+  public Stat stat(String path) throws KeeperException, InterruptedException {
     return zookeeper.exists(path, false);
   }
 
   @Override
-  String toString() {
+  public String toString() {
     return "ZK integration bound @  " + zkConnection + ": " + zookeeper;
   }
   
@@ -157,21 +156,25 @@ public class ZKIntegration implements Watcher {
  * @param event
  */
   @Override
-  void process(WatchedEvent event) {
+  public void process(WatchedEvent event) {
     log.debug("{}", event);
-    maybeInit();
+    try {
+      maybeInit();
+    } catch (Exception e) {
+      log.error("Failed to init", e);
+    }
     if (watchEventHandler != null) {
-      watchEventHandler.call(event);
+      watchEventHandler.process(event);
     }
   }
 
-  private void maybeInit() {
+  private void maybeInit() throws KeeperException, InterruptedException {
     if (!toInit.getAndSet(true) && createClusterPath) {
-      log.debug('initing');
+      log.debug("initing");
       //create the user path
-      mkPath(ZK_USERS_PATH_LIST, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT)
+      mkPath(ZK_USERS_PATH_LIST, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
       //create the specific user
-      createPath(userPath, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT)
+      createPath(userPath, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     }
   }
 
@@ -238,7 +241,9 @@ public class ZKIntegration implements Watcher {
    * @return true if the path could be deleted, false if there was no node to delete 
    *
    */
-  public boolean delete(String path) throws InterruptedException {
+  public boolean delete(String path) throws
+                                     InterruptedException,
+                                     KeeperException {
     try {
       zookeeper.delete(path, -1);
       return true;
@@ -266,23 +271,6 @@ public class ZKIntegration implements Watcher {
  */
   public static String mkHoyaUserPath(String username) {
     return SVC_HOYA_USERS + "/" + username;
-  }
-
-  /**
-   * Create a ZK watcher callback that forwards the event to the
-   * specific closure
-   * @param closure closure to invoke
-   * @return a callback which can be registered
-   */
-  static ZKCallback watcher(Closure closure) {
-    return new ZKCallback() {
-      @Override
-      void process(WatchedEvent event) {
-        closure(event);
-      }
-    }
-
-
   }
 
 

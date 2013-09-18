@@ -21,7 +21,7 @@ package org.apache.hadoop.hoya.yarn.cluster.live
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.api.ClusterDescription
-import org.apache.hadoop.hoya.yarn.ZKIntegration
+import org.apache.hadoop.hoya.tools.ZKIntegration
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher

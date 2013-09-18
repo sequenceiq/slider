@@ -267,7 +267,9 @@ public class AccumuloProviderService extends AbstractProviderService implements
       throw new BadConfigException("Accumulo site.xml %s does not contain %s",
                                    siteXML,
                                    AccumuloConfigFileOptions.ZOOKEEPER_HOST);
-    } 
+    } else {
+      log.info("ZK Quorum is {}", zkQuorum);
+    }
     //now need to test this
 
     boolean inited = isInited(cd);

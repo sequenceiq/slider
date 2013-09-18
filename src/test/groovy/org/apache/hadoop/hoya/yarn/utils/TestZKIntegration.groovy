@@ -22,7 +22,7 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.yarn.KeysForTests
-import org.apache.hadoop.hoya.yarn.ZKIntegration
+import org.apache.hadoop.hoya.tools.ZKIntegration
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.zookeeper.CreateMode
 import org.apache.zookeeper.ZooDefs
