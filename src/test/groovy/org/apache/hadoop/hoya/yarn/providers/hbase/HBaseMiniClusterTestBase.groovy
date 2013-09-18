@@ -283,7 +283,7 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
       }
       return flexed;
     } finally {
-      maybeStopCluster(hoyaClient, "end of flex test run");
+      maybeStopCluster(hoyaClient, null, "end of flex test run");
     }
 
   }
