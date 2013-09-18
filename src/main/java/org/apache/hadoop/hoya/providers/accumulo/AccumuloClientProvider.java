@@ -112,6 +112,8 @@ public class AccumuloClientProvider extends Configured implements
     options.put(
       OptionKeys.OPTION_SITE_PREFIX + AccumuloConfigFileOptions.INSTANCE_SECRET,
       UUID.randomUUID().toString());
+    //make up a password
+    options.put(OPTION_ACCUMULO_PASSWORD, UUID.randomUUID().toString());
     return options;
   }
 

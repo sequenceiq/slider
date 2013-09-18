@@ -461,7 +461,7 @@ public final class HoyaUtils {
   public static String join(Collection collection, String separator) {
     StringBuilder b = new StringBuilder();
     for (Object o : collection) {
-      b.append(o.toString());
+      b.append(o);
       b.append(separator);
     }
     return b.toString();

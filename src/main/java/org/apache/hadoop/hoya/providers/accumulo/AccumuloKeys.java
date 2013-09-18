@@ -36,6 +36,7 @@ public interface AccumuloKeys {
   String OPTION_ZK_TAR = "zk.image.path";  
   String OPTION_ZK_HOME = "zk.home";  
   String OPTION_HADOOP_HOME = "hadoop.home";  
+  String OPTION_ACCUMULO_PASSWORD = "accumulo.password";  
 
   String DEFAULT_MASTER_HEAP = "256";
   String DEFAULT_MASTER_YARN_RAM = "384";
@@ -96,9 +97,19 @@ public interface AccumuloKeys {
    */
   String ACCUMULO_XTRAJARS = "ACCUMULO_XTRAJARS";
   String HADOOP_PREFIX = "HADOOP_PREFIX" ;
-  int INIT_TIMEOUT_DEFAULT = 20000;
+  int INIT_TIMEOUT_DEFAULT = 60000;
   /**
    * timeout in millis for init to complete
    */
   String OPTION_ACCUMULO_INIT_TIMEOUT = "accumulo.init.timeout";
+
+  /**
+   *       @Parameter(names = "--instance-name", description = "the instance name, if not provided, will prompt")
+   */
+  String PARAM_INSTANCE_NAME = "--instance-name";
+  /**
+   *     @Parameter(names = "--password", description = "set the password on the command line")
+   */
+  String PARAM_PASSWORD = "--password";
+
 }

@@ -49,6 +49,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -195,7 +196,19 @@ public class AccumuloProviderService extends AbstractProviderService implements
                                           String masterCommand) throws
                                                                 IOException,
                                                                 HoyaException {
-//    env.put(HBaseKeys.HBASE_LOG_DIR, new ProviderUtils(log).getLogdir());
+    //set the service to run if unset
+    if (masterCommand == null) {
+      masterCommand = AccumuloKeys.CREATE_MASTER;
+    }
+    return buildProcessCommandList(clusterSpec, confDir, env, masterCommand);
+  }
+  
+  public List<String> buildProcessCommandList(ClusterDescription clusterSpec,
+                                          File confDir,
+                                          Map<String, String> env,
+                                          String... commands) throws
+                                                                IOException,
+                                                                HoyaException {
     env.put(ACCUMULO_LOG_DIR, providerUtils.getLogdir());
     String hadoop_home = System.getenv(HADOOP_HOME);
     hadoop_home = clusterSpec.getOption(OPTION_HADOOP_HOME, hadoop_home);
@@ -212,10 +225,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
             new File(dot, HoyaKeys.PROPAGATED_CONF_DIR_NAME).getAbsolutePath());
     env.put(ZOOKEEPER_HOME, clusterSpec.getMandatoryOption(OPTION_ZK_HOME));
 
-    //set the service to run if unset
-    if (masterCommand == null) {
-      masterCommand = AccumuloKeys.CREATE_MASTER;
-    }
+
     //prepend the hbase command itself
     File binScriptSh = AccumuloClientProvider.buildScriptBinPath(clusterSpec);
     String scriptPath = binScriptSh.getAbsolutePath();
@@ -224,7 +234,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
     }
     List<String> launchSequence = new ArrayList<String>(8);
     launchSequence.add(0, scriptPath);
-    launchSequence.add(masterCommand);
+    Collections.addAll(launchSequence, commands);
     return launchSequence;
   }
 
@@ -292,7 +302,11 @@ public class AccumuloProviderService extends AbstractProviderService implements
     if (!inited) {
       log.info("Initializing accumulo datastore {}", cd.dataPath);
       List<String> commands =
-        buildProcessCommand(cd, confDir, env, "init");
+        buildProcessCommandList(cd, confDir, env,
+                                "init",
+                                PARAM_INSTANCE_NAME, cd.name,
+                                PARAM_PASSWORD,
+                                cd.getMandatoryOption(OPTION_ACCUMULO_PASSWORD));
       ForkedProcessService initProcess =
         queueCommand(getName(), env, commands);
       //add a timeout to this process

@@ -29,7 +29,6 @@ import org.apache.hadoop.hoya.yarn.service.Parent;
 import org.apache.hadoop.hoya.yarn.service.SequenceService;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.util.ExitUtil;
-import org.apache.hadoop.yarn.service.launcher.ExitCodeProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +48,7 @@ public abstract class AbstractProviderService
                             ProviderCore,
                             HoyaKeys,
                             ProviderService {
-  protected static final Logger log =
+  private static final Logger log =
     LoggerFactory.getLogger(AbstractProviderService.class);
   
   public AbstractProviderService(String name) {
