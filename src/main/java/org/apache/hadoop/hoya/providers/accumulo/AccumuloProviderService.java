@@ -23,6 +23,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.exceptions.BadClusterStateException;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
@@ -30,6 +31,7 @@ import org.apache.hadoop.hoya.providers.AbstractProviderService;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
+import org.apache.hadoop.hoya.tools.BlockingZKWatcher;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.service.CompoundService;
@@ -39,6 +41,8 @@ import org.apache.hadoop.hoya.yarn.service.ForkedProcessService;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -134,9 +138,8 @@ public class AccumuloProviderService extends AbstractProviderService implements
                                               generatedConfPath,
                                               HoyaKeys.PROPAGATED_CONF_DIR_NAME);
     localResources.putAll(confResources);
-    
-    
-    
+
+
     //Add binaries
     //now add the image if it was set
     if (clusterSpec.imagePath != null) {
@@ -153,7 +156,8 @@ public class AccumuloProviderService extends AbstractProviderService implements
 
     List<String> command = new ArrayList<String>();
     //this must stay relative if it is an image
-    command.add(AccumuloClientProvider.buildScriptBinPath(clusterSpec).toString());
+    command.add(
+      AccumuloClientProvider.buildScriptBinPath(clusterSpec).toString());
 
     //config dir is relative to the generated file
     command.add(HoyaKeys.PROPAGATED_CONF_DIR_NAME);
@@ -234,7 +238,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
   /**
    * Accumulo startup is a bit more complex than HBase, as it needs
    * to pre-initialize the data directory.
-   * 
+   *
    * This is done by running an init operation before starting the
    * real master. If the init fails, that is reported to the AM, which
    * then fails the application. 
@@ -258,9 +262,9 @@ public class AccumuloProviderService extends AbstractProviderService implements
 
 
     //now pull in these files and do a bit of last-minute validation
-    File siteXML = new File(confDir,SITE_XML);
+    File siteXML = new File(confDir, SITE_XML);
     Configuration accumuloSite = ConfigHelper.loadConfFromFile(
-      siteXML); 
+      siteXML);
     String zkQuorum =
       accumuloSite.get(AccumuloConfigFileOptions.ZOOKEEPER_HOST);
     if (zkQuorum == null) {
@@ -270,8 +274,20 @@ public class AccumuloProviderService extends AbstractProviderService implements
     } else {
       log.info("ZK Quorum is {}", zkQuorum);
     }
-    //now need to test this
+    //now test this
+    int timeout = 5000;
+    try {
+      verifyZookeeperLive(zkQuorum, timeout);
+      log.info("Zookeeper is live");
+    } catch (KeeperException e) {
+      throw new BadClusterStateException("Failed to connect to Zookeeper at %s after %d seconds",
+                                         zkQuorum, timeout);
+    } catch (InterruptedException e) {
+      throw new BadClusterStateException(
+        "Interrupted while trying to connect to Zookeeper at %s",
+        zkQuorum);
 
+    }
     boolean inited = isInited(cd);
     if (!inited) {
       log.info("Initializing accumulo datastore {}", cd.dataPath);
@@ -282,7 +298,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
       //add a timeout to this process
       initProcess.setTimeout(
         cd.getOptionInt(OPTION_ACCUMULO_INIT_TIMEOUT,
-                        INIT_TIMEOUT_DEFAULT),1);
+                        INIT_TIMEOUT_DEFAULT), 1);
     }
     //now add the main operation along with 
     //an event notifier.
@@ -296,13 +312,13 @@ public class AccumuloProviderService extends AbstractProviderService implements
     CompoundService compound = new CompoundService(getName());
     compound.addService(masterProcess);
     compound.addService(new EventNotifyingService(execInProgress,
-                                         cd.getOptionInt(
-                                           OPTION_CONTAINER_STARTUP_DELAY,
-                                           CONTAINER_STARTUP_DELAY)));
+                                                  cd.getOptionInt(
+                                                    OPTION_CONTAINER_STARTUP_DELAY,
+                                                    CONTAINER_STARTUP_DELAY)));
     //register the service for lifecycle management; when this service
     //is terminated, so is the master process
     addService(compound);
-    
+
     //now trigger the command sequence
     maybeStartCommandSequence();
 
@@ -323,5 +339,17 @@ public class AccumuloProviderService extends AbstractProviderService implements
     }
     Path accumuloInited = new Path(cd.dataPath, "instance_id");
     return fs.exists(accumuloInited);
+  }
+
+  private void verifyZookeeperLive(String zkQuorum, int timeout) throws
+                                                                 IOException,
+                                                                 KeeperException,
+                                                                 InterruptedException {
+
+    BlockingZKWatcher watcher = new BlockingZKWatcher();
+    ZooKeeper zookeeper = new ZooKeeper(zkQuorum, 10000, watcher, true);
+    zookeeper.getChildren("/", watcher);
+
+    watcher.waitForZKConnection(timeout);
   }
 }
