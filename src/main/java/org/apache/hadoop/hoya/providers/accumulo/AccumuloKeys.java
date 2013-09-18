@@ -28,7 +28,7 @@ public interface AccumuloKeys {
   
   String ROLE_MASTER = HoyaKeys.ROLE_MASTER;
 
-  String ROLE_TABLET = "tablet";
+  String ROLE_TABLET = "tserver";
   String ROLE_GARBAGE_COLLECTOR = "gc";
   String ROLE_MONITOR = "monitor";
   String ROLE_TRACER = "tracer";

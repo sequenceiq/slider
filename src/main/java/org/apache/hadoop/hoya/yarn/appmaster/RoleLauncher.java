@@ -108,18 +108,32 @@ public class RoleLauncher implements Runnable {
                                            roleOptions);
 
 
-      ClusterNode node = new ClusterNode();
+ 
       String commandLine = ctx.getCommands().get(0);
+      ClusterNode node = new ClusterNode();
       log.info("Starting container with command: {}", commandLine);
       Map<String, LocalResource> lr = ctx.getLocalResources();
       List<String> nodeEnv = new ArrayList<String>();
-      for (Map.Entry<String, LocalResource> entry : lr.entrySet()) {
+      if (log.isDebugEnabled()) {
+        log.debug("{} resources: ", lr.size());
+        for (Map.Entry<String, LocalResource> entry : lr.entrySet()) {
 
-        String key = entry.getKey();
-        LocalResource val = entry.getValue();
-        String envElt = key + "=" + HoyaUtils.stringify(val.getResource());
+          String key = entry.getKey();
+          LocalResource val = entry.getValue();
+          String envElt = key + "=" + HoyaUtils.stringify(val.getResource());
+          log.debug(envElt);
+        }
+      }
+      //log the env
+      Map<String, String> environment = ctx.getEnvironment();
+      log.debug("{} env variables: ", environment.size());
+
+      for (Map.Entry<String, String> env : environment.entrySet()) {
+        String envElt = String.format("%s=\"%s\"",
+                                      env.getKey(),
+                                      env.getValue());
+        log.debug(envElt);
         nodeEnv.add(envElt);
-        log.info(envElt);
       }
       node.command = commandLine;
       node.name = container.getId().toString();

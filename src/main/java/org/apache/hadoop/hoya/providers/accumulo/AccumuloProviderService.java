@@ -117,11 +117,19 @@ public class AccumuloProviderService extends AbstractProviderService implements
     String hadoop_home =
       ApplicationConstants.Environment.HADOOP_COMMON_HOME.$();
     hadoop_home = clusterSpec.getOption(OPTION_HADOOP_HOME, hadoop_home);
-    env.put(HADOOP_HOME, clusterSpec.getMandatoryOption(OPTION_HADOOP_HOME));
+    env.put(HADOOP_HOME, hadoop_home);
     env.put(HADOOP_PREFIX, hadoop_home);
+    
+    //buildup accumulo home env variable to be absolute or relative
+    String accumulo_home;
+    if (clusterSpec.applicationHome != null ) {
+      accumulo_home = clusterSpec.applicationHome;
+    } else {
+    accumulo_home = ProviderUtils.convertToAppRelativePath(
+      AccumuloClientProvider.buildImageDir(clusterSpec));
+    }
     env.put(ACCUMULO_HOME,
-            ProviderUtils.convertToAppRelativePath(
-              AccumuloClientProvider.buildImageDir(clusterSpec)));
+            accumulo_home);
     env.put(ACCUMULO_CONF_DIR,
             ProviderUtils.convertToAppRelativePath(
               HoyaKeys.PROPAGATED_CONF_DIR_NAME));
@@ -151,8 +159,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
     ctx.setLocalResources(localResources);
 
     List<String> commands = new ArrayList<String>();
-    commands.add(cmd("export", HADOOP_HOME, "\"$HADOOP_HOME\""));
-    commands.add(cmd("export", ZOOKEEPER_HOME, "\"$ZOOKEEPER_HOME\""));
+
 
 
     List<String> command = new ArrayList<String>();
@@ -160,8 +167,6 @@ public class AccumuloProviderService extends AbstractProviderService implements
     command.add(
       AccumuloClientProvider.buildScriptBinPath(clusterSpec).toString());
 
-    //config dir is relative to the generated file
-    command.add(HoyaKeys.PROPAGATED_CONF_DIR_NAME);
     //role is region server
     command.add(role);
 
@@ -221,7 +226,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
     File image = AccumuloClientProvider.buildImageDir(clusterSpec);
     File dot = new File(".");
     env.put(ACCUMULO_HOME, image.getAbsolutePath());
-    env.put(ACCUMULO_CONF_DIR,
+    env.put(ACCUMULO_CONF_DIR, 
             new File(dot, HoyaKeys.PROPAGATED_CONF_DIR_NAME).getAbsolutePath());
     env.put(ZOOKEEPER_HOME, clusterSpec.getMandatoryOption(OPTION_ZK_HOME));
 
@@ -339,7 +344,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
   }
 
   /**
-   * probe too see if accumulo has already been installed.
+   * probe to see if accumulo has already been installed.
    * @param cd
    * @return
    * @throws IOException

@@ -146,7 +146,7 @@ public class ProviderUtils implements RoleKeys {
   }
 
   public static String convertToAppRelativePath(String path) {
-    return ApplicationConstants.Environment.HOME.$() + "/" + path;
+    return ApplicationConstants.Environment.PWD.$() + "/" + path;
   }
 
 

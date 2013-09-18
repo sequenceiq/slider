@@ -35,6 +35,7 @@ import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.api.OptionKeys
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.exceptions.WaitTimeoutException
+import org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys
 import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.tools.BlockingZKWatcher
@@ -684,6 +685,13 @@ implements KeysForTests, HoyaExitCodes {
     }
   }
 
+  Map<String, Integer> roles = [
+      (AccumuloKeys.ROLE_MASTER): 1,
+      (AccumuloKeys.ROLE_TABLET): tablets,
+      (AccumuloKeys.ROLE_MONITOR): monitor,
+      (AccumuloKeys.ROLE_GARBAGE_COLLECTOR): gc
+  ];
+  
 
   /**
    * Spin waiting for the Hoya role count to match expected
@@ -693,10 +701,22 @@ implements KeysForTests, HoyaExitCodes {
    * @param timeout timeout
    */
   public ClusterDescription waitForRoleCount(HoyaClient hoyaClient, String role, int desiredCount, int timeout) {
-    String clustername = hoyaClient.deployedClusterName;
+    return waitForRoleCount(hoyaClient, [role:desiredCount], timeout)
+  }
+  
+  /**
+   * Spin waiting for the Hoya role count to match expected
+   * @param hoyaClient client
+   * @param role role to look for
+   * @param desiredCount RS count
+   * @param timeout timeout
+   */
+    public ClusterDescription waitForRoleCount(HoyaClient hoyaClient, Map<String, Integer> roles, int timeout) {
+      String clustername = hoyaClient.deployedClusterName;
     ClusterDescription status = null
     Duration duration = new Duration(timeout);
     duration.start()
+    boolean roleCountFound
     while (true) {
       status = hoyaClient.getClusterStatus(clustername)
       
@@ -713,7 +733,7 @@ implements KeysForTests, HoyaExitCodes {
         fail("Expected $desiredCount nodes in role $role,\n" +
              " but saw $instanceCount instances after $timeout millis [$nodes] in \n$status ")
       }
-      log.info("Waiting for $desiredCount workers -got $instanceCount and nodes $nodes")
+      log.info("Waiting for $desiredCount nodes in role $role -got $instanceCount and nodes $nodes")
       Thread.sleep(1000)
     }
     return status
