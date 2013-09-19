@@ -53,8 +53,6 @@ To make a tarball for use in test runs:
     # on linux
     mvn package -Pdist -Pnative -Dtar -DskipTests -Dmaven.javadoc.skip=true 
 
-This takes time so try to avoid doing this.
-
 Then expand this
 
     pushd hadoop-dist/target/
