@@ -71,7 +71,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
 
   @Override
   public List<ProviderRole> getRoles() {
-    return AccumuloClientProvider.ROLES;
+    return AccumuloRoles.ROLES;
   }
 
   @Override

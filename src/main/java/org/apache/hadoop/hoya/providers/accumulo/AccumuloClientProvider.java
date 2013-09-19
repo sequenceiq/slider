@@ -44,7 +44,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,25 +66,10 @@ public class AccumuloClientProvider extends Configured implements
     super(conf);
   }
 
-  /**
-   * List of roles
-   */
-  protected static final List<ProviderRole> ROLES =
-    new ArrayList<ProviderRole>();
 
-  /**
-   * Initialize role list
-   */
-  static {
-    ROLES.add(new ProviderRole(ROLE_MASTER, 1, true));
-    ROLES.add(new ProviderRole(ROLE_TABLET, 2));
-    ROLES.add(new ProviderRole(ROLE_GARBAGE_COLLECTOR, 3));
-    ROLES.add(new ProviderRole(ROLE_MONITOR, 4));
-    ROLES.add(new ProviderRole(ROLE_TRACER, 5));
-  }
 
   public static List<ProviderRole> getProviderRoles() {
-    return ROLES;
+    return AccumuloRoles.ROLES;
 
   }
 
@@ -96,7 +80,7 @@ public class AccumuloClientProvider extends Configured implements
 
   @Override
   public List<ProviderRole> getRoles() {
-    return ROLES;
+    return AccumuloRoles.ROLES;
   }
 
 
