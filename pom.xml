@@ -47,9 +47,14 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
+<!--
+    <accumulo.version>1.5</accumulo.version>
+-->
+    <accumulo.version>1.6.0-SNAPSHOT</accumulo.version>
+
     <gmavenVersion>1.5</gmavenVersion>
     <gmavenProviderSelection>2.0</gmavenProviderSelection>
-    <groovy.version>2.1.4</groovy.version>
+    <groovy.version>2.1.7</groovy.version>
 <!-- 
     <hadoop.version>3.0.0-SNAPSHOT</hadoop.version>
     <hadoop.version>2.1.0-beta</hadoop.version>
@@ -65,7 +70,7 @@
     <jackson.version>1.9.7</jackson.version>
     <jcommander.version>1.30</jcommander.version>
     <junit.version>4.11</junit.version>
-    <log4j.version>1.2.16</log4j.version>
+    <log4j.version>1.2.17</log4j.version>
     <slf4j.version>1.7.5</slf4j.version>
     <zookeeper.version>3.4.5</zookeeper.version>
 
@@ -190,6 +195,28 @@
         </executions>
       </plugin>
 
+      <!--enable this if you want to get told off about dependency conflict-->
+      <!--
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>1.0</version>
+        <executions>
+          <execution>
+            <id>enforce</id>
+            <configuration>
+              <rules>
+                <DependencyConvergence/>
+              </rules>
+            </configuration>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      
+ -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
@@ -255,6 +282,7 @@
   </reporting>
 
   <dependencies>
+    
     <dependency>
       <groupId>org.codehaus.groovy</groupId>
       <artifactId>groovy-all</artifactId>
@@ -277,6 +305,37 @@
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-common</artifactId>
       <version>${hadoop.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.codehaus.jackson</groupId>
+          <artifactId>jackson-core-asl</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>net.java.dev.jets3t</groupId>
+          <artifactId>jets3t</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>commons-codec</groupId>
+          <artifactId>commons-codec</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.google.guava</groupId>
+          <artifactId>guava</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>commons-codec</groupId>
+          <artifactId>commons-codec</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>commons-net</groupId>
+          <artifactId>commons-net</artifactId>
+        </exclusion>
+
+      </exclusions>
     </dependency>
 
     <dependency>
@@ -289,6 +348,13 @@
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-hdfs</artifactId>
       <version>${hadoop.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>tomcat</groupId>
+          <artifactId>jasper-runtime</artifactId>
+        </exclusion>
+
+      </exclusions>
     </dependency>
 
     <dependency>
@@ -296,6 +362,7 @@
       <artifactId>hadoop-common</artifactId>
       <version>${hadoop.version}</version>
       <type>test-jar</type>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
@@ -314,10 +381,35 @@
       <groupId>org.apache.hbase</groupId>
       <artifactId>hbase-server</artifactId>
       <version>${hbase.version}</version>
+      <scope>test</scope>
       <exclusions>
         <exclusion> 
           <groupId>org.apache.hbase</groupId>
           <artifactId>hbase-hadoop1-compat</artifactId>
+        </exclusion>
+        <exclusion> 
+          <groupId>org.apache.commons</groupId>
+          <artifactId>commons-math</artifactId>
+        </exclusion>
+         <exclusion> 
+          <groupId>com.sun.jersey</groupId>
+          <artifactId>jersey-core</artifactId>
+        </exclusion>
+        <exclusion> 
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.sun.jersey</groupId>
+          <artifactId>jersey-core</artifactId>
+        </exclusion>
+
+        <exclusion> 
+          
+          <!-- hbase uses v2.4, which is better, but ...-->
+          <groupId>commons-io</groupId>
+          <artifactId>commons-io</artifactId>
+          
         </exclusion>
       </exclusions>
     </dependency>
@@ -329,11 +421,47 @@
     </dependency>
 <!--
     <dependency>
-      <groupId>com.twitter</groupId>
-      <artifactId>util-zk_2.10</artifactId>
-      <version>6.3.4</version>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo</artifactId>
+      <version>${accumulo.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-api</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 -->
+
+    <dependency>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-server</artifactId>
+      <version>${accumulo.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-core</artifactId>
+      <version>${accumulo.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-minicluster</artifactId>
+      <version>${accumulo.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-start</artifactId>
+      <version>${accumulo.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-trace</artifactId>
+      <version>${accumulo.version}</version>
+    </dependency>
 
     <dependency>
       <groupId>log4j</groupId>
@@ -361,6 +489,37 @@
       <scope>test</scope>
     </dependency>
 
+    <dependency>
+      <groupId>net.sourceforge.htmlunit</groupId>
+      <artifactId>htmlunit</artifactId>
+      <version>2.12</version>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>xalan</groupId>
+          <artifactId>xalan</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>xerces</groupId>
+          <artifactId>xercesImpl</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
+    <dependency>
+      <groupId>xerces</groupId>
+      <artifactId>xercesImpl</artifactId>
+      <version>2.11.0</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>xalan</groupId>
+      <artifactId>xalan</artifactId>
+      <version>2.7.1</version>
+      <scope>test</scope>
+    </dependency>
+    
   </dependencies>
 
   <profiles>
