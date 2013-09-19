@@ -101,45 +101,6 @@ public class HBaseProviderService extends AbstractProviderService implements
     clientProvider = new HBaseClientProvider(conf);
   }
 
-
-  /**
-   * Build the conf dir from the service arguments, adding the hbase root
-   * to the FS root dir.
-   * This the configuration used by HBase directly
-   * @param clusterSpec this is the cluster specification used to define this
-   * @return a map of the dynamic bindings for this Hoya instance
-   */
-  @VisibleForTesting
-  public Map<String, String> buildSiteConfFromSpec(ClusterDescription clusterSpec)
-    throws BadConfigException {
-
-    Map<String, String> master = clusterSpec.getMandatoryRole(
-      HBaseKeys.ROLE_MASTER);
-
-    Map<String, String> worker = clusterSpec.getMandatoryRole(
-      HBaseKeys.ROLE_WORKER);
-
-    Map<String, String> sitexml = new HashMap<String, String>();
-    providerUtils.propagateSiteOptions(clusterSpec, sitexml);
-
-    sitexml.put(HBaseConfigFileOptions.KEY_HBASE_CLUSTER_DISTRIBUTED, "true");
-    sitexml.put(HBaseConfigFileOptions.KEY_HBASE_MASTER_PORT, "0");
-
-    sitexml.put(HBaseConfigFileOptions.KEY_HBASE_MASTER_INFO_PORT, master.get(
-      RoleKeys.APP_INFOPORT));
-    sitexml.put(HBaseConfigFileOptions.KEY_HBASE_ROOTDIR,
-                clusterSpec.dataPath);
-    sitexml.put(HBaseConfigFileOptions.KEY_REGIONSERVER_INFO_PORT,
-                worker.get(RoleKeys.APP_INFOPORT));
-    sitexml.put(HBaseConfigFileOptions.KEY_REGIONSERVER_PORT, "0");
-    sitexml.put(HBaseConfigFileOptions.KEY_ZNODE_PARENT, clusterSpec.zkPath);
-    sitexml.put(HBaseConfigFileOptions.KEY_ZOOKEEPER_PORT,
-                Integer.toString(clusterSpec.zkPort));
-    sitexml.put(HBaseConfigFileOptions.KEY_ZOOKEEPER_QUORUM,
-                clusterSpec.zkHosts);
-    return sitexml;
-  }
-
   @Override
   public int getDefaultMasterInfoPort() {
     return HBaseConfigFileOptions.DEFAULT_MASTER_INFO_PORT;

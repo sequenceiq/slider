@@ -59,6 +59,9 @@ public interface ClientProvider extends ProviderCore {
 
   Map<String, String> getDefaultClusterOptions();
 
+  Map<String, String> buildSiteConfFromSpec(ClusterDescription clusterSpec)
+    throws BadConfigException;
+  
   void prepareAMResourceRequirements(ClusterDescription clusterSpec,
                                      Resource capability);
 

@@ -39,7 +39,9 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import static org.apache.hadoop.hoya.providers.accumulo.AccumuloConfigFileOptions.*;
+import static org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys.*;
+import static org.apache.hadoop.hoya.api.RoleKeys.*;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -83,6 +85,10 @@ public class AccumuloClientProvider extends Configured implements
     return AccumuloRoles.ROLES;
   }
 
+  private void putSiteOpt(Map<String, String> options, String key, String val) {
+    options.put(
+      OptionKeys.OPTION_SITE_PREFIX + key, val);
+  }
 
   /**
    * Get a map of all the default options for the cluster; values
@@ -91,13 +97,19 @@ public class AccumuloClientProvider extends Configured implements
    */
   @Override
   public Map<String, String> getDefaultClusterOptions() {
-    HashMap<String, String> options = new HashMap<String, String>();
+    Map<String, String> options = new HashMap<String, String>();
     //create an instance ID
-    options.put(
-      OptionKeys.OPTION_SITE_PREFIX + AccumuloConfigFileOptions.INSTANCE_SECRET,
+    putSiteOpt(options, AccumuloConfigFileOptions.INSTANCE_SECRET,
       UUID.randomUUID().toString());
     //make up a password
     options.put(OPTION_ACCUMULO_PASSWORD, UUID.randomUUID().toString());
+
+
+    putSiteOpt(options, MASTER_PORT_CLIENT , "0");
+    putSiteOpt(options, MONITOR_PORT_CLIENT , "0");
+    putSiteOpt(options, TRACE_PORT_CLIENT , "0");
+    putSiteOpt(options, TSERV_PORT_CLIENT , "0");
+
     return options;
   }
 
@@ -155,6 +167,18 @@ public class AccumuloClientProvider extends Configured implements
     }
   }
 
+  private void assignIfSet(Map<String, String> sitexml,
+                           String prop,
+                             ClusterDescription cd,
+                           String role,
+                           String key) throws BadConfigException {
+    Map<String, String> map = cd.getMandatoryRole(role);
+
+    String value = map.get(key);
+    if (value!=null) {
+      sitexml.put(prop, value);
+    }
+  }
 
   /**
    * Build the conf dir from the service arguments, adding the hbase root
@@ -171,8 +195,10 @@ public class AccumuloClientProvider extends Configured implements
     Map<String, String> master = clusterSpec.getMandatoryRole(
       AccumuloKeys.ROLE_MASTER);
 
-    Map<String, String> worker = clusterSpec.getMandatoryRole(
+    Map<String, String> tserver = clusterSpec.getMandatoryRole(
       AccumuloKeys.ROLE_TABLET);
+    Map<String, String> monitor = clusterSpec.getMandatoryRole(
+      AccumuloKeys.ROLE_MONITOR);
 
     Map<String, String> sitexml = new HashMap<String, String>();
 
@@ -196,6 +222,16 @@ public class AccumuloClientProvider extends Configured implements
     sitexml.put(AccumuloConfigFileOptions.INSTANCE_DFS_DIR,
                 parentUri.getPath());
 
+    assignIfSet(sitexml, MASTER_PORT_CLIENT, clusterSpec, ROLE_MASTER,
+                APP_INFOPORT);
+    assignIfSet(sitexml, MONITOR_PORT_CLIENT, clusterSpec, ROLE_MONITOR,
+                APP_INFOPORT);
+    assignIfSet(sitexml, TSERV_PORT_CLIENT, clusterSpec, ROLE_TABLET,
+                APP_INFOPORT);
+    assignIfSet(sitexml, MASTER_PORT_CLIENT, clusterSpec, ROLE_MASTER,
+                APP_INFOPORT);
+
+    //fix up ZK
     int zkPort = clusterSpec.zkPort;
     String zkHosts = clusterSpec.zkHosts;
 
@@ -248,8 +284,7 @@ public class AccumuloClientProvider extends Configured implements
       AccumuloKeys.SITE_XML_RESOURCE);
 
     //construct the cluster configuration values
-    Map<String, String> clusterConfMap = buildSiteConfFromSpec(
-      clusterSpec);
+    Map<String, String> clusterConfMap = buildSiteConfFromSpec(clusterSpec);
     //merge them
     ConfigHelper.addConfigMap(siteConf, clusterConfMap);
 

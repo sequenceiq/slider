@@ -47,7 +47,14 @@ public interface AccumuloConfigFileOptions {
 
   String INSTANCE_SECRET = "instance.secret";
   String MASTER_PORT_CLIENT = "master.port.client";
+  String MASTER_PORT_CLIENT_DEFAULT = "9999";
+  
   String MONITOR_PORT_CLIENT = "monitor.port.client";
-
+  String MONITOR_PORT_CLIENT_DEFAULT = "50095";
   String TRACE_PORT_CLIENT = "trace.port.client";
+  String TRACE_PORT_CLIENT_DEFAULT = "12234";
+
+  String TSERV_PORT_CLIENT = "trace.port.client";
+  String TSERV_PORT_CLIENT_DEFAULT = "9997";
+  
 }

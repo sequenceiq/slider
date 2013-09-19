@@ -139,7 +139,6 @@ public class HBaseClientProvider extends Configured implements
    * @param clusterSpec this is the cluster specification used to define this
    * @return a map of the dynamic bindings for this Hoya instance
    */
-  @VisibleForTesting
   public Map<String, String> buildSiteConfFromSpec(ClusterDescription clusterSpec)
     throws BadConfigException {
 
@@ -229,8 +228,7 @@ public class HBaseClientProvider extends Configured implements
       HBaseKeys.HBASE_TEMPLATE_RESOURCE);
 
     //construct the cluster configuration values
-    Map<String, String> clusterConfMap = buildSiteConfFromSpec(
-      clusterSpec);
+    Map<String, String> clusterConfMap = buildSiteConfFromSpec(clusterSpec);
     //merge them
     ConfigHelper.addConfigMap(siteConf, clusterConfMap);
 

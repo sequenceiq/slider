@@ -34,9 +34,6 @@ public interface ProviderCore {
   
   Configuration getConf();
 
-  Map<String, String> buildSiteConfFromSpec(ClusterDescription clusterSpec)
-    throws BadConfigException;
-
   void validateClusterSpec(ClusterDescription clusterSpec) throws
                                                            HoyaException;
 }

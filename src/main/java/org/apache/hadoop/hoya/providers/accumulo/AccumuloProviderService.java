@@ -243,13 +243,6 @@ public class AccumuloProviderService extends AbstractProviderService implements
     return launchSequence;
   }
 
-
-  @Override
-  public Map<String, String> buildSiteConfFromSpec(ClusterDescription clusterSpec) throws
-                                                                                   BadConfigException {
-    return clientProvider.buildSiteConfFromSpec(clusterSpec);
-  }
-
   /**
    * Accumulo startup is a bit more complex than HBase, as it needs
    * to pre-initialize the data directory.
