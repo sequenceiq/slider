@@ -31,11 +31,11 @@ import org.junit.Test
 
 @CompileStatic
 @Slf4j
-class TestAccM1T1 extends AccumuloTestBase {
+class TestAccM1T1GC1Mon1 extends AccumuloTestBase {
 
   @Test
-  public void testAccM1T10() throws Throwable {
-    String clustername = "TestAccM1T1"
+  public void testAccM1T1GC1Mon1() throws Throwable {
+    String clustername = "TestAccM1T1GC1Mon1"
     int tablets = 1
     int monitor = 1
     int gc = 1
@@ -59,10 +59,7 @@ class TestAccM1T1 extends AccumuloTestBase {
 
     waitWhileClusterExists(hoyaClient, 30000);
     assert hoyaClient.applicationReport.yarnApplicationState == YarnApplicationState.RUNNING
-    waitForRoleCount(hoyaClient, AccumuloKeys.ROLE_MASTER, 1, ACCUMULO_CLUSTER_STARTUP_TO_LIVE_TIME)
-    waitForRoleCount(hoyaClient, AccumuloKeys.ROLE_TABLET, tablets, ACCUMULO_CLUSTER_STARTUP_TO_LIVE_TIME)
-    waitForRoleCount(hoyaClient, AccumuloKeys.ROLE_MONITOR, monitor, ACCUMULO_CLUSTER_STARTUP_TO_LIVE_TIME)
-    waitForRoleCount(hoyaClient, AccumuloKeys.ROLE_GARBAGE_COLLECTOR, gc, ACCUMULO_CLUSTER_STARTUP_TO_LIVE_TIME)
+    waitForRoleCount(hoyaClient, roles, ACCUMULO_CLUSTER_STARTUP_TO_LIVE_TIME)
     describe("Cluster status")
     ClusterDescription status
     status = hoyaClient.getClusterStatus(clustername)

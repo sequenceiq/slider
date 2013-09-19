@@ -23,6 +23,7 @@ import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys
+import org.apache.hadoop.hoya.providers.accumulo.AccumuloRoles
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
@@ -68,6 +69,11 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
   @Override
   void teardown() {
     super.teardown();
+    killAllAccumuloProcesses();
+  }
+  
+  void killAllAccumuloProcesses() {
+    killJavaProcesses(AccumuloRoles.serviceList(), 9)
   }
 
   /**

@@ -167,8 +167,8 @@ public class AccumuloProviderService extends AbstractProviderService implements
     command.add(
       AccumuloClientProvider.buildScriptBinPath(clusterSpec).toString());
 
-    //role is region server
-    command.add(role);
+    //role is translated to the accumulo one
+    command.add(AccumuloRoles.serviceForRole(role));
 
     //log details
     command.add(
@@ -203,7 +203,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
                                                                 HoyaException {
     //set the service to run if unset
     if (masterCommand == null) {
-      masterCommand = AccumuloKeys.CREATE_MASTER;
+      masterCommand = AccumuloRoles.serviceForRole(HoyaKeys.ROLE_MASTER);
     }
     return buildProcessCommandList(clusterSpec, confDir, env, masterCommand);
   }

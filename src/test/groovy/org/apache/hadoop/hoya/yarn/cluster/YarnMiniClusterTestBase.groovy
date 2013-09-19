@@ -309,9 +309,9 @@ implements KeysForTests, HoyaExitCodes {
    * Kill any java process with the given grep pattern
    * @param grepString string to grep for
    */
-  public void killJavaProcesses(String grepString, int value) {
+  public void killJavaProcesses(String grepString, int signal) {
 
-    GString bashCommand = "jps -l| grep ${grepString} | awk '{print \$1}' | xargs kill $value"
+    GString bashCommand = "jps -l| grep ${grepString} | awk '{print \$1}' | xargs kill $signal"
     log.info("Bash command = $bashCommand" )
     Process bash = ["bash", "-c", bashCommand].execute()
     bash.waitFor()
@@ -320,7 +320,14 @@ implements KeysForTests, HoyaExitCodes {
     log.error(bash.err.text)
   }
 
-   /**
+  public void killJavaProcesses(List<String> greps, int signal) {
+    for (String grep : greps) {
+      killJavaProcesses(grep,signal)
+    }
+    
+  }
+
+    /**
    * List any java process with the given grep pattern
    * @param grepString string to grep for
    */
@@ -685,14 +692,6 @@ implements KeysForTests, HoyaExitCodes {
     }
   }
 
-  Map<String, Integer> roles = [
-      (AccumuloKeys.ROLE_MASTER): 1,
-      (AccumuloKeys.ROLE_TABLET): tablets,
-      (AccumuloKeys.ROLE_MONITOR): monitor,
-      (AccumuloKeys.ROLE_GARBAGE_COLLECTOR): gc
-  ];
-  
-
   /**
    * Spin waiting for the Hoya role count to match expected
    * @param hoyaClient client
@@ -701,39 +700,51 @@ implements KeysForTests, HoyaExitCodes {
    * @param timeout timeout
    */
   public ClusterDescription waitForRoleCount(HoyaClient hoyaClient, String role, int desiredCount, int timeout) {
-    return waitForRoleCount(hoyaClient, [role:desiredCount], timeout)
+    return waitForRoleCount(hoyaClient, [(role):desiredCount], timeout)
   }
   
   /**
    * Spin waiting for the Hoya role count to match expected
    * @param hoyaClient client
-   * @param role role to look for
+   * @param roles map of roles to look for
    * @param desiredCount RS count
    * @param timeout timeout
    */
-    public ClusterDescription waitForRoleCount(HoyaClient hoyaClient, Map<String, Integer> roles, int timeout) {
-      String clustername = hoyaClient.deployedClusterName;
+  public ClusterDescription waitForRoleCount(HoyaClient hoyaClient, Map<String, Integer> roles, int timeout) {
+    String clustername = hoyaClient.deployedClusterName;
     ClusterDescription status = null
     Duration duration = new Duration(timeout);
     duration.start()
-    boolean roleCountFound
-    while (true) {
+    boolean roleCountFound = false;
+    while (!roleCountFound) {
+      StringBuilder details = new StringBuilder()
+      roleCountFound = true;
       status = hoyaClient.getClusterStatus(clustername)
-      
-      Integer instances = status.instances[role];
-      int instanceCount = instances != null ? instances.intValue() : 0;
-      if (instanceCount == desiredCount) {
+
+      for (Map.Entry<String, Integer> entry : roles.entrySet()) {
+        String role = entry.key
+        int desiredCount = entry.value
+        Integer instances = status.instances[role];
+        int instanceCount = instances != null ? instances.intValue() : 0;
+        if (instanceCount != desiredCount) {
+          
+          roleCountFound = false;
+          details.append("[$role]: wanted $desiredCount got $instanceCount ")
+        } else {
+          details.append("[$role]=$desiredCount ")
+        }
+      }
+      if (roleCountFound) {
+        //successful
         break;
       }
 
-      String[] nodes = hoyaClient.listNodeUUIDsByRole(role);
       if (duration.limitExceeded) {
-        describe("Cluster region server count of $desiredCount not met")
+        describe("Role count not met : "+ details)
         log.info(prettyPrint(status.toJsonString()))
-        fail("Expected $desiredCount nodes in role $role,\n" +
-             " but saw $instanceCount instances after $timeout millis [$nodes] in \n$status ")
+        fail("Role counts not met $timeout millis: $details in \n$status ")
       }
-      log.info("Waiting for $desiredCount nodes in role $role -got $instanceCount and nodes $nodes")
+      log.info("Waiting: " + details)
       Thread.sleep(1000)
     }
     return status
