@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.providers.accumulo.live
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.providers.accumulo.AccumuloConfigFileOptions
 import org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys
 import org.apache.hadoop.hoya.tools.ZKIntegration
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
@@ -66,14 +67,19 @@ class TestAccM1T1GC1Mon1 extends AccumuloTestBase {
     log.info(prettyPrint(status.toJsonString()))
 
     //now give the cluster a bit of time to actually start work
+
     log.info("Sleeping for a while")
     sleep(60000);
-    waitForRoleCount(hoyaClient, AccumuloKeys.ROLE_TABLET, 1, ACCUMULO_CLUSTER_STARTUP_TO_LIVE_TIME)
+    //verify that all is still there
+    waitForRoleCount(hoyaClient, roles, 0)
+
+    String page = fetchWebPage("http://localhost:" + AccumuloConfigFileOptions.MONITOR_PORT_CLIENT_DEFAULT + "/")
+    log.info(page);
 
     log.info("Finishing")
     status = hoyaClient.getClusterStatus(clustername)
     log.info(prettyPrint(status.toJsonString()))
-    maybeStopCluster(hoyaClient,clustername,"shut down $clustername")
+    maybeStopCluster(hoyaClient, clustername, "shut down $clustername")
 
   }
 

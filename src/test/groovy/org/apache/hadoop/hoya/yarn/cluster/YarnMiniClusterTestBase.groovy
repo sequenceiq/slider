@@ -35,7 +35,6 @@ import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.api.OptionKeys
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.exceptions.WaitTimeoutException
-import org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys
 import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.tools.BlockingZKWatcher
@@ -59,8 +58,6 @@ import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fifo.FifoSchedule
 import org.apache.hadoop.yarn.service.launcher.ServiceLaunchException
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
-import org.apache.zookeeper.WatchedEvent
-import org.apache.zookeeper.Watcher
 import org.junit.After
 import org.junit.Assume
 import org.junit.Before
@@ -423,7 +420,8 @@ implements KeysForTests, HoyaExitCodes {
                              roles,
                              [],
                              deleteExistingData,
-                             blockUntilRunning)
+                             blockUntilRunning,
+                             [:])
   }
 
   /**
@@ -445,10 +443,10 @@ implements KeysForTests, HoyaExitCodes {
                              roles,
                              extraArgs,
                              deleteExistingData,
-                             blockUntilRunning)
+                             blockUntilRunning, [:])
 
   }
-  public ServiceLauncher createHoyaCluster(String clustername, Map<String, Integer> roles, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
+  public ServiceLauncher createHoyaCluster(String clustername, Map<String, Integer> roles, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning, Map<String, String> clusterOps) {
     assert clustername != null
     assert miniCluster != null
     if (deleteExistingData) {
@@ -479,6 +477,11 @@ implements KeysForTests, HoyaExitCodes {
     ]
     argsList += roleList;
     argsList += imageCommands
+
+    //now inject any cluster options
+    clusterOps.each { String opt, String val ->
+      argsList << CommonArgs.ARG_OPTION << opt << val;
+    }
     
     if (extraArgs != null) {
       argsList += extraArgs;
@@ -729,13 +732,15 @@ implements KeysForTests, HoyaExitCodes {
         if (instanceCount != desiredCount) {
           
           roleCountFound = false;
-          details.append("[$role]: wanted $desiredCount got $instanceCount ")
+          details.append("[$role]: $instanceCount of $desiredCount ")
         } else {
-          details.append("[$role]=$desiredCount ")
+          details.append("[$role]: $desiredCount ")
         }
       }
       if (roleCountFound) {
         //successful
+        log.info("Role count as desired: " + details)
+
         break;
       }
 

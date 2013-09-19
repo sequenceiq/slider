@@ -18,10 +18,13 @@
 
 package org.apache.hadoop.hoya.yarn.providers.accumulo
 
+import com.gargoylesoftware.htmlunit.WebClient
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.api.RoleKeys
+import org.apache.hadoop.hoya.providers.accumulo.AccumuloConfigFileOptions
 import org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys
 import org.apache.hadoop.hoya.providers.accumulo.AccumuloRoles
 import org.apache.hadoop.hoya.yarn.CommonArgs
@@ -31,6 +34,7 @@ import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Assume
+import org.apache.accumulo.core.client.ZooKeeperInstance;
 
 /**
  * test base for all hbase clusters
@@ -73,7 +77,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
   }
   
   void killAllAccumuloProcesses() {
-    killJavaProcesses(AccumuloRoles.serviceList(), 9)
+    killJavaProcesses("Main", 9)
   }
 
   /**
@@ -159,23 +163,53 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
 
   }
 
+  /**
+   * Create an accumulo cluster
+   * @param clustername
+   * @param roles
+   * @param extraArgs
+   * @param deleteExistingData
+   * @param blockUntilRunning
+   * @return the cluster launcher
+   */
   public ServiceLauncher createAccCluster(String clustername, Map<String, Integer> roles, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
     extraArgs << CommonArgs.ARG_PROVIDER << AccumuloKeys.PROVIDER_ACCUMULO;
-    
+
     YarnConfiguration conf = testConfiguration
-    addOption(extraArgs, conf, AccumuloKeys.OPTION_ZK_HOME)
-    addOption(extraArgs, conf, AccumuloKeys.OPTION_HADOOP_HOME)
+
+    def clusterOps = [
+        (AccumuloKeys.OPTION_ZK_HOME): conf.getTrimmed(AccumuloKeys.OPTION_ZK_HOME),
+        (AccumuloKeys.OPTION_HADOOP_HOME): conf.getTrimmed(AccumuloKeys.OPTION_HADOOP_HOME),
+    ]
+
+    extraArgs << CommonArgs.ARG_ROLEOPT << AccumuloKeys.ROLE_MASTER << RoleKeys.APP_INFOPORT << AccumuloConfigFileOptions.MASTER_PORT_CLIENT_DEFAULT
+    extraArgs << CommonArgs.ARG_ROLEOPT << AccumuloKeys.ROLE_MONITOR << RoleKeys.APP_INFOPORT << AccumuloConfigFileOptions.MONITOR_PORT_CLIENT_DEFAULT
 
     return createHoyaCluster(clustername,
                              roles,
                              extraArgs,
                              deleteExistingData,
-                             blockUntilRunning)
+                             blockUntilRunning, 
+                             clusterOps)
   }
 
   public void addOption(List<String> extraArgs, YarnConfiguration conf, String option) {
     assert conf.getTrimmed(option);
     extraArgs << CommonArgs.ARG_OPTION <<
     option << conf.getTrimmed(option)
+  }
+  
+/*
+  def getAccClusterStatus() {
+    ZooKeeperInstance instance = new ZooKeeperInstance("", "localhost:4");
+    instance.getConnector("user", "pass").instanceOperations().getTabletServers();
+  }
+*/
+
+  public def fetchWebPage(String url) {
+    def client = new WebClient()
+    def page = client.getPage(url);
+    String response = page.getWebResponse().contentAsString;
+    return response;
   }
 }

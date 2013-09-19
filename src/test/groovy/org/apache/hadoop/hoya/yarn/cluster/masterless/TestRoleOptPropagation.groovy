@@ -51,7 +51,7 @@ class TestRoleOptPropagation extends HBaseMiniClusterTestBase {
                                                      CommonArgs.ARG_ROLEOPT, "unknown", MALLOC_ARENA, "3",
                                                  ],
                                                  true,
-                                                 true)
+                                                 true, [:])
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
     ClusterDescription status = hoyaClient.clusterStatus
