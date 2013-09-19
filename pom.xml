@@ -488,7 +488,7 @@
       <version>${junit.version}</version>
       <scope>test</scope>
     </dependency>
-
+<!--
     <dependency>
       <groupId>net.sourceforge.htmlunit</groupId>
       <artifactId>htmlunit</artifactId>
@@ -519,7 +519,7 @@
       <version>2.7.1</version>
       <scope>test</scope>
     </dependency>
-    
+    -->
   </dependencies>
 
   <profiles>

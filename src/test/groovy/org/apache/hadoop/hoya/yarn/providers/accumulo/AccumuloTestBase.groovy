@@ -18,9 +18,11 @@
 
 package org.apache.hadoop.hoya.yarn.providers.accumulo
 
-import com.gargoylesoftware.htmlunit.WebClient
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.apache.commons.httpclient.HttpClient
+import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager
+import org.apache.commons.httpclient.methods.GetMethod
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.RoleKeys
@@ -207,9 +209,20 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
 */
 
   public def fetchWebPage(String url) {
-    def client = new WebClient()
-    def page = client.getPage(url);
-    String response = page.getWebResponse().contentAsString;
-    return response;
+    def client = new HttpClient(new MultiThreadedHttpConnectionManager());
+    client.getHttpConnectionManager().getParams().setConnectionTimeout(10000);
+    GetMethod get = new GetMethod(url);
+    
+    get.setFollowRedirects(true);
+    int resultCode = client.executeMethod(get);
+    String body = get.getResponseBodyAsString();
+    return body;
+  }
+  
+  
+  public def fetchLocalPage(int port, String page) {
+    String url = "http://localhost:" + AccumuloConfigFileOptions.MONITOR_PORT_CLIENT_DEFAULT + page
+    String response = fetchWebPage(url)
+    
   }
 }

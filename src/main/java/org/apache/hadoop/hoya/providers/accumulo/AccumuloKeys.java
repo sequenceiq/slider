@@ -112,4 +112,7 @@ public interface AccumuloKeys {
    */
   String PARAM_PASSWORD = "--password";
 
+  String MONITOR_PAGE_JSON = "/json";
+  String MONITOR_PAGE_XML = "/xml";
+
 }

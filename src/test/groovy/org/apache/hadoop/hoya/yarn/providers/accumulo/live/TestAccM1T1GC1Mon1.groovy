@@ -73,7 +73,8 @@ class TestAccM1T1GC1Mon1 extends AccumuloTestBase {
     //verify that all is still there
     waitForRoleCount(hoyaClient, roles, 0)
 
-    String page = fetchWebPage("http://localhost:" + AccumuloConfigFileOptions.MONITOR_PORT_CLIENT_DEFAULT + "/")
+    String page = fetchLocalPage(AccumuloConfigFileOptions.MONITOR_PORT_CLIENT_INT,
+                                 AccumuloKeys.MONITOR_PAGE_JSON)
     log.info(page);
 
     log.info("Finishing")

@@ -50,7 +50,8 @@ public interface AccumuloConfigFileOptions {
   String MASTER_PORT_CLIENT_DEFAULT = "9999";
   
   String MONITOR_PORT_CLIENT = "monitor.port.client";
-  String MONITOR_PORT_CLIENT_DEFAULT = "50095";
+  int MONITOR_PORT_CLIENT_INT = 50095;
+  String MONITOR_PORT_CLIENT_DEFAULT = ""+MONITOR_PORT_CLIENT_INT;
   String TRACE_PORT_CLIENT = "trace.port.client";
   String TRACE_PORT_CLIENT_DEFAULT = "12234";
 
