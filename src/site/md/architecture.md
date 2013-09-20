@@ -43,7 +43,7 @@ A provider sets up the Hoya cluster:
 1. preflight checking -client side- of parameters before creating a cluster.
 (these must also be done in the AM; client-side allows for fail-fast checking
 with better error messages, as well as testability.
-1. client-side addition of extra files & options to the AM startup. For example,
+1. client-side addition of extra files and options to the AM startup. For example,
 adding the HBase tar file as a resource, and HBase JARs on the classpath.
 1. In the AM, setting up the launchers for the various roles.
 1. In the AM, helping monitor the state of launched role instances. (Once liveness monitoring is implemented)
