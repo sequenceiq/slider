@@ -33,6 +33,16 @@ For this to work in a dynamic cluster, Hoya needs to bring up Region Servers
 on the previously used hosts, so that the HBase Master can re-assign the same
 tables.
 
+### Terminology
+
+* **Role Instance** : a single instance of a role.
+* **Node** : A server in the YARN Physical (or potentially virtual) Cluster of servers.
+* **Hoya Cluster**: The set of role instances deployed by Hoya so as to 
+ create a single aggregate application.
+* **Hoya AM**: The Application Master of Hoya: the program deployed by YARN to
+manage its Hoya Cluster.
+
+
 ### Assumptions
 
 Here are some assumptions in Hoya's design
@@ -62,7 +72,7 @@ low: both node failures and cluster flexing happen at the rate of every few
 hours, rather than every few seconds. This allows Hoya to avoid needing
 data structures and layout persistence code designed for regular and repeated changes.
 
-1. instance placement is best effort: if the previous placement cannot be satisfied,
+1. Instance placement is best-effort: if the previous placement cannot be satisfied,
 the application will still perform adequately with role instances deployed
 onto new servers. More specifically, if a previous server is unavailable
 for hosting a role instance due to lack of capacity or availability, Hoya
@@ -71,6 +81,10 @@ on YARN to locate a new node -ideally on the same rack.
 
 1. If two instances of the same role do get assigned to the same server, it
 is not a failure condition.
+
+1. Tracking failure statistics of nodes may be a feature to add in future;
+designing the Role History datastructures to enable future collection
+of rolling statistics on recent failures would be a first step to this 
 
 ### The Role History
 
@@ -90,11 +104,6 @@ due to outstanding requests.
 All it needs to retain is the recent history for every node onto which a role
 instance has been deployed. Specifically, the last allocation or release
 operation on a a nodes is all that needs to be persisted. 
-
-* By storing the history of node operations in a time-ordered sequence,
-determining which nodes to request is trivial: the nodes at the front
-of the list which are not currently running work or onto which new work has been
-requested.
 
 * On AM startup, all nodes are considered candidates, even those nodes marked
 as active -as they were from the previous instance.
@@ -132,12 +141,9 @@ for YARN has been proposed, it is hoped that this issue will be addressed centra
 without Hoya having to remember which nodes are unreliable *for that particular
 Hoya cluster*.
 
-**Anti-affinity**: Anti-affinity is automatic with a design that only stores
-information about single nodes, not about multiple containers in a single node
-at the same time. If multiple role instances have been assigned to a single
-node in the past, only one of them may end up being local to its
-data on a cluster restart. That is, Hoya is prioritising anti-affinity
-over performance. 
+**Anti-affinity**: If multiple role instances are assigned to the same node,
+Hoya has to choose on restart or flexing whether to ask for multiple
+nodes on that node again, or to pick other nodes.
 
 **Bias towards recent nodes over most-used**: re-requesting the most
 recent nodes, rather than those with the most history of use, may
@@ -366,3 +372,156 @@ node, * and there is no acquire-request against it*,  a released() event is adde
 
 
 
+
+# Revision 2: A nodemap
+
+For every role, 
+
+1. Hoya builds up a map of which nodes have recently been used
+1. Every node counts the no. of active containers.
+1. Nodes are only chosen for allocation requests when there are no
+active or requested containers on that node.
+1. When choosing which instances to release, Hoya could pick the node with the
+most containers on it. Ths would spread load.
+1. When there are no empty nodes to request containers on, a random request would
+let YARN choose.
+
+Strengths
+* handles multi-container on one node problem
+* simple counters can track the state of pending add/release requests
+* scales well to a rapidly flexing cluster
+* Simple to work with and persist
+* Easy to view & debug
+
+Weaknesses
+* Size of the data structure is O(roles * nodes), not O(roles * role-instances). This
+could be mitigated by regular cleansing of the structure. For example, at
+thaw time (or intermittently) all unused nodes > 2 weeks old could be dropped.
+* Locating a free node could take O(nodes) lookups -and if the criteria of "newest"
+is included, will take exactly O(nodes) lookups.
+
+## Data Structure
+
+
+### NodeEntry
+
+    active: int
+    requested: int
+    releasing: int
+    last_used: long
+    
+### NodeMap
+
+    Map: NodeId -> NodeEntry
+    
+### RoleNodeMap
+
+    Map: RoleName -> NodeMap
+    
+## Actions
+
+### Bootstrap
+
+1. Persistent RoleNodeMap not found; empty data structures created.
+
+### Thaw
+
+1. RoleNodeMap loaded; Failure => Bootstrap
+1. Maybe: purge entries > N weeks old? But if the cluster had been running for a
+long time, or just been frozen for those weeks, those entries could still have warm data.
+
+### AM Restart
+
+1. RoleNodeMap loaded; Failure => create empty map.
+1. Enum existing containers
+1. For each node, set the `active` count to the #of containers on that node.
+
+
+### Teardown
+
+1. Do nothing.
+
+### Flex: Adding a node
+
+
+    NM = nodemap(role)
+    if (NM!=null) then
+        t= now()
+        N = the node in NM where: active==0, requested==0 and diff(t, last_used) is lowest to now.
+        if (N!=null) then
+          N.requested++;
+          issue request with lax criteria
+        endif
+     endif
+    
+Using the history to pick a recent node may increase selection times on a
+large cluster, as for every instance needed, a scan of all nodes in the
+nodemap is required (unless there is some clever bulk assignment list being built
+up). Without using that history, there is a risk that a very old assignment
+is used in place of a recent one and the value of locality decreased.
+
+### Flex: Removing a node
+
+Simple strategy:
+
+    NM = nodemap(role)
+    pick a node N in NM where active> releasing; (i.e. has at least one container)
+    increment releasing++;
+    issue a release request.
+    
+Advanced Strategy:
+  
+  Scan through the map looking for a node where active >1 && active > releasing.
+  If none are found, fall back to the previous strategy
+
+This is guaranteed to release a container on any node with >1 container in use,
+if such a node exists. If not, the scan time has increased to #(nodes).
+
+An even more advance story wold be to prioritise nodes where releases are in progress,
+on the basis that they will have the hottest data.
+
+### AM Allocation Callback
+
+    C = container allocation
+    
+    role = getRole(C)
+    nodeID = getNodeID(C)
+    nodemap = rolemap.getNodeMap(role)
+    nodeentry = nodemap.get(nodeID)
+    if (nodeentry == null) {
+      nodeentry = new NodeEntry()
+      nodeentry.active =1
+      nodemap(put, nodeID, nodeentry)
+    } else {
+      if (nodeentry.requested>0) {
+        nodeentry.requested--
+      }
+      nodeentry.active++
+    }
+ 
+ At end of this, there is a node entry for the map, which has recorded that
+ there is now an active node
+ 
+ 
+ ### AM container failure
+ 
+ If the container has been marked as release-in-progress in the container map,
+ release it.
+ 
+ 
+ If the #of instances of the role < desired: 
+ Re-request container on same node
+ 
+ issue: what if the node is oversubscribed? Don't care.
+ 
+ 
+ ### AM container release
+ 
+     role = getRole(C)
+     nodeID = getNodeID(C)
+     nodemap = rolemap.getNodeMap(role)
+     nodeentry = nodemap.get(nodeID)
+     if (nodeentry != null) {
+         nodeentry.release-requested --;
+       }
+     }
