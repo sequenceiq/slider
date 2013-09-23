@@ -21,7 +21,7 @@
 1. How best to distinguish at thaw time from nodes used just before thawing
 from nodes used some period before? Should the RoleHistory simply forget
 about nodes which are older than some threshold when reading in the history?
-1. 
+1. Is there a way to avoid tracking the outstanding requests? 
 
 ## Introduction
 
@@ -62,7 +62,6 @@ Servers were previously running on Node #17. On restart Hoya can simply request
 one instance of a Region Server on a specific node, leaving the other instance
 to be arbitrarily deployed by YARN. This strategy should help reduce the *affinity*
 in the role deployment, so increase their resilience to failure.
-
 
 1. There is no need to make sophisticated choices on which nodes to request
 re-assignment -such as recording the amount of data persisted by a previous
@@ -499,7 +498,8 @@ A container has failed
     If the #of instances of the role < desired: 
     Re-request a single container on same node
  
- issue: what if the node is oversubscribed? Don't care.
+Q. what if the node is oversubscribed?
+A. Don't care: still try and restart the service there
  
  
 ### AM container release
@@ -518,7 +518,8 @@ has completed
        nodeentry.release-requested --
        nodentry.last_user = now()
        nodemap.dirty = true
-       recentlyReleasedList.push(node
+       if nodeentry.available():
+         recentlyReleasedList.get(roleID).push((node, now())
      else:
        warn "release of container not in the nodemap]
      //update existing Hoya role status
