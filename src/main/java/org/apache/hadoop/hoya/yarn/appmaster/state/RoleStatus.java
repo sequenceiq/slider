@@ -20,11 +20,17 @@ package org.apache.hadoop.hoya.yarn.appmaster.state;
 
 import org.apache.hadoop.hoya.providers.ProviderRole;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.apache.hadoop.hoya.api.HoyaAppMasterProtocol.*;
+
+
 /**
- * Models the ongoing status of all nodes in role. 
+ * Models the ongoing status of all nodes in  
  * Nothing here is synchronized: grab the whole instance to update.
  */
-public class RoleStatus {
+public final class RoleStatus implements Cloneable {
 
 
   private final String name;
@@ -36,31 +42,16 @@ public class RoleStatus {
    */
   private final int key;
 
-  private final boolean excludeFromFlexing;
+  private final ProviderRole providerRole;
 
   private int desired, actual, requested, releasing;
   private int failed, started, startFailed, completed;
 
 
   public RoleStatus(ProviderRole providerRole) {
+    this.providerRole = providerRole;
     this.name = providerRole.name;
     this.key = providerRole.key;
-    this.excludeFromFlexing = providerRole.excludeFromFlexing;
-  }
-
-  public RoleStatus(String name,
-                    int key,
-                    int desired,
-                    int actual,
-                    int requested,
-                    int releasing) {
-    this.name = name;
-    this.key = key;
-    this.desired = desired;
-    this.actual = actual;
-    this.requested = requested;
-    this.releasing = releasing;
-    excludeFromFlexing = false;
   }
 
   public String getName() {
@@ -76,7 +67,7 @@ public class RoleStatus {
   }
 
   public boolean getExcludeFromFlexing() {
-    return excludeFromFlexing;
+    return providerRole.excludeFromFlexing;
   }
 
   public int getDesired() {
@@ -211,5 +202,33 @@ public class RoleStatus {
            ", startFailed=" + startFailed +
            ", completed=" + completed +
            '}';
+  }
+
+  @Override
+  public Object clone() throws CloneNotSupportedException {
+    return super.clone();
+  }
+
+  /**
+   * Get the provider role
+   * @return
+   */
+  public ProviderRole getProviderRole() {
+    return providerRole;
+  }
+
+  /**
+   * Build the statistics map from the current data
+   * @return a map for use in statistics reports
+   */
+  public Map<String, Integer> buildStatistics() {
+    Map<String, Integer> stats = new HashMap<String, Integer>();
+    stats.put(STAT_CONTAINERS_REQUESTED, getRequested());
+    stats.put(STAT_CONTAINERS_ALLOCATED, getActual());
+    stats.put(STAT_CONTAINERS_COMPLETED, getCompleted());
+    stats.put(STAT_CONTAINERS_FAILED, getFailed());
+    stats.put(STAT_CONTAINERS_STARTED, getStarted());
+    stats.put(STAT_CONTAINERS_STARTED_FAILED, getStartFailed());
+    return stats;
   }
 }

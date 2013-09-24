@@ -38,8 +38,8 @@ import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
+import org.apache.hadoop.hoya.yarn.appmaster.state.AppState;
 import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerInfo;
-import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerTracker;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleStatus;
 import org.apache.hadoop.hoya.yarn.service.EventCallback;
 import org.apache.hadoop.ipc.ProtocolSignature;
@@ -95,7 +95,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -166,42 +165,13 @@ public class HoyaAppMaster extends CompositeService
   // App Master configuration
 
 
-  private final ContainerTracker containerTracker = new ContainerTracker();
-
-
-  private final Map<Integer, RoleStatus> roleStatusMap =
-    new HashMap<Integer, RoleStatus>();
-
   /**
-   *  This is the number of containers which we desire for HoyaAM to maintain
+   * Ongoing state of the cluster: containers, nodes they
+   * live on, etc.
    */
-  //private int desiredContainerCount = 0;
+  private final AppState appState = new AppState();
 
-  /**
-   * Counter for completed containers ( complete denotes successful or failed )
-   */
-  private final AtomicInteger numCompletedContainers = new AtomicInteger();
 
-  /**
-   *   Count of failed containers
-
-   */
-  private final AtomicInteger numFailedContainers = new AtomicInteger();
-
-  /**
-   * # of started containers
-   */
-  private final AtomicInteger startedContainers = new AtomicInteger();
-
-  /**
-   * # of containers that failed to start 
-   */
-  private final AtomicInteger startFailedContainers = new AtomicInteger();
-
-  /**
-   * Launch threads -these need to unregister themselves after launch,
-   * to stop the leakage of threads on many cluster restarts
-   */
   private final Map<RoleLauncher, Thread> launchThreads =
     new HashMap<RoleLauncher, Thread>();
 
@@ -484,9 +454,7 @@ public class HoyaAppMaster extends CompositeService
     //build the role map
     List<ProviderRole> providerRoles = provider.getRoles();
     for (ProviderRole providerRole : providerRoles) {
-      //build role status map
-      roleStatusMap.put(providerRole.key,
-                        new RoleStatus(providerRole));
+      appState.buildRole(providerRole);
     }
 
 
@@ -743,11 +711,12 @@ public class HoyaAppMaster extends CompositeService
 
     String exitCodeString = exitCode != null ? exitCode.toString() : "n/a";
     //if there were failed containers and the app isn't already down as failing, it is now
-    if (numFailedContainers.get() != 0 &&
+    int failedContainerCount = appState.getFailedCountainerCount();
+    if (failedContainerCount != 0 &&
         appStatus == FinalApplicationStatus.SUCCEEDED) {
       appStatus = FinalApplicationStatus.FAILED;
       appMessage =
-        "Completed with " + numFailedContainers.get() + " failed containers: "
+        "Completed with " + failedContainerCount + " failed containers: "
         + " Local daemon exit code =  " +
         exitCodeString + " - " + getContainerDiagnosticInfo();
       success = false;
@@ -770,7 +739,7 @@ public class HoyaAppMaster extends CompositeService
    */
   private String getContainerDiagnosticInfo() {
     StringBuilder builder = new StringBuilder();
-    for (RoleStatus roleStatus : roleStatusMap.values()) {
+    for (RoleStatus roleStatus : getRoleStatusMap().values()) {
       builder.append(roleStatus).append('\n');
     }
     return builder.toString();
@@ -891,29 +860,8 @@ public class HoyaAppMaster extends CompositeService
     return c.getPriority().getPriority();
   }
 
-  /**
-   * Look up a role from its key -or fail 
-   *
-   * @param key key to resolve
-   * @return the status
-   * @throws YarnRuntimeException on no match
-   */
-  private RoleStatus lookupRoleStatus(int key) {
-    RoleStatus rs = roleStatusMap.get(key);
-    if (rs == null) {
-      throw new YarnRuntimeException("Cannot find role for role key " + key);
-    }
-    return rs;
-  }
-
   private RoleStatus lookupRoleStatus(String name) {
-    for (RoleStatus roleStatus : roleStatusMap.values()) {
-      if (roleStatus.getName().equals(name)) {
-        return roleStatus;
-      }
-    }
-    throw new YarnRuntimeException("Cannot find role for role " + name);
-
+    return appState.lookupRoleStatus(name);
   }
 
   /**
@@ -924,7 +872,7 @@ public class HoyaAppMaster extends CompositeService
    * @throws YarnRuntimeException on no match
    */
   private RoleStatus lookupRoleStatus(Container c) {
-    return lookupRoleStatus(getRoleKey(c));
+    return appState.lookupRoleStatus(getRoleKey(c));
   }
   
 /* =================================================================== */
@@ -1106,7 +1054,7 @@ public class HoyaAppMaster extends CompositeService
 
       //now update every role's desired count.
       //if there are no instance values, that role count goes to zero
-      for (RoleStatus roleStatus : roleStatusMap.values()) {
+      for (RoleStatus roleStatus : getRoleStatusMap().values()) {
         synchronized (roleStatus) {
           int currentDesired = roleStatus.getDesired();
           String role = roleStatus.getName();
@@ -1137,7 +1085,7 @@ public class HoyaAppMaster extends CompositeService
 
     boolean updatedNodeCount = false;
 
-    for (RoleStatus roleStatus : roleStatusMap.values()) {
+    for (RoleStatus roleStatus : getRoleStatusMap().values()) {
       if (!roleStatus.getExcludeFromFlexing()) {
         updatedNodeCount |= reviewOneRole(roleStatus);
       }
@@ -1266,22 +1214,7 @@ public class HoyaAppMaster extends CompositeService
    */
   @Override //AMRMClientAsync
   public float getProgress() {
-    float percentage = 0;
-    int desired = 0;
-    float actual = 0;
-    for (RoleStatus role : roleStatusMap.values()) {
-      synchronized (role) {
-        desired += role.getDesired();
-        actual += role.getActual();
-      }
-    }
-    if (desired == 0) {
-      percentage = 100;
-    } else {
-      percentage = actual / desired;
-    }
-//    log.debug("Heartbeat, percentage ={}", percentage);
-    return percentage;
+    return appState.getApplicationProgressPercentage();
   }
 
   @Override //AMRMClientAsync
@@ -1415,19 +1348,13 @@ public class HoyaAppMaster extends CompositeService
         provider.buildStatusReport(masterNode);
       }
       clusterStatus.stats = new HashMap<String, Map<String, Integer>>();
-      for (RoleStatus role : roleStatusMap.values()) {
+      for (RoleStatus role : getRoleStatusMap().values()) {
         String rolename = role.getName();
         List<ClusterNode> nodes = enumNodesByRole(rolename);
         int nodeCount = nodes.size();
         clusterStatus.setActualInstanceCount(rolename, nodeCount);
         clusterStatus.instances = buildInstanceMap();
-        Map<String, Integer> stats = new HashMap<String, Integer>();
-        stats.put(STAT_CONTAINERS_REQUESTED, role.getRequested());
-        stats.put(STAT_CONTAINERS_ALLOCATED, role.getActual());
-        stats.put(STAT_CONTAINERS_COMPLETED, role.getCompleted());
-        stats.put(STAT_CONTAINERS_FAILED, role.getFailed());
-        stats.put(STAT_CONTAINERS_STARTED, role.getStarted());
-        stats.put(STAT_CONTAINERS_STARTED_FAILED, role.getStartFailed());
+        Map<String, Integer> stats = role.buildStatistics();
         clusterStatus.stats.put(rolename, stats);
       }
     }
@@ -1625,7 +1552,7 @@ public class HoyaAppMaster extends CompositeService
   public void onContainerStarted(ContainerId containerId,
                                  Map<String, ByteBuffer> allServiceResponse) {
     LOG_YARN.info("Started Container {} ", containerId);
-    startedContainers.incrementAndGet();
+    appState.incStartedCountainerCount();
     ContainerInfo cinfo = null;
     //update the model
     synchronized (clusterSpecLock) {
@@ -1657,8 +1584,8 @@ public class HoyaAppMaster extends CompositeService
   public void onStartContainerError(ContainerId containerId, Throwable t) {
     LOG_YARN.error("Failed to start Container " + containerId, t);
     getActiveContainers().remove(containerId);
-    numFailedContainers.incrementAndGet();
-    startFailedContainers.incrementAndGet();
+    appState.incFailedCountainerCount();
+    appState.incStartFailedCountainerCount();
     synchronized (clusterSpecLock) {
       ClusterNode node = requestedNodes.remove(containerId);
       if (null != node) {
@@ -1715,7 +1642,7 @@ public class HoyaAppMaster extends CompositeService
    * Get allt he active containers
    */
   private ConcurrentMap<ContainerId, ContainerInfo> getActiveContainers() {
-    return containerTracker.getActiveContainers();
+    return  appState.getActiveContainers();
   }
 
   /**
@@ -1724,6 +1651,10 @@ public class HoyaAppMaster extends CompositeService
    * containers is treated as a successful outcome
    */
   private ConcurrentMap<ContainerId, Container> getContainersBeingReleased() {
-    return containerTracker.getContainersBeingReleased();
+    return appState.getContainersBeingReleased();
+  }
+
+  public Map<Integer, RoleStatus> getRoleStatusMap() {
+    return appState.getRoleStatusMap();
   }
 }

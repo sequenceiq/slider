@@ -19,9 +19,12 @@
 package org.apache.hadoop.hoya.providers;
 
 /**
- * Provider role and key for use in app requests
+ * Provider role and key for use in app requests.
+ * 
+ * This class uses the role name as the key for hashes and in equality tests,
+ * and ignores the other values.
  */
-public class ProviderRole {
+public final class ProviderRole {
   public final String name;
   public final int key;
   public final boolean excludeFromFlexing; 
@@ -34,5 +37,36 @@ public class ProviderRole {
     this.name = name;
     this.key = key;
     this.excludeFromFlexing = excludeFromFlexing;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    ProviderRole that = (ProviderRole) o;
+    if (!name.equals(that.name)) {
+      return false;
+    }
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = name.hashCode();
+    return result;
+  }
+
+  @Override
+  public String toString() {
+    return "ProviderRole{" +
+           "name='" + name + '\'' +
+           ", key=" + key +
+           ", excludeFromFlexing=" + excludeFromFlexing +
+           '}';
   }
 }
