@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.appmaster;
+package org.apache.hadoop.hoya.yarn.appmaster.state;
 
 import org.apache.hadoop.hoya.providers.ProviderRole;
 
