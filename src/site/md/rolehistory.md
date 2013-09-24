@@ -319,27 +319,63 @@ Operations
     addRequest(Node, RoleID) -> OutstandingRequest 
         (and an updated request Map with a new entry)
 
-### RecentlyReleasedList ###
+### AvailableNodes ###
 
-An optimization: for each role retain a short list of nodes that were released.
+This is an `array[RoleId]` of `List<Node>` storing nodes that are
+available for allocation, ordered by more recently released. 
+To accelerate node selection, rather than scan the entire set of nodes to find
+the most recent available node, this list can be picked instead.
+The performance benefit is most significant when requesting multiple nodes,
+as the scan for M locations from N nodes is reduced from M*N comparisons
+to 1 Sort + M list lookups.
 
-1. When a role instance on that node is requested, it should be removed from
- this list (irrespective of how that node what chosen).
-1. When a role instance is released *after an explicit release request*,
- if there are no role instances or outstanding
-requests, its node Id should be pushed to the front
-of the RecentlyReleasedList for that role.
-1. When a node is needed for a new request, this list is consulted first.
+Each list can be created off the Node Map by building for each role a sorted
+list of all Nodes which are available for an instance of that role, 
+using a comparator that places the most recently released node ahead of older
+nodes.
 
 This list is not persisted -when a Hoya Cluster is frozen it is moot, and when
-an AM is restarted this optimisation can be built up as and when instances
-are released.
+an AM is restarted this structure can be build up while rebuilding the model
+of the cluster. 
 
-The use of an explicit release request ensures that a failing node is
-not placed at the head of this list.
+1. When a node is needed for a new request, this list is consulted first.
+1. After the request is issued it can be removed from the list
+1. Whenever a container is released, if the node is now available for
+requests for that node, should be added to to the front
+of the list for that role.
 
-**Update: this could simply be implemented as having a sorted list of
-nodes for every role, using the last_used time as the sort order ** 
+
+If the AM cannot find an entry in the list when looking for a node to request
+data from, it should assume that the Role History does not know of any nodes
+in the cluster that have hosted instances of that role and which are not
+in use. There are two possible strategies here
+
+1. Ask for an instance anywhere in the cluster
+1. Search the node map to identify other nodes which are (now) known about,
+but which are not hosting instances of a specific role -this can be used
+as the target for the next resource request.
+
+Strategy #1 is simpler; Strategy #2 *may* increase the affinity in the cluster,
+as the AM will be explicitly requesting an instance on a node which it knows
+is not running an instance of that role.
+
+
+#### *ISSUE: What to do about failing nodes
+
+Should a node whose container just failed be placed at the
+top of the stack, ready for the next request? 
+
+If the container failed due to an unexpected crash in the application, asking
+for that container back *is the absolute right strategy* -it will bring
+back a new role instance on that machine. 
+
+If the container failed because the node is now offline, the container request 
+will not be satisified by that node.
+
+If there is a problem with the node, such that containers repeatedly fail on it,
+then re-requesting containers on it will amplify the damage.
+
+
 
 ## Actions
 
@@ -388,11 +424,11 @@ value to that of the file's save time.
 1. For each Node: create a NodeEntry each role with a container on that node, then
 set the `NodeEntry.active` count to the #of containers on that node.
 1. For each Node in the NodeMap, if there are no active instances of a role
- in that Node, then it could be added to list of available nodes for that
- instance.
+ in that Node, then its count remains 0 -it is implicitly available.
 1. For other (existing) container data structures in the AM, add entries
 recording container details there.
 1. Set the outstanding request queue to `null`, and reset the counters.
+1. Generate the sorted AvailableNodes lists for each role. 
 1. Trigger a cluster node count review -and request & release nodes as appropriate
 
 **Issue**: what if requests come in for a (role, requestID) for
@@ -419,13 +455,12 @@ in it is only an approximate about what the previous state of the cluster was.
 ### Flex: Requesting a container in role `role`
 
     t: long = now() or if booting: t = rolehistory.saved 
-    node = the node in NodeMap where node.nodeEntry[roleId].available()
-        and diff(t, last_used) is considered 'recent'.
-    if node!=null :
+    node = availableNodes[roleID].pop() 
+    if node != null :
       N.nodeEntry[roleId].requested++;
       issue request with lax criteria
     else:
-      set node==null in request
+      set node == null in request
       
     outstanding = outstandingRequestTracker.addRequest(node, roleId)
     request.node = node
@@ -452,19 +487,20 @@ request -an acceptable degradation on a cluster where all the other entries
 in the nodemap have instances of that specific node -but not when there are
 empty nodes. 
 
+
 #### Solutions
 
-1. add some randomness in the search of the datastructure, rather than simply
+1. Add some randomness in the search of the datastructure, rather than simply
 iterate through the values. This would prevent the same unsatisfiable
 node from being requested first.
 
-1. keep track of requests, perhaps through a last-requested counter -and use
+1. Keep track of requests, perhaps through a last-requested counter -and use
 this in the selection process. This would radically complicate the selection
 algorithm, and would not even distinguish "node recently released that was
 also the last requested" from "node that has not recently satisifed requests
 even though it was recently requested".
   
-1. keep track of requests that weren't satisifed, so identify a node that
+1. Keep track of requests that weren't satisifed, so identify a node that
 isn't currently satisfying requests.
      
     
@@ -570,7 +606,10 @@ to the node originally requested.
     requestID = outstanding.nodeID
     if requestID != null:
       reqNode = nodeMap.get(requestID)
-      reqNode.get(roleID).requested--;
+      reqNodeEntry = reqNode.get(roleID)
+      reqNodeEntry.requested--;
+      if reqNodeEntry.available() :
+        availableNodeList.insert(reqNodeEntry)
 
 
     //update role summary data
@@ -578,13 +617,19 @@ to the node originally requested.
     roleStatus[roleId].incActive();
      
  
-At end of this, there is a node in the nodemap, which has recorded that
-there is now an active nodeentry for that role. The outstanding request has
+1. At end of this, there is a node in the nodemap, which has recorded that
+there is now an active node entry for that role. The outstanding request has
 been removed.
 
-If a callback comes in for which there is no outstanding request, it is rejected
+1. If a callback comes in for which there is no outstanding request, it is rejected
 (logged, ignored, etc). This handles duplicate responses as well as any
 other sync problem.
+
+1. The node selected for the original request has its request for a role instance
+decremented, so that it may be viewed as available again. The node is also
+re-inserted into the AvailableNodes list -not at its head, but at its position
+in the total ordering of the list.
+
  
  
 ### AM callback onContainersCompleted: 
@@ -598,62 +643,49 @@ and containers which have failed.
 
 This is currently done by tracking whch containers have been queued
 for release (the AM contains a map `ContainerID->Container` to track this)
+A container is considered to have failed if it completed and wasn't on
+the list of containers to rlease
 
+    shouldReview = false
+    for container in completedContainers:
+      containerID = container.containerID
+      nodeID = container.nodeID
+      roleID = container.priority & 0xff
+      node = nodemap.get(nodeID)
+      if node == null :
+        // unknown node
+        continue
+      nodeentry = node.get(roleID)
+      nodeentry.active--
+      nodemap.dirty = true
 
-    if (getContainersBeingReleased().containsKey(containerID)):
-      handle container completion
-    else
-      handle container failure
-        
+  
+      if getContainersBeingReleased().containsKey(containerID) :
+        //handle container completion
+        nodeentry.releasing --
+         
+        //update existing Hoya role status
+        roleStatus[roleId].decReleasing();
+        containersBeingReleased.remove(containerID)
+      else: 
+        //failure of a live node
+        roleStatus[roleId].decActual();
+        shouldReview = true
+            
+      if nodeentry.available():
+        nodentry.last_used = now()
+        availableNodes[roleID].insert(node)      
+  
+      //trigger a comparison of actual vs desired
+    if shouldReview :
+      reviewRequestAndReleaseNodes()
 
-
-#### onContainersCompleted:Container Failure
-    
-A container is considered to have failed if the 
-   
-    nodeID = container.nodeID
-    roleID = container.priority
-    nodeentry = nodemap[nodeID]
-    containerInfo = containermap(containerId)
-    if containerInfo.released:
-      containermap.delete(containerId)
-      nodentry.releasing--;
-    else:
-    If the container has been marked as release-in-progress in the container map,
-    release it.
-    If the #of instances of the role < desired: 
-    Re-request a single container on same node
+By calling `reviewRequestAndReleaseNodes()` the AM triggers
+a re-evaluation of how many instances of each node a cluster has, and how many
+it needs. If a container has failed and that freed up all role instances
+on that node, it will have been inserted at the front of the `availableNodes` list.
+As a result, it is highly likely that a new container will be requested on 
+the same node. (The only way a node the list would be newer is 
+be if other containers were completed in the same callback)
  
-Q. what if the node is oversubscribed?
-A. Don't care: still try and restart the service there
  
- 
-#### Container Completed after being explicitly released
-
-An explicit container request has responded confirming that the release
-has completed
- 
-     roleID = C.priority & 0xff
-     nodeID = C.nodeID
-     node = nodemap.get(nodeID)
-     if node != null :
-       nodeentry = node.get(roleID)
-     else
-       nodeentry = null
-     if nodeentry != null :
-       nodeentry.releasing --
-       nodentry.last_used = now()
-       nodeentry.active++;
-
-       nodemap.dirty = true
-       if nodeentry.available():
-         recentlyReleasedList.get(roleID).push((node, now())
-     else:
-       warn "release of container not in the nodemap]
-     //update existing Hoya role status
-     roleStatus[roleId].decReleased();
-     containersBeingReleased.remove(containerID)
-
-This algorithm handles the unexpected release of a container of which it
-has no record of simply by warning of the event. It does not
-add that entry to the nodemap
