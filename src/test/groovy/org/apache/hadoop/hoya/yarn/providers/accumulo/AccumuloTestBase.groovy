@@ -201,12 +201,11 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
     option << conf.getTrimmed(option)
   }
   
-/*
+
   def getAccClusterStatus() {
     ZooKeeperInstance instance = new ZooKeeperInstance("", "localhost:4");
     instance.getConnector("user", "pass").instanceOperations().getTabletServers();
   }
-*/
 
   public def fetchWebPage(String url) {
     def client = new HttpClient(new MultiThreadedHttpConnectionManager());
