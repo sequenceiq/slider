@@ -21,7 +21,18 @@
 1. How best to distinguish at thaw time from nodes used just before thawing
 from nodes used some period before? Should the RoleHistory simply forget
 about nodes which are older than some threshold when reading in the history?
-1. Is there a way to avoid tracking the outstanding requests? 
+
+1. Is there a way to avoid tracking the outstanding requests?
+ 
+1. What will the strategy of picking the most-recently-used node do if
+that node creates the container and then fails to start it up. Do we need
+to add blacklisting too? Or actually monitor the container start time, and
+if a container hasn't been there for very long, don't pick it.
+
+1. Should we prioritise a node that was used for a long session ahead of
+a node that was used more recently for a shorter session? Maybe, but
+it complicates selection as generating a strict order of nodes gets
+significantly harder.
 
 ## Introduction
 
@@ -189,7 +200,8 @@ most containers on it. Ths would spread load.
 1. When there are no empty nodes to request containers on, a random request would
 let YARN choose.
 
-Strengths
+#### Strengths
+
 * Handles the multi-container on one node problem
 * By storing details about every role, cross-role decisions could be possible
 * Simple counters can track the state of pending add/release requests
@@ -198,7 +210,8 @@ Strengths
 * Easy to view and debug
 * Would support cross-role collection of node failures in future
 
-Weaknesses
+#### Weaknesses
+
 * Size of the data structure is O(nodes * role-instances). This
 could be mitigated by regular cleansing of the structure. For example, at
 thaw time (or intermittently) all unused nodes > 2 weeks old could be dropped.
@@ -206,8 +219,8 @@ thaw time (or intermittently) all unused nodes > 2 weeks old could be dropped.
 is included, will take exactly O(nodes) lookups. As an optimization, a list
 of recently explicitly released nodes can be maintained.
 * Need to track outstanding requests against nodes, so that if a request
-was satisifed on a different node, the original node's request count is decremented
-- *not that of the node actually allocated*.  
+was satisifed on a different node, the original node's request count is
+ decremented, *not that of the node actually allocated*.  
 
 ## Data Structures
 
@@ -360,7 +373,7 @@ as the AM will be explicitly requesting an instance on a node which it knows
 is not running an instance of that role.
 
 
-#### *ISSUE: What to do about failing nodes
+#### ISSUE What to do about failing nodes?
 
 Should a node whose container just failed be placed at the
 top of the stack, ready for the next request? 
@@ -555,9 +568,8 @@ Once a node has been identified
 
 1. a container on it is located (via the existing
 container map)
-1. the 
-1. the RM asked to release that container.
-1. the (existing) containersBeingReleased Map has the container inserted into it
+1. The RM is asked to release that container.
+1. The (existing) `containersBeingReleased` Map has the container inserted into it
 
 
 
