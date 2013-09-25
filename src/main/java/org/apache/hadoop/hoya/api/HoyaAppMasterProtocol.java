@@ -58,7 +58,7 @@ public interface HoyaAppMasterProtocol extends VersionedProtocol {
    * @return the {@link ClusterDescription} content as a JSON document
    * @throws IOException IO problems
    */
-  public String getClusterStatus() throws IOException;
+  public String getJSONClusterStatus() throws IOException;
 
   /**
    * List all running nodes in a role

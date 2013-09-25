@@ -1573,7 +1573,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                                                  YarnException,
                                                                  IOException {
     HoyaAppMasterProtocol appMaster = bondToCluster(clustername);
-    String statusJson = appMaster.getClusterStatus();
+    String statusJson = appMaster.getJSONClusterStatus();
     try {
       return ClusterDescription.fromJson(statusJson);
     } catch (JsonParseException e) {
