@@ -62,7 +62,6 @@ import org.apache.hadoop.yarn.api.records.ContainerState;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.NodeReport;
-import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
@@ -91,7 +90,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -226,39 +224,10 @@ public class HoyaAppMaster extends CompositeService
 
   /**
    * Log for changing cluster descriptions; kept tighter than
-   * class synchronization
+   * class synchronization.
+   * Note that it is just bonded to appstate; this for migration
    */
-  public final Object clusterSpecLock = new Object();
-
-
-  /**
-   * Map of requested nodes. This records the command used to start it,
-   * resources, etc. When container started callback is received,
-   * the node is promoted from here to the containerMap
-   */
-  private final Map<ContainerId, ClusterNode> startingNodes =
-    new ConcurrentHashMap<ContainerId, ClusterNode>();
-
-  /**
-   * List of completed nodes. This isn't kept in the CD as it gets too
-   * big for the RPC responses. Indeed, we should think about how deep to get this
-   */
-  private final Map<ContainerId, ClusterNode> completedNodes
-    = new ConcurrentHashMap<ContainerId, ClusterNode>();
-
-  /**
-   * Nodes that failed to start.
-   * Again, kept out of the CD
-   */
-  public final Map<ContainerId, ClusterNode> failedNodes =
-    new ConcurrentHashMap<ContainerId, ClusterNode>();
-
-  /**
-   * Map of containerID -> cluster nodes, for status reports.
-   * Access to this should be synchronized on the clusterDescription
-   */
-  private final Map<ContainerId, ClusterNode> liveNodes =
-    new ConcurrentHashMap<ContainerId, ClusterNode>();
+  public final Object clusterSpecLock = appState;
 
   /**
    * Flag set if there is no master
@@ -489,7 +458,7 @@ public class HoyaAppMaster extends CompositeService
     containerMaxCores = maxResources.getVirtualCores();
 
 
-    /**
+    /*
      * The master node is special, so it is kept track of
      */
     masterNode = new ClusterNode(hostname);
@@ -497,7 +466,7 @@ public class HoyaAppMaster extends CompositeService
     masterNode.role = ROLE_MASTER;
     masterNode.uuid = UUID.randomUUID().toString();
     //it is also added to the set of live nodes
-    liveNodes.put(appMasterContainerID, masterNode);
+    getLiveNodes().put(appMasterContainerID, masterNode);
 
 
     //before bothering to start the containers, bring up the
@@ -524,7 +493,7 @@ public class HoyaAppMaster extends CompositeService
 
     //now read it in
     Configuration siteConf = ConfigHelper.loadConfFromFile(siteXML);
-    TreeSet<String> confKeys = ConfigHelper.sortedConfigKeys(siteConf);
+    Set<String> confKeys = ConfigHelper.sortedConfigKeys(siteConf);
     //update the values
     log.debug(" Contents of {}", siteXML);
 
@@ -861,10 +830,6 @@ public class HoyaAppMaster extends CompositeService
     return c.getPriority().getPriority();
   }
 
-  private RoleStatus lookupRoleStatus(String name) {
-    return appState.lookupRoleStatus(name);
-  }
-
   /**
    * Look up a role from its key -or fail 
    *
@@ -987,17 +952,17 @@ public class HoyaAppMaster extends CompositeService
         //a container has failed and its role needs to be decremented
         ContainerInfo containerInfo = getActiveContainers().remove(containerId);
         if (containerInfo != null) {
-          String rolename = containerInfo.role;
-          log.info("Failed container in role {}", rolename);
-          RoleStatus roleStatus = lookupRoleStatus(rolename);
-          if (roleStatus != null) {
+          int roleId = containerInfo.roleId;
+          log.info("Failed container in role {}", roleId);
+          try {
+            RoleStatus roleStatus = appState.lookupRoleStatus(roleId);
             roleStatus.decActual();
-          } else {
-            log.error("Failed container of unknown role {}", rolename);
+          } catch (YarnRuntimeException e1) {
+            log.error("Failed container of unknown role {}", roleId);
           }
         } else {
           log.error("Notified of completed container that is not in the list" +
-                    "of active containers");
+                    " of active containers");
         }
       }
       //record the complete node's details; this pulls it from the livenode set 
@@ -1298,7 +1263,7 @@ public class HoyaAppMaster extends CompositeService
   private List<ClusterNode> getAllClusterNodes() {
     List<ClusterNode> allClusterNodes;
     synchronized (clusterSpecLock) {
-      Collection<ClusterNode> values = liveNodes.values();
+      Collection<ClusterNode> values = getLiveNodes().values();
       allClusterNodes = new ArrayList<ClusterNode>(values);
       //allClusterNodes.add(masterNode);
     }
@@ -1389,7 +1354,7 @@ public class HoyaAppMaster extends CompositeService
     //remove the node
     synchronized (clusterSpecLock) {
       ContainerId id = completed.getContainerId();
-      ClusterNode node = liveNodes.remove(id);
+      ClusterNode node = getLiveNodes().remove(id);
       if (node == null) {
         node = new ClusterNode();
         node.name = id.toString();
@@ -1398,7 +1363,7 @@ public class HoyaAppMaster extends CompositeService
       node.state = ClusterDescription.STATE_DESTROYED;
       node.exitCode = completed.getExitStatus();
       node.diagnostics = completed.getDiagnostics();
-      completedNodes.put(id, node);
+      getCompletedNodes().put(id, node);
     }
   }
 
@@ -1418,7 +1383,7 @@ public class HoyaAppMaster extends CompositeService
       log.warn("creating UUID for node {}", node);
     }
     synchronized (clusterSpecLock) {
-      liveNodes.put(node.containerId, node);
+      getLiveNodes().put(node.containerId, node);
     }
   }
 
@@ -1522,7 +1487,7 @@ public class HoyaAppMaster extends CompositeService
     node.state = ClusterDescription.STATE_SUBMITTED;
     node.containerId = container.getId();
     synchronized (clusterSpecLock) {
-      startingNodes.put(container.getId(), node);
+      getStartingNodes().put(container.getId(), node);
     }
     ContainerInfo containerInfo = new ContainerInfo(container);
     containerInfo.role = node.role;
@@ -1547,7 +1512,7 @@ public class HoyaAppMaster extends CompositeService
     ContainerInfo cinfo = null;
     //update the model
     synchronized (clusterSpecLock) {
-      ClusterNode node = startingNodes.remove(containerId);
+      ClusterNode node = getStartingNodes().remove(containerId);
       if (null == node) {
         log.warn("Creating a new node description for an unrequested node");
         node = new ClusterNode(containerId.toString());
@@ -1578,12 +1543,12 @@ public class HoyaAppMaster extends CompositeService
     appState.incFailedCountainerCount();
     appState.incStartFailedCountainerCount();
     synchronized (clusterSpecLock) {
-      ClusterNode node = startingNodes.remove(containerId);
+      ClusterNode node = getStartingNodes().remove(containerId);
       if (null != node) {
         if (null != t) {
           node.diagnostics = HoyaUtils.stringify(t);
         }
-        failedNodes.put(containerId, node);
+        getFailedNodes().put(containerId, node);
       }
     }
   }
@@ -1617,13 +1582,13 @@ public class HoyaAppMaster extends CompositeService
                               Throwable t) {
     ClusterNode node;
     synchronized (clusterSpecLock) {
-      node = liveNodes.remove(containerId);
+      node = getLiveNodes().remove(containerId);
 
       if (node != null) {
         if (t != null) {
           node.diagnostics = HoyaUtils.stringify(t);
         }
-        failedNodes.put(containerId, node);
+        getFailedNodes().put(containerId, node);
       }
     }
     return node;
@@ -1647,5 +1612,38 @@ public class HoyaAppMaster extends CompositeService
 
   public Map<Integer, RoleStatus> getRoleStatusMap() {
     return appState.getRoleStatusMap();
+  }
+
+  /**
+   * Map of requested nodes. This records the command used to start it,
+   * resources, etc. When container started callback is received,
+   * the node is promoted from here to the containerMap
+   */
+  private Map<ContainerId, ClusterNode> getStartingNodes() {
+    return appState.getStartingNodes();
+  }
+
+  /**
+   * List of completed nodes. This isn't kept in the CD as it gets too
+   * big for the RPC responses. Indeed, we should think about how deep to get this
+   */
+  private Map<ContainerId, ClusterNode> getCompletedNodes() {
+    return appState.getCompletedNodes();
+  }
+
+  /**
+   * Nodes that failed to start.
+   * Again, kept out of the CD
+   */
+  private Map<ContainerId, ClusterNode> getFailedNodes() {
+    return appState.getFailedNodes();
+  }
+
+  /**
+   * Map of containerID -> cluster nodes, for status reports.
+   * Access to this should be synchronized on the clusterDescription
+   */
+  private Map<ContainerId, ClusterNode> getLiveNodes() {
+    return appState.getLiveNodes();
   }
 }

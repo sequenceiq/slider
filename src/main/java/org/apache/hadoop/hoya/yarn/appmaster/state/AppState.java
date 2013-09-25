@@ -18,6 +18,8 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
+import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.api.ClusterNode;
 import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -32,6 +34,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -44,6 +47,17 @@ public class AppState {
   protected static final Logger log =
     LoggerFactory.getLogger(AppState.class);
 
+  /**
+   The cluster description published to callers
+   This is used as a synchronization point on activities that update
+   the CD, and also to update some of the structures that
+   feed in to the CD
+   */
+  public ClusterDescription clusterSpec = new ClusterDescription();
+  /**
+   * This is the status, the live model
+   */
+  public ClusterDescription clusterStatus = new ClusterDescription();
 
   private final Map<Integer, RoleStatus> roleStatusMap =
     new HashMap<Integer, RoleStatus>();
@@ -80,6 +94,45 @@ public class AppState {
   private final AtomicInteger startFailedContainers = new AtomicInteger();
 
 
+  /**
+   * Map of requested nodes. This records the command used to start it,
+   * resources, etc. When container started callback is received,
+   * the node is promoted from here to the containerMap
+   */
+  private final Map<ContainerId, ClusterNode> startingNodes =
+    new ConcurrentHashMap<ContainerId, ClusterNode>();
+
+  /**
+   * List of completed nodes. This isn't kept in the CD as it gets too
+   * big for the RPC responses. Indeed, we should think about how deep to get this
+   */
+  private final Map<ContainerId, ClusterNode> completedNodes
+    = new ConcurrentHashMap<ContainerId, ClusterNode>();
+
+  /**
+   * Nodes that failed to start.
+   * Again, kept out of the CD
+   */
+  private final Map<ContainerId, ClusterNode> failedNodes =
+    new ConcurrentHashMap<ContainerId, ClusterNode>();
+
+  /**
+   * Map of containerID -> cluster nodes, for status reports.
+   * Access to this should be synchronized on the clusterDescription
+   */
+  private final Map<ContainerId, ClusterNode> liveNodes =
+    new ConcurrentHashMap<ContainerId, ClusterNode>();
+
+
+  /**
+   * Init phase
+   * @param cd
+   */
+  public void init(ClusterDescription cd) {
+    this.clusterSpec = cd;
+  }
+  
+  
   public int getFailedCountainerCount() {
     return numFailedContainers.get();
   }
@@ -123,6 +176,22 @@ public class AppState {
 
   public Map<Integer, RoleStatus> getRoleStatusMap() {
     return roleStatusMap;
+  }
+
+  public Map<ContainerId, ClusterNode> getStartingNodes() {
+    return startingNodes;
+  }
+
+  public Map<ContainerId, ClusterNode> getCompletedNodes() {
+    return completedNodes;
+  }
+
+  public Map<ContainerId, ClusterNode> getFailedNodes() {
+    return failedNodes;
+  }
+
+  public Map<ContainerId, ClusterNode> getLiveNodes() {
+    return liveNodes;
   }
 
   /**
