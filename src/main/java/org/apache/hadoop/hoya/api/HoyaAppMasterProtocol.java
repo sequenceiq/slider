@@ -79,6 +79,7 @@ public interface HoyaAppMasterProtocol extends VersionedProtocol {
 
   /**
    * Get the JSON-formatted {@link ClusterNode} details on a list of nodes.
+   * Unknown nodes are not returned
    * <i>Important: the order of the results are undefined</i>
    * @param uuid the UUIDs
    * @return array of cluster nodes

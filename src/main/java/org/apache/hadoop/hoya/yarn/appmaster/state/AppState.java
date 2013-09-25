@@ -18,13 +18,18 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.ClusterNode;
 import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
+import org.apache.hadoop.hoya.exceptions.NoSuchNodeException;
 import org.apache.hadoop.hoya.providers.ProviderRole;
+import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
@@ -33,11 +38,15 @@ import org.apache.hadoop.yarn.util.Records;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -45,8 +54,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
- * A class that contains all the ongoing state of a Hoya AM.
- * Keeping it isolated aids in testing and synchronizing access
+ * The model of all the ongoing state of a Hoya AM.
+ *
+ * concurrency rules: any method which begins with <i>build</i>
+ * is not synchronized and intended to be used during
+ * initialization.
  */
 public class AppState {
   protected static final Logger log =
@@ -71,8 +83,28 @@ public class AppState {
   private final Map<String, ProviderRole> roles =
     new HashMap<String, ProviderRole>();
 
-  private final ContainerTracker containerTracker = new ContainerTracker();
 
+  /**
+   * The master node. This is a shared reference with the clusterStatus;
+   * operations on it MUST be synchronised with that object
+   */
+  private ClusterNode masterNode;
+
+
+  /**
+   * Hash map of the containers we have
+   */
+  private final ConcurrentMap<ContainerId, ContainerInfo> activeContainers =
+    new ConcurrentHashMap<ContainerId, ContainerInfo>();
+
+  /**
+   * Hash map of the containers we have released, but we
+   * are still awaiting acknowledgements on. Any failure of these
+   * containers is treated as a successful outcome
+   */
+  private final ConcurrentMap<ContainerId, Container> containersBeingReleased =
+    new ConcurrentHashMap<ContainerId, Container>();
+  
   /**
    *  This is the number of containers which we desire for HoyaAM to maintain
    */
@@ -129,16 +161,6 @@ public class AppState {
   private final Map<ContainerId, ClusterNode> liveNodes =
     new ConcurrentHashMap<ContainerId, ClusterNode>();
 
-
-  /**
-   * Init phase
-   * @param cd
-   */
-  public void init(ClusterDescription cd) {
-    this.clusterSpec = cd;
-  }
-  
-  
   public int getFailedCountainerCount() {
     return numFailedContainers.get();
   }
@@ -184,11 +206,11 @@ public class AppState {
     return roleStatusMap;
   }
 
-  public Map<ContainerId, ClusterNode> getStartingNodes() {
+  private Map<ContainerId, ClusterNode> getStartingNodes() {
     return startingNodes;
   }
 
-  public Map<ContainerId, ClusterNode> getCompletedNodes() {
+  private Map<ContainerId, ClusterNode> getCompletedNodes() {
     return completedNodes;
   }
 
@@ -196,16 +218,12 @@ public class AppState {
     return failedNodes;
   }
 
-  public Map<ContainerId, ClusterNode> getLiveNodes() {
+  private Map<ContainerId, ClusterNode> getLiveNodes() {
     return liveNodes;
   }
 
   public ClusterDescription getClusterSpec() {
     return clusterSpec;
-  }
-
-  public void setClusterSpec(ClusterDescription clusterSpec) {
-    this.clusterSpec = clusterSpec;
   }
 
   public ClusterDescription getClusterStatus() {
@@ -216,6 +234,79 @@ public class AppState {
     this.clusterStatus = clusterStatus;
   }
 
+  private void setClusterSpec(ClusterDescription clusterSpec) {
+    this.clusterSpec = clusterSpec;
+  }
+
+  public void buildInstance(ClusterDescription clusterSpec,
+                            Configuration siteConf,
+                            List<ProviderRole> providerRoles) {
+
+
+    // set the cluster specification
+    setClusterSpec(clusterSpec);
+
+
+    //build the role list
+    for (ProviderRole providerRole : providerRoles) {
+      buildRole(providerRole);
+    }
+    //then pick up the requirements
+    buildRoleRequirementsFromClusterSpec();
+
+    //copy into cluster status. 
+    ClusterDescription clusterStatus = ClusterDescription.copy(clusterSpec);
+    Set<String> confKeys = ConfigHelper.sortedConfigKeys(siteConf);
+
+//     Add the client properties
+    for (String key : confKeys) {
+      String val = siteConf.get(key);
+      log.debug("{}={}", key, val);
+      clusterStatus.clientProperties.put(key, val);
+    }
+
+    clusterStatus.state = ClusterDescription.STATE_CREATED;
+    clusterStatus.startTime = System.currentTimeMillis();
+    if (0 == clusterStatus.createTime) {
+      clusterStatus.createTime = clusterStatus.startTime;
+    }
+    clusterStatus.statusTime = System.currentTimeMillis();
+    clusterStatus.state = ClusterDescription.STATE_LIVE;
+
+    //set the app state to this status
+    setClusterStatus(clusterStatus);
+    //now do an update, which 
+  }
+
+  public synchronized void updateClusterSpec(ClusterDescription cd) {
+    setClusterSpec(cd);
+
+    //propagate info from cluster, which is role table
+
+    Map<String, Map<String, String>> roles = getClusterSpec().roles;
+    getClusterStatus().roles = HoyaUtils.deepClone(roles);
+    getClusterStatus().updateTime = System.currentTimeMillis();
+    buildRoleRequirementsFromClusterSpec();
+
+
+  }
+
+  private void buildRoleRequirementsFromClusterSpec() {
+    //now update every role's desired count.
+    //if there are no instance values, that role count goes to zero
+    for (RoleStatus roleStatus : getRoleStatusMap().values()) {
+      int currentDesired = roleStatus.getDesired();
+      String role = roleStatus.getName();
+      int desiredInstanceCount =
+        getClusterSpec().getDesiredInstanceCount(role, -1);
+      if (currentDesired != desiredInstanceCount) {
+        log.info("Role {} flexed from {} to {}", role, currentDesired,
+                 desiredInstanceCount);
+        roleStatus.setDesired(desiredInstanceCount);
+      }
+    }
+  }
+
   /**
    * Add knowledge of a role.
    * This is a build-time operation that is not synchronized, and
@@ -223,6 +314,7 @@ public class AppState {
    * requests.
    * @param providerRole role to add
    */
+
   public void buildRole(ProviderRole providerRole) {
     //build role status map
     roleStatusMap.put(providerRole.id,
@@ -230,6 +322,42 @@ public class AppState {
     roles.put(providerRole.name, providerRole);
   }
 
+  /**
+   * build up the special master node, which lives
+   * in the live node set but has a lifecycle bonded to the AM
+   * @param hostname hostname the master is running on
+   * @param containerId the AM master
+   */
+  public void buildMasterNode(String hostname, ContainerId containerId) {
+    masterNode = new ClusterNode(hostname);
+    masterNode.containerId = containerId;
+    masterNode.role = HoyaKeys.ROLE_MASTER;
+    masterNode.uuid = UUID.randomUUID().toString();
+    //it is also added to the set of live nodes
+    getLiveNodes().put(containerId, masterNode);
+  }
+
+  /**
+   * Note that the master node has been launched,
+   * though it isn't considered live until any forked
+   * processes are running
+   */
+  public void noteMasterNodeLaunched() {
+    addLaunchedContainer(masterNode.containerId, masterNode);
+  }
+
+  /**
+   * AM declares ourselves live in the cluster description.
+   * This is meant to be triggered from the callback
+   * indicating the spawned process is up and running.
+   */
+  public void noteMasterNodeLive() {
+    masterNode.state = ClusterDescription.STATE_LIVE;
+  }
+
+  public ClusterNode getMasterNode() {
+    return masterNode;
+  }
 
   /**
    * Look up a role from its key -or fail 
@@ -264,16 +392,29 @@ public class AppState {
   /**
    * Get all the active containers
    */
+  @Deprecated
   public ConcurrentMap<ContainerId, ContainerInfo> getActiveContainers() {
-    return containerTracker.getActiveContainers();
+    return activeContainers;
   }
 
+  /**
+   * Clone a list of active containers
+   * @return the active containers at the time
+   * the call was made
+   */
+  public synchronized List<ContainerInfo> cloneActiveContainerList() {
+    Collection<ContainerInfo> values = activeContainers.values();
+    return new ArrayList<ContainerInfo>(values);
+  }
+
+
+  
   public void addActiveContainer(ContainerInfo containerInfo) {
-    getActiveContainers().putIfAbsent(containerInfo.getId(), containerInfo);
+    activeContainers.putIfAbsent(containerInfo.getId(), containerInfo);
   }
 
   public ContainerInfo getActiveContainer(ContainerId id) {
-    return getActiveContainers().get(id);
+    return activeContainers.get(id);
   }
 
   /**
@@ -287,13 +428,107 @@ public class AppState {
     return allClusterNodes;
   }
 
+
+  /**
+   * Get the {@link ClusterNode} details on a node
+   * @param uuid the UUID
+   * @return null if there is no such node
+   * @throws NoSuchNodeException if the node cannot be found
+   * @throws IOException IO problems
+   */
+  public synchronized  ClusterNode getLiveClusterNodeByUUID(String uuid) throws IOException, NoSuchNodeException {
+    Collection<ClusterNode> nodes = getLiveNodes().values();
+    for (ClusterNode node : nodes) {
+      if (uuid.equals(node.uuid)) {
+        return node;
+      }
+    }
+    //at this point: no node
+    throw new NoSuchNodeException(uuid);
+  }
+
+  /**
+   * Get the {@link ClusterNode} details on a list of nodes.
+   * Unknown nodes are not returned
+   * <i>Important: the order of the results are undefined</i>
+   * @param uuid the UUIDs
+   * @return list of cluster nodes
+   * @throws IOException IO problems
+   */
+  public List<ClusterNode> getLiveClusterNodesByUUID(String[] uuids) throws IOException {
+    //first, a hashmap of those uuids is built up
+    Set<String> uuidSet = new HashSet<String>(Arrays.asList(uuids));
+    List<ClusterNode> nodes = new ArrayList<ClusterNode>(uuids.length);
+    Collection<ClusterNode> clusterNodes = getLiveNodes().values();
+
+    for (ClusterNode node : clusterNodes) {
+      if (uuidSet.contains(node.uuid)) {
+        nodes.add(node);
+      }
+    }
+    //at this point: a possibly empty list of nodes
+    return nodes;
+  }
+  
+  /**
+   * Enum all nodes by role. 
+   * @param role role, or "" for all roles
+   * @return a list of nodes, may be empty
+   */
+  public synchronized List<ClusterNode> enumLiveNodesInRole(String role) {
+    List<ClusterNode> nodes = new ArrayList<ClusterNode>();
+    Collection<ClusterNode> allClusterNodes = getLiveNodes().values();
+    for (ClusterNode node : allClusterNodes) {
+      if (role.isEmpty() || role.equals(node.role)) {
+        nodes.add(node);
+      }
+    }
+    return nodes;
+  }
+
+
+  /**
+   * Build an instance map.
+   * @return the map of RoleId -> count
+   */
+  private synchronized Map<String, Integer> createRoleToInstanceMap() {
+    Map<String, Integer> map = new HashMap<String, Integer>();
+    for (ClusterNode node : getLiveNodes().values()) {
+      Integer entry = map.get(node.role);
+      int current = entry != null ? entry : 0;
+      current++;
+      map.put(node.role, current);
+    }
+    return map;
+  }
+
   /**
    * The containers we have released, but we
    * are still awaiting acknowledgements on. Any failure of these
    * containers is treated as a successful outcome
    */
+  @Deprecated
   public ConcurrentMap<ContainerId, Container> getContainersBeingReleased() {
-    return containerTracker.getContainersBeingReleased();
+    return containersBeingReleased;
+  }
+  /**
+   * Notification called just before the NM is asked to 
+   * start a container
+   * @param container container to start
+   * @param clusterNode clusterNode structure
+   */
+  public void containerStartSubmitted(Container container,
+                                      ClusterNode clusterNode) {
+    clusterNode.state = ClusterDescription.STATE_SUBMITTED;
+    clusterNode.containerId = container.getId();
+    ContainerInfo containerInfo = new ContainerInfo(container);
+    containerInfo.role = clusterNode.role;
+    containerInfo.roleId = clusterNode.roleId;
+    containerInfo.createTime = System.currentTimeMillis();
+
+    getStartingNodes().put(container.getId(), clusterNode);
+    activeContainers.putIfAbsent(container.getId(), containerInfo);
+
   }
 
   /**
@@ -333,7 +568,7 @@ public class AppState {
    * @return the container request to submit
    */
   public AMRMClient.ContainerRequest createContainerRequest(RoleStatus role,
-                                                             Resource resource) {
+                                                            Resource resource) {
     // setup requirements for hosts
     // using * as any host initially
     String[] hosts = null;
@@ -346,21 +581,11 @@ public class AppState {
                                               racks,
                                               pri,
                                               true);
-   containerRequestSubmitted(role, request);
+    role.incRequested();
 
     return request;
   }
 
-
-  /**
-   * Note that a container request has been submitted.
-   * @param role role of container
-   * @param containerAsk request for RM
-   */
-  public void containerRequestSubmitted(RoleStatus role,
-                                        AMRMClient.ContainerRequest containerAsk) {
-    role.incRequested();
-  }
 
   /**
    * add a launched container to the node map for status responss
@@ -382,7 +607,7 @@ public class AppState {
 
   public synchronized ContainerInfo onNodeManagerContainerStarted(ContainerId containerId) {
     incStartedCountainerCount();
-    ContainerInfo cinfo = getActiveContainers().get(containerId);
+    ContainerInfo cinfo = activeContainers.get(containerId);
     if (cinfo == null) {
       //serious problem
       log.error("Notification of container not in active containers start {}",
@@ -409,14 +634,14 @@ public class AppState {
    * This is perhaps where blacklisting could be most useful: failure
    * to start a container is a sign of a more serious problem
    * than a later exit.
-   * 
+   *
    * -relayed from NMClientAsync.CallbackHandler 
    * @param containerId failing container
    * @param thrown what was thrown
    */
   public synchronized void onNodeManagerContainerStartFailed(ContainerId containerId,
                                                              Throwable thrown) {
-    getActiveContainers().remove(containerId);
+    activeContainers.remove(containerId);
     incFailedCountainerCount();
     incStartFailedCountainerCount();
     ClusterNode node = getStartingNodes().remove(containerId);
@@ -427,6 +652,29 @@ public class AppState {
       getFailedNodes().put(containerId, node);
     }
   }
+
+  /**
+   * handle completed node in the CD -move something from the live
+   * server list to the completed server list
+   * @param completed the node that has just completed
+   */
+  public synchronized void onCompletedNode(ContainerStatus completed) {
+
+    //remove the node
+    ContainerId id = completed.getContainerId();
+    ClusterNode node = getLiveNodes().remove(id);
+    if (node == null) {
+      node = new ClusterNode();
+      node.name = id.toString();
+      node.containerId = id;
+    }
+    node.state = ClusterDescription.STATE_DESTROYED;
+    node.exitCode = completed.getExitStatus();
+    node.diagnostics = completed.getDiagnostics();
+    getCompletedNodes().put(id, node);
+  }
+
+
   /**
    * Return the percentage done that Hoya is to have YARN display in its
    * Web UI
@@ -447,6 +695,32 @@ public class AppState {
     }
     return percentage;
   }
-  
-  
+
+  /**
+   * Update the cluster description with anything interesting
+   */
+  public void refreshClusterStatus() {
+
+    getClusterStatus().statusTime = System.currentTimeMillis();
+    getClusterStatus().stats = new HashMap<String, Map<String, Integer>>();
+    Map<String, Integer> instanceMap = createRoleToInstanceMap();
+    if (log.isDebugEnabled()) {
+      for (Map.Entry<String, Integer> entry : instanceMap.entrySet()) {
+        log.debug("[%{}]: %{}", entry.getKey(), entry.getValue());
+      }
+    }
+    getClusterStatus().instances = instanceMap;
+    
+    for (RoleStatus role : getRoleStatusMap().values()) {
+      String rolename = role.getName();
+      Integer count = instanceMap.get(rolename);
+      if (count == null) {
+        count = 0;
+      } 
+      int nodeCount = count;
+      getClusterStatus().setActualInstanceCount(rolename, nodeCount);
+      Map<String, Integer> stats = role.buildStatistics();
+      getClusterStatus().stats.put(rolename, stats);
+    }
+  }
 }

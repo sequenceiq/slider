@@ -89,7 +89,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
@@ -131,7 +130,6 @@ public class HoyaAppMaster extends CompositeService
    */
   public static final int TERMINATION_SIGNAL_PROPAGATION_DELAY = 1000;
 
-  public static final String ROLE_UNKNOWN = "unknown";
   public static final int HEARTBEAT_INTERVAL = 1000;
 
   /** YARN RPC to communicate with the Resource Manager or Node Manager */
@@ -202,26 +200,6 @@ public class HoyaAppMaster extends CompositeService
   private String[] argv;
 
   /**
-   * Log for changing cluster descriptions; kept tighter than
-   * class synchronization.
-   * Note that it is just bonded to appstate; this for migration
-   */
-  public final Object clusterSpecLock = appState;
-
-  /**
-   * Flag set if there is no master
-   */
-  private boolean noMaster;
-
-
-  /**
-   * The master node. This is a shared reference with the clusterDescription;
-   * operations on it MUST be synchronised with that object
-   */
-  private ClusterNode masterNode;
-
-
-  /**
    * ID of the AM container
    */
   private ContainerId appMasterContainerID;
@@ -268,6 +246,9 @@ public class HoyaAppMaster extends CompositeService
     //sort out the location of the AM
     serviceArgs.applyDefinitions(conf);
     serviceArgs.applyFileSystemURL(conf);
+    
+    //look at settings of Hadoop Auth, to pick up a problem seen once
+    checkAndWarnForAuthTokenProblems();
 
     String rmAddress = serviceArgs.rmAddress;
     if (rmAddress != null) {
@@ -341,7 +322,6 @@ public class HoyaAppMaster extends CompositeService
                                                clusterSpecPath);
 
     ClusterDescription clusterSpec = ClusterDescription.load(fs, clusterSpecPath);
-    setClusterSpec(clusterSpec);
 
     //get our provider
     String providerType = clusterSpec.type;
@@ -401,9 +381,6 @@ public class HoyaAppMaster extends CompositeService
 
     //build the role map
     List<ProviderRole> providerRoles = provider.getRoles();
-    for (ProviderRole providerRole : providerRoles) {
-      appState.buildRole(providerRole);
-    }
 
 
     // work out a port for the AM
@@ -438,15 +415,6 @@ public class HoyaAppMaster extends CompositeService
     containerMaxCores = maxResources.getVirtualCores();
 
 
-    /*
-     * The master node is special, so it is kept track of
-     */
-    masterNode = new ClusterNode(hostname);
-    masterNode.containerId = appMasterContainerID;
-    masterNode.role = ROLE_MASTER;
-    masterNode.uuid = UUID.randomUUID().toString();
-    //it is also added to the set of live nodes
-    getLiveNodes().put(appMasterContainerID, masterNode);
 
 
     //before bothering to start the containers, bring up the
@@ -473,7 +441,6 @@ public class HoyaAppMaster extends CompositeService
 
     //now read it in
     Configuration siteConf = ConfigHelper.loadConfFromFile(siteXML);
-    Set<String> confKeys = ConfigHelper.sortedConfigKeys(siteConf);
     //update the values
     log.debug(" Contents of {}", siteXML);
 
@@ -484,18 +451,6 @@ public class HoyaAppMaster extends CompositeService
     clusterSpec.zkPath = siteConf.get(HBaseConfigFileOptions.KEY_ZNODE_PARENT);
 */
 
-    noMaster = clusterSpec.getDesiredInstanceCount(ROLE_MASTER, 1) <= 0;
-
-    //copy into cluster status. From here on spec is only changed on a flex
-    // (when only some aspects of the spec are picked up)
-    ClusterDescription clusterStatus = ClusterDescription.copy(clusterSpec);
-
-//     Add the client properties
-    for (String key : confKeys) {
-      String val = siteConf.get(key);
-      log.debug("{}={}", key, val);
-      clusterStatus.clientProperties.put(key, val);
-    }
     if (clusterSpec.zkPort == 0) {
       throw new BadCommandArgumentsException(
         "ZK port property not provided at %s in configuration file %s",
@@ -503,26 +458,18 @@ public class HoyaAppMaster extends CompositeService
         siteXML);
     }
 
-    clusterStatus.state = ClusterDescription.STATE_CREATED;
-    clusterStatus.startTime = System.currentTimeMillis();
-    if (0 == clusterStatus.createTime) {
-      clusterStatus.createTime = clusterStatus.startTime;
-    }
-    clusterStatus.statusTime = System.currentTimeMillis();
-    clusterStatus.state = ClusterDescription.STATE_LIVE;
-  
-    //set the app state to this status
-    appState.setClusterStatus(clusterStatus);
+    //build the instance
+    appState.buildInstance(clusterSpec, siteConf, providerRoles);
 
-    //look at settings of Hadoop Auth, to pick up a problem seen once
-    checkAndWarnForAuthTokenProblems();
+    appState.buildMasterNode(hostname, appMasterContainerID);
 
 
+    boolean noMaster = clusterSpec.getDesiredInstanceCount(ROLE_MASTER, 1) <= 0;
     if (noMaster) {
       log.info("skipping master launch");
       eventCallbackEvent();
     } else {
-      appState.addLaunchedContainer(appMasterContainerID, masterNode);
+      appState.noteMasterNodeLaunched();
       //launch the provider; this is expected to trigger a callback that
       //brings up the service
       launchProviderService(clusterSpec, confDir);
@@ -947,7 +894,7 @@ public class HoyaAppMaster extends CompositeService
         }
       }
       //record the complete node's details; this pulls it from the livenode set 
-      updateCompletedNode(status);
+      appState.onCompletedNode(status);
     }
 
     // ask for more containers if any failed
@@ -980,40 +927,14 @@ public class HoyaAppMaster extends CompositeService
                                                                IOException,
                                                                HoyaInternalStateException {
 
-    long now = System.currentTimeMillis();
     
     //validation
-
     try {
       provider.validateClusterSpec(updated);
     } catch (HoyaException e) {
       throw new IOException("Invalid cluster specification " + e, e);
     }
-    synchronized (clusterSpecLock) {
-      setClusterSpec(updated);
-
-      //propagate info from cluster, which is role table
-
-      Map<String, Map<String, String>> roles = getClusterSpec().roles;
-      getClusterStatus().roles = HoyaUtils.deepClone(roles);
-      getClusterStatus().updateTime = now;
-
-      //now update every role's desired count.
-      //if there are no instance values, that role count goes to zero
-      for (RoleStatus roleStatus : getRoleStatusMap().values()) {
-        synchronized (roleStatus) {
-          int currentDesired = roleStatus.getDesired();
-          String role = roleStatus.getName();
-          int desiredInstanceCount =
-            getClusterSpec().getDesiredInstanceCount(role, -1);
-          if (currentDesired != desiredInstanceCount) {
-            log.info("Role {} flexed from {} to {}", role, currentDesired,
-                     desiredInstanceCount);
-            roleStatus.setDesired(desiredInstanceCount);
-          }
-        }
-      }
-    }
+    appState.updateClusterSpec(updated);
 
     // ask for more containers if needed
     return reviewRequestAndReleaseNodes();
@@ -1082,7 +1003,7 @@ public class HoyaAppMaster extends CompositeService
 
       //then pick some containers to kill
       int excess = -delta;
-      Collection<ContainerInfo> targets = getActiveContainers().values();
+      List<ContainerInfo> targets = appState.cloneActiveContainerList();
       for (ContainerInfo ci : targets) {
         if (excess > 0) {
           Container possible = ci.container;
@@ -1112,7 +1033,7 @@ public class HoyaAppMaster extends CompositeService
    * Shutdown operation: release all containers
    */
   void releaseAllContainers() {
-    Collection<ContainerInfo> targets = getActiveContainers().values();
+    Collection<ContainerInfo> targets = appState.cloneActiveContainerList();
     for (ContainerInfo ci : targets) {
       Container possible = ci.container;
       ContainerId id = possible.getId();
@@ -1203,13 +1124,15 @@ public class HoyaAppMaster extends CompositeService
 
   @Override //HoyaAppMasterApi
   public synchronized String getJSONClusterStatus() throws IOException {
+    //quick update
     updateClusterStatus();
+    //query and json-ify
     return getClusterStatus().toJsonString();
   }
 
   @Override
   public String[] listNodeUUIDsByRole(String role) {
-    List<ClusterNode> nodes = enumNodesByRole(role);
+    List<ClusterNode> nodes = enumNodesInRole(role);
     String[] result = new String[nodes.size()];
     int count = 0;
     for (ClusterNode node : nodes) {
@@ -1219,51 +1142,40 @@ public class HoyaAppMaster extends CompositeService
   }
 
   /**
-   * Enum all nodes by role. 
+   * Enum all nodes in a role, use "" for all nodes 
    * @param role
-   * @return
+   * @return a possibly empty list of nodes
    */
-  public List<ClusterNode> enumNodesByRole(String role) {
-    List<ClusterNode> nodes = new ArrayList<ClusterNode>();
-    List<ClusterNode> allClusterNodes = getAllClusterNodes();
-      for (ClusterNode node : allClusterNodes) {
-        if (role.isEmpty() || role.equals(node.role)) {
-          nodes.add(node);
-        }
-      }
-    return nodes;
+  public List<ClusterNode> enumNodesInRole(String role) {
+    return appState.enumLiveNodesInRole(role);
   }
 
-  private List<ClusterNode> getAllClusterNodes() {
+  /**
+   * Get a clone of the current list of nodes
+   * @return the possibly empty list of live nodes
+   */
+  private List<ClusterNode> getLiveClusterNodes() {
     return appState.cloneLiveClusterNodeList();
   }
 
   @Override
   public String getNode(String uuid) throws IOException, NoSuchNodeException {
-    List<ClusterNode> nodes = getAllClusterNodes();
-    for (ClusterNode node : nodes) {
-      if (uuid.equals(node.uuid)) {
-        return node.toJsonString();
-      }
-    }
-    //at this point: no node
-    throw new NoSuchNodeException(uuid);
+    ClusterNode node = appState.getLiveClusterNodeByUUID(uuid);
+    return node.toJsonString();
   }
 
   @Override
   public String[] getClusterNodes(String[] uuids) throws IOException {
     //first, a hashmap of those uuids is built up
     Set<String> uuidSet = new HashSet<String>(Arrays.asList(uuids));
-    List<String> nodes = new ArrayList<String>(uuids.length);
-    List<ClusterNode> clusterNodes = getAllClusterNodes();
+    List<ClusterNode> clusterNodes = appState.getLiveClusterNodesByUUID(uuids);
+    List<String> jsonnodes = new ArrayList<String>(clusterNodes.size());
 
     for (ClusterNode node : clusterNodes) {
-      if (uuidSet.contains(node.uuid)) {
-        nodes.add(node.toJsonString());
-      }
+        jsonnodes.add(node.toJsonString());
     }
     //at this point: a possibly empty list of nodes
-    return nodes.toArray(new String[nodes.size()]);
+    return jsonnodes.toArray(new String[jsonnodes.size()]);
   }
 
   
@@ -1277,63 +1189,11 @@ public class HoyaAppMaster extends CompositeService
   private void updateClusterStatus() {
 
     long t = System.currentTimeMillis();
-    synchronized (clusterSpecLock) {
-      //TOODO: move to appState
-      getClusterStatus().statusTime = t;
-      if (masterNode != null) {
-        provider.buildStatusReport(masterNode);
-      }
-      getClusterStatus().stats = new HashMap<String, Map<String, Integer>>();
-      for (RoleStatus role : getRoleStatusMap().values()) {
-        String rolename = role.getName();
-        List<ClusterNode> nodes = enumNodesByRole(rolename);
-        int nodeCount = nodes.size();
-        getClusterStatus().setActualInstanceCount(rolename, nodeCount);
-        getClusterStatus().instances = buildInstanceMap();
-        Map<String, Integer> stats = role.buildStatistics();
-        getClusterStatus().stats.put(rolename, stats);
-      }
+    ClusterNode master = appState.getMasterNode();
+    if (master != null) {
+      provider.buildStatusReport(master);
     }
-  }
-
-  /**
-   * Build an instance map.
-   * This code does not acquire any locks and is not thread safe; caller is
-   * expected to hold the lock.
-   * @return the map of instance -> count
-   */
-  private Map<String, Integer> buildInstanceMap() {
-    Map<String, Integer> map = new HashMap<String, Integer>();
-    for (ClusterNode node : getAllClusterNodes()) {
-      Integer entry = map.get(node.role);
-      int current = entry != null ? entry : 0;
-      current++;
-      map.put(node.role, current);
-    }
-    return map;
-  }
-
-  /**
-   * handle completed node in the CD -move something from the live
-   * server list to the completed server list
-   * @param completed the node that has just completed
-   */
-  private void updateCompletedNode(ContainerStatus completed) {
-
-    //remove the node
-    synchronized (clusterSpecLock) {
-      ContainerId id = completed.getContainerId();
-      ClusterNode node = getLiveNodes().remove(id);
-      if (node == null) {
-        node = new ClusterNode();
-        node.name = id.toString();
-        node.containerId = id;
-      }
-      node.state = ClusterDescription.STATE_DESTROYED;
-      node.exitCode = completed.getExitStatus();
-      node.diagnostics = completed.getDiagnostics();
-      getCompletedNodes().put(id, node);
-    }
+    appState.refreshClusterStatus();
   }
 
   /**
@@ -1361,8 +1221,7 @@ public class HoyaAppMaster extends CompositeService
   @Override // EventCallback
   public void eventCallbackEvent() {
     //signalled that the child process is up.
-    //declare ourselves live in the cluster description
-    masterNode.state = ClusterDescription.STATE_LIVE;
+    appState.noteMasterNodeLive();
     //now ask for the cluster nodes
     try {
       flexClusterNodes(getClusterSpec());
@@ -1432,16 +1291,7 @@ public class HoyaAppMaster extends CompositeService
   void startContainer(Container container,
                              ContainerLaunchContext ctx,
                              ClusterNode node) {
-    node.state = ClusterDescription.STATE_SUBMITTED;
-    node.containerId = container.getId();
-    synchronized (clusterSpecLock) {
-      getStartingNodes().put(container.getId(), node);
-    }
-    ContainerInfo containerInfo = new ContainerInfo(container);
-    containerInfo.role = node.role;
-    containerInfo.roleId = node.roleId;
-    containerInfo.createTime = System.currentTimeMillis();
-    getActiveContainers().putIfAbsent(container.getId(), containerInfo);
+    appState.containerStartSubmitted(container, node);
     nmClientAsync.startContainerAsync(container, ctx);
   }
 
@@ -1496,7 +1346,7 @@ public class HoyaAppMaster extends CompositeService
   }
 
   /**
-   * Get allt he active containers
+   * Get all the active containers
    */
   private ConcurrentMap<ContainerId, ContainerInfo> getActiveContainers() {
     return  appState.getActiveContainers();
@@ -1515,38 +1365,6 @@ public class HoyaAppMaster extends CompositeService
     return appState.getRoleStatusMap();
   }
 
-  /**
-   * Map of requested nodes. This records the command used to start it,
-   * resources, etc. When container started callback is received,
-   * the node is promoted from here to the containerMap
-   */
-  private Map<ContainerId, ClusterNode> getStartingNodes() {
-    return appState.getStartingNodes();
-  }
-
-  /**
-   * List of completed nodes. This isn't kept in the CD as it gets too
-   * big for the RPC responses. Indeed, we should think about how deep to get this
-   */
-  private Map<ContainerId, ClusterNode> getCompletedNodes() {
-    return appState.getCompletedNodes();
-  }
-
-  /**
-   * Nodes that failed to start.
-   * Again, kept out of the CD
-   */
-  private Map<ContainerId, ClusterNode> getFailedNodes() {
-    return appState.getFailedNodes();
-  }
-
-  /**
-   * Map of containerID -> cluster nodes, for status reports.
-   * Access to this should be synchronized on the clusterDescription
-   */
-  private Map<ContainerId, ClusterNode> getLiveNodes() {
-    return appState.getLiveNodes();
-  }
 
   /**
    The cluster description published to callers
@@ -1556,10 +1374,6 @@ public class HoyaAppMaster extends CompositeService
    */
   public ClusterDescription getClusterSpec() {
     return appState.getClusterSpec();
-  }
-
-  public void setClusterSpec(ClusterDescription clusterSpec) {
-    appState.setClusterSpec(clusterSpec);
   }
 
   /**
