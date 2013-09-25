@@ -528,7 +528,7 @@ public class HoyaAppMaster extends CompositeService
       log.info("skipping master launch");
       eventCallbackEvent();
     } else {
-      addLaunchedContainer(appMasterContainerID, masterNode);
+      appState.addLaunchedContainer(appMasterContainerID, masterNode);
       //launch the provider; this is expected to trigger a callback that
       //brings up the service
       launchProviderService(clusterSpec, confDir);
@@ -1491,23 +1491,8 @@ public class HoyaAppMaster extends CompositeService
   public void onContainerStarted(ContainerId containerId,
                                  Map<String, ByteBuffer> allServiceResponse) {
     LOG_YARN.info("Started Container {} ", containerId);
-    appState.incStartedCountainerCount();
-    ContainerInfo cinfo = null;
-    //update the model
-    synchronized (clusterSpecLock) {
-      ClusterNode node = getStartingNodes().remove(containerId);
-      if (null == node) {
-        log.warn("Creating a new node description for an unrequested node");
-        node = new ClusterNode(containerId.toString());
-        node.role = ROLE_UNKNOWN;
-      }
-      node.state = ClusterDescription.STATE_LIVE;
-      node.uuid = UUID.randomUUID().toString();
-      addLaunchedContainer(containerId, node);
-      cinfo = getActiveContainers().get(containerId);
-    }
+    ContainerInfo cinfo = appState.onNodeManagerContainerStarted(containerId);
     if (cinfo != null) {
-      cinfo.startTime = System.currentTimeMillis();
       //trigger an async container status
       nmClientAsync.getContainerStatusAsync(containerId,
                                             cinfo.container.getNodeId());
@@ -1522,7 +1507,7 @@ public class HoyaAppMaster extends CompositeService
   @Override //  NMClientAsync.CallbackHandler 
   public void onStartContainerError(ContainerId containerId, Throwable t) {
     LOG_YARN.error("Failed to start Container " + containerId, t);
-    appState.onNodeManagerStartContainerError(containerId, t);
+    appState.onNodeManagerContainerStartFailed(containerId, t);
   }
 
   @Override //  NMClientAsync.CallbackHandler 

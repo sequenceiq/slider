@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -47,6 +48,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class AppState {
   protected static final Logger log =
     LoggerFactory.getLogger(AppState.class);
+  public static final String ROLE_UNKNOWN = "unknown";
 
   /**
    The cluster description published to callers
@@ -346,9 +348,50 @@ public class AppState {
     role.incRequested();
   }
 
+  /**
+   * add a launched container to the node map for status responss
+   * @param id id
+   * @param node node details
+   */
+  public void addLaunchedContainer(ContainerId id, ClusterNode node) {
+    node.containerId = id;
+    if (node.role == null) {
+      log.warn("Unknown role for node {}", node);
+      node.role = ROLE_UNKNOWN;
+    }
+    if (node.uuid == null) {
+      node.uuid = UUID.randomUUID().toString();
+      log.warn("creating UUID for node {}", node);
+    }
+    getLiveNodes().put(node.containerId, node);
+  }
+
+  public synchronized ContainerInfo onNodeManagerContainerStarted(ContainerId containerId) {
+    incStartedCountainerCount();
+    ContainerInfo cinfo = getActiveContainers().get(containerId);
+    if (cinfo == null) {
+      //serious problem
+      log.error("Notification of container not in active containers start {}",
+                containerId);
+      return null;
+    }
+    cinfo.startTime = System.currentTimeMillis();
+    ClusterNode node = getStartingNodes().remove(containerId);
+    if (null == node) {
+      log.error(
+        "Creating a new node description for an unrequested node which" +
+        "is known about");
+      node = new ClusterNode(containerId.toString());
+      node.role = cinfo.role;
+    }
+    node.state = ClusterDescription.STATE_LIVE;
+    node.uuid = UUID.randomUUID().toString();
+    addLaunchedContainer(containerId, node);
+    return cinfo;
+  }
 
   /**
-   * update the applications state after a failure to start a container.
+   * update the application state after a failure to start a container.
    * This is perhaps where blacklisting could be most useful: failure
    * to start a container is a sign of a more serious problem
    * than a later exit.
@@ -357,8 +400,8 @@ public class AppState {
    * @param containerId failing container
    * @param thrown what was thrown
    */
-  public synchronized void onNodeManagerStartContainerError(ContainerId containerId,
-                                                            Throwable thrown) {
+  public synchronized void onNodeManagerContainerStartFailed(ContainerId containerId,
+                                                             Throwable thrown) {
     getActiveContainers().remove(containerId);
     incFailedCountainerCount();
     incStartFailedCountainerCount();
@@ -390,4 +433,6 @@ public class AppState {
     }
     return percentage;
   }
+  
+  
 }
