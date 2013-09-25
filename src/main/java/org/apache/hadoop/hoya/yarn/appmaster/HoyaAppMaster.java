@@ -30,6 +30,7 @@ import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
+import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hadoop.hoya.exceptions.NoSuchNodeException;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
 import org.apache.hadoop.hoya.providers.ProviderRole;
@@ -191,8 +192,6 @@ public class HoyaAppMaster extends CompositeService
    * Flag set if the AM is to be shutdown
    */
   private final AtomicBoolean amCompletionFlag = new AtomicBoolean(false);
-  private volatile boolean localProcessTerminated = false;
-  private volatile boolean localProcessStarted = false;
   private volatile boolean success = true;
 
   /**
@@ -237,7 +236,7 @@ public class HoyaAppMaster extends CompositeService
    * resources, etc. When container started callback is received,
    * the node is promoted from here to the containerMap
    */
-  private final Map<ContainerId, ClusterNode> requestedNodes =
+  private final Map<ContainerId, ClusterNode> startingNodes =
     new ConcurrentHashMap<ContainerId, ClusterNode>();
 
   /**
@@ -569,7 +568,6 @@ public class HoyaAppMaster extends CompositeService
 
     if (noMaster) {
       log.info("skipping master launch");
-      localProcessStarted = true;
       eventCallbackEvent();
     } else {
       addLaunchedContainer(appMasterContainerID, masterNode);
@@ -769,19 +767,30 @@ public class HoyaAppMaster extends CompositeService
   /**
    * Setup the request that will be sent to the RM for the container ask.
    *
-   *
+   * much of the container ask will be built up in AppState
    * @param role @return the setup ResourceRequest to be sent to RM
    */
   private AMRMClient.ContainerRequest buildContainerRequest(RoleStatus role) {
-    // setup requirements for hosts
-    // using * as any host initially
-    String[] hosts = null;
-    String[] racks = null;
-    Priority pri = Records.newRecord(Priority.class);
 
     // Set up resource type requirements
-    Resource capability = Records.newRecord(Resource.class);
+    Resource capability = buildResourceRequirementsForRole(role);
+    AMRMClient.ContainerRequest request =
+      appState.createContainerRequest(role, capability);
+
+    return request;
+  }
+
+
+  /**
+   * Create the resource requirements for an instance of this role 
+   * -done by looking up the cluster spec
+   * @param role
+   * @return
+   */
+  private Resource buildResourceRequirementsForRole(RoleStatus role) {
+    Resource capability;
     synchronized (clusterSpecLock) {
+      capability = Records.newRecord(Resource.class);
       // Set up resource requirements from role valuesx
       String name = role.getName();
       capability.setVirtualCores(clusterSpec.getRoleOptInt(name,
@@ -790,16 +799,8 @@ public class HoyaAppMaster extends CompositeService
       capability.setMemory(clusterSpec.getRoleOptInt(name,
                                                      YARN_MEMORY,
                                                      DEF_YARN_MEMORY));
-      pri.setPriority(role.getPriority());
     }
-    AMRMClient.ContainerRequest request;
-    request = new AMRMClient.ContainerRequest(capability,
-                                              hosts,
-                                              racks,
-                                              pri,
-                                              true);
-    log.info("Requested container ask: {}", request);
-    return request;
+    return capability;
   }
 
 
@@ -896,7 +897,8 @@ public class HoyaAppMaster extends CompositeService
       int allocated;
       int desired;
       //get the role
-      RoleStatus role = lookupRoleStatus(container);
+      RoleStatus role;
+      role = lookupRoleStatus(container);
       synchronized (role) {
         //sync on all container details. Even though these are atomic,
         //we don't really want multiple updates happening simultaneously
@@ -930,7 +932,7 @@ public class HoyaAppMaster extends CompositeService
         RoleLauncher launcher =
           new RoleLauncher(this,
                            container,
-                           roleName,
+                           role.getProviderRole(),
                            provider,
                            clusterSpec,
                            clusterSpec.getOrAddRole(
@@ -1009,7 +1011,11 @@ public class HoyaAppMaster extends CompositeService
     // TODO: this needs to be better thought about (and maybe something to
     // better handle in Yarn for long running apps)
 
-    reviewRequestAndReleaseNodes();
+    try {
+      reviewRequestAndReleaseNodes();
+    } catch (HoyaInternalStateException e) {
+      log.warn("Exception while flexing nodes", e);
+    }
 
   }
 
@@ -1038,7 +1044,8 @@ public class HoyaAppMaster extends CompositeService
    * @throws IOException
    */
   private boolean flexClusterNodes(ClusterDescription updated) throws
-                                                               IOException {
+                                                               IOException,
+                                                               HoyaInternalStateException {
 
     long now = System.currentTimeMillis();
     synchronized (clusterSpecLock) {
@@ -1076,7 +1083,8 @@ public class HoyaAppMaster extends CompositeService
   /**
    * Look at where the current node state is -and whether it should be changed
    */
-  private synchronized boolean reviewRequestAndReleaseNodes() {
+  private synchronized boolean reviewRequestAndReleaseNodes() throws
+                                                              HoyaInternalStateException {
     log.debug("in reviewRequestAndReleaseNodes()");
     if (amCompletionFlag.get()) {
       log.info("Ignoring node review operation: shutdown in progress");
@@ -1093,7 +1101,9 @@ public class HoyaAppMaster extends CompositeService
     return updatedNodeCount;
   }
 
-  private boolean reviewOneRole(RoleStatus role) {
+  
+  private boolean reviewOneRole(RoleStatus role) throws
+                                                 HoyaInternalStateException {
     int delta;
     String details;
     int expected;
@@ -1113,9 +1123,6 @@ public class HoyaAppMaster extends CompositeService
         AMRMClient.ContainerRequest containerAsk =
           buildContainerRequest(role);
         log.info("Container ask is {}", containerAsk);
-        synchronized (role) {
-          role.incRequested();
-        }
         asyncRMClient.addContainerRequest(containerAsk);
       }
       updated = true;
@@ -1133,7 +1140,6 @@ public class HoyaAppMaster extends CompositeService
       log.info("Asking for {} fewer worker(s) for a total of {}", -delta,
                expected);
       //reduce the number expected (i.e. subtract the delta)
-//      numRequestedContainers.addAndGet(delta);
 
       //then pick some containers to kill
       int excess = -delta;
@@ -1141,14 +1147,10 @@ public class HoyaAppMaster extends CompositeService
       for (ContainerInfo ci : targets) {
         if (excess > 0) {
           Container possible = ci.container;
-          ContainerId id = possible.getId();
           if (!ci.released) {
+            ContainerId id = possible.getId();
             log.info("Requesting release of container {}", id);
-            ci.released = true;
-            getContainersBeingReleased().put(id, possible);
-            synchronized (role) {
-              role.incReleasing();
-            }
+            appState.containerReleaseSubmitted(id);
             asyncRMClient.releaseAssignedContainer(id);
             excess--;
           }
@@ -1440,7 +1442,7 @@ public class HoyaAppMaster extends CompositeService
   }
 
   /* =================================================================== */
-  /* EventCallback */
+  /* EventCallback  from the child */
   /* =================================================================== */
 
   @Override // EventCallback
@@ -1448,13 +1450,12 @@ public class HoyaAppMaster extends CompositeService
     //signalled that the child process is up.
     //declare ourselves live in the cluster description
     masterNode.state = ClusterDescription.STATE_LIVE;
-    localProcessStarted = true;
     //now ask for the cluster nodes
     try {
       flexClusterNodes(clusterSpec);
-    } catch (IOException e) {
+    } catch (Exception e) {
       //this happens in a separate thread, so the ability to act is limited
-      log.error("Failed to flex cluster nodes",e);
+      log.error("Failed to flex cluster nodes", e);
       //declare a failure
       finish();
     }
@@ -1508,28 +1509,24 @@ public class HoyaAppMaster extends CompositeService
   }
 
   /**
-   * Add a property to the hbase client properties list in the
-   * cluster description
-   * @param key property key
-   * @param val property value
+   * Package scoped operation to add a node to the list of starting
+   * nodes then trigger the NM start operation with the given
+   * launch context
+   * @param container container
+   * @param ctx context
+   * @param node node details
    */
-  public void noteHBaseClientProperty(String key, String val) {
-    synchronized (clusterSpecLock) {
-      clusterStatus.clientProperties.put(key, val);
-    }
-  }
-
-  public void startContainer(Container container,
+  void startContainer(Container container,
                              ContainerLaunchContext ctx,
                              ClusterNode node) {
     node.state = ClusterDescription.STATE_SUBMITTED;
     node.containerId = container.getId();
     synchronized (clusterSpecLock) {
-      requestedNodes.put(container.getId(), node);
+      startingNodes.put(container.getId(), node);
     }
-    ContainerInfo containerInfo = new ContainerInfo();
-    containerInfo.container = container;
+    ContainerInfo containerInfo = new ContainerInfo(container);
     containerInfo.role = node.role;
+    containerInfo.roleId = node.roleId;
     containerInfo.createTime = System.currentTimeMillis();
     getActiveContainers().putIfAbsent(container.getId(), containerInfo);
     nmClientAsync.startContainerAsync(container, ctx);
@@ -1537,15 +1534,9 @@ public class HoyaAppMaster extends CompositeService
 
   @Override //  NMClientAsync.CallbackHandler 
   public void onContainerStopped(ContainerId containerId) {
+    // do nothing but log: container events from the AM
+    // are the source of container halt details to react to
     log.info("onContainerStopped {} ", containerId);
-    //Removing live container?
-/*    synchronized (clusterSpecLock) {
-      containers.remove(containerId);
-      ClusterNode node = liveNodes.remove(containerId);
-      if (node != null) {
-        completedNodes.put(containerId, node);
-      }
-    }*/
   }
 
   @Override //  NMClientAsync.CallbackHandler 
@@ -1556,7 +1547,7 @@ public class HoyaAppMaster extends CompositeService
     ContainerInfo cinfo = null;
     //update the model
     synchronized (clusterSpecLock) {
-      ClusterNode node = requestedNodes.remove(containerId);
+      ClusterNode node = startingNodes.remove(containerId);
       if (null == node) {
         log.warn("Creating a new node description for an unrequested node");
         node = new ClusterNode(containerId.toString());
@@ -1587,7 +1578,7 @@ public class HoyaAppMaster extends CompositeService
     appState.incFailedCountainerCount();
     appState.incStartFailedCountainerCount();
     synchronized (clusterSpecLock) {
-      ClusterNode node = requestedNodes.remove(containerId);
+      ClusterNode node = startingNodes.remove(containerId);
       if (null != node) {
         if (null != t) {
           node.diagnostics = HoyaUtils.stringify(t);

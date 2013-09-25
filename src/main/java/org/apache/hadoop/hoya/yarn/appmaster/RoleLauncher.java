@@ -20,6 +20,7 @@ package org.apache.hadoop.hoya.yarn.appmaster;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderService;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.ClusterNode;
@@ -56,13 +57,14 @@ public class RoleLauncher implements Runnable {
   private final Map<String, String> roleOptions;
   private final ProviderService provider;
   private final ClusterDescription clusterSpec;
+  private final ProviderRole role;
 
   public RoleLauncher(HoyaAppMaster owner,
                       Container container,
-                      String role,
+                      ProviderRole role,
                       ProviderService provider,
                       ClusterDescription clusterSpec,
-                        Map<String, String> roleOptions) {
+                      Map<String, String> roleOptions) {
     assert owner != null;
     assert container != null;
     assert role != null;
@@ -70,7 +72,8 @@ public class RoleLauncher implements Runnable {
     assert provider != null;
     this.owner = owner;
     this.container = container;
-    this.containerRole = role;
+    this.containerRole = role.name;
+    this.role = role;
     this.roleOptions = roleOptions;
     this.provider = provider;
     this.clusterSpec = clusterSpec;
@@ -138,6 +141,7 @@ public class RoleLauncher implements Runnable {
       node.command = commandLine;
       node.name = container.getId().toString();
       node.role = containerRole;
+      node.roleId = role.id;
       node.environment = nodeEnv.toArray(new String[nodeEnv.size()]);
       owner.startContainer(container, ctx, node);
     } catch (Exception e) {

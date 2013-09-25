@@ -19,13 +19,15 @@
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
 import org.apache.hadoop.yarn.api.records.Container;
+import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.api.records.NodeId;
 
 /**
  * Info about a continer to keep around when deciding which container to release
  */
 public class ContainerInfo {
 
-  public Container container;
+  public final Container container;
   public long createTime;
   public long startTime;
   /**
@@ -34,7 +36,20 @@ public class ContainerInfo {
    */
   public boolean released;
   public String role;
+  public int roleId;
 
+  public ContainerInfo(Container container) {
+    this.container = container;
+  }
+
+  public ContainerId getId() {
+    return container.getId();
+  }
+  
+  public NodeId getNodeId() {
+    return container.getNodeId();
+  }
+  
   @Override
   public String toString() {
     return "ContainerInfo{" +

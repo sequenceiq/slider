@@ -700,4 +700,7 @@ As a result, it is highly likely that a new container will be requested on
 the same node. (The only way a node the list would be newer is 
 be if other containers were completed in the same callback)
  
- 
+## NMClientAsync Callback:  onContainerStarted(ContainerId containerId)
+
+Currently the AM uses this as a signal to remove the container from the list
+of requested containers

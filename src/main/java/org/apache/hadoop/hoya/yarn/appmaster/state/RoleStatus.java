@@ -51,7 +51,7 @@ public final class RoleStatus implements Cloneable {
   public RoleStatus(ProviderRole providerRole) {
     this.providerRole = providerRole;
     this.name = providerRole.name;
-    this.key = providerRole.key;
+    this.key = providerRole.id;
   }
 
   public String getName() {

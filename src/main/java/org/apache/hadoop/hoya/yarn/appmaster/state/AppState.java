@@ -18,10 +18,17 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
+import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.api.records.Priority;
+import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
+import org.apache.hadoop.yarn.util.Records;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -34,6 +41,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Keeping it isolated aids in testing and synchronizing access
  */
 public class AppState {
+  protected static final Logger log =
+    LoggerFactory.getLogger(AppState.class);
 
 
   private final Map<Integer, RoleStatus> roleStatusMap =
@@ -43,7 +52,7 @@ public class AppState {
     new HashMap<String, ProviderRole>();
 
   private final ContainerTracker containerTracker = new ContainerTracker();
-  
+
   /**
    *  This is the number of containers which we desire for HoyaAM to maintain
    */
@@ -110,7 +119,7 @@ public class AppState {
   public AtomicInteger getStartFailedContainers() {
     return startFailedContainers;
   }
-  
+
 
   public Map<Integer, RoleStatus> getRoleStatusMap() {
     return roleStatusMap;
@@ -125,7 +134,7 @@ public class AppState {
    */
   public void buildRole(ProviderRole providerRole) {
     //build role status map
-    roleStatusMap.put(providerRole.key,
+    roleStatusMap.put(providerRole.id,
                       new RoleStatus(providerRole));
     roles.put(providerRole.name, providerRole);
   }
@@ -138,7 +147,7 @@ public class AppState {
    * @return the status
    * @throws YarnRuntimeException on no match
    */
-  public  RoleStatus lookupRoleStatus(int key) {
+  public RoleStatus lookupRoleStatus(int key) {
     RoleStatus rs = getRoleStatusMap().get(key);
     if (rs == null) {
       throw new YarnRuntimeException("Cannot find role for role key " + key);
@@ -153,14 +162,14 @@ public class AppState {
    * @return the status
    * @throws YarnRuntimeException on no match
    */
-  public  RoleStatus lookupRoleStatus(String name) {
+  public RoleStatus lookupRoleStatus(String name) {
     ProviderRole providerRole = roles.get(name);
     if (providerRole == null) {
       throw new YarnRuntimeException("Unknown role " + name);
     }
-    return lookupRoleStatus(providerRole.key);
+    return lookupRoleStatus(providerRole.id);
   }
-  
+
   /**
    * Get all the active containers
    */
@@ -168,16 +177,89 @@ public class AppState {
     return containerTracker.getActiveContainers();
   }
 
+  public void addActiveContainer(ContainerInfo containerInfo) {
+    getActiveContainers().putIfAbsent(containerInfo.getId(), containerInfo);
+  }
+
+  public ContainerInfo getActiveContainer(ContainerId id) {
+    return getActiveContainers().get(id);
+  }
+
   /**
    * The containers we have released, but we
    * are still awaiting acknowledgements on. Any failure of these
    * containers is treated as a successful outcome
    */
-  public  ConcurrentMap<ContainerId, Container> getContainersBeingReleased() {
+  public ConcurrentMap<ContainerId, Container> getContainersBeingReleased() {
     return containerTracker.getContainersBeingReleased();
   }
 
+  /**
+   * Note that a container has been submitted for release; update internal state
+   * and mark the associated ContainerInfo released field to indicate that
+   * while it is still in the active list, it has been queued for release.
+   * @param id container ID
+   * @throws HoyaInternalStateException if there is no container of that ID
+   * on the active list
+   */
+  public synchronized void containerReleaseSubmitted(ContainerId id) throws
+                                                                     HoyaInternalStateException {
+    //look up the container
+    ContainerInfo info = getActiveContainer(id);
+    if (info == null) {
+      throw new HoyaInternalStateException(
+        "No active container with ID " + id.toString());
+    }
+    //verify that it isn't already released
+    if (getContainersBeingReleased().containsKey(id)) {
+      throw new HoyaInternalStateException(
+        "Container %s already queued for release", id);
+    }
+    info.released = true;
+    getContainersBeingReleased().put(id, info.container);
+    RoleStatus role = lookupRoleStatus(info.roleId);
+    role.incReleasing();
+  }
 
+
+  /**
+   * Create a container request.
+   * This can update internal state, such as the role request count
+   * TODO: this is where role history information will be used for placement decisions -
+   * @param role role
+   * @param resource requirements
+   * @return the container request to submit
+   */
+  public AMRMClient.ContainerRequest createContainerRequest(RoleStatus role,
+                                                             Resource resource) {
+    // setup requirements for hosts
+    // using * as any host initially
+    String[] hosts = null;
+    String[] racks = null;
+    Priority pri = Records.newRecord(Priority.class);
+    pri.setPriority(role.getPriority());
+    AMRMClient.ContainerRequest request;
+    request = new AMRMClient.ContainerRequest(resource,
+                                              hosts,
+                                              racks,
+                                              pri,
+                                              true);
+   containerRequestSubmitted(role, request);
+
+    return request;
+  }
+
+
+  /**
+   * Note that a container request has been submitted.
+   * @param role role of container
+   * @param containerAsk request for RM
+   */
+  public void containerRequestSubmitted(RoleStatus role,
+                                        AMRMClient.ContainerRequest containerAsk) {
+    role.incRequested();
+  } 
+  
   /**
    * Return the percentage done that Hoya is to have YARN display in its
    * Web UI

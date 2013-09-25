@@ -47,6 +47,8 @@ public class ClusterNode {
   public String name;
 
   public String role;
+  
+  public int roleId;
   /**
    * state (Currently arbitrary text)
    */
