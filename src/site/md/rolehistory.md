@@ -261,8 +261,8 @@ Every node is modeled as a ragged array of `NodeEntry` instances, indexed
 by role index
 
     NodeEntry[roles]
-    get(roleID): NodeEntry
-    create(roleID): NodeEntry 
+    get(roleId): NodeEntry
+    create(roleId): NodeEntry 
 
 
 ### NodeEntry
@@ -314,11 +314,11 @@ Tracks an outstanding request. This is used to correlate an allocation response
 (whose Container Priority file is used to locate this request), with the
 node and role used in the request.
 
-      roleID:  int
+      roleId:  int
       requestID :  int
       node: string
       requestedTime: long
-      priority: int = requestID << 24 | roleID
+      priority: int = requestID << 24 | roleId
 
 ### OutstandingRequestTracker ###
 
@@ -329,12 +329,12 @@ Contains a map from requestID to the specific `OutstandingRequest` made.
 
 Operations
 
-    addRequest(Node, RoleID) -> OutstandingRequest 
+    addRequest(Node, roleId) -> OutstandingRequest 
         (and an updated request Map with a new entry)
 
 ### AvailableNodes ###
 
-This is an `array[RoleId]` of `List<Node>` storing nodes that are
+This is an `array[roleId]` of `List<Node>` storing nodes that are
 available for allocation, ordered by more recently released. 
 To accelerate node selection, rather than scan the entire set of nodes to find
 the most recent available node, this list can be picked instead.
@@ -468,7 +468,7 @@ in it is only an approximate about what the previous state of the cluster was.
 ### Flex: Requesting a container in role `role`
 
     t: long = now() or if booting: t = rolehistory.saved 
-    node = availableNodes[roleID].pop() 
+    node = availableNodes[roleId].pop() 
     if node != null :
       N.nodeEntry[roleId].requested++;
       issue request with lax criteria
@@ -552,8 +552,8 @@ from the last-used fields in the node entries.
 Simple strategy:
 
     //find a node with at least one active container
-    pick a node N in nodemap where for NodeEntry[roleID]: active > releasing; 
-    nodeentry = node.get(roleID)
+    pick a node N in nodemap where for NodeEntry[roleId]: active > releasing; 
+    nodeentry = node.get(roleId)
     nodeentry.active--;
     
 Advanced Strategy:
@@ -591,21 +591,21 @@ on the allocated node will not work, as the allocation may not be
 to the node originally requested.
 
     C = container allocation
-    roleID = C.priority & 0xff
-    nodeID = C.nodeID
+    roleId = C.priority & 0xff
+    nodeId = C.nodeId
     outstanding = outstandingRequestTracker.remove(C.priority)
     if outstanding==null :
       raise UnknownRequest
     
     nodemap = rolemap.getNodeMap(role)
-    node = nodemap.get(nodeID)
+    node = nodemap.get(nodeId)
     if node == null :
       node = new Node()
-      nodemap.put(nodeID, node)
-    nodeentry = node.get(roleID)
+      nodemap.put(nodeId, node)
+    nodeentry = node.get(roleId)
     if nodeentry == null :
       nodeentry = new NodeEntry()
-      node[roleID] = nodeentry
+      node[roleId] = nodeentry
       nodeentry.active = 1
     else:
       if nodeentry.requested > 0:
@@ -615,10 +615,10 @@ to the node originally requested.
     
     //work back from request ID to node where the 
     //request was outstanding
-    requestID = outstanding.nodeID
+    requestID = outstanding.nodeId
     if requestID != null:
       reqNode = nodeMap.get(requestID)
-      reqNodeEntry = reqNode.get(roleID)
+      reqNodeEntry = reqNode.get(roleId)
       reqNodeEntry.requested--;
       if reqNodeEntry.available() :
         availableNodeList.insert(reqNodeEntry)
@@ -660,25 +660,25 @@ the list of containers to rlease
 
     shouldReview = false
     for container in completedContainers:
-      containerID = container.containerID
-      nodeID = container.nodeID
-      roleID = container.priority & 0xff
-      node = nodemap.get(nodeID)
+      containerId = container.containerId
+      nodeId = container.nodeId
+      node = nodemap.get(nodeId)
       if node == null :
         // unknown node
         continue
-      nodeentry = node.get(roleID)
+      roleId = node.rooleId
+      nodeentry = node.get(roleId)
       nodeentry.active--
       nodemap.dirty = true
 
   
-      if getContainersBeingReleased().containsKey(containerID) :
+      if getContainersBeingReleased().containsKey(containerId) :
         //handle container completion
         nodeentry.releasing --
          
         //update existing Hoya role status
         roleStatus[roleId].decReleasing();
-        containersBeingReleased.remove(containerID)
+        containersBeingReleased.remove(containerId)
       else: 
         //failure of a live node
         roleStatus[roleId].decActual();
@@ -686,7 +686,7 @@ the list of containers to rlease
             
       if nodeentry.available():
         nodentry.last_used = now()
-        availableNodes[roleID].insert(node)      
+        availableNodes[roleId].insert(node)      
   
       //trigger a comparison of actual vs desired
     if shouldReview :
