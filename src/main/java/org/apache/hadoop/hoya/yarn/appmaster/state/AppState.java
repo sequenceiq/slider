@@ -22,6 +22,7 @@ import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.ClusterNode;
 import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hadoop.hoya.providers.ProviderRole;
+import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.Priority;
@@ -194,6 +195,22 @@ public class AppState {
     return liveNodes;
   }
 
+  public ClusterDescription getClusterSpec() {
+    return clusterSpec;
+  }
+
+  public void setClusterSpec(ClusterDescription clusterSpec) {
+    this.clusterSpec = clusterSpec;
+  }
+
+  public ClusterDescription getClusterStatus() {
+    return clusterStatus;
+  }
+
+  public void setClusterStatus(ClusterDescription clusterStatus) {
+    this.clusterStatus = clusterStatus;
+  }
+
   /**
    * Add knowledge of a role.
    * This is a build-time operation that is not synchronized, and
@@ -327,8 +344,32 @@ public class AppState {
   public void containerRequestSubmitted(RoleStatus role,
                                         AMRMClient.ContainerRequest containerAsk) {
     role.incRequested();
-  } 
-  
+  }
+
+
+  /**
+   * update the applications state after a failure to start a container.
+   * This is perhaps where blacklisting could be most useful: failure
+   * to start a container is a sign of a more serious problem
+   * than a later exit.
+   * 
+   * -relayed from NMClientAsync.CallbackHandler 
+   * @param containerId failing container
+   * @param thrown what was thrown
+   */
+  public synchronized void onNodeManagerStartContainerError(ContainerId containerId,
+                                                            Throwable thrown) {
+    getActiveContainers().remove(containerId);
+    incFailedCountainerCount();
+    incStartFailedCountainerCount();
+    ClusterNode node = getStartingNodes().remove(containerId);
+    if (null != node) {
+      if (null != thrown) {
+        node.diagnostics = HoyaUtils.stringify(thrown);
+      }
+      getFailedNodes().put(containerId, node);
+    }
+  }
   /**
    * Return the percentage done that Hoya is to have YARN display in its
    * Web UI

@@ -26,7 +26,6 @@ import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.ClusterNode;
 import org.apache.hadoop.hoya.api.HoyaAppMasterProtocol;
-import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
@@ -91,7 +90,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
@@ -208,19 +206,6 @@ public class HoyaAppMaster extends CompositeService
 
   /** Arguments passed in : parsed*/
   private String[] argv;
-
-
-  /**
-   The cluster description published to callers
-   This is used as a synchronization point on activities that update
-   the CD, and also to update some of the structures that
-   feed in to the CD
-   */
-  public ClusterDescription clusterSpec = new ClusterDescription();
-  /**
-   * This is the status, the live model
-   */
-  public ClusterDescription clusterStatus = new ClusterDescription();
 
   /**
    * Log for changing cluster descriptions; kept tighter than
@@ -361,7 +346,8 @@ public class HoyaAppMaster extends CompositeService
     ClusterDescription.verifyClusterSpecExists(clustername, fs,
                                                clusterSpecPath);
 
-    clusterSpec = ClusterDescription.load(fs, clusterSpecPath);
+    ClusterDescription clusterSpec = ClusterDescription.load(fs, clusterSpecPath);
+    setClusterSpec(clusterSpec);
 
     //get our provider
     String providerType = clusterSpec.type;
@@ -428,16 +414,16 @@ public class HoyaAppMaster extends CompositeService
 
     // work out a port for the AM
     int infoport = clusterSpec.getRoleOptInt(ROLE_MASTER,
-                                             RoleKeys.APP_INFOPORT,
-                                             0);
+                                                  RoleKeys.APP_INFOPORT,
+                                                  0);
     if (0 == infoport) {
       infoport =
         HoyaUtils.findFreePort(provider.getDefaultMasterInfoPort(), 128);
       //need to get this to the app
 
       clusterSpec.setRoleOpt(ROLE_MASTER,
-                             RoleKeys.APP_INFOPORT,
-                             infoport);
+                                  RoleKeys.APP_INFOPORT,
+                                  infoport);
     }
     appMasterTrackingUrl =
       "http://" + appMasterHostname + ":" + infoport;
@@ -508,7 +494,7 @@ public class HoyaAppMaster extends CompositeService
 
     //copy into cluster status. From here on spec is only changed on a flex
     // (when only some aspects of the spec are picked up)
-    clusterStatus = ClusterDescription.copy(clusterSpec);
+    ClusterDescription clusterStatus = ClusterDescription.copy(clusterSpec);
 
 //     Add the client properties
     for (String key : confKeys) {
@@ -530,6 +516,9 @@ public class HoyaAppMaster extends CompositeService
     }
     clusterStatus.statusTime = System.currentTimeMillis();
     clusterStatus.state = ClusterDescription.STATE_LIVE;
+  
+    //set the app state to this status
+    appState.setClusterStatus(clusterStatus);
 
     //look at settings of Hadoop Auth, to pick up a problem seen once
     checkAndWarnForAuthTokenProblems();
@@ -591,7 +580,7 @@ public class HoyaAppMaster extends CompositeService
   }
 
   public String getDFSConfDir() {
-    return clusterSpec.generatedConfigurationPath;
+    return getClusterSpec().generatedConfigurationPath;
   }
 
   /**
@@ -762,12 +751,12 @@ public class HoyaAppMaster extends CompositeService
       capability = Records.newRecord(Resource.class);
       // Set up resource requirements from role valuesx
       String name = role.getName();
-      capability.setVirtualCores(clusterSpec.getRoleOptInt(name,
-                                                           YARN_CORES,
-                                                           DEF_YARN_CORES));
-      capability.setMemory(clusterSpec.getRoleOptInt(name,
-                                                     YARN_MEMORY,
-                                                     DEF_YARN_MEMORY));
+      capability.setVirtualCores(getClusterSpec().getRoleOptInt(name,
+                                                                YARN_CORES,
+                                                                DEF_YARN_CORES));
+      capability.setMemory(getClusterSpec().getRoleOptInt(name,
+                                                          YARN_MEMORY,
+                                                          DEF_YARN_MEMORY));
     }
     return capability;
   }
@@ -899,8 +888,8 @@ public class HoyaAppMaster extends CompositeService
                            container,
                            role.getProviderRole(),
                            provider,
-                           clusterSpec,
-                           clusterSpec.getOrAddRole(
+                           getClusterSpec(),
+                           getClusterSpec().getOrAddRole(
                              roleName));
         launchThread(launcher, "container-" +
                                containerHostInfo);
@@ -985,19 +974,6 @@ public class HoyaAppMaster extends CompositeService
   }
 
   /**
-   * How many failures to tolerate
-   * On test runs, the numbers are low to keep things under control
-   * @return the max #of failures
-   */
-  public int maximumContainerFailureLimit() {
-
-    return clusterSpec.getOptionBool(OptionKeys.OPTION_TEST, false)
-           ? 1
-           : MAX_TOLERABLE_FAILURES;
-  }
-
-
-  /**
    * Implementation of cluster flexing.
    * This is synchronized so that it doesn't get confused by other requests coming
    * in.
@@ -1013,16 +989,22 @@ public class HoyaAppMaster extends CompositeService
                                                                HoyaInternalStateException {
 
     long now = System.currentTimeMillis();
+    
+    //validation
+
+    try {
+      provider.validateClusterSpec(updated);
+    } catch (HoyaException e) {
+      throw new IOException("Invalid cluster specification " + e, e);
+    }
     synchronized (clusterSpecLock) {
-      //we assume that the spec is valid
-      //TODO: more validation?
-      clusterSpec = updated;
+      setClusterSpec(updated);
 
       //propagate info from cluster, which is role table
 
-      Map<String, Map<String, String>> roles = clusterSpec.roles;
-      clusterStatus.roles = HoyaUtils.deepClone(roles);
-      clusterStatus.updateTime = now;
+      Map<String, Map<String, String>> roles = getClusterSpec().roles;
+      getClusterStatus().roles = HoyaUtils.deepClone(roles);
+      getClusterStatus().updateTime = now;
 
       //now update every role's desired count.
       //if there are no instance values, that role count goes to zero
@@ -1031,7 +1013,7 @@ public class HoyaAppMaster extends CompositeService
           int currentDesired = roleStatus.getDesired();
           String role = roleStatus.getName();
           int desiredInstanceCount =
-            clusterSpec.getDesiredInstanceCount(role, -1);
+            getClusterSpec().getDesiredInstanceCount(role, -1);
           if (currentDesired != desiredInstanceCount) {
             log.info("Role {} flexed from {} to {}", role, currentDesired,
                      desiredInstanceCount);
@@ -1228,9 +1210,9 @@ public class HoyaAppMaster extends CompositeService
   }
 
   @Override //HoyaAppMasterApi
-  public synchronized String getClusterStatus() throws IOException {
+  public synchronized String getJSONClusterStatus() throws IOException {
     updateClusterStatus();
-    return clusterStatus.toJsonString();
+    return getClusterStatus().toJsonString();
   }
 
   @Override
@@ -1310,19 +1292,20 @@ public class HoyaAppMaster extends CompositeService
 
     long t = System.currentTimeMillis();
     synchronized (clusterSpecLock) {
-      clusterStatus.statusTime = t;
+      //TOODO: move to appState
+      getClusterStatus().statusTime = t;
       if (masterNode != null) {
         provider.buildStatusReport(masterNode);
       }
-      clusterStatus.stats = new HashMap<String, Map<String, Integer>>();
+      getClusterStatus().stats = new HashMap<String, Map<String, Integer>>();
       for (RoleStatus role : getRoleStatusMap().values()) {
         String rolename = role.getName();
         List<ClusterNode> nodes = enumNodesByRole(rolename);
         int nodeCount = nodes.size();
-        clusterStatus.setActualInstanceCount(rolename, nodeCount);
-        clusterStatus.instances = buildInstanceMap();
+        getClusterStatus().setActualInstanceCount(rolename, nodeCount);
+        getClusterStatus().instances = buildInstanceMap();
         Map<String, Integer> stats = role.buildStatistics();
-        clusterStatus.stats.put(rolename, stats);
+        getClusterStatus().stats.put(rolename, stats);
       }
     }
   }
@@ -1417,7 +1400,7 @@ public class HoyaAppMaster extends CompositeService
     masterNode.state = ClusterDescription.STATE_LIVE;
     //now ask for the cluster nodes
     try {
-      flexClusterNodes(clusterSpec);
+      flexClusterNodes(getClusterSpec());
     } catch (Exception e) {
       //this happens in a separate thread, so the ability to act is limited
       log.error("Failed to flex cluster nodes", e);
@@ -1539,18 +1522,7 @@ public class HoyaAppMaster extends CompositeService
   @Override //  NMClientAsync.CallbackHandler 
   public void onStartContainerError(ContainerId containerId, Throwable t) {
     LOG_YARN.error("Failed to start Container " + containerId, t);
-    getActiveContainers().remove(containerId);
-    appState.incFailedCountainerCount();
-    appState.incStartFailedCountainerCount();
-    synchronized (clusterSpecLock) {
-      ClusterNode node = getStartingNodes().remove(containerId);
-      if (null != node) {
-        if (null != t) {
-          node.diagnostics = HoyaUtils.stringify(t);
-        }
-        getFailedNodes().put(containerId, node);
-      }
-    }
+    appState.onNodeManagerStartContainerError(containerId, t);
   }
 
   @Override //  NMClientAsync.CallbackHandler 
@@ -1646,4 +1618,26 @@ public class HoyaAppMaster extends CompositeService
   private Map<ContainerId, ClusterNode> getLiveNodes() {
     return appState.getLiveNodes();
   }
+
+  /**
+   The cluster description published to callers
+   This is used as a synchronization point on activities that update
+   the CD, and also to update some of the structures that
+   feed in to the CD
+   */
+  public ClusterDescription getClusterSpec() {
+    return appState.getClusterSpec();
+  }
+
+  public void setClusterSpec(ClusterDescription clusterSpec) {
+    appState.setClusterSpec(clusterSpec);
+  }
+
+  /**
+   * This is the status, the live model
+   */
+  public ClusterDescription getClusterStatus() {
+    return appState.getClusterStatus();
+  }
+
 }
