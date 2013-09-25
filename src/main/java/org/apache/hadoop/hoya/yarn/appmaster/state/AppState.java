@@ -33,7 +33,10 @@ import org.apache.hadoop.yarn.util.Records;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -271,6 +274,17 @@ public class AppState {
 
   public ContainerInfo getActiveContainer(ContainerId id) {
     return getActiveContainers().get(id);
+  }
+
+  /**
+   * Create a clone of the list of live cluster nodes.
+   * @return the list of nodes, may be empty
+   */
+  public synchronized List<ClusterNode> cloneLiveClusterNodeList() {
+    List<ClusterNode> allClusterNodes;
+    Collection<ClusterNode> values = getLiveNodes().values();
+    allClusterNodes = new ArrayList<ClusterNode>(values);
+    return allClusterNodes;
   }
 
   /**

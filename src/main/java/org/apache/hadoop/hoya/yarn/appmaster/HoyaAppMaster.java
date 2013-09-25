@@ -131,13 +131,8 @@ public class HoyaAppMaster extends CompositeService
    */
   public static final int TERMINATION_SIGNAL_PROPAGATION_DELAY = 1000;
 
-  /**
-   * Max failures to tolerate for the containers
-   */
-  public static final int MAX_TOLERABLE_FAILURES = 10;
   public static final String ROLE_UNKNOWN = "unknown";
   public static final int HEARTBEAT_INTERVAL = 1000;
-  public static final int DEFAULT_CONTAINER_MEMORY_FOR_WORKER = 10;
 
   /** YARN RPC to communicate with the Resource Manager or Node Manager */
   private YarnRPC rpc;
@@ -159,7 +154,6 @@ public class HoyaAppMaster extends CompositeService
 
   /** Application Attempt Id ( combination of attemptId and fail count )*/
   private ApplicationAttemptId appAttemptID;
-  // App Master configuration
 
 
   /**
@@ -747,17 +741,15 @@ public class HoyaAppMaster extends CompositeService
    */
   private Resource buildResourceRequirementsForRole(RoleStatus role) {
     Resource capability;
-    synchronized (clusterSpecLock) {
-      capability = Records.newRecord(Resource.class);
-      // Set up resource requirements from role valuesx
-      String name = role.getName();
-      capability.setVirtualCores(getClusterSpec().getRoleOptInt(name,
-                                                                YARN_CORES,
-                                                                DEF_YARN_CORES));
-      capability.setMemory(getClusterSpec().getRoleOptInt(name,
-                                                          YARN_MEMORY,
-                                                          DEF_YARN_MEMORY));
-    }
+    capability = Records.newRecord(Resource.class);
+    // Set up resource requirements from role valuesx
+    String name = role.getName();
+    capability.setVirtualCores(getClusterSpec().getRoleOptInt(name,
+                                                              YARN_CORES,
+                                                              DEF_YARN_CORES));
+    capability.setMemory(getClusterSpec().getRoleOptInt(name,
+                                                        YARN_MEMORY,
+                                                        DEF_YARN_MEMORY));
     return capability;
   }
 
@@ -1243,13 +1235,7 @@ public class HoyaAppMaster extends CompositeService
   }
 
   private List<ClusterNode> getAllClusterNodes() {
-    List<ClusterNode> allClusterNodes;
-    synchronized (clusterSpecLock) {
-      Collection<ClusterNode> values = getLiveNodes().values();
-      allClusterNodes = new ArrayList<ClusterNode>(values);
-      //allClusterNodes.add(masterNode);
-    }
-    return allClusterNodes;
+    return appState.cloneLiveClusterNodeList();
   }
 
   @Override
@@ -1351,28 +1337,7 @@ public class HoyaAppMaster extends CompositeService
   }
 
   /**
-   * add a launched container to the node map for status responss
-   * @param id id
-   * @param node node details
-   */
-  public void addLaunchedContainer(ContainerId id, ClusterNode node) {
-    node.containerId = id;
-    if (node.role == null) {
-      log.warn("Unknown role for node {}", node);
-      node.role = ROLE_UNKNOWN;
-    }
-    if (node.uuid == null) {
-      node.uuid = UUID.randomUUID().toString();
-      log.warn("creating UUID for node {}", node);
-    }
-    synchronized (clusterSpecLock) {
-      getLiveNodes().put(node.containerId, node);
-    }
-  }
-
-  /**
    * Launch the provider service
-
    *
    * @param cd
    * @param confDir
@@ -1498,9 +1463,10 @@ public class HoyaAppMaster extends CompositeService
                                             cinfo.container.getNodeId());
     } else {
       //this is a hypothetical path not seen. We react by warning
-      //there's not much else to do
-      log.error("Notified of started container that isn't pending {}",
+      log.error("Notified of started container that isn't pending {} - releasing",
                 containerId);
+      //then release it
+      asyncRMClient.releaseAssignedContainer(containerId);
     }
   }
 
@@ -1527,28 +1493,6 @@ public class HoyaAppMaster extends CompositeService
   @Override //  NMClientAsync.CallbackHandler 
   public void onStopContainerError(ContainerId containerId, Throwable t) {
     LOG_YARN.warn("Failed to stop Container {}", containerId);
-  }
-
-  /**
-   * Move a node from the live set to the failed list
-   * @param containerId container ID to look for
-   * @param nodeList list to scan from (& remove found)
-   * @return the node, if found
-   */
-  public ClusterNode failNode(ContainerId containerId,
-                              Throwable t) {
-    ClusterNode node;
-    synchronized (clusterSpecLock) {
-      node = getLiveNodes().remove(containerId);
-
-      if (node != null) {
-        if (t != null) {
-          node.diagnostics = HoyaUtils.stringify(t);
-        }
-        getFailedNodes().put(containerId, node);
-      }
-    }
-    return node;
   }
 
   /**
