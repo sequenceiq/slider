@@ -47,6 +47,10 @@ import org.junit.Assume
 @Slf4j
 public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
 
+  public static
+  final String NO_HBASE_TAR_DEFINED = "Hbase Archive conf option not set " +
+                                      KeysForTests.HOYA_TEST_HBASE_TAR
+
   @Override
   public String getTestConfigurationPath() {
     return "src/main/resources" + HBaseKeys.HBASE_CONF_RESOURCE; 
@@ -312,8 +316,11 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
 
   public void assumeHBaseArchive() {
     String hbaseArchive = HBaseArchive
-    Assume.assumeTrue("Hbase Archive conf option not set " + KeysForTests.HOYA_TEST_HBASE_TAR,
-                      hbaseArchive != null && hbaseArchive != "")
+    boolean defined = hbaseArchive != null && hbaseArchive != ""
+    if (!defined) {
+      log.warn(NO_HBASE_TAR_DEFINED);
+    }
+    Assume.assumeTrue(NO_HBASE_TAR_DEFINED, defined)
   }
 
   /**

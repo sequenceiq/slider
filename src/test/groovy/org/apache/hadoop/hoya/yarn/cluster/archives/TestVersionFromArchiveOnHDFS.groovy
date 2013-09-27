@@ -1,3 +1,4 @@
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  *  or more contributor license agreements.  See the NOTICE file
@@ -45,10 +46,9 @@ class TestVersionFromArchiveOnHDFS extends HBaseMiniClusterTestBase {
 
   @Test
   public void testVersionFromArchiveOnHDFS() throws Throwable {
-    describe "create a cluster, exec the version command"
+    describe "create a cluster from a tar on HFD, exec the version command"
+    assumeHBaseArchive();
     String localArchive = super.getHBaseArchive()
-    Assume.assumeTrue("Hbase Archive conf option not set " + HOYA_TEST_HBASE_TAR,
-                      localArchive != null && localArchive != "");
     String clustername = "TestVersionFromArchiveOnHDFS"
     createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
 
