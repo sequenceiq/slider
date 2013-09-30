@@ -33,6 +33,17 @@ package org.apache.hadoop.hoya.api;
 
 //import "Security.proto";
 
+message RoleInstanceState {
+  required string name = 1;
+  required string role = 2;
+  required string uuid = 3;
+  required uint32 state = 4;
+  required uint32 exitCode = 5;
+  required string command = 6;
+  required string diagnostics = 7;
+  repeated string output = 8;
+  repeated string environment = 9;
+}
 
 /**
  * stop the cluster
@@ -63,7 +74,6 @@ message FlexClusterRequestProto {
 message FlexClusterResponseProto {
   required bool response = 1;
 }
-
 
 
 /**
