@@ -88,14 +88,14 @@ public class AppState {
   /**
    * The master node.
    */
-  private ContainerInfo masterNode;
+  private RoleInstance masterNode;
 
 
   /**
    * Hash map of the containers we have
    */
-  private final ConcurrentMap<ContainerId, ContainerInfo> activeContainers =
-    new ConcurrentHashMap<ContainerId, ContainerInfo>();
+  private final ConcurrentMap<ContainerId, RoleInstance> activeContainers =
+    new ConcurrentHashMap<ContainerId, RoleInstance>();
 
   /**
    * Hash map of the containers we have released, but we
@@ -137,29 +137,29 @@ public class AppState {
    * resources, etc. When container started callback is received,
    * the node is promoted from here to the containerMap
    */
-  private final Map<ContainerId, ContainerInfo> startingNodes =
-    new ConcurrentHashMap<ContainerId, ContainerInfo>();
+  private final Map<ContainerId, RoleInstance> startingNodes =
+    new ConcurrentHashMap<ContainerId, RoleInstance>();
 
   /**
    * List of completed nodes. This isn't kept in the CD as it gets too
    * big for the RPC responses. Indeed, we should think about how deep to get this
    */
-  private final Map<ContainerId, ContainerInfo> completedNodes
-    = new ConcurrentHashMap<ContainerId, ContainerInfo>();
+  private final Map<ContainerId, RoleInstance> completedNodes
+    = new ConcurrentHashMap<ContainerId, RoleInstance>();
 
   /**
    * Nodes that failed to start.
    * Again, kept out of the CD
    */
-  private final Map<ContainerId, ContainerInfo> failedNodes =
-    new ConcurrentHashMap<ContainerId, ContainerInfo>();
+  private final Map<ContainerId, RoleInstance> failedNodes =
+    new ConcurrentHashMap<ContainerId, RoleInstance>();
 
   /**
    * Map of containerID -> cluster nodes, for status reports.
    * Access to this should be synchronized on the clusterDescription
    */
-  private final Map<ContainerId, ContainerInfo> liveNodes =
-    new ConcurrentHashMap<ContainerId, ContainerInfo>();
+  private final Map<ContainerId, RoleInstance> liveNodes =
+    new ConcurrentHashMap<ContainerId, RoleInstance>();
 
   public int getFailedCountainerCount() {
     return numFailedContainers.get();
@@ -206,19 +206,19 @@ public class AppState {
     return roleStatusMap;
   }
 
-  private Map<ContainerId, ContainerInfo> getStartingNodes() {
+  private Map<ContainerId, RoleInstance> getStartingNodes() {
     return startingNodes;
   }
 
-  private Map<ContainerId, ContainerInfo> getCompletedNodes() {
+  private Map<ContainerId, RoleInstance> getCompletedNodes() {
     return completedNodes;
   }
 
-  public Map<ContainerId, ContainerInfo> getFailedNodes() {
+  public Map<ContainerId, RoleInstance> getFailedNodes() {
     return failedNodes;
   }
 
-  private Map<ContainerId, ContainerInfo> getLiveNodes() {
+  private Map<ContainerId, RoleInstance> getLiveNodes() {
     return liveNodes;
   }
 
@@ -327,7 +327,7 @@ public class AppState {
   public void buildMasterNode(ContainerId containerId) {
     Container container = new ContainerPBImpl();
     container.setId(containerId);
-    ContainerInfo master = new ContainerInfo(container);
+    RoleInstance master = new RoleInstance(container);
     master.role = HoyaKeys.ROLE_MASTER;
     master.buildUUID();
     masterNode = master;
@@ -353,7 +353,7 @@ public class AppState {
     masterNode.state = ClusterDescription.STATE_LIVE;
   }
 
-  public ContainerInfo getMasterNode() {
+  public RoleInstance getMasterNode() {
     return masterNode;
   }
 
@@ -403,7 +403,7 @@ public class AppState {
    * Get all the active containers
    */
   @Deprecated
-  public ConcurrentMap<ContainerId, ContainerInfo> getActiveContainers() {
+  public ConcurrentMap<ContainerId, RoleInstance> getActiveContainers() {
     return activeContainers;
   }
 
@@ -412,18 +412,18 @@ public class AppState {
    * @return the active containers at the time
    * the call was made
    */
-  public synchronized List<ContainerInfo> cloneActiveContainerList() {
-    Collection<ContainerInfo> values = activeContainers.values();
-    return new ArrayList<ContainerInfo>(values);
+  public synchronized List<RoleInstance> cloneActiveContainerList() {
+    Collection<RoleInstance> values = activeContainers.values();
+    return new ArrayList<RoleInstance>(values);
   }
 
 
   
-  public void addActiveContainer(ContainerInfo containerInfo) {
-    activeContainers.putIfAbsent(containerInfo.getId(), containerInfo);
+  public void addActiveContainer(RoleInstance roleInstance) {
+    activeContainers.putIfAbsent(roleInstance.getId(), roleInstance);
   }
 
-  public ContainerInfo getActiveContainer(ContainerId id) {
+  public RoleInstance getActiveContainer(ContainerId id) {
     return activeContainers.get(id);
   }
 
@@ -431,24 +431,24 @@ public class AppState {
    * Create a clone of the list of live cluster nodes.
    * @return the list of nodes, may be empty
    */
-  public synchronized List<ContainerInfo> cloneLiveContainerInfoList() {
-    List<ContainerInfo> allContainerInfos;
-    Collection<ContainerInfo> values = getLiveNodes().values();
-    allContainerInfos = new ArrayList<ContainerInfo>(values);
-    return allContainerInfos;
+  public synchronized List<RoleInstance> cloneLiveContainerInfoList() {
+    List<RoleInstance> allRoleInstances;
+    Collection<RoleInstance> values = getLiveNodes().values();
+    allRoleInstances = new ArrayList<RoleInstance>(values);
+    return allRoleInstances;
   }
 
 
   /**
-   * Get the {@link ContainerInfo} details on a node
+   * Get the {@link RoleInstance} details on a node
    * @param uuid the UUID
    * @return null if there is no such node
    * @throws NoSuchNodeException if the node cannot be found
    * @throws IOException IO problems
    */
-  public synchronized ContainerInfo getLiveInstanceByUUID(String uuid) throws IOException, NoSuchNodeException {
-    Collection<ContainerInfo> nodes = getLiveNodes().values();
-    for (ContainerInfo node : nodes) {
+  public synchronized RoleInstance getLiveInstanceByUUID(String uuid) throws IOException, NoSuchNodeException {
+    Collection<RoleInstance> nodes = getLiveNodes().values();
+    for (RoleInstance node : nodes) {
       if (uuid.equals(node.uuid)) {
         return node;
       }
@@ -465,13 +465,13 @@ public class AppState {
    * @return list of cluster nodes
    * @throws IOException IO problems
    */
-  public List<ContainerInfo> getLiveContainerInfosByUUID(String[] uuids) throws IOException {
+  public List<RoleInstance> getLiveContainerInfosByUUID(String[] uuids) throws IOException {
     //first, a hashmap of those uuids is built up
     Set<String> uuidSet = new HashSet<String>(Arrays.asList(uuids));
-    List<ContainerInfo> nodes = new ArrayList<ContainerInfo>(uuids.length);
-    Collection<ContainerInfo> clusterNodes = getLiveNodes().values();
+    List<RoleInstance> nodes = new ArrayList<RoleInstance>(uuids.length);
+    Collection<RoleInstance> clusterNodes = getLiveNodes().values();
 
-    for (ContainerInfo node : clusterNodes) {
+    for (RoleInstance node : clusterNodes) {
       if (uuidSet.contains(node.uuid)) {
         nodes.add(node);
       }
@@ -485,10 +485,10 @@ public class AppState {
    * @param role role, or "" for all roles
    * @return a list of nodes, may be empty
    */
-  public synchronized List<ContainerInfo> enumLiveNodesInRole(String role) {
-    List<ContainerInfo> nodes = new ArrayList<ContainerInfo>();
-    Collection<ContainerInfo> allContainerInfos = getLiveNodes().values();
-    for (ContainerInfo node : allContainerInfos) {
+  public synchronized List<RoleInstance> enumLiveNodesInRole(String role) {
+    List<RoleInstance> nodes = new ArrayList<RoleInstance>();
+    Collection<RoleInstance> allRoleInstances = getLiveNodes().values();
+    for (RoleInstance node : allRoleInstances) {
       if (role.isEmpty() || role.equals(node.role)) {
         nodes.add(node);
       }
@@ -503,7 +503,7 @@ public class AppState {
    */
   private synchronized Map<String, Integer> createRoleToInstanceMap() {
     Map<String, Integer> map = new HashMap<String, Integer>();
-    for (ContainerInfo node : getLiveNodes().values()) {
+    for (RoleInstance node : getLiveNodes().values()) {
       Integer entry = map.get(node.role);
       int current = entry != null ? entry : 0;
       current++;
@@ -528,7 +528,7 @@ public class AppState {
    * @param instance clusterNode structure
    */
   public void containerStartSubmitted(Container container,
-                                      ContainerInfo instance) {
+                                      RoleInstance instance) {
     instance.state = ClusterDescription.STATE_SUBMITTED;
     instance.container = container;
     instance.createTime = System.currentTimeMillis();
@@ -547,7 +547,7 @@ public class AppState {
   public synchronized void containerReleaseSubmitted(ContainerId id) throws
                                                                      HoyaInternalStateException {
     //look up the container
-    ContainerInfo info = getActiveContainer(id);
+    RoleInstance info = getActiveContainer(id);
     if (info == null) {
       throw new HoyaInternalStateException(
         "No active container with ID " + id.toString());
@@ -597,7 +597,7 @@ public class AppState {
    * @param container id
    * @param node node details
    */
-  public void addLaunchedContainer(Container container, ContainerInfo node) {
+  public void addLaunchedContainer(Container container, RoleInstance node) {
     node.container = container;
     if (node.role == null) {
       log.warn("Unknown role for node {}", node);
@@ -611,9 +611,9 @@ public class AppState {
    * @param containerId
    * @return
    */
-  public synchronized ContainerInfo onNodeManagerContainerStarted(ContainerId containerId) {
+  public synchronized RoleInstance onNodeManagerContainerStarted(ContainerId containerId) {
     incStartedCountainerCount();
-    ContainerInfo active = activeContainers.get(containerId);
+    RoleInstance active = activeContainers.get(containerId);
     if (active == null) {
       //serious problem
       log.error("Notification of container not in active containers start {}",
@@ -621,7 +621,7 @@ public class AppState {
       return null;
     }
     active.startTime = System.currentTimeMillis();
-    ContainerInfo starting = getStartingNodes().remove(containerId);
+    RoleInstance starting = getStartingNodes().remove(containerId);
     if (null == starting) {
       log.error(
         "Received Notification about unknown container {}", containerId);
@@ -650,7 +650,7 @@ public class AppState {
     activeContainers.remove(containerId);
     incFailedCountainerCount();
     incStartFailedCountainerCount();
-    ContainerInfo node = getStartingNodes().remove(containerId);
+    RoleInstance node = getStartingNodes().remove(containerId);
     if (null != node) {
       if (null != thrown) {
         node.diagnostics = HoyaUtils.stringify(thrown);
@@ -677,9 +677,9 @@ public class AppState {
         roleStatus.decActual();
     } else {
       //a container has failed and its role needs to be decremented
-      ContainerInfo containerInfo = activeContainers.remove(containerId);
-      if (containerInfo != null) {
-        int roleId = containerInfo.roleId;
+      RoleInstance roleInstance = activeContainers.remove(containerId);
+      if (roleInstance != null) {
+        int roleId = roleInstance.roleId;
         log.info("Failed container in role {}", roleId);
         try {
           RoleStatus roleStatus = lookupRoleStatus(roleId);
@@ -695,7 +695,7 @@ public class AppState {
     //record the complete node's details; this pulls it from the livenode set 
     //remove the node
     ContainerId id = status.getContainerId();
-    ContainerInfo node = getLiveNodes().remove(id);
+    RoleInstance node = getLiveNodes().remove(id);
     if (node == null) {
       log.warn("Received notification of completion of unknown node");
       return;

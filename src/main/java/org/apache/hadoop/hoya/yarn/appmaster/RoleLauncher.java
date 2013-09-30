@@ -23,9 +23,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderService;
 import org.apache.hadoop.hoya.api.ClusterDescription;
-import org.apache.hadoop.hoya.api.ClusterNode;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
-import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerInfo;
+import org.apache.hadoop.hoya.yarn.appmaster.state.RoleInstance;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
@@ -114,8 +113,8 @@ public class RoleLauncher implements Runnable {
 
  
       String commandLine = ctx.getCommands().get(0);
-      ContainerInfo node = new ContainerInfo(container);
-      node.buildUUID();
+      RoleInstance instance = new RoleInstance(container);
+      instance.buildUUID();
       log.info("Starting container with command: {}", commandLine);
       Map<String, LocalResource> lr = ctx.getLocalResources();
       List<String> nodeEnv = new ArrayList<String>();
@@ -140,11 +139,11 @@ public class RoleLauncher implements Runnable {
         log.debug(envElt);
         nodeEnv.add(envElt);
       }
-      node.command = commandLine;
-      node.role = containerRole;
-      node.roleId = role.id;
-      node.environment = nodeEnv.toArray(new String[nodeEnv.size()]);
-      owner.startContainer(container, ctx, node);
+      instance.command = commandLine;
+      instance.role = containerRole;
+      instance.roleId = role.id;
+      instance.environment = nodeEnv.toArray(new String[nodeEnv.size()]);
+      owner.startContainer(container, ctx, instance);
     } catch (Exception e) {
       log.error(
         "Exception thrown while trying to start " + containerRole + ": " + e,

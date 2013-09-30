@@ -39,7 +39,7 @@ import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
 import org.apache.hadoop.hoya.yarn.appmaster.state.AppState;
-import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerInfo;
+import org.apache.hadoop.hoya.yarn.appmaster.state.RoleInstance;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleStatus;
 import org.apache.hadoop.hoya.yarn.service.EventCallback;
 import org.apache.hadoop.ipc.ProtocolSignature;
@@ -971,11 +971,11 @@ public class HoyaAppMaster extends CompositeService
 
       //then pick some containers to kill
       int excess = -delta;
-      List<ContainerInfo> targets = appState.cloneActiveContainerList();
-      for (ContainerInfo ci : targets) {
+      List<RoleInstance> targets = appState.cloneActiveContainerList();
+      for (RoleInstance instance : targets) {
         if (excess > 0) {
-          Container possible = ci.container;
-          if (!ci.released) {
+          Container possible = instance.container;
+          if (!instance.released) {
             ContainerId id = possible.getId();
             log.info("Requesting release of container {}", id);
             appState.containerReleaseSubmitted(id);
@@ -1001,11 +1001,11 @@ public class HoyaAppMaster extends CompositeService
    * Shutdown operation: release all containers
    */
   void releaseAllContainers() {
-    Collection<ContainerInfo> targets = appState.cloneActiveContainerList();
-    for (ContainerInfo ci : targets) {
-      Container possible = ci.container;
+    Collection<RoleInstance> targets = appState.cloneActiveContainerList();
+    for (RoleInstance instance : targets) {
+      Container possible = instance.container;
       ContainerId id = possible.getId();
-      if (!ci.released) {
+      if (!instance.released) {
         try {
           appState.containerReleaseSubmitted(id);
         } catch (HoyaInternalStateException e) {
@@ -1097,10 +1097,10 @@ public class HoyaAppMaster extends CompositeService
 
   @Override
   public String[] listNodeUUIDsByRole(String role) {
-    List<ContainerInfo> nodes = enumNodesInRole(role);
+    List<RoleInstance> nodes = enumNodesInRole(role);
     String[] result = new String[nodes.size()];
     int count = 0;
-    for (ContainerInfo node : nodes) {
+    for (RoleInstance node : nodes) {
       result[count++] = node.uuid;
     }
     return result;
@@ -1111,7 +1111,7 @@ public class HoyaAppMaster extends CompositeService
    * @param role
    * @return a possibly empty list of nodes
    */
-  public List<ContainerInfo> enumNodesInRole(String role) {
+  public List<RoleInstance> enumNodesInRole(String role) {
     return appState.enumLiveNodesInRole(role);
   }
 
@@ -1119,14 +1119,14 @@ public class HoyaAppMaster extends CompositeService
    * Get a clone of the current list of nodes
    * @return the possibly empty list of live nodes
    */
-  private List<ContainerInfo> getLiveContainerInfos() {
+  private List<RoleInstance> getLiveContainerInfos() {
     return appState.cloneLiveContainerInfoList();
   }
 
   @Override
   public String getNode(String uuid) throws IOException, NoSuchNodeException {
-    ContainerInfo ci = appState.getLiveInstanceByUUID(uuid);
-    ClusterNode node = ci.toWireFormat();
+    RoleInstance instance = appState.getLiveInstanceByUUID(uuid);
+    ClusterNode node = instance.toWireFormat();
     return node.toJsonString();
   }
 
@@ -1134,11 +1134,11 @@ public class HoyaAppMaster extends CompositeService
   public String[] getClusterNodes(String[] uuids) throws IOException {
     //first, a hashmap of those uuids is built up
     Set<String> uuidSet = new HashSet<String>(Arrays.asList(uuids));
-    List<ContainerInfo>
+    List<RoleInstance>
       clusterNodes = appState.getLiveContainerInfosByUUID(uuids);
     List<String> jsonnodes = new ArrayList<String>(clusterNodes.size());
 
-    for (ContainerInfo node : clusterNodes) {
+    for (RoleInstance node : clusterNodes) {
         jsonnodes.add(node.toWireFormat().toJsonString());
     }
     //at this point: a possibly empty list of nodes
@@ -1253,12 +1253,12 @@ public class HoyaAppMaster extends CompositeService
    * launch context
    * @param container container
    * @param ctx context
-   * @param ci node details
+   * @param instance node details
    */
   void startContainer(Container container,
                              ContainerLaunchContext ctx,
-                             ContainerInfo ci) {
-    appState.containerStartSubmitted(container, ci);
+                             RoleInstance instance) {
+    appState.containerStartSubmitted(container, instance);
     nmClientAsync.startContainerAsync(container, ctx);
   }
 
@@ -1273,7 +1273,7 @@ public class HoyaAppMaster extends CompositeService
   public void onContainerStarted(ContainerId containerId,
                                  Map<String, ByteBuffer> allServiceResponse) {
     LOG_YARN.info("Started Container {} ", containerId);
-    ContainerInfo cinfo = appState.onNodeManagerContainerStarted(containerId);
+    RoleInstance cinfo = appState.onNodeManagerContainerStarted(containerId);
     if (cinfo != null) {
       //trigger an async container status
       nmClientAsync.getContainerStatusAsync(containerId,
@@ -1315,7 +1315,7 @@ public class HoyaAppMaster extends CompositeService
   /**
    * Get all the active containers
    */
-  private ConcurrentMap<ContainerId, ContainerInfo> getActiveContainers() {
+  private ConcurrentMap<ContainerId, RoleInstance> getActiveContainers() {
     return  appState.getActiveContainers();
   }
 

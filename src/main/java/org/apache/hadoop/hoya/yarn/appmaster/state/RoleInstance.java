@@ -29,7 +29,7 @@ import java.util.UUID;
 /**
  * Info about a continer to keep around when deciding which container to release
  */
-public class ContainerInfo {
+public class RoleInstance {
 
   public Container container;
   /**
@@ -76,7 +76,7 @@ public class ContainerInfo {
    */
   public String[] environment;
 
-  public ContainerInfo(Container container) {
+  public RoleInstance(Container container) {
     this.container = container;
   }
 
