@@ -5,7 +5,7 @@
   <groupId>org.apache.hadoop.hoya</groupId>
   <artifactId>hoya</artifactId>
   <name>Hoya: HBase on YARN</name>
-  <version>0.3-SNAPSHOT</version>
+  <version>0.3</version>
   <description>
     Hoya is designed to deploy Apache HBase on YARN; it can also
     support other applications for which *Providers* have been written.
