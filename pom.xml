@@ -42,6 +42,14 @@
       <organizationUrl>http://www.hortonworks.com</organizationUrl>
     </developer>
 
+    <developer>
+      <id></id>
+      <name>Ted Yu</name>
+      <timezone>-8</timezone>
+      <organization>Hortonworks</organization>
+      <organizationUrl>http://www.hortonworks.com</organizationUrl>
+    </developer>
+
   </developers>
   
   <properties>
