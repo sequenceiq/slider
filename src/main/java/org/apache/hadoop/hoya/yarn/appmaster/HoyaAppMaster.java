@@ -26,7 +26,9 @@ import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.ClusterNode;
 import org.apache.hadoop.hoya.api.HoyaAppMasterProtocol;
+import org.apache.hadoop.hoya.api.HoyaClusterProtocol;
 import org.apache.hadoop.hoya.api.RoleKeys;
+import org.apache.hadoop.hoya.api.proto.Messages;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
@@ -97,14 +99,13 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * This is the AM, which directly implements the callbacks from the AM and NM
  */
-@SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
 public class HoyaAppMaster extends CompositeService
   implements AMRMClientAsync.CallbackHandler,
              NMClientAsync.CallbackHandler,
              RunService,
              HoyaExitCodes,
              HoyaKeys,
-             HoyaAppMasterProtocol,
+             HoyaAppMasterProtocol, HoyaClusterProtocol,
              ServiceStateChangeListener,
              RoleKeys,
              EventCallback {
@@ -1081,11 +1082,6 @@ public class HoyaAppMaster extends CompositeService
     return flexCluster(updated);
   }
 
-  @Override   //HoyaAppMasterApi
-  public long getProtocolVersion(String protocol, long clientVersion) throws
-                                                                      IOException {
-    return versionID;
-  }
 
   @Override //HoyaAppMasterApi
   public synchronized String getJSONClusterStatus() throws IOException {
@@ -1097,30 +1093,13 @@ public class HoyaAppMaster extends CompositeService
 
   @Override
   public String[] listNodeUUIDsByRole(String role) {
-    List<RoleInstance> nodes = enumNodesInRole(role);
+    List<RoleInstance> nodes = appState.enumLiveNodesInRole(role);
     String[] result = new String[nodes.size()];
     int count = 0;
     for (RoleInstance node : nodes) {
       result[count++] = node.uuid;
     }
     return result;
-  }
-
-  /**
-   * Enum all nodes in a role, use "" for all nodes 
-   * @param role
-   * @return a possibly empty list of nodes
-   */
-  public List<RoleInstance> enumNodesInRole(String role) {
-    return appState.enumLiveNodesInRole(role);
-  }
-
-  /**
-   * Get a clone of the current list of nodes
-   * @return the possibly empty list of live nodes
-   */
-  private List<RoleInstance> getLiveContainerInfos() {
-    return appState.cloneLiveContainerInfoList();
   }
 
   @Override
@@ -1132,8 +1111,6 @@ public class HoyaAppMaster extends CompositeService
 
   @Override
   public String[] getClusterNodes(String[] uuids) throws IOException {
-    //first, a hashmap of those uuids is built up
-    Set<String> uuidSet = new HashSet<String>(Arrays.asList(uuids));
     List<RoleInstance>
       clusterNodes = appState.getLiveContainerInfosByUUID(uuids);
     List<String> jsonnodes = new ArrayList<String>(clusterNodes.size());
@@ -1147,6 +1124,93 @@ public class HoyaAppMaster extends CompositeService
 
   
 /* =================================================================== */
+/* END  HoyaAppMasterApi */
+/* =================================================================== */
+
+/* =================================================================== */
+/* Shared while the two service interfaces overlap*/
+/* =================================================================== */
+
+
+  @Override   //HoyaAppMasterApi
+  public long getProtocolVersion(String protocol, long clientVersion) throws
+                                                                      IOException {
+    return HoyaAppMasterProtocol.versionID;
+  }
+  
+  
+/* =================================================================== */
+/* HoyaClusterProtocol */
+/* =================================================================== */
+
+  @Override
+  public Messages.StopClusterResponseProto stopCluster(Messages.StopClusterRequestProto request) throws
+                                                                                                 IOException,
+                                                                                                 YarnException {
+    stopCluster(request.getMessage());
+    return Messages.StopClusterResponseProto.getDefaultInstance();
+  }
+
+  @Override
+  public Messages.FlexClusterResponseProto flexCluster(Messages.FlexClusterRequestProto request) throws
+                                                                                                 IOException,
+                                                                                                 YarnException {
+    boolean flexed = flexCluster(request.getClusterSpec());
+    return Messages.FlexClusterResponseProto.newBuilder().setResponse(flexed).build();
+  }
+
+  @Override
+  public Messages.GetJSONClusterStatusResponseProto getJSONClusterStatus(
+    Messages.GetJSONClusterStatusRequestProto request) throws
+                                                       IOException,
+                                                       YarnException {
+    String stat = getJSONClusterStatus();
+    return Messages.GetJSONClusterStatusResponseProto.newBuilder()
+      .setClusterSpec(stat)
+      .build();
+  }
+
+  @Override
+  public Messages.ListNodeUUIDsByRoleResponseProto listNodeUUIDsByRole(Messages.ListNodeUUIDsByRoleRequestProto request) throws
+                                                                                                                         IOException,
+                                                                                                                         YarnException {
+    String role = request.getRole();
+    Messages.ListNodeUUIDsByRoleResponseProto.Builder builder =
+      Messages.ListNodeUUIDsByRoleResponseProto.newBuilder();
+    List<RoleInstance> nodes = appState.enumLiveNodesInRole(role);
+    for (RoleInstance node : nodes) {
+      builder.addUuid(node.uuid);
+    }
+    return builder.build();
+  }
+
+  @Override
+  public Messages.GetNodeResponseProto getNode(Messages.GetNodeRequestProto request) throws
+                                                                                     IOException,
+                                                                                     YarnException {
+    String node = getNode(request.getUuid());
+    return Messages.GetNodeResponseProto.newBuilder().setClusterNode(node).build();
+  }
+
+  @Override
+  public Messages.GetClusterNodesResponseProto getClusterNodes(Messages.GetClusterNodesRequestProto request) throws
+                                                                                                             IOException,
+                                                                                                             YarnException {
+    List<RoleInstance>
+      clusterNodes = appState.getLiveContainerInfosByUUID(request.getUuidList());
+    List<String> jsonnodes = new ArrayList<String>(clusterNodes.size());
+
+    Messages.GetClusterNodesResponseProto.Builder builder =
+      Messages.GetClusterNodesResponseProto.newBuilder();
+    for (RoleInstance node : clusterNodes) {
+      builder.addClusterNode(node.toWireFormat().toJsonString());
+    }
+    //at this point: a possibly empty list of nodes
+    return builder.build();
+  }
+
+  
+  /* =================================================================== */
 /* END */
 /* =================================================================== */
 

@@ -278,7 +278,8 @@
               <source>
                 <directory>${basedir}/src/main/proto</directory>
                 <includes>
-                  <include>HoyaRPCProtocol.proto</include>
+                  <include>HoyaClusterMessages.proto</include>
+                  <include>HoyaClusterProtocol.proto</include>
                 </includes>
               </source>
               <output>${project.build.directory}/generated-sources/java</output>

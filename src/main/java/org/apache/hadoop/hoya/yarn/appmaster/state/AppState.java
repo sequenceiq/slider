@@ -466,9 +466,22 @@ public class AppState {
    * @throws IOException IO problems
    */
   public List<RoleInstance> getLiveContainerInfosByUUID(String[] uuids) throws IOException {
+    Collection<String> strings = Arrays.asList(uuids);
+    return getLiveContainerInfosByUUID(strings);
+  }
+
+  /**
+   * Get the {@link ClusterNode} details on a list of nodes.
+   * Unknown nodes are not returned
+   * <i>Important: the order of the results are undefined</i>
+   * @param uuid the UUIDs
+   * @return list of cluster nodes
+   * @throws IOException IO problems
+   */
+  public List<RoleInstance> getLiveContainerInfosByUUID(Collection<String> uuids) {
     //first, a hashmap of those uuids is built up
-    Set<String> uuidSet = new HashSet<String>(Arrays.asList(uuids));
-    List<RoleInstance> nodes = new ArrayList<RoleInstance>(uuids.length);
+    Set<String> uuidSet = new HashSet<String>(uuids);
+    List<RoleInstance> nodes = new ArrayList<RoleInstance>(uuidSet.size());
     Collection<RoleInstance> clusterNodes = getLiveNodes().values();
 
     for (RoleInstance node : clusterNodes) {
@@ -479,7 +492,7 @@ public class AppState {
     //at this point: a possibly empty list of nodes
     return nodes;
   }
-  
+
   /**
    * Enum all nodes by role. 
    * @param role role, or "" for all roles

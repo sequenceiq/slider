@@ -18,12 +18,11 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
+import org.apache.hadoop.hoya.api.StatusKeys;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import static org.apache.hadoop.hoya.api.HoyaAppMasterProtocol.*;
 
 
 /**
@@ -223,12 +222,12 @@ public final class RoleStatus implements Cloneable {
    */
   public Map<String, Integer> buildStatistics() {
     Map<String, Integer> stats = new HashMap<String, Integer>();
-    stats.put(STAT_CONTAINERS_REQUESTED, getRequested());
-    stats.put(STAT_CONTAINERS_ALLOCATED, getActual());
-    stats.put(STAT_CONTAINERS_COMPLETED, getCompleted());
-    stats.put(STAT_CONTAINERS_FAILED, getFailed());
-    stats.put(STAT_CONTAINERS_STARTED, getStarted());
-    stats.put(STAT_CONTAINERS_STARTED_FAILED, getStartFailed());
+    stats.put(StatusKeys.STAT_CONTAINERS_REQUESTED, getRequested());
+    stats.put(StatusKeys.STAT_CONTAINERS_ALLOCATED, getActual());
+    stats.put(StatusKeys.STAT_CONTAINERS_COMPLETED, getCompleted());
+    stats.put(StatusKeys.STAT_CONTAINERS_FAILED, getFailed());
+    stats.put(StatusKeys.STAT_CONTAINERS_STARTED, getStarted());
+    stats.put(StatusKeys.STAT_CONTAINERS_STARTED_FAILED, getStartFailed());
     return stats;
   }
 }
