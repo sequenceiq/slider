@@ -653,7 +653,7 @@ public class HoyaAppMaster extends CompositeService
    */
   private Server startHoyaRPCServer() throws IOException {
     server = new RPC.Builder(getConfig())
-      .setProtocol(HoyaAppMasterProtocol.class)
+      .setProtocol(HoyaClusterProtocol.class)
       .setInstance(this)
       .setPort(0)
       .setNumHandlers(5)
