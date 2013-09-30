@@ -400,7 +400,8 @@ public class ServiceLauncher
       } else {
         exitCode = EXIT_EXCEPTION_THROWN;
       }
-      exitException = new ExitUtil.ExitException(exitCode, thrown);
+      exitException = new ExitUtil.ExitException(exitCode, thrown.toString());
+      exitException.initCause(thrown);
     }
     return exitException;
   }

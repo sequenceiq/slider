@@ -22,6 +22,10 @@ import org.apache.hadoop.service.Service;
 
 import java.util.List;
 
+/**
+ * Interface that services with public methods to manipulate child services
+ * should implement
+ */
 public interface Parent extends Service {
 
   void addService(Service service);

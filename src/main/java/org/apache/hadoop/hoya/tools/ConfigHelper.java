@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.hoya.tools;
 
-import groovy.transform.CompileStatic;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -44,7 +43,6 @@ import java.util.TreeSet;
  * Methods to aid in config, both in the Configuration class and
  * with other parts of setting up Hoya-initated processes
  */
-@CompileStatic
 public class ConfigHelper {
   private static final Logger log = LoggerFactory.getLogger(HoyaUtils.class);
 

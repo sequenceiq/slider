@@ -19,7 +19,6 @@
 package org.apache.hadoop.hoya.yarn.client;
 
 import com.beust.jcommander.Parameter;
-import groovy.transform.CompileStatic;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;

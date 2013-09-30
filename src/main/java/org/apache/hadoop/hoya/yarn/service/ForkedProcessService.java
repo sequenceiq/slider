@@ -25,8 +25,8 @@ import org.apache.hadoop.hoya.exec.RunLongLivedApp;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.service.ServiceStateException;
-import org.apache.hadoop.util.ExitUtil;
 import org.apache.hadoop.yarn.service.launcher.ExitCodeProvider;
+import org.apache.hadoop.yarn.service.launcher.ServiceLaunchException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -158,11 +158,11 @@ public class ForkedProcessService extends AbstractService implements
   private void reportFailure(int exitC, String text) {
     this.exitCode.set(exitC);
     //error
-    ExitUtil.ExitException ee =
-      new ExitUtil.ExitException(exitC,
+    ServiceLaunchException execEx =
+      new ServiceLaunchException(exitC,
                                  text);
-    log.debug("Noting failure", ee);
-    noteFailure(ee);
+    log.debug("Noting failure", execEx);
+    noteFailure(execEx);
   }
 
   /**

@@ -20,8 +20,6 @@ package org.apache.hadoop.hoya.yarn.client;
 
 import com.beust.jcommander.JCommander;
 import com.google.common.annotations.VisibleForTesting;
-import groovy.json.JsonOutput;
-import groovy.transform.CompileStatic;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileSystem;
@@ -94,7 +92,6 @@ import java.util.Set;
 /**
  * Client service for Hoya
  */
-@CompileStatic
 
 public class HoyaClient extends YarnClientImpl implements RunService,
                                                           HoyaExitCodes {
@@ -1350,7 +1347,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     verifyManagerSet();
     validateClusterName(clustername);
     ClusterDescription status = getClusterStatus(clustername);
-    log.info(JsonOutput.prettyPrint(status.toJsonString()));
+    log.info(status.toJsonString());
     return EXIT_SUCCESS;
   }
 
@@ -1578,7 +1575,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       return ClusterDescription.fromJson(statusJson);
     } catch (JsonParseException e) {
       log.error(
-        "Exception " + e + " parsing:\n" + JsonOutput.prettyPrint(statusJson),
+        "Exception " + e + " parsing:\n" + statusJson,
         e);
       throw e;
     }

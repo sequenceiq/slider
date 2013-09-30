@@ -28,7 +28,7 @@ import org.apache.hadoop.hoya.yarn.service.ForkedProcessService;
 import org.apache.hadoop.hoya.yarn.service.Parent;
 import org.apache.hadoop.hoya.yarn.service.SequenceService;
 import org.apache.hadoop.service.Service;
-import org.apache.hadoop.util.ExitUtil;
+import org.apache.hadoop.yarn.service.launcher.ExitCodeProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,14 +73,14 @@ public abstract class AbstractProviderService
     return getConfig();
   }
 
+  @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
   @Override // ExitCodeProvider
   public int getExitCode() {
     Throwable cause = getFailureCause();
     if (cause != null) {
       //failed for some reason
-      if (cause instanceof ExitUtil.ExitException) {
-        ExitUtil.ExitException exitException = (ExitUtil.ExitException) cause;
-        return exitException.getExitCode();
+      if (cause instanceof ExitCodeProvider) {
+        return ((ExitCodeProvider) cause).getExitCode();
       }
     }
     ForkedProcessService lastProc = latestProcess();
@@ -89,7 +89,7 @@ public abstract class AbstractProviderService
 
   /**
    * Return the latest forked process service that ran
-   * @return
+   * @return the forkes service
    */
   protected ForkedProcessService latestProcess() {
     Service current = getCurrentService();
@@ -109,6 +109,12 @@ public abstract class AbstractProviderService
     }
   }
 
+
+  /**
+   * Given a parent service, find the one that is a forked process
+   * @param parent parent
+   * @return the forked process service or null if there is none
+   */
   protected ForkedProcessService getFPSFromParentService(Parent parent) {
     List<Service> services = parent.getServices();
     for (Service s : services) {
