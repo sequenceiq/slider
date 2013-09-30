@@ -62,7 +62,7 @@ Then expand this
 
 ## building a compatible HBase version
 
-Checkout the HBase `hbase-0.95` branch from apache svn/github.  
+Checkout the HBase `trunk` branch from apache svn/github.  
 
     git clone git://git.apache.org/hbase.git
     git remote rename origin apache
