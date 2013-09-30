@@ -1376,22 +1376,6 @@ public class HoyaAppMaster extends CompositeService
     LOG_YARN.warn("Failed to stop Container {}", containerId);
   }
 
-  /**
-   * Get all the active containers
-   */
-  private ConcurrentMap<ContainerId, RoleInstance> getActiveContainers() {
-    return  appState.getActiveContainers();
-  }
-
-  /**
-   * The containers we have released, but we
-   * are still awaiting acknowledgements on. Any failure of these
-   * containers is treated as a successful outcome
-   */
-  private ConcurrentMap<ContainerId, Container> getContainersBeingReleased() {
-    return appState.getContainersBeingReleased();
-  }
-
   public Map<Integer, RoleStatus> getRoleStatusMap() {
     return appState.getRoleStatusMap();
   }

@@ -97,6 +97,14 @@ see [HBase building](http://hbase.apache.org/book/build.html)
 
 ## Building Accumulo
 
+Clone accumulo from apache; check out trunk
+
+If needed, patch the POM file to depend on the version of Hadoop you are building
+locally, by changing the `hadoop.version` property
+
+   <hadoop.version>2.1.2-SNAPSHOT</hadoop.version>
+
+
 In the accumulo project directory:
 
     mvn clean install -DskipTests

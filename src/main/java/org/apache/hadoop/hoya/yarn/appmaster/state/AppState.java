@@ -21,7 +21,6 @@ package org.apache.hadoop.hoya.yarn.appmaster.state;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
-import org.apache.hadoop.hoya.api.ClusterNode;
 import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hadoop.hoya.exceptions.NoSuchNodeException;
 import org.apache.hadoop.hoya.providers.ProviderRole;
@@ -92,7 +91,8 @@ public class AppState {
 
 
   /**
-   * Hash map of the containers we have
+   * Hash map of the containers we have. This includes things that have
+   * been allocated but are not live; it is a superset
    */
   private final ConcurrentMap<ContainerId, RoleInstance> activeContainers =
     new ConcurrentHashMap<ContainerId, RoleInstance>();
@@ -400,14 +400,6 @@ public class AppState {
   }
 
   /**
-   * Get all the active containers
-   */
-  @Deprecated
-  public ConcurrentMap<ContainerId, RoleInstance> getActiveContainers() {
-    return activeContainers;
-  }
-
-  /**
    * Clone a list of active containers
    * @return the active containers at the time
    * the call was made
@@ -415,12 +407,6 @@ public class AppState {
   public synchronized List<RoleInstance> cloneActiveContainerList() {
     Collection<RoleInstance> values = activeContainers.values();
     return new ArrayList<RoleInstance>(values);
-  }
-
-
-  
-  public void addActiveContainer(RoleInstance roleInstance) {
-    activeContainers.putIfAbsent(roleInstance.getId(), roleInstance);
   }
 
   public RoleInstance getActiveContainer(ContainerId id) {
@@ -458,11 +444,11 @@ public class AppState {
   }
 
   /**
-   * Get the {@link ClusterNode} details on a list of nodes.
+   * Get the details on a list of instaces referred to by UUID.
    * Unknown nodes are not returned
    * <i>Important: the order of the results are undefined</i>
    * @param uuid the UUIDs
-   * @return list of cluster nodes
+   * @return list of instances
    * @throws IOException IO problems
    */
   public List<RoleInstance> getLiveContainerInfosByUUID(String[] uuids) throws IOException {
@@ -471,11 +457,11 @@ public class AppState {
   }
 
   /**
-   * Get the {@link ClusterNode} details on a list of nodes.
+   * Get the details on a list of instaces referred to by UUID.
    * Unknown nodes are not returned
    * <i>Important: the order of the results are undefined</i>
    * @param uuid the UUIDs
-   * @return list of cluster nodes
+   * @return list of instances
    * @throws IOException IO problems
    */
   public List<RoleInstance> getLiveContainerInfosByUUID(Collection<String> uuids) {
@@ -512,7 +498,7 @@ public class AppState {
 
   /**
    * Build an instance map.
-   * @return the map of RoleId -> count
+   * @return the map of RoleId to count
    */
   private synchronized Map<String, Integer> createRoleToInstanceMap() {
     Map<String, Integer> map = new HashMap<String, Integer>();
@@ -525,15 +511,6 @@ public class AppState {
     return map;
   }
 
-  /**
-   * The containers we have released, but we
-   * are still awaiting acknowledgements on. Any failure of these
-   * containers is treated as a successful outcome
-   */
-  @Deprecated
-  public ConcurrentMap<ContainerId, Container> getContainersBeingReleased() {
-    return containersBeingReleased;
-  }
   /**
    * Notification called just before the NM is asked to 
    * start a container
@@ -566,12 +543,12 @@ public class AppState {
         "No active container with ID " + id.toString());
     }
     //verify that it isn't already released
-    if (getContainersBeingReleased().containsKey(id)) {
+    if (containersBeingReleased.containsKey(id)) {
       throw new HoyaInternalStateException(
         "Container %s already queued for release", id);
     }
     info.released = true;
-    getContainersBeingReleased().put(id, info.container);
+    containersBeingReleased.put(id, info.container);
     RoleStatus role = lookupRoleStatus(info.roleId);
     role.incReleasing();
   }
@@ -751,7 +728,7 @@ public class AppState {
     Map<String, Integer> instanceMap = createRoleToInstanceMap();
     if (log.isDebugEnabled()) {
       for (Map.Entry<String, Integer> entry : instanceMap.entrySet()) {
-        log.debug("[%{}]: %{}", entry.getKey(), entry.getValue());
+        log.debug("[{}]: {}", entry.getKey(), entry.getValue());
       }
     }
     getClusterStatus().instances = instanceMap;
