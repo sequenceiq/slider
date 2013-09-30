@@ -19,6 +19,7 @@
 package org.apache.hadoop.hoya.yarn.appmaster;
 
 import org.apache.hadoop.hoya.HoyaExitCodes;
+import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.service.launcher.LauncherExitCodes;
 
 public class AMUtils {
@@ -38,5 +39,15 @@ public class AMUtils {
       default:
         return exitCode;
     }
+  }
+
+
+  /**
+   * Map from a container to a role key by way of its priority
+   * @param container
+   * @return role key
+   */
+  public static int getRoleKey(Container c) {
+    return c.getPriority().getPriority();
   }
 }

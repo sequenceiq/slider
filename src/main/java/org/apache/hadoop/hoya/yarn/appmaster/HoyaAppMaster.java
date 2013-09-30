@@ -461,7 +461,7 @@ public class HoyaAppMaster extends CompositeService
     //build the instance
     appState.buildInstance(clusterSpec, siteConf, providerRoles);
 
-    appState.buildMasterNode(hostname, appMasterContainerID);
+    appState.buildMasterNode(appMasterContainerID);
 
 
     boolean noMaster = clusterSpec.getDesiredInstanceCount(ROLE_MASTER, 1) <= 0;
@@ -754,10 +754,6 @@ public class HoyaAppMaster extends CompositeService
   }
 
 
-  private int getRoleKey(Container c) {
-    return c.getPriority().getPriority();
-  }
-
   /**
    * Look up a role from its key -or fail 
    *
@@ -765,8 +761,8 @@ public class HoyaAppMaster extends CompositeService
    * @return the status
    * @throws YarnRuntimeException on no match
    */
-  private RoleStatus lookupRoleStatus(Container c) {
-    return appState.lookupRoleStatus(getRoleKey(c));
+  public RoleStatus lookupRoleStatus(Container c) {
+    return appState.lookupRoleStatus(c);
   }
   
 /* =================================================================== */
@@ -866,34 +862,6 @@ public class HoyaAppMaster extends CompositeService
 
       // non complete containers should not be here
       assert (status.getState() == ContainerState.COMPLETE);
-
-      if (getContainersBeingReleased().containsKey(containerId)) {
-        log.info("Container was queued for release");
-        Container container = getContainersBeingReleased().remove(containerId);
-        RoleStatus roleStatus = lookupRoleStatus(container);
-        synchronized (roleStatus) {
-          log.info("decrementing role count for role {}", roleStatus.getName());
-          roleStatus.decReleasing();
-          roleStatus.decActual();
-        }
-      } else {
-        //a container has failed and its role needs to be decremented
-        ContainerInfo containerInfo = getActiveContainers().remove(containerId);
-        if (containerInfo != null) {
-          int roleId = containerInfo.roleId;
-          log.info("Failed container in role {}", roleId);
-          try {
-            RoleStatus roleStatus = appState.lookupRoleStatus(roleId);
-            roleStatus.decActual();
-          } catch (YarnRuntimeException e1) {
-            log.error("Failed container of unknown role {}", roleId);
-          }
-        } else {
-          log.error("Notified of completed container that is not in the list" +
-                    " of active containers");
-        }
-      }
-      //record the complete node's details; this pulls it from the livenode set 
       appState.onCompletedNode(status);
     }
 
@@ -923,7 +891,7 @@ public class HoyaAppMaster extends CompositeService
    * @return true if the number of workers changed
    * @throws IOException
    */
-  private boolean flexClusterNodes(ClusterDescription updated) throws
+  private boolean flexCluster(ClusterDescription updated) throws
                                                                IOException,
                                                                HoyaInternalStateException {
 
@@ -1038,13 +1006,10 @@ public class HoyaAppMaster extends CompositeService
       Container possible = ci.container;
       ContainerId id = possible.getId();
       if (!ci.released) {
-        log.info("Requesting release of container {}", id);
-        ci.released = true;
-        getContainersBeingReleased().put(id, possible);
-        RoleStatus roleStatus = lookupRoleStatus(possible);
-        synchronized (roleStatus) {
-          roleStatus.incReleasing();
-          roleStatus.getDesired();
+        try {
+          appState.containerReleaseSubmitted(id);
+        } catch (HoyaInternalStateException e) {
+          log.warn("when releasing container {} :", possible, e);
         }
         asyncRMClient.releaseAssignedContainer(id);
       }
@@ -1113,7 +1078,7 @@ public class HoyaAppMaster extends CompositeService
     //verify that the cluster specification is now valid
     provider.validateClusterSpec(updated);
 
-    return flexClusterNodes(updated);
+    return flexCluster(updated);
   }
 
   @Override   //HoyaAppMasterApi
@@ -1132,10 +1097,10 @@ public class HoyaAppMaster extends CompositeService
 
   @Override
   public String[] listNodeUUIDsByRole(String role) {
-    List<ClusterNode> nodes = enumNodesInRole(role);
+    List<ContainerInfo> nodes = enumNodesInRole(role);
     String[] result = new String[nodes.size()];
     int count = 0;
-    for (ClusterNode node : nodes) {
+    for (ContainerInfo node : nodes) {
       result[count++] = node.uuid;
     }
     return result;
@@ -1146,7 +1111,7 @@ public class HoyaAppMaster extends CompositeService
    * @param role
    * @return a possibly empty list of nodes
    */
-  public List<ClusterNode> enumNodesInRole(String role) {
+  public List<ContainerInfo> enumNodesInRole(String role) {
     return appState.enumLiveNodesInRole(role);
   }
 
@@ -1154,13 +1119,14 @@ public class HoyaAppMaster extends CompositeService
    * Get a clone of the current list of nodes
    * @return the possibly empty list of live nodes
    */
-  private List<ClusterNode> getLiveClusterNodes() {
-    return appState.cloneLiveClusterNodeList();
+  private List<ContainerInfo> getLiveContainerInfos() {
+    return appState.cloneLiveContainerInfoList();
   }
 
   @Override
   public String getNode(String uuid) throws IOException, NoSuchNodeException {
-    ClusterNode node = appState.getLiveClusterNodeByUUID(uuid);
+    ContainerInfo ci = appState.getLiveInstanceByUUID(uuid);
+    ClusterNode node = ci.toWireFormat();
     return node.toJsonString();
   }
 
@@ -1168,11 +1134,12 @@ public class HoyaAppMaster extends CompositeService
   public String[] getClusterNodes(String[] uuids) throws IOException {
     //first, a hashmap of those uuids is built up
     Set<String> uuidSet = new HashSet<String>(Arrays.asList(uuids));
-    List<ClusterNode> clusterNodes = appState.getLiveClusterNodesByUUID(uuids);
+    List<ContainerInfo>
+      clusterNodes = appState.getLiveContainerInfosByUUID(uuids);
     List<String> jsonnodes = new ArrayList<String>(clusterNodes.size());
 
-    for (ClusterNode node : clusterNodes) {
-        jsonnodes.add(node.toJsonString());
+    for (ContainerInfo node : clusterNodes) {
+        jsonnodes.add(node.toWireFormat().toJsonString());
     }
     //at this point: a possibly empty list of nodes
     return jsonnodes.toArray(new String[jsonnodes.size()]);
@@ -1189,7 +1156,7 @@ public class HoyaAppMaster extends CompositeService
   private void updateClusterStatus() {
 
     long t = System.currentTimeMillis();
-    ClusterNode master = appState.getMasterNode();
+    ClusterNode master = appState.getMasterNode().toWireFormat();
     if (master != null) {
       provider.buildStatusReport(master);
     }
@@ -1224,7 +1191,7 @@ public class HoyaAppMaster extends CompositeService
     appState.noteMasterNodeLive();
     //now ask for the cluster nodes
     try {
-      flexClusterNodes(getClusterSpec());
+      flexCluster(getClusterSpec());
     } catch (Exception e) {
       //this happens in a separate thread, so the ability to act is limited
       log.error("Failed to flex cluster nodes", e);
@@ -1286,12 +1253,12 @@ public class HoyaAppMaster extends CompositeService
    * launch context
    * @param container container
    * @param ctx context
-   * @param node node details
+   * @param ci node details
    */
   void startContainer(Container container,
                              ContainerLaunchContext ctx,
-                             ClusterNode node) {
-    appState.containerStartSubmitted(container, node);
+                             ContainerInfo ci) {
+    appState.containerStartSubmitted(container, ci);
     nmClientAsync.startContainerAsync(container, ctx);
   }
 

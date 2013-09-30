@@ -41,6 +41,7 @@ public class ClusterNode {
   
   @JsonIgnore
   public ContainerId containerId;
+  
   /**
    * server name
    */
@@ -50,7 +51,7 @@ public class ClusterNode {
   
   public int roleId;
   /**
-   * state (Currently arbitrary text)
+   * state from {@link ClusterDescription}
    */
   public int state;
 
@@ -80,24 +81,37 @@ public class ClusterNode {
    */
   public String[] environment;
 
+  /**
+   * UUID of container used in Hoya RPC to refer to instances
+   */
   public String uuid;
 
-  public ClusterNode(String name) {
-    this.name = name;
+
+  /**
+   * server-side ctor takes the container ID and builds the name from it
+   * @param containerId container ID
+   */
+  public ClusterNode(ContainerId containerId) {
+    this.containerId = containerId;
+    this.name = containerId.toString();
   }
 
+  /**
+   * ctor for deserialization
+   */
   public ClusterNode() {
   }
 
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();
-    builder.append(name).append(": ").append(state).append("\n");
+    builder.append(name).append(": ");
+    builder.append(state).append("\n");
     builder.append("state: ").append(state).append("\n");
     builder.append("role: ").append(role).append("\n");
     builder.append("uuid: ").append(uuid).append("\n");
     if (command != null) {
-      builder.append("command: " + command).append("\n");
+      builder.append("command: ").append(command).append("\n");
     }
     if (output != null) {
       for (String line : output) {

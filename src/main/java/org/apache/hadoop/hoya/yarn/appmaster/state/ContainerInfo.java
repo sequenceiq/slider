@@ -18,16 +18,24 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
+import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.api.ClusterNode;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
+
+import java.util.UUID;
 
 /**
  * Info about a continer to keep around when deciding which container to release
  */
 public class ContainerInfo {
 
-  public final Container container;
+  public Container container;
+  /**
+   * UUID of container used in Hoya RPC to refer to instances
+   */
+  public String uuid;
   public long createTime;
   public long startTime;
   /**
@@ -37,6 +45,36 @@ public class ContainerInfo {
   public boolean released;
   public String role;
   public int roleId;
+  /**
+   * state from {@link ClusterDescription}
+   */
+  public int state;
+
+  /**
+   * Exit code: only valid if the state >= STOPPED
+   */
+  public int exitCode;
+
+  /**
+   * what was the command executed?
+   */
+  public String command;
+
+  /**
+   * Any diagnostics
+   */
+  public String diagnostics;
+
+  /**
+   * What is the tail output from the executed process (or [] if not started
+   * or the log cannot be picked up
+   */
+  public String[] output;
+
+  /**
+   * Any environment details
+   */
+  public String[] environment;
 
   public ContainerInfo(Container container) {
     this.container = container;
@@ -56,5 +94,35 @@ public class ContainerInfo {
            "container=" + container +
            ", role='" + role + '\'' +
            '}';
+  }
+
+  public void buildUUID() {
+    uuid = UUID.randomUUID().toString();
+  }
+  public ContainerId getContainerId() {
+    return container!=null? container.getId(): null;
+  }
+  /**
+   * Build the wire representation for status messages
+   * @return an instance to send back over the network
+   */
+  public ClusterNode toWireFormat() {
+    ClusterNode node;
+    if (container != null) {
+      node = new ClusterNode(container.getId());
+    } else {
+      node = new ClusterNode();
+      node.name = "unallocated instance";
+    }
+    node.role = role;
+    node.roleId = roleId;
+    node.state = state;
+    node.exitCode = exitCode;
+    node.command = command;
+    node.diagnostics = diagnostics;
+    node.output = output;
+    node.environment = environment;
+    node.uuid = uuid;
+    return node;
   }
 }

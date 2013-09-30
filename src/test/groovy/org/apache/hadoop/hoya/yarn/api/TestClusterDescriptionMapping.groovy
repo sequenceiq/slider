@@ -48,7 +48,8 @@ class TestClusterDescriptionMapping extends YarnMiniClusterTestBase {
             (RoleKeys.ROLE_INSTANCES):"1"
           ]
         ]
-    ClusterNode node = new ClusterNode("masternode")
+    ClusterNode node = new ClusterNode()
+    node.name = "masternode"
     cd.startTime = System.currentTimeMillis()
 
     return cd;
