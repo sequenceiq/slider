@@ -35,109 +35,143 @@ package org.apache.hadoop.hoya.api;
 
 
 /**
- * block - block for which visible length is requested
+ * stop the cluster
  */
-message GetReplicaVisibleLengthRequestProto {
-  required uint64 block = 1;
+message StopClusterRequestProto {
+  /**
+  message to include
+  */
+  required string message = 1;
+}
+/**
+ * stop the cluster
+ */
+message StopClusterResponseProto {
 }
 
 /**
- * length - visible length of the block
+ * flex the cluster
  */
-message GetReplicaVisibleLengthResponseProto {
-  required uint64 length = 1;
+message FlexClusterRequestProto {
+  required string clusterSpec = 1;
 }
+
+
+/**
+ * stop the cluster
+ */
+message FlexClusterResponseProto {
+  required bool response = 1;
+}
+
+
 
 /**
  * void request
  */
-message RefreshNamenodesRequestProto {
+message getJsonClusterStatusRequestProto {
 }
 
 /**
- * void response
+ * response
  */
-message RefreshNamenodesResponseProto {
+message getJsonClusterStatusResponseProto {
+  required string clusterSpec = 1;
+
 }
 
 /**
- * blockPool - block pool to be deleted
- * force - if false, delete the block pool only if it is empty.
- *         if true, delete the block pool even if it has blocks.
+ * list the nodes in a role
  */
-message DeleteBlockPoolRequestProto {
-  required string blockPool = 1;
-  required bool force = 2;
-}
-
-/**
- * void response
- */
-message DeleteBlockPoolResponseProto {
-}
-
-
-
-/**
- * block - block for which file path information is being returned
- * localPath - file path where the block data is stored
- * localMetaPath - file path where the block meta data is stored
- *
- * This message is deprecated in favor of file descriptor passing.
- */
-message GetBlockLocalPathInfoResponseProto {
-  required uint64 block = 1;
-  required string localPath = 2;
-  required string localMetaPath = 3;
+message ListNodeUUIDsByRoleRequestProto {
+  required string role = 1;
 }
 
 
 /**
- * volumeIds - id of each volume, potentially multiple bytes
- * volumeIndexes - for each block, an index into volumeIds specifying the volume
- *               on which it is located. If block is not present on any volume,
- *               index is set to MAX_INT.
+ * list the nodes in a role
  */
-message GetHdfsBlockLocationsResponseProto {
-  repeated bytes volumeIds = 1;
-  repeated uint32 volumeIndexes = 2;
+message ListNodeUUIDsByRoleResponseProto {
+  repeated string uuid = 1 ;
 }
 
-/**
- * Protocol used from client to the Datanode.
- * See the request and response for details of rpc call.
- */
-service ClientDatanodeProtocolService {
-  /**
-   * Returns the visible length of the replica
-   */
-  rpc getReplicaVisibleLength(GetReplicaVisibleLengthRequestProto)
-      returns(GetReplicaVisibleLengthResponseProto);
 
-  /**
-   * Refresh the list of federated namenodes from updated configuration.
-   * Adds new namenodes and stops the deleted namenodes.
-   */
-  rpc refreshNamenodes(RefreshNamenodesRequestProto)
-      returns(RefreshNamenodesResponseProto);
+/**
+ * get a node
+ */
+message GetNodeRequestProto {
+  required string uuid = 1;
+}
+
+
+/**
+ * response on a node
+ */
+message GetNodeResponseProto {
+   required string clusterNode = 1 ;
+}
+
+
+
+/**
+ * list the nodes for the UUDs
+ */
+message GetClusterNodesRequestProto {
+  repeated string uuid = 1 ;
+}
+
+
+/**
+ * list the nodes in a role
+ */
+message GetClusterNodesResponseProto {
+  repeated string clusterNode = 1 ;
+}
+
+
+
+/**
+ * Protocol used from between Hoya Client and AM
+ */
+service HoyaRPCProtocolService {
 
   /**
-   * Delete the block pool from the datanode.
+   * Stop the cluster
    */
-  rpc deleteBlockPool(DeleteBlockPoolRequestProto)
-      returns(DeleteBlockPoolResponseProto);
+
+  rpc stopCluster(StopClusterRequestProto) 
+    returns(StopClusterResponseProto);
+    
+  /**
+   * Flex the cluster. 
+   */
+  rpc flexCluster(FlexClusterRequestProto) 
+    returns(FlexClusterResponseProto);
 
   /**
-   * Retrieves the path names of the block file and metadata file stored on the
-   * local file system.
+   * Get the current cluster status
    */
-  rpc getBlockLocalPathInfo(RefreshNamenodesRequestProto)
-      returns(GetBlockLocalPathInfoResponseProto);
+  rpc getJSONClusterStatus(getJsonClusterStatusRequestProto)
+    returns(getJsonClusterStatusResponseProto);
 
   /**
-   * Retrieve additional HDFS-specific metadata about a set of blocks stored
-   * on the local file system.
+   * List all running nodes in a role
    */
-  rpc getHdfsBlockLocations(RefreshNamenodesRequestProto)
-      returns(GetHdfsBlockLocationsResponseProto);
+  rpc listNodeUUIDsByRole(ListNodeUUIDsByRoleRequestProto)
+    returns(ListNodeUUIDsByRoleResponseProto);
+
+  /**
+   * Get the details on a node
+   */
+  rpc getNode(GetNodeRequestProto)
+    returns(GetNodeResponseProto);
+
+  /**
+   * Get the 
+   * details on a list of nodes.
+   * Unknown nodes are not returned
+   * <i>Important: the order of the results are undefined</i>
+   */
+  rpc getClusterNodes(GetClusterNodesRequestProto)
+    returns(GetClusterNodesResponseProto);
 }
