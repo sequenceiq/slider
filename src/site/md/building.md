@@ -81,6 +81,7 @@ the hbase source tree.
     pushd hbase-assembly/target
     gunzip hbase-0.97.0-SNAPSHOT-bin.tar.gz 
     tar -xvf hbase-0.97.0-SNAPSHOT-bin.tar
+    gzip hbase-0.97.0-SNAPSHOT-bin.tar
     popd
 
 This will create an untarred directory `hbase-0.97.0-SNAPSHOT-bin` containing
