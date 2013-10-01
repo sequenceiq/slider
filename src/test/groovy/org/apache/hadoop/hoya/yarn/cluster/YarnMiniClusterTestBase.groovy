@@ -401,8 +401,9 @@ implements KeysForTests, HoyaExitCodes {
     return WAIT_TIME_ARG;
   }
   
-  protected String getWaitTime() {
-    return WAIT_TIME;
+  protected int getWaitTimeMillis(Configuration conf) {
+    
+    return WAIT_TIME * 1000;
   }
 
   /**
@@ -601,8 +602,8 @@ implements KeysForTests, HoyaExitCodes {
    */
   public ApplicationReport waitForAppToFinish(HoyaClient hoyaClient) {
 
-    ApplicationReport report = hoyaClient.monitorAppToState(new Duration(WAIT_TIME),
-                                                            YarnApplicationState.FINISHED);
+    ApplicationReport report = hoyaClient.monitorAppToState(new Duration(
+        getWaitTimeMillis(hoyaClient.config)), YarnApplicationState.FINISHED);
     if (report == null) {
       log.info("Forcibly killing application")
       dumpClusterStatus(hoyaClient, "final application status")

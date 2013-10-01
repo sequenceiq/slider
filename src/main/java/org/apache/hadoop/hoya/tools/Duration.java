@@ -18,6 +18,9 @@
 
 package org.apache.hadoop.hoya.tools;
 
+/**
+ * A duration in milliseconds
+ */
 public class Duration {
   public long start, finish;
   public final long limit;
