@@ -43,6 +43,7 @@ class TestActionExists extends HBaseMiniClusterTestBase {
 
   @Before
   public void setup() {
+    super.setup()
     createMiniCluster("TestActionExists", createConfiguration(), 1, false)
   }
   

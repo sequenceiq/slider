@@ -41,6 +41,7 @@ class TestClusterSpecUpdate extends YarnMiniClusterTestBase {
 
   @Before
   public void setup() {
+    super.setup()
     testDir = new File("target/testClusterSpecUpdate")
     HoyaUtils.deleteDirectoryTree(testDir)
     testDirURI = testDir.toURI()

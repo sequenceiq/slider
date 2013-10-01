@@ -113,7 +113,8 @@ implements KeysForTests, HoyaExitCodes {
 
   @Before
   public void setup() {
-    
+    //give our thread a name
+    Thread.currentThread().name = "JUnit"
   }
   
   @After
@@ -126,6 +127,7 @@ implements KeysForTests, HoyaExitCodes {
   protected void addToTeardown(HoyaClient client) {
     clustersToTeardown << client;
   }
+
   /**
    * Stop any running cluster that has been added
    */
