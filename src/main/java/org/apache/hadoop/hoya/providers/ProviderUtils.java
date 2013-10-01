@@ -150,4 +150,15 @@ public class ProviderUtils implements RoleKeys {
   }
 
 
+  public static void validatePathReferencesLocalDir(String meaning, String path) throws
+                                                                                 BadConfigException {
+    File file = new File(path);
+    if (!file.exists()) {
+      throw new BadConfigException("%s directory %s not found", meaning, file);
+    }
+    if (!file.isDirectory()) {
+      throw new BadConfigException("%s is not a directory: %s", meaning, file);
+    }
+    
+  }
 }

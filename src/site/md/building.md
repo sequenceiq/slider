@@ -122,6 +122,10 @@ this, to create a .tar file and an expanded directory
     tar -xvf accumulo-1.6.0-SNAPSHOT-bin.tar 
     popd
     
+Note that the final location of the accumulo files is needed for the configuration,
+it may be directly under target/ or it may be in a subdirectory, with 
+a patch such as `target/accumulo-1.6.0-SNAPSHOT-dev/accumulo-1.6.0-SNAPSHOT/`
+
 
 ## Testing
 
@@ -146,14 +150,14 @@ is ignored by git), declaring where HBase is:
          
       <property>
         <name>hoya.test.accumulo_home</name>
-        <value>/Users/hoya/hbase/hbase-assembly/target/accumulo-1.6.0-SNAPSHOT-bin.tar</value>
-        <description>HBASE Home</description>
+        <value>/Users/hoya/accumulo/assemble/target/accumulo-1.6.0-SNAPSHOT-dev/accumulo-1.6.0-SNAPSHOT/</value>
+        <description>Accumulo Home</description>
       </property>
     
       <property>
         <name>hoya.test.accumulo_tar</name>
         <value>/Users/hoya/accumulo/assemble/target/accumulo-1.6.0-SNAPSHOT-bin.tar.gz</value>
-        <description>HBASE archive URI</description>
+        <description>Accumulo archive URI</description>
       </property>
       
       <property>

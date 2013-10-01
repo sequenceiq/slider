@@ -221,14 +221,20 @@ public class AccumuloProviderService extends AbstractProviderService implements
       throw new BadConfigException(
         "Undefined env variable/config option: " + HADOOP_HOME);
     }
+    ProviderUtils.validatePathReferencesLocalDir("HADOOP_HOME",hadoop_home);
     env.put(HADOOP_HOME, hadoop_home);
     env.put(HADOOP_PREFIX, hadoop_home);
     File image = AccumuloClientProvider.buildImageDir(clusterSpec);
     File dot = new File(".");
-    env.put(ACCUMULO_HOME, image.getAbsolutePath());
+    String accumuloPath = image.getAbsolutePath();
+    env.put(ACCUMULO_HOME, accumuloPath);
+    ProviderUtils.validatePathReferencesLocalDir("ACCUMULO_HOME", accumuloPath);
     env.put(ACCUMULO_CONF_DIR, 
             new File(dot, HoyaKeys.PROPAGATED_CONF_DIR_NAME).getAbsolutePath());
-    env.put(ZOOKEEPER_HOME, clusterSpec.getMandatoryOption(OPTION_ZK_HOME));
+    String zkHome = clusterSpec.getMandatoryOption(OPTION_ZK_HOME);
+    ProviderUtils.validatePathReferencesLocalDir("ZOOKEEPER_HOME", zkHome);
+
+    env.put(ZOOKEEPER_HOME, zkHome);
 
 
     //prepend the hbase command itself
