@@ -35,14 +35,15 @@ package org.apache.hadoop.hoya.api;
 
 message RoleInstanceState {
   required string name = 1;
-  required string role = 2;
-  required string uuid = 3;
+  optional string role = 2;
+  optional string uuid = 3;
   required uint32 state = 4;
   required uint32 exitCode = 5;
-  required string command = 6;
-  required string diagnostics = 7;
+  optional string command = 6;
+  optional string diagnostics = 7;
   repeated string output = 8;
   repeated string environment = 9;
+  required uint32 roleId = 10;
 }
 
 /**
@@ -118,7 +119,7 @@ message GetNodeRequestProto {
  * response on a node
  */
 message GetNodeResponseProto {
-   required string clusterNode = 1 ;
+   required RoleInstanceState clusterNode = 1 ;
 }
 
 
@@ -135,7 +136,7 @@ message GetClusterNodesRequestProto {
  * list the nodes in a role
  */
 message GetClusterNodesResponseProto {
-  repeated string clusterNode = 1 ;
+  repeated RoleInstanceState clusterNode = 1 ;
 }
 
 

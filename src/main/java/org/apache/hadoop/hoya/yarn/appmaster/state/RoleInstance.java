@@ -20,10 +20,13 @@ package org.apache.hadoop.hoya.yarn.appmaster.state;
 
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.ClusterNode;
+import org.apache.hadoop.hoya.api.proto.Messages;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.UUID;
 
 /**
@@ -106,7 +109,7 @@ public class RoleInstance {
    * Build the wire representation for status messages
    * @return an instance to send back over the network
    */
-  public ClusterNode toWireFormat() {
+  public ClusterNode toClusterNodeFormat() {
     ClusterNode node;
     if (container != null) {
       node = new ClusterNode(container.getId());
@@ -114,15 +117,53 @@ public class RoleInstance {
       node = new ClusterNode();
       node.name = "unallocated instance";
     }
+    node.command = command;
+    node.environment = environment;
+    node.diagnostics = diagnostics;
+    node.exitCode = exitCode;
+
+    node.output = output;
     node.role = role;
     node.roleId = roleId;
     node.state = state;
-    node.exitCode = exitCode;
-    node.command = command;
-    node.diagnostics = diagnostics;
-    node.output = output;
-    node.environment = environment;
     node.uuid = uuid;
     return node;
+  }
+
+  /**
+   * Generate the protobuf format of a request
+   * @return protobuf format. This excludes the Container info
+   */
+  public Messages.RoleInstanceState toProtobuf() {
+    Messages.RoleInstanceState.Builder builder =
+      Messages.RoleInstanceState.newBuilder();
+    if (container != null) {
+      builder.setName(container.getId().toString());
+    } else {
+      builder.setName("unallocated instance");
+    }
+    if (command != null) {
+      builder.setCommand(command);
+    }
+    if (environment != null) {
+      builder.addAllEnvironment(Arrays.asList(environment));
+    }
+    if (diagnostics != null) {
+      builder.setDiagnostics(diagnostics);
+    }
+    builder.setExitCode(exitCode);
+
+    if (output != null) {
+      builder.addAllOutput(Arrays.asList(output));
+    }
+    if (role != null) {
+      builder.setRole(role);
+    }
+    builder.setRoleId(roleId);
+    builder.setState(state);
+    if (uuid != null) {
+      builder.setUuid(uuid);
+    }
+    return builder.build();
   }
 }

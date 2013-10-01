@@ -18,7 +18,7 @@
 
 package org.apache.hadoop.hoya.api;
 
-import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.hoya.api.proto.Messages;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.annotate.JsonIgnore;
@@ -151,5 +151,26 @@ public class ClusterNode {
       throw e;
     }
   }
-  
+
+  /**
+   * Build from a protobuf response
+   * @param message
+   * @return
+   */
+  public static ClusterNode fromProtobuf(Messages.RoleInstanceState message) {
+    ClusterNode node = new ClusterNode();
+    node.command = message.getCommand();
+    node.diagnostics = message.getDiagnostics();
+    String[] arr = new String[message.getEnvironmentCount()];
+    node.environment = message.getEnvironmentList().toArray(arr);
+    node.exitCode = message.getExitCode();
+    node.name = message.getName();
+    arr = new String[message.getOutputCount()];
+    node.output = message.getOutputList().toArray(arr);
+    node.role = message.getRole();
+    //node.roleId = message.get
+    node.state = message.getState();
+    node.uuid = message.getUuid();
+    return node;
+  }
 }

@@ -1661,7 +1661,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
               .addAllUuid(uuidList)
               .build();
     Messages.GetClusterNodesResponseProto resp = appMaster.getClusterNodes(req);
-    return convertNodeJsonToClusterNodes(resp.getClusterNodeList());
+    return convertNodeWireToClusterNodes(resp.getClusterNodeList());
   }
 
   /**
@@ -1687,7 +1687,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
               .addAllUuid(Arrays.asList(uuids))
               .build();
     Messages.GetClusterNodesResponseProto resp = appMaster.getClusterNodes(req);
-    return convertNodeJsonToClusterNodes(resp.getClusterNodeList());
+    return convertNodeWireToClusterNodes(resp.getClusterNodeList());
   }
 
   private List<ClusterNode> convertNodeJsonToClusterNodes(String[] nodes) throws
@@ -1699,11 +1699,11 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     return nodeList;
   }
 
-  private List<ClusterNode> convertNodeJsonToClusterNodes(List<String> nodes) throws
+  private List<ClusterNode> convertNodeWireToClusterNodes(List<Messages.RoleInstanceState> nodes) throws
                                                                           IOException {
     List<ClusterNode> nodeList = new ArrayList<ClusterNode>(nodes.size());
-    for (String node : nodes) {
-      nodeList.add(ClusterNode.fromJson(node));
+    for (Messages.RoleInstanceState node : nodes) {
+      nodeList.add(ClusterNode.fromProtobuf(node));
     }
     return nodeList;
   }
@@ -1735,8 +1735,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     Messages.GetNodeRequestProto req =
       Messages.GetNodeRequestProto.newBuilder().setUuid(uuid).build();
     Messages.GetNodeResponseProto node = appMaster.getNode(req);
-    String json = node.getClusterNode();
-    return ClusterNode.fromJson(json);
+    return ClusterNode.fromProtobuf(node.getClusterNode());
   }
 
   /**

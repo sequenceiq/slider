@@ -1132,9 +1132,9 @@ public class HoyaAppMaster extends CompositeService
                                                                                      IOException,
                                                                                      YarnException {
     RoleInstance instance = appState.getLiveInstanceByUUID(request.getUuid());
-    ClusterNode node1 = instance.toWireFormat();
-    String node = node1.toJsonString();
-    return Messages.GetNodeResponseProto.newBuilder().setClusterNode(node).build();
+    return Messages.GetNodeResponseProto.newBuilder()
+                   .setClusterNode(instance.toProtobuf())
+                   .build();
   }
 
   @Override //HoyaClusterProtocol
@@ -1147,7 +1147,7 @@ public class HoyaAppMaster extends CompositeService
     Messages.GetClusterNodesResponseProto.Builder builder =
       Messages.GetClusterNodesResponseProto.newBuilder();
     for (RoleInstance node : clusterNodes) {
-      builder.addClusterNode(node.toWireFormat().toJsonString());
+      builder.addClusterNode(node.toProtobuf());
     }
     //at this point: a possibly empty list of nodes
     return builder.build();
@@ -1164,9 +1164,9 @@ public class HoyaAppMaster extends CompositeService
   private void updateClusterStatus() {
 
     long t = System.currentTimeMillis();
-    ClusterNode master = appState.getMasterNode().toWireFormat();
-    if (master != null) {
-      provider.buildStatusReport(master);
+    RoleInstance masterNode = appState.getMasterNode();
+    if (masterNode != null) {
+      provider.buildStatusReport(masterNode.toClusterNodeFormat());
     }
     appState.refreshClusterStatus();
   }
