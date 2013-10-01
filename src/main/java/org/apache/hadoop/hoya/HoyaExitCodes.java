@@ -25,7 +25,7 @@ public interface HoyaExitCodes extends LauncherExitCodes {
   /**
    * starting point for exit codes; not an exception itself
    */
-  int _EXIT_CODE_BASE = 64;
+  int _EXIT_CODE_BASE =           64;
   /**
    * internal error: {@value}
    */
@@ -33,22 +33,22 @@ public interface HoyaExitCodes extends LauncherExitCodes {
   /**
    * Unimplemented feature: {@value}
    */
-  int EXIT_UNIMPLEMENTED = 65;
+  int EXIT_UNIMPLEMENTED =        65;
 
   /**
    * service entered the failed state: {@value}
    */
-  int EXIT_YARN_SERVICE_FAILED = 66;
+  int EXIT_YARN_SERVICE_FAILED =  66;
 
   /**
    * service was killed: {@value}
    */
-  int EXIT_YARN_SERVICE_KILLED = 67;
+  int EXIT_YARN_SERVICE_KILLED =  67;
 
   /**
    * timeout on monitoring client: {@value}
    */
-  int EXIT_TIMED_OUT = 68;
+  int EXIT_TIMED_OUT =            68;
 
   /**
    * service finished with an error: {@value}
@@ -63,7 +63,7 @@ public interface HoyaExitCodes extends LauncherExitCodes {
   /**
    * the cluster is in the wrong state for that operation: {@value}
    */
-  int EXIT_BAD_CLUSTER_STATE = 71;
+  int EXIT_BAD_CLUSTER_STATE =    71;
 
   /**
    * A spawned master process failed 
