@@ -237,8 +237,29 @@ Here is a handy bash command to do this
 
 # Notes
 
+## Groovy 
+
 Hoya uses Groovy 2.x as its language for writing tests -for better assertions
 and easier handling of lists and closures. Although the first prototype
 used Groovy on the production source, this has been dropped in favor of
-a Java-only codebase. We do still push up `groovyall.jar` to the classpath
-of the HoyaAM.
+a Java-only codebase.
+
+## Maven utils
+
+
+Here are some handy aliases to make maven easier 
+
+    alias mci='mvn clean install -DskipTests'
+    alias mi='mvn install -DskipTests'
+    alias mvct='mvn clean test'
+    alias mvnsite='mvn site:site -Dmaven.javadoc.skip=true'
+    alias mvt='mvn test'
+
+
+### dumping the dependencies
+
+    mvn dependency:tree 
+    
+Have a look at this after adding an JAR to the classpath to look out
+for spurious dependency pickup. There's a lot of inconsistencies
+between Hadoop, HBase and Accumulo to watch out for

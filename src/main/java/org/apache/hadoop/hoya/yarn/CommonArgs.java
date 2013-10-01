@@ -53,7 +53,7 @@ public class CommonArgs implements HoyaActions {
   public static final String ARG_ACTION = "--action";
   public static final String ARG_APP_HOME = "--apphome";
   public static final String ARG_APP_ZKPATH = "--zkpath";
-  public static final String ARG_CONFDIR = "--confdir";
+  public static final String ARG_CONFDIR = "--appconf";
   public static final String ARG_DEBUG = "--debug";
   public static final String ARG_FILESYSTEM = "--fs";
   public static final String ARG_FILESYSTEM_LONG = "--filesystem";

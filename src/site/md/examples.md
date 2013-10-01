@@ -90,7 +90,7 @@ RM yarn-daemon.sh --config $HADOOP_CONF_DIR start nodemanager
       create cl1 --role workers 4\
       --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000 --zkhosts localhost \
       --image hdfs://ubuntu:9000/hbase.tar \
-      --confdir file:////home/hoya/Projects/hoya/src/test/configs/ubuntu/hbase \
+      --appconf file:////home/hoya/Projects/hoya/src/test/configs/ubuntu/hbase \
       --roleopt master app.infoport 8080 \
       --roleopt master jvm.heap 128 \
       --roleopt master env.MALLOC_ARENA_MAX 4 \

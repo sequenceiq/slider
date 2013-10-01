@@ -124,7 +124,7 @@ on the nodes at this location
 The full path in Hadoop HDFS  to a .tar or .tar.gz file containing an HBase image.
 
 
-### --confdir dfspath
+### --appconf dfspath
 
 The full path in Hadoop HDFS (or other shared FS)  to the configuration directory containing the template cluster specification. The path must be on a filesystem visible to all nodes in the YARN cluster.
 
@@ -201,13 +201,13 @@ CLUSTER COMMANDS
 
 
 
-### build \<cluster> --fs filesystem --confdir dir --zkhosts zkhosts \[--image path] \[--apphome apphomedir] \[--zkport port] \[--zkpath zkpath]\[ \[--waittime time] \[--role <name> <count>]*  \[--roleopt <name> <value>]* \[--provider provider]
+### build \<cluster> --fs filesystem --appconf dir --zkhosts zkhosts \[--image path] \[--apphome apphomedir] \[--zkport port] \[--zkpath zkpath]\[ \[--waittime time] \[--role <name> <count>]*  \[--roleopt <name> <value>]* \[--provider provider]
 
 Build a cluster specification of the given name, with the specific options.
 
 The cluster is not started; this can be done later with a `thaw` command.
 
-### create \<cluster> --fs filesystem --confdir dir --zkhosts zkhosts \[--image path] \[--apphome apphomedir] \[--zkport port] \[--zkpath zkpath]\[ \[--waittime time] \[--role <name> <count>]*  \[--roleopt <name> <value>]* 
+### create \<cluster> --fs filesystem --appconf dir --zkhosts zkhosts \[--image path] \[--apphome apphomedir] \[--zkport port] \[--zkpath zkpath]\[ \[--waittime time] \[--role <name> <count>]*  \[--roleopt <name> <value>]* 
 
 Build and run a cluster of the given name, using the specified image. If a configuration directory is specified, it's configuration files override those in the image. 
 
@@ -281,7 +281,7 @@ Return the number of region servers in the cluster as the return value of the op
 If a count parameter is provided, then the return code is success, 0, if and only if the number of region servers equals the count. The HBase Master is not included in the size count.
 
 
-### UNIMPLEMENTED: reconfigure \<cluster> --confdir path
+### UNIMPLEMENTED: reconfigure \<cluster> --appconf path
 
 Update a cluster with a new configuration. This operation is only valid on a stopped cluster. The new configuration will completely replace the existing configuration.
 
@@ -291,10 +291,10 @@ Update a cluster with a new configuration. This operation is only valid on a sto
 
 <!--- ======================================================================= -->
 
-## Exit Codes
 
 ## Cluster Naming
-Cluster names must 
+
+Cluster names must:
 
 1. be at least one character long
 1. begin with a letter
