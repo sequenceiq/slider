@@ -18,14 +18,12 @@
 
 package org.apache.hadoop.hoya.yarn.cluster.actions
 
-import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
-import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.conf.YarnConfiguration
@@ -36,13 +34,13 @@ import org.junit.Test
 /**
  * Test of RM creation. This is so the later test's prereq's can be met
  */
-@CompileStatic
 @Slf4j
 
 class TestActionList extends HBaseMiniClusterTestBase {
 
   @Before
   public void setup() {
+    super.setup()
     createMiniCluster("testActionList", createConfiguration(), 1, false)
   }
   
