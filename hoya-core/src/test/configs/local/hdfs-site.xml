@@ -24,13 +24,13 @@
   
   <property>
     <name>dfs.namenode.name.dir</name>
-    <value>/home/stevel/hdfs/namenode</value>
+    <value>/tmp/hdfs/namenode</value>
   </property>
 
   
   <property>
     <name>dfs.datanode.data.dir</name>
-    <value>/home/stevel/hdfs/datanode</value>
+    <value>/tmp/hdfs/datanode</value>
   </property>
 
   

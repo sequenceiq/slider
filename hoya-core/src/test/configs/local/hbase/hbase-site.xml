@@ -34,7 +34,7 @@
  </property>
  <property>
    <name>hbase.tmp.dir</name>
-   <value>./hbase-tmp</value>
+   <value>/tmp/hbase-tmp</value>
  </property>
  <property>
    <name>hbase.regionserver.hlog.tolerable.lowreplication</name>
