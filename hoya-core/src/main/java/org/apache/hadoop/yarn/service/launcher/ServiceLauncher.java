@@ -324,9 +324,16 @@ public class ServiceLauncher
    */
   public static String[] extractConfigurationArgs(Configuration conf,
                                                   List<String> args) {
+
     //convert args to a list
-    List<String> argsList = new ArrayList<String>(args.size());
-    ListIterator<String> arguments = argsList.listIterator(1);
+    int argCount = args.size();
+    if (argCount <= 1 ) {
+      return new String[0];
+    }
+    List<String> argsList = new ArrayList<String>(argCount);
+    ListIterator<String> arguments = args.listIterator();
+    //skip that first entry
+    arguments.next();
     while (arguments.hasNext()) {
       String arg = arguments.next();
       if (arg.equals(ARG_CONF)) {
