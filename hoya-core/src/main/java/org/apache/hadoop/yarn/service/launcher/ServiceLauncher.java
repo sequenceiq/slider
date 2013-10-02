@@ -46,6 +46,7 @@ import java.util.List;
  *   <li></li>
  * </ol>
  */
+@SuppressWarnings("UseOfSystemOutOrSystemErr")
 public class ServiceLauncher
   implements LauncherExitCodes, IrqHandler.Interrupted {
   private static final Log LOG = LogFactory.getLog(ServiceLauncher.class);
@@ -302,7 +303,7 @@ public class ServiceLauncher
    * @param args arguments to the service. arg[0] is 
    * assumed to be the service classname and is automatically
    */
-  public void launchServiceAndExit(String[] args) {
+  public void launchServiceAndExit(List<String> args) {
 
     //Currently the config just the default
     Configuration conf = new Configuration();
@@ -314,29 +315,31 @@ public class ServiceLauncher
   /**
    * Extract the configuration arguments and apply them to the configuration,
    * building an array of processed arguments to hand down to the service.
+   *
    * @param conf configuration to update
    * @param args main arguments. args[0] is assumed to be the service
    * classname and is skipped
    * @return the processed list.
    */
   public static String[] extractConfigurationArgs(Configuration conf,
-                                                  String[] args) {
+                                                  List<String> args) {
     //convert args to a list
-    List<String> argsList = new ArrayList<String>(args.length - 1);
-    for (int index = 1; index < args.length; index++) {
-      String arg = args[index];
+    int len = args.size();
+    List<String> argsList = new ArrayList<String>(len);
+    for (int index = 1; index < len; index++) {
+      String arg = args.get(index);
       if (arg.equals(ARG_CONF)) {
         //the argument is a --conf file tuple: extract the path and load
         //it in as a configuration resource.
 
         //increment the loop counter
         index++;
-        if (index == args.length) {
+        if (index == len) {
           //overshot the end of the file
           exitWithMessage(EXIT_COMMAND_ARGUMENT_ERROR,
                           ARG_CONF + ": missing configuration file after ");
         }
-        File file = new File(args[index]);
+        File file = new File(args.get(index));
         if (!file.exists()) {
           exitWithMessage(EXIT_COMMAND_ARGUMENT_ERROR,
                           ARG_CONF + ": configuration file not found: "
@@ -413,13 +416,13 @@ public class ServiceLauncher
    * @param args arguments
    */
   public static String startupShutdownMessage(String classname,
-                                              String[] args) {
+                                              List<String> args) {
     final String hostname = NetUtils.getHostname();
 
     return toStartupShutdownString("STARTUP_MSG: ", new String[]{
       "Starting " + classname,
       "  host = " + hostname,
-      "  args = " + Arrays.asList(args),
+      "  args = " + args,
       "  version = " + VersionInfo.getVersion(),
       "  classpath = " + System.getProperty("java.class.path"),
       "  build = " + VersionInfo.getUrl() + " -r "
@@ -482,19 +485,22 @@ public class ServiceLauncher
    * @param args command line arguments.
    */
   public static void main(String[] args) {
-    if (args.length < 1) {
+    List<String> argsList = Arrays.asList(args); 
+      new ArrayList<String>(args.length);
+    
+    if (argsList.size() < 1) {
       exitWithMessage(EXIT_USAGE, USAGE_MESSAGE);
     } else {
-      String serviceClassName = args[0];
+      String serviceClassName = argsList.get(0);
 
       if (LOG.isDebugEnabled()) {
-        LOG.debug(startupShutdownMessage(serviceClassName, args));
+        LOG.debug(startupShutdownMessage(serviceClassName, argsList));
       }
       Thread.setDefaultUncaughtExceptionHandler(
         new YarnUncaughtExceptionHandler());
 
       ServiceLauncher serviceLauncher = new ServiceLauncher(serviceClassName);
-      serviceLauncher.launchServiceAndExit(args);
+      serviceLauncher.launchServiceAndExit(argsList);
     }
   }
 
