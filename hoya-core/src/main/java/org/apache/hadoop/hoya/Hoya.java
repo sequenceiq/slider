@@ -19,10 +19,34 @@
 package org.apache.hadoop.hoya;
 
 import org.apache.hadoop.hoya.yarn.client.HoyaClient;
+import org.apache.hadoop.yarn.service.launcher.ServiceLauncher;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * This is just the entry point class
  */
 public class Hoya extends HoyaClient {
+
+
+  public static final String SERVICE_CLASSNAME = "org.apache.hadoop.hoya.Hoya";
+
+  /**
+   * This is the main entry point for the service launcher.
+   * @param args command line arguments.
+   */
+  public static void main(String[] args) {
+    
+    //turn the args to a list
+    List<String> argsList = Arrays.asList(args);
+    //create a new list, as the ArrayList type doesn't push() on an insert
+    List<String> extendedArgs = new ArrayList<String>(argsList);
+    //insert the service name
+    extendedArgs.add(0, SERVICE_CLASSNAME);
+    //now have the service launcher do its work
+    ServiceLauncher.serviceMain(extendedArgs);
+  }
 
 }

@@ -26,7 +26,7 @@ its configuration should be changed to use a public (machine public) IP.
 
 # preamble
 
-    export HADOOP_CONF_DIR=/home/stevel/conf
+    export HADOOP_CONF_DIR=/home/hoya/conf
     export PATH=/home/hoya/hadoop/bin:/home/hoya/hadoop/sbin:~/zookeeper-3.4.5/bin:$PATH
     
     hdfs namenode -format ubuntu
@@ -82,11 +82,11 @@ RM yarn-daemon.sh --config $HADOOP_CONF_DIR start nodemanager
  ## Create a Hoya Cluster
  
  
-    java -jar target/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya create cl1 \
+    java -jar target/hoya-0.4.0-SNAPSHOT.jar  create cl1 \
     --role workers 1 --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000 --zkhosts localhost --image hdfs://ubuntu:9000/hbase.tar
     
     # create the cluster
-    java -jar target/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya\
+    java -jar target/hoya-0.4.0-SNAPSHOT.jar \
       create cl1 --role workers 4\
       --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000 --zkhosts localhost \
       --image hdfs://ubuntu:9000/hbase.tar \
@@ -98,26 +98,26 @@ RM yarn-daemon.sh --config $HADOOP_CONF_DIR start nodemanager
       --roleopt worker jvm.heap 128 
 
     # freeze the cluster
-    java -jar target/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya\
+    java -jar target/hoya-0.4.0-SNAPSHOT.jar \
     freeze cl1 \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000
 
     # thaw a cluster
-    java -jar target/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya \
+    java -jar target/hoya-0.4.0-SNAPSHOT.jar  \
     thaw cl1 \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000
 
     # destroy the cluster
-    java -jar target/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya\
+    java -jar target/hoya-0.4.0-SNAPSHOT.jar \
     destroy cl1 \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000
 
     # list clusters
-    java -jar target/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya\
+    java -jar target/hoya-0.4.0-SNAPSHOT.jar \
     list cl1 \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000
     
-    java -jar target/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya\
+    java -jar target/hoya-0.4.0-SNAPSHOT.jar \
     flex cl1 \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000 \
     --role worker 5

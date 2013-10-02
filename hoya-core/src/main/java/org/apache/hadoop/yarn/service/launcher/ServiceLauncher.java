@@ -34,6 +34,7 @@ import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.ListIterator;
 
 /**
  * A class to launch any service by name.
@@ -324,22 +325,21 @@ public class ServiceLauncher
   public static String[] extractConfigurationArgs(Configuration conf,
                                                   List<String> args) {
     //convert args to a list
-    int len = args.size();
-    List<String> argsList = new ArrayList<String>(len);
-    for (int index = 1; index < len; index++) {
-      String arg = args.get(index);
+    List<String> argsList = new ArrayList<String>(args.size());
+    ListIterator<String> arguments = argsList.listIterator(1);
+    while (arguments.hasNext()) {
+      String arg = arguments.next();
       if (arg.equals(ARG_CONF)) {
         //the argument is a --conf file tuple: extract the path and load
         //it in as a configuration resource.
 
-        //increment the loop counter
-        index++;
-        if (index == len) {
+        //increment the loop iterator
+        if (!arguments.hasNext()) {
           //overshot the end of the file
           exitWithMessage(EXIT_COMMAND_ARGUMENT_ERROR,
                           ARG_CONF + ": missing configuration file after ");
         }
-        File file = new File(args.get(index));
+        File file = new File(arguments.next());
         if (!file.exists()) {
           exitWithMessage(EXIT_COMMAND_ARGUMENT_ERROR,
                           ARG_CONF + ": configuration file not found: "
@@ -486,9 +486,17 @@ public class ServiceLauncher
    */
   public static void main(String[] args) {
     List<String> argsList = Arrays.asList(args); 
-      new ArrayList<String>(args.length);
-    
-    if (argsList.size() < 1) {
+
+    serviceMain(argsList);
+  }
+
+  /**
+   * The real main function, which takes the arguments as a list
+   * arg 0 must be the service classname
+   * @param argsList the list of arguments
+   */
+  public static void serviceMain(List<String> argsList) {
+    if (argsList.isEmpty()) {
       exitWithMessage(EXIT_USAGE, USAGE_MESSAGE);
     } else {
       String serviceClassName = argsList.get(0);
