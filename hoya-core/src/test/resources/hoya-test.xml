@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one
+  ~  or more contributor license agreements.  See the NOTICE file
+  ~  distributed with this work for additional information
+  ~  regarding copyright ownership.  The ASF licenses this file
+  ~  to you under the Apache License, Version 2.0 (the
+  ~  "License"); you may not use this file except in compliance
+  ~  with the License.  You may obtain a copy of the License at
+  ~
+  ~       http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  -->
+
+<!-- Hoya test options -->
+  
+<configuration>
+
+  <property>
+    <name>hoya.test.hbase.home</name>
+    <value>/Users/stevel/Projects/Hortonworks/Projects/hbase/hbase-assembly/target/hbase-0.97.0-SNAPSHOT</value>
+    <description>HBASE Home</description>
+  </property>
+
+  <property>
+    <name>hoya.test.hbase.tar</name>
+    <value>/Users/stevel/Projects/Hortonworks/Projects/hbase/hbase-assembly/target/hbase-0.97.0-SNAPSHOT-bin.tar</value>
+    <description>HBASE archive URI</description>
+  </property>
+
+  <property>
+    <name>hoya.test.accumulo.home</name>
+    <value>
+      /Users/stevel/Projects/Hortonworks/Projects/accumulo/assemble/target/accumulo-1.6.0-SNAPSHOT-dev/accumulo-1.6.0-SNAPSHOT/</value>
+    <description>Accumulo Home</description>
+  </property>
+
+  <property>
+    <name>hoya.test.accumulo.tar</name>
+    <value> /Users/stevel/Projects/Hortonworks/Projects/accumulo/assemble/target/accumulo-1.6.0-SNAPSHOT-bin.tar</value>
+    <description>Accumulo archive URI</description>
+  </property>
+
+  <property>
+    <name>zk.home</name>
+    <value>/Users/stevel/Java/Apps/zookeeper</value>
+    <description>Zookeeper home dir on target systems</description>
+  </property>
+
+  <property>
+    <name>hadoop.home</name>
+    <value>/Users/stevel/Projects/Hortonworks/Projects/hadoop-trunk/hadoop-dist/target/hadoop-2.1.2-SNAPSHOT</value>
+    <description>Hadoop home dir on target systems</description>
+  </property>
+
+  
+</configuration>
