@@ -20,9 +20,9 @@ package org.apache.hadoop.hoya.providers.accumulo;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.OptionKeys;
@@ -206,11 +206,11 @@ public class AccumuloClientProvider extends Configured implements
     providerUtils.propagateSiteOptions(clusterSpec, sitexml);
 
     propagateKeys(sitexml, getConf(),
-                  DFSConfigKeys.FS_DEFAULT_NAME_KEY
+                  CommonConfigurationKeys.FS_DEFAULT_NAME_KEY
                  );
     //insert the old fs name key
     propagate(sitexml, getConf(),
-              DFSConfigKeys.FS_DEFAULT_NAME_KEY,
+              CommonConfigurationKeys.FS_DEFAULT_NAME_KEY,
               HoyaKeys.FS_DEFAULT_NAME);
     String dataPath = clusterSpec.dataPath;
     Path path = new Path(dataPath);
