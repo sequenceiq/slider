@@ -34,7 +34,7 @@ import org.junit.Test
 class TestHDFSVersionCluster extends HBaseMiniClusterTestBase {
 
   @Test
-  public void testClusterAMrunningVersionCommand() throws Throwable {
+  public void testHDFSVersionCluster() throws Throwable {
     describe "create a cluster, exec the version command"
 
     String clustername = "TestHDFSVersionCluster"
