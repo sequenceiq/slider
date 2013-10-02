@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.providers.accumulo;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
+import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaKeys;
@@ -40,7 +41,6 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import static org.apache.hadoop.hoya.providers.accumulo.AccumuloConfigFileOptions.*;
-import static org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys.*;
 import static org.apache.hadoop.hoya.api.RoleKeys.*;
 import java.io.File;
 import java.io.IOException;
@@ -205,13 +205,15 @@ public class AccumuloClientProvider extends Configured implements
 
     providerUtils.propagateSiteOptions(clusterSpec, sitexml);
 
-    propagateKeys(sitexml, getConf(),
-                  CommonConfigurationKeys.FS_DEFAULT_NAME_KEY
-                 );
-    //insert the old fs name key
-    propagate(sitexml, getConf(),
-              CommonConfigurationKeys.FS_DEFAULT_NAME_KEY,
-              HoyaKeys.FS_DEFAULT_NAME);
+    String fsDefaultName =
+      getConf().get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
+    if (fsDefaultName == null) {
+      throw new BadConfigException("Key not found in conf: {}",
+                                   CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY);
+    }
+    sitexml.put(CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY, fsDefaultName);
+    sitexml.put(HoyaKeys.FS_DEFAULT_NAME_CLASSIC, fsDefaultName);
+
     String dataPath = clusterSpec.dataPath;
     Path path = new Path(dataPath);
     URI parentUri = path.toUri();

@@ -109,5 +109,5 @@ public interface HoyaKeys {
    */
   String OPTION_CONTAINER_STARTUP_DELAY = "hoya.container.startup.delay";
   int CONTAINER_STARTUP_DELAY = 5000;
-  String FS_DEFAULT_NAME = "fs.default.name";
+  String FS_DEFAULT_NAME_CLASSIC = "fs.default.name";
 }
