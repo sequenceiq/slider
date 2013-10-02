@@ -36,14 +36,14 @@ this="$bin/$script"
 # hoya.jar and any other dependencies that are not in the
 # standard Hadoop classpath
 
-libdir="${bin}/"
+libdir="${HOYA_HOME}/target"
 
 # plan
 # if: --confdir is set, set env dir HADOOP_CONF_DIR
 
 # HADOOP_PREFIX is then basedir 
 
-export HADOOP_CLASSPATH="${libdir}:\*.jar"
+export HADOOP_CLASSPATH="${libdir}/*.jar"
 launcher=org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 
 hadoop ${launcher} org.apache.hadoop.hoya.Hoya

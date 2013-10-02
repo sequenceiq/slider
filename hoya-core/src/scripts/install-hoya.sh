@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env bash
 
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -15,13 +15,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from subprocess import call
-import sys
 
-args = sys.argv[1:]
-call(["java",
-      "-verbose",
-      "-cp",
-      "../target/*.jar:../target/dependency/*.jar",
-      "org.apache.hadoop.yarn.service.launcher.ServiceLauncher",
-      "org.apache.hadoop.hoya.yarn.client.HoyaClient"] + args)

@@ -23,6 +23,10 @@ It is designed to work on Apache Hadoop 2.1, which, until released
 with a compatible HBase version, needs some manual intervention
 to build locally.
 
+It also has some initial support for Apache Accumulo, though that
+code has not been tested at any scale. 
+
+* [Project Home](https://github.com/hortonworks/hoya)
 * [Announcement](src/site/md/announcement.md)
 * [Man Page](src/site/md/manpage.md)
 * [Building Hoya](src/site/md/building.md)
@@ -36,7 +40,7 @@ to build locally.
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
   
-   http://www.apache.org/licenses/LICENSE-2.0
+   (http://www.apache.org/licenses/LICENSE-2.0)
   
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
