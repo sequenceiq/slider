@@ -17,18 +17,20 @@
 
 
 # this is the shell script to start Hoya deploying an application
-# Usage: hoya [--config confdir] <action> <commands>
+# Usage: hoya <action> <commands>
+
+# The env variable HOYA_JVM_OPTS can be used to override
+# the default JVM opts
 
 function usage
 {
-  echo "Usage: hoya [--config confdir]  <action> <arguments>"
+  echo "Usage: hoya <action> <arguments>"
   echo ""
-  echo "Most commands print help when invoked w/o parameters."
 }
 
 # Hoya works out its own location 
 this="${BASH_SOURCE-$0}"
-bin=$(cd -P -- "$(dirname -- "$this")" && pwd -P)
+bindir=$(cd -P -- "$(dirname -- "$this")" && pwd -P)
 script="$(basename -- "$this")"
 this="$bin/$script"
 
@@ -36,14 +38,33 @@ this="$bin/$script"
 # hoya.jar and any other dependencies that are not in the
 # standard Hadoop classpath
 
-libdir="${HOYA_HOME}/target"
+hoya_home="${bindir}/.."
+hoya_home=`cd -P "${hoya_home}" && pwd -P`
 
-# plan
-# if: --confdir is set, set env dir HADOOP_CONF_DIR
+libdir="${hoya_home}/lib"
+libdir=`cd -P "${libdir}" && pwd -P`
 
-# HADOOP_PREFIX is then basedir 
 
-export HADOOP_CLASSPATH="${libdir}/*.jar"
-launcher=org.apache.hadoop.yarn.service.launcher.ServiceLauncher
+confdir="${hoya_home}/conf"
 
-hadoop ${launcher} org.apache.hadoop.hoya.Hoya
+# normalize the conf dir so it can be passed down
+confdir=`cd -P "${confdir}" && pwd -P`
+confdir=${$HOYA_CONF_DIR:-confdir}
+
+
+hoya_jvm_opts="-Djava.net.preferIPv4Stack=true -Djava.awt.headless=true -Xmx256m -Dhoya.confdir=\"${confdir}\""
+hoya_jvm_opts=${$HOYA_JVM_OPTS:-hoya_jvm_opts}
+
+hoya_classpath="${libdir}/*:${confdir}"
+
+launcher=org.apache.hadoop.hoya.Hoya
+
+
+echo "classpath is \"${hoya_classpath}\""
+export CLASSPATH="${hoya_classpath}"
+echo ""
+
+echo "command is java ${hoya_jvm_opts} --classpath \"${hoya_classpath}\" ${launcher} \"$@\""
+echo ""
+echo ""
+exec java ${hoya_jvm_opts}  ${launcher} $@

@@ -66,6 +66,7 @@
               <overWriteReleases>false</overWriteReleases>
               <overWriteSnapshots>true</overWriteSnapshots>
               <overWriteIfNewer>true</overWriteIfNewer>
+  <!--            <tarLongFileFormat>gnu</tarLongFileFormat>-->
             </configuration>
           </execution>
         </executions>
@@ -117,12 +118,12 @@
       <groupId>com.beust</groupId>
       <artifactId>jcommander</artifactId>
     </dependency>
-    
+ <!--   
     <dependency>
       <groupId>org.apache.zookeeper</groupId>
       <artifactId>zookeeper</artifactId>
     </dependency>
-    
+ -->   
   </dependencies>
 
 

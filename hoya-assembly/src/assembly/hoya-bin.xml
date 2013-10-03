@@ -46,10 +46,17 @@
     <!--pull in scripts-->
     <fileSet>
       <directory>
-        ../hoya-core/src/scripts
+        src/main/scripts
       </directory>
       <outputDirectory>bin</outputDirectory>
       <fileMode>0755</fileMode>
+    </fileSet>
+    
+    <fileSet>
+      <directory>
+        src/conf
+      </directory>
+      <outputDirectory>conf</outputDirectory>
     </fileSet>
     
     <fileSet>
@@ -61,7 +68,7 @@
     </fileSet>
 
     <fileSet>
-      <directory>.</directory>
+      <directory>..</directory>
       <outputDirectory>/</outputDirectory>
       <includes>
         <include>README*</include>
