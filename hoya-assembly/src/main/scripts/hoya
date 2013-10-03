@@ -64,7 +64,7 @@ echo "classpath is \"${hoya_classpath}\""
 export CLASSPATH="${hoya_classpath}"
 echo ""
 
-echo "command is java ${hoya_jvm_opts} --classpath \"${hoya_classpath}\" ${launcher} \"$@\""
+echo "command is java ${hoya_jvm_opts} --classpath \"${hoya_classpath}\" ${launcher} $@"
 echo ""
 echo ""
 exec java ${hoya_jvm_opts}  ${launcher} $@
