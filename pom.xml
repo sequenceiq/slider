@@ -69,6 +69,7 @@
     -->
     <accumulo.version>1.6.0-SNAPSHOT</accumulo.version>
     <avro.version>1.7.4</avro.version>
+    <commons-codec.version>1.7</commons-codec.version>
 
     <gmavenVersion>1.5</gmavenVersion>
     <gmavenProviderSelection>2.0</gmavenProviderSelection>
@@ -116,6 +117,7 @@
 
     <!-- build options-->
     <build.redirect.test.output.to.file>false</build.redirect.test.output.to.file>
+    <build.dependency.fail.on.warning>true</build.dependency.fail.on.warning>
   </properties>
 
 
@@ -161,12 +163,12 @@
             <artifactId>guava</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>commons-codec</groupId>
-            <artifactId>commons-codec</artifactId>
-          </exclusion>
-          <exclusion>
             <groupId>commons-net</groupId>
             <artifactId>commons-net</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>tomcat</groupId>
+            <artifactId>jasper-runtime</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
@@ -291,6 +293,14 @@
         <groupId>org.apache.hbase</groupId>
         <artifactId>hbase-client</artifactId>
         <version>${hbase.version}</version>
+        <exclusions>
+            
+            <exclusion>
+              <groupId>org.apache.hadoop</groupId>
+              <artifactId>hadoop-core</artifactId>
+            </exclusion>
+
+        </exclusions>
       </dependency>
 
       <dependency>
@@ -298,6 +308,10 @@
         <artifactId>hbase-server</artifactId>
         <version>${hbase.version}</version>
         <exclusions>
+          <exclusion>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-core</artifactId>
+          </exclusion>
           <exclusion>
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-hadoop1-compat</artifactId>
@@ -368,6 +382,12 @@
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-server</artifactId>
         <version>${accumulo.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
 
       <dependency>
@@ -411,9 +431,16 @@
 
 
       <dependency>
+        <groupId>commons-codec</groupId>
+        <artifactId>commons-codec</artifactId>
+        <version>${commons-codec.version}</version>
+      </dependency>
+      
+
+      <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
-        <version>${guava.version</version>
+        <version>${guava.version}</version>
       </dependency>
       
       <dependency>

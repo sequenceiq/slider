@@ -15,6 +15,8 @@
 
   <build>
     <plugins>
+
+      
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>${maven-compiler-plugin.version}</version>
@@ -53,16 +55,6 @@
             </manifestEntries>
             <!-- Manifest specific configuration -->
             <manifest>
-              <!-- Classpath is added to the manifest of the created jar file. -->
-              <addClasspath>true</addClasspath>
-              <!--
-                 this must be same dir as the assembly generates
-             -->
-              <classpathPrefix>lib/</classpathPrefix>
-              <!-- Entry point is the Hoya service-->
-              <mainClass>
-                org.apache.hadoop.hoya.Hoya
-              </mainClass>
             </manifest>
           </archive>
         </configuration>
@@ -92,49 +84,6 @@
         </configuration>
       </plugin>
 
-
-
-      <!--enable this if you want to get told off about dependency conflict-->
-      <!--
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-enforcer-plugin</artifactId>
-        <version>${maven-enforcer-plugin.version}</version>
-        <executions>
-          <execution>
-            <id>enforce</id>
-            <configuration>
-              <rules>
-                <DependencyConvergence/>
-              </rules>
-            </configuration>
-            <goals>
-              <goal>enforce</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      
- -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-assembly-plugin</artifactId>
-        <version>${maven-assembly-plugin.version}</version>
-        <configuration>
-          <descriptors>
-            <descriptor>src/assembly/executable-jar.xml</descriptor>
-          </descriptors>
-        </configuration>
-        <executions>
-          <execution>
-            <id>make-assembly</id>
-            <phase>package</phase>
-            <goals>
-              <goal>single</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
 
       <plugin>
         <groupId>org.apache.hadoop</groupId>
@@ -408,7 +357,12 @@
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java</artifactId>
     </dependency>
- 
+    
+    <dependency>
+      <groupId>commons-codec</groupId>
+      <artifactId>commons-codec</artifactId>
+      <version>${commons-codec.version}</version>
+    </dependency>
   </dependencies>
 
   <profiles>
@@ -421,6 +375,36 @@
           <url>https://repository.apache.org/content/groups/staging/</url>
         </repository>
       </repositories>
+    </profile>
+    <profile>
+      <!-- staged artifacts from the ASF -->
+      <id>strict</id>
+      <!--enable this if you want to get told off about dependency conflict-->
+      <build>
+
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-enforcer-plugin</artifactId>
+            <version>${maven-enforcer-plugin.version}</version>
+            <executions>
+              <execution>
+                <id>enforce</id>
+                <configuration>
+                  <rules>
+                    <DependencyConvergence/>
+                  </rules>
+                </configuration>
+                <goals>
+                  <goal>enforce</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+
+      </build>
+
     </profile>
 
 
