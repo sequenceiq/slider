@@ -78,10 +78,7 @@
           <argLine>-Xmx1024m -XX:+HeapDumpOnOutOfMemoryError</argLine>
           <failIfNoTests>true</failIfNoTests>
           <trimStackTrace>false</trimStackTrace>
-          <!--
-                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
-          -->
-
+          <redirectTestOutputToFile>${build.redirect.test.output.to.file}</redirectTestOutputToFile>
           <systemPropertyVariables>
             <java.net.preferIPv4Stack>true</java.net.preferIPv4Stack>
             <java.awt.headless>true</java.awt.headless>
@@ -454,6 +451,10 @@
         </repository>
       </repositories>
     </profile>
+
+
+
+    
   </profiles>
 
 </project>

@@ -113,6 +113,8 @@
     <!-- define the protobuf JAR version                               -->
     <protobuf.version>2.5.0</protobuf.version>
 
+    <!-- build options-->
+    <build.redirect.test.output.to.file>false</build.redirect.test.output.to.file>
   </properties>
 
 
@@ -493,6 +495,14 @@
         </repository>
       </repositories>
     </profile>
+    <profile>
+      <!-- anything for a jenkins build -->
+      <id>jenkins</id>
+        <properties>
+          <build.redirect.test.output.to.file>true</build.redirect.test.output.to.file>
+        </properties>
+      </profile>
+    
   </profiles>
 
 </project>
