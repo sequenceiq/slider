@@ -33,16 +33,7 @@ its configuration should be changed to use a public (machine public) IP.
   
 
 
-## get hbase in
 
-copy to local 
-
-    hbase-0.97.0-SNAPSHOT-bin.tar 
-
-
-    hdfs dfs -rm hdfs://ubuntu:9000/hbase.tar
-    hdfs dfs -copyFromLocal hbase-0.97.0-SNAPSHOT-bin.tar hdfs://ubuntu:9000/hbase.tar
-    hdfs dfs -ls hdfs://ubuntu:9000/
 
 # start all the services
 
@@ -75,21 +66,33 @@ RM yarn-daemon.sh --config $HADOOP_CONF_DIR start nodemanager
     ./zookeeper-3.4.5/bin/zkServer.sh stop
 
 
-    # FS health
+
+## get hbase in
+
+copy to local 
+
+    hbase-0.97.0-SNAPSHOT-bin.tar 
+
+
+    hdfs dfs -rm hdfs://ubuntu:9090/hbase.tar
+    hdfs dfs -copyFromLocal hbase-0.97.0-SNAPSHOT-bin.tar hdfs://ubuntu:9090/hbase.tar
+    hdfs dfs -ls hdfs://ubuntu:9090/
     
  
 
  ## Create a Hoya Cluster
  
  
-    java -jar target/hoya-0.4.0-SNAPSHOT.jar  create cl1 \
-    --role workers 1 --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000 --zkhosts localhost --image hdfs://ubuntu:9000/hbase.tar
+    hoya  create cl1 \
+    --role workers 1 \
+     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
+     --zkhosts localhost --image hdfs://ubuntu:9090/hbase.tar
     
     # create the cluster
-    java -jar target/hoya-0.4.0-SNAPSHOT.jar \
-      create cl1 --role workers 4\
-      --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000 --zkhosts localhost \
-      --image hdfs://ubuntu:9000/hbase.tar \
+    hoya create cl1
+     --role workers 4\
+      --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 --zkhosts localhost \
+      --image hdfs://ubuntu:9090/hbase.tar \
       --appconf file:////home/hoya/Projects/hoya/src/test/configs/ubuntu/hbase \
       --roleopt master app.infoport 8080 \
       --roleopt master jvm.heap 128 \
@@ -98,28 +101,23 @@ RM yarn-daemon.sh --config $HADOOP_CONF_DIR start nodemanager
       --roleopt worker jvm.heap 128 
 
     # freeze the cluster
-    java -jar target/hoya-0.4.0-SNAPSHOT.jar \
-    freeze cl1 \
-    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000
+    hoya freeze cl1 \
+    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090
 
     # thaw a cluster
-    java -jar target/hoya-0.4.0-SNAPSHOT.jar  \
-    thaw cl1 \
-    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000
+    hoya thaw cl1 \
+    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090
 
     # destroy the cluster
-    java -jar target/hoya-0.4.0-SNAPSHOT.jar \
-    destroy cl1 \
-    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000
+    hoya destroy cl1 \
+    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090
 
     # list clusters
-    java -jar target/hoya-0.4.0-SNAPSHOT.jar \
-    list cl1 \
-    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000
+    hoya list cl1 \
+    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090
     
-    java -jar target/hoya-0.4.0-SNAPSHOT.jar \
-    flex cl1 \
-    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000 \
+    hoya flex cl1 \
+    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
     --role worker 5
     
     

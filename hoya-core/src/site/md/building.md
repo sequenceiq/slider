@@ -60,6 +60,9 @@ Then expand this
     tar -xvf hadoop-2.1.2-SNAPSHOT.tar 
     popd
 
+This creates an expanded version of Hadoop. You can now actually run Hadoop
+from this directory
+
 ## building a compatible HBase version
 
 Checkout the HBase `trunk` branch from apache svn/github.  

@@ -21,7 +21,7 @@ a Hoya Client running on the host can upload Hoya and deploy HBase onto
 the single-node cluster even though neither is installed on the VM.
  
  
- * Namenode [http://﻿http://ubuntu:50070/dfshealth.jsp](﻿http://ubuntu:50070/dfshealth.jsp)
+ * Namenode [http:///ubuntu:50070/dfshealth.jsp](﻿http://ubuntu:50070/dfshealth.jsp)
  * YARN RM [﻿http://ubuntu:9081/cluster](﻿http://ubuntu:9081/cluster)
  
  # Core settings
@@ -29,7 +29,7 @@ the single-node cluster even though neither is installed on the VM.
      <configuration>
        <property>
          <name>fs.defaultFS</name>
-         <value>hdfs://ubuntu:9000</value>
+         <value>hdfs://ubuntu:9090</value>
        </property>
      </configuration>
      <property>
@@ -40,6 +40,6 @@ the single-node cluster even though neither is installed on the VM.
  
  For the hoya command line
  
-    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9000 --zkhosts localhost
+    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 --zkhosts localhost
  
  

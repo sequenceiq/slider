@@ -20,7 +20,7 @@
   <configuration>
     <property>
       <name>fs.defaultFS</name>
-      <value>hdfs://ubuntu:9000</value>
+      <value>hdfs://ubuntu:9090</value>
     </property>
   </configuration>
 </configuration>
