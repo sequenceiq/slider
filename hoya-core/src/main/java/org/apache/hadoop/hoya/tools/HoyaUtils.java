@@ -550,7 +550,16 @@ public final class HoyaUtils {
     }
     return first;
   }
+  
+  public static <T1, T2> Map<T1, T2>  mergeMaps(Map<T1, T2> first,
+           Map<T1, T2> second) {
+    for (Map.Entry<T1, T2> entry: second.entrySet()) {
+      first.put(entry.getKey(), entry.getValue());
+    }
+    return first;
+  }
 
+  
   /**
    * Convert a map to a multi-line string for printing
    * @param map map to stringify
@@ -751,7 +760,7 @@ public final class HoyaUtils {
   }
 
   public static int findFreePort(int start, int limit) {
-    if (start==0) {
+    if (start == 0) {
       //bail out if the default is "dont care"
       return 0;
     }
@@ -928,4 +937,7 @@ public final class HoyaUtils {
     return builder.toString();
   }
 
+  public static Path createLocalPath(File file) {
+    return new Path(file.toURI());
+  }
 }

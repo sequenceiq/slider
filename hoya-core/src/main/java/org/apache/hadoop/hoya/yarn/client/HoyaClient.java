@@ -33,6 +33,7 @@ import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.api.proto.Messages;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
+import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.exceptions.NoSuchNodeException;
 import org.apache.hadoop.hoya.exceptions.WaitTimeoutException;
@@ -97,7 +98,8 @@ import java.util.Set;
  */
 
 public class HoyaClient extends YarnClientImpl implements RunService,
-                                                          HoyaExitCodes {
+                                                          HoyaExitCodes,
+                                                          HoyaKeys {
   protected static final Logger log = LoggerFactory.getLogger(HoyaClient.class);
 
   public static final int ACCEPT_TIME = 60000;
@@ -295,7 +297,6 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                                IOException {
 
     actionBuild(clustername);
-    //here is where all the work is done
     return startCluster(clustername);
   }
   
@@ -312,11 +313,9 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     //verify that a live cluster isn't there
     validateClusterName(clustername);
-    verifyNoLiveClusters(clustername);
-    //check for arguments that are mandatory with this action
-
-    verifyFileSystemArgSet();
     verifyManagerSet();
+    verifyFileSystemArgSet();
+    verifyNoLiveClusters(clustername);
     //build up the initial cluster specification
     ClusterDescription clusterSpec = new ClusterDescription();
 
@@ -504,6 +503,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     deployedClusterName = clustername;
     validateClusterName(clustername);
     verifyNoLiveClusters(clustername);
+    Configuration config = getConfig();
     //Provider 
     ClientProvider provider = createClientProvider(clusterSpec);
     //make sure it is valid;
@@ -553,8 +553,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       appContext.setMaxAppAttempts(1);
     }
 
-    FileSystem hdfs = getClusterFS();
-    Path tempPath = HoyaUtils.createHoyaAppInstanceTempPath(hdfs,
+    FileSystem fs = getClusterFS();
+    Path tempPath = HoyaUtils.createHoyaAppInstanceTempPath(fs,
                                                             clustername,
                                                             appId.toString());
 
@@ -567,10 +567,35 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     // In this scenario, the jar file for the application master is part of the local resources			
     Map<String, LocalResource> localResources =
       new HashMap<String, LocalResource>();
-
+    //conf directory setup
+    Path remoteHoyaConfPath = null;
+    String relativeHoyaConfDir = null;
+    String hoyaConfdirProp = System.getProperty(HoyaKeys.PROPERTY_HOYA_CONF_DIR);
+    if (hoyaConfdirProp == null || hoyaConfdirProp.isEmpty()) {
+      log.debug("No local configuration directory provided as system property");
+    } else {
+      File hoyaConfDir = new File(hoyaConfdirProp);
+      if (!hoyaConfDir.exists()) {
+        throw new BadConfigException("Conf dir {} not found", hoyaConfDir);
+      }
+      Path localConfDirPath = HoyaUtils.createLocalPath(hoyaConfDir);
+      remoteHoyaConfPath = new Path(clusterDirectory,
+                                   HoyaKeys.SUBMITTED_HOYA_CONF_DIR);
+      HoyaUtils.copyDirectory(config, localConfDirPath, remoteHoyaConfPath);
+    }
+    
     if (!getUsingMiniMRCluster()) {
       //the assumption here is that minimr cluster => this is a test run
       //and the classpath can look after itself
+      
+      //insert conf dir first
+      if (remoteHoyaConfPath != null) {
+        relativeHoyaConfDir = HoyaKeys.SUBMITTED_HOYA_CONF_DIR;
+        Map<String, LocalResource> submittedConfDir =
+          HoyaUtils.submitDirectory(fs, remoteHoyaConfPath, relativeHoyaConfDir);
+        HoyaUtils.mergeMaps(localResources, submittedConfDir);
+      }
+
 
       log.info("Copying JARs from local filesystem");
       // Copy the application master jar to the filesystem
@@ -608,9 +633,9 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     //specific artifacts to the local resource map
 
 
-    Configuration config = getConfig();
+    
     Map<String, LocalResource> confResources;
-    confResources = provider.prepareAMAndConfigForLaunch(hdfs,
+    confResources = provider.prepareAMAndConfigForLaunch(fs,
                                                          config,
                                                          clusterSpec,
                                                          origConfPath,
@@ -618,7 +643,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     localResources.putAll(confResources);
 
     //now add the image if it was set
-    if (HoyaUtils.maybeAddImagePath(hdfs, localResources, imagePath)) {
+    if (HoyaUtils.maybeAddImagePath(fs, localResources, imagePath)) {
       log.debug("Registered image path {}", imagePath);
     }
 
@@ -646,6 +671,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     }
 
 */
+    
+
 
     // Set local resource info into app master container launch context
     amContainer.setLocalResources(localResources);
@@ -654,7 +681,9 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     //build the environment
     Map<String, String> env =
       HoyaUtils.buildEnvMap(clusterSpec.getOrAddRole("master"));
-    env.put("CLASSPATH", buildClasspath());
+    String classpath = buildClasspath(relativeHoyaConfDir);
+    log.debug("AM classpath={}", classpath);
+    env.put("CLASSPATH", classpath);
     log.debug("Environment Map:\n{}", HoyaUtils.stringifyMap(env));
     amContainer.setEnvironment(env);
 
@@ -882,7 +911,15 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     return FileSystem.get(serviceArgs.filesystemURL, getConfig());
   }
 
-  private String buildClasspath() {
+  /**
+   * Build up the classpath for execution 
+   * -behaves very differently on a mini test cluster vs a production
+   * one.
+   * @param hoyaConfDir relative path to the dir containing hoya config options
+   * to put on the classpath -or null
+   * @return a classpath
+   */
+  private String buildClasspath(String hoyaConfDir) {
 // Add AppMaster.jar location to classpath
     // At some point we should not be required to add 
     // the hadoop specific classpaths to the env. 
@@ -904,7 +941,9 @@ public class HoyaClient extends YarnClientImpl implements RunService,
         classPathEnv.append(File.pathSeparatorChar);
         classPathEnv.append(c.trim());
       }
-      classPathEnv.append(File.pathSeparatorChar).append("./log4j.properties");
+      if (hoyaConfDir != null) {
+        classPathEnv.append(File.pathSeparatorChar).append(hoyaConfDir);
+      }
     }
     return classPathEnv.toString();
   }

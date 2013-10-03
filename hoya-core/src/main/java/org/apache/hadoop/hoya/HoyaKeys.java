@@ -96,6 +96,9 @@ public interface HoyaKeys {
   String OPTION_HOYA_MASTER_COMMAND =
     "hoya.master.command";
 
+  /**
+   * Prefix for site options
+   */
   String OPTION_SITE_PREFIX = "site.";
 
 
@@ -108,6 +111,26 @@ public interface HoyaKeys {
    * up
    */
   String OPTION_CONTAINER_STARTUP_DELAY = "hoya.container.startup.delay";
+
+  /**
+   * delay for container startup
+   */
   int CONTAINER_STARTUP_DELAY = 5000;
+
+  /**
+   * Original name for the default FS. This is still 
+   * expected by applications deployed
+   */
   String FS_DEFAULT_NAME_CLASSIC = "fs.default.name";
+
+  /**
+   * JVM property to define the hoya configuration directory;
+   * this is set by the hoya script: {@value}
+   */
+  String PROPERTY_HOYA_CONF_DIR = "hoya.confdir";
+
+  /**
+   * name of generated dir for this conf: {@value}
+   */
+  String SUBMITTED_HOYA_CONF_DIR = "hoya_confdir";
 }
