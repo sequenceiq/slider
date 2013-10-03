@@ -39,6 +39,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * This class contains the common argument set for all tne entry points,
@@ -233,7 +234,9 @@ public class CommonArgs implements HoyaActions {
     commander.usage(builder, "  ");
     builder.append("\nactions: ");
     Map<String, List<Object>> actions = getActions();
-    for (String key : actions.keySet()) {
+    List<String>keys = new ArrayList<String>(actions.keySet());
+    Collections.sort(keys);
+    for (String key : keys) {
       builder.append(key).append(" ");
     }
     return builder.toString();
@@ -279,7 +282,6 @@ public class CommonArgs implements HoyaActions {
    * Validate the arguments against the action requested
    */
   public void validate() throws BadCommandArgumentsException {
-    String cmd = HoyaUtils.join(actionArgs, " ") ;
     if (parameters.isEmpty()) {
       throw new BadCommandArgumentsException(ERROR_NO_ACTION
                                              + usage());

@@ -405,13 +405,16 @@ public class ServiceLauncher
     } catch (Throwable thrown) {
       int exitCode;
       LOG.error("While running " + getServiceName() + ":" + thrown); ;
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("While running " + getServiceName() + ":" + thrown, thrown) ;
-      }
       if (thrown instanceof ExitCodeProvider) {
         exitCode = ((ExitCodeProvider) thrown).getExitCode();
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("While running " + getServiceName() + ":" + thrown, thrown);
+        }
       } else {
+        //not any of the service launcher exceptions -assume something worse
+        LOG.info(" Exception:" + thrown, thrown);
         exitCode = EXIT_EXCEPTION_THROWN;
+        
       }
       exitException = new ExitUtil.ExitException(exitCode, thrown.toString());
       exitException.initCause(thrown);
