@@ -24,7 +24,6 @@ import com.beust.jcommander.ParameterException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
@@ -280,12 +279,9 @@ public class CommonArgs implements HoyaActions {
    * Validate the arguments against the action requested
    */
   public void validate() throws BadCommandArgumentsException {
+    String cmd = HoyaUtils.join(actionArgs, " ") ;
     if (parameters.isEmpty()) {
       throw new BadCommandArgumentsException(ERROR_NO_ACTION
-                                             + (args != null
-                                                ? (" in " +
-                                                   HoyaUtils.join(args, " "))
-                                                : "")
                                              + usage());
     }
     action = parameters.get(0);
@@ -295,31 +291,20 @@ public class CommonArgs implements HoyaActions {
     if (null == actionOpts) {
       throw new BadCommandArgumentsException(ERROR_UNKNOWN_ACTION
                                              + action
-                                             + (args != null
-                                                ? (" in " +
-                                                   HoyaUtils.join(args, " "))
-                                                : "")
                                              + usage());
     }
     actionArgs = parameters.subList(1, parameters.size());
 
     int minArgs = (Integer) actionOpts.get(1);
     int actionArgSize = actionArgs.size();
-/*
-    LOG.debug("Action {} expected #args={} actual #args={}", action, minArgs,
-              actionArgSize);
-*/
     if (minArgs > actionArgSize) {
       throw new BadCommandArgumentsException(
-        ERROR_NOT_ENOUGH_ARGUMENTS + action + " in \"" +
-        HoyaUtils.join(actionArgs, " ") + "\"");
+        ERROR_NOT_ENOUGH_ARGUMENTS + action );
     }
     int maxArgs =
       (actionOpts.size() == 3) ? ((Integer) actionOpts.get(2)) : minArgs;
     if (actionArgSize > maxArgs) {
-      throw new BadCommandArgumentsException(
-        ERROR_TOO_MANY_ARGUMENTS + action
-        + " in \"" + HoyaUtils.join(actionArgs, " ") + "\"");
+      throw new BadCommandArgumentsException(ERROR_TOO_MANY_ARGUMENTS );
     }
   }
 

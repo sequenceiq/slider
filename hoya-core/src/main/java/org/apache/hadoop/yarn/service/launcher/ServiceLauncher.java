@@ -404,7 +404,10 @@ public class ServiceLauncher
       exitException = ee;
     } catch (Throwable thrown) {
       int exitCode;
-      LOG.error("While running " + getServiceName() + ":" + thrown, thrown);
+      LOG.error("While running " + getServiceName() + ":" + thrown); ;
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("While running " + getServiceName() + ":" + thrown, thrown) ;
+      }
       if (thrown instanceof ExitCodeProvider) {
         exitCode = ((ExitCodeProvider) thrown).getExitCode();
       } else {

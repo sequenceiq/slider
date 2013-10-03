@@ -190,7 +190,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       exitCode = actionGetConf(clusterName,
                                serviceArgs.format,
                                outfile);
-    } else if (HoyaActions.ACTION_HELP.equals(action)) {
+    } else if (HoyaActions.ACTION_HELP.equals(action) ||
+               HoyaActions.ACTION_USAGE.equals(action)) {
       log.info("HoyaClient {}", serviceArgs.usage());
 
     } else if (HoyaActions.ACTION_LIST.equals(action)) {

@@ -146,10 +146,11 @@ public class ClientArgs extends CommonArgs {
     ACTIONS.put(ACTION_CREATE, t("Create a live Hoya cluster", 1));
     ACTIONS.put(ACTION_DESTROY,
                 t("Destroy a Hoya cluster (which must be stopped)", 1));
+    ACTIONS.put(ACTION_EXISTS, t("Probe for a cluster being live", 1));
     ACTIONS.put(ACTION_FLEX, t("Flex a Hoya cluster", 1));
+    ACTIONS.put(ACTION_FREEZE, t("freeze/suspend a running cluster", 1));
     ACTIONS.put(ACTION_GETCONF, t("Get the configuration of a cluster", 1));
 //    ACTIONS.put(ACTION_GETSIZE, t("Get the size of a cluster", 1));
-    ACTIONS.put(ACTION_EXISTS, t("Probe for a cluster being live", 1));
     ACTIONS.put(ACTION_HELP, t("Print help information", 0));
     ACTIONS.put(ACTION_LIST, t("List running Hoya clusters", 0, 1));
 //    ACTIONS.put(ACTION_MIGRATE, t("Migrate a Hoya cluster to a new HBase version", 1));
@@ -157,9 +158,9 @@ public class ClientArgs extends CommonArgs {
     ACTIONS.put(ACTION_RECONFIGURE,
                 t("change the configuration of a cluster", 1));
 //    ACTIONS.put(ACTION_REIMAGE, t("change the image a cluster uses", 1));
-    ACTIONS.put(ACTION_THAW, t("thaw/start a frozen cluster", 1));
     ACTIONS.put(ACTION_STATUS, t("Get the status of a cluster", 1));
-    ACTIONS.put(ACTION_FREEZE, t("freeze/suspend a running cluster", 1));
+    ACTIONS.put(ACTION_THAW, t("thaw/start a frozen cluster", 1));
+    ACTIONS.put(ACTION_USAGE, t("Print help information", 0));
   }
 
   public ClientArgs(String[] args) {
