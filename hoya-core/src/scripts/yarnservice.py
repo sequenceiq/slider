@@ -21,7 +21,14 @@
 
 WORK IN PROGRESS, IGNORE
 
-this is the python script to deploy a YARN service
+This is as work in progress project to build as new launcher script for
+any Hadoop service
+A key feature here is that the configs are defined in JSON files -
+files that are read in the order passed down, and merged into each other.
+
+The final merged file is used to define the java command to execute
+-and hadoop XML files.
+
 
 It uses a JSON config file 
   --jfile configuration file (JSON format)
@@ -47,19 +54,6 @@ import sys
 # see : http://simplejson.readthedocs.org/en/latest/
 # and install w/ easy_install simplejson
 import simplejson
-
-"""
-This is as work in progress project to build as new launcher script for
-any Hadoop service
-A key feature here is that the configs are defined in JSON files -
-files that are read in the order passed down, and merged into each other.
-
-The final merged file is used to define the java command to execute
--and hadoop XML files.
-
-
-
-"""
 
 KEY_JFILE = "-xF"
 KEY_DEF = "-xD"
