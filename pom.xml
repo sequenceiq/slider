@@ -73,6 +73,7 @@
     <gmavenVersion>1.5</gmavenVersion>
     <gmavenProviderSelection>2.0</gmavenProviderSelection>
     <groovy.version>2.1.7</groovy.version>
+    <guava.version>11.0.2</guava.version>
     <!-- 
         <hadoop.version>3.0.0-SNAPSHOT</hadoop.version>
         <hadoop.version>2.1.0-beta</hadoop.version>
@@ -148,10 +149,6 @@
             <artifactId>jackson-core-asl</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-          </exclusion>
-          <exclusion>
             <groupId>net.java.dev.jets3t</groupId>
             <artifactId>jets3t</artifactId>
           </exclusion>
@@ -171,15 +168,27 @@
             <groupId>commons-net</groupId>
             <artifactId>commons-net</artifactId>
           </exclusion>
-
         </exclusions>
       </dependency>
 
       <dependency>
         <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-client</artifactId>
+        <version>${hadoop.version}</version>
+      </dependency>
+      
+
+      <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-client</artifactId>
+        <version>${hadoop.version}</version>
+        <type>pom</type>
+      </dependency>
+      
+      <dependency>
+        <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-minicluster</artifactId>
         <version>${hadoop.version}</version>
-
         <exclusions>
           <exclusion>
             <groupId>com.sun.jersey.jersey-test-framework</groupId>
@@ -404,7 +413,7 @@
       <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
-        <version>11.0.2</version>
+        <version>${guava.version</version>
       </dependency>
       
       <dependency>
