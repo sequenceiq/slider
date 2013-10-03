@@ -43,7 +43,7 @@ its configuration should be changed to use a public (machine public) IP.
     yarn-daemon.sh --config $HADOOP_CONF_DIR start resourcemanager
     yarn-daemon.sh --config $HADOOP_CONF_DIR start nodemanager
     
-    zookeeper-3.4.5/bin/zkServer.sh start
+    ~/zookeeper-3.4.5/bin/zkServer.sh start
     
     
 # stop them
@@ -66,21 +66,28 @@ RM yarn-daemon.sh --config $HADOOP_CONF_DIR start nodemanager
     ./zookeeper-3.4.5/bin/zkServer.sh stop
 
 
+Tip: after a successful run on a local cluster, do a quick `rm -rf $HADOOP_HOME/logs`
+to keep the log bloat under control.
 
 ## get hbase in
 
 copy to local 
 
-    hbase-0.97.0-SNAPSHOT-bin.tar 
+    get hbase-0.97.0-SNAPSHOT-bin.tar on 
 
 
     hdfs dfs -rm hdfs://ubuntu:9090/hbase.tar
     hdfs dfs -copyFromLocal hbase-0.97.0-SNAPSHOT-bin.tar hdfs://ubuntu:9090/hbase.tar
     hdfs dfs -ls hdfs://ubuntu:9090/
     
- 
 
- ## Create a Hoya Cluster
+## Clean up any existing hoya cluster details
+
+This is for demos only, otherwise you lose the clusters and their databases.
+
+    hdfs dfs -rm -r hdfs://ubuntu:9090/user/home/stevel/.hoya
+
+## Create a Hoya Cluster
  
  
     hoya  create cl1 \
@@ -89,11 +96,12 @@ copy to local
      --zkhosts localhost --image hdfs://ubuntu:9090/hbase.tar
     
     # create the cluster
-    hoya create cl1
+    
+    hoya create cl1 \
      --role workers 4\
       --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 --zkhosts localhost \
       --image hdfs://ubuntu:9090/hbase.tar \
-      --appconf file:////home/hoya/Projects/hoya/src/test/configs/ubuntu/hbase \
+      --appconf file:////Users/stevel/Hadoop/configs/ubuntu/hbase \
       --roleopt master app.infoport 8080 \
       --roleopt master jvm.heap 128 \
       --roleopt master env.MALLOC_ARENA_MAX 4 \

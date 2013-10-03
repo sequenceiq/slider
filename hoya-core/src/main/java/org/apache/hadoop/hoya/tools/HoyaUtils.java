@@ -47,6 +47,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -76,8 +77,8 @@ public final class HoyaUtils {
 
   /**
    * Implementation of set-ness, groovy definition of true/false for a string
-   * @param s
-   * @return
+   * @param s string
+   * @return true iff the string is neither null nor empty
    */
   public static boolean isUnset(String s) {
     return s == null || s.isEmpty();
@@ -86,6 +87,12 @@ public final class HoyaUtils {
   public static boolean isSet(String s) {
     return !isUnset(s);
   }
+
+  /**
+   * recursive directory delete
+   * @param dir dir to delete
+   * @throws IOException on any problem
+   */
   public static void deleteDirectoryTree(File dir) throws IOException {
     if (dir.exists()) {
       if (dir.isDirectory()) {
@@ -252,6 +259,12 @@ public final class HoyaUtils {
     FileSystem srcFS = FileSystem.get(srcDirPath.toUri(), conf);
     FileSystem destFS = FileSystem.get(destDirPath.toUri(), conf);
     //list all paths in the src.
+    if (!srcFS.exists(srcDirPath)) {
+      throw new FileNotFoundException("Source dir not found " + srcDirPath);
+    }
+    if (!srcFS.isDirectory(srcDirPath)) {
+      throw new FileNotFoundException("Source dir not a directory " + srcDirPath);
+    }
     FileStatus[] entries = srcFS.listStatus(srcDirPath);
     int srcFileCount = entries.length;
     if (srcFileCount == 0) {

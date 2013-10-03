@@ -320,7 +320,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     ClusterDescription clusterSpec = new ClusterDescription();
 
     requireArgumentSet(CommonArgs.ARG_ZKHOSTS, serviceArgs.zkhosts);
-    requireArgumentSet(CommonArgs.ARG_CONFDIR, serviceArgs.confdir);
+    Path appconfdir = serviceArgs.confdir;
+    requireArgumentSet(CommonArgs.ARG_CONFDIR, appconfdir);
     //Provider 
     requireArgumentSet(CommonArgs.ARG_PROVIDER, serviceArgs.provider);
 
@@ -404,6 +405,14 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     clusterSpec.zkPort = serviceArgs.zkport;
     clusterSpec.zkHosts = serviceArgs.zkhosts;
 
+    
+    //another sanity check before the cluster dir is created: the config
+    //dir
+    FileSystem srcFS = FileSystem.get(appconfdir.toUri(), getConfig());
+    if (!srcFS.exists(appconfdir)) {
+      throw new BadCommandArgumentsException("Configuration directory specified in %s not found: %s",
+                                             ClientArgs.ARG_CONFDIR, appconfdir.toString());
+    }
     //build up the paths in the DFS
 
     FileSystem fs = getClusterFS();
@@ -432,7 +441,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     //bulk copy
     //first the original from wherever to the DFS
-    HoyaUtils.copyDirectory(getConfig(), serviceArgs.confdir, origConfPath);
+    HoyaUtils.copyDirectory(getConfig(), appconfdir, origConfPath);
     //then build up the generated path
     HoyaUtils.copyDirectory(getConfig(), origConfPath, generatedConfPath);
 
@@ -576,7 +585,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     } else {
       File hoyaConfDir = new File(hoyaConfdirProp);
       if (!hoyaConfDir.exists()) {
-        throw new BadConfigException("Conf dir {} not found", hoyaConfDir);
+        throw new BadConfigException("Conf dir \"%s\" not found", hoyaConfDir);
       }
       Path localConfDirPath = HoyaUtils.createLocalPath(hoyaConfDir);
       remoteHoyaConfPath = new Path(clusterDirectory,
