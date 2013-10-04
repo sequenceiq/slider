@@ -27,10 +27,10 @@ It also has some initial support for Apache Accumulo, though that
 code has not been tested at any scale. 
 
 * [Project Home](https://github.com/hortonworks/hoya)
-* [Announcement](src/site/md/announcement.md)
-* [Man Page](src/site/md/manpage.md)
-* [Building Hoya](src/site/md/building.md)
-* [Hoya Application Needs](src/site/md/app_needs.md)
+* [Announcement](hoya-core/src/site/md/announcement.md)
+* [Man Page](hoya-core/src/site/md/manpage.md)
+* [Building Hoya](hoya-core/src/site/md/building.md)
+* [Hoya Application Needs](hoya-core/src/site/md/app_needs.md)
 
 # License
 
