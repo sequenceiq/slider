@@ -72,29 +72,32 @@
         </executions>
       </plugin>
 
-      <!--enable this if you want to get told off about dependency conflict-->
-      <!--
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-enforcer-plugin</artifactId>
-        <version>${maven-enforcer-plugin.version}</version>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>${maven-source-plugin.version}</version>
+        <inherited>true</inherited>
         <executions>
           <execution>
-            <id>enforce</id>
-            <configuration>
-              <rules>
-                <DependencyConvergence/>
-              </rules>
-            </configuration>
+            <id>attach-sources</id>
+            <phase>verify</phase>
             <goals>
-              <goal>enforce</goal>
+              <goal>jar</goal>
+              <goal>test-jar</goal>
             </goals>
           </execution>
         </executions>
       </plugin>
-      
- -->
 
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-project-info-reports-plugin</artifactId>
+        <version>${maven-project-info-reports-plugin.version}</version>
+        <configuration>
+          <dependencyLocationsEnabled>false</dependencyLocationsEnabled>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 

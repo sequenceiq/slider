@@ -171,24 +171,7 @@
           <outputDirectory>${basedir}/target/surefire-reports</outputDirectory>
         </configuration>
       </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-site-plugin</artifactId>
-        <version>${maven-site-plugin.version}</version>
-        <configuration>
-          <outputDirectory>${basedir}/target/surefire-reports</outputDirectory>
-        </configuration>
-        <!--
-                <reportSets>
-                  <reportSet>
-                    <reports>
-                      <report>report-only</report>
-                    </reports>
-                  </reportSet>
-                </reportSets>
-        -->
 
-      </plugin>
 
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
