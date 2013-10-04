@@ -34,7 +34,6 @@ package org.apache.hadoop.hoya.yarn.appmaster.rpc;
 
 import com.google.protobuf.RpcController;
 import com.google.protobuf.ServiceException;
-import org.apache.hadoop.ha.protocolPB.HAServiceProtocolPB;
 import org.apache.hadoop.hoya.api.HoyaClusterProtocol;
 import org.apache.hadoop.hoya.api.proto.Messages;
 import org.apache.hadoop.ipc.ProtobufHelper;

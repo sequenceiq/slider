@@ -20,8 +20,8 @@ package org.apache.hadoop.hoya.providers.loadgen;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hoya.providers.ClientProvider;
-import org.apache.hadoop.hoya.providers.ProviderService;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
+import org.apache.hadoop.hoya.providers.ProviderService;
 
 public class LoadGenProviderFactory extends HoyaProviderFactory {
 

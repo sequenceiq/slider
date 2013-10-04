@@ -25,7 +25,6 @@ import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
 
