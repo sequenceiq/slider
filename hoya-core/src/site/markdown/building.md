@@ -219,8 +219,15 @@ You can create the JAR file and set up its directories with
 
      mvn package -DskipTests
 
-This copies all the dependencies to `target/lib`. The JAR has a manifest set
-to pull this in, so you can just go `java -jar target/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya`
+
+### Building a Release
+
+
+In the top level hoya directory
+
+    mvn clean site:site site:stage package -DskipTests
+  mvn  -DskipTests
+  
 
 ## Attn OS/X developers
 

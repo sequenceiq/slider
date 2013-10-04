@@ -19,7 +19,11 @@
   <artifactId>hoya-assembly</artifactId>
   <name>Hoya Assembly</name>
   <packaging>pom</packaging>
-  <description>Packaging  </description>
+  <description>
+    
+    This is the module that does the packaging and shell entry
+    points for Hoya
+  </description>
   <parent>
     <groupId>org.apache.hoya</groupId>
     <artifactId>hoya</artifactId>
@@ -90,14 +94,7 @@
         </executions>
       </plugin>
 
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-project-info-reports-plugin</artifactId>
-        <version>${maven-project-info-reports-plugin.version}</version>
-        <configuration>
-          <dependencyLocationsEnabled>false</dependencyLocationsEnabled>
-        </configuration>
-      </plugin>
+ 
     </plugins>
   </build>
 

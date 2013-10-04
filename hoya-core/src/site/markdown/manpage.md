@@ -79,20 +79,9 @@ started.
 
 ## Invoking Hoya
 
-build hoya
-
-    mvn clean install -DskipTests
-
-in the same directory:
  
-    java -jar target/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya <ACTION> <OPTIONS>
+    hoya <ACTION> <OPTIONS>
 
-* Later versions of Hoya will use a different version number
-
-* this command line entry point relies on target/lib containing all the dependency libraries.
-To use Hoya elsewhere, all JARs in that directory must be on the classpath.
-
-* Currently the log4j.properties file is embedded inside hoya.jar
 
 <!--- ======================================================================= -->
 
@@ -201,13 +190,13 @@ CLUSTER COMMANDS
 
 
 
-### build \<cluster> --fs filesystem --appconf dir --zkhosts zkhosts \[--image path] \[--apphome apphomedir] \[--zkport port] \[--zkpath zkpath]\[ \[--waittime time] \[--role <name> <count>]*  \[--roleopt <name> <value>]* \[--provider provider]
+### build \<cluster> --fs filesystem --appconf dir --zkhosts zkhosts \[--image path] \[--apphome apphomedir] \[--zkport port] \[--zkpath zkpath]\[ \[--waittime time] \[--role \<name> \<count>]*  \[--roleopt \<name> \<value>]* \[--provider provider]
 
 Build a cluster specification of the given name, with the specific options.
 
 The cluster is not started; this can be done later with a `thaw` command.
 
-### create \<cluster> --fs filesystem --appconf dir --zkhosts zkhosts \[--image path] \[--apphome apphomedir] \[--zkport port] \[--zkpath zkpath]\[ \[--waittime time] \[--role <name> <count>]*  \[--roleopt <name> <value>]* 
+### create \<cluster> --fs filesystem --appconf dir --zkhosts zkhosts \[--image path] \[--apphome apphomedir] \[--zkport port] \[--zkpath zkpath]\[ \[--waittime time] \[--role \<name> \<count>]*  \[--roleopt \<name> \<value>]* 
 
 Build and run a cluster of the given name, using the specified image. If a configuration directory is specified, it's configuration files override those in the image. 
 
@@ -378,22 +367,6 @@ These should be interpreted by all providers that start a JVM in the specific ro
 
 * `jvm.heapsize`: JVM heap size for Java applications in MB.
 * `jvm.opts`: JVM options other than heap size
-* ``: 
 
-
-
-<!--- ======================================================================= -->
-
-## Examples
-
-### Creating a cluster
-
-This creates a cluster `mycluster` with four workers
-
-    java -jar target/hoya-0.3-SNAPSHOT.jar org.apache.hadoop.hoya.Hoya create mycluster\
-     --role workers 4
-
-
-## Notes
 
 

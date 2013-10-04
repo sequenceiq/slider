@@ -70,6 +70,16 @@
 
   </developers>
 
+
+  <distributionManagement>
+    <site>
+      <id>hoya.website</id>
+      <name>Hoya Website</name>
+      <url>file:///tmp/hoya/public_html/</url>
+    </site>
+    <downloadUrl>https://github.com/hortonworks/hoya/releases</downloadUrl>
+  </distributionManagement>
+  
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.java.src.version>1.6</project.java.src.version>
@@ -129,6 +139,8 @@
     <!-- build options-->
     <build.redirect.test.output.to.file>false</build.redirect.test.output.to.file>
     <build.dependency.fail.on.warning>true</build.dependency.fail.on.warning>
+    <maven-doxia-module-markdown.version>1.4
+    </maven-doxia-module-markdown.version>
   </properties>
 
   <build>
@@ -156,30 +168,16 @@
         <version>${maven-site-plugin.version}</version>
         <inherited>true</inherited>
         <configuration>
-          <outputDirectory>${basedir}/target/surefire-reports</outputDirectory>
+          <skipDeploy>true</skipDeploy>
         </configuration>
-        <!--
-                <reportSets>
-                  <reportSet>
-                    <reports>
-                      <report>report-only</report>
-                    </reports>
-                  </reportSet>
-                </reportSets>
-        -->
-
+        <dependencies>
+          <dependency>
+            <groupId>org.apache.maven.doxia</groupId>
+            <artifactId>doxia-module-markdown</artifactId>
+            <version>${maven-doxia-module-markdown.version}</version>
+          </dependency>
+        </dependencies>
       </plugin>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <inherited>true</inherited>
-        <artifactId>maven-project-info-reports-plugin</artifactId>
-        <version>${maven-project-info-reports-plugin.version}</version>
-        <configuration>
-          <dependencyLocationsEnabled>false</dependencyLocationsEnabled>
-        </configuration>
-      </plugin>
-
 
     </plugins>
   </build>
@@ -195,6 +193,15 @@
           <showSuccess>false</showSuccess>
           <outputDirectory>${basedir}/target/surefire-reports</outputDirectory>
         </configuration>
+        <!--
+        <reportSets>
+          <reportSet>
+            <reports>
+              <report>report-only</report>
+            </reports>
+          </reportSet>
+        </reportSets>
+-->
       </plugin>
 
 
