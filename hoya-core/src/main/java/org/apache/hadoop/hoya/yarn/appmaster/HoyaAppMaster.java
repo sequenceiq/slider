@@ -18,15 +18,16 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster;
 
+import com.google.protobuf.BlockingService;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
-import org.apache.hadoop.hoya.api.ClusterNode;
 import org.apache.hadoop.hoya.api.HoyaClusterProtocol;
 import org.apache.hadoop.hoya.api.RoleKeys;
+import org.apache.hadoop.hoya.api.proto.HoyaClusterAPI;
 import org.apache.hadoop.hoya.api.proto.Messages;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
@@ -38,12 +39,13 @@ import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
+import org.apache.hadoop.hoya.yarn.appmaster.rpc.HoyaClusterProtocolPBImpl;
+import org.apache.hadoop.hoya.yarn.appmaster.rpc.RpcBinder;
 import org.apache.hadoop.hoya.yarn.appmaster.state.AppState;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleInstance;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleStatus;
 import org.apache.hadoop.hoya.yarn.service.EventCallback;
 import org.apache.hadoop.ipc.ProtocolSignature;
-import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.Server;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -126,6 +128,7 @@ public class HoyaAppMaster extends CompositeService
   public static final int TERMINATION_SIGNAL_PROPAGATION_DELAY = 1000;
 
   public static final int HEARTBEAT_INTERVAL = 1000;
+  public static final int NUM_RPC_HANDLERS = 5;
 
   /** YARN RPC to communicate with the Resource Manager or Node Manager */
   private YarnRPC rpc;
@@ -156,6 +159,16 @@ public class HoyaAppMaster extends CompositeService
   private final AppState appState = new AppState();
 
 
+  /**
+   * Map of launched threads.
+   * These are retained so that at shutdown time the AM can signal
+   * all threads to stop.
+   * 
+   * However, we don't want to run out of memory even if many containers
+   * get launched over time, so the AM tries to purge this
+   * of the latest launched thread when the RoleLauncher signals
+   * the AM that it has finished
+   */
   private final Map<RoleLauncher, Thread> launchThreads =
     new HashMap<RoleLauncher, Thread>();
 
@@ -300,7 +313,7 @@ public class HoyaAppMaster extends CompositeService
 /* =================================================================== */
 
   /**
-   * Create and run the cluster
+   * Create and run the cluster.
    * @return exit code
    * @throws Throwable on a failure
    */
@@ -646,14 +659,21 @@ public class HoyaAppMaster extends CompositeService
    * @return the new server
    */
   private Server startHoyaRPCServer() throws IOException {
-    server = new RPC.Builder(getConfig())
-      .setProtocol(HoyaClusterProtocol.class)
-      .setInstance(this)
-      .setPort(0)
-      .setNumHandlers(5)
-//        .setSecretManager(sm)
-      .build();
+    HoyaClusterProtocolPBImpl protobufRelay = new HoyaClusterProtocolPBImpl(this);
+    BlockingService blockingService = HoyaClusterAPI.HoyaClusterProtocolPB
+                                                    .newReflectiveBlockingService(
+                                                      protobufRelay);
+
+    server = RpcBinder.createProtobufServer(
+      new InetSocketAddress("0.0.0.0", 0),
+      getConfig(),
+      null,
+      NUM_RPC_HANDLERS,
+      blockingService,
+      null);
     server.start();
+
+
 
     return server;
   }
@@ -1066,7 +1086,7 @@ public class HoyaAppMaster extends CompositeService
                                                                       IOException {
     return HoyaClusterProtocol.versionID;
   }
-  
+
   
 /* =================================================================== */
 /* HoyaClusterProtocol */

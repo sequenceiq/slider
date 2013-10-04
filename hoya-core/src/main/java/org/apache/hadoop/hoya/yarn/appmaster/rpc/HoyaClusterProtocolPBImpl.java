@@ -14,30 +14,26 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster.rpc;
 
-import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.ServiceException;
 import org.apache.hadoop.hoya.api.HoyaClusterProtocol;
-import org.apache.hadoop.hoya.api.proto.HoyaClusterAPI;
 import org.apache.hadoop.hoya.api.proto.Messages;
-import org.apache.hadoop.yarn.exceptions.YarnException;
 
 import java.io.IOException;
 
 /**
  * Relay from Protobuf to internal RPC.
- * 
+ *
  * This is not (currently) implemented.
  */
-public class HoyaClusterProtocolPBImpl implements HoyaClusterAPI.HoyaClusterProtocolPB.BlockingInterface
-{
+public class HoyaClusterProtocolPBImpl implements HoyaClusterProtocolPB {
 
   private HoyaClusterProtocol real;
 
   public HoyaClusterProtocolPBImpl(HoyaClusterProtocol real) {
     this.real = real;
   }
-  
+
   private ServiceException wrap(Exception e) {
     if (e instanceof ServiceException) {
       return (ServiceException) e;
@@ -45,6 +41,11 @@ public class HoyaClusterProtocolPBImpl implements HoyaClusterAPI.HoyaClusterProt
     return new ServiceException(e);
   }
 
+  public long getProtocolVersion(String protocol, long clientVersion) throws
+                                                                      IOException {
+    return HoyaClusterProtocol.versionID;
+  }
+  
   @Override
   public Messages.StopClusterResponseProto stopCluster(RpcController controller,
                                                        Messages.StopClusterRequestProto request) throws

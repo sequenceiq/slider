@@ -45,8 +45,7 @@ import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.CommonArgs;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
 import org.apache.hadoop.hoya.yarn.appmaster.HoyaMasterServiceArgs;
-import org.apache.hadoop.ipc.ProtocolProxy;
-import org.apache.hadoop.ipc.RPC;
+import org.apache.hadoop.hoya.yarn.appmaster.rpc.RpcBinder;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -1372,22 +1371,14 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                               " Hoya RPC protocol: " + address);
     }
     InetSocketAddress addr = NetUtils.createSocketAddrForHost(host, port);
-    log.debug("Connecting to Hoya Server at {}", addr);
     UserGroupInformation currentUser = UserGroupInformation.getCurrentUser();
     Configuration conf = getConfig();
-    ProtocolProxy<HoyaClusterProtocol> protoProxy =
-      RPC.getProtocolProxy(HoyaClusterProtocol.class,
-                           HoyaClusterProtocol.versionID,
-                           addr,
-                           currentUser,
-                           conf,
-                           NetUtils.getDefaultSocketFactory(conf),
-                           15000,
-                           null);
-    HoyaClusterProtocol hoyaServer = protoProxy.getProxy();
-    log.debug("Connected to Hoya AM");
-    return hoyaServer;
+    
+    return RpcBinder.connectToServer(addr,currentUser,conf, 15000);
+
   }
+  
+  
 
   /**
    * Status operation; 'name' arg defines cluster name.
@@ -1790,6 +1781,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
   /**
    *   Bond to a running cluster
+   *
    *
    * @param clustername cluster name
    * @return the AM RPC client
