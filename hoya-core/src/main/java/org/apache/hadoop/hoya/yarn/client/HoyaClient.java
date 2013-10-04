@@ -1359,8 +1359,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     return found;
   }
 
-  @VisibleForTesting
-  public HoyaClusterProtocol connect(ApplicationReport app) throws
+  private HoyaClusterProtocol connect(ApplicationReport app) throws
                                                               YarnException,
                                                               IOException {
     String host = app.getHost();
@@ -1374,13 +1373,15 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     }
     InetSocketAddress addr = NetUtils.createSocketAddrForHost(host, port);
     log.debug("Connecting to Hoya Server at {}", addr);
+    UserGroupInformation currentUser = UserGroupInformation.getCurrentUser();
+    Configuration conf = getConfig();
     ProtocolProxy<HoyaClusterProtocol> protoProxy =
       RPC.getProtocolProxy(HoyaClusterProtocol.class,
                            HoyaClusterProtocol.versionID,
                            addr,
-                           UserGroupInformation.getCurrentUser(),
-                           getConfig(),
-                           NetUtils.getDefaultSocketFactory(getConfig()),
+                           currentUser,
+                           conf,
+                           NetUtils.getDefaultSocketFactory(conf),
                            15000,
                            null);
     HoyaClusterProtocol hoyaServer = protoProxy.getProxy();
