@@ -170,9 +170,8 @@ public class HBaseProviderService extends AbstractProviderService implements
 
     //log details
     command.add(
-      "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/out.txt");
-    command.add(
-      "2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/err.txt");
+      "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/region-server.txt");
+    command.add("2>&1");
 
     String cmdStr = HoyaUtils.join(command, " ");
 
