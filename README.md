@@ -26,14 +26,24 @@ to build locally.
 It also has some initial support for Apache Accumulo, though that
 code has not been tested at any scale. 
 
-* [Project Home](https://github.com/hortonworks/hoya)
-* [Announcement](hoya-core/src/site/markdown/announcement.md)
-* [Man Page](hoya-core/src/site/markdown/manpage.md)
-* [Building Hoya](hoya-core/src/site/markdown/building.md)
-* [Hoya Application Needs](hoya-core/src/site/markdown/app_needs.md)
+
+## Using Hoya
+
+* [Announcement](announcement.html)
+* [Installing](installing.html)
+* [Man Page](manpage.html)
+* [Examples](examples.html)
+* [exitcodes](exitcodes.html)
+* [hoya_cluster_description](hoya_cluster_descriptions.html)
+
+## Developing Hoya
+
+* [Architecture](architecture.html)
+* [Application Needs](app_needs.html)
+* [Building](building.html)
+* [Role history](rolehistory.html) (under development)
 
 # License
-
 
 
   Licensed under the Apache License, Version 2.0 (the "License");

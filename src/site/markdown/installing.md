@@ -12,7 +12,9 @@
   limitations under the License. See accompanying LICENSE file.
 -->
   
+# Installing and Running Hoya
 
-# Hoya Core
 
-Hoya: HBase on YARN
+1. Unzip/Untar the archive
+1. Add `hoya/bin` to the path
+1. The logging settings are set in `conf/log4j.properties`

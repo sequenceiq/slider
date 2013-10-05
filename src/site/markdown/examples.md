@@ -22,6 +22,8 @@
 For simple local demos, a Hadoop pseudo-distributed cluster will suffice -if on a VM then
 its configuration should be changed to use a public (machine public) IP.
 
+# The examples below all assume there is a cluster node called 'master', which
+hosts the HDFS NameNode and the YARN Resource Manager
 
 
 # preamble
@@ -29,9 +31,8 @@ its configuration should be changed to use a public (machine public) IP.
     export HADOOP_CONF_DIR=/home/hoya/conf
     export PATH=/home/hoya/hadoop/bin:/home/hoya/hadoop/sbin:~/zookeeper-3.4.5/bin:$PATH
     
-    hdfs namenode -format ubuntu
+    hdfs namenode -format master
   
-
 
 
 
@@ -56,7 +57,7 @@ its configuration should be changed to use a public (machine public) IP.
     
 
 
-NN up on [http://ubuntu:50070/dfshealth.jsp](http://ubuntu:50070/dfshealth.jsp)
+NN up on [http://master:50070/dfshealth.jsp](http://master:50070/dfshealth.jsp)
 RM yarn-daemon.sh --config $HADOOP_CONF_DIR start nodemanager
 
     zookeeper-3.4.5/bin/zkServer.sh start
@@ -76,32 +77,32 @@ copy to local
     get hbase-0.97.0-SNAPSHOT-bin.tar on 
 
 
-    hdfs dfs -rm hdfs://ubuntu:9090/hbase.tar
-    hdfs dfs -copyFromLocal hbase-0.97.0-SNAPSHOT-bin.tar hdfs://ubuntu:9090/hbase.tar
-    hdfs dfs -ls hdfs://ubuntu:9090/
+    hdfs dfs -rm hdfs://master:9090/hbase.tar
+    hdfs dfs -copyFromLocal hbase-0.97.0-SNAPSHOT-bin.tar hdfs://master:9090/hbase.tar
+    hdfs dfs -ls hdfs://master:9090/
     
 
 ## Clean up any existing hoya cluster details
 
 This is for demos only, otherwise you lose the clusters and their databases.
 
-    hdfs dfs -rm -r hdfs://ubuntu:9090/user/home/stevel/.hoya
+    hdfs dfs -rm -r hdfs://master:9090/user/home/stevel/.hoya
 
 ## Create a Hoya Cluster
  
  
     hoya  create cl1 \
     --role workers 1 \
-     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
-     --zkhosts localhost --image hdfs://ubuntu:9090/hbase.tar
+     --manager master:8032 --filesystem hdfs://master:9090 \
+     --zkhosts localhost --image hdfs://master:9090/hbase.tar
     
     # create the cluster
     
     hoya create cl1 \
      --role workers 4\
-      --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 --zkhosts localhost \
-      --image hdfs://ubuntu:9090/hbase.tar \
-      --appconf file:////Users/stevel/Hadoop/configs/ubuntu/hbase \
+      --manager master:8032 --filesystem hdfs://master:9090 --zkhosts localhost \
+      --image hdfs://master:9090/hbase.tar \
+      --appconf file:////Users/hoya/Hadoop/configs/master/hbase \
       --roleopt master app.infoport 8080 \
       --roleopt master jvm.heap 128 \
       --roleopt master env.MALLOC_ARENA_MAX 4 \
@@ -110,22 +111,22 @@ This is for demos only, otherwise you lose the clusters and their databases.
 
     # freeze the cluster
     hoya freeze cl1 \
-    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090
+    --manager master:8032 --filesystem hdfs://master:9090
 
     # thaw a cluster
     hoya thaw cl1 \
-    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090
+    --manager master:8032 --filesystem hdfs://master:9090
 
     # destroy the cluster
     hoya destroy cl1 \
-    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090
+    --manager master:8032 --filesystem hdfs://master:9090
 
     # list clusters
     hoya list cl1 \
-    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090
+    --manager master:8032 --filesystem hdfs://master:9090
     
     hoya flex cl1 \
-    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
+    --manager master:8032 --filesystem hdfs://master:9090 \
     --role worker 5
     
     
