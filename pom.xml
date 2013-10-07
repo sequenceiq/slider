@@ -136,6 +136,7 @@
     <github.site.plugin.version>0.8</github.site.plugin.version>
     <maven-site-plugin.skipDeploy>true</maven-site-plugin.skipDeploy>
     <github.downloads.plugin.version>0.6</github.downloads.plugin.version>
+    <maven-deploy-plugin.version>2.7</maven-deploy-plugin.version>
   </properties>
 
   <build>
@@ -664,6 +665,7 @@
     <profile>
       <!-- anything for a github release -->
       <!-- see https://github.com/github/maven-plugins-->
+      <!-- this doesn't seem to work and is not in active us-->
       <id>github</id>
       <properties>
         <maven-site-plugin.skipDeploy>false</maven-site-plugin.skipDeploy>
@@ -693,7 +695,7 @@
 
           <plugin>
             <artifactId>maven-deploy-plugin</artifactId>
-            <version>2.7</version>
+            <version>${maven-deploy-plugin.version}</version>
             <configuration>
               <altDeploymentRepository>
                 internal.repo::default::file://${project.build.directory}/mvn-repo
@@ -701,27 +703,7 @@
             </configuration>
           </plugin>
 
-          <plugin>
-            <groupId>com.github.github</groupId>
-            <artifactId>downloads-maven-plugin</artifactId>
-            <version>${github.downloads.plugin.version}</version>
-            <inherited>true</inherited>
-            <configuration>
-              <description>${project.version} release of ${project.name}
-              </description>
-              <override>true</override>
-              <includeAttached>true</includeAttached>
-              <server>github.com</server>
-            </configuration>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>upload</goal>
-                </goals>
-                <phase>deploy</phase>
-              </execution>
-            </executions>
-          </plugin>
+  
         </plugins>
       </build>
 

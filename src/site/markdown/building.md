@@ -276,6 +276,8 @@ This does a clean build of the application and its release
 artifacts. It does not run the tests: we do not want the
 tests to be included in the redistributable packages.
 
+mvn -Dusername=steveloughran release:prepare
+
 ### Afterwards
   
 
