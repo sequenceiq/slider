@@ -15,3 +15,4 @@ hoya/hoya-core/src/test/resources/hoya-test.xml
 /hoya-assembly/target
 release.properties
 *.backup
+*.versionsBackup
