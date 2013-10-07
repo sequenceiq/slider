@@ -73,7 +73,7 @@ public interface HBaseKeys {
   /**
    *  name of the hbase subdir in the archive:  {@value}
    */
-  String ARCHIVE_SUBDIR = "hbase-0.97.0-SNAPSHOT";
+  String ARCHIVE_SUBDIR = "hbase-0.96.0";
   /**
    *  name of the site conf to generate :  {@value}
    */

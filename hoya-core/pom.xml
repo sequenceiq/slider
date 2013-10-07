@@ -340,51 +340,5 @@
     </dependency>
   </dependencies>
 
-  <profiles>
-    <profile>
-      <!-- staged artifacts from the ASF -->
-      <id>staging</id>
-      <repositories>
-        <repository>
-          <id>ASF Staging</id>
-          <url>https://repository.apache.org/content/groups/staging/</url>
-        </repository>
-      </repositories>
-    </profile>
-    <profile>
-      <!-- staged artifacts from the ASF -->
-      <id>strict</id>
-      <!--enable this if you want to get told off about dependency conflict-->
-      <build>
-
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-enforcer-plugin</artifactId>
-            <version>${maven-enforcer-plugin.version}</version>
-            <executions>
-              <execution>
-                <id>enforce</id>
-                <configuration>
-                  <rules>
-                    <DependencyConvergence />
-                  </rules>
-                </configuration>
-                <goals>
-                  <goal>enforce</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-
-      </build>
-
-    </profile>
-
-
-
-    
-  </profiles>
-
+ 
 </project>
