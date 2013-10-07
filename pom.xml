@@ -3,7 +3,7 @@
   <groupId>org.apache.hoya</groupId>
   <artifactId>hoya</artifactId>
   <name>Hoya: HBase on YARN</name>
-  <version>0.4.2</version>
+  <version>0.5.1-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <description>
@@ -82,17 +82,21 @@
 
 
     <!--
+    core artifacts
+    -->
+    <hadoop.version>2.2.0</hadoop.version>
+    <hbase.version>0.96.0-hadoop2</hbase.version>
+    <accumulo.version>1.5.0</accumulo.version>
+    
+    <!--
      artifact versions
     -->
-    <accumulo.version>1.5.0</accumulo.version>
     <avro.version>1.7.4</avro.version>
     <commons-codec.version>1.7</commons-codec.version>
     <gmavenVersion>1.5</gmavenVersion>
     <gmavenProviderSelection>2.0</gmavenProviderSelection>
     <groovy.version>2.1.7</groovy.version>
     <guava.version>11.0.2</guava.version>
-    <hadoop.version>2.1.1-beta</hadoop.version>
-    <hbase.version>0.96.0-hadoop2</hbase.version>
 
 
     <jackson.version>1.9.7</jackson.version>
@@ -139,7 +143,24 @@
     <maven-deploy-plugin.version>2.7</maven-deploy-plugin.version>
   </properties>
 
+
+  <repositories>
+    <repository>
+      <id>ASF Staging</id>
+      <url>https://repository.apache.org/content/groups/staging/</url>
+    </repository>
+  </repositories>
+
+
+  <pluginRepositories>
+    <pluginRepository>
+      <id>ASF Staging</id>
+      <url>https://repository.apache.org/content/groups/staging/</url>
+    </pluginRepository>
+  </pluginRepositories>
+  
   <build>
+    
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -148,7 +169,9 @@
         <inherited>true</inherited>
         <configuration>
           <!-- skip test resource configuration-->
-          <excludes>**/hoya-test.xml</excludes>
+          <excludes>
+            <exclude>**/hoya-test.xml</exclude>
+          </excludes>
         </configuration>
         <executions>
           <execution>
@@ -619,31 +642,6 @@
   </dependencyManagement>
 
   <profiles>
-    <profile>
-      <!-- Staging-->
-      <!--
-       this pulls the staged artifacts in from outside.
-       it does not download the tar archive needed for hbase and accumulo
-      -->
-      <id>staging</id>
-
-      <activation>
-        <activeByDefault>true</activeByDefault>
-      </activation>
-
-      <properties>
-        <hadoop.version>2.1.1-beta</hadoop.version>
-        <hbase.version>0.96.0-hadoop2</hbase.version>
-        <accumulo.version>1.5.0</accumulo.version>
-      </properties>
-
-      <repositories>
-        <repository>
-          <id>ASF Staging</id>
-          <url>https://repository.apache.org/content/groups/staging/</url>
-        </repository>
-      </repositories>
-    </profile>
 
 
     <profile>
