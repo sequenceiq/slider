@@ -26,7 +26,7 @@ You will need a version of Maven 3.0, set up with enough memory
     MAVEN_OPTS=-Xms256m -Xmx512m -Djava.awt.headless=true
 
 
-*Important*: As of September 10, 2013, Maven 3.1 is not supported due to
+*Important*: As of October 6, 2013, Maven 3.1 is not supported due to
 [version issues](https://cwiki.apache.org/confluence/display/MAVEN/AetherClassNotFound).
 
 ## Building a compatible Hadoop version
@@ -220,13 +220,59 @@ You can create the JAR file and set up its directories with
      mvn package -DskipTests
 
 
-### Building a Release
+
+## Releasing
+
+
+Most of the release process is automated, though some manual steps are needed
+at the end to get the binaries up and any announcements out
+
+
+### Before you begin
+
+Check out the code, run the tests. This should be done on a checked out
+version of the code that is not the one you are developing on
+(ideally, a clean VM), to ensure that you aren't releasing a slightly
+modified version of your own, and that you haven't accidentally
+included passwords or other test run details into the build resource
+tree.
+
+If the tests fail, don't do a release.
+
+
+### Set the release version
+
+After selecting a version (such as 0.5.1), set that across the project
+
+  mvn release:update-versions -DautoVersionSubmodules=true
+
+You will be prompted for the version
+
+
+verify that this version has been picked up with a
+
+    mvn clean
+  
+The version  you have just set must be listed at the start of the build.
+  
+### Building the actual Release
 
 
 In the top level hoya directory
 
     mvn clean site:site site:stage package -DskipTests
-  mvn  -DskipTests
+  
+This does a clean build of the application and its release
+artifacts. It does not run the tests: we do not want the
+tests to be included in the redistributable packages.
+
+### Afterwards
+  
+
+Move up to a new build version -make it a -SNAPSHOT/development release
+
+    mvn --batch-mode release:update-versions -DdevelopmentVersion=0.5.2
+    mvn clean
   
 
 ## Attn OS/X developers
@@ -252,8 +298,8 @@ Here is a handy bash command to do this
 
 Hoya uses Groovy 2.x as its language for writing tests -for better assertions
 and easier handling of lists and closures. Although the first prototype
-used Groovy on the production source, this has been dropped in favor of
-a Java-only codebase.
+used Groovy on the production source, this was dropped in favor of
+a Java-only production codebase.
 
 ## Maven utils
 

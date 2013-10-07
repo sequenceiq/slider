@@ -1,36 +1,5 @@
 <?xml version="1.0"?>
 <!--
-  ~ Licensed under the Apache License, Version 2.0 (the "License");
-  ~   you may not use this file except in compliance with the License.
-  ~   You may obtain a copy of the License at
-  ~   
-  ~    http://www.apache.org/licenses/LICENSE-2.0
-  ~   
-  ~   Unless required by applicable law or agreed to in writing, software
-  ~   distributed under the License is distributed on an "AS IS" BASIS,
-  ~   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  ~   See the License for the specific language governing permissions and
-  ~   limitations under the License. See accompanying LICENSE file.
-  -->
-
-<!--
-  ~ Licensed to the Apache Software Foundation (ASF) under one
-  ~  or more contributor license agreements.  See the NOTICE file
-  ~  distributed with this work for additional information
-  ~  regarding copyright ownership.  The ASF licenses this file
-  ~  to you under the Apache License, Version 2.0 (the
-  ~  "License"); you may not use this file except in compliance
-  ~  with the License.  You may obtain a copy of the License at
-  ~
-  ~       http://www.apache.org/licenses/LICENSE-2.0
-  ~
-  ~  Unless required by applicable law or agreed to in writing, software
-  ~  distributed under the License is distributed on an "AS IS" BASIS,
-  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  ~  See the License for the specific language governing permissions and
-  ~  limitations under the License.
-  -->
-<!--
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
  You may obtain a copy of the License at
@@ -74,19 +43,16 @@
     <menu ref="reports"/>
 
     <menu name="Documents">
-      <item name="announcement" href="/hoya-core/announcement.html"/>
-      <item name="application Needs" href="/hoya-core/app_needs.html"/>
-      <item name="architecture" href="/hoya-core/architecture.html"/>
-      <item name="building" href="/hoya-core/building.html"/>
-      <item name="examples" href="/hoya-core/examples.html"/>
-      <item name="exitcodes" href="/hoya-core/exitcodes.html"/>
-      <item name="hoya_cluster_descriptions" href="/hoya-core/hoya_cluster_descriptions.html"/>
-      <item name="installing" href="/hoya-core/installing.html"/>
-      <item name="manpage" href="/hoya-core/manpage.html"/>
-      <item name="rolehistory" href="/hoya-core/rolehistory.html"/>
-
-
+      <item name="announcement" href="/announcement.html"/>
+      <item name="application Needs" href="/app_needs.html"/>
+      <item name="architecture" href="/architecture.html"/>
+      <item name="building" href="/building.html"/>
+      <item name="examples" href="/examples.html"/>
+      <item name="exitcodes" href="/exitcodes.html"/>
+      <item name="hoya_cluster_descriptions" href="/hoya_cluster_descriptions.html"/>
+      <item name="installing" href="/installing.html"/>
+      <item name="manpage" href="/manpage.html"/>
+      <item name="rolehistory" href="/rolehistory.html"/>
     </menu>
-    
   </body>
 </project>

@@ -14,9 +14,10 @@
 
 # Hoya!
 
-## Steve Loughran, Devaraj Das & Eric Baldeschwieler
+
 
 In the last few weeks, we have been getting together a prototype, Hoya, running HBase On YARN. This is driven by a few top level use cases that we have been trying to address. Some of them are:
+
 * Be able to create on-demand HBase clusters easily -by and or in apps
 
 * With different versions of HBase potentially (for testing etc.)
@@ -64,3 +65,4 @@ Even without these enhancements, Hoya lets us bring up short-lived and long-live
 We are building Hoya to demonstrate the capabilities of YARN, to broaden the use cases for HBase by allowing it to be used in mixed workload clusters and to learn how to improve and integrated all the layers of the Hadoop 2.0 stack.  Hoya is a work in progress.  We plan to share our early work on Github under the Apache License, so that we can get feedback and validation.  As Hoya matures, we plan to move it into the Apache Foundation to be closer to Apache's Hadoop and HBase projects. If you are interested in running HBase on YARN:  Come work with us on Hoya!
 
 
+## Steve Loughran, Devaraj Das and Eric Baldeschwieler

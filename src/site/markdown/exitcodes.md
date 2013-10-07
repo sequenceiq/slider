@@ -16,9 +16,9 @@
 
 Here are the exit codes returned by Hoya
 
-Exit code values 1 & 2 are interpreted by YARN -in particular converting the
+Exit code values 1 and 2 are interpreted by YARN -in particular converting the
 "1" value from an error into a successful shut down. Hoya
-converts the -1 error code from a forked process into EXIT_MASTER_PROCESS_FAILED;
+converts the -1 error code from a forked process into `EXIT_MASTER_PROCESS_FAILED`;
 no. 72.
 
 
