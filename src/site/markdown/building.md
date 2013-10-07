@@ -74,17 +74,17 @@ The maven command for building hbase artifacts against this hadoop version is
 
     mvn clean install assembly:single -DskipTests -Dmaven.javadoc.skip=true -Dhadoop.profile=2.0 -Dhadoop-two.version=2.1.2-SNAPSHOT
 
-For building just the JAR files:
 
-    mvn clean install -DskipTests -Dhadoop.profile=2.0 -Dhadoop-two.version=2.1.2-beta
     
 This will create `hbase-0.97.0-SNAPSHOT.tar.gz` in the directory `hbase-assembly/target/` in
 the hbase source tree. 
 
+    export HBASE_VERSION=0.97.0-SNAPSHOT
+    
     pushd hbase-assembly/target
-    gunzip hbase-0.97.0-SNAPSHOT-bin.tar.gz 
-    tar -xvf hbase-0.97.0-SNAPSHOT-bin.tar
-    gzip hbase-0.97.0-SNAPSHOT-bin.tar
+    gunzip hbase-$HBASE_VERSION-bin.tar.gz 
+    tar -xvf hbase-$HBASE_VERSION-bin.tar
+    gzip hbase-$HBASE_VERSION-bin.tar
     popd
 
 This will create an untarred directory `hbase-0.97.0-SNAPSHOT-bin` containing
@@ -92,8 +92,18 @@ hbase. Both the `.tar.gz` and untarred file are needed for testing. Most
 tests just work directly with the untarred file as it saves time uploading
 and downloading then expanding the file.
 
+(and if you set `HBASE_VERSION` to something else, you can pick up that version
+-making sure that hoya is in sync)
+
+    export HBASE_VERSION=0.96.0
+
+
 For more information (including recommended Maven memory configuration options),
 see [HBase building](http://hbase.apache.org/book/build.html)
+
+For building just the JAR files:
+
+    mvn clean install -DskipTests -Dhadoop.profile=2.0 -Dhadoop-two.version=2.1.2-beta
 
 *Tip:* you can force set a version in Maven by having it update all the POMs:
 

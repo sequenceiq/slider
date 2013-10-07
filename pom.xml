@@ -617,9 +617,25 @@
   </dependencyManagement>
 
   <profiles>
+
     <profile>
-      <!-- staged artifacts from the ASF -->
+      <!-- Staging-->
+      <!--
+       this pulls the staged artifacts in from outside.
+       it does not download the tar archive needed for hbase and accumulo
+      -->
       <id>staging</id>
+      
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+
+      <properties>
+        <hadoop.version>2.1.1-beta</hadoop.version>
+        <hbase.version>0.96.0-hadoop2</hbase.version>
+        <accumulo.version>1.5.0</accumulo.version>
+      </properties>
+
       <repositories>
         <repository>
           <id>ASF Staging</id>
@@ -627,6 +643,21 @@
         </repository>
       </repositories>
     </profile>
+
+
+    <profile>
+      <!-- local builds of everything -->
+      <id>local</id>
+      <properties>
+        <hadoop.version>2.1.2-SNAPSHOT</hadoop.version>
+        <hbase.version>0.97.0-SNAPSHOT</hbase.version>
+        <accumulo.version>1.6.0-SNAPSHOT</accumulo.version>
+      </properties>
+    </profile>
+  
+  
+  
+  
     <profile>
       <!-- anything for a jenkins build -->
       <id>jenkins</id>
