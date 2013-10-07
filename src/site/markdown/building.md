@@ -39,6 +39,9 @@ repository
 
 To build and install locally, check out apache svn/github, branch `2.1-beta` 
 
+
+export HADOOP_VERSION=2.2.0-rc0
+
 Build and install it locally, skipping the tests:
 
     mvn install -DskipTests
@@ -56,8 +59,8 @@ To make a tarball for use in test runs:
 Then expand this
 
     pushd hadoop-dist/target/
-    gunzip hadoop-2.1.2-SNAPSHOT.tar.gz 
-    tar -xvf hadoop-2.1.2-SNAPSHOT.tar 
+    gunzip hadoop-$HADOOP_VERSION.tar.gz 
+    tar -xvf hadoop-$HADOOP_VERSION.tar 
     popd
 
 This creates an expanded version of Hadoop. You can now actually run Hadoop
@@ -72,7 +75,7 @@ Checkout the HBase `trunk` branch from apache svn/github.
     
 The maven command for building hbase artifacts against this hadoop version is 
 
-    mvn clean install assembly:single -DskipTests -Dmaven.javadoc.skip=true -Dhadoop.profile=2.0 -Dhadoop-two.version=2.1.2-SNAPSHOT
+    mvn clean install assembly:single -DskipTests -Dmaven.javadoc.skip=true -Dhadoop.profile=2.0 -Dhadoop-two.version=$HADOOP_VERSION
 
 
     
@@ -80,6 +83,7 @@ This will create `hbase-0.97.0-SNAPSHOT.tar.gz` in the directory `hbase-assembly
 the hbase source tree. 
 
     export HBASE_VERSION=0.97.0-SNAPSHOT
+    export HBASE_VERSION=0.96.0
     
     pushd hbase-assembly/target
     gunzip hbase-$HBASE_VERSION-bin.tar.gz 
@@ -87,7 +91,7 @@ the hbase source tree.
     gzip hbase-$HBASE_VERSION-bin.tar
     popd
 
-This will create an untarred directory `hbase-0.97.0-SNAPSHOT-bin` containing
+This will create an untarred directory containing
 hbase. Both the `.tar.gz` and untarred file are needed for testing. Most
 tests just work directly with the untarred file as it saves time uploading
 and downloading then expanding the file.
@@ -95,7 +99,7 @@ and downloading then expanding the file.
 (and if you set `HBASE_VERSION` to something else, you can pick up that version
 -making sure that hoya is in sync)
 
-    export HBASE_VERSION=0.96.0
+    
 
 
 For more information (including recommended Maven memory configuration options),
@@ -103,7 +107,7 @@ see [HBase building](http://hbase.apache.org/book/build.html)
 
 For building just the JAR files:
 
-    mvn clean install -DskipTests -Dhadoop.profile=2.0 -Dhadoop-two.version=2.1.2-beta
+    mvn clean install -DskipTests -Dhadoop.profile=2.0 -Dhadoop-two.version=$HADOOP_VERSION
 
 *Tip:* you can force set a version in Maven by having it update all the POMs:
 
@@ -120,7 +124,8 @@ locally, by changing the `hadoop.version` property
 
 In the accumulo project directory:
 
-    mvn clean package -Passemble -DskipTests -Dhadoop.profile=2.0  -Dmaven.javadoc.skip=true -Dhadoop.version=2.1.1-beta
+    mvn clean package -Passemble -DskipTests -Dmaven.javadoc.skip=true \
+     -Dhadoop.profile=2.0  -Dhadoop.version=HADOOP_VERSION
 
 This creates an accumulo tar.gz file in `assemble/target/`. Unzip then untar
 this, to create a .tar file and an expanded directory
@@ -144,7 +149,7 @@ a patch such as `target/accumulo-1.6.0-SNAPSHOT-dev/accumulo-1.6.0-SNAPSHOT/`
 ### Configuring Hoya to locate the relevant artifacts
 
 You must have the file `src/test/resources/hoya-test.xml` (this
-is ignored by git), declaring where HBase is:
+is ignored by git), declaring where HBase, accumulo, Hadoop and zookeeper are:
 
     <configuration>
     
