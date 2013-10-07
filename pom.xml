@@ -79,30 +79,20 @@
   </distributionManagement>
   
   <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <project.java.src.version>1.6</project.java.src.version>
+
 
     <!--
-        <accumulo.version>1.5</accumulo.version>
+     artifact versions
     -->
-    <accumulo.version>1.6.0-SNAPSHOT</accumulo.version>
+    <accumulo.version>1.5.0</accumulo.version>
     <avro.version>1.7.4</avro.version>
     <commons-codec.version>1.7</commons-codec.version>
-
     <gmavenVersion>1.5</gmavenVersion>
     <gmavenProviderSelection>2.0</gmavenProviderSelection>
     <groovy.version>2.1.7</groovy.version>
     <guava.version>11.0.2</guava.version>
-    <!-- 
-        <hadoop.version>3.0.0-SNAPSHOT</hadoop.version>
-        <hadoop.version>2.1.0-beta</hadoop.version>
-    -->
-    <hadoop.version>2.1.2-SNAPSHOT</hadoop.version>
-
-    <!--
-        <hbase.version>0.95.2-SNAPSHOT</hbase.version>
-     -->
-    <hbase.version>0.97.0-SNAPSHOT</hbase.version>
+    <hadoop.version>2.1.1-beta</hadoop.version>
+    <hbase.version>0.96.0-hadoop2</hbase.version>
 
 
     <jackson.version>1.9.7</jackson.version>
@@ -135,10 +125,17 @@
     <protobuf.version>2.5.0</protobuf.version>
 
     <!-- build options-->
-    <build.redirect.test.output.to.file>false</build.redirect.test.output.to.file>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <build.dependency.fail.on.warning>true</build.dependency.fail.on.warning>
-    <maven-doxia-module-markdown.version>1.4
-    </maven-doxia-module-markdown.version>
+    <project.java.src.version>1.6</project.java.src.version>
+    <build.redirect.test.output.to.file>false</build.redirect.test.output.to.file>
+    <maven-doxia-module-markdown.version>1.4</maven-doxia-module-markdown.version>
+    
+    <!-- github options-->
+    <github.global.server>github</github.global.server>
+    <github.site.plugin.version>0.8</github.site.plugin.version>
+    <maven-site-plugin.skipDeploy>true</maven-site-plugin.skipDeploy>
+    <github.downloads.plugin.version>0.6</github.downloads.plugin.version>
   </properties>
 
   <build>
@@ -166,7 +163,7 @@
         <version>${maven-site-plugin.version}</version>
         <inherited>true</inherited>
         <configuration>
-          <skipDeploy>true</skipDeploy>
+          <skipDeploy>${maven-site-plugin.skipDeploy}</skipDeploy>
         </configuration>
         <dependencies>
           <dependency>
@@ -617,7 +614,6 @@
   </dependencyManagement>
 
   <profiles>
-
     <profile>
       <!-- Staging-->
       <!--
@@ -625,7 +621,7 @@
        it does not download the tar archive needed for hbase and accumulo
       -->
       <id>staging</id>
-      
+
       <activation>
         <activeByDefault>true</activeByDefault>
       </activation>
@@ -654,18 +650,84 @@
         <accumulo.version>1.6.0-SNAPSHOT</accumulo.version>
       </properties>
     </profile>
-  
-  
-  
-  
+
+
     <profile>
       <!-- anything for a jenkins build -->
       <id>jenkins</id>
-        <properties>
-          <build.redirect.test.output.to.file>true</build.redirect.test.output.to.file>
-        </properties>
-      </profile>
-    
+      <properties>
+        <build.redirect.test.output.to.file>true
+        </build.redirect.test.output.to.file>
+      </properties>
+    </profile>
+
+    <profile>
+      <!-- anything for a github release -->
+      <!-- see https://github.com/github/maven-plugins-->
+      <id>github</id>
+      <properties>
+        <maven-site-plugin.skipDeploy>false</maven-site-plugin.skipDeploy>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>com.github.github</groupId>
+            <artifactId>site-maven-plugin</artifactId>
+            <version>${github.site.plugin.version}</version>
+            <inherited>true</inherited>
+            <configuration>
+              <message>Creating site for ${project.version}</message>
+              <dryRun>false</dryRun>
+              <repositoryName>hoya</repositoryName>
+              <repositoryOwner>hortonworks</repositoryOwner>
+            </configuration>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>site</goal>
+                </goals>
+                <phase>site-deploy</phase>
+              </execution>
+            </executions>
+          </plugin>
+
+          <plugin>
+            <artifactId>maven-deploy-plugin</artifactId>
+            <version>2.7</version>
+            <configuration>
+              <altDeploymentRepository>
+                internal.repo::default::file://${project.build.directory}/mvn-repo
+              </altDeploymentRepository>
+            </configuration>
+          </plugin>
+
+          <plugin>
+            <groupId>com.github.github</groupId>
+            <artifactId>downloads-maven-plugin</artifactId>
+            <version>${github.downloads.plugin.version}</version>
+            <inherited>true</inherited>
+            <configuration>
+              <description>${project.version} release of ${project.name}
+              </description>
+              <override>true</override>
+              <includeAttached>true</includeAttached>
+              <server>github.com</server>
+            </configuration>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>upload</goal>
+                </goals>
+                <phase>deploy</phase>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+
+    </profile>
+
   </profiles>
+
 
 </project>
