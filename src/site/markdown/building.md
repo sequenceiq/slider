@@ -116,13 +116,11 @@ Clone accumulo from apache; check out trunk
 If needed, patch the POM file to depend on the version of Hadoop you are building
 locally, by changing the `hadoop.version` property
 
-   <hadoop.version>2.1.2-SNAPSHOT</hadoop.version>
 
 
 In the accumulo project directory:
 
-    mvn clean install -DskipTests
-    mvn package -Passemble -DskipTests -Dhadoop.profile=2.0  -Dmaven.javadoc.skip=true 
+    mvn clean package -Passemble -DskipTests -Dhadoop.profile=2.0  -Dmaven.javadoc.skip=true -Dhadoop.version=2.1.1-beta
 
 This creates an accumulo tar.gz file in `assemble/target/`. Unzip then untar
 this, to create a .tar file and an expanded directory
