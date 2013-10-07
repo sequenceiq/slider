@@ -252,9 +252,7 @@ If the tests fail, don't do a release.
 
 After selecting a version (such as 0.5.1), set that across the project
 
-  mvn release:update-versions -DautoVersionSubmodules=true
 
-You will be prompted for the version
 
 
 verify that this version has been picked up with a
@@ -274,7 +272,6 @@ This does a clean build of the application and its release
 artifacts. It does not run the tests: we do not want the
 tests to be included in the redistributable packages.
 
-mvn -Dusername=steveloughran release:prepare
 
 ### Afterwards
   
