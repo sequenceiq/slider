@@ -29,8 +29,8 @@ then
   exit -2
 fi
 
-realm="$0"
-hostname="$1"
+realm="$1"
+hostname="$2"
 dest="."
 
 kadmin=kadmin.local
