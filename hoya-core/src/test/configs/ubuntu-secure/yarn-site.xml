@@ -44,5 +44,14 @@
     <value>false</value>
   </property>
 
-  
+  <!-- security -->
+  <property>
+    <name>yarn.resourcemanager.keytab</name>
+    <value>/home/stevel/conf/yarn.keytab</value>
+  </property>
+  <property>
+    <name>yarn.resourcemanager.principal</name>
+    <value>yarn/ubuntu@COTHAM</value>
+  </property>
+
 </configuration>
