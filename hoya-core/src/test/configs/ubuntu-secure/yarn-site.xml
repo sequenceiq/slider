@@ -58,7 +58,7 @@
     <value>/home/stevel/conf/yarn.keytab</value>
   </property>
   <property>
-    <name>yarn.nodeemanager.principal</name>
+    <name>yarn.nodemanager.principal</name>
     <value>yarn/ubuntu@COTHAM</value>
   </property>
 
