@@ -40,7 +40,9 @@ repository
 To build and install locally, check out apache svn/github, branch `2.1-beta` 
 
 
-export HADOOP_VERSION=2.2.0-rc0
+For the scripts below, set the `HADOOP_VERSION` variable to the version
+
+    export HADOOP_VERSION=2.2.1-SNAPSHOT
 
 Build and install it locally, skipping the tests:
 
@@ -51,7 +53,7 @@ You have to do this every morning to avoid the ASF nightly artifacts being picke
 To make a tarball for use in test runs:
 
     #On  osx
-    mvn clean package -Pdist -Dtar -DskipTests -Dmaven.javadoc.skip=true 
+    mvn clean install package -Pdist -Dtar -DskipTests -Dmaven.javadoc.skip=true 
     
     # on linux
     mvn package -Pdist -Pnative -Dtar -DskipTests -Dmaven.javadoc.skip=true 
