@@ -33,5 +33,37 @@
     <value>/home/stevel/hdfs/datanode</value>
   </property>
 
-  
+  <!-- General HDFS security config -->
+  <property>
+    <name>dfs.block.access.token.enable</name>
+    <value>true</value>
+  </property>
+
+  <!-- NN -->
+  <property>
+    <name>dfs.namenode.keytab.file</name>
+    <value>/home/stevel/conf/hdfs.keytab</value>
+  </property>
+  <property>
+    <name>dfs.namenode.kerberos.principal</name>
+    <value>hdfs/ubuntu@COTHAM</value>
+  </property>
+  <property>
+    <name>dfs.namenode.kerberos.internal.spnego.principal</name>
+    <value>HTTP/ubuntu@COTHAM</value>
+  </property>
+
+  <!-- DataNode security config -->
+  <property>
+    <name>dfs.datanode.data.dir.perm</name>
+    <value>700</value>
+  </property>
+  <property>
+    <name>dfs.datanode.keytab.file</name>
+    <value>/home/stevel/conf/hdfs.keytab</value>
+  </property>
+  <property>
+    <name>dfs.datanode.kerberos.principal</name>
+    <value>hdfs/ubuntu@COTHAM</value>
+  </property>
 </configuration>
