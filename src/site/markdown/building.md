@@ -237,9 +237,11 @@ You can create the JAR file and set up its directories with
 ## Releasing
 
 
-Most of the release process is automated, though some manual steps are needed
-at the end to get the binaries up and any announcements out
+## Releasing
 
+We do not use maven release plug in. Why not? Us the release plugin and then come back and ask that question.
+
+Here then is our release process.
 
 ### Before you begin
 
@@ -250,43 +252,151 @@ modified version of your own, and that you haven't accidentally
 included passwords or other test run details into the build resource
 tree.
 
-If the tests fail, don't do a release.
+
+**Step #1:** Create a JIRA for the release, estimate  2h
+(so you don't try to skip the tests)
+
+**Step #2:** Check everything in. Git flow won't let you progress without this.
+
+**Step #3:** Git flow: create a release branch
+
+    git flow release start 0.4.3
+
+**Step #4:** in the new branch, increment those version numbers using (the maven
+versions plugin)[http://mojo.codehaus.org/versions-maven-plugin/]
+
+    mvn versions:set -DnewVersion=0.4.3
 
 
-### Set the release version
-
-After selecting a version (such as 0.5.1), set that across the project
-
-
-
-
-verify that this version has been picked up with a
-
-    mvn clean
+**Step #5:** commit the changed POM files
   
-The version  you have just set must be listed at the start of the build.
+        git add <changed files>
+        git commit -m "BUG-XYZ updating release POMs"
+
+
   
-### Building the actual Release
+**Step #6:** Do a final test run to make sure nothing is broken
 
 
-In the top level hoya directory
-
+    mvn clean test
     mvn clean site:site site:stage package -DskipTests
-  
-This does a clean build of the application and its release
-artifacts. It does not run the tests: we do not want the
-tests to be included in the redistributable packages.
 
 
-### Afterwards
-  
+**Step #:7** Look in `hoya-assembly/target` to find the `.tar.gz` file, and the
+expanded version of it. Inspect that expanded version to make sure that
+everything looks good -and that the versions of all the dependent artifacts
+look good too: there must be no `-SNAPSHOT` dependencies.
 
-Move up to a new build version -make it a -SNAPSHOT/development release
 
-    mvn --batch-mode release:update-versions -DdevelopmentVersion=0.5.2
+**Step #:** Create a a one-line plain text release note for commits and tags
+And a multi-line markdown release note, which will be used for artifacts.
+
+
+    Release of Hoya against hadoop 2.2.0 and hbase 0.96.0-hadoop2
+
+    This release of Hoya:
+    
+    1. Is built against the (ASF staged) hadoop 2.2.0 and hbase 0.96.0-hadoop2 artifacts. 
+    1. Supports Apache HBase cluster creation, flexing, freezing and thawing.
+    1. Contains the initial support of Apache Accumulo: all accumulo roles
+    can be created, though its testing is currently very minimal.
+    1. Has moved `log4j.properties` out of the JAR file and into the directory
+    `conf/`, where it will be picked up both client-side and server-side.
+    Enjoy!
+
+
+**Step #9:** Finish the git flow release, either in the SourceTree GUI or
+the command line:
+
+    
+    git flow release finish hoya-0.4.2
+    
+
+On the command line you have to enter the one-line release description
+prepared earlier.
+
+You will now be back on the `develop` branch.
+
+**Step #10:** Switch back to develop and update its version number past
+the release number
+
+
+    mvn versions:set -DnewVersion=0.4.4-SNAPSHOT
+    git commit -a -m "BUG-XYZ updating development POMs"
+
+**Step #11:** Push the release and develop branches to github 
+(We recommend naming the hortonworks github repository 'hortonworks' to avoid
+ confusion with apache, personal and others):
+
+    git push hortonworks master develop 
+
+(if you are planning on any release work of more than a single test run,
+ consider having your local release branch track the master)
+
+The `git-flow` program automatically pushes up the `release/hoya-0.4.2` branch,
+before deleting it locally.
+
+
+**Step #12:** ### For releasing small artifacts
+
+(This only works for files under 5GB)
+Browse to https://github.com/hortonworks/hoya/releases/new
+
+Create a new release on the site by following the instructions
+
+
+**Step #13:**  For releasing via an external CDN (e.g. Rackspace Cloud)
+
+Using the web GUI for your particular distribution network, upload the
+`.tar.gz` artifact
+
+
+**Step #14:** Announce the release 
+
+**Step #15:** Get back to developing!
+
+Check out the develop branch and purge all release artifacts
+
+    git checkout develop
+    git pull hortonworks
     mvn clean
-  
+    
 
+
+# Development Notes
+
+
+## Git branch model
+
+The git branch model uses is
+(Git Flow)[http://nvie.com/posts/a-successful-git-branching-model/].
+
+This is a common workflow model for Git, and built in to
+(Atlassian Source Tree)[http://sourcetreeapp.com/].
+ 
+The command line `git-flow` tool is easy to install 
+ 
+    brew install git-flow
+ 
+or
+
+    apt-get install git-flow
+ 
+You should then work on all significant features in their own branch and
+merge them back in when they are ready.
+
+ 
+    # until we get a public JIRA we're just using an in-house one. sorry
+    git flow feature start BUG-8192
+    
+    # finishes merges back in to develop/
+    git flow feature finish BUG-8192
+    
+    # release branch
+    git flow release start 0.4.0
+    
+    git flow release finish 0.4.0
+    
 ## Attn OS/X developers
 
 YARN on OS/X doesn't terminate subprocesses the way it does on Linux, so
@@ -304,7 +414,6 @@ Here is a handy bash command to do this
 
     jps -l | grep HRegion | awk '{print $1}' | xargs kill -9
 
-# Notes
 
 ## Groovy 
 
