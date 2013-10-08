@@ -966,9 +966,14 @@ public class HoyaAppMaster extends CompositeService
         AMRMClient.ContainerRequest containerAsk =
           buildContainerRequest(role);
         log.info("Container ask is {}", containerAsk);
-        asyncRMClient.addContainerRequest(containerAsk);
+        if (containerAsk.getCapability().getMemory() > this.containerMaxMemory) {
+          log.warn("Memory requested: " + containerAsk.getCapability().getMemory() + " > " +
+              this.containerMaxMemory);
+        } else {
+          asyncRMClient.addContainerRequest(containerAsk);
+          updated = true;
+        }
       }
-      updated = true;
     } else if (delta < 0) {
 
       //special case: there are no more containers
