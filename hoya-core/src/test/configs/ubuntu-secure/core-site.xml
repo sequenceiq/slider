@@ -17,10 +17,16 @@
 <!-- Put site-specific property overrides in this file. -->
 
 <configuration>
-  <configuration>
-    <property>
-      <name>fs.defaultFS</name>
-      <value>hdfs://ubuntu:9090</value>
-    </property>
-  </configuration>
+  <property>
+    <name>fs.defaultFS</name>
+    <value>hdfs://ubuntu:9090</value>
+  </property>
+  <property>
+    <name>hadoop.security.authentication</name>
+    <value>kerberos</value>
+  </property>
+  <property>
+    <name>hadoop.security.authorization</name>
+    <value>true</value>
+  </property>
 </configuration>
