@@ -29,4 +29,8 @@
     <name>hadoop.security.authorization</name>
     <value>true</value>
   </property>
+  <property>
+    <name>ignore.secure.ports.for.testing</name>
+    <value>true</value>
+  </property>
 </configuration>
