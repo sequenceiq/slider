@@ -648,7 +648,7 @@
       <!-- local builds of everything -->
       <id>local</id>
       <properties>
-        <hadoop.version>2.1.2-SNAPSHOT</hadoop.version>
+        <hadoop.version>2.2.1-SNAPSHOT</hadoop.version>
         <hbase.version>0.97.0-SNAPSHOT</hbase.version>
         <accumulo.version>1.6.0-SNAPSHOT</accumulo.version>
       </properties>
