@@ -20,11 +20,14 @@ package org.apache.hadoop.hoya.yarn.client;
 
 import com.beust.jcommander.Parameter;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
 import org.apache.hadoop.hoya.tools.PathArgumentConverter;
 import org.apache.hadoop.hoya.yarn.CommonArgs;
+import org.apache.hadoop.security.SecurityUtil;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
 import java.util.ArrayList;
@@ -52,6 +55,8 @@ public class ClientArgs extends CommonArgs {
   //public static final String ARG_FILESYSTEM = "--fs";
   public static final String ARG_FORMAT = "--format";
   public static final String ARG_PERSIST = "--persist";
+  public static final String ARG_SECURE = "--secure";
+  public static final String ARG_SECURE_SHORT = "-s";
   public static final String ARG_WAIT = "--wait";
 
 
@@ -94,6 +99,11 @@ public class ClientArgs extends CommonArgs {
              description = "flag to indicate whether a flex change should be persisted (default=true)",
              arity = 1)
   public boolean persist;
+
+  
+  @Parameter(names = {ARG_SECURE , ARG_SECURE_SHORT},
+             description = "enable secure communications and hoya clusters")
+  public boolean secure=false;
 
 
   /**
@@ -183,6 +193,12 @@ public class ClientArgs extends CommonArgs {
     if (manager != null) {
       LOG.debug("Setting RM to {}", manager);
       conf.set(YarnConfiguration.RM_ADDRESS, manager);
+    }
+    //security
+    if (secure) {
+      LOG.debug("secure mode");
+      SecurityUtil.setAuthenticationMethod(
+        UserGroupInformation.AuthenticationMethod.KERBEROS, conf);
     }
   }
 

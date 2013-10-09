@@ -149,6 +149,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   protected void serviceInit(Configuration conf) throws Exception {
     serviceArgs.applyDefinitions(conf);
     serviceArgs.applyFileSystemURL(conf);
+    //init security with our conf
+    UserGroupInformation.setConfiguration(conf);
     super.serviceInit(conf);
   }
 

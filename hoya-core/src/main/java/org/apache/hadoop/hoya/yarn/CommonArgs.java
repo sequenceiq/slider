@@ -66,8 +66,6 @@ public class CommonArgs implements HoyaActions {
   public static final String ARG_OPTION_SHORT = "-O";
   public static final String ARG_PROVIDER = "--provider";
   public static final String ARG_ROLE = "--role";
-
-
   public static final String ARG_ROLEOPT = "--roleopt";
   public static final String ARG_USER = "--user";
 
