@@ -49,11 +49,11 @@ confdir="${hoya_home}/conf"
 
 # normalize the conf dir so it can be passed down
 confdir=`cd -P "${confdir}" && pwd -P`
-confdir=${HOYA_CONF_DIR:-confdir}
+confdir=${HOYA_CONF_DIR:-$confdir}
 
 
 hoya_jvm_opts="-Djava.net.preferIPv4Stack=true -Djava.awt.headless=true -Xmx256m -Dhoya.confdir=${confdir}"
-hoya_jvm_opts=${HOYA_JVM_OPTS:-hoya_jvm_opts}
+hoya_jvm_opts=${HOYA_JVM_OPTS:-$hoya_jvm_opts}
 
 hoya_classpath="${libdir}/*:${confdir}"
 
