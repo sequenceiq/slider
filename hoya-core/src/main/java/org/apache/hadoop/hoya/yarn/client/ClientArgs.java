@@ -187,7 +187,8 @@ public class ClientArgs extends CommonArgs {
   }
 
   @Override
-  public void applyDefinitions(Configuration conf) {
+  public void applyDefinitions(Configuration conf) throws
+                                                   BadCommandArgumentsException {
     super.applyDefinitions(conf);
     //RM
     if (manager != null) {

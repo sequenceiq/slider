@@ -24,6 +24,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
@@ -68,6 +69,7 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.service.launcher.RunService;
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher;
 import org.apache.hadoop.yarn.util.Records;
+import org.apache.zookeeper.server.util.KerberosUtil;
 import org.codehaus.jackson.JsonParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -150,13 +152,33 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     serviceArgs.applyDefinitions(conf);
     serviceArgs.applyFileSystemURL(conf);
     //init security with our conf
-    UserGroupInformation.setConfiguration(conf);
     if (serviceArgs.secure) {
+      log.info("Secure mode with kerberos realm {}",
+               KerberosUtil.getDefaultRealm());
+      UserGroupInformation.setConfiguration(conf);
       UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
       log.debug("Authenticating as " + ugi.toString());
       log.debug("Login user is {}", UserGroupInformation.getLoginUser());
+      verifyPrincipalSet(conf, YarnConfiguration.RM_PRINCIPAL);
+      verifyPrincipalSet(conf, DFSConfigKeys.DFS_DATANODE_USER_NAME_KEY);
     }
     super.serviceInit(conf);
+  }
+
+  /**
+   * Verify that a Kerberos principal has been set -if not fail
+   * with an error message that actually tells you what is missing
+   * @param conf configuration to look at
+   * @param principal key of principal
+   * @throws BadConfigException if the key is not set
+   */
+  private static void verifyPrincipalSet(Configuration conf,
+                                         String principal) throws
+                                                           BadConfigException {
+    if (conf.get(principal) == null) {
+      throw new BadConfigException("Unset Kerberos principal : %s",
+                                   principal);
+    }
   }
 
   /**

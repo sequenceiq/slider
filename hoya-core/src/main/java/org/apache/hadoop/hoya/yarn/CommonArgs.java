@@ -66,6 +66,7 @@ public class CommonArgs implements HoyaActions {
   public static final String ARG_OPTION_SHORT = "-O";
   public static final String ARG_PROVIDER = "--provider";
   public static final String ARG_ROLE = "--role";
+  public static final String ARG_SYSPROP = "--sysprop";
   public static final String ARG_ROLEOPT = "--roleopt";
   public static final String ARG_USER = "--user";
 
@@ -94,7 +95,7 @@ public class CommonArgs implements HoyaActions {
    * All the remaining values after argument processing
    */
   public static final String ERROR_TOO_MANY_ARGUMENTS =
-    "Too many arguments for action:";
+    "Too many arguments";
 
   public static final String ARG_RESOURCE_MANAGER = "--rm";
 
@@ -145,7 +146,7 @@ public class CommonArgs implements HoyaActions {
              description = "Zookeeper port")
   public int zkport = HBaseConfigFileOptions.HBASE_ZK_PORT;
 
-  /*
+  /**
    -D name=value
 
    Define an HBase configuration option which overrides any options in
@@ -158,6 +159,15 @@ public class CommonArgs implements HoyaActions {
   @Parameter(names = "-D", arity = 1, description = "Definitions")
   public List<String> definitions = new ArrayList<String>();
   public Map<String, String> definitionMap = new HashMap<String, String>();
+
+
+  /**
+   * System properties
+   */
+  @Parameter(names = {ARG_SYSPROP}, arity = 2,
+             description = "system properties in the form name value" +
+                           " These are set after the JVM is started.")
+  public List<String> sysprops = new ArrayList<String>(0);
 
   @Parameter(names = {"--m", ARG_MANAGER},
              description = "hostname:port of the YARN resource manager")
@@ -273,6 +283,12 @@ public class CommonArgs implements HoyaActions {
         definitionMap.put(keyval[0], keyval[1]);
       }
     }
+
+    Map<String, String> syspropmap =
+      convertTupleListToMap(ARG_SYSPROP, sysprops);
+    for (Map.Entry<String, String> entry : syspropmap.entrySet()) {
+      System.setProperty(entry.getKey(),entry.getValue());
+    }
   }
 
   /**
@@ -303,7 +319,14 @@ public class CommonArgs implements HoyaActions {
     int maxArgs =
       (actionOpts.size() == 3) ? ((Integer) actionOpts.get(2)) : minArgs;
     if (actionArgSize > maxArgs) {
-      throw new BadCommandArgumentsException(ERROR_TOO_MANY_ARGUMENTS );
+      String message = String.format("%s for %s limit %d but saw %d",
+                                     ERROR_TOO_MANY_ARGUMENTS, action, maxArgs,
+                                     actionArgSize);
+      LOG.error(message);
+      for (String actionArg : actionArgs) {
+        LOG.error("\"{}\"", actionArg);
+      }
+      throw new BadCommandArgumentsException(message);
     }
   }
 
@@ -311,11 +334,14 @@ public class CommonArgs implements HoyaActions {
    * Apply all the definitions on the command line to the configuration
    * @param conf config
    */
-  public void applyDefinitions(Configuration conf) {
+  public void applyDefinitions(Configuration conf) throws
+                                                   BadCommandArgumentsException {
     for (String key : definitionMap.keySet()) {
       String val = definitionMap.get(key);
+      LOG.debug("configuration[{}]=\"{}\"", key, val);
       conf.set(key, val, "command line");
     }
+
   }
 
   /**
