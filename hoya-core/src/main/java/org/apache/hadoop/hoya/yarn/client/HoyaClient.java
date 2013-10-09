@@ -151,6 +151,10 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     serviceArgs.applyFileSystemURL(conf);
     //init security with our conf
     UserGroupInformation.setConfiguration(conf);
+    if (serviceArgs.secure) {
+      UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+      log.debug("Authenticating as " + ugi.toString());
+    }
     super.serviceInit(conf);
   }
 
