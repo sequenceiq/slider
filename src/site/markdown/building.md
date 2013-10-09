@@ -281,16 +281,20 @@ versions plugin)[http://mojo.codehaus.org/versions-maven-plugin/]
 
 
     mvn clean test
+    
+    
+**Step #7:** Build the release package
+    
     mvn clean site:site site:stage package -DskipTests
 
 
-**Step #:7** Look in `hoya-assembly/target` to find the `.tar.gz` file, and the
+**Step #:8** Look in `hoya-assembly/target` to find the `.tar.gz` file, and the
 expanded version of it. Inspect that expanded version to make sure that
 everything looks good -and that the versions of all the dependent artifacts
 look good too: there must be no `-SNAPSHOT` dependencies.
 
 
-**Step #:** Create a a one-line plain text release note for commits and tags
+**Step #:9** Create a a one-line plain text release note for commits and tags
 And a multi-line markdown release note, which will be used for artifacts.
 
 
@@ -307,7 +311,7 @@ And a multi-line markdown release note, which will be used for artifacts.
     Enjoy!
 
 
-**Step #9:** Finish the git flow release, either in the SourceTree GUI or
+**Step #10:** Finish the git flow release, either in the SourceTree GUI or
 the command line:
 
     
@@ -319,14 +323,14 @@ prepared earlier.
 
 You will now be back on the `develop` branch.
 
-**Step #10:** Switch back to develop and update its version number past
+**Step #11:** Switch back to develop and update its version number past
 the release number
 
 
     mvn versions:set -DnewVersion=0.4.4-SNAPSHOT
     git commit -a -m "BUG-XYZ updating development POMs"
 
-**Step #11:** Push the release and develop branches to github 
+**Step #12:** Push the release and develop branches to github 
 (We recommend naming the hortonworks github repository 'hortonworks' to avoid
  confusion with apache, personal and others):
 
@@ -339,7 +343,7 @@ The `git-flow` program automatically pushes up the `release/hoya-0.4.2` branch,
 before deleting it locally.
 
 
-**Step #12:** ### For releasing small artifacts
+**Step #13:** ### For releasing small artifacts
 
 (This only works for files under 5GB)
 Browse to https://github.com/hortonworks/hoya/releases/new
@@ -347,15 +351,15 @@ Browse to https://github.com/hortonworks/hoya/releases/new
 Create a new release on the site by following the instructions
 
 
-**Step #13:**  For releasing via an external CDN (e.g. Rackspace Cloud)
+**Step #14:**  For releasing via an external CDN (e.g. Rackspace Cloud)
 
 Using the web GUI for your particular distribution network, upload the
 `.tar.gz` artifact
 
 
-**Step #14:** Announce the release 
+**Step #15:** Announce the release 
 
-**Step #15:** Get back to developing!
+**Step #16:** Get back to developing!
 
 Check out the develop branch and purge all release artifacts
 
