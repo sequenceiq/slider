@@ -1101,6 +1101,7 @@ public class HoyaAppMaster extends CompositeService
   public Messages.StopClusterResponseProto stopCluster(Messages.StopClusterRequestProto request) throws
                                                                                                  IOException,
                                                                                                  YarnException {
+    HoyaUtils.getCurrentUser();
     String message = request.getMessage();
     log.info("HoyaAppMasterApi.stopCluster: {}",message);
     signalAMComplete("stopCluster: " + message);
@@ -1111,6 +1112,8 @@ public class HoyaAppMaster extends CompositeService
   public Messages.FlexClusterResponseProto flexCluster(Messages.FlexClusterRequestProto request) throws
                                                                                                  IOException,
                                                                                                  YarnException {
+    HoyaUtils.getCurrentUser();
+
     ClusterDescription updated =
       ClusterDescription.fromJson(request.getClusterSpec());
     //verify that the cluster specification is now valid
@@ -1125,6 +1128,7 @@ public class HoyaAppMaster extends CompositeService
     Messages.GetJSONClusterStatusRequestProto request) throws
                                                        IOException,
                                                        YarnException {
+    HoyaUtils.getCurrentUser();
     String result;
     //quick update
     //query and json-ify
@@ -1142,6 +1146,7 @@ public class HoyaAppMaster extends CompositeService
   public Messages.ListNodeUUIDsByRoleResponseProto listNodeUUIDsByRole(Messages.ListNodeUUIDsByRoleRequestProto request) throws
                                                                                                                          IOException,
                                                                                                                          YarnException {
+    HoyaUtils.getCurrentUser();
     String role = request.getRole();
     Messages.ListNodeUUIDsByRoleResponseProto.Builder builder =
       Messages.ListNodeUUIDsByRoleResponseProto.newBuilder();
@@ -1156,6 +1161,7 @@ public class HoyaAppMaster extends CompositeService
   public Messages.GetNodeResponseProto getNode(Messages.GetNodeRequestProto request) throws
                                                                                      IOException,
                                                                                      YarnException {
+    HoyaUtils.getCurrentUser();
     RoleInstance instance = appState.getLiveInstanceByUUID(request.getUuid());
     return Messages.GetNodeResponseProto.newBuilder()
                    .setClusterNode(instance.toProtobuf())
@@ -1166,6 +1172,7 @@ public class HoyaAppMaster extends CompositeService
   public Messages.GetClusterNodesResponseProto getClusterNodes(Messages.GetClusterNodesRequestProto request) throws
                                                                                                              IOException,
                                                                                                              YarnException {
+    HoyaUtils.getCurrentUser();
     List<RoleInstance>
       clusterNodes = appState.getLiveContainerInfosByUUID(request.getUuidList());
 
@@ -1179,7 +1186,7 @@ public class HoyaAppMaster extends CompositeService
   }
 
   
-  /* =================================================================== */
+/* =================================================================== */
 /* END */
 /* =================================================================== */
 

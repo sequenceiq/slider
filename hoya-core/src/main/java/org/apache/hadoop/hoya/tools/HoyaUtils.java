@@ -34,6 +34,7 @@ import org.apache.hadoop.hoya.exceptions.MissingArgException;
 import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions;
 import org.apache.hadoop.hoya.yarn.client.HoyaClient;
 import org.apache.hadoop.net.NetUtils;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.ExitUtil;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -950,7 +951,32 @@ public final class HoyaUtils {
     return builder.toString();
   }
 
+  /**
+   * Create a file:// path from a local file
+   * @param file file to point the path
+   * @return a new Path
+   */
   public static Path createLocalPath(File file) {
     return new Path(file.toURI());
   }
+
+  /**
+   * Get the current user -relays to
+   * {@link UserGroupInformation#getCurrentUser()}
+   * with any Hoya-specific post processing and exception handling
+   * @return user info
+   * @throws IOException on a failure to get the credentials
+   */
+  public static UserGroupInformation getCurrentUser() throws IOException {
+
+    try {
+      UserGroupInformation currentUser = UserGroupInformation.getCurrentUser();
+      log.debug("Current user is {}", currentUser);
+      return currentUser;
+    } catch (IOException e) {
+      log.info("Failed to grt user info", e);
+      throw e;
+    }
+  }
+    
 }
