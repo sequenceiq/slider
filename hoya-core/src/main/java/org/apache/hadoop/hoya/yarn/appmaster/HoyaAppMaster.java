@@ -22,6 +22,7 @@ import com.google.protobuf.BlockingService;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
@@ -75,6 +76,7 @@ import org.apache.hadoop.yarn.ipc.YarnRPC;
 import org.apache.hadoop.yarn.service.launcher.RunService;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
+import org.apache.zookeeper.server.util.KerberosUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -254,15 +256,29 @@ public class HoyaAppMaster extends CompositeService
     //sort out the location of the AM
     serviceArgs.applyDefinitions(conf);
     serviceArgs.applyFileSystemURL(conf);
-    
-    //look at settings of Hadoop Auth, to pick up a problem seen once
-    checkAndWarnForAuthTokenProblems();
 
     String rmAddress = serviceArgs.rmAddress;
     if (rmAddress != null) {
       log.debug("Setting rm address from the command line: {}", rmAddress);
       HoyaUtils.setRmSchedulerAddress(conf, rmAddress);
     }
+    serviceArgs.applyDefinitions(conf);
+    serviceArgs.applyFileSystemURL(conf);
+    //init security with our conf
+    if (serviceArgs.secure) {
+      log.info("Secure mode with kerberos realm {}",
+               KerberosUtil.getDefaultRealm());
+      UserGroupInformation.setConfiguration(conf);
+      UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+      log.debug("Authenticating as " + ugi.toString());
+      log.debug("Login user is {}", UserGroupInformation.getLoginUser());
+      HoyaUtils.verifyPrincipalSet(conf,
+                                   DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY);
+    }
+
+    //look at settings of Hadoop Auth, to pick up a problem seen once
+    checkAndWarnForAuthTokenProblems();
+
     super.serviceInit(conf);
   }
   
