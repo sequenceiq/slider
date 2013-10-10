@@ -625,7 +625,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                                               tempPath,
                                                               libdir,
                                                               JCOMMANDER_JAR));
-
+/*
 
       localResources.put(SLF4J_JAR, submitJarWithClass(Logger.class,
                                                          tempPath,
@@ -637,6 +637,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                             tempPath,
                                             libdir,
                                             SLF4J_LOG4J_JAR));
+                                            */
 
     }
 
