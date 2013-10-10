@@ -163,7 +163,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       log.debug("Authenticating as " + ugi.toString());
       log.debug("Login user is {}", UserGroupInformation.getLoginUser());
       HoyaUtils.verifyPrincipalSet(conf, YarnConfiguration.RM_PRINCIPAL);
-      HoyaUtils.verifyPrincipalSet(conf, DFSConfigKeys.DFS_DATANODE_USER_NAME_KEY);
+      HoyaUtils.verifyPrincipalSet(conf, DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY);
+      //HoyaUtils.verifyPrincipalSet(conf, DFSConfigKeys.DFS_DATANODE_USER_NAME_KEY);
     }
     super.serviceInit(conf);
   }
@@ -728,20 +729,46 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     commands.add(clustername);
 
     //set the cluster directory path
-    commands.add(HoyaMasterServiceArgs.ARG_HOYA_CLUSTER_URI);
+    commands.add(Arguments.ARG_HOYA_CLUSTER_URI);
     commands.add(clusterDirectory.toUri().toString());
 
     if (!isUnset(rmAddr)) {
-      commands.add(HoyaMasterServiceArgs.ARG_RM_ADDR);
+      commands.add(Arguments.ARG_RM_ADDR);
       commands.add(rmAddr);
     }
 
     if (serviceArgs.filesystemURL != null) {
-      commands.add(CommonArgs.ARG_FILESYSTEM);
+      commands.add(Arguments.ARG_FILESYSTEM);
       commands.add(serviceArgs.filesystemURL.toString());
     }
 
+    if (serviceArgs.secure) {
+      //if the cluster is secure, make sure that
+      //the relevant security settings go over
+      commands.add(Arguments.ARG_SECURE);
+      propagateConfOption(commands,
+                          config,
+                          DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY);
+      Credentials credentials = new Credentials();
+      String tokenRenewer = config.get(YarnConfiguration.RM_PRINCIPAL);
+      if (isUnset(tokenRenewer)) {
+        throw new IOException(
+          "Can't get Master Kerberos principal for the RM to use as renewer");
+      }
 
+      // For now, only getting tokens for the default file-system.
+      final Token<?> tokens[] =
+        fs.addDelegationTokens(tokenRenewer, credentials);
+      if (tokens != null) {
+        for (Token<?> token : tokens) {
+          log.debug("Got delegation token for {}; {}", fs.getUri(), token);
+        }
+      }
+      DataOutputBuffer dob = new DataOutputBuffer();
+      credentials.writeTokenStorageToStream(dob);
+      ByteBuffer fsTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
+      amContainer.setTokens(fsTokens);
+    }
     //write out the path output
     commands.add(
       "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/out.txt");
@@ -819,6 +846,16 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     return exitCode;
   }
 
+  
+  private void propagateConfOption(List<String> command, Configuration conf,
+                                   String key) {
+    String val = conf.get(key);
+    if (val != null) {
+      command.add(Arguments.ARG_DEFINE);
+      command.add(key+"="+val);
+    }
+  }
+  
   /**
    * Create a path that must exist in the cluster fs
    * @param uri uri to create
