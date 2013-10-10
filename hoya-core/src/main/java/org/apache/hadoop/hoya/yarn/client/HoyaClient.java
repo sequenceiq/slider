@@ -76,7 +76,6 @@ import org.apache.zookeeper.server.util.KerberosUtil;
 import org.codehaus.jackson.JsonParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.impl.Log4jLoggerAdapter;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -120,6 +119,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   public static final String JCOMMANDER_JAR = "jcommander.jar";
   public static final String SLF4J_JAR = "slf4j.jar";
   public static final String SLF4J_LOG4J_JAR = "slf4j-log4j.jar";
+  public static final String ZOOKEEPER_JAR = "zookeeper.jar";
   private int amPriority = 0;
   // Queue for App master
   private String amQueue = "default";
@@ -625,6 +625,10 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                                               tempPath,
                                                               libdir,
                                                               JCOMMANDER_JAR));
+      localResources.put(ZOOKEEPER_JAR, submitJarWithClass(KerberosUtil.class,
+                                                              tempPath,
+                                                              libdir,
+                                                              ZOOKEEPER_JAR));
 /*
 
       localResources.put(SLF4J_JAR, submitJarWithClass(Logger.class,
