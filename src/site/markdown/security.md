@@ -34,31 +34,30 @@ the same principal, and so have equal access rights to the HBase cluster.
 
 
     
-hoya-assembly/target/hoya-assembly-0.5.1-SNAPSHOT-bin/bin/hoya \
-  --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 list --secure
-  
-  hoya-assembly/target/hoya-assembly-0.5.1-SNAPSHOT-bin/bin/hoya \
-  --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
-      create cl1 \
-     --role workers 4\
-      --zkhosts ubuntu \
-      --image hdfs://ubuntu:9090/hbase.tar \
-      --appconf file:////Users/hoya/Hadoop/configs/master/hbase \
-      --roleopt master app.infoport 8080 \
-      --roleopt master jvm.heap 128 \
-      --roleopt master env.MALLOC_ARENA_MAX 4 \
-      --roleopt worker app.infoport 8081 \
-      --roleopt worker jvm.heap 128 
+    hoya-assembly/target/hoya-assembly-0.5.1-SNAPSHOT-bin/bin/hoya \
+      --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 list --secure
+      
+      hoya-assembly/target/hoya-assembly-0.5.1-SNAPSHOT-bin/bin/hoya \
+      --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
+          create cl1 \
+         --role workers 4\
+          --zkhosts ubuntu \
+          --image hdfs://ubuntu:9090/hbase.tar \
+          --appconf file:////Users/hoya/Hadoop/configs/master/hbase \
+          --roleopt master app.infoport 8080 \
+          --roleopt master jvm.heap 128 \
+          --roleopt master env.MALLOC_ARENA_MAX 4 \
+          --roleopt worker app.infoport 8081 \
+          --roleopt worker jvm.heap 128 
 
  
-## bypassing /etc/krb.conf via the --sysprop argument
+## bypassing /etc/krb.conf via the -S argument
 
     bin/hoya create cl1 \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
-    --secure --sysprop java.security.krb5.realm COTHAM \
-    --sysprop java.security.krb5.kdc \
+    --secure -S java.security.krb5.realm=COTHAM \
+    -S java.security.krb5.kdc=ubuntu \
      -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
-     -D dfs.datanode.kerberos.principal=hdfs/ubuntu@COTHAM \
             --role workers 1\
         --zkhosts ubuntu \
         --image hdfs://ubuntu:9090/hbase.tar \
@@ -72,16 +71,37 @@ hoya-assembly/target/hoya-assembly-0.5.1-SNAPSHOT-bin/bin/hoya \
         
     bin/hoya status clu1 \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
-    --secure --sysprop java.security.krb5.realm COTHAM \
-    --sysprop java.security.krb5.kdc \
-     -D 1=2 \
+    --secure -S java.security.krb5.realm=COTHAM \
+    -S java.security.krb5.kdc ubuntu \
      -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
      -D dfs.datanode.kerberos.principal=hdfs/ubuntu@COTHAM 
            
     bin/hoya list \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
-    --secure --sysprop java.security.krb5.realm COTHAM \
-    --sysprop java.security.krb5.kdc \
-     -D 1=2 \
+    --secure -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
      -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
      -D dfs.datanode.kerberos.principal=hdfs/ubuntu@COTHAM \
+               
+               
+-D dfs.datanode.kerberos.principal=hdfs/ubuntu@COTHAM \
+
+               
+    bin/hoya --zkhosts ubuntu \
+    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
+    --secure -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
+     -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
+    -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM \
+     create cl1 \
+    --image hdfs://ubuntu:9090/hbase.tar \
+    --appconf file:///Users/stevel/Projects/Hortonworks/Projects/hoya/hoya-core/src/test/configs/ubuntu-secure/hbase \
+    --roleopt master app.infoport 8080 
+     
+               
+    bin/hoya  thaw cl1 \
+    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
+    --secure -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
+     -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
+     -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM 
+    
+      
+     
