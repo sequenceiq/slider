@@ -20,11 +20,14 @@ package org.apache.hadoop.hoya.yarn.client
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.hdfs.DFSConfigKeys
 import org.apache.hadoop.hoya.api.RoleKeys
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.HoyaActions
+import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.junit.Assert
 import org.junit.Test
 
@@ -34,7 +37,7 @@ import org.junit.Test
 @CompileStatic
 @Slf4j
 
-class TestCommonArgParsing {
+class TestCommonArgParsing implements HoyaActions {
 
   @Test
   public void testCreateActionArgs() throws Throwable {
@@ -76,6 +79,42 @@ class TestCommonArgParsing {
         "c1",
         "c2",
       ])
+  }
+
+  @Test
+  public void testDefinitions() throws Throwable {
+    ClientArgs ca = createClientArgs([
+        ACTION_CREATE,
+        "clustername",
+        "-D","yarn.resourcemanager.principal=yarn/server@LOCAL",
+        "-D","dfs.datanode.kerberos.principal=hdfs/server@LOCAL",
+    ])
+    Configuration conf = new Configuration(false)
+    ca.applyDefinitions(conf)
+    assert ca.clusterName == "clustername"
+    HoyaUtils.verifyPrincipalSet(conf, YarnConfiguration.RM_PRINCIPAL);
+    HoyaUtils.verifyPrincipalSet(
+        conf,
+        DFSConfigKeys.DFS_DATANODE_USER_NAME_KEY);
+
+  }
+
+  
+  @Test
+  public void testActionComesAfterParseSingleArg() throws Throwable {
+    ClientArgs ca = createClientArgs([
+        ClientArgs.ARG_WAIT , "0", 
+        ACTION_LIST,
+    ])
+  }
+  
+  @Test
+  public void testActionComesAfterParseComplexArg() throws Throwable {
+    Configuration conf = new Configuration(false)
+    ClientArgs ca = createClientArgs([
+        ClientArgs.ARG_SYSPROP,"syspropkey","syspropval",
+        ACTION_LIST,
+    ])
   }
 
   

@@ -28,6 +28,7 @@ import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.RoleKeys;
+import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.exceptions.MissingArgException;
@@ -906,6 +907,35 @@ public final class HoyaUtils {
     ClusterDescription.verifyClusterSpecExists(clustername, filesystem,
                                                clusterSpecPath);
     return clusterSpecPath;
+  }
+
+  /**
+   * verify that the supplied cluster name is valid
+   * @param clustername cluster name
+   * @throws BadCommandArgumentsException if it is invalid
+   */
+  public static void validateClusterName(String clustername) throws
+                                                         BadCommandArgumentsException {
+    if (!isClusternameValid(clustername)) {
+      throw new BadCommandArgumentsException(
+        "Illegal cluster name: " + clustername);
+    }
+  }
+
+  /**
+   * Verify that a Kerberos principal has been set -if not fail
+   * with an error message that actually tells you what is missing
+   * @param conf configuration to look at
+   * @param principal key of principal
+   * @throws BadConfigException if the key is not set
+   */
+  public static void verifyPrincipalSet(Configuration conf,
+                                        String principal) throws
+                                                           BadConfigException {
+    if (conf.get(principal) == null) {
+      throw new BadConfigException("Unset Kerberos principal : %s",
+                                   principal);
+    }
   }
 
   /**

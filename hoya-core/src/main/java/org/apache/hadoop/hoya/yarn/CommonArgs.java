@@ -319,12 +319,13 @@ public class CommonArgs implements HoyaActions {
     int maxArgs =
       (actionOpts.size() == 3) ? ((Integer) actionOpts.get(2)) : minArgs;
     if (actionArgSize > maxArgs) {
-      String message = String.format("%s for %s limit %d but saw %d",
+      String message = String.format("%s for %s: limit is %d but saw %d",
                                      ERROR_TOO_MANY_ARGUMENTS, action, maxArgs,
                                      actionArgSize);
       LOG.error(message);
+      int index=1;
       for (String actionArg : actionArgs) {
-        LOG.error("\"{}\"", actionArg);
+        LOG.error("[{}] \"{}\"", index++, actionArg);
       }
       throw new BadCommandArgumentsException(message);
     }

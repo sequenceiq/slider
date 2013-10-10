@@ -159,26 +159,10 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
       log.debug("Authenticating as " + ugi.toString());
       log.debug("Login user is {}", UserGroupInformation.getLoginUser());
-      verifyPrincipalSet(conf, YarnConfiguration.RM_PRINCIPAL);
-      verifyPrincipalSet(conf, DFSConfigKeys.DFS_DATANODE_USER_NAME_KEY);
+      HoyaUtils.verifyPrincipalSet(conf, YarnConfiguration.RM_PRINCIPAL);
+      HoyaUtils.verifyPrincipalSet(conf, DFSConfigKeys.DFS_DATANODE_USER_NAME_KEY);
     }
     super.serviceInit(conf);
-  }
-
-  /**
-   * Verify that a Kerberos principal has been set -if not fail
-   * with an error message that actually tells you what is missing
-   * @param conf configuration to look at
-   * @param principal key of principal
-   * @throws BadConfigException if the key is not set
-   */
-  private static void verifyPrincipalSet(Configuration conf,
-                                         String principal) throws
-                                                           BadConfigException {
-    if (conf.get(principal) == null) {
-      throw new BadConfigException("Unset Kerberos principal : %s",
-                                   principal);
-    }
   }
 
   /**
@@ -204,13 +188,13 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     } else if (HoyaActions.ACTION_THAW.equals(action)) {
       exitCode = actionThaw(clusterName);
     } else if (HoyaActions.ACTION_DESTROY.equals(action)) {
-      validateClusterName(clusterName);
+      HoyaUtils.validateClusterName(clusterName);
       exitCode = actionDestroy(clusterName);
     } else if (HoyaActions.ACTION_EXISTS.equals(action)) {
-      validateClusterName(clusterName);
+      HoyaUtils.validateClusterName(clusterName);
       exitCode = actionExists(clusterName);
     } else if (HoyaActions.ACTION_FLEX.equals(action)) {
-      validateClusterName(clusterName);
+      HoyaUtils.validateClusterName(clusterName);
       exitCode = actionFlex(clusterName);
     } else if (HoyaActions.ACTION_GETCONF.equals(action)) {
       File outfile = null;
@@ -226,11 +210,11 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     } else if (HoyaActions.ACTION_LIST.equals(action)) {
       if (!isUnset(clusterName)) {
-        validateClusterName(clusterName);
+        HoyaUtils.validateClusterName(clusterName);
       }
       exitCode = actionList(clusterName);
     } else if (HoyaActions.ACTION_STATUS.equals(action)) {
-      validateClusterName(clusterName);
+      HoyaUtils.validateClusterName(clusterName);
       exitCode = actionStatus(clusterName);
     } else {
       throw new HoyaException(EXIT_UNIMPLEMENTED,
@@ -241,19 +225,6 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   }
 
   /**
-   * verify that the supplied cluster name is valid
-   * @param clustername cluster name
-   * @throws BadCommandArgumentsException if it is invalid
-   */
-  protected void validateClusterName(String clustername) throws
-                                                         BadCommandArgumentsException {
-    if (!HoyaUtils.isClusternameValid(clustername)) {
-      throw new BadCommandArgumentsException(
-        "Illegal cluster name: " + clustername);
-    }
-  }
-
-  /**
    * Destroy a cluster. There's two race conditions here
    * #1 the cluster is started between verifying that there are no live
    * clusters of that name.
@@ -261,7 +232,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   public int actionDestroy(String clustername) throws YarnException,
                                                       IOException {
     //verify that a live cluster isn't there
-    validateClusterName(clustername);
+    HoyaUtils.validateClusterName(clustername);
     verifyFileSystemArgSet();
     verifyManagerSet();
     verifyNoLiveClusters(clustername);
@@ -340,7 +311,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                                IOException {
 
     //verify that a live cluster isn't there
-    validateClusterName(clustername);
+    HoyaUtils.validateClusterName(clustername);
     verifyManagerSet();
     verifyFileSystemArgSet();
     verifyNoLiveClusters(clustername);
@@ -538,7 +509,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     //verify that a live cluster isn't there;
     String clustername = clusterSpec.name;
     deployedClusterName = clustername;
-    validateClusterName(clustername);
+    HoyaUtils.validateClusterName(clustername);
     verifyNoLiveClusters(clustername);
     Configuration config = getConfig();
     //Provider 
@@ -1236,7 +1207,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       }
       return EXIT_SUCCESS;
     } else {
-      validateClusterName(clustername);
+      HoyaUtils.validateClusterName(clustername);
       log.debug("Listing cluster named {}", clustername);
       ApplicationReport report =
         findClusterInInstanceList(instances, clustername);
@@ -1418,7 +1389,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                               YarnException,
                                               IOException {
     verifyManagerSet();
-    validateClusterName(clustername);
+    HoyaUtils.validateClusterName(clustername);
     ClusterDescription status = getClusterStatus(clustername);
     log.info(status.toJsonString());
     return EXIT_SUCCESS;
@@ -1435,7 +1406,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                                             YarnException,
                                                             IOException {
     verifyManagerSet();
-    validateClusterName(clustername);
+    HoyaUtils.validateClusterName(clustername);
     log.debug("actionFreeze({}, {})", clustername, waittime);
     ApplicationReport app = findInstance(getUsername(), clustername);
     if (app == null) {
@@ -1477,7 +1448,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                             YarnException,
                                             IOException {
     verifyManagerSet();
-    validateClusterName(clustername);
+    HoyaUtils.validateClusterName(clustername);
     ClusterDescription status = getClusterStatus(clustername);
     Writer writer;
     boolean toPrint;
@@ -1520,7 +1491,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
    * Restore a cluster
    */
   public int actionThaw(String clustername) throws YarnException, IOException {
-    validateClusterName(clustername);
+    HoyaUtils.validateClusterName(clustername);
     //see if it is actually running and bail out;
     verifyManagerSet();
     verifyNoLiveClusters(clustername);
@@ -1578,7 +1549,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                    YarnException,
                                    IOException {
     verifyManagerSet();
-    validateClusterName(clustername);
+    HoyaUtils.validateClusterName(clustername);
     Path clusterSpecPath = locateClusterSpecification(clustername);
     FileSystem fs = getClusterFS();
     ClusterDescription clusterSpec =
