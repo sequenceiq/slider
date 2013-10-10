@@ -43,12 +43,15 @@ import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.tools.Duration;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
-import org.apache.hadoop.hoya.yarn.CommonArgs;
+import org.apache.hadoop.hoya.yarn.Arguments;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
 import org.apache.hadoop.hoya.yarn.appmaster.HoyaMasterServiceArgs;
 import org.apache.hadoop.hoya.yarn.appmaster.rpc.RpcBinder;
+import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.net.NetUtils;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.protocolrecords.KillApplicationRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.KillApplicationResponse;
@@ -318,11 +321,11 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     //build up the initial cluster specification
     ClusterDescription clusterSpec = new ClusterDescription();
 
-    requireArgumentSet(CommonArgs.ARG_ZKHOSTS, serviceArgs.zkhosts);
+    requireArgumentSet(Arguments.ARG_ZKHOSTS, serviceArgs.zkhosts);
     Path appconfdir = serviceArgs.confdir;
-    requireArgumentSet(CommonArgs.ARG_CONFDIR, appconfdir);
+    requireArgumentSet(Arguments.ARG_CONFDIR, appconfdir);
     //Provider 
-    requireArgumentSet(CommonArgs.ARG_PROVIDER, serviceArgs.provider);
+    requireArgumentSet(Arguments.ARG_PROVIDER, serviceArgs.provider);
 
     ClientProvider provider = createClientProvider(serviceArgs.provider);
 
@@ -376,9 +379,9 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       if (!isUnset(serviceArgs.appHomeDir)) {
         //both args have been set
         throw new BadCommandArgumentsException("only one of "
-                                               + CommonArgs.ARG_IMAGE
+                                               + Arguments.ARG_IMAGE
                                                + " and " +
-                                               CommonArgs.ARG_APP_HOME +
+                                               Arguments.ARG_APP_HOME +
                                                " can be provided");
       }
       clusterSpec.imagePath = serviceArgs.image.toUri().toString();
@@ -386,9 +389,9 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       //the alternative is app home, which now MUST be set
       if (isUnset(serviceArgs.appHomeDir)) {
         //both args have been set
-        throw new BadCommandArgumentsException("Either " + CommonArgs.ARG_IMAGE
+        throw new BadCommandArgumentsException("Either " + Arguments.ARG_IMAGE
                                                + " or " +
-                                               CommonArgs.ARG_APP_HOME +
+                                               Arguments.ARG_APP_HOME +
                                                " must be provided");
       }
       clusterSpec.applicationHome = serviceArgs.appHomeDir;
@@ -410,7 +413,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     FileSystem srcFS = FileSystem.get(appconfdir.toUri(), getConfig());
     if (!srcFS.exists(appconfdir)) {
       throw new BadCommandArgumentsException("Configuration directory specified in %s not found: %s",
-                                             ClientArgs.ARG_CONFDIR, appconfdir.toString());
+                                             Arguments.ARG_CONFDIR, appconfdir.toString());
     }
     //build up the paths in the DFS
 
@@ -481,7 +484,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
 
   public void verifyFileSystemArgSet() throws BadCommandArgumentsException {
-    requireArgumentSet(CommonArgs.ARG_FILESYSTEM, serviceArgs.filesystemURL);
+    requireArgumentSet(Arguments.ARG_FILESYSTEM, serviceArgs.filesystemURL);
   }
 
 
@@ -490,7 +493,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     if (!HoyaUtils.isAddressDefined(rmAddr)) {
       throw new BadCommandArgumentsException(
         "No valid Resource Manager address provided in the argument "
-        + CommonArgs.ARG_MANAGER
+        + Arguments.ARG_MANAGER
         + " or the configuration property "
         + YarnConfiguration.RM_ADDRESS);
     }

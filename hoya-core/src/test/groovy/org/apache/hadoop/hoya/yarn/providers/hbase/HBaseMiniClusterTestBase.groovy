@@ -32,6 +32,7 @@ import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.hoya.tools.Duration
+import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
@@ -343,11 +344,11 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
       assert HBaseArchive
       File f = new File(HBaseArchive)
       assert f.exists()
-      return [CommonArgs.ARG_IMAGE, f.toURI().toString()]
+      return [Arguments.ARG_IMAGE, f.toURI().toString()]
     } else {
       assert HBaseHome
       assert new File(HBaseHome).exists();
-      return [CommonArgs.ARG_APP_HOME, HBaseHome]
+      return [Arguments.ARG_APP_HOME, HBaseHome]
     }
   }
 

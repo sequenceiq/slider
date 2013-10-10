@@ -28,7 +28,7 @@ import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.RoleKeys
 import org.apache.hadoop.hoya.providers.accumulo.AccumuloConfigFileOptions
 import org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys
-import org.apache.hadoop.hoya.providers.accumulo.AccumuloRoles
+import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
@@ -138,11 +138,11 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
       assert archiveKey
       File f = new File(archiveKey)
       assert f.exists()
-      return [CommonArgs.ARG_IMAGE, f.toURI().toString()]
+      return [Arguments.ARG_IMAGE, f.toURI().toString()]
     } else {
       assert serviceHome
       assert new File(serviceHome).exists();
-      return [CommonArgs.ARG_APP_HOME, serviceHome]
+      return [Arguments.ARG_APP_HOME, serviceHome]
     }
   }
 
@@ -175,7 +175,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
    * @return the cluster launcher
    */
   public ServiceLauncher createAccCluster(String clustername, Map<String, Integer> roles, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
-    extraArgs << CommonArgs.ARG_PROVIDER << AccumuloKeys.PROVIDER_ACCUMULO;
+    extraArgs << Arguments.ARG_PROVIDER << AccumuloKeys.PROVIDER_ACCUMULO;
 
     YarnConfiguration conf = testConfiguration
 
@@ -184,8 +184,8 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
         (AccumuloKeys.OPTION_HADOOP_HOME): conf.getTrimmed(AccumuloKeys.OPTION_HADOOP_HOME),
     ]
 
-    extraArgs << CommonArgs.ARG_ROLEOPT << AccumuloKeys.ROLE_MASTER << RoleKeys.APP_INFOPORT << AccumuloConfigFileOptions.MASTER_PORT_CLIENT_DEFAULT
-    extraArgs << CommonArgs.ARG_ROLEOPT << AccumuloKeys.ROLE_MONITOR << RoleKeys.APP_INFOPORT << AccumuloConfigFileOptions.MONITOR_PORT_CLIENT_DEFAULT
+    extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_MASTER << RoleKeys.APP_INFOPORT << AccumuloConfigFileOptions.MASTER_PORT_CLIENT_DEFAULT
+    extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_MONITOR << RoleKeys.APP_INFOPORT << AccumuloConfigFileOptions.MONITOR_PORT_CLIENT_DEFAULT
 
     return createHoyaCluster(clustername,
                              roles,
@@ -197,7 +197,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
 
   public void addOption(List<String> extraArgs, YarnConfiguration conf, String option) {
     assert conf.getTrimmed(option);
-    extraArgs << CommonArgs.ARG_OPTION <<
+    extraArgs << Arguments.ARG_OPTION <<
     option << conf.getTrimmed(option)
   }
   

@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.cluster.failures
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.HoyaKeys
+import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
@@ -48,7 +49,7 @@ class TestFailingHBaseMasterCommand extends HBaseMiniClusterTestBase {
     createMiniCluster(clustername, createConfiguration(), 1, true)
     ServiceLauncher launcher = createHBaseCluster(clustername,
                         0,
-                        [ CommonArgs.ARG_OPTION, HoyaKeys.OPTION_HOYA_MASTER_COMMAND, "unknown-command" ],
+                        [ Arguments.ARG_OPTION, HoyaKeys.OPTION_HOYA_MASTER_COMMAND, "unknown-command" ],
                         true,
                         true)
     assert launcher.serviceExitCode == 0

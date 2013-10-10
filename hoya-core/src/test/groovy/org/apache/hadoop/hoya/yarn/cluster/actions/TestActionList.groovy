@@ -53,7 +53,7 @@ class TestActionList extends HBaseMiniClusterTestBase {
         //varargs list of command line params
         [
             HoyaActions.ACTION_LIST,
-            ClientArgs.ARG_MANAGER, RMAddr
+            Arguments.ARG_MANAGER, RMAddr
         ]
     )
     assert launcher.serviceExitCode == 0
@@ -69,8 +69,8 @@ class TestActionList extends HBaseMiniClusterTestBase {
         //varargs list of command line params
         [
             HoyaActions.ACTION_LIST,
-            ClientArgs.ARG_MANAGER, RMAddr,
-            ClientArgs.ARG_USER,""
+            Arguments.ARG_MANAGER, RMAddr,
+            Arguments.ARG_USER,""
         ]
     )
     assert launcher.serviceExitCode == 0

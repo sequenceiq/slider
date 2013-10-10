@@ -74,8 +74,8 @@ class TestDestroyMasterlessAM extends HBaseMiniClusterTestBase {
                         [
                             CommonArgs.ACTION_THAW,
                             clustername,
-                            ClientArgs.ARG_FILESYSTEM, fsDefaultName,
-                            ClientArgs.ARG_MANAGER, RMAddr,
+                            Arguments.ARG_FILESYSTEM, fsDefaultName,
+                            Arguments.ARG_MANAGER, RMAddr,
                         ])
       assert launcher.serviceExitCode == HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER
     } catch (HoyaException e) {
@@ -111,7 +111,7 @@ class TestDestroyMasterlessAM extends HBaseMiniClusterTestBase {
               [
                   CommonArgs.ACTION_DESTROY,
                   "no-cluster-of-this-name",
-                  ClientArgs.ARG_FILESYSTEM, fsDefaultName,
+                  Arguments.ARG_FILESYSTEM, fsDefaultName,
               ])
     assert launcher.serviceExitCode == 0
   }

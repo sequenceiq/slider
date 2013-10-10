@@ -20,7 +20,6 @@ package org.apache.hadoop.hoya.yarn.client;
 
 import com.beust.jcommander.Parameter;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
@@ -47,17 +46,6 @@ public class ClientArgs extends CommonArgs {
    */
   public static final String CLASSNAME =
     "org.apache.hadoop.hoya.yarn.client.HoyaClient";
-  /**
-   filesystem-uri: {@value}
-   */
-  public static final String ARG_AMQUEUE = "--amqueue";
-  public static final String ARG_AMPRIORITY = "--ampriority";
-  //public static final String ARG_FILESYSTEM = "--fs";
-  public static final String ARG_FORMAT = "--format";
-  public static final String ARG_PERSIST = "--persist";
-  public static final String ARG_SECURE = "--secure";
-  public static final String ARG_SECURE_SHORT = "-s";
-  public static final String ARG_WAIT = "--wait";
 
 
   public static final String FORMAT_XML = "xml";
@@ -99,11 +87,6 @@ public class ClientArgs extends CommonArgs {
              description = "flag to indicate whether a flex change should be persisted (default=true)",
              arity = 1)
   public boolean persist;
-
-  
-  @Parameter(names = {ARG_SECURE , ARG_SECURE_SHORT},
-             description = "enable secure communications and hoya clusters")
-  public boolean secure=false;
 
 
   /**

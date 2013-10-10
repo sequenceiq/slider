@@ -28,11 +28,11 @@ import org.apache.hadoop.fs.FileUtil
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.tools.Duration
+import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
-import org.junit.Assume
 import org.junit.Test
 
 /**
@@ -83,7 +83,7 @@ class TestVersionFromArchiveOnHDFS extends HBaseMiniClusterTestBase {
 
 
   public List<String> getImageCommands() {
-    [CommonArgs.ARG_IMAGE, uploadedImage]
+    [Arguments.ARG_IMAGE, uploadedImage]
   }
 
 }
