@@ -280,16 +280,8 @@ public class LoadGenProvider extends Configured implements
 
     List<String> command = new ArrayList<String>();
     //this must stay relative if it is an image
-    command.add(buildHBaseBinPath(clusterSpec).toString());
-
-    //config dir is relative to the generated file
-    command.add(HBaseKeys.ARG_CONFIG);
-    command.add(HoyaKeys.PROPAGATED_CONF_DIR_NAME);
-    //role is region server
-    command.add(HBaseKeys.REGION_SERVER);
-    command.add(HBaseKeys.ACTION_START);
-
-    //log details
+    command.add("sleep");
+    command.add("60000");
     command.add(
       "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/out.txt");
     command.add(
@@ -303,45 +295,4 @@ public class LoadGenProvider extends Configured implements
 
   }
 
-
-  /**
-   * Get the path to hbase home
-   * @return the hbase home path
-   */
-  public static File buildHBaseBinPath(ClusterDescription cd) {
-    File hbaseScript = new File(buildHBaseDir(cd),
-                                HBaseKeys.HBASE_SCRIPT);
-    return hbaseScript;
-  }
-
-  public static File buildHBaseDir(ClusterDescription cd) {
-    File hbasedir;
-    if (cd.imagePath != null) {
-      hbasedir = new File(new File(HoyaKeys.LOCAL_TARBALL_INSTALL_SUBDIR),
-                          cd.hbasever);
-    } else {
-      hbasedir = new File(cd.applicationHome);
-    }
-    return hbasedir;
-  }
-
-//  @Override
-  public int getDefaultMasterInfoPort() {
-    return 0;
-  }
-
-//  @Override
-  public String getSiteXMLFilename() {
-    return null;
-  }
-
-//  @Override
-  public List<String> buildProcessCommand(ClusterDescription cd,
-                                          File confDir,
-                                          Map<String, String> env,
-                                          String masterCommand) throws
-                                                                   IOException,
-                                                                   HoyaException {
-    return null;
-  }
 }
