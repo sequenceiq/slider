@@ -24,6 +24,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
@@ -101,7 +102,9 @@ public class HBaseClientProvider extends Configured implements
    */
   @Override
   public Map<String, String> getDefaultClusterOptions() {
-    return new HashMap<String, String>();
+    HashMap<String, String> site = new HashMap<String, String>();
+    site.put(OptionKeys.APP_VERSION, HBaseKeys.HBASE_VERSION);
+    return site;
   }
   
   /**
@@ -286,7 +289,8 @@ public class HBaseClientProvider extends Configured implements
   }
 
   public  File buildHBaseDir(ClusterDescription cd) {
-    String archiveSubdir = HBaseKeys.ARCHIVE_SUBDIR;
+    String archiveSubdir = cd.getOption(OptionKeys.APP_VERSION,
+                                        HBaseKeys.HBASE_VERSION);
     return providerUtils.buildImageDir(cd, archiveSubdir);
   }
   

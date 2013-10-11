@@ -318,7 +318,7 @@ public class LoadGenProvider extends Configured implements
     File hbasedir;
     if (cd.imagePath != null) {
       hbasedir = new File(new File(HoyaKeys.LOCAL_TARBALL_INSTALL_SUBDIR),
-                          HBaseKeys.ARCHIVE_SUBDIR);
+                          HBaseKeys.HBASE_VERSION);
     } else {
       hbasedir = new File(cd.applicationHome);
     }

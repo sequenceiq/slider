@@ -33,4 +33,9 @@ public interface OptionKeys {
    * Prefix for site.xml options
    */
   String OPTION_SITE_PREFIX = "site.";
+
+  /**
+   * Version of the app
+   */
+  String APP_VERSION = "app.version";
 }
