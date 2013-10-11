@@ -473,6 +473,7 @@ implements KeysForTests, HoyaExitCodes {
         HoyaActions.ACTION_CREATE, clustername,
         Arguments.ARG_MANAGER, RMAddr,
         Arguments.ARG_ZKHOSTS, ZKHosts,
+        Arguments.ARG_HBASE_VER, HBaseKeys.HBASE_VER,
         Arguments.ARG_ZKPORT, ZKPort.toString(),
         Arguments.ARG_WAIT, WAIT_TIME_ARG,
         Arguments.ARG_FILESYSTEM, fsDefaultName,

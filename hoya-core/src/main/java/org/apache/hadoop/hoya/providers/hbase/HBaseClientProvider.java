@@ -103,7 +103,7 @@ public class HBaseClientProvider extends Configured implements
   @Override
   public Map<String, String> getDefaultClusterOptions() {
     HashMap<String, String> site = new HashMap<String, String>();
-    site.put(OptionKeys.APP_VERSION, HBaseKeys.HBASE_VERSION);
+    site.put(OptionKeys.APP_VERSION, HBaseKeys.HBASE_VER);
     return site;
   }
   
@@ -289,9 +289,7 @@ public class HBaseClientProvider extends Configured implements
   }
 
   public  File buildHBaseDir(ClusterDescription cd) {
-    String archiveSubdir = cd.getOption(OptionKeys.APP_VERSION,
-                                        HBaseKeys.HBASE_VERSION);
-    return providerUtils.buildImageDir(cd, archiveSubdir);
+    return providerUtils.buildImageDir(cd, cd.hbasever);
   }
   
 }

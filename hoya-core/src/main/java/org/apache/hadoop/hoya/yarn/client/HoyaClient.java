@@ -346,6 +346,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     ClusterDescription clusterSpec = new ClusterDescription();
 
     requireArgumentSet(Arguments.ARG_ZKHOSTS, serviceArgs.zkhosts);
+    requireArgumentSet(Arguments.ARG_HBASE_VER, serviceArgs.hbasever);
     Path appconfdir = serviceArgs.confdir;
     requireArgumentSet(Arguments.ARG_CONFDIR, appconfdir);
     //Provider 
@@ -430,7 +431,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     clusterSpec.zkPath = zookeeperRoot;
     clusterSpec.zkPort = serviceArgs.zkport;
     clusterSpec.zkHosts = serviceArgs.zkhosts;
-
+    clusterSpec.hbasever = serviceArgs.hbasever;
     
     //another sanity check before the cluster dir is created: the config
     //dir

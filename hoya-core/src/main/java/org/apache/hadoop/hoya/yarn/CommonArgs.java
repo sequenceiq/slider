@@ -49,7 +49,6 @@ import java.util.Map;
 
 public class CommonArgs implements HoyaActions , Arguments {
 
-
   /**
    * ERROR Strings
    */
@@ -111,6 +110,10 @@ public class CommonArgs implements HoyaActions , Arguments {
              description = "comma separated list of the Zookeeper hosts")
   public String zkhosts;
 
+  @Parameter(names = ARG_HBASE_VER,
+      description = "HBase version string which is also the name of HBase archive dir")
+  public String hbasever;
+  
   @Parameter(names = ARG_ZKPORT,
              description = "Zookeeper port")
   public int zkport = HBaseConfigFileOptions.HBASE_ZK_PORT;
