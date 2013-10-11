@@ -45,6 +45,7 @@ import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
+import org.apache.zookeeper.server.util.KerberosUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,6 +54,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -1008,5 +1010,14 @@ public final class HoyaUtils {
       throw e;
     }
   }
-    
+ 
+  public static String getKerberosRealm() {
+    try {
+      return KerberosUtil.getDefaultRealm();
+    } catch (Exception e) {
+      log.debug("introspection into JVM internals failed", e);
+      return "(unknown)";
+
+    }
+  }
 }

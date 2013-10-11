@@ -73,7 +73,6 @@ import org.apache.hadoop.yarn.service.launcher.RunService;
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
-import org.apache.zookeeper.server.util.KerberosUtil;
 import org.codehaus.jackson.JsonParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -158,7 +157,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     //init security with our conf
     if (serviceArgs.secure) {
       log.info("Secure mode with kerberos realm {}",
-               KerberosUtil.getDefaultRealm());
+               HoyaUtils.getKerberosRealm());
       UserGroupInformation.setConfiguration(conf);
       UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
       log.debug("Authenticating as " + ugi.toString());
