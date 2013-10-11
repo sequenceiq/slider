@@ -46,10 +46,13 @@ import org.apache.hadoop.hoya.yarn.appmaster.state.AppState;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleInstance;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleStatus;
 import org.apache.hadoop.hoya.yarn.service.EventCallback;
+import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.ipc.ProtocolSignature;
 import org.apache.hadoop.ipc.Server;
 import org.apache.hadoop.net.NetUtils;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.service.CompositeService;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.service.ServiceStateChangeListener;
@@ -73,6 +76,7 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.hadoop.yarn.ipc.YarnRPC;
+import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 import org.apache.hadoop.yarn.service.launcher.RunService;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
@@ -88,6 +92,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -140,7 +145,12 @@ public class HoyaAppMaster extends CompositeService
 
   /** Handle to communicate with the Node Manager*/
   public NMClientAsync nmClientAsync;
-
+  
+  /**
+   * token blob
+   */
+  private ByteBuffer allTokens;
+  
   /** RPC server*/
   private Server server;
   /** Hostname of the container*/
@@ -374,12 +384,22 @@ public class HoyaAppMaster extends CompositeService
     ApplicationId appid = appAttemptID.getApplicationId();
     log.info("Hoya AM for ID {}", appid.getId());
 
-
-    int heartbeatInterval = HEARTBEAT_INTERVAL;
-
+    Credentials credentials =
+      UserGroupInformation.getCurrentUser().getCredentials();
+    DataOutputBuffer dob = new DataOutputBuffer();
+    credentials.writeTokenStorageToStream(dob);
+    // Now remove the AM->RM token so that containers cannot access it.
+    Iterator<Token<?>> iter = credentials.getAllTokens().iterator();
+    while (iter.hasNext()) {
+      Token<?> token = iter.next();
+      if (token.getKind().equals(AMRMTokenIdentifier.KIND_NAME)) {
+        iter.remove();
+      }
+    }
+    allTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
 
     //add the RM client -this brings the callbacks in
-    asyncRMClient = AMRMClientAsync.createAMRMClientAsync(heartbeatInterval,
+    asyncRMClient = AMRMClientAsync.createAMRMClientAsync(HEARTBEAT_INTERVAL,
                                                           this);
     addService(asyncRMClient);
     //now bring it up
@@ -1314,6 +1334,13 @@ public class HoyaAppMaster extends CompositeService
   void startContainer(Container container,
                              ContainerLaunchContext ctx,
                              RoleInstance instance) {
+    // Set up tokens for the container too. Today, for normal shell commands,
+    // the container in distribute-shell doesn't need any tokens. We are
+    // populating them mainly for NodeManagers to be able to download any
+    // files in the distributed file-system. The tokens are otherwise also
+    // useful in cases, for e.g., when one is running a "hadoop dfs" command
+    // inside the distributed shell.
+    ctx.setTokens(allTokens.duplicate());
     appState.containerStartSubmitted(container, instance);
     nmClientAsync.startContainerAsync(container, ctx);
   }
