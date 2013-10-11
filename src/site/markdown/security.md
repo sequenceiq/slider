@@ -28,6 +28,8 @@ user creating the cluster*
 the masters, any HBase node running on a server must authenticate as
 the same principal, and so have equal access rights to the HBase cluster.
 
+http://hortonworks.com/blog/the-role-of-delegation-tokens-in-apache-hadoop-security/
+
 
 ## Local manual tests
 
@@ -86,6 +88,8 @@ the same principal, and so have equal access rights to the HBase cluster.
 -D dfs.datanode.kerberos.principal=hdfs/ubuntu@COTHAM \
 
                
+     # single master
+     
     bin/hoya create cl1 \
     --zkhosts ubuntu \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
@@ -95,9 +99,29 @@ the same principal, and so have equal access rights to the HBase cluster.
     --image hdfs://ubuntu:9090/hbase.tar \
     --appconf file:///Users/stevel/Projects/Hortonworks/Projects/hoya/hoya-core/src/test/configs/ubuntu-secure/hbase \
     --roleopt master app.infoport 8080  \
-    --role master 1
+    --role master 1 \
+     --hbasever hbase-0.97.0-SNAPSHOT
+    
+     # no master
+     
+    bin/hoya create cl1 \
+    --zkhosts ubuntu \
+    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
+    --secure -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
+     -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
+    -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM \
+    --image hdfs://ubuntu:9090/hbase.tar \
+    --appconf file:///Users/stevel/Projects/Hortonworks/Projects/hoya/hoya-core/src/test/configs/ubuntu-secure/hbase \
+    --role master 0  \
+     --hbasever hbase-0.97.0-SNAPSHOT
     
      
+               
+    bin/hoya  status cl1 \
+    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
+    --secure -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
+     -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
+     -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM     
                
     bin/hoya  thaw cl1 \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
@@ -115,7 +139,8 @@ the same principal, and so have equal access rights to the HBase cluster.
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
     --secure -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
      -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
-     -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM 
+     -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM \
+    
     
       
          

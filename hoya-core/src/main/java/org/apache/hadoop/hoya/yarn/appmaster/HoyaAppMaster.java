@@ -58,6 +58,7 @@ import org.apache.hadoop.service.Service;
 import org.apache.hadoop.service.ServiceStateChangeListener;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
+import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -162,6 +163,15 @@ public class HoyaAppMaster extends CompositeService
   /** Application Attempt Id ( combination of attemptId and fail count )*/
   private ApplicationAttemptId appAttemptID;
 
+  /**
+   * Security info client to AM key returned after registration
+   */
+  private ByteBuffer clientToAMKey;
+
+  /**
+   * App ACLs
+   */
+  protected Map<ApplicationAccessType, String> applicationACLs;
 
   /**
    * Ongoing state of the cluster: containers, nodes they
@@ -456,6 +466,11 @@ public class HoyaAppMaster extends CompositeService
       response.getMaximumResourceCapability();
     containerMaxMemory = maxResources.getMemory();
     containerMaxCores = maxResources.getVirtualCores();
+    if (UserGroupInformation.isSecurityEnabled()) {
+      //TODO make use of this
+      clientToAMKey = response.getClientToAMTokenMasterKey();
+      applicationACLs = response.getApplicationACLs();
+    }
 
 
 
