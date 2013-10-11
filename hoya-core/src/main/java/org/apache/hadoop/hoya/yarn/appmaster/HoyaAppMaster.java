@@ -366,6 +366,12 @@ public class HoyaAppMaster extends CompositeService
 
     ClusterDescription clusterSpec = ClusterDescription.load(fs, clusterSpecPath);
 
+    File confDir = getLocalConfDir();
+    if (!confDir.exists() || !confDir.isDirectory()) {
+      throw new BadCommandArgumentsException(
+        "Configuration directory %s doesn't exist", confDir);
+    }
+
     //get our provider
     String providerType = clusterSpec.type;
     log.info("Cluster provider type is {}", providerType);
@@ -393,6 +399,7 @@ public class HoyaAppMaster extends CompositeService
     ApplicationId appid = appAttemptID.getApplicationId();
     log.info("Hoya AM for ID {}", appid.getId());
 
+<<<<<<< HEAD
     Credentials credentials =
       UserGroupInformation.getCurrentUser().getCredentials();
     DataOutputBuffer dob = new DataOutputBuffer();
@@ -406,6 +413,10 @@ public class HoyaAppMaster extends CompositeService
       }
     }
     allTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
+=======
+    int heartbeatInterval = HEARTBEAT_INTERVAL;
+
+>>>>>>> hortonworks/develop
 
     //add the RM client -this brings the callbacks in
     asyncRMClient = AMRMClientAsync.createAMRMClientAsync(HEARTBEAT_INTERVAL,
@@ -480,13 +491,6 @@ public class HoyaAppMaster extends CompositeService
     //This ensures that if the master doesn't come up, less
     //cluster resources get wasted
 
-
-    File confDir = getLocalConfDir();
-    if (!confDir.exists() || !confDir.isDirectory()) {
-
-      throw new BadCommandArgumentsException(
-        "Configuration directory %s doesn't exist", confDir);
-    }
 
     //now validate the dir by loading in a hadoop-site.xml file from it
     String siteXMLFilename = provider.getSiteXMLFilename();
