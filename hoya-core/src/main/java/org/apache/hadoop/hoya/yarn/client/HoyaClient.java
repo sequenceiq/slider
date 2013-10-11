@@ -84,6 +84,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.net.InetSocketAddress;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -134,6 +135,15 @@ public class HoyaClient extends YarnClientImpl implements RunService,
    * Entry point from the service launcher
    */
   public HoyaClient() {
+    //make sure all the yarn configs get loaded
+    YarnConfiguration yarnConfiguration = new YarnConfiguration();
+    //register the unique hoya resource *after*
+    URL clientconf = HoyaUtils.registerHoyaClientResource();
+    if (clientconf == null) {
+      log.debug("failed to find {} on the classpath", HOYA_CLIENT_RESOURCE);
+    } else {
+      log.debug("loaded client resources from {}", clientconf);
+    } 
   }
 
   @Override //Service
@@ -147,11 +157,15 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     serviceArgs = new ClientArgs(args);
     serviceArgs.parse();
     serviceArgs.postProcess();
-    return HoyaUtils.patchConfiguration(config);
+    //yarn-ify
+    YarnConfiguration yarnConfiguration = new YarnConfiguration(config);
+    return HoyaUtils.patchConfiguration(yarnConfiguration);
   }
 
   @Override
   protected void serviceInit(Configuration conf) throws Exception {
+    Configuration clientConf = HoyaUtils.loadHoyaClientConfigurationResource();
+    HoyaUtils.mergeConfigurations(conf, clientConf, HOYA_CLIENT_RESOURCE);
     serviceArgs.applyDefinitions(conf);
     serviceArgs.applyFileSystemURL(conf);
     //init security with our conf
@@ -524,7 +538,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
         "No valid Resource Manager address provided in the argument "
         + Arguments.ARG_MANAGER
         + " or the configuration property "
-        + YarnConfiguration.RM_ADDRESS);
+        + YarnConfiguration.RM_ADDRESS 
+        + " value :" + rmAddr);
     }
   }
 
