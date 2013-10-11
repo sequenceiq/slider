@@ -80,6 +80,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.net.InetSocketAddress;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -129,6 +130,15 @@ public class HoyaClient extends YarnClientImpl implements RunService,
    * Entry point from the service launcher
    */
   public HoyaClient() {
+    //make sure all the yarn configs get loaded
+    YarnConfiguration yarnConfiguration = new YarnConfiguration();
+    //register the unique hoya resource *after*
+    URL clientconf = HoyaUtils.registerHoyaClientResource();
+    if (clientconf == null) {
+      log.debug("failed to find {} on the classpath", HOYA_CLIENT_RESOURCE);
+    } else {
+      log.debug("loaded client resources from {}", clientconf);
+    } 
   }
 
   @Override //Service
@@ -489,11 +499,13 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   public void verifyManagerSet() throws BadCommandArgumentsException {
     InetSocketAddress rmAddr = HoyaUtils.getRmAddress(getConfig());
     if (!HoyaUtils.isAddressDefined(rmAddr)) {
+      log.debug(HoyaUtils.dumpConfigToString(getConfig()));
       throw new BadCommandArgumentsException(
         "No valid Resource Manager address provided in the argument "
         + CommonArgs.ARG_MANAGER
         + " or the configuration property "
-        + YarnConfiguration.RM_ADDRESS);
+        + YarnConfiguration.RM_ADDRESS 
+        + " value :" + rmAddr);
     }
   }
 
