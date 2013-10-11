@@ -85,6 +85,9 @@ This will create `hbase-0.97.0-SNAPSHOT.tar.gz` in the directory `hbase-assembly
 the hbase source tree. 
 
     export HBASE_VERSION=0.97.0-SNAPSHOT
+    
+or
+    
     export HBASE_VERSION=0.96.0
     
     pushd hbase-assembly/target

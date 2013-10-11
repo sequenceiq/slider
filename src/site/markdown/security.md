@@ -86,15 +86,17 @@ the same principal, and so have equal access rights to the HBase cluster.
 -D dfs.datanode.kerberos.principal=hdfs/ubuntu@COTHAM \
 
                
-    bin/hoya --zkhosts ubuntu \
+    bin/hoya create cl1 \
+    --zkhosts ubuntu \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
     --secure -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
      -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
     -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM \
-     create cl1 \
     --image hdfs://ubuntu:9090/hbase.tar \
     --appconf file:///Users/stevel/Projects/Hortonworks/Projects/hoya/hoya-core/src/test/configs/ubuntu-secure/hbase \
-    --roleopt master app.infoport 8080 
+    --roleopt master app.infoport 8080  \
+    --role master 1
+    
      
                
     bin/hoya  thaw cl1 \
@@ -102,6 +104,24 @@ the same principal, and so have equal access rights to the HBase cluster.
     --secure -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
      -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
      -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM 
+                   
+    bin/hoya  freeze cl1 \
+    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
+    --secure -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
+     -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
+     -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM 
+    
+    bin/hoya  destroy cl1 \
+    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
+    --secure -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
+     -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
+     -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM 
     
       
-     
+         
+    bin/hoya  emergency-force-kill application_1381252124398_0003 \
+    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
+    --secure -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
+     -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
+     -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM 
+    

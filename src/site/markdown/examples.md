@@ -80,6 +80,10 @@ copy to local
 
     hdfs dfs -rm hdfs://master:9090/hbase.tar
     hdfs dfs -copyFromLocal hbase-0.97.0-SNAPSHOT-bin.tar hdfs://master:9090/hbase.tar
+
+or
+    
+    hdfs dfs -copyFromLocal hbase-0.96.0-bin.tar hdfs://master:9090/hbase.tar
     hdfs dfs -ls hdfs://master:9090/
     
 
