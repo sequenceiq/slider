@@ -257,14 +257,15 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     //delete the directory;
     fs.delete(clusterDirectory, true);
 
+    List<ApplicationReport> instances = findAllLiveInstances(null, clustername);
     // detect any race leading to cluster creation during the check/destroy process
     // and report a problem.
-    if (!findAllLiveInstances(null, clustername).isEmpty()) {
+    if (!instances.isEmpty()) {
       throw new HoyaException(EXIT_BAD_CLUSTER_STATE,
                               clustername + ": "
                               + E_DESTROY_CREATE_RACE_CONDITION
                               + " :" +
-                              findAllLiveInstances(null, clustername).get(0));
+                              instances.get(0));
     }
     log.info("Destroyed cluster {}", clustername);
     return EXIT_SUCCESS;
