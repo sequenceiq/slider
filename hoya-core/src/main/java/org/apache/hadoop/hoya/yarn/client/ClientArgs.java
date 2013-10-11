@@ -139,6 +139,7 @@ public class ClientArgs extends CommonArgs {
     ACTIONS.put(ACTION_CREATE, t("Create a live Hoya cluster", 1));
     ACTIONS.put(ACTION_DESTROY,
                 t("Destroy a Hoya cluster (which must be stopped)", 1));
+    ACTIONS.put(ACTION_EMERGENCY_FORCE_KILL, t("Force kill an application by its YARN application ID", 1));
     ACTIONS.put(ACTION_EXISTS, t("Probe for a cluster being live", 1));
     ACTIONS.put(ACTION_FLEX, t("Flex a Hoya cluster", 1));
     ACTIONS.put(ACTION_FREEZE, t("freeze/suspend a running cluster", 1));

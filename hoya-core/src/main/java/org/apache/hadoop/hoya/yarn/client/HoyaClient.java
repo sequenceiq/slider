@@ -71,6 +71,7 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.service.launcher.RunService;
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher;
+import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.zookeeper.server.util.KerberosUtil;
 import org.codehaus.jackson.JsonParseException;
@@ -194,6 +195,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     } else if (HoyaActions.ACTION_DESTROY.equals(action)) {
       HoyaUtils.validateClusterName(clusterName);
       exitCode = actionDestroy(clusterName);
+    } else if (HoyaActions.ACTION_EMERGENCY_FORCE_KILL.equals(action)) {
+      exitCode = actionEmergencyForceKill(clusterName);
     } else if (HoyaActions.ACTION_EXISTS.equals(action)) {
       HoyaUtils.validateClusterName(clusterName);
       exitCode = actionExists(clusterName);
@@ -260,6 +263,26 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     return EXIT_SUCCESS;
   }
 
+  
+  /**
+   * Force kill a yarn application by ID. No niceities here
+   */
+  public int actionEmergencyForceKill(String applicationId) throws YarnException,
+                                                      IOException {
+    verifyManagerSet();
+
+    ApplicationId appId = ConverterUtils.toApplicationId(applicationId);
+
+
+    log.info("Killing Application {}", applicationId);
+    killRunningApplication(appId, "forced kill");
+    return EXIT_SUCCESS;
+
+}
+
+ 
+  
+  
   /**
    * Get the provider for this cluster
    * @param clusterSpec cluster spec

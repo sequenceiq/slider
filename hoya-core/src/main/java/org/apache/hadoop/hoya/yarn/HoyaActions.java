@@ -27,6 +27,7 @@ public interface HoyaActions {
   String ACTION_BUILD = "build";
   String ACTION_CREATE = "create";
   String ACTION_DESTROY = "destroy";
+  String ACTION_EMERGENCY_FORCE_KILL = "emergency-force-kill";
   String ACTION_EXISTS = "exists";
   String ACTION_GETSIZE = "getsize";
   String ACTION_FLEX = "flex";
