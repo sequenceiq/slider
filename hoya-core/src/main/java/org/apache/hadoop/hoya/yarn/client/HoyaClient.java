@@ -361,7 +361,12 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     //build up the options map
     clusterSpec.options = provider.getDefaultClusterOptions();
     HoyaUtils.mergeMap(clusterSpec.options, serviceArgs.getOptionsMap());
-
+    //hbasever arg also sets an option
+    if (isSet(serviceArgs.hbasever)) {
+      clusterSpec.setOption(OptionKeys.APP_VERSION, serviceArgs.hbasever);
+    }
+    log.debug("HBase version is {}",
+              clusterSpec.getOption(OptionKeys.APP_VERSION,"undefined"));
 
     //get the list of supported roles
     List<ProviderRole> supportedRoles = provider.getRoles();
@@ -430,7 +435,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     clusterSpec.zkPath = zookeeperRoot;
     clusterSpec.zkPort = serviceArgs.zkport;
     clusterSpec.zkHosts = serviceArgs.zkhosts;
-    clusterSpec.hbasever = serviceArgs.hbasever;
+
     
     //another sanity check before the cluster dir is created: the config
     //dir
@@ -567,11 +572,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     //do a quick dump of the values first
     if (log.isDebugEnabled()) {
-      Map<String, Map<String, String>> roleopts = clusterSpec.roles;
-      for (Map.Entry<String, Map<String, String>> role : roleopts.entrySet()) {
-        log.debug("Role: {}", role.getKey());
-        log.debug(HoyaUtils.stringifyMap(role.getValue()));
-      }
+      log.debug(clusterSpec.toString());
     }
 
     YarnClientApplication application = createApplication();

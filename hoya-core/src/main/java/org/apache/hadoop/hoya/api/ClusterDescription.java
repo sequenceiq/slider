@@ -140,7 +140,6 @@ public class ClusterDescription {
   public String originConfigurationPath;
   public String generatedConfigurationPath;
   public String zkHosts;
-  public String hbasever;
   public int zkPort;
   public String zkPath;
   /**

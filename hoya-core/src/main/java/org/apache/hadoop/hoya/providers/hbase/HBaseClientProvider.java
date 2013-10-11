@@ -289,7 +289,13 @@ public class HBaseClientProvider extends Configured implements
   }
 
   public  File buildHBaseDir(ClusterDescription cd) {
-    return providerUtils.buildImageDir(cd, cd.hbasever);
+    String archiveSubdir = getHBaseVersion(cd);
+    return providerUtils.buildImageDir(cd, archiveSubdir);
   }
-  
+
+  public String getHBaseVersion(ClusterDescription cd) {
+    return cd.getOption(OptionKeys.APP_VERSION,
+                                        HBaseKeys.HBASE_VER);
+  }
+
 }
