@@ -32,23 +32,63 @@
 
 package org.apache.hadoop.hoya.yarn.utils
 
+import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.tools.HoyaUtils
+import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.junit.Test
 
+@Slf4j
 class TestClientResourceRegistration {
 
   @Test
   public void testRegistration() throws Throwable {
     assert HoyaUtils.registerHoyaClientResource();
   }
-  
+
   @Test
   public void testLoad() throws Throwable {
     assert HoyaUtils.registerHoyaClientResource();
     Configuration conf = new Configuration(true);
     assert conf.get(HoyaKeys.PROPERTY_HOYA_RESOURCE_ORIGIN) == "test/resources"
   }
-  
+
+  @Test
+  public void testMergeConfigs() throws Throwable {
+    Configuration conf1 = new Configuration(false)
+    conf1.set("key1", "conf1")
+    conf1.set("key2", "conf1")
+    Configuration conf2 = new Configuration(false)
+    conf1.set("key1", "conf2")
+    conf1.set("key3", "conf2")
+    HoyaUtils.mergeConfigurations(conf1, conf2, "test")
+    log.info(HoyaUtils.dumpConfigToString(conf1))
+
+    assert conf1.get("key1").equals("conf2")
+    assert conf1.get("key2").equals("conf1")
+    assert conf1.get("key3").equals("conf2")
+  }
+
+  /**
+   * This tests the situation where a yarn-config creation forces
+   * a load of the default resources, which would overwrite any other
+   * resources already in the list.
+   * @throws Throwable
+   */
+  @Test
+  public void testLoadRes() throws Throwable {
+    Configuration conf = HoyaUtils.loadHoyaClientConfigurationResource()
+    assert conf.get(HoyaKeys.PROPERTY_HOYA_RESOURCE_ORIGIN) == "test/resources"
+    String hostname = "nosuchhost:0"
+    conf.set(YarnConfiguration.RM_ADDRESS, hostname)
+    YarnConfiguration yc = new YarnConfiguration()
+    HoyaUtils.mergeConfigurations(yc, conf, "hoya-client")
+    InetSocketAddress addr = HoyaUtils.getRmAddress(yc)
+    assert HoyaUtils.isAddressDefined(addr)
+
+
+  }
+
+
 }

@@ -961,13 +961,31 @@ public final class HoyaUtils {
    * 
    * @return true if the resource could be loaded
    */
-  public static URL  registerHoyaClientResource() {
+  public static URL registerHoyaClientResource() {
     URL resURL = HoyaUtils.class.getClassLoader()
                                 .getResource(HoyaKeys.HOYA_CLIENT_RESOURCE);
     if (resURL != null) {
       Configuration.addDefaultResource(HoyaKeys.HOYA_CLIENT_RESOURCE);
     }
     return resURL;
+  }
+
+  /**
+   * Attempt to load the hoya client resource. If the
+   * resource is not on the CP an empty config is returned.
+   * @return a config
+   */
+  public static Configuration loadHoyaClientConfigurationResource() {
+    Configuration conf = new Configuration(false);
+    URL resURL = HoyaUtils.class.getClassLoader()
+                                .getResource(HoyaKeys.HOYA_CLIENT_RESOURCE);
+    if (resURL != null) {
+      log.debug("loaded client resources from {}", resURL);
+      conf.addResource(HoyaKeys.HOYA_CLIENT_RESOURCE);
+    } else{
+      log.debug("failed to find {} on the classpath", HoyaKeys.HOYA_CLIENT_RESOURCE);
+    }
+    return conf;
   }
   
   /**
@@ -985,5 +1003,23 @@ public final class HoyaUtils {
     }
     return builder.toString();
   }
+
+  /**
+   * Merge in one configuration above another
+   * @param base base config
+   * @param merge one to merge. This MUST be a non-default-load config to avoid
+   * merge origin confusion
+   * @param origin description of the origin for the put operation
+   * @return the base with the merged values
+   */
+  public static Configuration mergeConfigurations(Configuration base, Configuration merge,
+                                                  String origin) {
+    for (Map.Entry<String, String> entry : merge) {
+      base.set(entry.getKey(),entry.getValue(),origin);
+    }
+    return base;
+  }
+  
+  
 
 }

@@ -152,11 +152,15 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     serviceArgs = new ClientArgs(args);
     serviceArgs.parse();
     serviceArgs.postProcess();
-    return HoyaUtils.patchConfiguration(config);
+    //yarn-ify
+    YarnConfiguration yarnConfiguration = new YarnConfiguration(config);
+    return HoyaUtils.patchConfiguration(yarnConfiguration);
   }
 
   @Override
   protected void serviceInit(Configuration conf) throws Exception {
+    Configuration clientConf = HoyaUtils.loadHoyaClientConfigurationResource();
+    HoyaUtils.mergeConfigurations(conf, clientConf, HOYA_CLIENT_RESOURCE);
     serviceArgs.applyDefinitions(conf);
     serviceArgs.applyFileSystemURL(conf);
     super.serviceInit(conf);
@@ -499,7 +503,6 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   public void verifyManagerSet() throws BadCommandArgumentsException {
     InetSocketAddress rmAddr = HoyaUtils.getRmAddress(getConfig());
     if (!HoyaUtils.isAddressDefined(rmAddr)) {
-      log.debug(HoyaUtils.dumpConfigToString(getConfig()));
       throw new BadCommandArgumentsException(
         "No valid Resource Manager address provided in the argument "
         + CommonArgs.ARG_MANAGER
