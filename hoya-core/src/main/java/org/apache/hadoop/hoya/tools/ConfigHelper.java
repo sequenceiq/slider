@@ -222,4 +222,38 @@ public class ConfigHelper {
   }
 
 
+  /**
+   * For testing: dump a configuration
+   * @param conf configuration
+   * @return listing in key=value style
+   */
+  public static String dumpConfigToString(Configuration conf) {
+    TreeSet<String> sorted = sortedConfigKeys(conf);
+
+    StringBuilder builder = new StringBuilder();
+    for (String key : sorted) {
+
+      builder.append(key)
+             .append("=")
+             .append(conf.get(key))
+             .append("\n");
+    }
+    return builder.toString();
+  }
+
+  /**
+   * Merge in one configuration above another
+   * @param base base config
+   * @param merge one to merge. This MUST be a non-default-load config to avoid
+   * merge origin confusion
+   * @param origin description of the origin for the put operation
+   * @return the base with the merged values
+   */
+  public static Configuration mergeConfigurations(Configuration base, Configuration merge,
+                                                  String origin) {
+    for (Map.Entry<String, String> entry : merge) {
+      base.set(entry.getKey(),entry.getValue(),origin);
+    }
+    return base;
+  }
 }

@@ -40,6 +40,7 @@ import org.apache.hadoop.hoya.exceptions.WaitTimeoutException;
 import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
 import org.apache.hadoop.hoya.providers.ProviderRole;
+import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.Duration;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.CommonArgs;
@@ -160,7 +161,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   @Override
   protected void serviceInit(Configuration conf) throws Exception {
     Configuration clientConf = HoyaUtils.loadHoyaClientConfigurationResource();
-    HoyaUtils.mergeConfigurations(conf, clientConf, HOYA_CLIENT_RESOURCE);
+    ConfigHelper.mergeConfigurations(conf, clientConf, HOYA_CLIENT_RESOURCE);
     serviceArgs.applyDefinitions(conf);
     serviceArgs.applyFileSystemURL(conf);
     super.serviceInit(conf);
