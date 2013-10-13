@@ -35,6 +35,7 @@ package org.apache.hadoop.hoya.yarn.utils
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.HoyaKeys
+import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.junit.Test
@@ -62,8 +63,8 @@ class TestClientResourceRegistration {
     Configuration conf2 = new Configuration(false)
     conf1.set("key1", "conf2")
     conf1.set("key3", "conf2")
-    HoyaUtils.mergeConfigurations(conf1, conf2, "test")
-    log.info(HoyaUtils.dumpConfigToString(conf1))
+    ConfigHelper.mergeConfigurations(conf1, conf2, "test")
+    log.info(ConfigHelper.dumpConfigToString(conf1))
 
     assert conf1.get("key1").equals("conf2")
     assert conf1.get("key2").equals("conf1")
@@ -83,7 +84,7 @@ class TestClientResourceRegistration {
     String hostname = "nosuchhost:0"
     conf.set(YarnConfiguration.RM_ADDRESS, hostname)
     YarnConfiguration yc = new YarnConfiguration()
-    HoyaUtils.mergeConfigurations(yc, conf, "hoya-client")
+    ConfigHelper.mergeConfigurations(yc, conf, "hoya-client")
     InetSocketAddress addr = HoyaUtils.getRmAddress(yc)
     assert HoyaUtils.isAddressDefined(addr)
 
