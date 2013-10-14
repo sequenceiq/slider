@@ -25,6 +25,8 @@ import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.api.RoleKeys
+import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
+import org.apache.hadoop.hoya.exceptions.BadConfigException
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
@@ -51,7 +53,7 @@ class TestClusterDescriptionMapping extends YarnMiniClusterTestBase {
     ClusterNode node = new ClusterNode()
     node.name = "masternode"
     cd.startTime = System.currentTimeMillis()
-
+    cd.options = ["opt": "1"]
     return cd;
   }
 
@@ -106,5 +108,21 @@ class TestClusterDescriptionMapping extends YarnMiniClusterTestBase {
 
     assert null == status.getRole("undefined");
     assert null != status.getOrAddRole("undefined");
+  }
+
+  @Test
+  public void testGetMandatory() {
+    ClusterDescription cd = createCD()
+    try {
+      cd.getMandatoryOption("none")
+      assert false;
+    } catch (BadConfigException e) {}
+    try {
+      cd.getMandatoryRole(HBaseKeys.ROLE_WORKER)
+      assert false;
+    } catch (BadConfigException e) {}
+
+    cd.getMandatoryOption("opt")
+    cd.getMandatoryRole(HBaseKeys.ROLE_MASTER)
   }
 }
