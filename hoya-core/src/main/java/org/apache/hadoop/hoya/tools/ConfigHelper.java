@@ -19,6 +19,7 @@
 package org.apache.hadoop.hoya.tools;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -129,6 +130,31 @@ public class ConfigHelper {
       IOUtils.closeStream(fos);
     }
   }
+
+  /**
+   * Load a configuration from ANY FS path. The normal Configuration
+   * loader only works with file:// URIs
+   * @param fs filesystem
+   * @param path path
+   * @return a loaded resource
+   * @throws IOException
+   */
+  public static Configuration loadConfiguration(FileSystem fs,
+                                                Path path) throws
+                                                                   IOException {
+    Configuration conf1 = new Configuration(false);
+    FSDataInputStream in = fs.open(path);
+    conf1.addResource(in);
+    //now force a load of it
+    Configuration conf2   = new Configuration(conf1);
+
+    String src = path.toString();
+    for (Map.Entry<String, String> entry : conf1) {
+      conf2.set(entry.getKey(), entry.getValue(), src);
+    }
+    return conf2;
+  }
+
 
   /**
    * Generate a config file in a destination directory on the local filesystem
