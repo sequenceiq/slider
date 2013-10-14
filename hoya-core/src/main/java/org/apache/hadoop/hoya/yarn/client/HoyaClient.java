@@ -375,14 +375,16 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     clusterSpec.state = ClusterDescription.STATE_INCOMPLETE;
     clusterSpec.createTime = System.currentTimeMillis();
     //build up the options map
+    //first the defaults provided by the provider
     clusterSpec.options = provider.getDefaultClusterOptions();
+    //next the options provided on the command line
     HoyaUtils.mergeMap(clusterSpec.options, serviceArgs.getOptionsMap());
     //hbasever arg also sets an option
     if (isSet(serviceArgs.hbasever)) {
-      clusterSpec.setOption(OptionKeys.APP_VERSION, serviceArgs.hbasever);
+      clusterSpec.setOption(OptionKeys.OPTION_APP_VERSION, serviceArgs.hbasever);
     }
     log.debug("HBase version is {}",
-              clusterSpec.getOption(OptionKeys.APP_VERSION,"undefined"));
+              clusterSpec.getOption(OptionKeys.OPTION_APP_VERSION,"undefined"));
 
     //get the list of supported roles
     List<ProviderRole> supportedRoles = provider.getRoles();
@@ -637,6 +639,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       HoyaUtils.copyDirectory(config, localConfDirPath, remoteHoyaConfPath);
     }
     
+    
+    
     if (!getUsingMiniMRCluster()) {
       //the assumption here is that minimr cluster => this is a test run
       //and the classpath can look after itself
@@ -649,7 +653,13 @@ public class HoyaClient extends YarnClientImpl implements RunService,
         HoyaUtils.mergeMaps(localResources, submittedConfDir);
       }
 
-
+      log.debug("Preflight validation of cluster configuration");
+      
+      provider.preflightValidateClusterConfiguration(clusterSpec,
+                                                     fs,
+                                                     generatedConfDirPath,
+                                                     serviceArgs.secure);
+      
       log.info("Copying JARs from local filesystem");
       // Copy the application master jar to the filesystem
       // Create a local resource to point to the destination jar path 

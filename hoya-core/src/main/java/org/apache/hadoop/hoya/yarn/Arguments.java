@@ -83,8 +83,4 @@ public interface Arguments {
    */
   String ARG_RM_ADDR = "--rm";
 
-  /** for testing only: {@value} */
-  @Deprecated
-  String ARG_X_HBASE_MASTER_COMMAND =
-    "--Xhbase-master-command";
 }

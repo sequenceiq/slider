@@ -56,4 +56,31 @@ public interface HBaseConfigFileOptions {
   String IPC_CLIENT_FALLBACK_TO_SIMPLE_AUTH =
     "ipc.client.fallback-to-simple-auth-allowed";
 
+  /*
+      <property>
+        <name>hbase.regionserver.kerberos.principal</name>
+        <value>hbase/_HOST@YOUR-REALM.COM</value>
+      </property>
+      <property>
+        <name>hbase.regionserver.keytab.file</name>
+        <value>/etc/hbase/conf/keytab.krb5</value>
+      </property>
+      <property>
+        <name>hbase.master.kerberos.principal</name>
+        <value>hbase/_HOST@YOUR-REALM.COM</value>
+      </property>
+      <property>
+        <name>hbase.master.keytab.file</name>
+        <value>/etc/hbase/conf/keytab.krb5</value>
+      </property>
+   */
+
+
+  String KEY_REGIONSERVER_KERBEROS_PRINCIPAL = "hbase.regionserver.kerberos.principal";
+  String KEY_REGIONSERVER_KERBEROS_KEYTAB = "hbase.regionserver.keytab.file";
+  
+  String KEY_MASTER_KERBEROS_PRINCIPAL = "hbase.master.kerberos.principal";
+  String KEY_MASTER_KERBEROS_KEYTAB = "hbase.master.keytab.file";
+  
+
 }

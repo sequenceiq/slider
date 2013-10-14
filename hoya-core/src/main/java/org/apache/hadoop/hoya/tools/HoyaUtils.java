@@ -54,7 +54,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -1029,13 +1028,9 @@ public final class HoyaUtils {
    * @return true if the resource could be loaded
    */
   public static URL registerHoyaClientResource() {
-    URL resURL = HoyaUtils.class.getClassLoader()
-                                .getResource(HoyaKeys.HOYA_CLIENT_RESOURCE);
-    if (resURL != null) {
-      Configuration.addDefaultResource(HoyaKeys.HOYA_CLIENT_RESOURCE);
-    }
-    return resURL;
+    return ConfigHelper.registerDefaultResource(HoyaKeys.HOYA_CLIENT_RESOURCE);
   }
+
 
   /**
    * Attempt to load the hoya client resource. If the
@@ -1043,16 +1038,7 @@ public final class HoyaUtils {
    * @return a config
    */
   public static Configuration loadHoyaClientConfigurationResource() {
-    Configuration conf = new Configuration(false);
-    URL resURL = HoyaUtils.class.getClassLoader()
-                                .getResource(HoyaKeys.HOYA_CLIENT_RESOURCE);
-    if (resURL != null) {
-      log.debug("loaded client resources from {}", resURL);
-      conf.addResource(HoyaKeys.HOYA_CLIENT_RESOURCE);
-    } else{
-      log.debug("failed to find {} on the classpath", HoyaKeys.HOYA_CLIENT_RESOURCE);
-    }
-    return conf;
+    return ConfigHelper.loadFromResource(HoyaKeys.HOYA_CLIENT_RESOURCE);
   }
 
 }

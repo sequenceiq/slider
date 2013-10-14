@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.providers;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.OptionKeys;
@@ -159,6 +160,27 @@ public class ProviderUtils implements RoleKeys {
     if (!file.isDirectory()) {
       throw new BadConfigException("%s is not a directory: %s", meaning, file);
     }
-    
   }
+
+  /**
+   * verify that a config option is set
+   * @param configuration config
+   * @param key key
+   * @return the value, in case it needs to be verified too
+   * @throws BadConfigException if the key is missing
+   */
+  public String verifyOptionSet(Configuration configuration, String key,
+                                       boolean allowEmpty) throws BadConfigException {
+    String val = configuration.get(key);
+    if (val == null) {
+      throw new BadConfigException(
+        "Required configuration option \"%s\" not defined ", key);
+    }
+    if (!allowEmpty && val.isEmpty()) {
+      throw new BadConfigException(
+        "Configuration option \"%s\" must not be empty", key);
+    }
+    return val;
+  }
+  
 }

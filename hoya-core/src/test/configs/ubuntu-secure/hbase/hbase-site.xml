@@ -39,6 +39,7 @@
  <property>
    <name>hbase.regionserver.hlog.tolerable.lowreplication</name>
    <value>1</value>
+   
  </property>
   <!--just here to verify propagation of properties all the way to the AM-->
   <property>
@@ -46,4 +47,23 @@
     <value>1</value>
   </property>
 
+  <property>
+    <name>hbase.regionserver.kerberos.principal</name>
+    <value>stevel/_HOST@COTHAM</value>
+  </property>
+  
+  <property>
+    <name>hbase.regionserver.keytab.file</name>
+    <value>/etc/stevel/conf/hbase.keytab</value>
+  </property>
+
+  <property>
+    <name>hbase.master.kerberos.principal</name>
+    <value>stevel/_HOST@COTHAM</value>
+  </property>
+  <property>
+    <name>hbase.master.keytab.file</name>
+    <value>/etc/stevel/conf/hbase.keytab</value>
+  </property>
+  
 </configuration>

@@ -259,6 +259,15 @@ public class AccumuloClientProvider extends Configured implements
     validateClusterSpec(clusterSpec);
   }
 
+  @Override //Client
+  public void preflightValidateClusterConfiguration(ClusterDescription clusterSpec,
+                                                    FileSystem clusterFS,
+                                                    Path generatedConfDirPath,
+                                                    boolean secure) throws
+                                                                    HoyaException,
+                                                                    IOException {
+    validateClusterSpec(clusterSpec);
+  }
 
   /**
    * This builds up the site configuration for the AM and downstream services;

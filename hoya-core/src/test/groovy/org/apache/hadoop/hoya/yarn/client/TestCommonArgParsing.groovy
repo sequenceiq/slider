@@ -76,7 +76,7 @@ class TestCommonArgParsing implements HoyaActions {
   @Test
   public void testListFailsTwoClusternames() throws Throwable {
     assertParseFails([
-        HoyaActions.ACTION_LIST,
+        ACTION_LIST,
         "c1",
         "c2",
       ])
@@ -119,7 +119,7 @@ class TestCommonArgParsing implements HoyaActions {
   }
 
   /**
-   * Test a command that failed
+   * Test a thaw command
    * @throws Throwable
    */
   @Test
@@ -132,6 +132,31 @@ class TestCommonArgParsing implements HoyaActions {
         "-D","namenode.resourcemanager.principal=hdfs/ubuntu@LOCAL",
         "thaw","cl1"    
     ])
+    assert "cl1" == ca.clusterName
+  }
+  
+  /**
+   * Test a force kill command where the app comes at the end of the line
+   * @throws Throwable
+   * 
+   */
+  @Test
+  public void testEmergencyKill() throws Throwable {
+    Configuration conf = new Configuration(false)
+    String appId = "application_1381252124398_0013"
+    ClientArgs ca = createClientArgs([
+        ACTION_EMERGENCY_FORCE_KILL,
+        "--manager", "ubuntu:8032",
+        "--filesystem", "hdfs://ubuntu:9090",
+        "--secure",
+        "-S","java.security.krb5.realm=LOCAL",
+        "-S", "java.security.krb5.kdc=ubuntu",
+        "-D","yarn.resourcemanager.principal=yarn/ubuntu@LOCAL",
+        "-D","namenode.resourcemanager.principal=hdfs/ubuntu@LOCAL",
+        appId
+    ])
+    assert appId == ca.clusterName
+    
   }
   
   private void assertParseFails(List argsList) {

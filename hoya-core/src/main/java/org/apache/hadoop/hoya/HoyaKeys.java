@@ -94,7 +94,7 @@ public interface HoyaKeys {
    * script. Used for things like issuing a version command in testing
    */
   String OPTION_HOYA_MASTER_COMMAND =
-    "hoya.master.command";
+    "hoya.test.master.command";
 
   /**
    * Prefix for site options
@@ -140,5 +140,17 @@ public interface HoyaKeys {
    */
   String HOYA_CLIENT_RESOURCE = "hoya-client.xml";
 
+  /**
+   * The name of the resource to put on the classpath
+   * This only goes up on a real cluster, not a test run.
+   */
+  String HOYA_SERVER_RESOURCE = "hoya-server.xml";
+
   String PROPERTY_HOYA_RESOURCE_ORIGIN = "hoya.client.resource.origin";
+
+  /**
+   * Hoya principal
+   */
+  String KEY_HOYA_PRINCIPAL = "hoya.kerberos.principal";
+
 }

@@ -30,12 +30,18 @@ public interface OptionKeys {
   String OPTION_TEST = "hoya.test";
 
   /**
-   * Prefix for site.xml options
+   * Prefix for site.xml options: {@value}
    */
   String OPTION_SITE_PREFIX = "site.";
 
   /**
-   * Version of the app
+   * Version of the app: {@value}
    */
-  String APP_VERSION = "app.version";
+  String OPTION_APP_VERSION = "cluster.app.version";
+  
+  /**
+   * Version of the app: {@value}
+   */
+  String OPTION_KEYTAB_LOCATION = "cluster.keytab.location";
+  
 }

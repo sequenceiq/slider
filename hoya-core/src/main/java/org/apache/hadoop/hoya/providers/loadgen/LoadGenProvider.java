@@ -42,7 +42,6 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -163,6 +162,16 @@ public class LoadGenProvider extends Configured implements
   @Override
   public void reviewAndUpdateClusterSpec(ClusterDescription clusterSpec) throws
                                                                          HoyaException {
+  }
+
+  @Override //Client
+  public void preflightValidateClusterConfiguration(ClusterDescription clusterSpec,
+                                                    FileSystem clusterFS,
+                                                    Path generatedConfDirPath,
+                                                    boolean secure) throws
+                                                                    HoyaException,
+                                                                    IOException {
+    validateClusterSpec(clusterSpec);
   }
 
   @Override

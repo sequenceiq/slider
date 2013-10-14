@@ -48,6 +48,17 @@ public interface ClientProvider extends ProviderCore {
    */
   Map<String, String> createDefaultClusterRole(String rolename) throws HoyaException;
 
+  /**
+   * This builds up the site configuration for the AM and downstream services;
+   * the path is added to the cluster spec so that launchers in the 
+   * AM can pick it up themselves. 
+   * @param clusterFS filesystem
+   * @param serviceConf conf used by the service
+   * @param clusterSpec cluster specification
+   * @param originConfDirPath the original config dir -treat as read only
+   * @param generatedConfDirPath path to place generated artifacts
+   * @return a map of name to local resource to add to the AM launcher
+   */
   Map<String, LocalResource> prepareAMAndConfigForLaunch(FileSystem clusterFS,
                                                          Configuration serviceConf,
                                                          ClusterDescription clusterSpec,
@@ -56,18 +67,69 @@ public interface ClientProvider extends ProviderCore {
                                                                                     IOException,
                                                                                     BadConfigException;
 
+  /**
+   * Get a map of all the default options for the cluster; values
+   * that can be overridden by user defaults after
+   * @return a possibly empyy map of default cluster options.
+   */
   Map<String, String> getDefaultClusterOptions();
 
+  /**
+   * Build the conf dir from the service arguments
+   * This the configuration used by HBase directly
+   * @param clusterSpec this is the cluster specification used to define this
+   * @return a map of the dynamic bindings for this Hoya instance
+   */
   Map<String, String> buildSiteConfFromSpec(ClusterDescription clusterSpec)
     throws BadConfigException;
-  
+
+  /**
+   * Update the AM resource with any local needs
+   * @param capability capability to update
+   */
   void prepareAMResourceRequirements(ClusterDescription clusterSpec,
                                      Resource capability);
 
+  /**
+   * Any operations to the service data before launching the AM
+   * @param clusterSpec cspec
+   * @param serviceData map of service data
+   */
   void prepareAMServiceData(ClusterDescription clusterSpec,
                             Map<String, ByteBuffer> serviceData);
 
+  
+  /**
+   * Build time review and update of the cluster specification
+   * @param clusterSpec spec
+   */
   void reviewAndUpdateClusterSpec(ClusterDescription clusterSpec) throws
                                                                   HoyaException;
 
+  /**
+   * This is called pre-launch to validate that the cluster specification
+   * is valid. This can include checking that the security options
+   * are in the site files prior to launch, that there are no conflicting operations
+   * etc.
+   * 
+   * This check is made prior to every launch of the cluster -so can 
+   * pick up problems which manually edited cluster files have added,
+   * or from specification files from previous versions.
+   * 
+   * The provider MUST NOT change the remote specification. This is
+   * purely a pre-launch validation of options.
+   *
+   *
+   * @param clusterSpec cluster specification
+   * @param clusterFS filesystem
+   * @param generatedConfDirPath path to place generated artifacts
+   * @param secure
+   * @throws HoyaException
+   */
+  void preflightValidateClusterConfiguration(ClusterDescription clusterSpec,
+                                             FileSystem clusterFS,
+                                             Path generatedConfDirPath,
+                                             boolean secure) throws
+                                                             HoyaException,
+                                                             IOException;
 }

@@ -230,14 +230,23 @@ implements KeysForTests, HoyaExitCodes {
       createMicroZKCluster(conf)
     }
     if (startHDFS) {
-      File baseDir = new File("./target/hdfs/$name").absoluteFile;
-      //use file: to rm it recursively
-      FileUtil.fullyDelete(baseDir)
-      conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, baseDir.absolutePath)
-      MiniDFSCluster.Builder builder = new MiniDFSCluster.Builder(conf)
-      hdfsCluster = builder.build()
+      createMiniHDFSCluster(name, conf)
     }
 
+  }
+
+  /**
+   * Create a mini HDFS cluster
+   * @param name
+   * @param conf
+   */
+  public void createMiniHDFSCluster(String name, YarnConfiguration conf) {
+    File baseDir = new File("./target/hdfs/$name").absoluteFile;
+    //use file: to rm it recursively
+    FileUtil.fullyDelete(baseDir)
+    conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, baseDir.absolutePath)
+    MiniDFSCluster.Builder builder = new MiniDFSCluster.Builder(conf)
+    hdfsCluster = builder.build()
   }
 
   public void createMicroZKCluster(Configuration conf) {

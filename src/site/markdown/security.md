@@ -94,7 +94,7 @@ http://hortonworks.com/blog/the-role-of-delegation-tokens-in-apache-hadoop-secur
     --zkhosts ubuntu \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
     --secure -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
-     -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
+    -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
     -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM \
     --image hdfs://ubuntu:9090/hbase.tar \
     --appconf file:///Users/stevel/Projects/Hortonworks/Projects/hoya/hoya-core/src/test/configs/ubuntu-secure/hbase \
@@ -108,7 +108,7 @@ http://hortonworks.com/blog/the-role-of-delegation-tokens-in-apache-hadoop-secur
     --zkhosts ubuntu \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
     --secure -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
-     -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
+    -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
     -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM \
     --image hdfs://ubuntu:9090/hbase.tar \
     --appconf file:///Users/stevel/Projects/Hortonworks/Projects/hoya/hoya-core/src/test/configs/ubuntu-secure/hbase \
@@ -121,7 +121,8 @@ http://hortonworks.com/blog/the-role-of-delegation-tokens-in-apache-hadoop-secur
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
     --secure -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
      -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
-     -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM     
+     -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM \
+     -D hoya.kerberos.principal=stevel/ubuntu@COTHAM
                
     bin/hoya  thaw cl1 \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
@@ -144,9 +145,10 @@ http://hortonworks.com/blog/the-role-of-delegation-tokens-in-apache-hadoop-secur
     
       
          
-    bin/hoya  emergency-force-kill application_1381252124398_0003 \
+    bin/hoya  emergency-force-kill application_1381252124398_0016 \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
     --secure -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
      -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
-     -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM 
+     -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM \
+     
     

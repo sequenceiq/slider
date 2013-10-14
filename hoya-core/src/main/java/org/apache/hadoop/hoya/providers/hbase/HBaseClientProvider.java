@@ -54,7 +54,8 @@ import java.util.Map;
 public class HBaseClientProvider extends Configured implements
                                                           ProviderCore,
                                                           HBaseKeys, HoyaKeys,
-                                                          ClientProvider {
+                                                          ClientProvider,
+                                                          HBaseConfigFileOptions {
 
 
   public static final String ERROR_UNKNOWN_ROLE = "Unknown role ";
@@ -98,12 +99,12 @@ public class HBaseClientProvider extends Configured implements
   /**
    * Get a map of all the default options for the cluster; values
    * that can be overridden by user defaults after
-   * @return a possibly emtpy map of default cluster options.
+   * @return a possibly empty map of default cluster options.
    */
   @Override
   public Map<String, String> getDefaultClusterOptions() {
     HashMap<String, String> site = new HashMap<String, String>();
-    site.put(OptionKeys.APP_VERSION, HBaseKeys.HBASE_VER);
+    site.put(OptionKeys.OPTION_APP_VERSION, HBaseKeys.HBASE_VER);
     return site;
   }
   
@@ -151,22 +152,31 @@ public class HBaseClientProvider extends Configured implements
       HBaseKeys.ROLE_WORKER);
 
     Map<String, String> sitexml = new HashMap<String, String>();
-    providerUtils.propagateSiteOptions(clusterSpec, sitexml);
     
-    sitexml.put(HBaseConfigFileOptions.KEY_HBASE_CLUSTER_DISTRIBUTED, "true");
-    sitexml.put(HBaseConfigFileOptions.KEY_HBASE_MASTER_PORT, "0");
+    //map all cluster-wide site. options
+    providerUtils.propagateSiteOptions(clusterSpec, sitexml);
+/*
 
-    sitexml.put(HBaseConfigFileOptions.KEY_HBASE_MASTER_INFO_PORT, master.get(
+    String keytab =
+      clusterSpec.getOption(OptionKeys.OPTION_KEYTAB_LOCATION, "");
+    
+*/
+
+
+    sitexml.put(KEY_HBASE_CLUSTER_DISTRIBUTED, "true");
+    sitexml.put(KEY_HBASE_MASTER_PORT, "0");
+
+    sitexml.put(KEY_HBASE_MASTER_INFO_PORT, master.get(
       RoleKeys.APP_INFOPORT));
-    sitexml.put(HBaseConfigFileOptions.KEY_HBASE_ROOTDIR,
+    sitexml.put(KEY_HBASE_ROOTDIR,
                 clusterSpec.dataPath);
-    sitexml.put(HBaseConfigFileOptions.KEY_REGIONSERVER_INFO_PORT,
+    sitexml.put(KEY_REGIONSERVER_INFO_PORT,
                 worker.get(RoleKeys.APP_INFOPORT));
-    sitexml.put(HBaseConfigFileOptions.KEY_REGIONSERVER_PORT, "0");
-    sitexml.put(HBaseConfigFileOptions.KEY_ZNODE_PARENT, clusterSpec.zkPath);
-    sitexml.put(HBaseConfigFileOptions.KEY_ZOOKEEPER_PORT,
+    sitexml.put(KEY_REGIONSERVER_PORT, "0");
+    sitexml.put(KEY_ZNODE_PARENT, clusterSpec.zkPath);
+    sitexml.put(KEY_ZOOKEEPER_PORT,
                 Integer.toString(clusterSpec.zkPort));
-    sitexml.put(HBaseConfigFileOptions.KEY_ZOOKEEPER_QUORUM,
+    sitexml.put(KEY_ZOOKEEPER_QUORUM,
                 clusterSpec.zkHosts);
     return sitexml;
   }
@@ -180,6 +190,45 @@ public class HBaseClientProvider extends Configured implements
                                                                          HoyaException{
 
     validateClusterSpec(clusterSpec);
+  }
+
+
+  @Override //Client
+  public void preflightValidateClusterConfiguration(ClusterDescription clusterSpec,
+                                                    FileSystem clusterFS,
+                                                    Path generatedConfDirPath,
+                                                    boolean secure) throws
+                                                                    HoyaException,
+                                                                    IOException {
+    validateClusterSpec(clusterSpec);
+    Path templatePath = new Path(generatedConfDirPath, HBaseKeys.SITE_XML);
+    //load the HBase site file or fail
+    Configuration siteConf = ConfigHelper.loadConfiguration(clusterFS,templatePath);
+
+    //core customizations
+    try {
+      providerUtils.verifyOptionSet(siteConf, KEY_HBASE_CLUSTER_DISTRIBUTED, false);
+      providerUtils.verifyOptionSet(siteConf, KEY_HBASE_MASTER_PORT, false);
+      providerUtils.verifyOptionSet(siteConf, KEY_HBASE_ROOTDIR, false);
+      providerUtils.verifyOptionSet(siteConf, KEY_ZNODE_PARENT, false);
+      providerUtils.verifyOptionSet(siteConf, KEY_ZOOKEEPER_PORT, false);
+      providerUtils.verifyOptionSet(siteConf, KEY_ZOOKEEPER_QUORUM, false);
+
+      if (secure) {
+        //better have the secure cluster definition up and running
+        providerUtils.verifyOptionSet(siteConf, KEY_MASTER_KERBEROS_PRINCIPAL,false );      
+        providerUtils.verifyOptionSet(siteConf, KEY_MASTER_KERBEROS_KEYTAB,false );      
+        providerUtils.verifyOptionSet(siteConf, KEY_REGIONSERVER_KERBEROS_PRINCIPAL,false );      
+        providerUtils.verifyOptionSet(siteConf, KEY_REGIONSERVER_KERBEROS_KEYTAB,false );      
+      }
+    } catch (BadConfigException e) {
+      //bad configuration, dump it
+      
+      log.error("Bad site configuration {} : {}", templatePath, e, e);
+      log.info(ConfigHelper.dumpConfigToString(siteConf));
+      throw e;
+    }
+
   }
 
   /**
@@ -294,7 +343,7 @@ public class HBaseClientProvider extends Configured implements
   }
 
   public String getHBaseVersion(ClusterDescription cd) {
-    return cd.getOption(OptionKeys.APP_VERSION,
+    return cd.getOption(OptionKeys.OPTION_APP_VERSION,
                                         HBaseKeys.HBASE_VER);
   }
 

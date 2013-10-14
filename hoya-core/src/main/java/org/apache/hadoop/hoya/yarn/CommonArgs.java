@@ -70,6 +70,9 @@ public class CommonArgs implements HoyaActions , Arguments {
   protected static final Logger LOG = LoggerFactory.getLogger(CommonArgs.class);
   public static final String ERROR_DUPLICATE_ENTRY = "Duplicate entry for ";
 
+  /**
+   * This is the default parameter
+   */
   @Parameter
   public List<String> parameters = new ArrayList<String>();
 
@@ -147,10 +150,6 @@ public class CommonArgs implements HoyaActions , Arguments {
   @Parameter(names = {ARG_OUTPUT, "-o"},
              description = "Output file for the configuration data")
   public String output;
-
-  @Parameter(names = ARG_X_HBASE_MASTER_COMMAND,
-             description = "Testing only: hbase command to exec on the master")
-  public String xHBaseMasterCommand = null;
 
   /**
    * fields

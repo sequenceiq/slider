@@ -272,6 +272,12 @@ public class HoyaAppMaster extends CompositeService
 
   @Override //AbstractService
   public synchronized void serviceInit(Configuration conf) throws Exception {
+
+    //Load in the server configuration
+    Configuration serverConf =
+      ConfigHelper.loadFromResource(HOYA_SERVER_RESOURCE);
+    ConfigHelper.mergeConfigurations(conf, serverConf, HOYA_SERVER_RESOURCE);
+    
     //sort out the location of the AM
     serviceArgs.applyDefinitions(conf);
     serviceArgs.applyFileSystemURL(conf);
@@ -317,7 +323,9 @@ public class HoyaAppMaster extends CompositeService
     serviceArgs = new HoyaMasterServiceArgs(argv);
     serviceArgs.parse();
     serviceArgs.postProcess();
-    return HoyaUtils.patchConfiguration(config);
+    //yarn-ify
+    YarnConfiguration yarnConfiguration = new YarnConfiguration(config);
+    return HoyaUtils.patchConfiguration(yarnConfiguration);
   }
 
 

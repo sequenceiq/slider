@@ -30,13 +30,22 @@ import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Map;
 import java.util.TreeSet;
 
@@ -142,15 +151,44 @@ public class ConfigHelper {
   public static Configuration loadConfiguration(FileSystem fs,
                                                 Path path) throws
                                                                    IOException {
-    Configuration conf1 = new Configuration(false);
+    int len = (int) fs.getLength(path);
+    byte[] data = new byte[len];
     FSDataInputStream in = fs.open(path);
-    conf1.addResource(in);
-    //now force a load of it
-    Configuration conf2   = new Configuration(conf1);
+    try {
+      in.readFully(0, data);
+    } catch (IOException e) {
+      in.close();
+    }
+    ByteArrayInputStream in2;
 
+    if (log.isDebugEnabled()) {
+      //this is here to track down a parse issue
+      //related to configurations
+      String s = new String(data, 0, len);
+      log.debug("XML resource is \"{}\"", s);
+      in2 = new ByteArrayInputStream(data);
+      try {
+        Document document = parseConfigXML(in);
+      } catch (ParserConfigurationException e) {
+        throw new IOException(e);
+      } catch (SAXException e) {
+        throw new IOException(e);
+      } finally {
+        in2.close();
+      }
+    }
+      
+
+    in2 = new ByteArrayInputStream(data);
+    Configuration conf1 = new Configuration(false);
+    conf1.addResource(in2);
+    //now clone it while dropping all its sources
+    Configuration conf2   = new Configuration(false);
     String src = path.toString();
     for (Map.Entry<String, String> entry : conf1) {
-      conf2.set(entry.getKey(), entry.getValue(), src);
+      String key = entry.getKey();
+      String value = entry.getValue();
+      conf2.set(key, value, src);
     }
     return conf2;
   }
@@ -175,6 +213,22 @@ public class ConfigHelper {
       IOUtils.closeStream(fos);
     }
     return destPath;
+  }
+  
+  public static Document parseConfigXML(InputStream in) throws
+                                               ParserConfigurationException,
+                                               IOException,
+                                               SAXException {
+    DocumentBuilderFactory docBuilderFactory
+      = DocumentBuilderFactory.newInstance();
+    //ignore all comments inside the xml file
+    docBuilderFactory.setIgnoringComments(true);
+
+    //allow includes in the xml file
+    docBuilderFactory.setNamespaceAware(true);
+    docBuilderFactory.setXIncludeAware(true);
+    DocumentBuilder builder = docBuilderFactory.newDocumentBuilder();
+    return builder.parse(in);
   }
 
   public static Configuration loadConfFromFile(File file) throws
@@ -229,7 +283,7 @@ public class ConfigHelper {
     String origin;
     if (fs.exists(templatePath)) {
       log.debug("Loading template {}", templatePath);
-      conf.addResource(templatePath);
+      loadConfiguration(fs, templatePath);
       origin = templatePath.toString();
     } else {
       if (fallbackResource.isEmpty()) {
@@ -237,6 +291,7 @@ public class ConfigHelper {
       }
       log.debug("Template {} not found" +
                 " -reverting to classpath resource {}", templatePath, fallbackResource);
+      conf = new Configuration(false);
       conf.addResource(fallbackResource);
       origin = "Resource " + fallbackResource;
     }
@@ -278,8 +333,45 @@ public class ConfigHelper {
   public static Configuration mergeConfigurations(Configuration base, Configuration merge,
                                                   String origin) {
     for (Map.Entry<String, String> entry : merge) {
-      base.set(entry.getKey(),entry.getValue(),origin);
+      base.set(entry.getKey(), entry.getValue(), origin);
     }
     return base;
+  }
+
+  /**
+   * Register a resource as a default resource.
+   * Do not attempt to use this unless you understand that the
+   * order in which default resources are loaded affects the outcome,
+   * and that subclasses of Configuration often register new default
+   * resources
+   * @param resource the resource name
+   * @return the URL or null
+   */
+  public static URL registerDefaultResource(String resource) {
+    URL resURL = ConfigHelper.class.getClassLoader()
+                                .getResource(resource);
+    if (resURL != null) {
+      Configuration.addDefaultResource(resource);
+    }
+    return resURL;
+  }
+
+  /**
+   * Load a configuration from a resource on this classpath.
+   * If the resource is not found, an empty configuration is returned
+   * @param resource the resource name
+   * @return the loaded configuration.
+   */
+  public static Configuration loadFromResource(String resource) {
+    Configuration conf = new Configuration(false);
+    URL resURL = ConfigHelper.class.getClassLoader()
+                                .getResource(resource);
+    if (resURL != null) {
+      log.debug("loaded resources from {}", resURL);
+      conf.addResource(resource);
+    } else{
+      log.debug("failed to find {} on the classpath", resource);
+    }
+    return conf;
   }
 }
