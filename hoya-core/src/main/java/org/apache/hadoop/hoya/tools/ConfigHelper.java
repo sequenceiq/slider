@@ -85,11 +85,14 @@ public class ConfigHelper {
 
   /**
    * Set an entire map full of values
-   * @param map map
+   *
+   * @param config config to patch
+   * @param map map of data
+   * @param origin origin data
    * @return nothing
    */
   public static void addConfigMap(Configuration config,
-                                  Map<String, String> map) throws
+                                  Map<String, String> map, String origin) throws
                                                            BadConfigException {
     for (Map.Entry<String, String> mapEntry : map.entrySet()) {
       String value = mapEntry.getValue();
@@ -97,7 +100,7 @@ public class ConfigHelper {
       if (value == null) {
         throw new BadConfigException("Null value for property " + key);
       }
-      config.set(key, value);
+      config.set(key, value, origin);
     }
   }
 
@@ -140,6 +143,37 @@ public class ConfigHelper {
     }
   }
 
+  public Document parseConfiguration(FileSystem fs,
+                                     Path path) throws
+                                                IOException {
+    int len = (int) fs.getLength(path);
+    byte[] data = new byte[len];
+    FSDataInputStream in = fs.open(path);
+    try {
+      in.readFully(0, data);
+    } catch (IOException e) {
+      in.close();
+    }
+    ByteArrayInputStream in2;
+
+    //this is here to track down a parse issue
+    //related to configurations
+    String s = new String(data, 0, len);
+    log.debug("XML resource {} is \"{}\"", path, s);
+    in2 = new ByteArrayInputStream(data);
+    try {
+      Document document = parseConfigXML(in);
+      return document;
+    } catch (ParserConfigurationException e) {
+      throw new IOException(e);
+    } catch (SAXException e) {
+      throw new IOException(e);
+    } finally {
+      in2.close();
+    }
+
+  }
+  
   /**
    * Load a configuration from ANY FS path. The normal Configuration
    * loader only works with file:// URIs
@@ -165,7 +199,7 @@ public class ConfigHelper {
       //this is here to track down a parse issue
       //related to configurations
       String s = new String(data, 0, len);
-      log.debug("XML resource is \"{}\"", s);
+      log.debug("XML resource {} is \"{}\"", path, s);
       in2 = new ByteArrayInputStream(data);
       try {
         Document document = parseConfigXML(in);

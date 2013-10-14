@@ -297,7 +297,7 @@ public class AccumuloClientProvider extends Configured implements
     //construct the cluster configuration values
     Map<String, String> clusterConfMap = buildSiteConfFromSpec(clusterSpec);
     //merge them
-    ConfigHelper.addConfigMap(siteConf, clusterConfMap);
+    ConfigHelper.addConfigMap(siteConf, clusterConfMap, "Accumulo Provider");
 
     if (log.isDebugEnabled()) {
       ConfigHelper.dumpConf(siteConf);

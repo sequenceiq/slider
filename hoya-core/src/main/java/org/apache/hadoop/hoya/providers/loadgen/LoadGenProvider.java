@@ -208,7 +208,7 @@ public class LoadGenProvider extends Configured implements
     Map<String, String> clusterConfMap = buildSiteConfFromSpec(
       clusterSpec);
     //merge them
-    ConfigHelper.addConfigMap(siteConf, clusterConfMap);
+    ConfigHelper.addConfigMap(siteConf, clusterConfMap, "LoadGen provider");
 
     if (log.isDebugEnabled()) {
       ConfigHelper.dumpConf(siteConf);

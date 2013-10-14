@@ -156,6 +156,7 @@ public class HBaseClientProvider extends Configured implements
     //map all cluster-wide site. options
     providerUtils.propagateSiteOptions(clusterSpec, sitexml);
 /*
+  //this is where we'd do app-indepdenent keytabs
 
     String keytab =
       clusterSpec.getOption(OptionKeys.OPTION_KEYTAB_LOCATION, "");
@@ -203,12 +204,13 @@ public class HBaseClientProvider extends Configured implements
     validateClusterSpec(clusterSpec);
     Path templatePath = new Path(generatedConfDirPath, HBaseKeys.SITE_XML);
     //load the HBase site file or fail
-    Configuration siteConf = ConfigHelper.loadConfiguration(clusterFS,templatePath);
+    Configuration siteConf = ConfigHelper.loadConfiguration(clusterFS,
+                                                            templatePath);
 
     //core customizations
     try {
-      providerUtils.verifyOptionSet(siteConf, KEY_HBASE_CLUSTER_DISTRIBUTED, false);
-      providerUtils.verifyOptionSet(siteConf, KEY_HBASE_MASTER_PORT, false);
+      providerUtils.verifyOptionSet(siteConf, KEY_HBASE_CLUSTER_DISTRIBUTED,
+                                    false);
       providerUtils.verifyOptionSet(siteConf, KEY_HBASE_ROOTDIR, false);
       providerUtils.verifyOptionSet(siteConf, KEY_ZNODE_PARENT, false);
       providerUtils.verifyOptionSet(siteConf, KEY_ZOOKEEPER_PORT, false);
@@ -216,10 +218,15 @@ public class HBaseClientProvider extends Configured implements
 
       if (secure) {
         //better have the secure cluster definition up and running
-        providerUtils.verifyOptionSet(siteConf, KEY_MASTER_KERBEROS_PRINCIPAL,false );      
-        providerUtils.verifyOptionSet(siteConf, KEY_MASTER_KERBEROS_KEYTAB,false );      
-        providerUtils.verifyOptionSet(siteConf, KEY_REGIONSERVER_KERBEROS_PRINCIPAL,false );      
-        providerUtils.verifyOptionSet(siteConf, KEY_REGIONSERVER_KERBEROS_KEYTAB,false );      
+        providerUtils.verifyOptionSet(siteConf, KEY_MASTER_KERBEROS_PRINCIPAL,
+                                      false);
+        providerUtils.verifyOptionSet(siteConf, KEY_MASTER_KERBEROS_KEYTAB,
+                                      false);
+        providerUtils.verifyOptionSet(siteConf,
+                                      KEY_REGIONSERVER_KERBEROS_PRINCIPAL,
+                                      false);
+        providerUtils.verifyOptionSet(siteConf,
+                                      KEY_REGIONSERVER_KERBEROS_KEYTAB, false);
       }
     } catch (BadConfigException e) {
       //bad configuration, dump it
@@ -281,9 +288,10 @@ public class HBaseClientProvider extends Configured implements
     //construct the cluster configuration values
     Map<String, String> clusterConfMap = buildSiteConfFromSpec(clusterSpec);
     //merge them
-    ConfigHelper.addConfigMap(siteConf, clusterConfMap);
+    ConfigHelper.addConfigMap(siteConf, clusterConfMap, "HBase Provider");
 
     if (log.isDebugEnabled()) {
+      log.debug("Merged Configuration");
       ConfigHelper.dumpConf(siteConf);
     }
 
