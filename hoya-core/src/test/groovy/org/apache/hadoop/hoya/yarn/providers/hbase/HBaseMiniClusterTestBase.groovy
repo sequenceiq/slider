@@ -83,6 +83,16 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
     killJavaProcesses(HREGION, SIGKILL);
   }
 
+  /**
+   * Stop all the region servers
+   * <code>
+   *    jps -l | grep HRegion | awk '{print $1}' | kill -19
+   *  </code>
+   */
+  public void stopAllRegionServers() {
+    killJavaProcesses(HREGION, SIGSTOP);
+  }
+
 
   public void assertHBaseMasterNotStopped(HoyaClient hoyaClient,
                                           String clustername) {
