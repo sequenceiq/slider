@@ -262,6 +262,12 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     FileSystem fs = getClusterFS();
     Path clusterDirectory = HoyaUtils.buildHoyaClusterDirPath(fs, clustername);
     //delete the directory;
+    boolean exists = fs.exists(clusterDirectory);
+    if (exists) {
+      log.info("Cluster exists -destroying");
+    } else {
+      log.info("Cluster already destroyed");
+    }
     fs.delete(clusterDirectory, true);
 
     List<ApplicationReport> instances = findAllLiveInstances(null, clustername);
