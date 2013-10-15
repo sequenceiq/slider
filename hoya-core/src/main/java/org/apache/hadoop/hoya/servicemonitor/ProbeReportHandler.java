@@ -53,12 +53,6 @@ public interface ProbeReportHandler {
   void unregister();
 
   /**
-   * Is this an HA reporter
-   * @return true if it is part of any HA monitoring system
-   */
-  boolean isIntegratedWithHAMonitoringSystem();
-
-  /**
    * A heartbeat event should be raised
    * @param status the probe status
    */

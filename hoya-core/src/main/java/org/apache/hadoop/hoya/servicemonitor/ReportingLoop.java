@@ -77,15 +77,16 @@ public final class ReportingLoop implements Runnable, ProbeReportHandler, Monito
     workerThread = new Thread(worker, "probe thread - " + name);
     worker.init();
   }
-
+  
   public int getBootstrapTimeout() {
     return bootstrapTimeout;
   }
 
-  public void setReporter(ProbeReportHandler reporter) {
+  public ReportingLoop withReporter(ProbeReportHandler reporter) {
     assert this.reporter == null : "attempting to reassign reporter ";
     assert reporter != null : "new reporter is null";
     this.reporter = reporter;
+    return this;
   }
 
   /**
@@ -167,18 +168,13 @@ public final class ReportingLoop implements Runnable, ProbeReportHandler, Monito
   }
 
   @Override
-  public boolean isIntegratedWithHAMonitoringSystem() {
-    return false;
-  }
-
-  @Override
   public void heartbeat(ProbeStatus status) {
   }
 
   @Override
-  public void probeTimedOut(ProbePhase currentPhase, Probe probe, ProbeStatus lastStatus, long currentTime) {
+  public void probeTimedOut(ProbePhase currentPhase, Probe probe, ProbeStatus lastStatus,
+      long currentTime) {
   }
-
 
   @Override
   public void liveProbeCycleCompleted() {
@@ -266,6 +262,4 @@ public final class ReportingLoop implements Runnable, ProbeReportHandler, Monito
       throw e;
     }
   }
-
-
 }
