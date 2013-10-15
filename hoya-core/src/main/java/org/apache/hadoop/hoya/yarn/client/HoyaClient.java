@@ -40,6 +40,7 @@ import org.apache.hadoop.hoya.exceptions.WaitTimeoutException;
 import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
 import org.apache.hadoop.hoya.providers.ProviderRole;
+import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.Duration;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.CommonArgs;
@@ -80,6 +81,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.net.InetSocketAddress;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -129,6 +131,15 @@ public class HoyaClient extends YarnClientImpl implements RunService,
    * Entry point from the service launcher
    */
   public HoyaClient() {
+    //make sure all the yarn configs get loaded
+    YarnConfiguration yarnConfiguration = new YarnConfiguration();
+    //register the unique hoya resource *after*
+    URL clientconf = HoyaUtils.registerHoyaClientResource();
+    if (clientconf == null) {
+      log.debug("failed to find {} on the classpath", HOYA_CLIENT_RESOURCE);
+    } else {
+      log.debug("loaded client resources from {}", clientconf);
+    } 
   }
 
   @Override //Service
@@ -142,11 +153,15 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     serviceArgs = new ClientArgs(args);
     serviceArgs.parse();
     serviceArgs.postProcess();
-    return HoyaUtils.patchConfiguration(config);
+    //yarn-ify
+    YarnConfiguration yarnConfiguration = new YarnConfiguration(config);
+    return HoyaUtils.patchConfiguration(yarnConfiguration);
   }
 
   @Override
   protected void serviceInit(Configuration conf) throws Exception {
+    Configuration clientConf = HoyaUtils.loadHoyaClientConfigurationResource();
+    ConfigHelper.mergeConfigurations(conf, clientConf, HOYA_CLIENT_RESOURCE);
     serviceArgs.applyDefinitions(conf);
     serviceArgs.applyFileSystemURL(conf);
     super.serviceInit(conf);
@@ -243,14 +258,15 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     //delete the directory;
     fs.delete(clusterDirectory, true);
 
+    List<ApplicationReport> instances = findAllLiveInstances(null, clustername);
     // detect any race leading to cluster creation during the check/destroy process
     // and report a problem.
-    if (!findAllLiveInstances(null, clustername).isEmpty()) {
+    if (!instances.isEmpty()) {
       throw new HoyaException(EXIT_BAD_CLUSTER_STATE,
                               clustername + ": "
                               + E_DESTROY_CREATE_RACE_CONDITION
                               + " :" +
-                              findAllLiveInstances(null, clustername).get(0));
+                              instances.get(0));
     }
     log.info("Destroyed cluster {}", clustername);
     return EXIT_SUCCESS;
@@ -319,6 +335,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     ClusterDescription clusterSpec = new ClusterDescription();
 
     requireArgumentSet(CommonArgs.ARG_ZKHOSTS, serviceArgs.zkhosts);
+    requireArgumentSet(CommonArgs.ARG_HBASE_VER, serviceArgs.hbasever);
     Path appconfdir = serviceArgs.confdir;
     requireArgumentSet(CommonArgs.ARG_CONFDIR, appconfdir);
     //Provider 
@@ -403,7 +420,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     clusterSpec.zkPath = zookeeperRoot;
     clusterSpec.zkPort = serviceArgs.zkport;
     clusterSpec.zkHosts = serviceArgs.zkhosts;
-
+    clusterSpec.hbasever = serviceArgs.hbasever;
     
     //another sanity check before the cluster dir is created: the config
     //dir
@@ -492,7 +509,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
         "No valid Resource Manager address provided in the argument "
         + CommonArgs.ARG_MANAGER
         + " or the configuration property "
-        + YarnConfiguration.RM_ADDRESS);
+        + YarnConfiguration.RM_ADDRESS 
+        + " value :" + rmAddr);
     }
   }
 

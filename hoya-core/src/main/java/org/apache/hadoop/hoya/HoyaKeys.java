@@ -133,4 +133,12 @@ public interface HoyaKeys {
    * name of generated dir for this conf: {@value}
    */
   String SUBMITTED_HOYA_CONF_DIR = "hoya_confdir";
+
+  /**
+   * name of the Hoya client resource
+   * loaded when the service is loaded.
+   */
+  String HOYA_CLIENT_RESOURCE = "hoya-client.xml";
+
+  String PROPERTY_HOYA_RESOURCE_ORIGIN = "hoya.client.resource.origin";
 }

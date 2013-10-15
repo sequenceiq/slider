@@ -238,6 +238,7 @@ public class ServiceLauncher
     boolean controlC = IrqHandler.CONTROL_C.equals(interruptData.name);
     int shutdownTimeMillis = SHUTDOWN_TIME_ON_INTERRUPT;
     //start an async shutdown thread with a timeout
+    LOG.info("Halting service");
     ServiceForcedShutdown forcedShutdown =
       new ServiceForcedShutdown(shutdownTimeMillis);
     Thread thread = new Thread(forcedShutdown);

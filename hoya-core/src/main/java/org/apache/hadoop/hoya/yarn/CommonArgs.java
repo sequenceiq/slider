@@ -73,6 +73,7 @@ public class CommonArgs implements HoyaActions {
 
   public static final String ARG_ZKPORT = "--zkport";
   public static final String ARG_ZKHOSTS = "--zkhosts";
+  public static final String ARG_HBASE_VER = "--hbasever";
 
   /** for testing only: {@value} */
 
@@ -143,6 +144,10 @@ public class CommonArgs implements HoyaActions {
              description = "comma separated list of the Zookeeper hosts")
   public String zkhosts;
 
+  @Parameter(names = ARG_HBASE_VER,
+      description = "HBase version string which is also the name of HBase archive dir")
+  public String hbasever;
+  
   @Parameter(names = ARG_ZKPORT,
              description = "Zookeeper port")
   public int zkport = HBaseConfigFileOptions.HBASE_ZK_PORT;

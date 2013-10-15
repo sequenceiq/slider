@@ -286,8 +286,7 @@ public class HBaseClientProvider extends Configured implements
   }
 
   public  File buildHBaseDir(ClusterDescription cd) {
-    String archiveSubdir = HBaseKeys.ARCHIVE_SUBDIR;
-    return providerUtils.buildImageDir(cd, archiveSubdir);
+    return providerUtils.buildImageDir(cd, cd.hbasever);
   }
   
 }

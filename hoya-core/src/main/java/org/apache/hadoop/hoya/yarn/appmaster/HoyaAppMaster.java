@@ -331,6 +331,12 @@ public class HoyaAppMaster extends CompositeService
 
     ClusterDescription clusterSpec = ClusterDescription.load(fs, clusterSpecPath);
 
+    File confDir = getLocalConfDir();
+    if (!confDir.exists() || !confDir.isDirectory()) {
+      throw new BadCommandArgumentsException(
+        "Configuration directory %s doesn't exist", confDir);
+    }
+
     //get our provider
     String providerType = clusterSpec.type;
     log.info("Cluster provider type is {}", providerType);
@@ -357,7 +363,6 @@ public class HoyaAppMaster extends CompositeService
 
     ApplicationId appid = appAttemptID.getApplicationId();
     log.info("Hoya AM for ID {}", appid.getId());
-
 
     int heartbeatInterval = HEARTBEAT_INTERVAL;
 
@@ -430,13 +435,6 @@ public class HoyaAppMaster extends CompositeService
     //This ensures that if the master doesn't come up, less
     //cluster resources get wasted
 
-
-    File confDir = getLocalConfDir();
-    if (!confDir.exists() || !confDir.isDirectory()) {
-
-      throw new BadCommandArgumentsException(
-        "Configuration directory %s doesn't exist", confDir);
-    }
 
     //now validate the dir by loading in a hadoop-site.xml file from it
     String siteXMLFilename = provider.getSiteXMLFilename();
@@ -966,9 +964,14 @@ public class HoyaAppMaster extends CompositeService
         AMRMClient.ContainerRequest containerAsk =
           buildContainerRequest(role);
         log.info("Container ask is {}", containerAsk);
-        asyncRMClient.addContainerRequest(containerAsk);
+        if (containerAsk.getCapability().getMemory() > this.containerMaxMemory) {
+          log.warn("Memory requested: " + containerAsk.getCapability().getMemory() + " > " +
+              this.containerMaxMemory);
+        } else {
+          asyncRMClient.addContainerRequest(containerAsk);
+          updated = true;
+        }
       }
-      updated = true;
     } else if (delta < 0) {
 
       //special case: there are no more containers

@@ -2,14 +2,14 @@
   <modelVersion>4.0.0</modelVersion>
   <artifactId>hoya-core</artifactId>
   <name>Hoya Core</name>
-  <version>0.5.0</version>
+  <version>0.5.1-SNAPSHOT</version>
   <packaging>jar</packaging>
   <description>Core Hoya Module and minicluster tests
   </description>
   <parent>
     <groupId>org.apache.hoya</groupId>
     <artifactId>hoya</artifactId>
-    <version>0.5.0</version>
+    <version>0.5.1-SNAPSHOT</version>
   </parent>
 
   <build>
@@ -50,7 +50,7 @@
           <archive>
             <manifestEntries>
               <mode>development</mode>
-              <url>${pom.url}</url>
+              <url>${project.url}</url>
             </manifestEntries>
             <!-- Manifest specific configuration -->
             <manifest>
