@@ -129,5 +129,13 @@ This is for demos only, otherwise you lose the clusters and their databases.
     --manager master:8032 --filesystem hdfs://master:9090 \
     --role worker 5
     
-    
-      
+## Create an Accumulo Cluster
+
+    hoya create accl1 --provider accumulo \
+    --role master 1 --role tserver 1 --role gc 1 --role monitor 1 --role tracer 1 \
+    --manager localhost:8032 --filesystem hdfs://localhost:9000 \
+    --zkhosts localhost --zkpath /local/zookeeper \
+    --image hdfs://localhost:9000/user/username/accumulo-1.6.0-SNAPSHOT-bin.tar \
+    --appconf hdfs://localhost:9000/user/username/accumulo-conf \
+    -O zk.home /local/zookeeper -O hadoop.home /local/hadoop \
+    -O site.monitor.port.client 50095 -O accumulo.password secret
