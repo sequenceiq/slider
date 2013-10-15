@@ -145,10 +145,10 @@ http://hortonworks.com/blog/the-role-of-delegation-tokens-in-apache-hadoop-secur
     
       
          
-    bin/hoya  emergency-force-kill application_1381252124398_0016 \
+    bin/hoya  emergency-force-kill all \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
     --secure -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
      -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
-     -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM \
+     -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM 
      
     
