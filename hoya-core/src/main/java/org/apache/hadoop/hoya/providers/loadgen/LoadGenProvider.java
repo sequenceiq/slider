@@ -183,11 +183,14 @@ public class LoadGenProvider extends Configured implements
    * This builds up the site configuration for the AM and downstream services;
    * the path is added to the cluster spec so that launchers in the 
    * AM can pick it up themselves. 
+   *
+   *
    * @param clusterFS filesystem
    * @param serviceConf conf used by the service
    * @param clusterSpec cluster specification
    * @param originConfDirPath the original config dir -treat as read only
    * @param generatedConfDirPath path to place generated artifacts
+   * @param clientConfExtras
    * @return a map of name to local resource to add to the AM launcher
    */
   @Override
@@ -195,7 +198,8 @@ public class LoadGenProvider extends Configured implements
                                                                 Configuration serviceConf,
                                                                 ClusterDescription clusterSpec,
                                                                 Path originConfDirPath,
-                                                                Path generatedConfDirPath) throws
+                                                                Path generatedConfDirPath,
+                                                                Configuration clientConfExtras) throws
                                                                                            IOException,
                                                                                            BadConfigException {
     Configuration siteConf = ConfigHelper.loadTemplateConfiguration(

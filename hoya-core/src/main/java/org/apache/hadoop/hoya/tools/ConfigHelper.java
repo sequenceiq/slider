@@ -408,4 +408,28 @@ public class ConfigHelper {
     }
     return conf;
   }
+
+  /**
+   * Propagate a property from a source to a dest config, with a best-effort
+   * attempt at propagating the origin.
+   * If the 
+   * @param dest destination
+   * @param src source
+   * @param key key to try to copy
+   * @return true if the key was found and propagated
+   */
+  public static boolean propagate(Configuration dest, Configuration src, String key) {
+    String val = src.get(key);
+    if (val!=null) {
+      String[] origin = src.getPropertySources(key);
+      if (origin.length>0) {
+        dest.set(key, val, origin[0]);
+      } else {
+        dest.set(key, val);
+        return true;
+      }
+    }
+    return false;
+  }
+  
 }

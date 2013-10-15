@@ -179,7 +179,6 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       log.debug("Login user is {}", UserGroupInformation.getLoginUser());
       HoyaUtils.verifyPrincipalSet(conf, YarnConfiguration.RM_PRINCIPAL);
       HoyaUtils.verifyPrincipalSet(conf, DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY);
-      //HoyaUtils.verifyPrincipalSet(conf, DFSConfigKeys.DFS_DATANODE_USER_NAME_KEY);
     }
     super.serviceInit(conf);
   }
@@ -703,13 +702,19 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     //IMPORTANT: it is only after this call that site configurations
     //will be valid.
 
+    Configuration clientConfExtras = new Configuration(false);
     
+    ConfigHelper.propagate(clientConfExtras, config,
+                           DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY);
+    
+    //DFS principal
     Map<String, LocalResource> confResources;
     confResources = provider.prepareAMAndConfigForLaunch(fs,
                                                          config,
                                                          clusterSpec,
                                                          origConfPath,
-                                                         generatedConfDirPath);
+                                                         generatedConfDirPath,
+                                                         clientConfExtras);
 
 
 

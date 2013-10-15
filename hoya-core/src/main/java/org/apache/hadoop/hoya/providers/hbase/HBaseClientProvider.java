@@ -281,23 +281,14 @@ public class HBaseClientProvider extends Configured implements
                                     1);
   }
   
-  /**
-   * This builds up the site configuration for the AM and downstream services;
-   * the path is added to the cluster spec so that launchers in the 
-   * AM can pick it up themselves. 
-   * @param clusterFS filesystem
-   * @param serviceConf conf used by the service
-   * @param clusterSpec cluster specification
-   * @param originConfDirPath the original config dir -treat as read only
-   * @param generatedConfDirPath path to place generated artifacts
-   * @return a map of name to local resource to add to the AM launcher
-   */
+
   @Override
   public Map<String, LocalResource> prepareAMAndConfigForLaunch(FileSystem clusterFS,
                                                                 Configuration serviceConf,
                                                                 ClusterDescription clusterSpec,
                                                                 Path originConfDirPath,
-                                                                Path generatedConfDirPath) throws
+                                                                Path generatedConfDirPath,
+                                                                Configuration clientConfExtras) throws
                                                                                            IOException,
                                                                                            BadConfigException {
     //load in the template site config
@@ -319,6 +310,12 @@ public class HBaseClientProvider extends Configured implements
     //merge them
     ConfigHelper.addConfigMap(siteConf, clusterConfMap, "HBase Provider");
 
+    //now, if there is an extra client conf, merge it in too
+    if (clientConfExtras != null) {
+      ConfigHelper.mergeConfigurations(siteConf, clientConfExtras,
+                                       "Hoya Client");
+    }
+    
     if (log.isDebugEnabled()) {
       log.debug("Merged Configuration");
       ConfigHelper.dumpConf(siteConf);
