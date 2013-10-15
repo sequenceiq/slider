@@ -396,6 +396,12 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     //build up the options map
     //first the defaults provided by the provider
     clusterSpec.options = provider.getDefaultClusterOptions();
+    
+    //patch in the properties related to the principals extracted from
+    //the running hoya client
+    propagatePrincipals(clusterSpec, getConfig());
+
+
     //next the options provided on the command line
     HoyaUtils.mergeMap(clusterSpec.options, serviceArgs.getOptionsMap());
     //hbasever arg also sets an option
@@ -702,10 +708,11 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     //IMPORTANT: it is only after this call that site configurations
     //will be valid.
 
+    propagatePrincipals(clusterSpec, config);
+
+
     Configuration clientConfExtras = new Configuration(false);
     
-    ConfigHelper.propagate(clientConfExtras, config,
-                           DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY);
     
     //DFS principal
     Map<String, LocalResource> confResources;
@@ -915,7 +922,27 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     return exitCode;
   }
 
-  
+  /**
+   * Propagate any critical principals from the current site config down to the 
+   * HBase one. 
+   * @param clusterSpec cluster spec
+   * @param config config to read from
+   */
+  private void propagatePrincipals(ClusterDescription clusterSpec,
+                                   Configuration config) {
+    String dfsPrincipal = config.get(DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY);
+    if (dfsPrincipal != null) {
+      String siteDfsPrincipal = HoyaKeys.OPTION_SITE_PREFIX +
+                                DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY;
+      if (clusterSpec.getOption(siteDfsPrincipal, null) == null) {
+        clusterSpec.setOption(siteDfsPrincipal, dfsPrincipal);
+        log.info("Setting HDFS principal in cluster configuration to {}",
+                 dfsPrincipal);
+      }
+    }
+  }
+
+
   private void propagateConfOption(List<String> command, Configuration conf,
                                    String key) {
     String val = conf.get(key);
