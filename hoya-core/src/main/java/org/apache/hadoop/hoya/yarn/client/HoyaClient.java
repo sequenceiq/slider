@@ -1414,14 +1414,24 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       new ArrayList<ApplicationReport>(instances.size());
     for (ApplicationReport app : instances) {
       if (app.getName().equals(appname)
-          && app.getYarnApplicationState().ordinal() <=
-             YarnApplicationState.RUNNING
-                                 .ordinal()) {
+          && isApplicationLive(app)) {
         results.add(app);
       }
     }
     return results;
 
+  }
+
+  /**
+   * Helper method to determine if a cluster application is running -or
+   * is earlier in the lifecycle
+   * @param app application report
+   * @return true if the application is considered live
+   */
+  private boolean isApplicationLive(ApplicationReport app) {
+    return app.getYarnApplicationState().ordinal() <=
+       YarnApplicationState.RUNNING
+                           .ordinal();
   }
 
   public ApplicationReport findClusterInInstanceList(List<ApplicationReport> instances,
@@ -1431,8 +1441,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     for (ApplicationReport app : instances) {
       if (app.getName().equals(appname)) {
         found = app;
-        if (app.getYarnApplicationState().ordinal() <=
-            YarnApplicationState.RUNNING.ordinal()) {
+        if (isApplicationLive(app)) {
           foundAndLive = app;
         }
       }

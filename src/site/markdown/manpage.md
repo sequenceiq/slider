@@ -262,10 +262,16 @@ The same zookeeper bindings as before will be used.
 
 If a cluster is already running, this is a no-op
 
-### emergency_force_kill \<appid>
+### emergency_force_kill \<applicationID>
 
 This attempts to force kill any YARN application referenced by application ID.
 There is no attempt to notify the running AM. 
+
+If the application ID is `all` then all hoya instances belonging to the current
+user are killed.
+
+These are clearly abnormal operations; they are here primarily for testing
+-and documented for completeness.
 
 <!--- ======================================================================= -->
 
