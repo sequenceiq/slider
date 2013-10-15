@@ -19,6 +19,9 @@
 package org.apache.hadoop.hoya.providers;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.OptionKeys;
@@ -211,5 +214,32 @@ public class ProviderUtils implements RoleKeys {
                                    prop);
     }
     return keytabFile;
+  }
+
+
+  /**
+   * Create a data directory, using the path and any options related to
+   * permissions
+   * @param cd cluster spec
+   * @param conf configuration 
+   * @return the path to the directory
+   * @throws IOException trouble
+   */
+  public Path createDataDirectory(ClusterDescription cd,
+                                   Configuration conf) throws IOException {
+    Path path = new Path(cd.dataPath);
+    FileSystem fs = FileSystem.get(path.toUri(), conf);
+    if (!fs.exists(path)) {
+      log.info("Creating data directory {}", path);
+      String parentOpts =
+        cd.getOption(OptionKeys.HOYA_CLUSTER_DIRECTORY_PERMISSIONS,
+                     OptionKeys.DEFAULT_HOYA_CLUSTER_DIRECTORY_PERMISSIONS);
+      fs.mkdirs(path.getParent(), new FsPermission(parentOpts));
+      String dataOpts =
+        cd.getOption(OptionKeys.HOYA_DATA_DIRECTORY_PERMISSIONS,
+                     OptionKeys.DEFAULT_HOYA_DATA_DIRECTORY_PERMISSIONS);
+      fs.mkdirs(path,new FsPermission(dataOpts));
+    }
+    return path;
   }
 }

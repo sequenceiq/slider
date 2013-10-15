@@ -23,6 +23,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.providers.AbstractProviderService;
@@ -255,7 +256,8 @@ public class HBaseProviderService extends AbstractProviderService implements
     CompoundService composite = new CompoundService(getName());
     composite.addService(masterProcess);
     composite.addService(new EventNotifyingService(execInProgress,
-                           cd.getOptionInt(OPTION_CONTAINER_STARTUP_DELAY,
+                           cd.getOptionInt(
+                             OptionKeys.OPTION_CONTAINER_STARTUP_DELAY,
                                            CONTAINER_STARTUP_DELAY)));
     //register the service for lifecycle management; when this service
     //is terminated, so is the master process
@@ -294,7 +296,7 @@ public class HBaseProviderService extends AbstractProviderService implements
     Configuration siteConf = ConfigHelper.loadConfFromFile(siteXML);
     //look in the site spec to see that it is OK
     clientProvider.validateHBaseSiteXML(siteConf, secure, siteXMLFilename);
-
+    
     if (secure) {
       //secure mode: take a look at the keytab of master and RS
       providerUtils.verifyKeytabExists(siteConf,

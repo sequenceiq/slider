@@ -932,7 +932,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                    Configuration config) {
     String dfsPrincipal = config.get(DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY);
     if (dfsPrincipal != null) {
-      String siteDfsPrincipal = HoyaKeys.OPTION_SITE_PREFIX +
+      String siteDfsPrincipal = OptionKeys.OPTION_SITE_PREFIX +
                                 DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY;
       if (clusterSpec.getOption(siteDfsPrincipal, null) == null) {
         clusterSpec.setOption(siteDfsPrincipal, dfsPrincipal);

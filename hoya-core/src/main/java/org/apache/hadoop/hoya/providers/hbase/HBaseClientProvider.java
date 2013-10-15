@@ -22,6 +22,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsAction;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.OptionKeys;
@@ -34,12 +36,14 @@ import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -331,6 +335,28 @@ public class HBaseClientProvider extends Configured implements
     confResources = HoyaUtils.submitDirectory(clusterFS,
                                               generatedConfDirPath,
                                               HoyaKeys.PROPAGATED_CONF_DIR_NAME);
+    
+    //now set up the directory for writing by the user
+    providerUtils.createDataDirectory(clusterSpec, getConf());
+/* TODO: anything else to set up node security
+    if (UserGroupInformation.isSecurityEnabled()) {
+      //secure mode
+      UserGroupInformation loginUser = UserGroupInformation.getLoginUser();
+      String shortname = loginUser.getShortUserName();
+      String masterPrincipal = siteConf.get(KEY_MASTER_KERBEROS_PRINCIPAL);
+
+      Path hbaseData = new Path(clusterSpec.dataPath);
+      if (clusterFS.exists(hbaseData)) {
+        throw new FileNotFoundException(
+          "HBase data directory not found: " + hbaseData);
+      }
+        
+      FsPermission permission = new FsPermission(
+        FsAction.ALL, FsAction.ALL,FsAction.EXECUTE
+      );
+      clusterFS.setPermission(hbaseData, permission);
+    }*/
+    
     return confResources;
   }
 

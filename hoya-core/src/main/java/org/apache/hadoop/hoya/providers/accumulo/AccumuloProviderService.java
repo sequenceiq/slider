@@ -23,6 +23,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.exceptions.BadClusterStateException;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
@@ -331,7 +332,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
     compound.addService(masterProcess);
     compound.addService(new EventNotifyingService(execInProgress,
                                                   cd.getOptionInt(
-                                                    OPTION_CONTAINER_STARTUP_DELAY,
+                                                    OptionKeys.OPTION_CONTAINER_STARTUP_DELAY,
                                                     CONTAINER_STARTUP_DELAY)));
     //register the service for lifecycle management; when this service
     //is terminated, so is the master process
@@ -349,15 +350,14 @@ public class AccumuloProviderService extends AbstractProviderService implements
    * @throws IOException
    */
   private boolean isInited(ClusterDescription cd) throws IOException {
-    Path path = new Path(cd.dataPath);
-    FileSystem fs = FileSystem.get(path.toUri(), getConf());
-    if (!fs.exists(path)) {
-      log.info("Creating data directory {}", path);
-      fs.mkdirs(path);
-    }
+    providerUtils.createDataDirectory(cd, getConf());
+
     Path accumuloInited = new Path(cd.dataPath, "instance_id");
-    return fs.exists(accumuloInited);
+    FileSystem fs2 = FileSystem.get(accumuloInited.toUri(), getConf());
+    return fs2.exists(accumuloInited);
   }
+
+
 
   private void verifyZookeeperLive(String zkQuorum, int timeout) throws
                                                                  IOException,
