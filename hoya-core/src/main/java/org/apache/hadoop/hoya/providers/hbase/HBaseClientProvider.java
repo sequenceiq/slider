@@ -208,13 +208,35 @@ public class HBaseClientProvider extends Configured implements
                                                             templatePath);
 
     //core customizations
+    validateHBaseSiteXML(siteConf, secure, templatePath.toString());
+
+  }
+
+  /**
+   * Validate the hbase-site.xml values
+   * @param siteConf site config
+   * @param secure secure flag
+   * @param origin origin for exceptions
+   * @throws BadConfigException if a config is missing/invalid
+   */
+  public void validateHBaseSiteXML(Configuration siteConf,
+                                    boolean secure,
+                                    String origin) throws BadConfigException {
     try {
       providerUtils.verifyOptionSet(siteConf, KEY_HBASE_CLUSTER_DISTRIBUTED,
                                     false);
       providerUtils.verifyOptionSet(siteConf, KEY_HBASE_ROOTDIR, false);
       providerUtils.verifyOptionSet(siteConf, KEY_ZNODE_PARENT, false);
-      providerUtils.verifyOptionSet(siteConf, KEY_ZOOKEEPER_PORT, false);
       providerUtils.verifyOptionSet(siteConf, KEY_ZOOKEEPER_QUORUM, false);
+      providerUtils.verifyOptionSet(siteConf, KEY_ZOOKEEPER_PORT, false);
+      int zkPort =
+        siteConf.getInt(HBaseConfigFileOptions.KEY_ZOOKEEPER_PORT, 0);
+      if (zkPort == 0) {
+        throw new BadConfigException(
+          "ZK port property not provided at %s in configuration file %s",
+          HBaseConfigFileOptions.KEY_ZOOKEEPER_PORT,
+          siteConf);
+      }
 
       if (secure) {
         //better have the secure cluster definition up and running
@@ -230,12 +252,11 @@ public class HBaseClientProvider extends Configured implements
       }
     } catch (BadConfigException e) {
       //bad configuration, dump it
-      
-      log.error("Bad site configuration {} : {}", templatePath, e, e);
+
+      log.error("Bad site configuration {} : {}", origin, e, e);
       log.info(ConfigHelper.dumpConfigToString(siteConf));
       throw e;
     }
-
   }
 
   /**

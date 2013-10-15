@@ -29,6 +29,7 @@ import org.apache.hadoop.hoya.providers.AbstractProviderService;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
+import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.service.CompoundService;
 import org.apache.hadoop.hoya.yarn.service.EventCallback;
@@ -262,6 +263,46 @@ public class HBaseProviderService extends AbstractProviderService implements
     maybeStartCommandSequence();
 
 
+  }
+
+
+  /**
+   * This is a validation of the application configuration on the AM.
+   * Here is where things like the existence of keytabs and other
+   * not-seen-client-side properties can be tested, before
+   * the actual process is spawned. 
+   * @param clusterSpec clusterSpecification
+   * @param confDir configuration directory
+   * @param secure flag to indicate that secure mode checks must exist
+   * @throws IOException IO problemsn
+   * @throws HoyaException any failure
+   */
+  @Override
+  public void validateApplicationConfiguration(ClusterDescription clusterSpec,
+                                               File confDir,
+                                               boolean secure
+                                              ) throws IOException, HoyaException {
+    String siteXMLFilename = getSiteXMLFilename();
+    File siteXML = new File(confDir, siteXMLFilename);
+    if (!siteXML.exists()) {
+      throw new BadCommandArgumentsException(
+        "Configuration directory %s doesn't contain %s - listing is %s",
+        confDir, siteXMLFilename, HoyaUtils.listDir(confDir));
+    }
+
+    //now read it in
+    Configuration siteConf = ConfigHelper.loadConfFromFile(siteXML);
+    //look in the site spec to see that it is OK
+    clientProvider.validateHBaseSiteXML(siteConf, secure, siteXMLFilename);
+
+    if (secure) {
+      //secure mode: take a look at the keytab of master and RS
+      providerUtils.verifyKeytabExists(siteConf,
+                                       HBaseConfigFileOptions.KEY_MASTER_KERBEROS_KEYTAB);
+      providerUtils.verifyKeytabExists(siteConf,
+                                       HBaseConfigFileOptions.KEY_REGIONSERVER_KERBEROS_KEYTAB);
+
+    }
   }
 
 }

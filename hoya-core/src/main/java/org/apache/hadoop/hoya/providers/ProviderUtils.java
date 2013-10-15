@@ -182,5 +182,34 @@ public class ProviderUtils implements RoleKeys {
     }
     return val;
   }
-  
+
+  /**
+   * Verify that a keytab property is defined and refers to a non-empty file
+   *
+   * @param siteConf configuration
+   * @param prop property to look for
+   * @return the file referenced
+   * @throws BadConfigException on a failure
+   */
+  public File verifyKeytabExists(Configuration siteConf, String prop) throws
+                                                                      BadConfigException {
+    String keytab = siteConf.get(prop);
+    if (keytab == null) {
+      throw new BadConfigException("Missing keytab property %s",
+                                   prop);
+
+    }
+    File keytabFile = new File(keytab);
+    if (!keytabFile.exists()) {
+      throw new BadConfigException("Missing keytab file %s defined in %s",
+                                   keytabFile,
+                                   prop);
+    }
+    if (keytabFile.length() == 0 || !keytabFile.isFile()) {
+      throw new BadConfigException("Invalid keytab file %s defined in %s",
+                                   keytabFile,
+                                   prop);
+    }
+    return keytabFile;
+  }
 }

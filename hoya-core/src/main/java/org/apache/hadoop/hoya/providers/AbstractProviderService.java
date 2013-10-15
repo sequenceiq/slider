@@ -32,6 +32,7 @@ import org.apache.hadoop.yarn.service.launcher.ExitCodeProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -71,6 +72,20 @@ public abstract class AbstractProviderService
   @Override
   public Configuration getConf() {
     return getConfig();
+  }
+
+  /**
+   * No-op implementation of this method.
+   * 
+   * {@inheritDoc}
+   */
+  @Override
+  public void validateApplicationConfiguration(ClusterDescription clusterSpec,
+                                               File confDir,
+                                               boolean secure) throws
+                                                               IOException,
+                                                               HoyaException {
+    
   }
 
   @SuppressWarnings("ThrowableResultOfMethodCallIgnored")

@@ -482,7 +482,8 @@ public class HoyaAppMaster extends CompositeService
       response.getMaximumResourceCapability();
     containerMaxMemory = maxResources.getMemory();
     containerMaxCores = maxResources.getVirtualCores();
-    if (UserGroupInformation.isSecurityEnabled()) {
+    boolean securityEnabled = UserGroupInformation.isSecurityEnabled();
+    if (securityEnabled) {
       //TODO make use of this
       clientToAMKey = response.getClientToAMTokenMasterKey();
       applicationACLs = response.getApplicationACLs();
@@ -497,6 +498,7 @@ public class HoyaAppMaster extends CompositeService
     //cluster resources get wasted
 
     //now validate the dir by loading in a hadoop-site.xml file from it
+    
     String siteXMLFilename = provider.getSiteXMLFilename();
     File siteXML = new File(confDir, siteXMLFilename);
     if (!siteXML.exists()) {
@@ -507,22 +509,8 @@ public class HoyaAppMaster extends CompositeService
 
     //now read it in
     Configuration siteConf = ConfigHelper.loadConfFromFile(siteXML);
-    //update the values
-    log.debug(" Contents of {}", siteXML);
 
-    /*
-    clusterSpec.zkHosts = siteConf.get(HBaseConfigFileOptions.KEY_ZOOKEEPER_QUORUM);
-    clusterSpec.zkPort =
-      siteConf.getInt(HBaseConfigFileOptions.KEY_ZOOKEEPER_PORT, 0);
-    clusterSpec.zkPath = siteConf.get(HBaseConfigFileOptions.KEY_ZNODE_PARENT);
-*/
-
-    if (clusterSpec.zkPort == 0) {
-      throw new BadCommandArgumentsException(
-        "ZK port property not provided at %s in configuration file %s",
-        HBaseConfigFileOptions.KEY_ZOOKEEPER_PORT,
-        siteXML);
-    }
+    provider.validateApplicationConfiguration(clusterSpec, confDir, securityEnabled);
 
     //build the instance
     appState.buildInstance(clusterSpec, siteConf, providerRoles);
