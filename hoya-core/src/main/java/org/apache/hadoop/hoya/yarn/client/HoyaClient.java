@@ -292,11 +292,25 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                                       IOException {
     verifyManagerSet();
 
-    ApplicationId appId = ConverterUtils.toApplicationId(applicationId);
+    if ("all".equals(applicationId)) {
+      //user wants all hoya applications killed
+      String user = getUsername();
+      log.info("Killing all applications belonging to {}", user);
+      Collection<ApplicationReport> instances = listHoyaInstances(user);
+      for (ApplicationReport instance : instances) {
+        if (isApplicationLive(instance)) {
+          ApplicationId appId = instance.getApplicationId();
+          log.info("Killing Application {}", appId);
+          killRunningApplication(appId, "forced kill");
+        }
+      }
+    } else {
+      ApplicationId appId = ConverterUtils.toApplicationId(applicationId);
 
 
-    log.info("Killing Application {}", applicationId);
-    killRunningApplication(appId, "forced kill");
+      log.info("Killing Application {}", applicationId);
+      killRunningApplication(appId, "forced kill");
+    }
     return EXIT_SUCCESS;
 
 }
@@ -497,7 +511,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     //bulk copy
     //first the original from wherever to the DFS
     HoyaUtils.copyDirectory(getConfig(), appconfdir, origConfPath);
-    //then build up the generated path
+    //then build up the generated path. This d
     HoyaUtils.copyDirectory(getConfig(), origConfPath, generatedConfPath);
 
     //Data Directory
@@ -640,16 +654,19 @@ public class HoyaClient extends YarnClientImpl implements RunService,
         throw new BadConfigException("Conf dir \"%s\" not found", hoyaConfDir);
       }
       Path localConfDirPath = HoyaUtils.createLocalPath(hoyaConfDir);
+      log.debug("Copying Hoya AM configuration data from {}", localConfDirPath);
       remoteHoyaConfPath = new Path(clusterDirectory,
                                    HoyaKeys.SUBMITTED_HOYA_CONF_DIR);
       HoyaUtils.copyDirectory(config, localConfDirPath, remoteHoyaConfPath);
     }
-    
-    
+
+
+    //the assumption here is that minimr cluster => this is a test run
+    //and the classpath can look after itself
     
     if (!getUsingMiniMRCluster()) {
-      //the assumption here is that minimr cluster => this is a test run
-      //and the classpath can look after itself
+
+      log.debug("Destination is not a MiniYARNCluster -copying fll classpath");
       
       //insert conf dir first
       if (remoteHoyaConfPath != null) {
@@ -659,12 +676,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
         HoyaUtils.mergeMaps(localResources, submittedConfDir);
       }
 
-      log.debug("Preflight validation of cluster configuration");
-      
-      provider.preflightValidateClusterConfiguration(clusterSpec,
-                                                     fs,
-                                                     generatedConfDirPath,
-                                                     serviceArgs.secure);
+
       
       log.info("Copying JARs from local filesystem");
       // Copy the application master jar to the filesystem
@@ -688,7 +700,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     //build up the configuration -and have it add any other provider
     //specific artifacts to the local resource map
-
+    //IMPORTANT: it is only after this call that site configurations
+    //will be valid.
 
     
     Map<String, LocalResource> confResources;
@@ -697,6 +710,17 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                                          clusterSpec,
                                                          origConfPath,
                                                          generatedConfDirPath);
+
+
+
+    //now that the site config is fully generated, the provider gets
+    //to do a quick review of them.
+    log.debug("Preflight validation of cluster configuration");
+    provider.preflightValidateClusterConfiguration(clusterSpec,
+                                                   fs,
+                                                   generatedConfDirPath,
+                                                   serviceArgs.secure);
+    
     localResources.putAll(confResources);
 
     //now add the image if it was set

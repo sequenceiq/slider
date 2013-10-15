@@ -95,8 +95,8 @@ public class ConfigHelper {
                                   Map<String, String> map, String origin) throws
                                                            BadConfigException {
     for (Map.Entry<String, String> mapEntry : map.entrySet()) {
-      String value = mapEntry.getValue();
       String key = mapEntry.getKey();
+      String value = mapEntry.getValue();
       if (value == null) {
         throw new BadConfigException("Null value for property " + key);
       }
@@ -106,7 +106,7 @@ public class ConfigHelper {
 
 
   /**
-   * Generate a config file in a destination directory on a given filesystem
+   * Save a config file in a destination directory on a given filesystem
    * @param systemConf system conf used for creating filesystems
    * @param confToSave config to save
    * @param confdir the directory path where the file is to go
@@ -114,10 +114,10 @@ public class ConfigHelper {
    * @return the destination path where the file was saved
    * @throws IOException IO problems
    */
-  public static Path generateConfig(Configuration systemConf,
-                                    Configuration confToSave,
-                                    Path confdir,
-                                    String filename) throws IOException {
+  public static Path saveConfig(Configuration systemConf,
+                                Configuration confToSave,
+                                Path confdir,
+                                String filename) throws IOException {
     FileSystem fs = FileSystem.get(confdir.toUri(), systemConf);
     Path destPath = new Path(confdir, filename);
     saveConfig(fs, destPath, confToSave);
@@ -316,8 +316,8 @@ public class ConfigHelper {
     Configuration conf = new Configuration(false);
     String origin;
     if (fs.exists(templatePath)) {
-      log.debug("Loading template {}", templatePath);
-      loadConfiguration(fs, templatePath);
+      log.debug("Loading template configuration {}", templatePath);
+      conf = loadConfiguration(fs, templatePath);
       origin = templatePath.toString();
     } else {
       if (fallbackResource.isEmpty()) {

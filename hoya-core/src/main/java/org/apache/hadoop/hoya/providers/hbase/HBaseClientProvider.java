@@ -279,14 +279,22 @@ public class HBaseClientProvider extends Configured implements
                                                                 Path generatedConfDirPath) throws
                                                                                            IOException,
                                                                                            BadConfigException {
+    //load in the template site config
+    log.debug("Loading template configuration from {}", originConfDirPath);
     Configuration siteConf = ConfigHelper.loadTemplateConfiguration(
       serviceConf,
       originConfDirPath,
       HBaseKeys.SITE_XML,
       HBaseKeys.HBASE_TEMPLATE_RESOURCE);
-
+    
+    if (log.isDebugEnabled()) {
+      log.debug("Configuration came from {}", siteConf.get(
+        HoyaKeys.KEY_HOYA_TEMPLATE_ORIGIN));
+      ConfigHelper.dumpConf(siteConf);
+    }
     //construct the cluster configuration values
     Map<String, String> clusterConfMap = buildSiteConfFromSpec(clusterSpec);
+    
     //merge them
     ConfigHelper.addConfigMap(siteConf, clusterConfMap, "HBase Provider");
 
@@ -295,10 +303,10 @@ public class HBaseClientProvider extends Configured implements
       ConfigHelper.dumpConf(siteConf);
     }
 
-    Path sitePath = ConfigHelper.generateConfig(serviceConf,
-                                                siteConf,
-                                                generatedConfDirPath,
-                                                HBaseKeys.SITE_XML);
+    Path sitePath = ConfigHelper.saveConfig(serviceConf,
+                                            siteConf,
+                                            generatedConfDirPath,
+                                            HBaseKeys.SITE_XML);
 
     log.debug("Saving the config to {}", sitePath);
     Map<String, LocalResource> confResources;

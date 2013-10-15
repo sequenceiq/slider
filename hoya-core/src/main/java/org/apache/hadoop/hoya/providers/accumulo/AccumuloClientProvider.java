@@ -303,10 +303,10 @@ public class AccumuloClientProvider extends Configured implements
       ConfigHelper.dumpConf(siteConf);
     }
 
-    Path sitePath = ConfigHelper.generateConfig(serviceConf,
-                                                siteConf,
-                                                generatedConfDirPath,
-                                                AccumuloKeys.SITE_XML);
+    Path sitePath = ConfigHelper.saveConfig(serviceConf,
+                                            siteConf,
+                                            generatedConfDirPath,
+                                            AccumuloKeys.SITE_XML);
 
     log.debug("Saving the config to {}", sitePath);
     Map<String, LocalResource> confResources;

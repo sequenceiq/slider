@@ -287,7 +287,9 @@ public final class HoyaUtils {
       log.debug("copying src conf file {}", srcFile);
       sourcePaths[i] = srcFile;
     }
-    log.debug("Copying {} files to dest dir {}", srcFileCount, destDirPath);
+    log.debug("Copying {} files from to {} to dest {}", srcFileCount,
+              srcDirPath,
+              destDirPath);
     FileUtil.copy(srcFS, sourcePaths, destFS, destDirPath, false, true, conf);
     return srcFileCount;
   }
