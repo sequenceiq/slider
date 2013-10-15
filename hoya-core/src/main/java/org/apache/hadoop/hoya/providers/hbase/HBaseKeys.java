@@ -83,7 +83,7 @@ public interface HBaseKeys {
    * no site-specific template
    *  {@value}
    */
-  String HBASE_CONF_RESOURCE = "/org/apache/hadoop/hoya/providers/hbase/conf/";
+  String HBASE_CONF_RESOURCE = "org/apache/hadoop/hoya/providers/hbase/conf/";
   String HBASE_TEMPLATE_RESOURCE = HBASE_CONF_RESOURCE + SITE_XML;
 
 

@@ -187,8 +187,7 @@ public class ConfigHelper {
    * The property {@link HoyaKeys#KEY_HOYA_TEMPLATE_ORIGIN} is set to the
    * origin to help debug what's happening
    * @param fs Filesystem
-   * @param confdir conf dir in FS
-   * @param templateFilename filename in the confdir
+   * @param templatePath HDFS path for template
    * @param fallbackResource resource to fall back on, or "" for no fallback
    * @return loaded conf
    * @throws IOException IO problems
@@ -203,7 +202,7 @@ public class ConfigHelper {
     String origin;
     if (fs.exists(templatePath)) {
       log.debug("Loading template {}", templatePath);
-      conf.addResource(templatePath);
+      conf.addResource(templatePath.toUri().toURL());
       origin = templatePath.toString();
     } else {
       if (fallbackResource.isEmpty()) {

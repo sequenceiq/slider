@@ -21,6 +21,7 @@ package org.apache.hadoop.yarn.service.launcher;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FsUrlStreamHandlerFactory;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.util.ExitUtil;
@@ -75,6 +76,13 @@ public class ServiceLauncher
     new ArrayList<IrqHandler>(1);
   private Configuration configuration;
   private String serviceClassName;
+
+  {
+    FsUrlStreamHandlerFactory factory =
+        new org.apache.hadoop.fs.FsUrlStreamHandlerFactory();
+    java.net.URL.setURLStreamHandlerFactory(factory);
+
+  }
 
   /**
    * Create an instance of the launcher
