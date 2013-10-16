@@ -569,12 +569,15 @@ implements KeysForTests, HoyaExitCodes {
    */
   public File getResourceConfDir() {
     File f = new File(testConfigurationPath).absoluteFile;
-    assert f.exists();
+    if (!f.exists()) {
+      throw new FileNotFoundException("Resource configuration directory $f not found")
+    }
     return f;
   }
 
   public String getTestConfigurationPath() {
     fail("Not implemented");
+    null;
   }
 
   /**
