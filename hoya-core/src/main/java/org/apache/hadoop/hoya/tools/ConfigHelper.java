@@ -266,7 +266,7 @@ public class ConfigHelper {
    */
   public static Configuration loadConfFromFile(File file) throws
                                                           IOException {
-    if (file.exists()) {
+    if (!file.exists()) {
       throw new FileNotFoundException("File not found :"
                                           + file.getAbsoluteFile());
     }
