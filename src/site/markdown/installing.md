@@ -19,5 +19,5 @@
 1. Add `hoya/bin` to the path
 1. The logging settings are set in `conf/log4j.properties`
 1. Standard configuration options may be set as defined in
-[Hoya Client Configuration] (hoya-client-configuration.md)
+[Hoya Client Configuration] (hoya-client-configuration.html)
 
