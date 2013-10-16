@@ -363,12 +363,26 @@ public class AccumuloClientProvider extends Configured implements
                                       1), 1, -1);
 
 
-    providerUtils.validateNodeCount(HoyaKeys.ROLE_MASTER,
+    providerUtils.validateNodeCount(AccumuloKeys.ROLE_MASTER,
                                     clusterSpec.getDesiredInstanceCount(
-                                      HoyaKeys.ROLE_MASTER,
-                                      1),
-                                    1,
-                                    1);
+                                      AccumuloKeys.ROLE_MASTER,
+                                      1), 1, 1);
+
+    providerUtils.validateNodeCount(AccumuloKeys.ROLE_GARBAGE_COLLECTOR,
+                                    clusterSpec.getDesiredInstanceCount(
+                                      AccumuloKeys.ROLE_GARBAGE_COLLECTOR,
+                                      0), 0, 1);
+
+    providerUtils.validateNodeCount(AccumuloKeys.ROLE_MONITOR,
+                                    clusterSpec.getDesiredInstanceCount(
+                                      AccumuloKeys.ROLE_MONITOR,
+                                      0), 0, 1);
+
+    providerUtils.validateNodeCount(AccumuloKeys.ROLE_TRACER,
+                                    clusterSpec.getDesiredInstanceCount(
+                                      AccumuloKeys.ROLE_TRACER,
+                                      0), 0, 1);
+
     clusterSpec.verifyOptionSet(AccumuloKeys.OPTION_ZK_HOME);
     clusterSpec.verifyOptionSet(AccumuloKeys.OPTION_HADOOP_HOME);
   }
