@@ -19,6 +19,8 @@
 package org.apache.hadoop.hoya;
 
 
+import org.apache.hadoop.hoya.api.OptionKeys;
+
 /**
  * Keys and various constants for Hoya
  */
@@ -94,23 +96,8 @@ public interface HoyaKeys {
    * script. Used for things like issuing a version command in testing
    */
   String OPTION_HOYA_MASTER_COMMAND =
-    "hoya.master.command";
+    "hoya.test.master.command";
 
-  /**
-   * Prefix for site options
-   */
-  String OPTION_SITE_PREFIX = "site.";
-
-
-  /**
-   * Time in milliseconds to wait after forking the in-AM master
-   * process before attempting to start up the containers. 
-   * A shorter value brings the cluster up faster, but means that if the
-   * master process fails (due to a bad configuration), then time
-   * is wasted starting containers on a cluster that isn't going to come
-   * up
-   */
-  String OPTION_CONTAINER_STARTUP_DELAY = "hoya.container.startup.delay";
 
   /**
    * delay for container startup
@@ -140,5 +127,17 @@ public interface HoyaKeys {
    */
   String HOYA_CLIENT_RESOURCE = "hoya-client.xml";
 
+  /**
+   * The name of the resource to put on the classpath
+   * This only goes up on a real cluster, not a test run.
+   */
+  String HOYA_SERVER_RESOURCE = "hoya-server.xml";
+
   String PROPERTY_HOYA_RESOURCE_ORIGIN = "hoya.client.resource.origin";
+
+  /**
+   * Hoya principal
+   */
+  String KEY_HOYA_PRINCIPAL = "hoya.kerberos.principal";
+
 }

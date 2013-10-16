@@ -22,6 +22,7 @@ import com.google.protobuf.BlockingService;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
@@ -45,15 +46,19 @@ import org.apache.hadoop.hoya.yarn.appmaster.state.AppState;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleInstance;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleStatus;
 import org.apache.hadoop.hoya.yarn.service.EventCallback;
+import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.ipc.ProtocolSignature;
 import org.apache.hadoop.ipc.Server;
 import org.apache.hadoop.net.NetUtils;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.service.CompositeService;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.service.ServiceStateChangeListener;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
+import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -72,6 +77,7 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.hadoop.yarn.ipc.YarnRPC;
+import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 import org.apache.hadoop.yarn.service.launcher.RunService;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
@@ -86,6 +92,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -138,7 +145,12 @@ public class HoyaAppMaster extends CompositeService
 
   /** Handle to communicate with the Node Manager*/
   public NMClientAsync nmClientAsync;
-
+  
+  /**
+   * token blob
+   */
+  private ByteBuffer allTokens;
+  
   /** RPC server*/
   private Server server;
   /** Hostname of the container*/
@@ -151,6 +163,15 @@ public class HoyaAppMaster extends CompositeService
   /** Application Attempt Id ( combination of attemptId and fail count )*/
   private ApplicationAttemptId appAttemptID;
 
+  /**
+   * Security info client to AM key returned after registration
+   */
+  private ByteBuffer clientToAMKey;
+
+  /**
+   * App ACLs
+   */
+  protected Map<ApplicationAccessType, String> applicationACLs;
 
   /**
    * Ongoing state of the cluster: containers, nodes they
@@ -251,18 +272,38 @@ public class HoyaAppMaster extends CompositeService
 
   @Override //AbstractService
   public synchronized void serviceInit(Configuration conf) throws Exception {
+
+    //Load in the server configuration
+    Configuration serverConf =
+      ConfigHelper.loadFromResource(HOYA_SERVER_RESOURCE);
+    ConfigHelper.mergeConfigurations(conf, serverConf, HOYA_SERVER_RESOURCE);
+    
     //sort out the location of the AM
     serviceArgs.applyDefinitions(conf);
     serviceArgs.applyFileSystemURL(conf);
-    
-    //look at settings of Hadoop Auth, to pick up a problem seen once
-    checkAndWarnForAuthTokenProblems();
 
     String rmAddress = serviceArgs.rmAddress;
     if (rmAddress != null) {
       log.debug("Setting rm address from the command line: {}", rmAddress);
       HoyaUtils.setRmSchedulerAddress(conf, rmAddress);
     }
+    serviceArgs.applyDefinitions(conf);
+    serviceArgs.applyFileSystemURL(conf);
+    //init security with our conf
+    if (serviceArgs.secure) {
+      log.info("Secure mode with kerberos realm {}",
+               HoyaUtils.getKerberosRealm());
+      UserGroupInformation.setConfiguration(conf);
+      UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+      log.debug("Authenticating as " + ugi.toString());
+      log.debug("Login user is {}", UserGroupInformation.getLoginUser());
+      HoyaUtils.verifyPrincipalSet(conf,
+                                   DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY);
+    }
+
+    //look at settings of Hadoop Auth, to pick up a problem seen once
+    checkAndWarnForAuthTokenProblems();
+
     super.serviceInit(conf);
   }
   
@@ -282,7 +323,9 @@ public class HoyaAppMaster extends CompositeService
     serviceArgs = new HoyaMasterServiceArgs(argv);
     serviceArgs.parse();
     serviceArgs.postProcess();
-    return HoyaUtils.patchConfiguration(config);
+    //yarn-ify
+    YarnConfiguration yarnConfiguration = new YarnConfiguration(config);
+    return HoyaUtils.patchConfiguration(yarnConfiguration);
   }
 
 
@@ -364,11 +407,24 @@ public class HoyaAppMaster extends CompositeService
     ApplicationId appid = appAttemptID.getApplicationId();
     log.info("Hoya AM for ID {}", appid.getId());
 
+    Credentials credentials =
+      UserGroupInformation.getCurrentUser().getCredentials();
+    DataOutputBuffer dob = new DataOutputBuffer();
+    credentials.writeTokenStorageToStream(dob);
+    // Now remove the AM->RM token so that containers cannot access it.
+    Iterator<Token<?>> iter = credentials.getAllTokens().iterator();
+    while (iter.hasNext()) {
+      Token<?> token = iter.next();
+      if (token.getKind().equals(AMRMTokenIdentifier.KIND_NAME)) {
+        iter.remove();
+      }
+    }
+    allTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
+
     int heartbeatInterval = HEARTBEAT_INTERVAL;
 
-
     //add the RM client -this brings the callbacks in
-    asyncRMClient = AMRMClientAsync.createAMRMClientAsync(heartbeatInterval,
+    asyncRMClient = AMRMClientAsync.createAMRMClientAsync(HEARTBEAT_INTERVAL,
                                                           this);
     addService(asyncRMClient);
     //now bring it up
@@ -426,6 +482,12 @@ public class HoyaAppMaster extends CompositeService
       response.getMaximumResourceCapability();
     containerMaxMemory = maxResources.getMemory();
     containerMaxCores = maxResources.getVirtualCores();
+    boolean securityEnabled = UserGroupInformation.isSecurityEnabled();
+    if (securityEnabled) {
+      //TODO make use of this
+      clientToAMKey = response.getClientToAMTokenMasterKey();
+      applicationACLs = response.getApplicationACLs();
+    }
 
 
 
@@ -435,8 +497,8 @@ public class HoyaAppMaster extends CompositeService
     //This ensures that if the master doesn't come up, less
     //cluster resources get wasted
 
-
     //now validate the dir by loading in a hadoop-site.xml file from it
+    
     String siteXMLFilename = provider.getSiteXMLFilename();
     File siteXML = new File(confDir, siteXMLFilename);
     if (!siteXML.exists()) {
@@ -447,22 +509,8 @@ public class HoyaAppMaster extends CompositeService
 
     //now read it in
     Configuration siteConf = ConfigHelper.loadConfFromFile(siteXML);
-    //update the values
-    log.debug(" Contents of {}", siteXML);
 
-    /*
-    clusterSpec.zkHosts = siteConf.get(HBaseConfigFileOptions.KEY_ZOOKEEPER_QUORUM);
-    clusterSpec.zkPort =
-      siteConf.getInt(HBaseConfigFileOptions.KEY_ZOOKEEPER_PORT, 0);
-    clusterSpec.zkPath = siteConf.get(HBaseConfigFileOptions.KEY_ZNODE_PARENT);
-*/
-
-    if (clusterSpec.zkPort == 0) {
-      throw new BadCommandArgumentsException(
-        "ZK port property not provided at %s in configuration file %s",
-        HBaseConfigFileOptions.KEY_ZOOKEEPER_PORT,
-        siteXML);
-    }
+    provider.validateApplicationConfiguration(clusterSpec, confDir, securityEnabled);
 
     //build the instance
     appState.buildInstance(clusterSpec, siteConf, providerRoles);
@@ -1099,6 +1147,7 @@ public class HoyaAppMaster extends CompositeService
   public Messages.StopClusterResponseProto stopCluster(Messages.StopClusterRequestProto request) throws
                                                                                                  IOException,
                                                                                                  YarnException {
+    HoyaUtils.getCurrentUser();
     String message = request.getMessage();
     log.info("HoyaAppMasterApi.stopCluster: {}",message);
     signalAMComplete("stopCluster: " + message);
@@ -1109,6 +1158,8 @@ public class HoyaAppMaster extends CompositeService
   public Messages.FlexClusterResponseProto flexCluster(Messages.FlexClusterRequestProto request) throws
                                                                                                  IOException,
                                                                                                  YarnException {
+    HoyaUtils.getCurrentUser();
+
     ClusterDescription updated =
       ClusterDescription.fromJson(request.getClusterSpec());
     //verify that the cluster specification is now valid
@@ -1123,6 +1174,7 @@ public class HoyaAppMaster extends CompositeService
     Messages.GetJSONClusterStatusRequestProto request) throws
                                                        IOException,
                                                        YarnException {
+    HoyaUtils.getCurrentUser();
     String result;
     //quick update
     //query and json-ify
@@ -1140,6 +1192,7 @@ public class HoyaAppMaster extends CompositeService
   public Messages.ListNodeUUIDsByRoleResponseProto listNodeUUIDsByRole(Messages.ListNodeUUIDsByRoleRequestProto request) throws
                                                                                                                          IOException,
                                                                                                                          YarnException {
+    HoyaUtils.getCurrentUser();
     String role = request.getRole();
     Messages.ListNodeUUIDsByRoleResponseProto.Builder builder =
       Messages.ListNodeUUIDsByRoleResponseProto.newBuilder();
@@ -1154,6 +1207,7 @@ public class HoyaAppMaster extends CompositeService
   public Messages.GetNodeResponseProto getNode(Messages.GetNodeRequestProto request) throws
                                                                                      IOException,
                                                                                      YarnException {
+    HoyaUtils.getCurrentUser();
     RoleInstance instance = appState.getLiveInstanceByUUID(request.getUuid());
     return Messages.GetNodeResponseProto.newBuilder()
                    .setClusterNode(instance.toProtobuf())
@@ -1164,6 +1218,7 @@ public class HoyaAppMaster extends CompositeService
   public Messages.GetClusterNodesResponseProto getClusterNodes(Messages.GetClusterNodesRequestProto request) throws
                                                                                                              IOException,
                                                                                                              YarnException {
+    HoyaUtils.getCurrentUser();
     List<RoleInstance>
       clusterNodes = appState.getLiveContainerInfosByUUID(request.getUuidList());
 
@@ -1177,7 +1232,7 @@ public class HoyaAppMaster extends CompositeService
   }
 
   
-  /* =================================================================== */
+/* =================================================================== */
 /* END */
 /* =================================================================== */
 
@@ -1289,6 +1344,13 @@ public class HoyaAppMaster extends CompositeService
   void startContainer(Container container,
                              ContainerLaunchContext ctx,
                              RoleInstance instance) {
+    // Set up tokens for the container too. Today, for normal shell commands,
+    // the container in distribute-shell doesn't need any tokens. We are
+    // populating them mainly for NodeManagers to be able to download any
+    // files in the distributed file-system. The tokens are otherwise also
+    // useful in cases, for e.g., when one is running a "hadoop dfs" command
+    // inside the distributed shell.
+    ctx.setTokens(allTokens.duplicate());
     appState.containerStartSubmitted(container, instance);
     nmClientAsync.startContainerAsync(container, ctx);
   }

@@ -42,7 +42,6 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -165,6 +164,16 @@ public class LoadGenProvider extends Configured implements
                                                                          HoyaException {
   }
 
+  @Override //Client
+  public void preflightValidateClusterConfiguration(ClusterDescription clusterSpec,
+                                                    FileSystem clusterFS,
+                                                    Path generatedConfDirPath,
+                                                    boolean secure) throws
+                                                                    HoyaException,
+                                                                    IOException {
+    validateClusterSpec(clusterSpec);
+  }
+
   @Override
   public void validateClusterSpec(ClusterDescription clusterSpec) throws
                                                                   HoyaException {
@@ -174,11 +183,14 @@ public class LoadGenProvider extends Configured implements
    * This builds up the site configuration for the AM and downstream services;
    * the path is added to the cluster spec so that launchers in the 
    * AM can pick it up themselves. 
+   *
+   *
    * @param clusterFS filesystem
    * @param serviceConf conf used by the service
    * @param clusterSpec cluster specification
    * @param originConfDirPath the original config dir -treat as read only
    * @param generatedConfDirPath path to place generated artifacts
+   * @param clientConfExtras
    * @return a map of name to local resource to add to the AM launcher
    */
   @Override
@@ -186,7 +198,8 @@ public class LoadGenProvider extends Configured implements
                                                                 Configuration serviceConf,
                                                                 ClusterDescription clusterSpec,
                                                                 Path originConfDirPath,
-                                                                Path generatedConfDirPath) throws
+                                                                Path generatedConfDirPath,
+                                                                Configuration clientConfExtras) throws
                                                                                            IOException,
                                                                                            BadConfigException {
     Configuration siteConf = ConfigHelper.loadTemplateConfiguration(
@@ -199,16 +212,16 @@ public class LoadGenProvider extends Configured implements
     Map<String, String> clusterConfMap = buildSiteConfFromSpec(
       clusterSpec);
     //merge them
-    ConfigHelper.addConfigMap(siteConf, clusterConfMap);
+    ConfigHelper.addConfigMap(siteConf, clusterConfMap, "LoadGen provider");
 
     if (log.isDebugEnabled()) {
       ConfigHelper.dumpConf(siteConf);
     }
 
-    Path sitePath = ConfigHelper.generateConfig(serviceConf,
-                                                siteConf,
-                                                generatedConfDirPath,
-                                                HBaseKeys.SITE_XML);
+    Path sitePath = ConfigHelper.saveConfig(serviceConf,
+                                            siteConf,
+                                            generatedConfDirPath,
+                                            HBaseKeys.SITE_XML);
 
     log.debug("Saving the config to {}", sitePath);
     Map<String, LocalResource> confResources;
@@ -280,16 +293,8 @@ public class LoadGenProvider extends Configured implements
 
     List<String> command = new ArrayList<String>();
     //this must stay relative if it is an image
-    command.add(buildHBaseBinPath(clusterSpec).toString());
-
-    //config dir is relative to the generated file
-    command.add(HBaseKeys.ARG_CONFIG);
-    command.add(HoyaKeys.PROPAGATED_CONF_DIR_NAME);
-    //role is region server
-    command.add(HBaseKeys.REGION_SERVER);
-    command.add(HBaseKeys.ACTION_START);
-
-    //log details
+    command.add("sleep");
+    command.add("60000");
     command.add(
       "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/out.txt");
     command.add(
@@ -303,45 +308,4 @@ public class LoadGenProvider extends Configured implements
 
   }
 
-
-  /**
-   * Get the path to hbase home
-   * @return the hbase home path
-   */
-  public static File buildHBaseBinPath(ClusterDescription cd) {
-    File hbaseScript = new File(buildHBaseDir(cd),
-                                HBaseKeys.HBASE_SCRIPT);
-    return hbaseScript;
-  }
-
-  public static File buildHBaseDir(ClusterDescription cd) {
-    File hbasedir;
-    if (cd.imagePath != null) {
-      hbasedir = new File(new File(HoyaKeys.LOCAL_TARBALL_INSTALL_SUBDIR),
-                          cd.hbasever);
-    } else {
-      hbasedir = new File(cd.applicationHome);
-    }
-    return hbasedir;
-  }
-
-//  @Override
-  public int getDefaultMasterInfoPort() {
-    return 0;
-  }
-
-//  @Override
-  public String getSiteXMLFilename() {
-    return null;
-  }
-
-//  @Override
-  public List<String> buildProcessCommand(ClusterDescription cd,
-                                          File confDir,
-                                          Map<String, String> env,
-                                          String masterCommand) throws
-                                                                   IOException,
-                                                                   HoyaException {
-    return null;
-  }
 }

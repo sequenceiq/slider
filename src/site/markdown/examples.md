@@ -1,3 +1,4 @@
+
 <!---
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -79,6 +80,10 @@ copy to local
 
     hdfs dfs -rm hdfs://master:9090/hbase.tar
     hdfs dfs -copyFromLocal hbase-0.97.0-SNAPSHOT-bin.tar hdfs://master:9090/hbase.tar
+
+or
+    
+    hdfs dfs -copyFromLocal hbase-0.96.0-bin.tar hdfs://master:9090/hbase.tar
     hdfs dfs -ls hdfs://master:9090/
     
 

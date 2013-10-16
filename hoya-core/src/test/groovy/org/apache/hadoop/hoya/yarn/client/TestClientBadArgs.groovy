@@ -20,6 +20,7 @@ package org.apache.hadoop.hoya.yarn.client
 
 import groovy.transform.CompileStatic
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
@@ -70,7 +71,7 @@ class TestClientBadArgs extends ServiceLauncherBaseTest {
                              new Configuration(),
                              "Expected a value after parameter",
                             [HoyaActions.ACTION_HELP,
-                             CommonArgs.ARG_IMAGE])
+                             Arguments.ARG_IMAGE])
   }
 
 }

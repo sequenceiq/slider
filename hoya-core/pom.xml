@@ -240,7 +240,6 @@
     <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-hdfs</artifactId>
-      <scope>runtime</scope>
     </dependency>
 
     <dependency>

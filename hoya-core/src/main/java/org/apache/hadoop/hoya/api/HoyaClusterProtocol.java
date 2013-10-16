@@ -32,8 +32,10 @@
 
 package org.apache.hadoop.hoya.api;
 
+import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.proto.Messages;
 import org.apache.hadoop.ipc.VersionedProtocol;
+import org.apache.hadoop.security.KerberosInfo;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 
 import java.io.IOException;
@@ -42,6 +44,8 @@ import java.io.IOException;
  * Cluster protocol. This can currently act as a versioned IPC
  * endpoint or be relayed via protobuf
  */
+@KerberosInfo(
+  serverPrincipal = HoyaKeys.KEY_HOYA_PRINCIPAL)
 public interface HoyaClusterProtocol extends VersionedProtocol {
   public static final long versionID = 0x01;
 

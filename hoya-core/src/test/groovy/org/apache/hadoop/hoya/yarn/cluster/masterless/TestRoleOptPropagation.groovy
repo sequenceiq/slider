@@ -22,6 +22,7 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
+import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
@@ -47,8 +48,8 @@ class TestRoleOptPropagation extends HBaseMiniClusterTestBase {
                                                      (HBaseKeys.ROLE_WORKER): 0,
                                                  ],
                                                  [
-                                                     CommonArgs.ARG_ROLEOPT, "master", MALLOC_ARENA, "4",
-                                                     CommonArgs.ARG_ROLEOPT, "unknown", MALLOC_ARENA, "3",
+                                                     Arguments.ARG_ROLEOPT, "master", MALLOC_ARENA, "4",
+                                                     Arguments.ARG_ROLEOPT, "unknown", MALLOC_ARENA, "3",
                                                  ],
                                                  true,
                                                  true, [:])

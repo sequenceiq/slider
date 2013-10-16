@@ -21,7 +21,8 @@
 <configuration>
   <property>
     <name>hoya.client.resource.origin</name>
-    <value>conf/hoya-client.xml</value>
+    <value>conf/hoya-server.xml</value>
+    <description>This is just for diagnostics</description>
   </property>
   
   <property>
@@ -33,7 +34,13 @@
     <name>fs.defaultFS</name>
     <value>file:///</value>
   </property>
- --> 
-
+  
+  
+ -->
+  <property>
+    <name>hoya.kerberos.principal</name>
+    <value>stevel@COTHAM</value>
+    <description>Principal for Hoya AM/Client communications</description>
+  </property>
   
 </configuration>

@@ -47,63 +47,32 @@ import java.util.Map;
  * in the range allowed
  */
 
-public class CommonArgs implements HoyaActions {
-
-  public static final String ARG_ACTION = "--action";
-  public static final String ARG_APP_HOME = "--apphome";
-  public static final String ARG_APP_ZKPATH = "--zkpath";
-  public static final String ARG_CONFDIR = "--appconf";
-  public static final String ARG_DEBUG = "--debug";
-  public static final String ARG_FILESYSTEM = "--fs";
-  public static final String ARG_FILESYSTEM_LONG = "--filesystem";
-  public static final String ARG_GENERATED_CONFDIR = "--generated_confdir";
-  public static final String ARG_HELP = "--help";
-  public static final String ARG_IMAGE = "--image";
-  public static final String ARG_MANAGER = "--manager";
-  public static final String ARG_NAME = "--name";
-  public static final String ARG_OUTPUT = "--output";
-  public static final String ARG_OPTION = "--option";
-  public static final String ARG_OPTION_SHORT = "-O";
-  public static final String ARG_PROVIDER = "--provider";
-  public static final String ARG_ROLE = "--role";
-
-
-  public static final String ARG_ROLEOPT = "--roleopt";
-  public static final String ARG_USER = "--user";
-
-  public static final String ARG_ZKPORT = "--zkport";
-  public static final String ARG_ZKHOSTS = "--zkhosts";
-  public static final String ARG_HBASE_VER = "--hbasever";
-
-  /** for testing only: {@value} */
-
-  @Deprecated
-  public static final String ARG_X_HBASE_MASTER_COMMAND =
-    "--Xhbase-master-command";
-
+public class CommonArgs implements HoyaActions , Arguments {
 
   /**
    * ERROR Strings
    */
   public static final String ERROR_NO_ACTION = "No action specified";
+
   public static final String ERROR_UNKNOWN_ACTION = "Unknown command: ";
+
   public static final String ERROR_NOT_ENOUGH_ARGUMENTS =
     "Not enough arguments for action: ";
-  
+
   public static final String ERROR_PARSE_FAILURE =
     "Failed to parse ";
-  
+
   /**
    * All the remaining values after argument processing
    */
   public static final String ERROR_TOO_MANY_ARGUMENTS =
-    "Too many arguments for action:";
-
-  public static final String ARG_RESOURCE_MANAGER = "--rm";
-
+    "Too many arguments";
   protected static final Logger LOG = LoggerFactory.getLogger(CommonArgs.class);
   public static final String ERROR_DUPLICATE_ENTRY = "Duplicate entry for ";
 
+  /**
+   * This is the default parameter
+   */
   @Parameter
   public List<String> parameters = new ArrayList<String>();
 
@@ -152,7 +121,7 @@ public class CommonArgs implements HoyaActions {
              description = "Zookeeper port")
   public int zkport = HBaseConfigFileOptions.HBASE_ZK_PORT;
 
-  /*
+  /**
    -D name=value
 
    Define an HBase configuration option which overrides any options in
@@ -162,9 +131,17 @@ public class CommonArgs implements HoyaActions {
 
    */
 
-  @Parameter(names = "-D", arity = 1, description = "Definitions")
+  @Parameter(names = ARG_DEFINE, arity = 1, description = "Definitions")
   public List<String> definitions = new ArrayList<String>();
   public Map<String, String> definitionMap = new HashMap<String, String>();
+  /**
+   * System properties
+   */
+  @Parameter(names = {ARG_SYSPROP}, arity = 1,
+             description = "system properties in the form name value" +
+                           " These are set after the JVM is started.")
+  public List<String> sysprops = new ArrayList<String>(0);
+  public Map<String, String> syspropsMap = new HashMap<String, String>();
 
   @Parameter(names = {"--m", ARG_MANAGER},
              description = "hostname:port of the YARN resource manager")
@@ -174,10 +151,6 @@ public class CommonArgs implements HoyaActions {
              description = "Output file for the configuration data")
   public String output;
 
-  @Parameter(names = ARG_X_HBASE_MASTER_COMMAND,
-             description = "Testing only: hbase command to exec on the master")
-  public String xHBaseMasterCommand = null;
-
   /**
    * fields
    */
@@ -186,6 +159,9 @@ public class CommonArgs implements HoyaActions {
   //action arguments; 
   public List<String> actionArgs;
   public final String[] args;
+  @Parameter(names = {ARG_SECURE , ARG_SECURE_SHORT},
+             description = "enable secure communications and hoya clusters")
+  public boolean secure=false;
 
   /**
    * create a 3-tuple
@@ -274,10 +250,18 @@ public class CommonArgs implements HoyaActions {
    */
   public void postProcess() throws BadCommandArgumentsException {
     validate();
-    for (String prop : definitions) {
+    splitPairs(definitions, definitionMap);
+    splitPairs(sysprops, syspropsMap);
+    for (Map.Entry<String, String> entry : syspropsMap.entrySet()) {
+      System.setProperty(entry.getKey(),entry.getValue());
+    }
+  }
+
+  private void splitPairs(Collection<String> pairs, Map<String, String> dest) {
+    for (String prop : pairs) {
       String[] keyval = prop.split("=", 2);
       if (keyval.length == 2) {
-        definitionMap.put(keyval[0], keyval[1]);
+        dest.put(keyval[0], keyval[1]);
       }
     }
   }
@@ -310,7 +294,15 @@ public class CommonArgs implements HoyaActions {
     int maxArgs =
       (actionOpts.size() == 3) ? ((Integer) actionOpts.get(2)) : minArgs;
     if (actionArgSize > maxArgs) {
-      throw new BadCommandArgumentsException(ERROR_TOO_MANY_ARGUMENTS );
+      String message = String.format("%s for %s: limit is %d but saw %d",
+                                     ERROR_TOO_MANY_ARGUMENTS, action, maxArgs,
+                                     actionArgSize);
+      LOG.error(message);
+      int index=1;
+      for (String actionArg : actionArgs) {
+        LOG.error("[{}] \"{}\"", index++, actionArg);
+      }
+      throw new BadCommandArgumentsException(message);
     }
   }
 
@@ -318,11 +310,14 @@ public class CommonArgs implements HoyaActions {
    * Apply all the definitions on the command line to the configuration
    * @param conf config
    */
-  public void applyDefinitions(Configuration conf) {
+  public void applyDefinitions(Configuration conf) throws
+                                                   BadCommandArgumentsException {
     for (String key : definitionMap.keySet()) {
       String val = definitionMap.get(key);
+      LOG.debug("configuration[{}]=\"{}\"", key, val);
       conf.set(key, val, "command line");
     }
+
   }
 
   /**

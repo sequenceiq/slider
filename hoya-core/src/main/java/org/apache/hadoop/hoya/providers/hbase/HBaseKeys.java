@@ -93,4 +93,7 @@ public interface HBaseKeys {
   String DEFAULT_HBASE_MASTER_INFOPORT = "0";
   String PROVIDER_HBASE = "hbase";
   String HBASE_LOG_DIR = "HBASE_LOG_DIR";
+
 }
+
+

@@ -23,12 +23,14 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.providers.AbstractProviderService;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
+import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.service.CompoundService;
 import org.apache.hadoop.hoya.yarn.service.EventCallback;
@@ -195,10 +197,27 @@ public class HBaseProviderService extends AbstractProviderService implements
       masterCommand = MASTER;
     }
     //prepend the hbase command itself
+    File untarDir = clientProvider.buildHBaseDir(cd).getAbsoluteFile();
+    if (!untarDir.exists()) {
+      //likely cause here is the version is wrong
+
+      String message =
+        String.format(
+          "Expanded HBase archive not found -is the version %s wrong? (parent dir=%s, contents=%s)",
+          clientProvider.getHBaseVersion(cd),
+          untarDir.getParentFile(),
+          HoyaUtils.listDir(untarDir.getParentFile())
+                     );
+      log.error(message);
+      throw new BadCommandArgumentsException(message);
+    }
     File binHbaseSh = clientProvider.buildHBaseBinPath(cd);
     String scriptPath = binHbaseSh.getAbsolutePath();
     if (!binHbaseSh.exists()) {
-      throw new BadCommandArgumentsException("Missing script " + scriptPath);
+      String text = "Missing hbase script " + scriptPath;
+      log.error(text);
+      log.error(HoyaUtils.listDir(binHbaseSh.getParentFile()));
+      throw new BadCommandArgumentsException(text);
     }
     List<String> launchSequence = new ArrayList<String>(8);
     launchSequence.add(0, scriptPath);
@@ -237,7 +256,8 @@ public class HBaseProviderService extends AbstractProviderService implements
     CompoundService composite = new CompoundService(getName());
     composite.addService(masterProcess);
     composite.addService(new EventNotifyingService(execInProgress,
-                           cd.getOptionInt(OPTION_CONTAINER_STARTUP_DELAY,
+                           cd.getOptionInt(
+                             OptionKeys.OPTION_CONTAINER_STARTUP_DELAY,
                                            CONTAINER_STARTUP_DELAY)));
     //register the service for lifecycle management; when this service
     //is terminated, so is the master process
@@ -245,6 +265,46 @@ public class HBaseProviderService extends AbstractProviderService implements
     maybeStartCommandSequence();
 
 
+  }
+
+
+  /**
+   * This is a validation of the application configuration on the AM.
+   * Here is where things like the existence of keytabs and other
+   * not-seen-client-side properties can be tested, before
+   * the actual process is spawned. 
+   * @param clusterSpec clusterSpecification
+   * @param confDir configuration directory
+   * @param secure flag to indicate that secure mode checks must exist
+   * @throws IOException IO problemsn
+   * @throws HoyaException any failure
+   */
+  @Override
+  public void validateApplicationConfiguration(ClusterDescription clusterSpec,
+                                               File confDir,
+                                               boolean secure
+                                              ) throws IOException, HoyaException {
+    String siteXMLFilename = getSiteXMLFilename();
+    File siteXML = new File(confDir, siteXMLFilename);
+    if (!siteXML.exists()) {
+      throw new BadCommandArgumentsException(
+        "Configuration directory %s doesn't contain %s - listing is %s",
+        confDir, siteXMLFilename, HoyaUtils.listDir(confDir));
+    }
+
+    //now read it in
+    Configuration siteConf = ConfigHelper.loadConfFromFile(siteXML);
+    //look in the site spec to see that it is OK
+    clientProvider.validateHBaseSiteXML(siteConf, secure, siteXMLFilename);
+    
+    if (secure) {
+      //secure mode: take a look at the keytab of master and RS
+      providerUtils.verifyKeytabExists(siteConf,
+                                       HBaseConfigFileOptions.KEY_MASTER_KERBEROS_KEYTAB);
+      providerUtils.verifyKeytabExists(siteConf,
+                                       HBaseConfigFileOptions.KEY_REGIONSERVER_KERBEROS_KEYTAB);
+
+    }
   }
 
 }

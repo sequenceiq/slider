@@ -22,8 +22,11 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsAction;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
@@ -33,12 +36,14 @@ import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -53,7 +58,8 @@ import java.util.Map;
 public class HBaseClientProvider extends Configured implements
                                                           ProviderCore,
                                                           HBaseKeys, HoyaKeys,
-                                                          ClientProvider {
+                                                          ClientProvider,
+                                                          HBaseConfigFileOptions {
 
 
   public static final String ERROR_UNKNOWN_ROLE = "Unknown role ";
@@ -97,11 +103,13 @@ public class HBaseClientProvider extends Configured implements
   /**
    * Get a map of all the default options for the cluster; values
    * that can be overridden by user defaults after
-   * @return a possibly emtpy map of default cluster options.
+   * @return a possibly empty map of default cluster options.
    */
   @Override
   public Map<String, String> getDefaultClusterOptions() {
-    return new HashMap<String, String>();
+    HashMap<String, String> site = new HashMap<String, String>();
+    site.put(OptionKeys.OPTION_APP_VERSION, HBaseKeys.HBASE_VER);
+    return site;
   }
   
   /**
@@ -148,22 +156,32 @@ public class HBaseClientProvider extends Configured implements
       HBaseKeys.ROLE_WORKER);
 
     Map<String, String> sitexml = new HashMap<String, String>();
-    providerUtils.propagateSiteOptions(clusterSpec, sitexml);
     
-    sitexml.put(HBaseConfigFileOptions.KEY_HBASE_CLUSTER_DISTRIBUTED, "true");
-    sitexml.put(HBaseConfigFileOptions.KEY_HBASE_MASTER_PORT, "0");
+    //map all cluster-wide site. options
+    providerUtils.propagateSiteOptions(clusterSpec, sitexml);
+/*
+  //this is where we'd do app-indepdenent keytabs
 
-    sitexml.put(HBaseConfigFileOptions.KEY_HBASE_MASTER_INFO_PORT, master.get(
+    String keytab =
+      clusterSpec.getOption(OptionKeys.OPTION_KEYTAB_LOCATION, "");
+    
+*/
+
+
+    sitexml.put(KEY_HBASE_CLUSTER_DISTRIBUTED, "true");
+    sitexml.put(KEY_HBASE_MASTER_PORT, "0");
+
+    sitexml.put(KEY_HBASE_MASTER_INFO_PORT, master.get(
       RoleKeys.APP_INFOPORT));
-    sitexml.put(HBaseConfigFileOptions.KEY_HBASE_ROOTDIR,
+    sitexml.put(KEY_HBASE_ROOTDIR,
                 clusterSpec.dataPath);
-    sitexml.put(HBaseConfigFileOptions.KEY_REGIONSERVER_INFO_PORT,
+    sitexml.put(KEY_REGIONSERVER_INFO_PORT,
                 worker.get(RoleKeys.APP_INFOPORT));
-    sitexml.put(HBaseConfigFileOptions.KEY_REGIONSERVER_PORT, "0");
-    sitexml.put(HBaseConfigFileOptions.KEY_ZNODE_PARENT, clusterSpec.zkPath);
-    sitexml.put(HBaseConfigFileOptions.KEY_ZOOKEEPER_PORT,
+    sitexml.put(KEY_REGIONSERVER_PORT, "0");
+    sitexml.put(KEY_ZNODE_PARENT, clusterSpec.zkPath);
+    sitexml.put(KEY_ZOOKEEPER_PORT,
                 Integer.toString(clusterSpec.zkPort));
-    sitexml.put(HBaseConfigFileOptions.KEY_ZOOKEEPER_QUORUM,
+    sitexml.put(KEY_ZOOKEEPER_QUORUM,
                 clusterSpec.zkHosts);
     return sitexml;
   }
@@ -177,6 +195,72 @@ public class HBaseClientProvider extends Configured implements
                                                                          HoyaException{
 
     validateClusterSpec(clusterSpec);
+  }
+
+
+  @Override //Client
+  public void preflightValidateClusterConfiguration(ClusterDescription clusterSpec,
+                                                    FileSystem clusterFS,
+                                                    Path generatedConfDirPath,
+                                                    boolean secure) throws
+                                                                    HoyaException,
+                                                                    IOException {
+    validateClusterSpec(clusterSpec);
+    Path templatePath = new Path(generatedConfDirPath, HBaseKeys.SITE_XML);
+    //load the HBase site file or fail
+    Configuration siteConf = ConfigHelper.loadConfiguration(clusterFS,
+                                                            templatePath);
+
+    //core customizations
+    validateHBaseSiteXML(siteConf, secure, templatePath.toString());
+
+  }
+
+  /**
+   * Validate the hbase-site.xml values
+   * @param siteConf site config
+   * @param secure secure flag
+   * @param origin origin for exceptions
+   * @throws BadConfigException if a config is missing/invalid
+   */
+  public void validateHBaseSiteXML(Configuration siteConf,
+                                    boolean secure,
+                                    String origin) throws BadConfigException {
+    try {
+      providerUtils.verifyOptionSet(siteConf, KEY_HBASE_CLUSTER_DISTRIBUTED,
+                                    false);
+      providerUtils.verifyOptionSet(siteConf, KEY_HBASE_ROOTDIR, false);
+      providerUtils.verifyOptionSet(siteConf, KEY_ZNODE_PARENT, false);
+      providerUtils.verifyOptionSet(siteConf, KEY_ZOOKEEPER_QUORUM, false);
+      providerUtils.verifyOptionSet(siteConf, KEY_ZOOKEEPER_PORT, false);
+      int zkPort =
+        siteConf.getInt(HBaseConfigFileOptions.KEY_ZOOKEEPER_PORT, 0);
+      if (zkPort == 0) {
+        throw new BadConfigException(
+          "ZK port property not provided at %s in configuration file %s",
+          HBaseConfigFileOptions.KEY_ZOOKEEPER_PORT,
+          siteConf);
+      }
+
+      if (secure) {
+        //better have the secure cluster definition up and running
+        providerUtils.verifyOptionSet(siteConf, KEY_MASTER_KERBEROS_PRINCIPAL,
+                                      false);
+        providerUtils.verifyOptionSet(siteConf, KEY_MASTER_KERBEROS_KEYTAB,
+                                      false);
+        providerUtils.verifyOptionSet(siteConf,
+                                      KEY_REGIONSERVER_KERBEROS_PRINCIPAL,
+                                      false);
+        providerUtils.verifyOptionSet(siteConf,
+                                      KEY_REGIONSERVER_KERBEROS_KEYTAB, false);
+      }
+    } catch (BadConfigException e) {
+      //bad configuration, dump it
+
+      log.error("Bad site configuration {} : {}", origin, e, e);
+      log.info(ConfigHelper.dumpConfigToString(siteConf));
+      throw e;
+    }
   }
 
   /**
@@ -201,50 +285,78 @@ public class HBaseClientProvider extends Configured implements
                                     1);
   }
   
-  /**
-   * This builds up the site configuration for the AM and downstream services;
-   * the path is added to the cluster spec so that launchers in the 
-   * AM can pick it up themselves. 
-   * @param clusterFS filesystem
-   * @param serviceConf conf used by the service
-   * @param clusterSpec cluster specification
-   * @param originConfDirPath the original config dir -treat as read only
-   * @param generatedConfDirPath path to place generated artifacts
-   * @return a map of name to local resource to add to the AM launcher
-   */
+
   @Override
   public Map<String, LocalResource> prepareAMAndConfigForLaunch(FileSystem clusterFS,
                                                                 Configuration serviceConf,
                                                                 ClusterDescription clusterSpec,
                                                                 Path originConfDirPath,
-                                                                Path generatedConfDirPath) throws
+                                                                Path generatedConfDirPath,
+                                                                Configuration clientConfExtras) throws
                                                                                            IOException,
                                                                                            BadConfigException {
+    //load in the template site config
+    log.debug("Loading template configuration from {}", originConfDirPath);
     Configuration siteConf = ConfigHelper.loadTemplateConfiguration(
       serviceConf,
       originConfDirPath,
       HBaseKeys.SITE_XML,
       HBaseKeys.HBASE_TEMPLATE_RESOURCE);
-
+    
+    if (log.isDebugEnabled()) {
+      log.debug("Configuration came from {}", siteConf.get(
+        HoyaKeys.KEY_HOYA_TEMPLATE_ORIGIN));
+      ConfigHelper.dumpConf(siteConf);
+    }
     //construct the cluster configuration values
     Map<String, String> clusterConfMap = buildSiteConfFromSpec(clusterSpec);
+    
     //merge them
-    ConfigHelper.addConfigMap(siteConf, clusterConfMap);
+    ConfigHelper.addConfigMap(siteConf, clusterConfMap, "HBase Provider");
 
+    //now, if there is an extra client conf, merge it in too
+    if (clientConfExtras != null) {
+      ConfigHelper.mergeConfigurations(siteConf, clientConfExtras,
+                                       "Hoya Client");
+    }
+    
     if (log.isDebugEnabled()) {
+      log.debug("Merged Configuration");
       ConfigHelper.dumpConf(siteConf);
     }
 
-    Path sitePath = ConfigHelper.generateConfig(serviceConf,
-                                                siteConf,
-                                                generatedConfDirPath,
-                                                HBaseKeys.SITE_XML);
+    Path sitePath = ConfigHelper.saveConfig(serviceConf,
+                                            siteConf,
+                                            generatedConfDirPath,
+                                            HBaseKeys.SITE_XML);
 
     log.debug("Saving the config to {}", sitePath);
     Map<String, LocalResource> confResources;
     confResources = HoyaUtils.submitDirectory(clusterFS,
                                               generatedConfDirPath,
                                               HoyaKeys.PROPAGATED_CONF_DIR_NAME);
+    
+    //now set up the directory for writing by the user
+    providerUtils.createDataDirectory(clusterSpec, getConf());
+/* TODO: anything else to set up node security
+    if (UserGroupInformation.isSecurityEnabled()) {
+      //secure mode
+      UserGroupInformation loginUser = UserGroupInformation.getLoginUser();
+      String shortname = loginUser.getShortUserName();
+      String masterPrincipal = siteConf.get(KEY_MASTER_KERBEROS_PRINCIPAL);
+
+      Path hbaseData = new Path(clusterSpec.dataPath);
+      if (clusterFS.exists(hbaseData)) {
+        throw new FileNotFoundException(
+          "HBase data directory not found: " + hbaseData);
+      }
+        
+      FsPermission permission = new FsPermission(
+        FsAction.ALL, FsAction.ALL,FsAction.EXECUTE
+      );
+      clusterFS.setPermission(hbaseData, permission);
+    }*/
+    
     return confResources;
   }
 
@@ -286,7 +398,13 @@ public class HBaseClientProvider extends Configured implements
   }
 
   public  File buildHBaseDir(ClusterDescription cd) {
-    return providerUtils.buildImageDir(cd, cd.hbasever);
+    String archiveSubdir = getHBaseVersion(cd);
+    return providerUtils.buildImageDir(cd, archiveSubdir);
   }
-  
+
+  public String getHBaseVersion(ClusterDescription cd) {
+    return cd.getOption(OptionKeys.OPTION_APP_VERSION,
+                                        HBaseKeys.HBASE_VER);
+  }
+
 }

@@ -22,10 +22,10 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.exceptions.HoyaException
+import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
-import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.conf.YarnConfiguration
@@ -58,7 +58,7 @@ class TestActionExists extends HBaseMiniClusterTestBase {
           [
           HoyaActions.ACTION_EXISTS,
           "unknown-cluster",
-          ClientArgs.ARG_MANAGER, RMAddr
+          Arguments.ARG_MANAGER, RMAddr
           ],
       )
       fail("expected an exception, got a status code "+ launcher.serviceExitCode)
@@ -81,7 +81,7 @@ class TestActionExists extends HBaseMiniClusterTestBase {
           [
           HoyaActions.ACTION_EXISTS,
           clustername,
-          ClientArgs.ARG_MANAGER, RMAddr
+          Arguments.ARG_MANAGER, RMAddr
           ],
       )
     assert launcher.serviceExitCode == 0

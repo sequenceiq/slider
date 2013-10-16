@@ -19,23 +19,30 @@
 package org.apache.hadoop.hoya.tools;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.permission.FsAction;
-import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Map;
 import java.util.TreeSet;
 
@@ -45,11 +52,6 @@ import java.util.TreeSet;
  */
 public class ConfigHelper {
   private static final Logger log = LoggerFactory.getLogger(HoyaUtils.class);
-
-  public static final FsPermission CONF_DIR_PERMISSION =
-    new FsPermission(FsAction.ALL,
-                     FsAction.READ_EXECUTE,
-                     FsAction.NONE);
 
   /**
    * Dump the (sorted) configuration
@@ -75,25 +77,28 @@ public class ConfigHelper {
 
   /**
    * Set an entire map full of values
-   * @param map map
+   *
+   * @param config config to patch
+   * @param map map of data
+   * @param origin origin data
    * @return nothing
    */
   public static void addConfigMap(Configuration config,
-                                  Map<String, String> map) throws
+                                  Map<String, String> map, String origin) throws
                                                            BadConfigException {
     for (Map.Entry<String, String> mapEntry : map.entrySet()) {
-      String value = mapEntry.getValue();
       String key = mapEntry.getKey();
+      String value = mapEntry.getValue();
       if (value == null) {
         throw new BadConfigException("Null value for property " + key);
       }
-      config.set(key, value);
+      config.set(key, value, origin);
     }
   }
 
 
   /**
-   * Generate a config file in a destination directory on a given filesystem
+   * Save a config file in a destination directory on a given filesystem
    * @param systemConf system conf used for creating filesystems
    * @param confToSave config to save
    * @param confdir the directory path where the file is to go
@@ -101,10 +106,10 @@ public class ConfigHelper {
    * @return the destination path where the file was saved
    * @throws IOException IO problems
    */
-  public static Path generateConfig(Configuration systemConf,
-                                    Configuration confToSave,
-                                    Path confdir,
-                                    String filename) throws IOException {
+  public static Path saveConfig(Configuration systemConf,
+                                Configuration confToSave,
+                                Path confdir,
+                                String filename) throws IOException {
     FileSystem fs = FileSystem.get(confdir.toUri(), systemConf);
     Path destPath = new Path(confdir, filename);
     saveConfig(fs, destPath, confToSave);
@@ -131,6 +136,80 @@ public class ConfigHelper {
   }
 
   /**
+   * This will load and parse a configuration to an XML document
+   * @param fs filesystem
+   * @param path path
+   * @return an XML document
+   * @throws IOException IO failure
+   */
+  public Document parseConfiguration(FileSystem fs,
+                                     Path path) throws
+                                                IOException {
+    int len = (int) fs.getLength(path);
+    byte[] data = new byte[len];
+    FSDataInputStream in = fs.open(path);
+    try {
+      in.readFully(0, data);
+    } catch (IOException e) {
+      in.close();
+    }
+    ByteArrayInputStream in2;
+
+    //this is here to track down a parse issue
+    //related to configurations
+    String s = new String(data, 0, len);
+    log.debug("XML resource {} is \"{}\"", path, s);
+    in2 = new ByteArrayInputStream(data);
+    try {
+      Document document = parseConfigXML(in);
+      return document;
+    } catch (ParserConfigurationException e) {
+      throw new IOException(e);
+    } catch (SAXException e) {
+      throw new IOException(e);
+    } finally {
+      in2.close();
+    }
+
+  }
+  
+  /**
+   * Load a configuration from ANY FS path. The normal Configuration
+   * loader only works with file:// URIs
+   * @param fs filesystem
+   * @param path path
+   * @return a loaded resource
+   * @throws IOException
+   */
+  public static Configuration loadConfiguration(FileSystem fs,
+                                                Path path) throws
+                                                                   IOException {
+    int len = (int) fs.getLength(path);
+    byte[] data = new byte[len];
+    FSDataInputStream in = fs.open(path);
+    try {
+      in.readFully(0, data);
+    } catch (IOException e) {
+      in.close();
+    }
+    ByteArrayInputStream in2;
+
+    in2 = new ByteArrayInputStream(data);
+    Configuration conf1 = new Configuration(false);
+    conf1.addResource(in2);
+    //now clone it while dropping all its sources
+    Configuration conf2   = new Configuration(false);
+    String src = path.toString();
+    for (Map.Entry<String, String> entry : conf1) {
+      String key = entry.getKey();
+      String value = entry.getValue();
+      conf2.set(key, value, src);
+    }
+    return conf2;
+  }
+
+
+  /**
    * Generate a config file in a destination directory on the local filesystem
    * @param confdir the directory path where the file is to go
    * @param filename the filename
@@ -151,10 +230,54 @@ public class ConfigHelper {
     return destPath;
   }
 
+  /**
+   * Parse an XML Hadoop configuration into an XML document. x-include
+   * is supported, but as the location isn't passed in, relative
+   * URIs are out.
+   * @param in instream
+   * @return a document
+   * @throws ParserConfigurationException parser feature problems
+   * @throws IOException IO problems
+   * @throws SAXException XML is invalid
+   */
+  public static Document parseConfigXML(InputStream in) throws
+                                               ParserConfigurationException,
+                                               IOException,
+                                               SAXException {
+    DocumentBuilderFactory docBuilderFactory
+      = DocumentBuilderFactory.newInstance();
+    //ignore all comments inside the xml file
+    docBuilderFactory.setIgnoringComments(true);
+
+    //allow includes in the xml file
+    docBuilderFactory.setNamespaceAware(true);
+    docBuilderFactory.setXIncludeAware(true);
+    DocumentBuilder builder = docBuilderFactory.newDocumentBuilder();
+    return builder.parse(in);
+  }
+
+  /**
+   * Load a Hadoop configuration from a local file.
+   * @param file file to load
+   * @return a configuration which hasn't actually had the load triggered
+   * yet.
+   * @throws FileNotFoundException file is not there
+   * @throws IOException any other IO problem
+   */
   public static Configuration loadConfFromFile(File file) throws
-                                                          MalformedURLException {
+                                                          IOException {
+    if (!file.exists()) {
+      throw new FileNotFoundException("File not found :"
+                                          + file.getAbsoluteFile());
+    }
     Configuration conf = new Configuration(false);
-    conf.addResource(file.toURI().toURL());
+    try {
+      conf.addResource(file.toURI().toURL());
+    } catch (MalformedURLException e) {
+      //should never happen...
+      throw new IOException(
+        "File " + file.toURI() + " doesn't have a valid URL");
+    }
     return conf;
   }
 
@@ -185,7 +308,7 @@ public class ConfigHelper {
    * looks for the config under $confdir/$templateFilename; if not there
    * loads it from /conf/templateFile.
    * The property {@link HoyaKeys#KEY_HOYA_TEMPLATE_ORIGIN} is set to the
-   * origin to help debug what's happening
+   * origin to help debug what's happening.
    * @param fs Filesystem
    * @param templatePath HDFS path for template
    * @param fallbackResource resource to fall back on, or "" for no fallback
@@ -201,8 +324,8 @@ public class ConfigHelper {
     Configuration conf = new Configuration(false);
     String origin;
     if (fs.exists(templatePath)) {
-      log.debug("Loading template {}", templatePath);
-      conf.addResource(templatePath.toUri().toURL());
+      log.debug("Loading template configuration {}", templatePath);
+      conf = loadConfiguration(fs, templatePath);
       origin = templatePath.toString();
     } else {
       if (fallbackResource.isEmpty()) {
@@ -210,6 +333,7 @@ public class ConfigHelper {
       }
       log.debug("Template {} not found" +
                 " -reverting to classpath resource {}", templatePath, fallbackResource);
+      conf = new Configuration(false);
       conf.addResource(fallbackResource);
       origin = "Resource " + fallbackResource;
     }
@@ -251,8 +375,71 @@ public class ConfigHelper {
   public static Configuration mergeConfigurations(Configuration base, Configuration merge,
                                                   String origin) {
     for (Map.Entry<String, String> entry : merge) {
-      base.set(entry.getKey(),entry.getValue(),origin);
+      base.set(entry.getKey(), entry.getValue(), origin);
     }
     return base;
   }
+
+  /**
+   * Register a resource as a default resource.
+   * Do not attempt to use this unless you understand that the
+   * order in which default resources are loaded affects the outcome,
+   * and that subclasses of Configuration often register new default
+   * resources
+   * @param resource the resource name
+   * @return the URL or null
+   */
+  public static URL registerDefaultResource(String resource) {
+    URL resURL = ConfigHelper.class.getClassLoader()
+                                .getResource(resource);
+    if (resURL != null) {
+      Configuration.addDefaultResource(resource);
+    }
+    return resURL;
+  }
+
+  /**
+   * Load a configuration from a resource on this classpath.
+   * If the resource is not found, an empty configuration is returned
+   * @param resource the resource name
+   * @return the loaded configuration.
+   */
+  public static Configuration loadFromResource(String resource) {
+    Configuration conf = new Configuration(false);
+    URL resURL = ConfigHelper.class.getClassLoader()
+                                .getResource(resource);
+    if (resURL != null) {
+      log.debug("loaded resources from {}", resURL);
+      conf.addResource(resource);
+    } else{
+      log.debug("failed to find {} on the classpath", resource);
+    }
+    return conf;
+  }
+
+  /**
+   * Propagate a property from a source to a dest config, with a best-effort
+   * attempt at propagating the origin.
+   * If the 
+   * @param dest destination
+   * @param src source
+   * @param key key to try to copy
+   * @return true if the key was found and propagated
+   */
+  public static boolean propagate(Configuration dest,
+                                  Configuration src,
+                                  String key) {
+    String val = src.get(key);
+    if (val != null) {
+      String[] origin = src.getPropertySources(key);
+      if (origin.length > 0) {
+        dest.set(key, val, origin[0]);
+      } else {
+        dest.set(key, val);
+        return true;
+      }
+    }
+    return false;
+  }
+  
 }
