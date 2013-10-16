@@ -100,7 +100,9 @@ http://hortonworks.com/blog/the-role-of-delegation-tokens-in-apache-hadoop-secur
     --appconf file:///Users/stevel/Projects/Hortonworks/Projects/hoya/hoya-core/src/test/configs/ubuntu-secure/hbase \
     --roleopt master app.infoport 8080  \
     --role master 1 \
+    --role worker 1 \
      --hbasever hbase-0.97.0-SNAPSHOT
+    
     
      # no master
      
@@ -115,7 +117,20 @@ http://hortonworks.com/blog/the-role-of-delegation-tokens-in-apache-hadoop-secur
     --role master 0  \
      --hbasever hbase-0.97.0-SNAPSHOT
     
+     # build but don't deploy single master
      
+    bin/hoya build cl1 \
+    --zkhosts ubuntu \
+    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
+    --secure -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
+    -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
+    -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM \
+    --image hdfs://ubuntu:9090/hbase.tar \
+    --appconf file:///Users/stevel/Projects/Hortonworks/Projects/hoya/hoya-core/src/test/configs/ubuntu-secure/hbase \
+    --roleopt master app.infoport 8080  \
+    --role master 1 \
+     --hbasever hbase-0.97.0-SNAPSHOT
+         
                
     bin/hoya  status cl1 \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
