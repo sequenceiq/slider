@@ -58,7 +58,7 @@ public interface OptionKeys {
   String HOYA_CLUSTER_DIRECTORY_PERMISSIONS =
     "hoya.cluster.directory.permissions";
   String DEFAULT_HOYA_CLUSTER_DIRECTORY_PERMISSIONS =
-    "0755";
+    "0750";
   String HOYA_DATA_DIRECTORY_PERMISSIONS = "hoya.data.directory.permissions";
-  String DEFAULT_HOYA_DATA_DIRECTORY_PERMISSIONS = "0755";
+  String DEFAULT_HOYA_DATA_DIRECTORY_PERMISSIONS = "0750";
 }
