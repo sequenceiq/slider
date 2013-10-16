@@ -22,6 +22,10 @@
     <value>hdfs://ubuntu:9090</value>
   </property>
   <property>
+    <name>dfs.namenode.kerberos.principal</name>
+    <value>hdfs/ubuntu@COTHAM</value>
+  </property>
+  <property>
     <name>hadoop.security.authentication</name>
     <value>kerberos</value>
   </property>
