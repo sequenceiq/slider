@@ -53,7 +53,7 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
 
   @Override
   public String getTestConfigurationPath() {
-    return "src/main/resources" + HBaseKeys.HBASE_CONF_RESOURCE; 
+    return "src/main/resources/" + HBaseKeys.HBASE_CONF_RESOURCE;
   }
 
   @Override
