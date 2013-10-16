@@ -54,7 +54,7 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
 
   @Override
   public String getTestConfigurationPath() {
-    return "src/main/resources" + HBaseKeys.HBASE_CONF_RESOURCE; 
+    return "src/main/resources/" + HBaseKeys.HBASE_CONF_RESOURCE;
   }
 
   @Override
@@ -82,6 +82,16 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
    */
   public void killAllRegionServers() {
     killJavaProcesses(HREGION, SIGKILL);
+  }
+
+  /**
+   * Stop all the region servers
+   * <code>
+   *    jps -l | grep HRegion | awk '{print $1}' | kill -19
+   *  </code>
+   */
+  public void stopAllRegionServers() {
+    killJavaProcesses(HREGION, SIGSTOP);
   }
 
 

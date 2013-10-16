@@ -131,11 +131,13 @@ public class AccumuloClientProvider extends Configured implements
     rolemap.put(RoleKeys.YARN_MEMORY, DEFAULT_ROLE_YARN_RAM);
 
     if (rolename.equals(ROLE_MASTER)) {
+      rolemap.put(RoleKeys.ROLE_INSTANCES, "1");
       rolemap.put(RoleKeys.JVM_HEAP, DEFAULT_MASTER_HEAP);
       rolemap.put(RoleKeys.YARN_CORES, DEFAULT_MASTER_YARN_VCORES);
       rolemap.put(RoleKeys.YARN_MEMORY, DEFAULT_MASTER_YARN_RAM);
 
     } else if (rolename.equals(ROLE_TABLET)) {
+      rolemap.put(RoleKeys.ROLE_INSTANCES, "1");
     } else if (rolename.equals(ROLE_TRACER)) {
     } else if (rolename.equals(ROLE_GARBAGE_COLLECTOR)) {
     } else if (rolename.equals(ROLE_MONITOR)) {
@@ -358,14 +360,14 @@ public class AccumuloClientProvider extends Configured implements
     providerUtils.validateNodeCount(AccumuloKeys.ROLE_TABLET,
                                     clusterSpec.getDesiredInstanceCount(
                                       AccumuloKeys.ROLE_TABLET,
-                                      0), 0, -1);
+                                      1), 1, -1);
 
 
     providerUtils.validateNodeCount(HoyaKeys.ROLE_MASTER,
                                     clusterSpec.getDesiredInstanceCount(
                                       HoyaKeys.ROLE_MASTER,
-                                      0),
-                                    0,
+                                      1),
+                                    1,
                                     1);
     clusterSpec.verifyOptionSet(AccumuloKeys.OPTION_ZK_HOME);
     clusterSpec.verifyOptionSet(AccumuloKeys.OPTION_HADOOP_HOME);

@@ -81,7 +81,7 @@ public interface AccumuloKeys {
    * no site-specific template
    *  {@value}
    */
-  String CONF_RESOURCE = "/org/apache/hadoop/hoya/providers/accumulo/conf";
+  String CONF_RESOURCE = "org/apache/hadoop/hoya/providers/accumulo/conf/";
   String SITE_XML_RESOURCE = CONF_RESOURCE + SITE_XML;
   String ACCUMULO_HOME = "ACCUMULO_HOME";
 

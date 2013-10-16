@@ -365,12 +365,11 @@ public class ClusterDescription {
    * Get a cluster option or value
    * 
    * @param key
-   * @param defVal
    * @return
    */
   public String getMandatoryOption(String key) throws BadConfigException {
     String val = options.get(key);
-    if (key == null) {
+    if (val == null) {
       throw new BadConfigException("Missing option " + key);
     }
     return val ;

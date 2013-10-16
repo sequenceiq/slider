@@ -309,9 +309,10 @@ public class AccumuloProviderService extends AbstractProviderService implements
       List<String> commands =
         buildProcessCommandList(cd, confDir, env,
                                 "init",
-                                PARAM_INSTANCE_NAME, cd.name,
+                                PARAM_INSTANCE_NAME, providerUtils.getUserName() + "-" + cd.name,
                                 PARAM_PASSWORD,
-                                cd.getMandatoryOption(OPTION_ACCUMULO_PASSWORD));
+                                cd.getMandatoryOption(OPTION_ACCUMULO_PASSWORD),
+                                "--clear-instance-name");
       ForkedProcessService initProcess =
         queueCommand(getName(), env, commands);
       //add a timeout to this process

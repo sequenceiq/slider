@@ -99,6 +99,7 @@ implements KeysForTests, HoyaExitCodes {
   ]
   public static final int SIGTERM = -15
   public static final int SIGKILL = -9
+  public static final int SIGSTOP = -19
   public static final String SERVICE_LAUNCHER = "ServiceLauncher"
 
   protected MiniDFSCluster hdfsCluster

@@ -426,15 +426,12 @@ public class HoyaClient extends YarnClientImpl implements RunService,
         provider.createDefaultClusterRole(roleName);
       //get the command line instance count
       String instanceCount = roleMap.get(roleName);
-      if (instanceCount == null) {
-        instanceCount = "0";
-      }
       //this is here in case we want to extract from the provider
       //the min #of instances
       int defInstances =
         HoyaUtils.getIntValue(clusterRole, RoleKeys.ROLE_INSTANCES, 0, 0, -1);
-      HoyaUtils.parseAndValidate("count of role " + roleName, instanceCount,
-                                 defInstances, 0, -1);
+      instanceCount = Integer.toString(HoyaUtils.parseAndValidate(
+          "count of role " + roleName, instanceCount, defInstances, 0, -1));
       clusterRole.put(RoleKeys.ROLE_INSTANCES, instanceCount);
       clusterRoleMap.put(roleName, clusterRole);
     }

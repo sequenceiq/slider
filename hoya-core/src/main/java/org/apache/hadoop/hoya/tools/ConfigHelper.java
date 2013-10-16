@@ -37,7 +37,6 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -301,8 +300,7 @@ public class ConfigHelper {
    * The property {@link HoyaKeys#KEY_HOYA_TEMPLATE_ORIGIN} is set to the
    * origin to help debug what's happening
    * @param fs Filesystem
-   * @param confdir conf dir in FS
-   * @param templateFilename filename in the confdir
+   * @param templatePath HDFS path for template
    * @param fallbackResource resource to fall back on, or "" for no fallback
    * @return loaded conf
    * @throws IOException IO problems

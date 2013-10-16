@@ -242,4 +242,12 @@ public class ProviderUtils implements RoleKeys {
     }
     return path;
   }
+
+  /**
+   * get the user name
+   * @return the user name
+   */
+  public String getUserName() throws IOException {
+    return UserGroupInformation.getCurrentUser().getShortUserName();
+  }
 }
