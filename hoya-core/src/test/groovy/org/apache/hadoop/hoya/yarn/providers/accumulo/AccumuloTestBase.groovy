@@ -57,7 +57,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
 
   @Override
   public String getTestConfigurationPath() {
-    return "src/main/resources" + AccumuloKeys.CONF_RESOURCE; 
+    return "src/main/resources/" + AccumuloKeys.CONF_RESOURCE; 
   }
 
   @Override
