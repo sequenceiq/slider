@@ -68,7 +68,8 @@ running HBase on YARN:  Come work with us on Hoya!
 * [Installing](installing.html)
 * [Man Page](manpage.html)
 * [Examples](examples.html)
-* [exitcodes](exitcodes.html)
+* [Hoya Client Configuration] (hoya-client-configuration.md)
+* [Hoya Client Exit Codes](exitcodes.html)
 * [hoya_cluster_description](hoya_cluster_descriptions.html)
 
 ## Developing Hoya

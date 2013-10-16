@@ -51,17 +51,7 @@ It can be specified on the command line in two ways:
     -O cluster.app.version=hbase-0.97.0-SNAPSHOT
     --hbasever hbase-0.97.0-SNAPSHOT
 
-####  `cluster.keytab.location`
 
-The location of the keytab used by the cluster
-
-    -O cluster.keytab.location=/user/hbase/private/hbbase.keytab
-
-This option MUST be specified when running on a secure cluster -it
-will be verified at launch time.
-
-If the target YARN cluster is not secure, this property will be still be recorded
-and passed down to HBase.
 
 ####  `hoya.container.startup.delay`
 
@@ -109,3 +99,5 @@ the process starts and finishes successfully, without spawning a long-lived proc
  
 All role options beginning with `env.` are automatically converted to
 environment variables set for that container
+
+    --roleopt worker env.MALLOC_ARENA 4
