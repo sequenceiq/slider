@@ -20,6 +20,7 @@ package org.apache.hadoop.hoya.tools;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys;
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -27,15 +28,22 @@ import java.io.IOException;
 import static org.junit.Assert.assertTrue;
 
 public class ConfigHelperTest {
-  private static void loadConf(String s) {
+  private static Configuration loadConf(String s) {
     Configuration conf = new Configuration(false);
     conf.addResource(s);
     assertTrue("loaded no properties from " + s, conf.size() > 0);
+    return conf;
   }
 
   @Test
-  public void testProviderTemplates() throws IOException {
-    loadConf(AccumuloKeys.SITE_XML_RESOURCE);
+  public void testAccumuloProviderTemplates() throws IOException {
+    Configuration conf = loadConf(AccumuloKeys.SITE_XML_RESOURCE);
+    Assert.assertNotNull(conf.get("logger.dir.walog"));
     loadConf(HBaseKeys.HBASE_TEMPLATE_RESOURCE);
+  }
+  @Test
+  public void testHBaseProviderTemplates() throws IOException {
+    Configuration conf = loadConf(HBaseKeys.HBASE_TEMPLATE_RESOURCE);
+    Assert.assertTrue(conf.getBoolean("hbase.cluster.distributed", false));
   }
 }

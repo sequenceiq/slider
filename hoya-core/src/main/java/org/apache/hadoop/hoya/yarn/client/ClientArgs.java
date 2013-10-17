@@ -181,7 +181,7 @@ public class ClientArgs extends CommonArgs {
     }
     //security
     if (secure) {
-      LOG.debug("secure mode");
+      LOG.debug("secure mode: requiring Kerberos authentication");
       SecurityUtil.setAuthenticationMethod(
         UserGroupInformation.AuthenticationMethod.KERBEROS, conf);
     }

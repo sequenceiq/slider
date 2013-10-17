@@ -77,13 +77,6 @@ public class ServiceLauncher
   private Configuration configuration;
   private String serviceClassName;
 
-  static {
-    FsUrlStreamHandlerFactory factory =
-        new org.apache.hadoop.fs.FsUrlStreamHandlerFactory();
-    java.net.URL.setURLStreamHandlerFactory(factory);
-
-  }
-
   /**
    * Create an instance of the launcher
    * @param serviceClassName classname of the service

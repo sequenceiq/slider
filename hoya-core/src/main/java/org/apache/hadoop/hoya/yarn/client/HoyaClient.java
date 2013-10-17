@@ -33,6 +33,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -71,6 +72,7 @@ import org.apache.hadoop.hoya.yarn.appmaster.rpc.RpcBinder;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -139,13 +141,7 @@ public class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCo
   public HoyaClient() {
     // make sure all the yarn configs get loaded
     YarnConfiguration yarnConfiguration = new YarnConfiguration();
-    // register the unique hoya resource *after*
-    URL clientconf = HoyaUtils.registerHoyaClientResource();
-    if (clientconf == null) {
-      log.debug("failed to find {} on the classpath", HOYA_CLIENT_RESOURCE);
-    } else {
-      log.debug("loaded client resources from {}", clientconf);
-    }
+    log.debug("Hoya constructed");
   }
 
   @Override
@@ -156,6 +152,7 @@ public class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCo
 
   @Override
   public Configuration bindArgs(Configuration config, String... args) throws Exception {
+    log.debug("Binding Arguments");
     this.argv = args;
     serviceArgs = new ClientArgs(args);
     serviceArgs.parse();
@@ -173,11 +170,20 @@ public class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCo
     serviceArgs.applyFileSystemURL(conf);
     // init security with our conf
     if (serviceArgs.secure) {
-      log.info("Secure mode with kerberos realm {}", HoyaUtils.getKerberosRealm());
+      log.info("Secure mode with kerberos realm {}",
+               HoyaUtils.getKerberosRealm());
+      //this gets UGI to reset its previous world view (i.e simple auth)
+      SecurityUtil.setAuthenticationMethod(
+        UserGroupInformation.AuthenticationMethod.KERBEROS, conf);
       UserGroupInformation.setConfiguration(conf);
       UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
       log.debug("Authenticating as " + ugi.toString());
       log.debug("Login user is {}", UserGroupInformation.getLoginUser());
+      if (!UserGroupInformation.isSecurityEnabled()) {
+        throw new BadConfigException("Although secure mode is enabled," +
+             "the application has already set up its user as an insecure entity %s",
+             ugi);
+      }
       HoyaUtils.verifyPrincipalSet(conf, YarnConfiguration.RM_PRINCIPAL);
       HoyaUtils.verifyPrincipalSet(conf, DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY);
     }
