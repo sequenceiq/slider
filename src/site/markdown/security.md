@@ -201,7 +201,7 @@ for testing.
 -D dfs.datanode.kerberos.principal=hdfs/ubuntu@COTHAM \
 
                
-     # single master
+     # single master & workre
      
     bin/hoya create cl1 \
     --zkhosts ubuntu \

@@ -1520,20 +1520,14 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   private HoyaClusterProtocol connect(ApplicationReport app) throws
                                                               YarnException,
                                                               IOException {
-    String host = app.getHost();
-    int port = app.getRpcPort();
-    String address = host + ":" + port;
-    if (host == null || 0 == port) {
-      throw new HoyaException(EXIT_CONNECTIVTY_PROBLEM,
-                              "Hoya YARN instance " + app.getName() + " isn't" +
-                              " providing a valid address for the" +
-                              " Hoya RPC protocol: " + address);
+
+    try {
+      return RpcBinder.getProxy(getConfig(),rmClient,app,10000,15000);
+    } catch (InterruptedException e) {
+      throw new HoyaException(HoyaExitCodes.EXIT_TIMED_OUT,
+                              e,
+                              "Interrupted waiting for communications with the HoyaAM");
     }
-    InetSocketAddress addr = NetUtils.createSocketAddrForHost(host, port);
-    UserGroupInformation currentUser = UserGroupInformation.getCurrentUser();
-    Configuration conf = getConfig();
-    
-    return RpcBinder.connectToServer(addr,currentUser,conf, 15000);
 
   }
   
