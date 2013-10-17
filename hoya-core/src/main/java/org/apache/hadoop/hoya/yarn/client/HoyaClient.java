@@ -786,7 +786,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     //build the environment
     Map<String, String> env =
-      HoyaUtils.buildEnvMap(clusterSpec.getOrAddRole("master"));
+      HoyaUtils.buildEnvMap(clusterSpec.getOrAddRole(HoyaKeys.ROLE_MASTER));
     String classpath = buildClasspath(relativeHoyaConfDir);
     log.debug("AM classpath={}", classpath);
     env.put("CLASSPATH", classpath);
