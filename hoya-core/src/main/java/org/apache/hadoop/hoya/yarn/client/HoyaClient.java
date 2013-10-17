@@ -24,9 +24,11 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,7 +42,6 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -818,25 +819,51 @@ public class HoyaClient extends YarnClientImpl implements RunService, HoyaExitCo
     List<Probe> probes = new ArrayList<Probe>();
     int timeout = 60000;
     URL url = null;
+    String s = report.getTrackingUrl();
+    String prefix = "";
+    if (s != null && !s.startsWith("http") && s.contains("/proxy/")) {
+      if (!UserGroupInformation.isSecurityEnabled()) {
+        prefix = "http://proxy/relay/";
+      } else {
+        prefix = "https://proxy/relay/";
+      }
+    }
     try {
-      url = new URL(report.getTrackingUrl());
+      url = new URL(prefix + s);
     } catch (MalformedURLException mue) {
-      log.error("tracking url: " + url + " is malformed");
+      log.error("tracking url: " + prefix + s + " is malformed");
     }
     if (url != null) {
       log.info("tracking url: " + url);
-      HttpProbe probe = new HttpProbe(url, timeout,
-        MonitorKeys.WEB_PROBE_DEFAULT_CODE, MonitorKeys.WEB_PROBE_DEFAULT_CODE, config);
-      probes.add(probe);
+      HttpURLConnection connection = null;
+      try {
+        connection = HttpProbe.getConnection(url, timeout);
+        // see if the host is reachable
+        connection.getResponseCode();
+
+        HttpProbe probe = new HttpProbe(url, timeout,
+          MonitorKeys.WEB_PROBE_DEFAULT_CODE, MonitorKeys.WEB_PROBE_DEFAULT_CODE, config);
+        probes.add(probe);
+      } catch (UnknownHostException uhe) {
+        log.error("host unknown: " + url);
+      } finally {
+        if (connection != null) {
+          connection.disconnect();
+          connection = null;
+        }
+      }
     }
-    masterReportingLoop = new ReportingLoop("MasterStatusCheck", this, probes, null, 1000, 1000,
+    // start ReportingLoop only when there're probes
+    if (!probes.isEmpty()) {
+      masterReportingLoop = new ReportingLoop("MasterStatusCheck", this, probes, null, 1000, 1000,
         timeout, -1);
-    if (!masterReportingLoop.startReporting()) {
-      throw new HoyaException(EXIT_INTERNAL_ERROR, "failed to start monitoring");
+      if (!masterReportingLoop.startReporting()) {
+        throw new HoyaException(EXIT_INTERNAL_ERROR, "failed to start monitoring");
+      }
+      loopThread = new Thread(masterReportingLoop, "MasterStatusCheck");
+      loopThread.setDaemon(true);
+      loopThread.start();
     }
-    loopThread = new Thread(masterReportingLoop, "MasterStatusCheck");
-    loopThread.setDaemon(true);
-    loopThread.start();
 
     // may have failed, so check that
     if (HoyaUtils.hasAppFinished(report)) {
