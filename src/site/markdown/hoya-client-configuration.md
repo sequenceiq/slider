@@ -175,11 +175,12 @@ file, details on properties will be part of the copious output.
 
 ## How Hoya client options are passed down to created clusters.
 
-Hoya Client configuration options, both JVM and client are
-not passed down to the cluster.
+Apart from the filesystem bindings, Hoya Client configuration options are
+not passed down to the XML site specification of the created cluster.
 
-*The sole exceptions to this rule are the HDFS bindings: `fs.defaultFS`,
-`fs.default.name` and the HDFS Kerberos principal.*
+The sole options passed down are the HDFS bindings: `fs.defaultFS`,
+which is passed down both as that property and as `fs.default.name`,
+and, in a secure cluster, the HDFS Kerberos principal.
 
 
  

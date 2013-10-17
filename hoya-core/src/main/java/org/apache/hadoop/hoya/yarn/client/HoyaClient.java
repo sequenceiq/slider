@@ -376,6 +376,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     verifyManagerSet();
     verifyFileSystemArgSet();
     verifyNoLiveClusters(clustername);
+    Configuration conf = getConfig();
     //build up the initial cluster specification
     ClusterDescription clusterSpec = new ClusterDescription();
 
@@ -397,9 +398,22 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     //first the defaults provided by the provider
     clusterSpec.options = provider.getDefaultClusterOptions();
     
+    
+    //propagate the filename into the 1.x and 2.x value
+    String fsDefaultName = conf.get(
+      CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY);
+    clusterSpec.setOptionifUnset(OptionKeys.OPTION_SITE_PREFIX +
+                                 CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY,
+                                 fsDefaultName);
+
+    clusterSpec.setOptionifUnset(OptionKeys.OPTION_SITE_PREFIX +
+                                 HoyaKeys.FS_DEFAULT_NAME_CLASSIC,
+                                 fsDefaultName);
+
     //patch in the properties related to the principals extracted from
     //the running hoya client
-    propagatePrincipals(clusterSpec, getConfig());
+
+    propagatePrincipals(clusterSpec, conf);
 
 
     //next the options provided on the command line
@@ -408,9 +422,11 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     if (isSet(serviceArgs.hbasever)) {
       clusterSpec.setOption(OptionKeys.OPTION_APP_VERSION, serviceArgs.hbasever);
     }
-    log.debug("HBase version is {}",
+    log.debug("Application version is {}",
               clusterSpec.getOption(OptionKeys.OPTION_APP_VERSION,"undefined"));
 
+
+    
     //get the list of supported roles
     List<ProviderRole> supportedRoles = provider.getRoles();
     //and any extra
@@ -479,7 +495,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     
     //another sanity check before the cluster dir is created: the config
     //dir
-    FileSystem srcFS = FileSystem.get(appconfdir.toUri(), getConfig());
+    FileSystem srcFS = FileSystem.get(appconfdir.toUri(), conf);
     if (!srcFS.exists(appconfdir)) {
       throw new BadCommandArgumentsException("Configuration directory specified in %s not found: %s",
                                              Arguments.ARG_CONFDIR, appconfdir.toString());
@@ -512,9 +528,9 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     //bulk copy
     //first the original from wherever to the DFS
-    HoyaUtils.copyDirectory(getConfig(), appconfdir, origConfPath);
+    HoyaUtils.copyDirectory(conf, appconfdir, origConfPath);
     //then build up the generated path. This d
-    HoyaUtils.copyDirectory(getConfig(), origConfPath, generatedConfPath);
+    HoyaUtils.copyDirectory(conf, origConfPath, generatedConfPath);
 
     //Data Directory
     Path datapath =
@@ -931,11 +947,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     if (dfsPrincipal != null) {
       String siteDfsPrincipal = OptionKeys.OPTION_SITE_PREFIX +
                                 DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY;
-      if (clusterSpec.getOption(siteDfsPrincipal, null) == null) {
-        clusterSpec.setOption(siteDfsPrincipal, dfsPrincipal);
-        log.info("Setting HDFS principal in cluster configuration to {}",
-                 dfsPrincipal);
-      }
+      clusterSpec.setOptionifUnset(siteDfsPrincipal, dfsPrincipal);
     }
   }
 
