@@ -57,7 +57,10 @@ public interface HBaseKeys {
   /** {@value */
   String REGION_SERVER = "regionserver";
 
-  String VERSION = "version";
+  /**
+   *  name of the hbase subdir in the archive:  {@value}
+   */
+  String VERSION = "hbase-0.96.0";
 
   String ACTION_START = "start";
   String ACTION_STOP = "stop";
@@ -70,10 +73,7 @@ public interface HBaseKeys {
    *  name of the hbase script relative to the hbase root dir:  {@value}
    */
   String HBASE_SCRIPT = "bin/hbase";
-  /**
-   *  name of the hbase subdir in the archive:  {@value}
-   */
-  String HBASE_VER = "hbase-0.96.0";
+  
   /**
    *  name of the site conf to generate :  {@value}
    */

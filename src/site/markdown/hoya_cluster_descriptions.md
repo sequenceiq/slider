@@ -49,7 +49,7 @@ exactly, else the application will not run.
 It can be specified on the command line in two ways:
 
     -O cluster.app.version=hbase-0.97.0-SNAPSHOT
-    --hbasever hbase-0.97.0-SNAPSHOT
+    --version hbase-0.97.0-SNAPSHOT
 
 
 

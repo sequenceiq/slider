@@ -143,4 +143,4 @@ This is for demos only, otherwise you lose the clusters and their databases.
     --appconf hdfs://localhost:9000/user/username/accumulo-conf \
     -O zk.home /local/zookeeper -O hadoop.home /local/hadoop \
     -O site.monitor.port.client 50095 -O accumulo.password secret \
-    --hbasever accumulo-1.6.0-SNAPSHOT
+    --version accumulo-1.6.0-SNAPSHOT

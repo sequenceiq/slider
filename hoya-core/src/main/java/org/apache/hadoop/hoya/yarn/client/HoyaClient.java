@@ -395,7 +395,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     ClusterDescription clusterSpec = new ClusterDescription();
 
     requireArgumentSet(Arguments.ARG_ZKHOSTS, serviceArgs.zkhosts);
-    requireArgumentSet(Arguments.ARG_HBASE_VER, serviceArgs.hbasever);
+    requireArgumentSet(Arguments.ARG_VERSION, serviceArgs.version);
     Path appconfdir = serviceArgs.confdir;
     requireArgumentSet(Arguments.ARG_CONFDIR, appconfdir);
     // Provider
@@ -432,8 +432,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     // next the options provided on the command line
     HoyaUtils.mergeMap(clusterSpec.options, serviceArgs.getOptionsMap());
     // hbasever arg also sets an option
-    if (isSet(serviceArgs.hbasever)) {
-      clusterSpec.setOption(OptionKeys.OPTION_APP_VERSION, serviceArgs.hbasever);
+    if (isSet(serviceArgs.version)) {
+      clusterSpec.setOption(OptionKeys.OPTION_APP_VERSION, serviceArgs.version);
     }
     log.debug("Application version is {}",
               clusterSpec.getOption(OptionKeys.OPTION_APP_VERSION, "undefined"));

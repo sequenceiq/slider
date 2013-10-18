@@ -108,7 +108,7 @@ public class HBaseClientProvider extends Configured implements
   @Override
   public Map<String, String> getDefaultClusterOptions() {
     HashMap<String, String> site = new HashMap<String, String>();
-    site.put(OptionKeys.OPTION_APP_VERSION, HBaseKeys.HBASE_VER);
+    site.put(OptionKeys.OPTION_APP_VERSION, HBaseKeys.VERSION);
     return site;
   }
   
@@ -404,7 +404,7 @@ public class HBaseClientProvider extends Configured implements
 
   public String getHBaseVersion(ClusterDescription cd) {
     return cd.getOption(OptionKeys.OPTION_APP_VERSION,
-                                        HBaseKeys.HBASE_VER);
+                                        HBaseKeys.VERSION);
   }
 
 }
