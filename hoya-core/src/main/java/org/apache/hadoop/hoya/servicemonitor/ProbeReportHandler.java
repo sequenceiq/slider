@@ -48,7 +48,7 @@ public interface ProbeReportHandler {
    */
   void probeBooted(ProbeStatus status);
 
-  boolean start(String name, String description);
+  boolean commence(String name, String description);
 
   void unregister();
 

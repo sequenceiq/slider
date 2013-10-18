@@ -58,17 +58,22 @@ public class HttpProbe extends Probe {
                          conf);
   }
 
+  public static HttpURLConnection getConnection(URL url, int timeout) throws IOException {
+    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+    connection.setInstanceFollowRedirects(true);
+    connection.setConnectTimeout(timeout);
+    return connection;
+  }
+  
   @Override
   public ProbeStatus ping(boolean livePing) {
     ProbeStatus status = new ProbeStatus();
     HttpURLConnection connection = null;
     try {
       if (LOG.isDebugEnabled()) {
-        LOG.debug("Fetching " + url + " with timeout " + timeout);
+        // LOG.debug("Fetching " + url + " with timeout " + timeout);
       }
-      connection = (HttpURLConnection) url.openConnection();
-      connection.setInstanceFollowRedirects(true);
-      connection.setConnectTimeout(timeout);
+      connection = getConnection(url, this.timeout);
       int rc = connection.getResponseCode();
       if (rc < min || rc > max) {
         String error = "Probe " + url + " error code: " + rc;

@@ -104,7 +104,7 @@ public final class ReportingLoop implements Runnable, ProbeReportHandler, Monito
     LOG.info("Starting reporting"
              + " to " + reporter
              + description);
-    return reporter.start(name, description);
+    return reporter.commence(name, description);
   }
 
   private String timeoutToStr(int timeout) {
@@ -159,7 +159,7 @@ public final class ReportingLoop implements Runnable, ProbeReportHandler, Monito
   }
 
   @Override
-  public boolean start(String n, String description) {
+  public boolean commence(String n, String description) {
     return true;
   }
 
