@@ -36,7 +36,6 @@ import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderService;
-import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
@@ -78,6 +77,7 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.hadoop.yarn.ipc.YarnRPC;
 import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
+import org.apache.hadoop.yarn.security.client.ClientToAMTokenSecretManager;
 import org.apache.hadoop.yarn.service.launcher.RunService;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
@@ -153,6 +153,12 @@ public class HoyaAppMaster extends CompositeService
   
   /** RPC server*/
   private Server server;
+
+  /**
+   * Secret manager
+   */
+  ClientToAMTokenSecretManager secretManager;
+  
   /** Hostname of the container*/
   private String appMasterHostname = "";
   /* Port on which the app master listens for status updates from clients*/
@@ -420,6 +426,9 @@ public class HoyaAppMaster extends CompositeService
       }
     }
     allTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
+    
+    // set up secret manager
+    secretManager = new ClientToAMTokenSecretManager(appAttemptID, null);
 
     int heartbeatInterval = HEARTBEAT_INTERVAL;
 
@@ -650,7 +659,6 @@ public class HoyaAppMaster extends CompositeService
     joinAllLaunchedThreads();
 
 
-    log.info("Releasing all containers");
     //now release all containers
     releaseAllContainers();
 
@@ -713,14 +721,11 @@ public class HoyaAppMaster extends CompositeService
     server = RpcBinder.createProtobufServer(
       new InetSocketAddress("0.0.0.0", 0),
       getConfig(),
-      null,
+      secretManager,
       NUM_RPC_HANDLERS,
       blockingService,
       null);
     server.start();
-
-
-
     return server;
   }
 
@@ -1066,8 +1071,9 @@ public class HoyaAppMaster extends CompositeService
   /**
    * Shutdown operation: release all containers
    */
-  void releaseAllContainers() {
+  private void releaseAllContainers() {
     Collection<RoleInstance> targets = appState.cloneActiveContainerList();
+    log.info("Releasing {} containers", targets.size());
     for (RoleInstance instance : targets) {
       Container possible = instance.container;
       ContainerId id = possible.getId();
@@ -1077,6 +1083,7 @@ public class HoyaAppMaster extends CompositeService
         } catch (HoyaInternalStateException e) {
           log.warn("when releasing container {} :", possible, e);
         }
+        log.debug("Releasing container {}", id);
         asyncRMClient.releaseAssignedContainer(id);
       }
     }
