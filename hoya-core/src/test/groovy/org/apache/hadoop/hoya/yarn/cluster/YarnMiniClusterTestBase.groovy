@@ -529,6 +529,15 @@ implements KeysForTests, HoyaExitCodes {
   }
 
   /**
+   * skip the test by throwing an assumption failed exception.
+   * This will be logged and not considered a test failure
+   * @param message message a test runner may support
+   */
+  public void skip(String message) {
+    Assume.assumeTrue(message, false);
+  }
+
+  /**
    * Start a cluster that has already been defined
    * @param clustername cluster name
    * @param extraArgs list of extra args to add to the creation command

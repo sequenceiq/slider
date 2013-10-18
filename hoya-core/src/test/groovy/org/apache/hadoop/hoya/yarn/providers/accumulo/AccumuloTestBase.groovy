@@ -29,7 +29,6 @@ import org.apache.hadoop.hoya.api.RoleKeys
 import org.apache.hadoop.hoya.providers.accumulo.AccumuloConfigFileOptions
 import org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys
 import org.apache.hadoop.hoya.yarn.Arguments
-import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
@@ -110,9 +109,9 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
   }
 
   public void assumeArchiveDefined() {
-    String hbaseArchive = archiveKey
-    Assume.assumeTrue("Hbase Archive conf option not set " + KeysForTests.HOYA_TEST_ACCUMULO_TAR,
-                      hbaseArchive != null && hbaseArchive != "")
+    String archive = archiveKey
+    Assume.assumeTrue("Archive conf option not set " + KeysForTests.HOYA_TEST_ACCUMULO_TAR,
+                      archive != null && archive != "")
   }
 
   /**
@@ -121,7 +120,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
    * HBase home to be set.
    */
   public void assumeServiceHome() {
-    Assume.assumeTrue("Hbase Archive conf option not set " + KeysForTests.HOYA_TEST_ACCUMULO_HOME,
+    Assume.assumeTrue("Service home conf option not set " + KeysForTests.HOYA_TEST_ACCUMULO_HOME,
                       serviceHome != null && serviceHome != "")
   }
   public void assumeOtherSettings(YarnConfiguration conf) {
@@ -197,8 +196,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
 
   public void addOption(List<String> extraArgs, YarnConfiguration conf, String option) {
     assert conf.getTrimmed(option);
-    extraArgs << Arguments.ARG_OPTION <<
-    option << conf.getTrimmed(option)
+    extraArgs << Arguments.ARG_OPTION << option << conf.getTrimmed(option)
   }
   
 
@@ -209,12 +207,12 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
 
   public def fetchWebPage(String url) {
     def client = new HttpClient(new MultiThreadedHttpConnectionManager());
-    client.getHttpConnectionManager().getParams().setConnectionTimeout(10000);
+    client.httpConnectionManager.params.connectionTimeout = 10000;
     GetMethod get = new GetMethod(url);
-    
-    get.setFollowRedirects(true);
+
+    get.followRedirects = true;
     int resultCode = client.executeMethod(get);
-    String body = get.getResponseBodyAsString();
+    String body = get.responseBodyAsString;
     return body;
   }
   

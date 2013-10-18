@@ -35,6 +35,7 @@ class TestAccM1T0 extends AccumuloTestBase {
 
   @Test
   public void testAccM1T0() throws Throwable {
+    skip("disabled")
     String clustername = "TestAccM1T0"
     int tabcount = 1
     createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, false)
