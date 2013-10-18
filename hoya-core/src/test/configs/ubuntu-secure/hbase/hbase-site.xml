@@ -49,7 +49,7 @@
 
   <property>
     <name>hbase.regionserver.kerberos.principal</name>
-    <value>stevel@COTHAM</value>
+    <value>stevel/ubuntu@COTHAM</value>
   </property>
   
   <property>
@@ -59,7 +59,7 @@
 
   <property>
     <name>hbase.master.kerberos.principal</name>
-    <value>stevel@COTHAM</value>
+    <value>stevel/ubuntu@COTHAM</value>
   </property>
   <property>
     <name>hbase.master.keytab.file</name>
