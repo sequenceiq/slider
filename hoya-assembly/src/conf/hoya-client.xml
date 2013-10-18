@@ -21,7 +21,7 @@
 <configuration>
   <property>
     <name>hoya.client.resource.origin</name>
-    <value>conf/hoya-server.xml</value>
+    <value>conf/hoya-client.xml</value>
     <description>This is just for diagnostics</description>
   </property>
   
@@ -42,5 +42,6 @@
     <value>stevel@COTHAM</value>
     <description>Principal for Hoya AM/Client communications</description>
   </property>
-  
+
+
 </configuration>

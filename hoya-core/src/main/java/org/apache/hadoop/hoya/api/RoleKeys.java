@@ -24,27 +24,21 @@ package org.apache.hadoop.hoya.api;
 public interface RoleKeys {
 
 
-  String ROLE_NAME = "role.name";
   /**
-   * Number needed 
+   * The name of a role: {@value}
    */
-  String ROLE_INSTANCES = "role.instances";
-    /**
-   * Number needed 
-   */
-  String ROLE_ACTUAL_INSTANCES = "role.instances";
+  String ROLE_NAME = "role.name";
   
   /**
-   * 
-   *  {@value}
+   * Number of instances of a role needed: {@value} 
    */
-  String YARN_APP_RETRIES = "yarn.app.retries";
+  String ROLE_INSTANCES = "role.instances";
 
   /**
-   *
-   *  {@value}
+   * Status report: number actually granted : {@value} 
    */
-  int DEF_YARN_APP_RETRIES = 8;
+  String ROLE_ACTUAL_INSTANCES = "role.instances";
+
 
   /**
    *  Amount of memory to ask YARN for in MB.

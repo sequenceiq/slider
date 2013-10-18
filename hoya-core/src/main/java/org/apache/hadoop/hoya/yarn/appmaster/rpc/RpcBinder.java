@@ -34,27 +34,40 @@ package org.apache.hadoop.hoya.yarn.appmaster.rpc;
 
 import com.google.protobuf.BlockingService;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.api.HoyaClusterProtocol;
-import org.apache.hadoop.hoya.api.proto.HoyaClusterAPI;
-import org.apache.hadoop.hoya.yarn.appmaster.HoyaAppMaster;
+import org.apache.hadoop.hoya.exceptions.HoyaException;
+import org.apache.hadoop.hoya.tools.Duration;
 import org.apache.hadoop.ipc.ProtobufRpcEngine;
 import org.apache.hadoop.ipc.ProtocolProxy;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.RpcEngine;
 import org.apache.hadoop.ipc.Server;
+import org.apache.hadoop.mapreduce.v2.api.records.JobState;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.SecretManager;
+import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
+import org.apache.hadoop.yarn.api.ApplicationClientProtocol;
+import org.apache.hadoop.yarn.api.protocolrecords.GetApplicationReportRequest;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.ApplicationReport;
+import org.apache.hadoop.yarn.api.records.YarnApplicationState;
+import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
+import org.apache.hadoop.yarn.security.client.ClientToAMTokenIdentifier;
+import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.security.PrivilegedExceptionAction;
 
 public class RpcBinder {
   protected static final Logger log =
-    LoggerFactory.getLogger(HoyaAppMaster.class);
+    LoggerFactory.getLogger(RpcBinder.class);
 
   public static Server createProtobufServer(InetSocketAddress addr,
                                             Configuration conf,
@@ -82,6 +95,12 @@ public class RpcBinder {
     return server;
   }
 
+  /**
+   * Add the protobuf engine to the configuration. Harmless and inexpensive
+   * if repeated
+   * @param conf configuration to patch
+   * @return the protocol class
+   */
   public static Class<HoyaClusterProtocolPB> registerHoyaAPI(
     Configuration conf) {
     Class<HoyaClusterProtocolPB> hoyaClusterAPIClass =
@@ -94,6 +113,12 @@ public class RpcBinder {
     return hoyaClusterAPIClass;
   }
 
+  /**
+   * Verify that the conf is set up for protobuf transport of Hoya RPC
+   * @param conf configuration
+   * @param hoyaClusterAPIClass class for the API
+   * @return
+   */
   public static boolean verifyBondedToProtobuf(Configuration conf,
                                                 Class<HoyaClusterProtocolPB> hoyaClusterAPIClass) {
     return conf.getClass("rpc.engine." + hoyaClusterAPIClass.getName(),
@@ -121,33 +146,114 @@ public class RpcBinder {
     HoyaClusterProtocolPB endpoint = protoProxy.getProxy();
     return new HoyaClusterProtocolProxy(endpoint);
   }
-  
-  
-  public static Server createClassicServer(HoyaClusterAPI impl, Configuration conf,
-                                           SecretManager<? extends TokenIdentifier> secretManager,
-                                           int numHandlers) throws
-                                                                                    IOException {
-    /*
 
-    //classic RPC
-    server = new RPC.Builder(getConfig())
-      .setProtocol(HoyaClusterProtocol.class)
-      .setInstance(this)
-      .setPort(0)
-      .setNumHandlers(5)
-//        .setSecretManager(sm)
-      .build();
-    server.start();
-*/
-    //classic RPC
-    Server server = new RPC.Builder(conf)
-      .setProtocol(HoyaClusterProtocol.class)
-      .setInstance(impl)
-      .setPort(0)
-      .setNumHandlers(numHandlers)
-        .setSecretManager(secretManager)
-      .build();
-    server.start();
-    return server;
+
+  /**
+   * This loops for a limited period trying to get the Proxy -
+   * by doing so it handles AM failover
+   * @param conf configuration to patch and use
+   * @param rmClient client of the resource manager
+   * @param application application to work with
+   * @param connectTimeout timeout for the whole proxy operation to timeout
+   * (milliseconds). Use 0 to indicate "do not attempt to wait" -fail fast.
+   * @param rpcTimeout timeout for RPCs to block during communications
+   * @return the proxy
+   * @throws IOException IO problems
+   * @throws YarnException Hoya-generated exceptions related to the binding
+   * failing. This can include the application finishing or timeouts
+   * @throws InterruptedException if a sleep operation waiting for
+   * the cluster to respond is interrupted.
+   */
+  public static HoyaClusterProtocol getProxy(final Configuration conf,
+                                      final ApplicationClientProtocol rmClient,
+                                      ApplicationReport application,
+                                      final int connectTimeout,
+                                      
+                                      final int rpcTimeout) throws
+                                                            IOException,
+                                                            YarnException,
+                                                            InterruptedException {
+    ApplicationId appId = application.getApplicationId();
+    Duration timeout = new Duration(connectTimeout);
+    timeout.start();
+    Exception exception = null;
+    while (application!=null && application.getYarnApplicationState()
+                      .equals(YarnApplicationState.RUNNING)) {
+
+      try {
+        return getProxy(conf, application, rpcTimeout);
+      } catch (IOException e) {
+        if (connectTimeout <= 0 || timeout.getLimitExceeded()) {
+          throw e;
+        }
+        exception = e;
+      } catch (YarnException e) {
+        if (connectTimeout <= 0 || timeout.getLimitExceeded()) {
+          throw e;
+        }
+        exception = e;
+
+      }
+      //at this point: app failed to work
+      log.debug("Could not connect to {}. Waiting for getting the latest AM address...",
+                appId);
+      Thread.sleep(1000);
+      //or get the app report
+      application =
+        rmClient.getApplicationReport(GetApplicationReportRequest.newInstance(
+          appId)).getApplicationReport();
+      
+    }
+    //get here if the app is no longer running. Raise a specific
+    //exception but init it with the previous failure
+    throw new HoyaException(HoyaExitCodes.EXIT_BAD_CLUSTER_STATE,
+                            exception,
+                            "Application %s has finished", appId);
+  }
+
+  public static HoyaClusterProtocol getProxy(final Configuration conf,
+                                       ApplicationReport application,
+                                       final int rpcTimeout) throws
+                                                             IOException,
+                                                             HoyaException,
+                                                             InterruptedException {
+
+    String host = application.getHost();
+    int port = application.getRpcPort();
+    String address = host + ":" + port;
+    if (host == null || 0 == port) {
+      throw new HoyaException(HoyaExitCodes.EXIT_CONNECTIVITY_PROBLEM,
+                              "Hoya YARN instance " + application.getName()
+                              + " isn't providing a valid address for the" +
+                              " Hoya RPC protocol: " + address);
+    }
+
+    UserGroupInformation currentUser = UserGroupInformation.getCurrentUser();
+    final UserGroupInformation newUgi = UserGroupInformation.createRemoteUser(
+      currentUser.getUserName());
+    final InetSocketAddress serviceAddr = NetUtils.createSocketAddrForHost(
+      application.getHost(), application.getRpcPort());
+    HoyaClusterProtocol realProxy;
+
+    log.debug("Connecting to {}", serviceAddr);
+    if (UserGroupInformation.isSecurityEnabled()) {
+      org.apache.hadoop.yarn.api.records.Token clientToAMToken =
+        application.getClientToAMToken();
+      Token<ClientToAMTokenIdentifier> token =
+        ConverterUtils.convertFromYarn(clientToAMToken, serviceAddr);
+      newUgi.addToken(token);
+      realProxy =
+        newUgi.doAs(new PrivilegedExceptionAction<HoyaClusterProtocol>() {
+          @Override
+          public HoyaClusterProtocol run() throws IOException {
+            return connectToServer(serviceAddr, newUgi, conf,
+                                   rpcTimeout);
+          }
+        });
+    } else {
+      return connectToServer(serviceAddr, newUgi, conf,
+                             rpcTimeout);
+    }
+    return realProxy;
   }
 }

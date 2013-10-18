@@ -334,11 +334,24 @@ public class ClusterDescription {
 
   /**
    * Set a cluster option
-   * @param key
-   * @param val
+   * @param key key
+   * @param val value
    */
   public void setOption(String key, String val) {
     options.put(key, val);
+  }
+
+  /**
+   * Set a cluster option if it is unset. If it is set,
+   * it is left alone
+   * @param key key key to query/set
+   * @param val value value
+   */
+
+  public void setOptionifUnset(String key, String val) {
+    if (options.get(key) == null) {
+      options.put(key, val);
+    }
   }
 
   public void setOption(String option, int val) {
