@@ -693,7 +693,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     if (!getUsingMiniMRCluster()) {
 
-      log.debug("Destination is not a MiniYARNCluster -copying fll classpath");
+      log.debug("Destination is not a MiniYARNCluster -copying full classpath");
 
       // insert conf dir first
       if (remoteHoyaConfPath != null) {

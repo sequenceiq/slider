@@ -20,6 +20,7 @@ package org.apache.hadoop.hoya.yarn.appmaster;
 
 import com.google.protobuf.BlockingService;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
@@ -50,6 +51,7 @@ import org.apache.hadoop.ipc.ProtocolSignature;
 import org.apache.hadoop.ipc.Server;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.SaslRpcServer;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.service.CompositeService;
@@ -305,6 +307,10 @@ public class HoyaAppMaster extends CompositeService
       log.debug("Login user is {}", UserGroupInformation.getLoginUser());
       HoyaUtils.verifyPrincipalSet(conf,
                                    DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY);
+      // always enforce protocol to be token-based.
+      conf.set(
+        CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION,
+        SaslRpcServer.AuthMethod.TOKEN.toString());
     }
 
     //look at settings of Hadoop Auth, to pick up a problem seen once
