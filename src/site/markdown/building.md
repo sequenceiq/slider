@@ -450,3 +450,12 @@ Here are some handy aliases to make maven easier
 Have a look at this after adding an JAR to the classpath to look out
 for spurious dependency pickup. There's a lot of inconsistencies
 between Hadoop, HBase and Accumulo to watch out for
+
+## Debugging
+
+You can hook an IDE up to Hoya from the `hoya-core` package
+
+* target to run first `mvn package -DskipTests` in `hoya-core`
+* Main Class `org.apache.hadoop.hoya.Hoya`
+* Recommended JVM Args `-Xmx256m -Dlog4j.configuration=org/apache/hadoop/hoya/log4j.properties`
+
