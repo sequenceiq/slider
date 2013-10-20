@@ -140,7 +140,7 @@ public class HoyaAppMaster extends CompositeService
   public static final int NUM_RPC_HANDLERS = 5;
 
   /** YARN RPC to communicate with the Resource Manager or Node Manager */
-  private YarnRPC rpc;
+  private YarnRPC yarmRPC;
 
   /** Handle to communicate with the Resource Manager*/
   private AMRMClientAsync asyncRMClient;
@@ -409,7 +409,7 @@ public class HoyaAppMaster extends CompositeService
     YarnConfiguration conf = new YarnConfiguration(getConfig());
     InetSocketAddress address = HoyaUtils.getRmSchedulerAddress(conf);
     log.info("RM is at {}", address);
-    rpc = YarnRPC.create(conf);
+    yarmRPC = YarnRPC.create(conf);
 
     appMasterContainerID = ConverterUtils.toContainerId(
       HoyaUtils.mandatoryEnvVariable(
@@ -712,7 +712,7 @@ public class HoyaAppMaster extends CompositeService
   }
 
   public Object getProxy(Class protocol, InetSocketAddress addr) {
-    return rpc.getProxy(protocol, addr, getConfig());
+    return yarmRPC.getProxy(protocol, addr, getConfig());
   }
 
   /**
