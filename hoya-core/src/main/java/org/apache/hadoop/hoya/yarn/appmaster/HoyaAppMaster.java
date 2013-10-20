@@ -427,6 +427,7 @@ public class HoyaAppMaster extends CompositeService
     Iterator<Token<?>> iter = credentials.getAllTokens().iterator();
     while (iter.hasNext()) {
       Token<?> token = iter.next();
+      log.info("Token {}", token.getKind());
       if (token.getKind().equals(AMRMTokenIdentifier.KIND_NAME)) {
         iter.remove();
       }
