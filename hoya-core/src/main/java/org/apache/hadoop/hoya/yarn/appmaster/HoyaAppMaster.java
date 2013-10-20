@@ -40,6 +40,7 @@ import org.apache.hadoop.hoya.providers.ProviderService;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
+import org.apache.hadoop.hoya.yarn.appmaster.rpc.HoyaAMPolicyProvider;
 import org.apache.hadoop.hoya.yarn.appmaster.rpc.HoyaClusterProtocolPBImpl;
 import org.apache.hadoop.hoya.yarn.appmaster.rpc.RpcBinder;
 import org.apache.hadoop.hoya.yarn.appmaster.state.AppState;
@@ -500,9 +501,12 @@ public class HoyaAppMaster extends CompositeService
     containerMaxCores = maxResources.getVirtualCores();
     boolean securityEnabled = UserGroupInformation.isSecurityEnabled();
     if (securityEnabled) {
-      //TODO make use of this
-      clientToAMKey = response.getClientToAMTokenMasterKey();
+      secretManager.setMasterKey(
+        response.getClientToAMTokenMasterKey().array());
       applicationACLs = response.getApplicationACLs();
+
+      //tell the server what the ACLs are 
+      server.refreshServiceAcl(conf, new HoyaAMPolicyProvider());
     }
 
 
