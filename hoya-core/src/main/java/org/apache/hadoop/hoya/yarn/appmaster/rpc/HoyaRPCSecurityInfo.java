@@ -25,6 +25,7 @@ import org.apache.hadoop.security.SecurityInfo;
 import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.hadoop.security.token.TokenInfo;
 import org.apache.hadoop.security.token.TokenSelector;
+import org.apache.hadoop.yarn.security.client.ClientToAMTokenSelector;
 import org.apache.hadoop.yarn.security.client.RMDelegationTokenSelector;
 
 import java.lang.annotation.Annotation;
@@ -75,7 +76,12 @@ public class HoyaRPCSecurityInfo extends SecurityInfo {
       @Override
       public Class<? extends TokenSelector<? extends TokenIdentifier>>
           value() {
-        return RMDelegationTokenSelector.class;
+        return ClientToAMTokenSelector.class;
+      }
+
+      @Override
+      public String toString() {
+        return "HoyaClusterProtocolPB token info";
       }
     };
   }
