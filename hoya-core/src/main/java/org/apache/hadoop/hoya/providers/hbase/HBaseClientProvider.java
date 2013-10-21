@@ -34,6 +34,9 @@ import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
+import org.apache.hadoop.hoya.servicemonitor.HttpProbe;
+import org.apache.hadoop.hoya.servicemonitor.MonitorKeys;
+import org.apache.hadoop.hoya.servicemonitor.Probe;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -45,6 +48,10 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -94,6 +101,47 @@ public class HBaseClientProvider extends Configured implements
     return NAME;
   }
 
+  @Override
+  public List<Probe> createProbes(String urlStr, Configuration config, int timeout) 
+      throws IOException {
+    List<Probe> probes = new ArrayList<Probe>();
+    String prefix = "";
+    URL url = null;
+    if (urlStr != null && !urlStr.startsWith("http") && urlStr.contains("/proxy/")) {
+      if (!UserGroupInformation.isSecurityEnabled()) {
+        prefix = "http://proxy/relay/";
+      } else {
+        prefix = "https://proxy/relay/";
+      }
+    }
+    try {
+      url = new URL(prefix + urlStr);
+    } catch (MalformedURLException mue) {
+      log.error("tracking url: " + prefix + urlStr + " is malformed");
+    }
+    if (url != null) {
+      log.info("tracking url: " + url);
+      HttpURLConnection connection = null;
+      try {
+        connection = HttpProbe.getConnection(url, timeout);
+        // see if the host is reachable
+        connection.getResponseCode();
+
+        HttpProbe probe = new HttpProbe(url, timeout,
+          MonitorKeys.WEB_PROBE_DEFAULT_CODE, MonitorKeys.WEB_PROBE_DEFAULT_CODE, config);
+        probes.add(probe);
+      } catch (UnknownHostException uhe) {
+        log.error("host unknown: " + url);
+      } finally {
+        if (connection != null) {
+          connection.disconnect();
+          connection = null;
+        }
+      }
+    }
+    return probes;
+  }
+  
   @Override
   public List<ProviderRole> getRoles() {
     return ROLES;

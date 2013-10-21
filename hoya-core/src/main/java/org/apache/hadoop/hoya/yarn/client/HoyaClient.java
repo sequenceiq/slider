@@ -908,43 +908,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       YarnApplicationState.ACCEPTED);
 
     // build the probes
-    List<Probe> probes = new ArrayList<Probe>();
     int timeout = 60000;
-    URL url = null;
-    String s = report.getTrackingUrl();
-    String prefix = "";
-    if (s != null && !s.startsWith("http") && s.contains("/proxy/")) {
-      if (!UserGroupInformation.isSecurityEnabled()) {
-        prefix = "http://proxy/relay/";
-      } else {
-        prefix = "https://proxy/relay/";
-      }
-    }
-    try {
-      url = new URL(prefix + s);
-    } catch (MalformedURLException mue) {
-      log.error("tracking url: " + prefix + s + " is malformed");
-    }
-    if (url != null) {
-      log.info("tracking url: " + url);
-      HttpURLConnection connection = null;
-      try {
-        connection = HttpProbe.getConnection(url, timeout);
-        // see if the host is reachable
-        connection.getResponseCode();
-
-        HttpProbe probe = new HttpProbe(url, timeout,
-          MonitorKeys.WEB_PROBE_DEFAULT_CODE, MonitorKeys.WEB_PROBE_DEFAULT_CODE, config);
-        probes.add(probe);
-      } catch (UnknownHostException uhe) {
-        log.error("host unknown: " + url);
-      } finally {
-        if (connection != null) {
-          connection.disconnect();
-          connection = null;
-        }
-      }
-    }
+    List<Probe> probes = provider.createProbes(report.getTrackingUrl(), config, timeout);
     // start ReportingLoop only when there're probes
     if (!probes.isEmpty()) {
       masterReportingLoop = new ReportingLoop("MasterStatusCheck", this, probes, null, 1000, 1000,

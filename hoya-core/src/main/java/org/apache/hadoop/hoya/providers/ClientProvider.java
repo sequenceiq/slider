@@ -24,11 +24,13 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
+import org.apache.hadoop.hoya.servicemonitor.Probe;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -136,4 +138,12 @@ public interface ClientProvider extends ProviderCore {
                                              boolean secure) throws
                                                              HoyaException,
                                                              IOException;
+
+  /*
+   * @param url the tracking URL
+   * @param config the Configuration
+   * @param timeout
+   * @return List of applicable Probe's
+   */
+  List<Probe> createProbes(String url, Configuration config, int timeout) throws IOException;
 }

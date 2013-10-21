@@ -34,6 +34,7 @@ import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
+import org.apache.hadoop.hoya.servicemonitor.Probe;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -46,6 +47,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,6 +82,12 @@ public class AccumuloClientProvider extends Configured implements
     return PROVIDER_ACCUMULO;
   }
 
+  @Override
+  public List<Probe> createProbes(String urlStr, Configuration config, int timeout) 
+      throws IOException {
+    return new ArrayList<Probe>();
+  }
+  
   @Override
   public List<ProviderRole> getRoles() {
     return AccumuloRoles.ROLES;

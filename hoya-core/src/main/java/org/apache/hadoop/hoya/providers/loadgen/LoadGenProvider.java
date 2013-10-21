@@ -33,6 +33,7 @@ import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys;
+import org.apache.hadoop.hoya.servicemonitor.Probe;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -87,6 +88,12 @@ public class LoadGenProvider extends Configured implements
   @Override
   public String getName() {
     return PROVIDER_NAME;
+  }
+
+  @Override
+  public List<Probe> createProbes(String urlStr, Configuration config, int timeout) 
+      throws IOException {
+    return new ArrayList<Probe>();
   }
 
   @Override
