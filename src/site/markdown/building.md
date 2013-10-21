@@ -31,18 +31,23 @@ You will need a version of Maven 3.0, set up with enough memory
 
 ## Building a compatible Hadoop version
 
-During development, Hoya is built against a local version of Hadoop branch 2.1.x,
-so that we can find and fix bugs in Hadoop as well in Hoya.
 
-It will fall back to downloading the `-SNAPSHOT` artifacts from the ASF snapshot
-repository
+Hoya is built against Hadoop release 2.2.0; 
 
-To build and install locally, check out apache svn/github, branch `2.1-beta` 
+During development, its convenient (but not mandatory)
+to have a local version of Hadoop -so that we can find and fix bugs/add features in
+Hadoop as well in Hoya.
+
+
+To build and install locally, check out apache svn/github, branch `release-2.2.0`
+ 
+This is a tag; git will encourage you to create a branch from the tagged
+commit, which is recommended.
 
 
 For the scripts below, set the `HADOOP_VERSION` variable to the version
 
-    export HADOOP_VERSION=2.2.1-SNAPSHOT
+    export HADOOP_VERSION=2.2.0
 
 Build and install it locally, skipping the tests:
 
@@ -66,7 +71,9 @@ Then expand this
     popd
 
 This creates an expanded version of Hadoop. You can now actually run Hadoop
-from this directory
+from this directory. Do note that unless you have the native code built for
+your target platform, Hadoop will be slower. For installations, use
+the Apache Hadoop 2.2 package or Hortownworks HDP-2.0.
 
 ## building a compatible HBase version
 
@@ -74,6 +81,10 @@ Checkout the HBase `trunk` branch from apache svn/github.
 
     git clone git://git.apache.org/hbase.git
     git remote rename origin apache
+    git fetch --tags apache
+    git checkout hbase-0.96.0 --
+    git checkout -b hbase-0.96.0
+    
     
 The maven command for building hbase artifacts against this hadoop version is 
 
@@ -81,13 +92,9 @@ The maven command for building hbase artifacts against this hadoop version is
 
 
     
-This will create `hbase-0.97.0-SNAPSHOT.tar.gz` in the directory `hbase-assembly/target/` in
+This will create `hbase-0.96.0.tar.gz` in the directory `hbase-assembly/target/` in
 the hbase source tree. 
 
-    export HBASE_VERSION=0.97.0-SNAPSHOT
-    
-or
-    
     export HBASE_VERSION=0.96.0
     
     pushd hbase-assembly/target
@@ -129,8 +136,8 @@ locally, by changing the `hadoop.version` property
 
 In the accumulo project directory:
 
-    mvn clean package -Passemble -DskipTests -Dmaven.javadoc.skip=true \
-     -Dhadoop.profile=2.0  -Dhadoop.version=HADOOP_VERSION
+    mvn clean install -Passemble -DskipTests -Dmaven.javadoc.skip=true \
+     -Dhadoop.profile=2.0  -Dhadoop.version=$HADOOP_VERSION
 
 This creates an accumulo tar.gz file in `assemble/target/`. Unzip then untar
 this, to create a .tar file and an expanded directory
@@ -139,14 +146,16 @@ this, to create a .tar file and an expanded directory
     
  This can be done with the command sequence
     
+    export ACCUMULO_VERSION=1.6.0-SNAPSHOT
+    
     pushd assemble/target/
-    gunzip -f accumulo-1.6.0-SNAPSHOT-bin.tar.gz 
-    tar -xvf accumulo-1.6.0-SNAPSHOT-bin.tar 
+    gunzip -f accumulo-$ACCUMULO_VERSION-bin.tar.gz 
+    tar -xvf accumulo-$ACCUMULO_VERSION-bin.tar 
     popd
     
 Note that the final location of the accumulo files is needed for the configuration,
 it may be directly under target/ or it may be in a subdirectory, with 
-a patch such as `target/accumulo-1.6.0-SNAPSHOT-dev/accumulo-1.6.0-SNAPSHOT/`
+a patch such as `target/accumulo-ACCUMULO_VERSION-dev/accumulo-ACCUMULO_VERSION/`
 
 
 ## Testing
@@ -160,19 +169,19 @@ is ignored by git), declaring where HBase, accumulo, Hadoop and zookeeper are:
     
       <property>
         <name>hoya.test.hbase.home</name>
-        <value>/Users/hoya/hbase/hbase-assembly/target/hbase-0.97.0-SNAPSHOT</value>
+        <value>/Users/hoya/hbase/hbase-assembly/target/hbase-0.96.0</value>
         <description>HBASE Home</description>
       </property>
     
       <property>
         <name>hoya.test.hbase.tar</name>
-        <value>/Users/hoya/hbase/hbase-assembly/target/hbase-0.97.0-SNAPSHOT-bin.tar.gz</value>
+        <value>/Users/hoya/hbase/hbase-assembly/target/hbase-0.96.0-bin.tar.gz</value>
         <description>HBASE archive URI</description>
       </property> 
          
       <property>
         <name>hoya.test.accumulo_home</name>
-        <value>/Users/hoya/accumulo/assemble/target/accumulo-1.6.0-SNAPSHOT-dev/accumulo-1.6.0-SNAPSHOT/</value>
+        <value>/Users/hoya/accumulo/assemble/target/accumulo-1.6.0-SNAPSHOT/</value>
         <description>Accumulo Home</description>
       </property>
     
@@ -192,7 +201,7 @@ is ignored by git), declaring where HBase, accumulo, Hadoop and zookeeper are:
       <property>
         <name>hadoop.home</name>
         <value>
-          /Users/hoya/hadoop-trunk/hadoop-dist/target/hadoop-2.1.2-SNAPSHOT</value>
+          /Users/hoya/hadoop-trunk/hadoop-dist/target/hadoop-2.2.0</value>
         <description>Hadoop home dir on target systems</description>
       </property>
       
@@ -239,12 +248,11 @@ You can create the JAR file and set up its directories with
 
 
 
-## Releasing
-
 
 ## Releasing
 
-We do not use maven release plug in. Why not? Us the release plugin and then come back and ask that question.
+We do not use maven release plug in. Why not?
+Use the release plugin and then come back and ask that question.
 
 Here then is our release process.
 
