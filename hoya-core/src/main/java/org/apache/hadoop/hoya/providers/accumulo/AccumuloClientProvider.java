@@ -221,7 +221,7 @@ public class AccumuloClientProvider extends Configured implements
     URI parentUri = path.toUri();
     String authority = parentUri.getAuthority();
     String fspath =
-      parentUri.getScheme() + ":" + (authority == null ? "" : authority) + "/";
+      parentUri.getScheme() + "://" + (authority == null ? "" : authority) + "/";
     sitexml.put(AccumuloConfigFileOptions.INSTANCE_DFS_URI, fspath);
     sitexml.put(AccumuloConfigFileOptions.INSTANCE_DFS_DIR,
                 parentUri.getPath());
