@@ -280,7 +280,7 @@ public class RunLongLivedApp implements Runnable {
    * @return the last few lines of output; an empty list if there are none
    * or the process is not actually running
    */
-  public List<String> getRecentOutput() {
+  public synchronized List<String> getRecentOutput() {
     return new ArrayList<String>(recentLines);
   }
 

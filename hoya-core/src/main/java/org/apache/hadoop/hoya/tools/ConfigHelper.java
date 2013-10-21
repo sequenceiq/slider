@@ -432,7 +432,7 @@ public class ConfigHelper {
     String val = src.get(key);
     if (val != null) {
       String[] origin = src.getPropertySources(key);
-      if (origin.length > 0) {
+      if (origin != null && origin.length > 0) {
         dest.set(key, val, origin[0]);
       } else {
         dest.set(key, val);

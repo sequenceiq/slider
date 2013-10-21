@@ -976,6 +976,7 @@ public final class HoyaUtils {
   }
   
   public static String listDir(File dir) {
+    if (dir == null) return "";
     StringBuilder builder = new StringBuilder();
     String[] confDirEntries = dir.list();
     for (String entry : confDirEntries) {
