@@ -140,4 +140,9 @@ public interface HoyaKeys {
    */
   String KEY_HOYA_PRINCIPAL = "hoya.kerberos.principal";
 
+  /**
+   * Name of the property for ACLs for Hoya AM.
+   * {@value}
+   */
+  String KEY_HOYA_ACL = "security.hoya.protocol.acl";
 }

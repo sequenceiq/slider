@@ -20,6 +20,7 @@ package org.apache.hadoop.hoya.yarn.appmaster;
 
 import com.google.protobuf.BlockingService;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
@@ -39,6 +40,7 @@ import org.apache.hadoop.hoya.providers.ProviderService;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
+import org.apache.hadoop.hoya.yarn.appmaster.rpc.HoyaAMPolicyProvider;
 import org.apache.hadoop.hoya.yarn.appmaster.rpc.HoyaClusterProtocolPBImpl;
 import org.apache.hadoop.hoya.yarn.appmaster.rpc.RpcBinder;
 import org.apache.hadoop.hoya.yarn.appmaster.state.AppState;
@@ -50,6 +52,7 @@ import org.apache.hadoop.ipc.ProtocolSignature;
 import org.apache.hadoop.ipc.Server;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.SaslRpcServer;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.service.CompositeService;
@@ -138,7 +141,7 @@ public class HoyaAppMaster extends CompositeService
   public static final int NUM_RPC_HANDLERS = 5;
 
   /** YARN RPC to communicate with the Resource Manager or Node Manager */
-  private YarnRPC rpc;
+  private YarnRPC yarmRPC;
 
   /** Handle to communicate with the Resource Manager*/
   private AMRMClientAsync asyncRMClient;
@@ -305,6 +308,10 @@ public class HoyaAppMaster extends CompositeService
       log.debug("Login user is {}", UserGroupInformation.getLoginUser());
       HoyaUtils.verifyPrincipalSet(conf,
                                    DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY);
+      // always enforce protocol to be token-based.
+      conf.set(
+        CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION,
+        SaslRpcServer.AuthMethod.TOKEN.toString());
     }
 
     //look at settings of Hadoop Auth, to pick up a problem seen once
@@ -403,7 +410,7 @@ public class HoyaAppMaster extends CompositeService
     YarnConfiguration conf = new YarnConfiguration(getConfig());
     InetSocketAddress address = HoyaUtils.getRmSchedulerAddress(conf);
     log.info("RM is at {}", address);
-    rpc = YarnRPC.create(conf);
+    yarmRPC = YarnRPC.create(conf);
 
     appMasterContainerID = ConverterUtils.toContainerId(
       HoyaUtils.mandatoryEnvVariable(
@@ -421,6 +428,7 @@ public class HoyaAppMaster extends CompositeService
     Iterator<Token<?>> iter = credentials.getAllTokens().iterator();
     while (iter.hasNext()) {
       Token<?> token = iter.next();
+      log.info("Token {}", token.getKind());
       if (token.getKind().equals(AMRMTokenIdentifier.KIND_NAME)) {
         iter.remove();
       }
@@ -493,9 +501,12 @@ public class HoyaAppMaster extends CompositeService
     containerMaxCores = maxResources.getVirtualCores();
     boolean securityEnabled = UserGroupInformation.isSecurityEnabled();
     if (securityEnabled) {
-      //TODO make use of this
-      clientToAMKey = response.getClientToAMTokenMasterKey();
+      secretManager.setMasterKey(
+        response.getClientToAMTokenMasterKey().array());
       applicationACLs = response.getApplicationACLs();
+
+      //tell the server what the ACLs are 
+      server.refreshServiceAcl(conf, new HoyaAMPolicyProvider());
     }
 
 
@@ -705,7 +716,7 @@ public class HoyaAppMaster extends CompositeService
   }
 
   public Object getProxy(Class protocol, InetSocketAddress addr) {
-    return rpc.getProxy(protocol, addr, getConfig());
+    return yarmRPC.getProxy(protocol, addr, getConfig());
   }
 
   /**
