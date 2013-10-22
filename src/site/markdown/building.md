@@ -291,23 +291,24 @@ versions plugin)[http://mojo.codehaus.org/versions-maven-plugin/]
 
   
 **Step #6:** Do a final test run to make sure nothing is broken
-
-
-    mvn clean test
-    
-    
 **Step #7:** Build the release package
+
+These two stages can be merged into one, which will result in the 
+test results being included as a project report for each module.
     
-    mvn clean site:site site:stage package -DskipTests
+    mvn clean site:site site:stage package 
+
+As the test run takes 30+ minutes, now is a good time to consider
+creating the release notes of step 9
 
 
-**Step #:8** Look in `hoya-assembly/target` to find the `.tar.gz` file, and the
+**Step #8:** Look in `hoya-assembly/target` to find the `.tar.gz` file, and the
 expanded version of it. Inspect that expanded version to make sure that
 everything looks good -and that the versions of all the dependent artifacts
 look good too: there must be no `-SNAPSHOT` dependencies.
 
 
-**Step #:9** Create a a one-line plain text release note for commits and tags
+**Step #9:** Create a a one-line plain text release note for commits and tags
 And a multi-line markdown release note, which will be used for artifacts.
 
 
