@@ -74,7 +74,7 @@
                
      # single master & workre
      
-    bin/hoya create cl1 \
+    bin/hoya create cluster3 \
     --zkhosts ubuntu \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
     --secure -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
@@ -85,7 +85,7 @@
     --roleopt master app.infoport 8080  \
     --role master 1 \
     --role worker 1 \
-     --hbasever hbase-0.97.0-SNAPSHOT
+     --version hbase-0.97.0-SNAPSHOT
     
     
      # no master
@@ -99,7 +99,7 @@
     --image hdfs://ubuntu:9090/hbase.tar \
     --appconf file:///Users/stevel/Projects/Hortonworks/Projects/hoya/hoya-core/src/test/configs/ubuntu-secure/hbase \
     --role master 0  \
-     --hbasever hbase-0.97.0-SNAPSHOT
+     --version hbase-0.97.0-SNAPSHOT
     
      # build but don't deploy single master
      
@@ -132,6 +132,12 @@
      -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
      -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM 
      
+         bin/hoya  status cluster3 \
+    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
+    --secure \
+     -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
+     -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM 
+     
      
                
     bin/hoya  thaw cl1 \
@@ -141,6 +147,11 @@
      -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM 
                    
     bin/hoya  freeze cl1 \
+    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
+    --secure -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
+     -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
+     -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM                    
+    bin/hoya  freeze cluster3 \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
     --secure -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
      -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
