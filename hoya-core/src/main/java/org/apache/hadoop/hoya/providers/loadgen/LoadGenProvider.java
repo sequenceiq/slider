@@ -23,6 +23,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hoya.HostAndPort;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.RoleKeys;
@@ -46,6 +47,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -97,10 +99,19 @@ public class LoadGenProvider extends Configured implements
   }
 
   @Override
+  public Configuration create(Configuration conf) {
+    return conf;
+  }
+  
+  @Override
   public List<ProviderRole> getRoles() {
     return ROLES;
   }
 
+  @Override
+  public Collection<HostAndPort> listDeadServers(Configuration conf)  throws IOException {
+    return new ArrayList<HostAndPort>();
+  }
 
   /**
    * Get a map of all the default options for the cluster; values

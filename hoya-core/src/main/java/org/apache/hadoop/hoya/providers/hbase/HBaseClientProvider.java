@@ -24,6 +24,13 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.hbase.ClusterStatus;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.HConnectionManager;
+import org.apache.hadoop.hoya.HostAndPort;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.OptionKeys;
@@ -54,6 +61,7 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -141,7 +149,34 @@ public class HBaseClientProvider extends Configured implements
     }
     return probes;
   }
-  
+
+  private Collection<HostAndPort> serverNameToHostAndPort(Collection<ServerName> servers) {
+    Collection<HostAndPort> col = new ArrayList<HostAndPort>();
+    if (servers == null || servers.isEmpty()) return col;
+    for (ServerName sn : servers) {
+      col.add(new HostAndPort(sn.getHostname(), sn.getPort()));
+    }
+    return col;
+  }
+
+  @Override
+  public Configuration create(Configuration conf) {
+    return HBaseConfiguration.create(conf);
+  }
+
+  @Override
+  public Collection<HostAndPort> listDeadServers(Configuration conf)  throws IOException {
+    HConnection hbaseConnection = HConnectionManager.createConnection(conf);
+    HBaseAdmin hBaseAdmin = new HBaseAdmin(hbaseConnection);
+    try {
+      ClusterStatus cs = hBaseAdmin.getClusterStatus();
+      return serverNameToHostAndPort(cs.getDeadServerNames());
+    } finally {
+      hBaseAdmin.close();
+      hbaseConnection.close();
+    }
+  }
+
   @Override
   public List<ProviderRole> getRoles() {
     return ROLES;

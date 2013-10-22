@@ -24,6 +24,7 @@ import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hoya.HostAndPort;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.OptionKeys;
@@ -48,6 +49,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -70,16 +72,23 @@ public class AccumuloClientProvider extends Configured implements
     super(conf);
   }
 
-
-
   public static List<ProviderRole> getProviderRoles() {
     return AccumuloRoles.ROLES;
-
   }
 
   @Override
   public String getName() {
     return PROVIDER_ACCUMULO;
+  }
+
+  @Override
+  public Configuration create(Configuration conf) {
+    return conf;
+  }
+  
+  @Override
+  public Collection<HostAndPort> listDeadServers(Configuration conf)  throws IOException {
+    return new ArrayList<HostAndPort>();
   }
 
   @Override

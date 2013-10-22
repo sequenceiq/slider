@@ -26,7 +26,9 @@ import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
+import org.apache.hadoop.hoya.HostAndPort;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
@@ -144,9 +146,11 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   private String[] argv;
   private ClientArgs serviceArgs;
   public ApplicationId applicationId;
+  
   private ReportingLoop masterReportingLoop;
   private Thread loopThread;
   private String deployedClusterName;
+  private ClientProvider provider;
 
   /**
    * Entry point from the service launcher
@@ -401,7 +405,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     // Provider
     requireArgumentSet(Arguments.ARG_PROVIDER, serviceArgs.provider);
 
-    ClientProvider provider = createClientProvider(serviceArgs.provider);
+    provider = createClientProvider(serviceArgs.provider);
 
     // remember this
     clusterSpec.type = provider.getName();
@@ -1652,6 +1656,25 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     return EXIT_SUCCESS;
   }
 
+  /*
+   * Creates a site conf with entries from clientProperties of ClusterStatus
+   * @param desc ClusterDescription, can be null
+   * @param clustername, can be null
+   * @return site conf
+   */
+  public Configuration getSiteConf(ClusterDescription desc, String clustername)
+      throws YarnException, IOException {
+    if (desc == null) desc = getClusterDescription();
+    if (clustername == null) clustername = getDeployedClusterName();
+    String description = "Hoya cluster " + clustername;
+    
+    Configuration siteConf = new Configuration(false);
+    for (String key : desc.clientProperties.keySet()) {
+      siteConf.set(key, desc.clientProperties.get(key), description);
+    }
+    return siteConf;
+  }
+  
   /**
    * get the cluster configuration
    * @param clustername cluster name
@@ -1675,10 +1698,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     try {
       String description = "Hoya cluster " + clustername;
       if (format.equals(ClientArgs.FORMAT_XML)) {
-        Configuration siteConf = new Configuration(false);
-        for (String key : status.clientProperties.keySet()) {
-          siteConf.set(key, status.clientProperties.get(key), description);
-        }
+        Configuration siteConf = getSiteConf(status, clustername);
         siteConf.writeXml(writer);
       } else if (format.equals(ClientArgs.FORMAT_PROPERTIES)) {
         Properties props = new Properties();
