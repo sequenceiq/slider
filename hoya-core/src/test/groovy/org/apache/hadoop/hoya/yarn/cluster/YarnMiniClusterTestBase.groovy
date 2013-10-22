@@ -40,6 +40,7 @@ import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.tools.BlockingZKWatcher
 import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.tools.HoyaUtils
+import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hadoop.hoya.yarn.KeysForTests
@@ -94,10 +95,11 @@ implements KeysForTests, HoyaExitCodes {
   
   public static final String HREGION = "HRegion"
   public static final List<String> HBASE_VERSION_COMMAND_SEQUENCE = [
-      CommonArgs.ARG_OPTION, HoyaKeys.OPTION_HOYA_MASTER_COMMAND, "version",
+      Arguments.ARG_OPTION, HoyaKeys.OPTION_HOYA_MASTER_COMMAND, "version",
   ]
   public static final int SIGTERM = -15
   public static final int SIGKILL = -9
+  public static final int SIGSTOP = -19
   public static final String SERVICE_LAUNCHER = "ServiceLauncher"
 
   protected MiniDFSCluster hdfsCluster
@@ -229,14 +231,23 @@ implements KeysForTests, HoyaExitCodes {
       createMicroZKCluster(conf)
     }
     if (startHDFS) {
-      File baseDir = new File("./target/hdfs/$name").absoluteFile;
-      //use file: to rm it recursively
-      FileUtil.fullyDelete(baseDir)
-      conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, baseDir.absolutePath)
-      MiniDFSCluster.Builder builder = new MiniDFSCluster.Builder(conf)
-      hdfsCluster = builder.build()
+      createMiniHDFSCluster(name, conf)
     }
 
+  }
+
+  /**
+   * Create a mini HDFS cluster
+   * @param name
+   * @param conf
+   */
+  public void createMiniHDFSCluster(String name, YarnConfiguration conf) {
+    File baseDir = new File("./target/hdfs/$name").absoluteFile;
+    //use file: to rm it recursively
+    FileUtil.fullyDelete(baseDir)
+    conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, baseDir.absolutePath)
+    MiniDFSCluster.Builder builder = new MiniDFSCluster.Builder(conf)
+    hdfsCluster = builder.build()
   }
 
   public void createMicroZKCluster(Configuration conf) {
@@ -282,8 +293,8 @@ implements KeysForTests, HoyaExitCodes {
     ResourceManager rm = miniCluster.resourceManager
     log.info("Connecting to rm at ${rm}")
 
-    if (!args.contains(ClientArgs.ARG_MANAGER)) {
-      args += [ClientArgs.ARG_MANAGER, RMAddr]
+    if (!args.contains(Arguments.ARG_MANAGER)) {
+      args += [Arguments.ARG_MANAGER, RMAddr]
     }
     ServiceLauncher launcher = execHoyaCommand(conf, args)
     assert launcher.serviceExitCode == 0
@@ -465,25 +476,26 @@ implements KeysForTests, HoyaExitCodes {
     List<String> roleList = [];
     roles.each { String role, Integer val -> 
       log.info("Role $role := $val")
-      roleList << CommonArgs.ARG_ROLE << role << Integer.toString(val)
+      roleList << Arguments.ARG_ROLE << role << Integer.toString(val)
     }
     
     List<String> argsList = [
         HoyaActions.ACTION_CREATE, clustername,
-        ClientArgs.ARG_MANAGER, RMAddr,
-        CommonArgs.ARG_ZKHOSTS, ZKHosts,
-        CommonArgs.ARG_ZKPORT, ZKPort.toString(),
-        ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
-        ClientArgs.ARG_FILESYSTEM, fsDefaultName,
-        CommonArgs.ARG_OPTION, OptionKeys.OPTION_TEST, "true",
-        CommonArgs.ARG_CONFDIR, confDir
+        Arguments.ARG_MANAGER, RMAddr,
+        Arguments.ARG_ZKHOSTS, ZKHosts,
+        Arguments.ARG_VERSION, HBaseKeys.VERSION,
+        Arguments.ARG_ZKPORT, ZKPort.toString(),
+        Arguments.ARG_WAIT, WAIT_TIME_ARG,
+        Arguments.ARG_FILESYSTEM, fsDefaultName,
+        Arguments.ARG_OPTION, OptionKeys.OPTION_TEST, "true",
+        Arguments.ARG_CONFDIR, confDir
     ]
     argsList += roleList;
     argsList += imageCommands
 
     //now inject any cluster options
     clusterOps.each { String opt, String val ->
-      argsList << CommonArgs.ARG_OPTION << opt << val;
+      argsList << Arguments.ARG_OPTION << opt << val;
     }
     
     if (extraArgs != null) {
@@ -517,6 +529,15 @@ implements KeysForTests, HoyaExitCodes {
   }
 
   /**
+   * skip the test by throwing an assumption failed exception.
+   * This will be logged and not considered a test failure
+   * @param message message a test runner may support
+   */
+  public void skip(String message) {
+    Assume.assumeTrue(message, false);
+  }
+
+  /**
    * Start a cluster that has already been defined
    * @param clustername cluster name
    * @param extraArgs list of extra args to add to the creation command
@@ -529,9 +550,9 @@ implements KeysForTests, HoyaExitCodes {
 
     List<String> argsList = [
         HoyaActions.ACTION_THAW, clustername,
-        ClientArgs.ARG_MANAGER, RMAddr,
-        ClientArgs.ARG_WAIT, WAIT_TIME_ARG,
-        ClientArgs.ARG_FILESYSTEM, fsDefaultName,
+        Arguments.ARG_MANAGER, RMAddr,
+        Arguments.ARG_WAIT, WAIT_TIME_ARG,
+        Arguments.ARG_FILESYSTEM, fsDefaultName,
     ]
     if (extraArgs != null) {
       argsList += extraArgs;
@@ -557,12 +578,15 @@ implements KeysForTests, HoyaExitCodes {
    */
   public File getResourceConfDir() {
     File f = new File(testConfigurationPath).absoluteFile;
-    assert f.exists();
+    if (!f.exists()) {
+      throw new FileNotFoundException("Resource configuration directory $f not found")
+    }
     return f;
   }
 
   public String getTestConfigurationPath() {
     fail("Not implemented");
+    null;
   }
 
   /**

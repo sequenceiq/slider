@@ -76,7 +76,7 @@ public interface LauncherExitCodes {
   /**
    * Exit code when the configurations in valid/incomplete: {@value}
    */
-  int EXIT_CONNECTIVTY_PROBLEM        = 38;
+  int EXIT_CONNECTIVITY_PROBLEM       = 38;
  
   
 }

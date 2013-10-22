@@ -30,7 +30,35 @@ public interface OptionKeys {
   String OPTION_TEST = "hoya.test";
 
   /**
-   * Prefix for site.xml options
+   * Prefix for site.xml options: {@value}
    */
   String OPTION_SITE_PREFIX = "site.";
+
+  /**
+   * Version of the app: {@value}
+   */
+  String OPTION_APP_VERSION = "cluster.app.version";
+
+  /**
+   * Time in milliseconds to wait after forking the in-AM master
+   * process before attempting to start up the containers. 
+   * A shorter value brings the cluster up faster, but means that if the
+   * master process fails (due to a bad configuration), then time
+   * is wasted starting containers on a cluster that isn't going to come
+   * up
+   */
+  String OPTION_CONTAINER_STARTUP_DELAY = "hoya.container.startup.delay";
+
+  /**
+   * Version of the app: {@value}
+   */
+  String OPTION_KEYTAB_LOCATION = "cluster.keytab.location";
+
+
+  String HOYA_CLUSTER_DIRECTORY_PERMISSIONS =
+    "hoya.cluster.directory.permissions";
+  String DEFAULT_HOYA_CLUSTER_DIRECTORY_PERMISSIONS =
+    "0750";
+  String HOYA_DATA_DIRECTORY_PERMISSIONS = "hoya.data.directory.permissions";
+  String DEFAULT_HOYA_DATA_DIRECTORY_PERMISSIONS = "0750";
 }

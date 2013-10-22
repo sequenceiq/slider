@@ -18,6 +18,10 @@
 
 package org.apache.hadoop.hoya.providers;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.OptionKeys;
@@ -159,6 +163,91 @@ public class ProviderUtils implements RoleKeys {
     if (!file.isDirectory()) {
       throw new BadConfigException("%s is not a directory: %s", meaning, file);
     }
-    
+  }
+
+  /**
+   * verify that a config option is set
+   * @param configuration config
+   * @param key key
+   * @return the value, in case it needs to be verified too
+   * @throws BadConfigException if the key is missing
+   */
+  public String verifyOptionSet(Configuration configuration, String key,
+                                       boolean allowEmpty) throws BadConfigException {
+    String val = configuration.get(key);
+    if (val == null) {
+      throw new BadConfigException(
+        "Required configuration option \"%s\" not defined ", key);
+    }
+    if (!allowEmpty && val.isEmpty()) {
+      throw new BadConfigException(
+        "Configuration option \"%s\" must not be empty", key);
+    }
+    return val;
+  }
+
+  /**
+   * Verify that a keytab property is defined and refers to a non-empty file
+   *
+   * @param siteConf configuration
+   * @param prop property to look for
+   * @return the file referenced
+   * @throws BadConfigException on a failure
+   */
+  public File verifyKeytabExists(Configuration siteConf, String prop) throws
+                                                                      BadConfigException {
+    String keytab = siteConf.get(prop);
+    if (keytab == null) {
+      throw new BadConfigException("Missing keytab property %s",
+                                   prop);
+
+    }
+    File keytabFile = new File(keytab);
+    if (!keytabFile.exists()) {
+      throw new BadConfigException("Missing keytab file %s defined in %s",
+                                   keytabFile,
+                                   prop);
+    }
+    if (keytabFile.length() == 0 || !keytabFile.isFile()) {
+      throw new BadConfigException("Invalid keytab file %s defined in %s",
+                                   keytabFile,
+                                   prop);
+    }
+    return keytabFile;
+  }
+
+
+  /**
+   * Create a data directory, using the path and any options related to
+   * permissions
+   * @param cd cluster spec
+   * @param conf configuration 
+   * @return the path to the directory
+   * @throws IOException trouble
+   */
+  public Path createDataDirectory(ClusterDescription cd,
+                                   Configuration conf) throws IOException {
+    Path path = new Path(cd.dataPath);
+    FileSystem fs = FileSystem.get(path.toUri(), conf);
+    if (!fs.exists(path)) {
+      log.info("Creating data directory {}", path);
+      String parentOpts =
+        cd.getOption(OptionKeys.HOYA_CLUSTER_DIRECTORY_PERMISSIONS,
+                     OptionKeys.DEFAULT_HOYA_CLUSTER_DIRECTORY_PERMISSIONS);
+      fs.mkdirs(path.getParent(), new FsPermission(parentOpts));
+      String dataOpts =
+        cd.getOption(OptionKeys.HOYA_DATA_DIRECTORY_PERMISSIONS,
+                     OptionKeys.DEFAULT_HOYA_DATA_DIRECTORY_PERMISSIONS);
+      fs.mkdirs(path,new FsPermission(dataOpts));
+    }
+    return path;
+  }
+
+  /**
+   * get the user name
+   * @return the user name
+   */
+  public String getUserName() throws IOException {
+    return UserGroupInformation.getCurrentUser().getShortUserName();
   }
 }

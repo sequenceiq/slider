@@ -219,7 +219,7 @@ public class SequenceService extends AbstractService implements Parent,
    * @param service the {@link Service} to be added
    */
   @Override //Parent
-  public void addService(Service service) {
+  public synchronized void addService(Service service) {
     log.debug("Adding service {} ", service.getName());
     synchronized (serviceList) {
       serviceList.add(service);

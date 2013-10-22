@@ -22,6 +22,7 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.exceptions.HoyaException
+import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
@@ -53,7 +54,7 @@ class TestFreezeCommands extends HBaseMiniClusterTestBase {
     log.info("First Freeze command");
     ServiceLauncher freezeCommand = execHoyaCommand(conf,
                           [HoyaActions.ACTION_FREEZE, clustername,
-                            ClientArgs.ARG_WAIT, waitTimeArg]);
+                            Arguments.ARG_WAIT, waitTimeArg]);
     assert 0 == freezeCommand.serviceExitCode;
 
     log.info("Second Freeze command");
@@ -61,7 +62,7 @@ class TestFreezeCommands extends HBaseMiniClusterTestBase {
     ServiceLauncher freeze2 = execHoyaCommand(conf,
                                 [
                                     HoyaActions.ACTION_FREEZE, clustername,
-                                    ClientArgs.ARG_WAIT, waitTimeArg
+                                    Arguments.ARG_WAIT, waitTimeArg
                                 ]);
     assert 0 == freeze2.serviceExitCode;
 
@@ -74,8 +75,8 @@ class TestFreezeCommands extends HBaseMiniClusterTestBase {
           new YarnConfiguration(miniCluster.config),
           [
               HoyaActions.ACTION_EXISTS, clustername,
-              ClientArgs.ARG_WAIT, waitTimeArg,
-              ClientArgs.ARG_FILESYSTEM, fsDefaultName
+              Arguments.ARG_WAIT, waitTimeArg,
+              Arguments.ARG_FILESYSTEM, fsDefaultName
           ],
           )
       assert 0 != exists1.serviceExitCode;
@@ -88,8 +89,8 @@ class TestFreezeCommands extends HBaseMiniClusterTestBase {
     ServiceLauncher thawCommand = execHoyaCommand(conf,
                           [
                               HoyaActions.ACTION_THAW, clustername,
-                              ClientArgs.ARG_WAIT, waitTimeArg,
-                              ClientArgs.ARG_FILESYSTEM, fsDefaultName
+                              Arguments.ARG_WAIT, waitTimeArg,
+                              Arguments.ARG_FILESYSTEM, fsDefaultName
                           ]);
     assert 0 == thawCommand.serviceExitCode;
 
@@ -98,7 +99,7 @@ class TestFreezeCommands extends HBaseMiniClusterTestBase {
     ServiceLauncher freeze3 = execHoyaCommand(conf,
                                               [
                                                   HoyaActions.ACTION_FREEZE, clustername,
-                                                  ClientArgs.ARG_WAIT, waitTimeArg
+                                                  Arguments.ARG_WAIT, waitTimeArg
                                               ]);
     assert 0 == freeze3.serviceExitCode;
 
@@ -106,8 +107,8 @@ class TestFreezeCommands extends HBaseMiniClusterTestBase {
     ServiceLauncher thaw2 = execHoyaCommand(conf,
                                             [
                                                 HoyaActions.ACTION_THAW, clustername,
-                                                ClientArgs.ARG_WAIT, waitTimeArg,
-                                                ClientArgs.ARG_FILESYSTEM, fsDefaultName
+                                                Arguments.ARG_WAIT, waitTimeArg,
+                                                Arguments.ARG_FILESYSTEM, fsDefaultName
                                             ]);
     assert 0 == thaw2.serviceExitCode;
 
@@ -116,8 +117,8 @@ class TestFreezeCommands extends HBaseMiniClusterTestBase {
       ServiceLauncher thaw3 = execHoyaCommand(conf,
                                               [
                                                   HoyaActions.ACTION_THAW, clustername,
-                                                  ClientArgs.ARG_WAIT, waitTimeArg,
-                                                  ClientArgs.ARG_FILESYSTEM, fsDefaultName
+                                                  Arguments.ARG_WAIT, waitTimeArg,
+                                                  Arguments.ARG_FILESYSTEM, fsDefaultName
                                               ]);
       assert 0 != thaw3.serviceExitCode;
     } catch (HoyaException e) {
@@ -133,7 +134,7 @@ class TestFreezeCommands extends HBaseMiniClusterTestBase {
     try {
       ServiceLauncher destroy1 = execHoyaCommand(conf,
                                                  [HoyaActions.ACTION_DESTROY, clustername,
-                                                     ClientArgs.ARG_FILESYSTEM, fsDefaultName]);
+                                                     Arguments.ARG_FILESYSTEM, fsDefaultName]);
       fail("expected a failure from the destroy, got error code ${destroy1.serviceExitCode}");
     } catch (HoyaException e) {
       assertExceptionDetails(e,
@@ -145,7 +146,7 @@ class TestFreezeCommands extends HBaseMiniClusterTestBase {
     ServiceLauncher freeze4 = execHoyaCommand(conf,
                                               [
                                                   HoyaActions.ACTION_FREEZE, clustername,
-                                                  ClientArgs.ARG_WAIT, waitTimeArg
+                                                  Arguments.ARG_WAIT, waitTimeArg
                                               ]);
     assert 0 == freeze4.serviceExitCode;
 
@@ -153,8 +154,8 @@ class TestFreezeCommands extends HBaseMiniClusterTestBase {
     ServiceLauncher destroy2 = execHoyaCommand(conf,
                                                [
                                                    HoyaActions.ACTION_DESTROY, clustername,
-                                                   ClientArgs.ARG_FILESYSTEM, fsDefaultName,
-                                                   ClientArgs.ARG_WAIT, waitTimeArg
+                                                   Arguments.ARG_FILESYSTEM, fsDefaultName,
+                                                   Arguments.ARG_WAIT, waitTimeArg
                                                ]);
     assert 0 == destroy2.serviceExitCode;
 

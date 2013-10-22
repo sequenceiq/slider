@@ -38,14 +38,6 @@ public class HoyaMasterServiceArgs extends CommonArgs {
 
 
   /**
-   * Path for the ZK instance (required)
-   */
-  public static final String ARG_RM_ADDR = "--rm";
-  
-  public static final String ARG_HOYA_CLUSTER_URI = "--hoya-cluster-uri";
-  
-  
-  /**
    *    Declare the image configuration directory to use when creating
    *    or reconfiguring a hoya cluster.
    *    The path must be on a filesystem visible to all nodes in the

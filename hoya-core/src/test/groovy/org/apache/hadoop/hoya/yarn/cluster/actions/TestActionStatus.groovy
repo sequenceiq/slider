@@ -20,9 +20,9 @@ package org.apache.hadoop.hoya.yarn.cluster.actions
 
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.exceptions.HoyaException
+import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
-import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.conf.YarnConfiguration
@@ -57,7 +57,7 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
           [
               ClientArgs.ACTION_STATUS,
               "testStatusMissingCluster",
-              ClientArgs.ARG_MANAGER, RMAddr
+              Arguments.ARG_MANAGER, RMAddr
           ]
       )
       fail("expected an exception, got a status code " + launcher.serviceExitCode)
@@ -85,7 +85,7 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
         [
             ClientArgs.ACTION_STATUS,
             clustername,
-            ClientArgs.ARG_MANAGER, RMAddr,
+            Arguments.ARG_MANAGER, RMAddr,
         ]
         
     )

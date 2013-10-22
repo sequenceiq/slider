@@ -19,6 +19,7 @@
 package org.apache.hadoop.hoya.yarn.client
 
 import org.apache.hadoop.hoya.tools.HoyaUtils
+import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
@@ -51,9 +52,9 @@ class TestClientBasicArgs extends ServiceLauncherBaseTest {
                                       HoyaUtils.createConfiguration(),
                                       [
                                           ClientArgs.ACTION_HELP,
-                                          CommonArgs.ARG_DEBUG,
-                                          CommonArgs.ARG_IMAGE, "hdfs://users/bob/hbase0.94.tar.gz",
-                                          CommonArgs.ARG_CONFDIR, "hdfs://users/bob/hoya/conf1"
+                                          Arguments.ARG_DEBUG,
+                                          Arguments.ARG_IMAGE, "hdfs://users/bob/hbase0.94.tar.gz",
+                                          Arguments.ARG_CONFDIR, "hdfs://users/bob/hoya/conf1"
                                       ])
     assert 0 == launcher.serviceExitCode
 
@@ -64,7 +65,7 @@ class TestClientBasicArgs extends ServiceLauncherBaseTest {
     ServiceLauncher launcher = launch(HoyaClient,
                                       HoyaUtils.createConfiguration(),
                                       [
-                                          CommonArgs.ARG_DEBUG,
+                                          Arguments.ARG_DEBUG,
                                           ClientArgs.ACTION_HELP,
                                       ])
     assert 0 == launcher.serviceExitCode
@@ -75,7 +76,7 @@ class TestClientBasicArgs extends ServiceLauncherBaseTest {
     ServiceLauncher launcher = launch(HoyaClient,
                                       HoyaUtils.createConfiguration(),
                                       [
-                                          ClientArgs.ARG_WAIT, "60",
+                                          Arguments.ARG_WAIT, "60",
                                           ClientArgs.ACTION_HELP,
                                       ])
     assert 0 == launcher.serviceExitCode

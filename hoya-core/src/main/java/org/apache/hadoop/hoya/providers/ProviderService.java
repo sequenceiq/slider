@@ -69,4 +69,20 @@ public interface ProviderService extends ProviderCore, Service,
                                                  HoyaException;
 
   boolean buildStatusReport(ClusterNode masterNode);
+
+  /**
+   * This is a validation of the application configuration on the AM.
+   * Here is where things like the existence of keytabs and other
+   * not-seen-client-side properties can be tested, before
+   * the actual process is spawned. 
+   * @param clusterSpec clusterSpecification
+   * @param confDir configuration directory
+   * @param secure flag to indicate that secure mode checks must exist
+   * @throws IOException IO problemsn
+   * @throws HoyaException any failure
+   */
+  void validateApplicationConfiguration(ClusterDescription clusterSpec,
+                                        File confDir,
+                                        boolean secure
+                                       ) throws IOException, HoyaException;
 }

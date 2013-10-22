@@ -12,9 +12,9 @@
 ~~ limitations under the License. See accompanying LICENSE file.
 -->
 
-# Hoya Exit Codes
+# Hoya Client Exit Codes
 
-Here are the exit codes returned by Hoya
+Here are the exit codes returned by Hoya when it fails.
 
 Exit code values 1 and 2 are interpreted by YARN -in particular converting the
 "1" value from an error into a successful shut down. Hoya

@@ -20,12 +20,17 @@ package org.apache.hadoop.hoya.yarn.client
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.hdfs.DFSConfigKeys
 import org.apache.hadoop.hoya.api.RoleKeys
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
 import org.apache.hadoop.hoya.tools.HoyaUtils
+import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.HoyaActions
+import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.junit.Assert
+import org.junit.Assume
 import org.junit.Test
 
 /**
@@ -34,7 +39,7 @@ import org.junit.Test
 @CompileStatic
 @Slf4j
 
-class TestCommonArgParsing {
+class TestCommonArgParsing implements HoyaActions {
 
   @Test
   public void testCreateActionArgs() throws Throwable {
@@ -72,12 +77,92 @@ class TestCommonArgParsing {
   @Test
   public void testListFailsTwoClusternames() throws Throwable {
     assertParseFails([
-        HoyaActions.ACTION_LIST,
+        ACTION_LIST,
         "c1",
         "c2",
       ])
   }
 
+  @Test
+  public void testDefinitions() throws Throwable {
+    ClientArgs ca = createClientArgs([
+        ACTION_CREATE,
+        "clustername",
+        "-D","yarn.resourcemanager.principal=yarn/server@LOCAL",
+        "-D","dfs.datanode.kerberos.principal=hdfs/server@LOCAL",
+    ])
+    Configuration conf = new Configuration(false)
+    ca.applyDefinitions(conf)
+    assert ca.clusterName == "clustername"
+    HoyaUtils.verifyPrincipalSet(conf, YarnConfiguration.RM_PRINCIPAL);
+    HoyaUtils.verifyPrincipalSet(
+        conf,
+        DFSConfigKeys.DFS_DATANODE_USER_NAME_KEY);
+
+  }
+
+  
+  @Test
+  public void testActionComesAfterParseSingleArg() throws Throwable {
+    ClientArgs ca = createClientArgs([
+        Arguments.ARG_WAIT , "0", 
+        ACTION_LIST,
+    ])
+  }
+  
+  @Test
+  public void testActionComesAfterParseComplexArg() throws Throwable {
+    Configuration conf = new Configuration(false)
+    ClientArgs ca = createClientArgs([
+        Arguments.ARG_SYSPROP,"syspropkey=syspropval",
+        ACTION_LIST,
+    ])
+  }
+
+  /**
+   * Test a thaw command
+   * @throws Throwable
+   */
+  @Test
+  public void testComplexThaw() throws Throwable {
+    Assume.assumeTrue("test disabled -split arguments broken", false)
+
+    Configuration conf = new Configuration(false)
+    ClientArgs ca = createClientArgs([
+        "--manager", "ubuntu:8032", "--filesystem", "hdfs://ubuntu:9090",
+        "--secure","-S","java.security.krb5.realm=LOCAL","-S", "java.security.krb5.kdc=ubuntu",
+        "-D","yarn.resourcemanager.principal=yarn/ubuntu@LOCAL",
+        "-D","namenode.resourcemanager.principal=hdfs/ubuntu@LOCAL",
+        "thaw","cl1"    
+    ])
+    assert "cl1" == ca.clusterName
+  }
+  
+  /**
+   * Test a force kill command where the app comes at the end of the line
+   * @throws Throwable
+   * 
+   */
+  @Test
+  public void testEmergencyKill() throws Throwable {
+    Assume.assumeTrue("test disabled -split arguments broken", false)
+
+    Configuration conf = new Configuration(false)
+    String appId = "application_1381252124398_0013"
+    ClientArgs ca = createClientArgs([
+        ACTION_EMERGENCY_FORCE_KILL,
+        "--manager", "ubuntu:8032",
+        "--filesystem", "hdfs://ubuntu:9090",
+        "--secure",
+        "-S","java.security.krb5.realm=LOCAL",
+        "-S", "java.security.krb5.kdc=ubuntu",
+        "-D","yarn.resourcemanager.principal=yarn/ubuntu@LOCAL",
+        "-D","namenode.resourcemanager.principal=hdfs/ubuntu@LOCAL",
+        appId
+    ])
+    assert appId == ca.clusterName
+    
+  }
   
   private void assertParseFails(List argsList) {
     try {
@@ -105,8 +190,8 @@ class TestCommonArgParsing {
    */
   private def baseArgs() {
     return [
-        CommonArgs.ARG_ZKHOSTS, "localhost",
-        CommonArgs.ARG_ZKPORT, "8080",
+        Arguments.ARG_ZKHOSTS, "localhost",
+        Arguments.ARG_ZKPORT, "8080",
     ]
   }
 
@@ -115,7 +200,7 @@ class TestCommonArgParsing {
   public void testSingleRoleArg() throws Throwable {
     ClientArgs clientArgs = createClientArgs([
         HoyaActions.ACTION_CREATE, 'cluster1',
-        CommonArgs.ARG_ROLE,"master","5",
+        Arguments.ARG_ROLE,"master","5",
     ])
     def tuples = clientArgs.roleTuples;
     assert tuples.size() == 2;
@@ -138,8 +223,8 @@ class TestCommonArgParsing {
   public void testMultiRoleArg() throws Throwable {
     ClientArgs clientArgs = createClientArgs([
         HoyaActions.ACTION_CREATE, 'cluster1',
-        CommonArgs.ARG_ROLE,"master","1",
-        CommonArgs.ARG_ROLE,"worker","2",
+        Arguments.ARG_ROLE,"master","1",
+        Arguments.ARG_ROLE,"worker","2",
     ])
     def tuples = clientArgs.roleTuples;
     assert tuples.size() == 4;
@@ -152,8 +237,8 @@ class TestCommonArgParsing {
   public void testDuplicateRole() throws Throwable {
     ClientArgs clientArgs = createClientArgs([
         HoyaActions.ACTION_CREATE, 'cluster1',
-        CommonArgs.ARG_ROLE,"master","1",
-        CommonArgs.ARG_ROLE,"master","2",
+        Arguments.ARG_ROLE,"master","1",
+        Arguments.ARG_ROLE,"master","2",
     ])
     def tuples = clientArgs.roleTuples;
     assert tuples.size() == 4;
@@ -169,8 +254,8 @@ class TestCommonArgParsing {
   public void testOddRoleCount() throws Throwable {
     ClientArgs clientArgs = createClientArgs([
         HoyaActions.ACTION_CREATE, 'cluster1',
-        CommonArgs.ARG_ROLE,"master","1",
-        CommonArgs.ARG_ROLE,"master","2",
+        Arguments.ARG_ROLE,"master","1",
+        Arguments.ARG_ROLE,"master","2",
     ])
     List<String> tuples = clientArgs.roleTuples
     tuples += "loggers";
@@ -190,15 +275,15 @@ class TestCommonArgParsing {
   public ClientArgs createRoleOptClientArgs() {
     ClientArgs clientArgs = createClientArgs([
         HoyaActions.ACTION_CREATE, 'cluster1',
-        CommonArgs.ARG_ROLE, "master", "1",
-        CommonArgs.ARG_ROLEOPT, "master", "cheese", "swiss",
-        CommonArgs.ARG_ROLEOPT, "master", "env.CHEESE", "cheddar",
-        CommonArgs.ARG_ROLEOPT, "master", RoleKeys.YARN_CORES, 3,
+        Arguments.ARG_ROLE, "master", "1",
+        Arguments.ARG_ROLEOPT, "master", "cheese", "swiss",
+        Arguments.ARG_ROLEOPT, "master", "env.CHEESE", "cheddar",
+        Arguments.ARG_ROLEOPT, "master", RoleKeys.YARN_CORES, 3,
 
-        CommonArgs.ARG_ROLE, "worker", "2",
-        CommonArgs.ARG_ROLEOPT, "worker", RoleKeys.YARN_CORES, 2,
-        CommonArgs.ARG_ROLEOPT, "worker", RoleKeys.JVM_HEAP, "65536",
-        CommonArgs.ARG_ROLEOPT, "worker", "env.CHEESE", "stilton",
+        Arguments.ARG_ROLE, "worker", "2",
+        Arguments.ARG_ROLEOPT, "worker", RoleKeys.YARN_CORES, 2,
+        Arguments.ARG_ROLEOPT, "worker", RoleKeys.JVM_HEAP, "65536",
+        Arguments.ARG_ROLEOPT, "worker", "env.CHEESE", "stilton",
     ])
     return clientArgs
   }

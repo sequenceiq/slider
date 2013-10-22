@@ -19,6 +19,7 @@
 package org.apache.hadoop.hoya.yarn.cluster.live
 
 import groovy.util.logging.Slf4j
+import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
@@ -59,7 +60,7 @@ class TestTwoLiveClusters extends HBaseMiniClusterTestBase {
 
     launcher = createHBaseCluster(clustername2, regionServerCount,
                                  [
-                                     CommonArgs.ARG_APP_ZKPATH, "/$clustername2",
+                                     Arguments.ARG_APP_ZKPATH, "/$clustername2",
                                  ],
                                  true,
                                  true)

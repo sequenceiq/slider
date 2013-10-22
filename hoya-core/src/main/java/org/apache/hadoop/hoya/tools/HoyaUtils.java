@@ -28,12 +28,14 @@ import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.RoleKeys;
+import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.exceptions.MissingArgException;
 import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions;
 import org.apache.hadoop.hoya.yarn.client.HoyaClient;
 import org.apache.hadoop.net.NetUtils;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.ExitUtil;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -43,6 +45,7 @@ import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
+import org.apache.zookeeper.server.util.KerberosUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -284,7 +287,9 @@ public final class HoyaUtils {
       log.debug("copying src conf file {}", srcFile);
       sourcePaths[i] = srcFile;
     }
-    log.debug("Copying {} files to dest dir {}", srcFileCount, destDirPath);
+    log.debug("Copying {} files from to {} to dest {}", srcFileCount,
+              srcDirPath,
+              destDirPath);
     FileUtil.copy(srcFS, sourcePaths, destFS, destDirPath, false, true, conf);
     return srcFileCount;
   }
@@ -908,6 +913,35 @@ public final class HoyaUtils {
   }
 
   /**
+   * verify that the supplied cluster name is valid
+   * @param clustername cluster name
+   * @throws BadCommandArgumentsException if it is invalid
+   */
+  public static void validateClusterName(String clustername) throws
+                                                         BadCommandArgumentsException {
+    if (!isClusternameValid(clustername)) {
+      throw new BadCommandArgumentsException(
+        "Illegal cluster name: " + clustername);
+    }
+  }
+
+  /**
+   * Verify that a Kerberos principal has been set -if not fail
+   * with an error message that actually tells you what is missing
+   * @param conf configuration to look at
+   * @param principal key of principal
+   * @throws BadConfigException if the key is not set
+   */
+  public static void verifyPrincipalSet(Configuration conf,
+                                        String principal) throws
+                                                           BadConfigException {
+    if (conf.get(principal) == null) {
+      throw new BadConfigException("Unset Kerberos principal : %s",
+                                   principal);
+    }
+  }
+
+  /**
    * This wrapps ApplicationReports and generates a string version
    * iff the toString() operator is invoked
    */
@@ -942,6 +976,7 @@ public final class HoyaUtils {
   }
   
   public static String listDir(File dir) {
+    if (dir == null) return "";
     StringBuilder builder = new StringBuilder();
     String[] confDirEntries = dir.list();
     for (String entry : confDirEntries) {
@@ -950,7 +985,63 @@ public final class HoyaUtils {
     return builder.toString();
   }
 
+  /**
+   * Create a file:// path from a local file
+   * @param file file to point the path
+   * @return a new Path
+   */
   public static Path createLocalPath(File file) {
     return new Path(file.toURI());
   }
+
+  /**
+   * Get the current user -relays to
+   * {@link UserGroupInformation#getCurrentUser()}
+   * with any Hoya-specific post processing and exception handling
+   * @return user info
+   * @throws IOException on a failure to get the credentials
+   */
+  public static UserGroupInformation getCurrentUser() throws IOException {
+
+    try {
+      UserGroupInformation currentUser = UserGroupInformation.getCurrentUser();
+      log.debug("Current user is {}", currentUser);
+      return currentUser;
+    } catch (IOException e) {
+      log.info("Failed to grt user info", e);
+      throw e;
+    }
+  }
+ 
+  public static String getKerberosRealm() {
+    try {
+      return KerberosUtil.getDefaultRealm();
+    } catch (Exception e) {
+      log.debug("introspection into JVM internals failed", e);
+      return "(unknown)";
+
+    }
+  }
+  
+  /**
+   * Register the client resource in 
+   * {@link HoyaKeys#HOYA_CLIENT_RESOURCE}
+   * for Configuration instances.
+   * 
+   * @return true if the resource could be loaded
+   */
+  public static URL registerHoyaClientResource() {
+    return ConfigHelper.registerDefaultResource(HoyaKeys.HOYA_CLIENT_RESOURCE);
+  }
+
+
+  /**
+   * Attempt to load the hoya client resource. If the
+   * resource is not on the CP an empty config is returned.
+   * @return a config
+   */
+  public static Configuration loadHoyaClientConfigurationResource() {
+    return ConfigHelper.loadFromResource(HoyaKeys.HOYA_CLIENT_RESOURCE);
+  }
+
 }

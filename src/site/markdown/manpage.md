@@ -262,21 +262,16 @@ The same zookeeper bindings as before will be used.
 
 If a cluster is already running, this is a no-op
 
-## Unimplemented
+### emergency_force_kill \<applicationID>
 
-### UNIMPLEMENTED: getsize \<cluster> \[-count count]
- 
-Return the number of region servers in the cluster as the return value of the operation.
-If a count parameter is provided, then the return code is success, 0, if and only if the number of region servers equals the count. The HBase Master is not included in the size count.
+This attempts to force kill any YARN application referenced by application ID.
+There is no attempt to notify the running AM. 
 
+If the application ID is `all` then all hoya instances belonging to the current
+user are killed.
 
-### UNIMPLEMENTED: reconfigure \<cluster> --appconf path
-
-Update a cluster with a new configuration. This operation is only valid on a stopped cluster. The new configuration will completely replace the existing configuration.
-
-### UNIMPLEMENTED: reimage \<cluster> --image path
-
-Update a cluster with a new configuration. This operation is only valid on a stopped cluster. The new configuration will completely replace the existing configuration.
+These are clearly abnormal operations; they are here primarily for testing
+-and documented for completeness.
 
 <!--- ======================================================================= -->
 

@@ -21,6 +21,7 @@ package org.apache.hadoop.yarn.service.launcher;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FsUrlStreamHandlerFactory;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.util.ExitUtil;
@@ -238,6 +239,7 @@ public class ServiceLauncher
     boolean controlC = IrqHandler.CONTROL_C.equals(interruptData.name);
     int shutdownTimeMillis = SHUTDOWN_TIME_ON_INTERRUPT;
     //start an async shutdown thread with a timeout
+    LOG.info("Halting service");
     ServiceForcedShutdown forcedShutdown =
       new ServiceForcedShutdown(shutdownTimeMillis);
     Thread thread = new Thread(forcedShutdown);

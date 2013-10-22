@@ -23,6 +23,7 @@ import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys
 import org.apache.hadoop.hoya.tools.ZKIntegration
+import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.accumulo.AccumuloTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
@@ -34,6 +35,7 @@ class TestAccM0T0 extends AccumuloTestBase {
 
   @Test
   public void testAccM0T0() throws Throwable {
+    skip("disabled")
     String clustername = "TestAccM0T0"
     createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
     describe(" Create an accumulo cluster");

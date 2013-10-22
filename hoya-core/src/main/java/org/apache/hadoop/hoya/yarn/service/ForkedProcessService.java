@@ -71,7 +71,7 @@ public class ForkedProcessService extends AbstractService implements
   private Thread timeoutThread;
 
   public ForkedProcessService(String name) {
-    super("name");
+    super(name);
     this.name = name;
   }
 

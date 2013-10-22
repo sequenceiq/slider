@@ -25,6 +25,8 @@ import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
 import org.apache.hadoop.hoya.tools.PathArgumentConverter;
 import org.apache.hadoop.hoya.yarn.CommonArgs;
+import org.apache.hadoop.security.SecurityUtil;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
 import java.util.ArrayList;
@@ -44,15 +46,6 @@ public class ClientArgs extends CommonArgs {
    */
   public static final String CLASSNAME =
     "org.apache.hadoop.hoya.yarn.client.HoyaClient";
-  /**
-   filesystem-uri: {@value}
-   */
-  public static final String ARG_AMQUEUE = "--amqueue";
-  public static final String ARG_AMPRIORITY = "--ampriority";
-  //public static final String ARG_FILESYSTEM = "--fs";
-  public static final String ARG_FORMAT = "--format";
-  public static final String ARG_PERSIST = "--persist";
-  public static final String ARG_WAIT = "--wait";
 
 
   public static final String FORMAT_XML = "xml";
@@ -146,6 +139,7 @@ public class ClientArgs extends CommonArgs {
     ACTIONS.put(ACTION_CREATE, t("Create a live Hoya cluster", 1));
     ACTIONS.put(ACTION_DESTROY,
                 t("Destroy a Hoya cluster (which must be stopped)", 1));
+    ACTIONS.put(ACTION_EMERGENCY_FORCE_KILL, t("Force kill an application by its YARN application ID", 1));
     ACTIONS.put(ACTION_EXISTS, t("Probe for a cluster being live", 1));
     ACTIONS.put(ACTION_FLEX, t("Flex a Hoya cluster", 1));
     ACTIONS.put(ACTION_FREEZE, t("freeze/suspend a running cluster", 1));
@@ -177,12 +171,19 @@ public class ClientArgs extends CommonArgs {
   }
 
   @Override
-  public void applyDefinitions(Configuration conf) {
+  public void applyDefinitions(Configuration conf) throws
+                                                   BadCommandArgumentsException {
     super.applyDefinitions(conf);
     //RM
     if (manager != null) {
       LOG.debug("Setting RM to {}", manager);
       conf.set(YarnConfiguration.RM_ADDRESS, manager);
+    }
+    //security
+    if (secure) {
+      LOG.debug("secure mode: requiring Kerberos authentication");
+      SecurityUtil.setAuthenticationMethod(
+        UserGroupInformation.AuthenticationMethod.KERBEROS, conf);
     }
   }
 

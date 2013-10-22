@@ -2,14 +2,14 @@
   <modelVersion>4.0.0</modelVersion>
   <artifactId>hoya-core</artifactId>
   <name>Hoya Core</name>
-  <version>0.5.0</version>
+  <version>0.5.2</version>
   <packaging>jar</packaging>
   <description>Core Hoya Module and minicluster tests
   </description>
   <parent>
     <groupId>org.apache.hoya</groupId>
     <artifactId>hoya</artifactId>
-    <version>0.5.0</version>
+    <version>0.5.2</version>
   </parent>
 
   <build>
@@ -50,7 +50,7 @@
           <archive>
             <manifestEntries>
               <mode>development</mode>
-              <url>${pom.url}</url>
+              <url>${project.url}</url>
             </manifestEntries>
             <!-- Manifest specific configuration -->
             <manifest>
@@ -240,7 +240,6 @@
     <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-hdfs</artifactId>
-      <scope>runtime</scope>
     </dependency>
 
     <dependency>
@@ -341,5 +340,64 @@
     </dependency>
   </dependencies>
 
- 
+
+  <profiles>
+
+
+    <!--
+    a test run, currently hard-coded for stevel's secure
+    VM cluster
+    -->
+    <profile>
+      <id>testrun</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>1.2.1</version>
+            <configuration>
+              <executable>java</executable>
+              <arguments>
+                <argument>-Xms512m</argument>
+                <argument>-Xmx512m</argument>
+                <argument>-classpath</argument>
+                <classpath/>
+                <argument>org.apache.hadoop.hoya.Hoya</argument>
+                <argument>list</argument>
+              </arguments>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    
+    <profile>
+      <id>list</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>1.2.1</version>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>java</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <mainClass>org.apache.hadoop.hoya.Hoya</mainClass>
+              <arguments>
+                <argument>list</argument>
+              </arguments>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+  </profiles>
+
 </project>

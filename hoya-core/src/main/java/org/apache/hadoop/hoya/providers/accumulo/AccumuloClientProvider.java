@@ -34,6 +34,7 @@ import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
+import org.apache.hadoop.hoya.servicemonitor.Probe;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -46,6 +47,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,6 +82,12 @@ public class AccumuloClientProvider extends Configured implements
     return PROVIDER_ACCUMULO;
   }
 
+  @Override
+  public List<Probe> createProbes(String urlStr, Configuration config, int timeout) 
+      throws IOException {
+    return new ArrayList<Probe>();
+  }
+  
   @Override
   public List<ProviderRole> getRoles() {
     return AccumuloRoles.ROLES;
@@ -131,11 +139,13 @@ public class AccumuloClientProvider extends Configured implements
     rolemap.put(RoleKeys.YARN_MEMORY, DEFAULT_ROLE_YARN_RAM);
 
     if (rolename.equals(ROLE_MASTER)) {
+      rolemap.put(RoleKeys.ROLE_INSTANCES, "1");
       rolemap.put(RoleKeys.JVM_HEAP, DEFAULT_MASTER_HEAP);
       rolemap.put(RoleKeys.YARN_CORES, DEFAULT_MASTER_YARN_VCORES);
       rolemap.put(RoleKeys.YARN_MEMORY, DEFAULT_MASTER_YARN_RAM);
 
     } else if (rolename.equals(ROLE_TABLET)) {
+      rolemap.put(RoleKeys.ROLE_INSTANCES, "1");
     } else if (rolename.equals(ROLE_TRACER)) {
     } else if (rolename.equals(ROLE_GARBAGE_COLLECTOR)) {
     } else if (rolename.equals(ROLE_MONITOR)) {
@@ -219,7 +229,7 @@ public class AccumuloClientProvider extends Configured implements
     URI parentUri = path.toUri();
     String authority = parentUri.getAuthority();
     String fspath =
-      parentUri.getScheme() + ":" + (authority == null ? "" : authority) + "/";
+      parentUri.getScheme() + "://" + (authority == null ? "" : authority) + "/";
     sitexml.put(AccumuloConfigFileOptions.INSTANCE_DFS_URI, fspath);
     sitexml.put(AccumuloConfigFileOptions.INSTANCE_DFS_DIR,
                 parentUri.getPath());
@@ -259,16 +269,28 @@ public class AccumuloClientProvider extends Configured implements
     validateClusterSpec(clusterSpec);
   }
 
+  @Override //Client
+  public void preflightValidateClusterConfiguration(ClusterDescription clusterSpec,
+                                                    FileSystem clusterFS,
+                                                    Path generatedConfDirPath,
+                                                    boolean secure) throws
+                                                                    HoyaException,
+                                                                    IOException {
+    validateClusterSpec(clusterSpec);
+  }
 
   /**
    * This builds up the site configuration for the AM and downstream services;
    * the path is added to the cluster spec so that launchers in the 
    * AM can pick it up themselves. 
+   *
+   *
    * @param clusterFS filesystem
    * @param serviceConf conf used by the service
    * @param clusterSpec cluster specification
    * @param originConfDirPath the original config dir -treat as read only
    * @param generatedConfDirPath path to place generated artifacts
+   * @param clientConfExtras
    * @return a map of name to local resource to add to the AM launcher
    */
   @Override //client
@@ -276,7 +298,8 @@ public class AccumuloClientProvider extends Configured implements
                                                                 Configuration serviceConf,
                                                                 ClusterDescription clusterSpec,
                                                                 Path originConfDirPath,
-                                                                Path generatedConfDirPath) throws
+                                                                Path generatedConfDirPath,
+                                                                Configuration clientConfExtras) throws
                                                                                            IOException,
                                                                                            BadConfigException {
     Configuration siteConf = ConfigHelper.loadTemplateConfiguration(
@@ -288,16 +311,16 @@ public class AccumuloClientProvider extends Configured implements
     //construct the cluster configuration values
     Map<String, String> clusterConfMap = buildSiteConfFromSpec(clusterSpec);
     //merge them
-    ConfigHelper.addConfigMap(siteConf, clusterConfMap);
+    ConfigHelper.addConfigMap(siteConf, clusterConfMap, "Accumulo Provider");
 
     if (log.isDebugEnabled()) {
       ConfigHelper.dumpConf(siteConf);
     }
 
-    Path sitePath = ConfigHelper.generateConfig(serviceConf,
-                                                siteConf,
-                                                generatedConfDirPath,
-                                                AccumuloKeys.SITE_XML);
+    Path sitePath = ConfigHelper.saveConfig(serviceConf,
+                                            siteConf,
+                                            generatedConfDirPath,
+                                            AccumuloKeys.SITE_XML);
 
     log.debug("Saving the config to {}", sitePath);
     Map<String, LocalResource> confResources;
@@ -345,15 +368,29 @@ public class AccumuloClientProvider extends Configured implements
     providerUtils.validateNodeCount(AccumuloKeys.ROLE_TABLET,
                                     clusterSpec.getDesiredInstanceCount(
                                       AccumuloKeys.ROLE_TABLET,
-                                      0), 0, -1);
+                                      1), 1, -1);
 
 
-    providerUtils.validateNodeCount(HoyaKeys.ROLE_MASTER,
+    providerUtils.validateNodeCount(AccumuloKeys.ROLE_MASTER,
                                     clusterSpec.getDesiredInstanceCount(
-                                      HoyaKeys.ROLE_MASTER,
-                                      0),
-                                    0,
-                                    1);
+                                      AccumuloKeys.ROLE_MASTER,
+                                      1), 1, 1);
+
+    providerUtils.validateNodeCount(AccumuloKeys.ROLE_GARBAGE_COLLECTOR,
+                                    clusterSpec.getDesiredInstanceCount(
+                                      AccumuloKeys.ROLE_GARBAGE_COLLECTOR,
+                                      0), 0, 1);
+
+    providerUtils.validateNodeCount(AccumuloKeys.ROLE_MONITOR,
+                                    clusterSpec.getDesiredInstanceCount(
+                                      AccumuloKeys.ROLE_MONITOR,
+                                      0), 0, 1);
+
+    providerUtils.validateNodeCount(AccumuloKeys.ROLE_TRACER,
+                                    clusterSpec.getDesiredInstanceCount(
+                                      AccumuloKeys.ROLE_TRACER,
+                                      0), 0, 1);
+
     clusterSpec.verifyOptionSet(AccumuloKeys.OPTION_ZK_HOME);
     clusterSpec.verifyOptionSet(AccumuloKeys.OPTION_HADOOP_HOME);
   }

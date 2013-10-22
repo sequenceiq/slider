@@ -28,8 +28,7 @@ import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.RoleKeys
 import org.apache.hadoop.hoya.providers.accumulo.AccumuloConfigFileOptions
 import org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys
-import org.apache.hadoop.hoya.providers.accumulo.AccumuloRoles
-import org.apache.hadoop.hoya.yarn.CommonArgs
+import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
@@ -57,7 +56,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
 
   @Override
   public String getTestConfigurationPath() {
-    return "src/main/resources" + AccumuloKeys.CONF_RESOURCE; 
+    return "src/main/resources/" + AccumuloKeys.CONF_RESOURCE; 
   }
 
   @Override
@@ -110,9 +109,9 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
   }
 
   public void assumeArchiveDefined() {
-    String hbaseArchive = archiveKey
-    Assume.assumeTrue("Hbase Archive conf option not set " + KeysForTests.HOYA_TEST_ACCUMULO_TAR,
-                      hbaseArchive != null && hbaseArchive != "")
+    String archive = archiveKey
+    Assume.assumeTrue("Archive conf option not set " + KeysForTests.HOYA_TEST_ACCUMULO_TAR,
+                      archive != null && archive != "")
   }
 
   /**
@@ -121,7 +120,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
    * HBase home to be set.
    */
   public void assumeServiceHome() {
-    Assume.assumeTrue("Hbase Archive conf option not set " + KeysForTests.HOYA_TEST_ACCUMULO_HOME,
+    Assume.assumeTrue("Service home conf option not set " + KeysForTests.HOYA_TEST_ACCUMULO_HOME,
                       serviceHome != null && serviceHome != "")
   }
   public void assumeOtherSettings(YarnConfiguration conf) {
@@ -138,11 +137,11 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
       assert archiveKey
       File f = new File(archiveKey)
       assert f.exists()
-      return [CommonArgs.ARG_IMAGE, f.toURI().toString()]
+      return [Arguments.ARG_IMAGE, f.toURI().toString()]
     } else {
       assert serviceHome
       assert new File(serviceHome).exists();
-      return [CommonArgs.ARG_APP_HOME, serviceHome]
+      return [Arguments.ARG_APP_HOME, serviceHome]
     }
   }
 
@@ -175,7 +174,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
    * @return the cluster launcher
    */
   public ServiceLauncher createAccCluster(String clustername, Map<String, Integer> roles, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
-    extraArgs << CommonArgs.ARG_PROVIDER << AccumuloKeys.PROVIDER_ACCUMULO;
+    extraArgs << Arguments.ARG_PROVIDER << AccumuloKeys.PROVIDER_ACCUMULO;
 
     YarnConfiguration conf = testConfiguration
 
@@ -184,8 +183,8 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
         (AccumuloKeys.OPTION_HADOOP_HOME): conf.getTrimmed(AccumuloKeys.OPTION_HADOOP_HOME),
     ]
 
-    extraArgs << CommonArgs.ARG_ROLEOPT << AccumuloKeys.ROLE_MASTER << RoleKeys.APP_INFOPORT << AccumuloConfigFileOptions.MASTER_PORT_CLIENT_DEFAULT
-    extraArgs << CommonArgs.ARG_ROLEOPT << AccumuloKeys.ROLE_MONITOR << RoleKeys.APP_INFOPORT << AccumuloConfigFileOptions.MONITOR_PORT_CLIENT_DEFAULT
+    extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_MASTER << RoleKeys.APP_INFOPORT << AccumuloConfigFileOptions.MASTER_PORT_CLIENT_DEFAULT
+    extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_MONITOR << RoleKeys.APP_INFOPORT << AccumuloConfigFileOptions.MONITOR_PORT_CLIENT_DEFAULT
 
     return createHoyaCluster(clustername,
                              roles,
@@ -197,8 +196,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
 
   public void addOption(List<String> extraArgs, YarnConfiguration conf, String option) {
     assert conf.getTrimmed(option);
-    extraArgs << CommonArgs.ARG_OPTION <<
-    option << conf.getTrimmed(option)
+    extraArgs << Arguments.ARG_OPTION << option << conf.getTrimmed(option)
   }
   
 
@@ -209,12 +207,12 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
 
   public def fetchWebPage(String url) {
     def client = new HttpClient(new MultiThreadedHttpConnectionManager());
-    client.getHttpConnectionManager().getParams().setConnectionTimeout(10000);
+    client.httpConnectionManager.params.connectionTimeout = 10000;
     GetMethod get = new GetMethod(url);
-    
-    get.setFollowRedirects(true);
+
+    get.followRedirects = true;
     int resultCode = client.executeMethod(get);
-    String body = get.getResponseBodyAsString();
+    String body = get.responseBodyAsString;
     return body;
   }
   

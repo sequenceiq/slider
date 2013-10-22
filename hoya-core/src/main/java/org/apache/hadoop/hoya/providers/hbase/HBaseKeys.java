@@ -57,7 +57,10 @@ public interface HBaseKeys {
   /** {@value */
   String REGION_SERVER = "regionserver";
 
-  String VERSION = "version";
+  /**
+   *  name of the hbase subdir in the archive:  {@value}
+   */
+  String VERSION = "hbase-0.96.0";
 
   String ACTION_START = "start";
   String ACTION_STOP = "stop";
@@ -70,10 +73,7 @@ public interface HBaseKeys {
    *  name of the hbase script relative to the hbase root dir:  {@value}
    */
   String HBASE_SCRIPT = "bin/hbase";
-  /**
-   *  name of the hbase subdir in the archive:  {@value}
-   */
-  String ARCHIVE_SUBDIR = "hbase-0.96.0";
+  
   /**
    *  name of the site conf to generate :  {@value}
    */
@@ -83,7 +83,7 @@ public interface HBaseKeys {
    * no site-specific template
    *  {@value}
    */
-  String HBASE_CONF_RESOURCE = "/org/apache/hadoop/hoya/providers/hbase/conf/";
+  String HBASE_CONF_RESOURCE = "org/apache/hadoop/hoya/providers/hbase/conf/";
   String HBASE_TEMPLATE_RESOURCE = HBASE_CONF_RESOURCE + SITE_XML;
 
 
@@ -93,4 +93,7 @@ public interface HBaseKeys {
   String DEFAULT_HBASE_MASTER_INFOPORT = "0";
   String PROVIDER_HBASE = "hbase";
   String HBASE_LOG_DIR = "HBASE_LOG_DIR";
+
 }
+
+

@@ -36,10 +36,20 @@ class TestFailedRegionService extends HBaseMiniClusterTestBase {
 
   @Test
   public void testFailedRegionService() throws Throwable {
-    String clustername = "TestFailedRegionService"
+    testRegionService("TestFailedRegionService", true)
+  }
+  
+  @Test
+  public void testStoppedRegionService() throws Throwable {
+    testRegionService("TestStoppedRegionService", false)
+  }
+  
+  private void testRegionService(String testName, boolean toKill) {
+    String clustername = testName
+    String action = toKill ? "kill" : "stop"
     int regionServerCount = 2
     createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
-    describe(" Create a single region service cluster then kill the RS");
+    describe("Create a single region service cluster then " + action + " the RS");
 
     //now launch the cluster
     ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount, [], true, true)
@@ -49,7 +59,6 @@ class TestFailedRegionService extends HBaseMiniClusterTestBase {
 
     ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient)
 
-
     status = waitForHoyaWorkerCount(hoyaClient, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     //get the hbase status
     ClusterStatus hbaseStat = waitForHBaseRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
@@ -57,12 +66,12 @@ class TestFailedRegionService extends HBaseMiniClusterTestBase {
     log.info("Initial cluster status : ${hbaseStatusToString(hbaseStat)}");
     describe("running processes")
     lsJavaProcesses()
-    describe("about to kill servers")
-    //now kill the process
-    killAllRegionServers()
+    describe("about to " + action + " servers")
+    if (toKill) killAllRegionServers()
+    else stopAllRegionServers()
 
     //sleep a bit
-    sleep(15000);
+    sleep(toKill ? 15000 : 25000);
     lsJavaProcesses()
 
     describe("waiting for recovery")
@@ -73,7 +82,6 @@ class TestFailedRegionService extends HBaseMiniClusterTestBase {
     hbaseStat = waitForHBaseRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
     log.info("Updated cluster status : ${hbaseStatusToString(hbaseStat)}");
-
   }
 
 
