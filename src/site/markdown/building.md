@@ -312,17 +312,17 @@ look good too: there must be no `-SNAPSHOT` dependencies.
 And a multi-line markdown release note, which will be used for artifacts.
 
 
-    Release of Hoya against hadoop 2.2.0 and hbase 0.96.0-hadoop2
+Release of Hoya against hadoop 2.2.0 and hbase 0.96.0-hadoop2
 
-    This release of Hoya:
-    
-    1. Is built against the (ASF staged) hadoop 2.2.0 and hbase 0.96.0-hadoop2 artifacts. 
-    1. Supports Apache HBase cluster creation, flexing, freezing and thawing.
-    1. Contains the initial support of Apache Accumulo: all accumulo roles
-    can be created, though its testing is currently very minimal.
-    1. Has moved `log4j.properties` out of the JAR file and into the directory
-    `conf/`, where it will be picked up both client-side and server-side.
-    Enjoy!
+This release of Hoya:
+
+* Is built against the (ASF staged) hadoop 2.2.0 and hbase 0.96.0-hadoop2 artifacts. 
+* Supports Apache HBase cluster creation, flexing, freezing and thawing.
+* Contains the initial support of Apache Accumulo: all accumulo roles
+can be created, though its testing is currently very minimal.
+* Has moved `log4j.properties` out of the JAR file and into the directory
+`conf/`, where it will be picked up both client-side and server-side.
+Enjoy!
 
 
 **Step #10:** Finish the git flow release, either in the SourceTree GUI or
