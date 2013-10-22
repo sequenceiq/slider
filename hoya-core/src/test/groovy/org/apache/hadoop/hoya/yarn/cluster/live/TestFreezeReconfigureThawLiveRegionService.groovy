@@ -51,7 +51,7 @@ class TestFreezeReconfigureThawLiveRegionService extends HBaseMiniClusterTestBas
     ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount, [], true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
-    ClusterDescription status = hoyaClient.getClusterStatus(clustername)
+    ClusterDescription status = hoyaClient.getClusterDescription(clustername)
     log.info("${status.toJsonString()}")
 
     ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient)
@@ -87,7 +87,7 @@ class TestFreezeReconfigureThawLiveRegionService extends HBaseMiniClusterTestBas
     clustat = basicHBaseClusterStartupSequence(thawed)
 
     //get the options
-    ClusterDescription stat = thawed.clusterStatus
+    ClusterDescription stat = thawed.clusterDescription
     Map<String, String> properties = stat.clientProperties
     log.info("Cluster properties: \n"+HoyaUtils.stringifyMap(properties));
     assert properties[patchedText]=="true";

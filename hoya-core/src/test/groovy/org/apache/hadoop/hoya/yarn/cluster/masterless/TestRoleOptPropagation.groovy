@@ -55,7 +55,7 @@ class TestRoleOptPropagation extends HBaseMiniClusterTestBase {
                                                  true, [:])
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
-    ClusterDescription status = hoyaClient.clusterStatus
+    ClusterDescription status = hoyaClient.clusterDescription
     Map<String, String> masterRole = status.getRole("master");
     assert masterRole[MALLOC_ARENA] == "4"
 

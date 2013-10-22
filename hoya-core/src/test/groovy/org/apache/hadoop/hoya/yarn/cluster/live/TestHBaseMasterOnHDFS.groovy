@@ -42,7 +42,7 @@ class TestHBaseMasterOnHDFS extends HBaseMiniClusterTestBase {
     ServiceLauncher launcher = createHBaseCluster(clustername, 1, [], true, true) 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
-    ClusterDescription status = hoyaClient.getClusterStatus(clustername)
+    ClusterDescription status = hoyaClient.getClusterDescription(clustername)
     log.info("Status $status")
     
     basicHBaseClusterStartupSequence(hoyaClient)

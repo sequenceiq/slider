@@ -1603,7 +1603,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                               IOException {
     verifyManagerSet();
     HoyaUtils.validateClusterName(clustername);
-    ClusterDescription status = getClusterStatus(clustername);
+    ClusterDescription status = getClusterDescription(clustername);
     log.info(status.toJsonString());
     return EXIT_SUCCESS;
   }
@@ -1662,7 +1662,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       throws YarnException, IOException {
     verifyManagerSet();
     HoyaUtils.validateClusterName(clustername);
-    ClusterDescription status = getClusterStatus(clustername);
+    ClusterDescription status = getClusterDescription(clustername);
     Writer writer;
     boolean toPrint;
     if (outputfile != null) {
@@ -1829,7 +1829,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
    * @return its description
    */
   @VisibleForTesting
-  public ClusterDescription getClusterStatus(String clustername) throws
+  public ClusterDescription getClusterDescription(String clustername) throws
                                                                  YarnException,
                                                                  IOException {
     HoyaClusterProtocol appMaster = bondToCluster(clustername);
@@ -1853,10 +1853,10 @@ public class HoyaClient extends YarnClientImpl implements RunService,
    * @return its description
    */
   @VisibleForTesting
-  public ClusterDescription getClusterStatus() throws
+  public ClusterDescription getClusterDescription() throws
                                                YarnException,
                                                IOException {
-    return getClusterStatus(getDeployedClusterName());
+    return getClusterDescription(getDeployedClusterName());
   }
 
   /**

@@ -643,7 +643,7 @@ implements KeysForTests, HoyaExitCodes {
   }
 
   public void dumpClusterStatus(HoyaClient hoyaClient, String text) {
-    ClusterDescription status = hoyaClient.getClusterStatus();
+    ClusterDescription status = hoyaClient.getClusterDescription();
     dumpClusterDescription(text, status)
   }
 
@@ -749,7 +749,7 @@ implements KeysForTests, HoyaExitCodes {
     while (!roleCountFound) {
       StringBuilder details = new StringBuilder()
       roleCountFound = true;
-      status = hoyaClient.getClusterStatus(clustername)
+      status = hoyaClient.getClusterDescription(clustername)
 
       for (Map.Entry<String, Integer> entry : roles.entrySet()) {
         String role = entry.key

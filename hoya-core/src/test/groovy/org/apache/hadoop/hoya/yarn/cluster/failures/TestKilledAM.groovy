@@ -52,7 +52,7 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
     ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount, [], true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
-    ClusterDescription status = hoyaClient.getClusterStatus(clustername)
+    ClusterDescription status = hoyaClient.getClusterDescription(clustername)
 
     ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient)
 

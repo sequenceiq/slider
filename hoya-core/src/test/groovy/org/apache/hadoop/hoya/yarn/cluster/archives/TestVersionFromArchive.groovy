@@ -49,7 +49,7 @@ class TestVersionFromArchive extends HBaseMiniClusterTestBase {
                                                  true)
     assert launcher.serviceExitCode == 0
     HoyaClient hoyaClient = (HoyaClient) launcher.service
-    ClusterDescription status = hoyaClient.getClusterStatus(clustername)
+    ClusterDescription status = hoyaClient.getClusterDescription(clustername)
     log.info("Status $status")
     waitForAppToFinish(hoyaClient)
   }

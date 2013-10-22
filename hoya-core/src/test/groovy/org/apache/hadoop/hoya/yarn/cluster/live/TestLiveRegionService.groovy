@@ -49,7 +49,7 @@ class TestLiveRegionService extends HBaseMiniClusterTestBase {
     ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount, [], true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
-    ClusterDescription status = hoyaClient.getClusterStatus(clustername)
+    ClusterDescription status = hoyaClient.getClusterDescription(clustername)
     log.info("${status.toJsonString()}")
     assert ZKHosts == status.zkHosts
     assert ZKPort == status.zkPort

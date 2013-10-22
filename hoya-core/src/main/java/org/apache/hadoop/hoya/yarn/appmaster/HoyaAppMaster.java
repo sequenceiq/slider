@@ -1198,7 +1198,7 @@ public class HoyaAppMaster extends CompositeService
     //query and json-ify
     synchronized (this) {
       updateClusterStatus();
-      result = getClusterStatus().toJsonString();
+      result = getClusterDescription().toJsonString();
     }
     String stat = result;
     return Messages.GetJSONClusterStatusResponseProto.newBuilder()
@@ -1441,8 +1441,8 @@ public class HoyaAppMaster extends CompositeService
   /**
    * This is the status, the live model
    */
-  public ClusterDescription getClusterStatus() {
-    return appState.getClusterStatus();
+  public ClusterDescription getClusterDescription() {
+    return appState.getClusterDescription();
   }
 
 }

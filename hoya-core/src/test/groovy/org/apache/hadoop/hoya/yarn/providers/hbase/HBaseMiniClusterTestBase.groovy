@@ -117,7 +117,7 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
    * @return the site config
    */
   public Configuration fetchHBaseClientSiteConfig(HoyaClient hoyaClient) {
-    ClusterDescription status = hoyaClient.clusterStatus;
+    ClusterDescription status = hoyaClient.clusterDescription;
     Configuration siteConf = new Configuration(false)
     status.clientProperties.each { String key, String val ->
       siteConf.set(key, val, "hoya cluster");
@@ -255,7 +255,7 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
       if (duration.limitExceeded) {
         describe("Cluster region server count of $regionServerCount not met:");
         log.info(hbaseStatusToString(clustat));
-        ClusterDescription status = hoyaClient.getClusterStatus(clustername);
+        ClusterDescription status = hoyaClient.getClusterDescription(clustername);
         fail("Expected $regionServerCount YARN region servers," +
              " but  after $timeout millis saw $workerCount in ${hbaseStatusToString(clustat)}" +
              " \n ${prettyPrint(status.toJsonString())}");

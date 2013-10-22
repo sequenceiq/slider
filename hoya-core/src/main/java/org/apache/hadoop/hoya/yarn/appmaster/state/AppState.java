@@ -75,7 +75,7 @@ public class AppState {
   /**
    * This is the status, the live model
    */
-  public ClusterDescription clusterStatus = new ClusterDescription();
+  public ClusterDescription clusterDescription = new ClusterDescription();
 
   private final Map<Integer, RoleStatus> roleStatusMap =
     new HashMap<Integer, RoleStatus>();
@@ -226,12 +226,12 @@ public class AppState {
     return clusterSpec;
   }
 
-  public ClusterDescription getClusterStatus() {
-    return clusterStatus;
+  public ClusterDescription getClusterDescription() {
+    return clusterDescription;
   }
 
-  public void setClusterStatus(ClusterDescription clusterStatus) {
-    this.clusterStatus = clusterStatus;
+  public void setClusterDescription(ClusterDescription clusterDesc) {
+    this.clusterDescription = clusterDesc;
   }
 
   private void setClusterSpec(ClusterDescription clusterSpec) {
@@ -274,7 +274,7 @@ public class AppState {
     clusterStatus.state = ClusterDescription.STATE_LIVE;
 
     //set the app state to this status
-    setClusterStatus(clusterStatus);
+    setClusterDescription(clusterStatus);
     //now do an update, which 
   }
 
@@ -284,8 +284,8 @@ public class AppState {
     //propagate info from cluster, which is role table
 
     Map<String, Map<String, String>> roles = getClusterSpec().roles;
-    getClusterStatus().roles = HoyaUtils.deepClone(roles);
-    getClusterStatus().updateTime = System.currentTimeMillis();
+    getClusterDescription().roles = HoyaUtils.deepClone(roles);
+    getClusterDescription().updateTime = System.currentTimeMillis();
     buildRoleRequirementsFromClusterSpec();
   }
 
@@ -723,15 +723,15 @@ public class AppState {
    */
   public void refreshClusterStatus() {
 
-    getClusterStatus().statusTime = System.currentTimeMillis();
-    getClusterStatus().stats = new HashMap<String, Map<String, Integer>>();
+    getClusterDescription().statusTime = System.currentTimeMillis();
+    getClusterDescription().stats = new HashMap<String, Map<String, Integer>>();
     Map<String, Integer> instanceMap = createRoleToInstanceMap();
     if (log.isDebugEnabled()) {
       for (Map.Entry<String, Integer> entry : instanceMap.entrySet()) {
         log.debug("[{}]: {}", entry.getKey(), entry.getValue());
       }
     }
-    getClusterStatus().instances = instanceMap;
+    getClusterDescription().instances = instanceMap;
     
     for (RoleStatus role : getRoleStatusMap().values()) {
       String rolename = role.getName();
@@ -740,9 +740,9 @@ public class AppState {
         count = 0;
       } 
       int nodeCount = count;
-      getClusterStatus().setActualInstanceCount(rolename, nodeCount);
+      getClusterDescription().setActualInstanceCount(rolename, nodeCount);
       Map<String, Integer> stats = role.buildStatistics();
-      getClusterStatus().stats.put(rolename, stats);
+      getClusterDescription().stats.put(rolename, stats);
     }
   }
 }

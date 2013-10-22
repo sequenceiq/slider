@@ -48,7 +48,7 @@ class TestAccM0T0 extends AccumuloTestBase {
                                                 [], true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
-    ClusterDescription status = hoyaClient.getClusterStatus(clustername)
+    ClusterDescription status = hoyaClient.getClusterDescription(clustername)
     describe("Cluster status")
     log.info(prettyPrint(status.toJsonString()))
 

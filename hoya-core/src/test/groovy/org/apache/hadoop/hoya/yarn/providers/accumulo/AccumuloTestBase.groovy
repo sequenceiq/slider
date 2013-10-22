@@ -89,7 +89,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
    * @return the site config
    */
   public Configuration fetchClientSiteConfig(HoyaClient hoyaClient) {
-    ClusterDescription status = hoyaClient.clusterStatus;
+    ClusterDescription status = hoyaClient.clusterDescription;
     Configuration siteConf = new Configuration(false)
     status.clientProperties.each { String key, String val ->
       siteConf.set(key, val, "hoya cluster");

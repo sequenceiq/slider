@@ -73,7 +73,7 @@ class TestFreezeThawMasterlessAM extends HBaseMiniClusterTestBase {
     //now start the cluster
     ServiceLauncher launcher2 = thawHoyaCluster(clustername, [], true);
     HoyaClient newCluster = launcher.getService() as HoyaClient
-    newCluster.getClusterStatus(clustername);
+    newCluster.getClusterDescription(clustername);
   }
 
 }
