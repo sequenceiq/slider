@@ -466,11 +466,13 @@ public class HoyaAppMaster extends CompositeService
              appMasterRpcPort);
 
     //build the role map
-    List<ProviderRole> providerRoles = provider.getRoles();
+    List<ProviderRole> providerRoles =
+      new ArrayList<ProviderRole>(provider.getRoles());
+    providerRoles.add(new ProviderRole(HoyaKeys.ROLE_HOYA_AM, 1, true));
 
 
     // work out a port for the AM
-    int infoport = clusterSpec.getRoleOptInt(ROLE_MASTER,
+    int infoport = clusterSpec.getRoleOptInt(ROLE_HOYA_AM,
                                                   RoleKeys.APP_INFOPORT,
                                                   0);
     if (0 == infoport) {
@@ -478,7 +480,7 @@ public class HoyaAppMaster extends CompositeService
         HoyaUtils.findFreePort(provider.getDefaultMasterInfoPort(), 128);
       //need to get this to the app
 
-      clusterSpec.setRoleOpt(ROLE_MASTER,
+      clusterSpec.setRoleOpt(ROLE_HOYA_AM,
                                   RoleKeys.APP_INFOPORT,
                                   infoport);
     }
@@ -538,7 +540,7 @@ public class HoyaAppMaster extends CompositeService
     appState.buildMasterNode(appMasterContainerID);
 
 
-    boolean noMaster = clusterSpec.getDesiredInstanceCount(ROLE_MASTER, 1) <= 0;
+    boolean noMaster = clusterSpec.getDesiredInstanceCount(ROLE_HOYA_AM, 1) <= 0;
     if (noMaster) {
       log.info("skipping master launch");
       eventCallbackEvent();

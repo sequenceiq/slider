@@ -22,8 +22,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.permission.FsAction;
-import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.OptionKeys;
@@ -46,7 +44,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -59,7 +56,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * This class implements both the client-side and server-side aspects
+ * This class implements  the client-side aspects
  * of an HBase Cluster
  */
 public class HBaseClientProvider extends Configured implements
@@ -84,16 +81,16 @@ public class HBaseClientProvider extends Configured implements
    */
   protected static final List<ProviderRole> ROLES = new ArrayList<ProviderRole>();
 
-  public static final int KEY_WORKER = 1;
+  public static final int KEY_WORKER = ROLE_HOYA_AM_PRIORITY_INDEX + 1;
 
-  public static final int KEY_MASTER = 2;
+  public static final int KEY_MASTER = ROLE_HOYA_AM_PRIORITY_INDEX + 2;
 
   /**
    * Initialize role list
    */
   static {
     ROLES.add(new ProviderRole(HBaseKeys.ROLE_WORKER, KEY_WORKER));
-    ROLES.add(new ProviderRole(HBaseKeys.ROLE_MASTER, KEY_MASTER, true));
+    ROLES.add(new ProviderRole(HBaseKeys.ROLE_MASTER, KEY_MASTER));
   }
 
   @Override
@@ -181,8 +178,6 @@ public class HBaseClientProvider extends Configured implements
       rolemap.put(RoleKeys.ROLE_INSTANCES, "1");
       rolemap.put(RoleKeys.APP_INFOPORT, DEFAULT_HBASE_MASTER_INFOPORT);
       rolemap.put(RoleKeys.JVM_HEAP, DEFAULT_HBASE_MASTER_HEAP);
-    } else {
-      throw new HoyaException(ERROR_UNKNOWN_ROLE + rolename);
     }
     return rolemap;
   }
@@ -325,9 +320,9 @@ public class HBaseClientProvider extends Configured implements
                                       0), 0, -1);
 
 
-    providerUtils.validateNodeCount(HoyaKeys.ROLE_MASTER,
+    providerUtils.validateNodeCount(HBaseKeys.ROLE_MASTER,
                                     clusterSpec.getDesiredInstanceCount(
-                                      HoyaKeys.ROLE_MASTER,
+                                      HBaseKeys.ROLE_MASTER,
                                       0),
                                     0,
                                     1);

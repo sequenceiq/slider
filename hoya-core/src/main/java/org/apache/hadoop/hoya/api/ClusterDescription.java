@@ -160,6 +160,12 @@ public class ClusterDescription {
   /**
    * cluster-specific options
    */
+  public Map<String, String> info =
+    new HashMap<String, String>();
+  
+  /**
+   * cluster-specific options
+   */
   public Map<String, String> options =
     new HashMap<String, String>();
 

@@ -50,7 +50,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * This class implements both the client-side and server-side aspects
+ * This class implements the server-side aspects
  * of an HBase Cluster
  */
 public class HBaseProviderService extends AbstractProviderService implements

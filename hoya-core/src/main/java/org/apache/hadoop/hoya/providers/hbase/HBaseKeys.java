@@ -48,11 +48,11 @@ PACKAGE MANAGEMENT
  */
 public interface HBaseKeys {
 
-  String ROLE_WORKER = "worker";
-  String ROLE_MASTER = HoyaKeys.ROLE_MASTER;
-  
   /** {@value */
   String MASTER = "master";
+  String ROLE_WORKER = "worker";
+  
+  String ROLE_MASTER = MASTER;
 
   /** {@value */
   String REGION_SERVER = "regionserver";

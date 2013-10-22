@@ -328,7 +328,7 @@ public class AppState {
     Container container = new ContainerPBImpl();
     container.setId(containerId);
     RoleInstance master = new RoleInstance(container);
-    master.role = HoyaKeys.ROLE_MASTER;
+    master.role = HoyaKeys.ROLE_HOYA_AM;
     master.buildUUID();
     masterNode = master;
     //it is also added to the set of live nodes

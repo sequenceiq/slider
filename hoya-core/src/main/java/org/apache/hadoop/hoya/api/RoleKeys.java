@@ -100,5 +100,10 @@ public interface RoleKeys {
   String ENV_PREFIX = "env.";
 
 
-
+  int DEFAULT_AM_V_CORES = 1;
+  /**
+   * The default memory is kept low primarily for testing
+   */
+  int DEFAULT_AM_MEMORY = 10;
+  String DEFAULT_AM_HEAP = "128M";
 }

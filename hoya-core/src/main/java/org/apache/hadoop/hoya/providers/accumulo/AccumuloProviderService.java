@@ -55,6 +55,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Server-side accumulo provider
+ */
 public class AccumuloProviderService extends AbstractProviderService implements
                                                                      ProviderCore,
                                                                      AccumuloKeys,
@@ -204,7 +207,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
                                                                 HoyaException {
     //set the service to run if unset
     if (masterCommand == null) {
-      masterCommand = AccumuloRoles.serviceForRole(HoyaKeys.ROLE_MASTER);
+      masterCommand = AccumuloRoles.serviceForRole(HoyaKeys.ROLE_HOYA_AM);
     }
     return buildProcessCommandList(clusterSpec, confDir, env, masterCommand);
   }
