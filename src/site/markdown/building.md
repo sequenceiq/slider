@@ -273,18 +273,20 @@ tree.
 
 **Step #3:** Git flow: create a release branch
 
-    git flow release start 0.4.3
+    export HOYA_RELEASE=0.5.2
+    
+    git flow release start hoya-$HOYA_RELEASE
 
 **Step #4:** in the new branch, increment those version numbers using (the maven
 versions plugin)[http://mojo.codehaus.org/versions-maven-plugin/]
 
-    mvn versions:set -DnewVersion=0.4.3
+    mvn versions:set -DnewVersion=$HOYA_RELEASE
 
 
 **Step #5:** commit the changed POM files
   
         git add <changed files>
-        git commit -m "BUG-XYZ updating release POMs"
+        git commit -m "BUG-XYZ updating release POMs for $HOYA_RELEASE"
 
 
   
@@ -326,7 +328,7 @@ And a multi-line markdown release note, which will be used for artifacts.
 the command line:
 
     
-    git flow release finish hoya-0.4.2
+    git flow release finish hoya-$HOYA_RELEASE
     
 
 On the command line you have to enter the one-line release description
@@ -338,8 +340,9 @@ You will now be back on the `develop` branch.
 the release number
 
 
-    mvn versions:set -DnewVersion=0.4.4-SNAPSHOT
-    git commit -a -m "BUG-XYZ updating development POMs"
+    export HOYA_RELEASE=0.6.0-SNAPSHOT
+    mvn versions:set -DnewVersion=HOYA_RELEASE
+    git commit -a -m "BUG-XYZ updating development POMs to HOYA_RELEASE"
 
 **Step #12:** Push the release and develop branches to github 
 (We recommend naming the hortonworks github repository 'hortonworks' to avoid
@@ -350,7 +353,7 @@ the release number
 (if you are planning on any release work of more than a single test run,
  consider having your local release branch track the master)
 
-The `git-flow` program automatically pushes up the `release/hoya-0.4.2` branch,
+The `git-flow` program automatically pushes up the `release/hoya-X.Y` branch,
 before deleting it locally.
 
 
