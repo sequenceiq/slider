@@ -27,6 +27,7 @@ import org.apache.hadoop.hbase.ServerName
 import org.apache.hadoop.hbase.client.HBaseAdmin
 import org.apache.hadoop.hbase.client.HConnection
 import org.apache.hadoop.hbase.client.HConnectionManager
+import org.apache.hadoop.hbase.client.RetriesExhaustedException
 import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.ClusterNode
@@ -273,7 +274,6 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
     return clustat;
   }
 
-
   public boolean flexHBaseClusterTestRun(String clustername, int workers, int flexTarget, boolean persist, boolean testHBaseAfter) {
     createMiniCluster(clustername, createConfiguration(),
                       1,
@@ -369,4 +369,38 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
     }
   }
 
+  /**
+   * attempt to talk to the hbase master; expect a failure
+   * @param clientConf client config
+   */
+  public void assertNoHBaseMaster(Configuration clientConf) {
+    boolean masterFound = isHBaseMasterFound(clientConf)
+    if (masterFound) {
+      fail("HBase master running")
+    }
+  }
+  /**
+   * attempt to talk to the hbase master; expect success
+   * @param clientConf client config
+   */
+  public void assertHBaseMaster(Configuration clientConf) {
+    boolean masterFound = isHBaseMasterFound(clientConf)
+    if (masterFound) {
+      fail("HBase master running")
+    }
+  }
+
+  public boolean isHBaseMasterFound(Configuration clientConf) {
+    HConnection hbaseConnection
+    hbaseConnection = createHConnection(clientConf)
+    HBaseAdmin hBaseAdmin = new HBaseAdmin(hbaseConnection);
+    boolean masterFound
+    try {
+      ClusterStatus hBaseClusterStatus = hBaseAdmin.getClusterStatus();
+      masterFound = true;
+    } catch (RetriesExhaustedException e) {
+      masterFound = false;
+    }
+    return masterFound
+  }
 }
