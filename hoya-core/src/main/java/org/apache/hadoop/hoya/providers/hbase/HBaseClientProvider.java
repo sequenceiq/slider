@@ -66,7 +66,6 @@ public class HBaseClientProvider extends Configured implements
                                                           HBaseConfigFileOptions {
 
 
-  public static final String ERROR_UNKNOWN_ROLE = "Unknown role ";
   protected static final Logger log =
     LoggerFactory.getLogger(HBaseClientProvider.class);
   protected static final String NAME = "hbase";
@@ -76,22 +75,6 @@ public class HBaseClientProvider extends Configured implements
     super(conf);
   }
 
-  /**
-   * List of roles
-   */
-  protected static final List<ProviderRole> ROLES = new ArrayList<ProviderRole>();
-
-  public static final int KEY_WORKER = ROLE_HOYA_AM_PRIORITY_INDEX + 1;
-
-  public static final int KEY_MASTER = ROLE_HOYA_AM_PRIORITY_INDEX + 2;
-
-  /**
-   * Initialize role list
-   */
-  static {
-    ROLES.add(new ProviderRole(HBaseKeys.ROLE_WORKER, KEY_WORKER));
-    ROLES.add(new ProviderRole(HBaseKeys.ROLE_MASTER, KEY_MASTER));
-  }
 
   @Override
   public String getName() {
@@ -141,7 +124,7 @@ public class HBaseClientProvider extends Configured implements
   
   @Override
   public List<ProviderRole> getRoles() {
-    return ROLES;
+    return HBaseRoles.getRoles();
   }
 
 

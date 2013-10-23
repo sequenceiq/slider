@@ -324,7 +324,7 @@ public class AppState {
    * in the live node set but has a lifecycle bonded to the AM
    * @param containerId the AM master
    */
-  public void buildMasterNode(ContainerId containerId) {
+  public void buildAppMasterNode(ContainerId containerId) {
     Container container = new ContainerPBImpl();
     container.setId(containerId);
     RoleInstance am = new RoleInstance(container);

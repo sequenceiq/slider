@@ -1005,7 +1005,6 @@ public final class HoyaUtils {
 
     try {
       UserGroupInformation currentUser = UserGroupInformation.getCurrentUser();
-      log.debug("Current user is {}", currentUser);
       return currentUser;
     } catch (IOException e) {
       log.info("Failed to grt user info", e);

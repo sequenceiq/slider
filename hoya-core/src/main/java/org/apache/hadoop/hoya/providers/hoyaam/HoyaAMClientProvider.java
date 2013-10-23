@@ -78,7 +78,7 @@ public class HoyaAMClientProvider extends Configured implements
    * Initialize role list
    */
   static {
-    ROLES.add(new ProviderRole(ROLE_HOYA_AM, KEY_AM, false));
+    ROLES.add(new ProviderRole(ROLE_HOYA_AM, KEY_AM, true));
   }
 
   @Override

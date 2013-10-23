@@ -40,7 +40,7 @@ class TestLiveTwoNodeRegionService extends HBaseMiniClusterTestBase {
     
     String clustername = "TestLiveTwoNodeRegionService"
     int regionServerCount = 2
-    createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
+    createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, false)
 
     describe(" Create a two node region service cluster");
     //now launch the cluster

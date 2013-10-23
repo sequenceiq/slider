@@ -33,18 +33,17 @@ import org.junit.Test
  */
 @CompileStatic
 @Slf4j
-class TestLiveRegionService extends HBaseMiniClusterTestBase {
+class TestLiveRegionServiceOnHDFS extends HBaseMiniClusterTestBase {
 
   @Test
-  public void testLiveRegionServiceSingleNode() throws Throwable {
-    String clustername = "TestLiveRegionService"
+  public void testLiveRegionServiceOnHDFS() throws Throwable {
+    String clustername = "TestLiveRegionServiceOnHDFS"
     int regionServerCount = 1
     createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
     describe(" Create a single region service cluster");
 
     //make sure that ZK is up and running at the binding string
     ZKIntegration zki = createZKIntegrationInstance(ZKBinding, clustername, false, false, 5000)
-    log.info("ZK up at $zki");
     //now launch the cluster
     ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount, [], true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
@@ -54,8 +53,9 @@ class TestLiveRegionService extends HBaseMiniClusterTestBase {
     assert ZKHosts == status.zkHosts
     assert ZKPort == status.zkPort
 
-    dumpFullHBaseConf(hoyaClient)
+//    dumpFullHBaseConf(hoyaClient)
 
+    log.info("Running basic HBase cluster startup sequence")
     ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient)
 
 

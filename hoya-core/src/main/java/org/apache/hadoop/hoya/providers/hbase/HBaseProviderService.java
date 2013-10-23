@@ -71,28 +71,9 @@ public class HBaseProviderService extends AbstractProviderService implements
     super("HBaseProviderService");
   }
 
-  /**
-   * List of roles
-   */
-  protected static final List<ProviderRole> ROLES =
-    new ArrayList<ProviderRole>();
-
-  public static final int KEY_WORKER = 1;
-
-  public static final int KEY_MASTER = 2;
-
-  /**
-   * Initialize role list
-   */
-  static {
-    ROLES.add(new ProviderRole(HBaseKeys.ROLE_WORKER, KEY_WORKER));
-    ROLES.add(new ProviderRole(HBaseKeys.ROLE_MASTER, KEY_MASTER, true));
-  }
-
-
   @Override
   public List<ProviderRole> getRoles() {
-    return ROLES;
+    return HBaseRoles.getRoles();
   }
 
   @Override
@@ -273,7 +254,7 @@ public class HBaseProviderService extends AbstractProviderService implements
                              OptionKeys.OPTION_CONTAINER_STARTUP_DELAY,
                                            CONTAINER_STARTUP_DELAY)));
     //register the service for lifecycle management; when this service
-    //is terminated, so is the master process
+    //is terminated, the master process is notified
     addService(composite);
     maybeStartCommandSequence();
   }

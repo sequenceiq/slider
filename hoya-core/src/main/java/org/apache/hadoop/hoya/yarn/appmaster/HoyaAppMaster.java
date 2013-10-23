@@ -37,6 +37,7 @@ import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderService;
+import org.apache.hadoop.hoya.providers.hoyaam.HoyaAMClientProvider;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
@@ -398,6 +399,7 @@ public class HoyaAppMaster extends CompositeService
         "Configuration directory %s doesn't exist", confDir);
     }
 
+    YarnConfiguration conf = new YarnConfiguration(getConfig());
     //get our provider
     String providerType = clusterSpec.type;
     log.info("Cluster provider type is {}", providerType);
@@ -405,14 +407,15 @@ public class HoyaAppMaster extends CompositeService
       HoyaProviderFactory.createHoyaProviderFactory(
         providerType);
     provider = factory.createServerProvider();
-    provider.init(getConfig());
+    provider.init(conf);
     provider.start();
     addService(provider);
     //verify that the cluster specification is now valid
     provider.validateClusterSpec(clusterSpec);
 
+    HoyaAMClientProvider hoyaClientProvider = new HoyaAMClientProvider(conf);
 
-    YarnConfiguration conf = new YarnConfiguration(getConfig());
+
     InetSocketAddress address = HoyaUtils.getRmSchedulerAddress(conf);
     log.info("RM is at {}", address);
     yarmRPC = YarnRPC.create(conf);
@@ -473,7 +476,7 @@ public class HoyaAppMaster extends CompositeService
     //build the role map
     List<ProviderRole> providerRoles =
       new ArrayList<ProviderRole>(provider.getRoles());
-    providerRoles.add(new ProviderRole(HoyaKeys.ROLE_HOYA_AM, 1, true));
+    providerRoles.addAll(hoyaClientProvider.getRoles());
 
 
     // work out a port for the AM
@@ -519,10 +522,6 @@ public class HoyaAppMaster extends CompositeService
 
 
 
-    //before bothering to start the containers, bring up the
-    //master.
-    //This ensures that if the master doesn't come up, less
-    //cluster resources get wasted
 
     //now validate the dir by loading in a hadoop-site.xml file from it
     
@@ -542,12 +541,16 @@ public class HoyaAppMaster extends CompositeService
     //build the instance
     appState.buildInstance(clusterSpec, siteConf, providerRoles);
 
-    appState.buildMasterNode(appMasterContainerID);
+    //before bothering to start the containers, bring up the master.
+    //This ensures that if the master doesn't come up, less
+    //cluster resources get wasted
+
+    appState.buildAppMasterNode(appMasterContainerID);
 
 
-    boolean noMaster = clusterSpec.getDesiredInstanceCount(ROLE_HOYA_AM, 1) <= 0;
-    if (noMaster) {
-      log.info("skipping master launch");
+    boolean noLocalProcess = clusterSpec.getDesiredInstanceCount(ROLE_HOYA_AM, 1) <= 0;
+    if (noLocalProcess) {
+      log.info("skipping AM process launch");
       eventCallbackEvent();
     } else {
       appState.noteAMLaunched();

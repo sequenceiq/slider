@@ -69,8 +69,6 @@ public class AccumuloClientProvider extends Configured implements
     super(conf);
   }
 
-
-
   public static List<ProviderRole> getProviderRoles() {
     return AccumuloRoles.ROLES;
 

@@ -27,13 +27,13 @@ import org.apache.hadoop.hbase.ServerName
 import org.apache.hadoop.hbase.client.HBaseAdmin
 import org.apache.hadoop.hbase.client.HConnection
 import org.apache.hadoop.hbase.client.HConnectionManager
+import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.yarn.Arguments
-import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
@@ -46,7 +46,7 @@ import org.junit.Assume
  */
 @CompileStatic
 @Slf4j
-public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
+public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
 
   public static
   final String NO_HBASE_TAR_DEFINED = "Hbase Archive conf option not set " +
@@ -71,6 +71,7 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
   void teardown() {
     super.teardown();
     killAllRegionServers();
+    killAllMasterServers();
   }
 
 
@@ -82,6 +83,9 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
    */
   public void killAllRegionServers() {
     killJavaProcesses(HREGION, SIGKILL);
+  }
+  public void killAllMasterServers() {
+    killJavaProcesses(HMASTER, SIGKILL);
   }
 
   /**
@@ -219,9 +223,12 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
 
 
   public ClusterStatus basicHBaseClusterStartupSequence(HoyaClient hoyaClient) {
-    int hbaseState = hoyaClient.waitForRoleInstanceLive(HBaseKeys.ROLE_MASTER,
+    int state = hoyaClient.waitForRoleInstanceLive(HoyaKeys.ROLE_HOYA_AM,
                                                         HBASE_CLUSTER_STARTUP_TIME);
-    assert hbaseState == ClusterDescription.STATE_LIVE;
+    assert state == ClusterDescription.STATE_LIVE;
+    state = hoyaClient.waitForRoleInstanceLive(HBaseKeys.ROLE_MASTER,
+                                                        HBASE_CLUSTER_STARTUP_TIME);
+    assert state == ClusterDescription.STATE_LIVE;
     //sleep for a bit to give things a chance to go live
     assert spinForClusterStartup(hoyaClient, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME);
 
