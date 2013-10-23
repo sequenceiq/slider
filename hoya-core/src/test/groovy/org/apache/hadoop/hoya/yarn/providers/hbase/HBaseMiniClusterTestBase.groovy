@@ -274,32 +274,54 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
     return clustat;
   }
 
-  public boolean flexHBaseClusterTestRun(String clustername, int workers, int flexTarget, boolean persist, boolean testHBaseAfter) {
+  public boolean flexHBaseClusterTestRun(
+      String clustername,
+      int masters,
+      int masterFlexTarget,
+      int workers,
+      int flexTarget,
+      boolean persist,
+      boolean testHBaseAfter) {
     createMiniCluster(clustername, createConfiguration(),
                       1,
                       true);
     //now launch the cluster
     HoyaClient hoyaClient = null;
-    ServiceLauncher launcher = createHBaseCluster(clustername, workers, [], true, true);
+    ServiceLauncher launcher = createHoyaCluster(clustername,
+                         [
+                             (HBaseKeys.ROLE_MASTER): masters,
+                             (HBaseKeys.ROLE_WORKER): workers,
+                         ],
+                         [],
+                         true,
+                         true, [:]);
     hoyaClient = (HoyaClient) launcher.service;
     try {
       basicHBaseClusterStartupSequence(hoyaClient);
 
       describe("Waiting for initial worker count of $workers");
 
-      //verify the #of region servers is as expected
+      //verify the #of roles is as expected
       //get the hbase status
       waitForHoyaWorkerCount(hoyaClient, workers, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME);
+      waitForHoyaMasterCount(hoyaClient, masters, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME);
+
       log.info("Hoya worker count at $workers, waiting for region servers to match");
       waitForHBaseRegionServerCount(hoyaClient, clustername, workers, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME);
 
-      //start to add some more workers
-      describe("Flexing from $workers worker(s) to $flexTarget worker");
+      //now flex
+      describe("Flexing  masters:$masters -> $masterFlexTarget ; workers $workers -> $flexTarget");
       boolean flexed;
       flexed = 0 == hoyaClient.flex(clustername,
-                                    [(HBaseKeys.ROLE_WORKER): flexTarget],
+                                    [
+                                        (HBaseKeys.ROLE_WORKER): flexTarget,
+                                        (HBaseKeys.ROLE_MASTER): masterFlexTarget
+                                    ],
                                     persist);
       waitForHoyaWorkerCount(hoyaClient, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME);
+      waitForHoyaMasterCount(hoyaClient, masterFlexTarget,
+                             HBASE_CLUSTER_STARTUP_TO_LIVE_TIME);
+
       if (testHBaseAfter) {
         waitForHBaseRegionServerCount(hoyaClient, clustername, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME);
       }
@@ -321,6 +343,12 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
                                                    int timeout) {
     return waitForRoleCount(hoyaClient, HBaseKeys.ROLE_WORKER, desiredCount, timeout)
   }
+  public ClusterDescription waitForHoyaMasterCount(HoyaClient hoyaClient,
+                                                   int desiredCount,
+                                                   int timeout) {
+    return waitForRoleCount(hoyaClient, HBaseKeys.ROLE_MASTER, desiredCount, timeout)
+  }
+  
   public String getHBaseHome() {
     YarnConfiguration conf = getTestConfiguration()
     String hbaseHome = conf.getTrimmed(KeysForTests.HOYA_TEST_HBASE_HOME)
