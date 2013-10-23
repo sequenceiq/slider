@@ -32,17 +32,25 @@ You will need a version of Maven 3.0, set up with enough memory
 ## Building a compatible Hadoop version
 
 
-Hoya is built against Hadoop release 2.2.0; 
+Hoya is built against Hadoop release 2.2.0 -you can download and install
+a copy from the [Apache Hadoop Web Site](http://hadoop.apache.org).
+
+
 
 During development, its convenient (but not mandatory)
 to have a local version of Hadoop -so that we can find and fix bugs/add features in
 Hadoop as well in Hoya.
 
 
-To build and install locally, check out apache svn/github, branch `release-2.2.0`
- 
-This is a tag; git will encourage you to create a branch from the tagged
-commit, which is recommended.
+To build and install locally, check out apache svn/github, branch `release-2.2.0`,
+and create a branch off that tag
+
+    git clone git://git.apache.org/hadoop-common.git 
+    cd hadoop-common
+    git remote rename origin apache
+    git fetch --tags apache
+    git checkout release-2.2.0 -- 
+    git checkout -b release-2.2.0
 
 
 For the scripts below, set the `HADOOP_VERSION` variable to the version
@@ -61,7 +69,7 @@ To make a tarball for use in test runs:
     mvn clean install package -Pdist -Dtar -DskipTests -Dmaven.javadoc.skip=true 
     
     # on linux
-    mvn package -Pdist -Pnative -Dtar -DskipTests -Dmaven.javadoc.skip=true 
+    mvn clean package -Pdist -Pnative -Dtar -DskipTests -Dmaven.javadoc.skip=true 
 
 Then expand this
 
@@ -129,6 +137,8 @@ For building just the JAR files:
 
 Clone accumulo from apache; check out trunk
 
+    git clone http://git-wip-us.apache.org/repos/asf/accumulo.git
+
 If needed, patch the POM file to depend on the version of Hadoop you are building
 locally, by changing the `hadoop.version` property
 
@@ -169,39 +179,39 @@ is ignored by git), declaring where HBase, accumulo, Hadoop and zookeeper are:
     
       <property>
         <name>hoya.test.hbase.home</name>
-        <value>/Users/hoya/hbase/hbase-assembly/target/hbase-0.96.0</value>
+        <value>/home/hoya/hbase/hbase-assembly/target/hbase-0.96.0</value>
         <description>HBASE Home</description>
       </property>
     
       <property>
         <name>hoya.test.hbase.tar</name>
-        <value>/Users/hoya/hbase/hbase-assembly/target/hbase-0.96.0-bin.tar.gz</value>
+        <value>/home/hoya/hbase/hbase-assembly/target/hbase-0.96.0-bin.tar.gz</value>
         <description>HBASE archive URI</description>
       </property> 
          
       <property>
         <name>hoya.test.accumulo_home</name>
-        <value>/Users/hoya/accumulo/assemble/target/accumulo-1.6.0-SNAPSHOT/</value>
+        <value>/home/hoya/accumulo/assemble/target/accumulo-1.6.0-SNAPSHOT/</value>
         <description>Accumulo Home</description>
       </property>
     
       <property>
         <name>hoya.test.accumulo_tar</name>
-        <value>/Users/hoya/accumulo/assemble/target/accumulo-1.6.0-SNAPSHOT-bin.tar.gz</value>
+        <value>/home/hoya/accumulo/assemble/target/accumulo-1.6.0-SNAPSHOT-bin.tar.gz</value>
         <description>Accumulo archive URI</description>
       </property>
       
       <property>
         <name>zk.home</name>
         <value>
-          /Users/hoya/Apps/zookeeper</value>
+          /home/hoya/Apps/zookeeper</value>
         <description>Zookeeper home dir on target systems</description>
       </property>
     
       <property>
         <name>hadoop.home</name>
         <value>
-          /Users/hoya/hadoop-trunk/hadoop-dist/target/hadoop-2.2.0</value>
+          /home/hoya/hadoop-common/hadoop-dist/target/hadoop-2.2.0</value>
         <description>Hadoop home dir on target systems</description>
       </property>
       
