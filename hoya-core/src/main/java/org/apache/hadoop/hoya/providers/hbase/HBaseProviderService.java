@@ -154,20 +154,22 @@ public class HBaseProviderService extends AbstractProviderService implements
       //role is region server
       command.add(REGION_SERVER);
       command.add(ACTION_START);
-
+      //log details
+      command.add(
+        "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/region-server.txt");
+      command.add("2>&1");
     } else if (ROLE_MASTER.equals(role)) {
       command.add(MASTER);
       command.add(ACTION_START);
+      //log details
+      command.add(
+        "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/master.txt");
+      command.add("2>&1");
     } else {
       throw new HoyaInternalStateException("Cannot start role %s", role);
     }
 /*    command.add("-D httpfs.log.dir = "+
                 ApplicationConstants.LOG_DIR_EXPANSION_VAR);*/
-
-    //log details
-    command.add(
-      "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/region-server.txt");
-    command.add("2>&1");
 
     String cmdStr = HoyaUtils.join(command, " ");
 
