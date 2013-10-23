@@ -308,7 +308,7 @@ public class HBaseClientProvider extends Configured implements
                                       HBaseKeys.ROLE_MASTER,
                                       0),
                                     0,
-                                    1);
+                                    -1);
   }
   
 
