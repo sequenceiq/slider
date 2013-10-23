@@ -27,6 +27,7 @@ import org.apache.hadoop.hbase.client.HBaseAdmin
 import org.apache.hadoop.hbase.client.HConnection
 import org.apache.hadoop.hbase.client.RetriesExhaustedException
 import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.api.records.ApplicationReport
@@ -46,7 +47,7 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
     String clustername = "TestKilledAM"
     int regionServerCount = 1
     createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
-    describe(" Create a single region service cluster then kill the RS");
+    describe(" Kill the AM, expect cluster to die");
 
     //now launch the cluster
     ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount, [], true, true)
@@ -73,6 +74,7 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
     lsJavaProcesses()
     describe("killing services")
     killServiceLaunchers(SIGTERM);
+    killAllMasterServers();
     waitWhileClusterExists(hoyaClient, 30000);
     //give yarn some time to notice
     sleep(2000)
@@ -82,14 +84,8 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
     lsJavaProcesses();
     //expect hbase connection to have failed
 
-    hbaseConnection = createHConnection(clientConf)
-    HBaseAdmin hBaseAdmin = new HBaseAdmin(hbaseConnection);
-    try {
-      ClusterStatus hBaseClusterStatus = hBaseAdmin.getClusterStatus();
-      fail("expected cluster status fail")
-    } catch (RetriesExhaustedException e) {
-      log.info("Exception raised was ", e)
-    }
+    assertNoHBaseMaster(clientConf)
+
   }
 
 }

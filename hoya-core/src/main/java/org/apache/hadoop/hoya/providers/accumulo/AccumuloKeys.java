@@ -18,15 +18,13 @@
 
 package org.apache.hadoop.hoya.providers.accumulo;
 
-import org.apache.hadoop.hoya.HoyaKeys;
-
 /**
  * Any keys related to acculumulo
  */
 public interface AccumuloKeys {
   String PROVIDER_ACCUMULO = "accumulo";
   
-  String ROLE_MASTER = HoyaKeys.ROLE_MASTER;
+  String ROLE_MASTER = "master";
 
   String ROLE_TABLET = "tserver";
   String ROLE_GARBAGE_COLLECTOR = "gc";

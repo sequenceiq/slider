@@ -36,6 +36,7 @@ import org.apache.hadoop.hoya.api.ClusterNode;
 import org.apache.hadoop.hoya.api.HoyaClusterProtocol;
 import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.api.RoleKeys;
+import org.apache.hadoop.hoya.api.StatusKeys;
 import org.apache.hadoop.hoya.api.proto.Messages;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
@@ -45,8 +46,7 @@ import org.apache.hadoop.hoya.exceptions.WaitTimeoutException;
 import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
 import org.apache.hadoop.hoya.providers.ProviderRole;
-import org.apache.hadoop.hoya.servicemonitor.HttpProbe;
-import org.apache.hadoop.hoya.servicemonitor.MonitorKeys;
+import org.apache.hadoop.hoya.providers.hoyaam.HoyaAMClientProvider;
 import org.apache.hadoop.hoya.servicemonitor.Probe;
 import org.apache.hadoop.hoya.servicemonitor.ProbeFailedException;
 import org.apache.hadoop.hoya.servicemonitor.ProbePhase;
@@ -97,15 +97,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -133,7 +130,6 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   public static final String E_UNKNOWN_CLUSTER = "Unknown cluster ";
   public static final String E_DESTROY_CREATE_RACE_CONDITION =
     "created while it was being destroyed";
-  public static final int DEFAULT_AM_MEMORY = 10;
   public static final String HOYA_JAR = "hoya.jar";
   public static final String JCOMMANDER_JAR = "jcommander.jar";
   public static final String SLF4J_JAR = "slf4j.jar";
@@ -404,6 +400,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     requireArgumentSet(Arguments.ARG_CONFDIR, appconfdir);
     // Provider
     requireArgumentSet(Arguments.ARG_PROVIDER, serviceArgs.provider);
+    HoyaAMClientProvider hoyaAM = new HoyaAMClientProvider(conf);
 
     provider = createClientProvider(serviceArgs.provider);
 
@@ -412,6 +409,9 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     clusterSpec.name = clustername;
     clusterSpec.state = ClusterDescription.STATE_INCOMPLETE;
     clusterSpec.createTime = System.currentTimeMillis();
+    clusterSpec.info.put(StatusKeys.STAT_CREATE_TIME,
+                         new Date(clusterSpec.createTime).toString());
+    
     // build up the options map
     // first the defaults provided by the provider
     clusterSpec.options = provider.getDefaultClusterOptions();
@@ -444,10 +444,12 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
 
     
-    // get the list of supported roles
-    List<ProviderRole> supportedRoles = provider.getRoles();
+    // build the list of supported roles
+    List<ProviderRole> supportedRoles = new ArrayList<ProviderRole>();
+    // provider roles
+    supportedRoles.addAll(provider.getRoles());
     // and any extra
-    Map<String, String> roleMap = serviceArgs.getRoleMap();
+    Map<String, String> argsRoleMap = serviceArgs.getRoleMap();
 
     Map<String, Map<String, String>> clusterRoleMap =
       new HashMap<String, Map<String, String>>();
@@ -458,7 +460,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       Map<String, String> clusterRole =
         provider.createDefaultClusterRole(roleName);
       // get the command line instance count
-      String instanceCount = roleMap.get(roleName);
+      String instanceCount = argsRoleMap.get(roleName);
       // this is here in case we want to extract from the provider
       // the min #of instances
       int defInstances =
@@ -468,8 +470,20 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       clusterRole.put(RoleKeys.ROLE_INSTANCES, instanceCount);
       clusterRoleMap.put(roleName, clusterRole);
     }
+    
+    //AM roles are special
+    // add in the Hoya AM role(s)
+    Collection<ProviderRole> amRoles = hoyaAM.getRoles();
+    for (ProviderRole role : amRoles) {
+      String roleName = role.name;
+      Map<String, String> clusterRole =
+        hoyaAM.createDefaultClusterRole(roleName);
+      // get the command line instance count
+      clusterRoleMap.put(roleName, clusterRole);
+    }
 
-    // now enhance the role option map with all command line options
+    //finally, any roles that came in the list  but aren't in the map
+    // and overwrite any entries the role option map with command line overrides
     Map<String, Map<String, String>> commandOptions =
       serviceArgs.getRoleOptionMap();
     HoyaUtils.applyCommandLineOptsToRoleMap(clusterRoleMap, commandOptions);
@@ -615,9 +629,12 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     HoyaUtils.validateClusterName(clustername);
     verifyNoLiveClusters(clustername);
     Configuration config = getConfig();
-    // Provider
+    
+    //create the Hoya AM provider -this helps set up the AM
+    HoyaAMClientProvider hoyaAM = new HoyaAMClientProvider(config);
+    // cluster Provider
     ClientProvider provider = createClientProvider(clusterSpec);
-    // make sure it is valid;
+    // make sure the conf dir is valid;
 
     Path generatedConfDirPath =
       createPathThatMustExist(clusterSpec.generatedConfigurationPath);
@@ -639,6 +656,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     }
 
     // final specification review
+    hoyaAM.validateClusterSpec(clusterSpec);
     provider.validateClusterSpec(clusterSpec);
 
     // do a quick dump of the values first
@@ -727,8 +745,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     }
 
-    // build up the configuration -and have it add any other provider
-    // specific artifacts to the local resource map
+    // build up the configuration 
     // IMPORTANT: it is only after this call that site configurations
     // will be valid.
 
@@ -736,14 +753,25 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     Configuration clientConfExtras = new Configuration(false);
 
-    // DFS principal
+    // add AM and provider specific artifacts to the resource map
     Map<String, LocalResource> confResources;
+    // standard AM resources
+    confResources = hoyaAM.prepareAMAndConfigForLaunch(fs,
+                                                         config,
+                                                         clusterSpec,
+                                                         origConfPath,
+                                                         generatedConfDirPath,
+                                                         clientConfExtras);
+    localResources.putAll(confResources);
+    //add provider-specific resources
     confResources = provider.prepareAMAndConfigForLaunch(fs,
                                                          config,
                                                          clusterSpec,
                                                          origConfPath,
                                                          generatedConfDirPath,
                                                          clientConfExtras);
+
+    localResources.putAll(confResources);
 
     // now that the site config is fully generated, the provider gets
     // to do a quick review of them.
@@ -752,8 +780,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                                    fs,
                                                    generatedConfDirPath,
                                                    serviceArgs.secure);
-    
-    localResources.putAll(confResources);
+
 
     // now add the image if it was set
     if (HoyaUtils.maybeAddImagePath(fs, localResources, imagePath)) {
@@ -791,7 +818,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
     // build the environment
     Map<String, String> env =
-      HoyaUtils.buildEnvMap(clusterSpec.getOrAddRole(HoyaKeys.ROLE_MASTER));
+      HoyaUtils.buildEnvMap(clusterSpec.getOrAddRole(HoyaKeys.ROLE_HOYA_AM));
     String classpath = buildClasspath(relativeHoyaConfDir);
     log.debug("AM classpath={}", classpath);
     env.put("CLASSPATH", classpath);
@@ -851,7 +878,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       }
 
       // For now, only getting tokens for the default file-system.
-      final Token<?> tokens[] = fs.addDelegationTokens(tokenRenewer, credentials);
+      final Token<?>[] tokens = fs.addDelegationTokens(tokenRenewer, credentials);
       if (tokens != null) {
         for (Token<?> token : tokens) {
           log.debug("Got delegation token for {}; {}", fs.getUri(), token);
@@ -873,9 +900,10 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     // Set up resource type requirements
     Resource capability = Records.newRecord(Resource.class);
     // Amt. of memory resource to request for to run the App Master
-    capability.setMemory(DEFAULT_AM_MEMORY);
-    capability.setVirtualCores(1);
-    provider.prepareAMResourceRequirements(clusterSpec, capability);
+    capability.setMemory(RoleKeys.DEFAULT_AM_MEMORY);
+    capability.setVirtualCores(RoleKeys.DEFAULT_AM_V_CORES);
+    // the Hoya AM gets to configure the AM requirements, not the custom provider
+    hoyaAM.prepareAMResourceRequirements(clusterSpec, capability);
     appContext.setResource(capability);
     Map<String, ByteBuffer> serviceData = new HashMap<String, ByteBuffer>();
     // Service data is a binary blob that can be passed to the application

@@ -94,8 +94,9 @@ implements KeysForTests, HoyaExitCodes {
   public static final int HBASE_CLUSTER_STARTUP_TO_LIVE_TIME = HBASE_CLUSTER_STARTUP_TIME
   
   public static final String HREGION = "HRegion"
+  public static final String HMASTER = "HMaster"
   public static final List<String> HBASE_VERSION_COMMAND_SEQUENCE = [
-      Arguments.ARG_OPTION, HoyaKeys.OPTION_HOYA_MASTER_COMMAND, "version",
+      Arguments.ARG_OPTION, HoyaKeys.OPTION_HOYA_MASTER_COMMAND, HBaseKeys.COMMAND_VERSION,
   ]
   public static final int SIGTERM = -15
   public static final int SIGKILL = -9

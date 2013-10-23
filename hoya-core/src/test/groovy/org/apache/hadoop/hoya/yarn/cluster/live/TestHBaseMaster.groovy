@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.cluster.live
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.tools.ZKIntegration
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
@@ -61,9 +62,8 @@ class TestHBaseMaster extends HBaseMiniClusterTestBase {
     //get the hbase status
     waitForHBaseRegionServerCount(hoyaClient, clustername, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     waitForHoyaWorkerCount(hoyaClient, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-
-
-
+    waitForRoleCount(hoyaClient, HBaseKeys.ROLE_MASTER, 1,
+                     HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
   }
 
 }

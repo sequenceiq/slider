@@ -33,7 +33,13 @@ class TestClusterFlex2DownTo1 extends HBaseMiniClusterTestBase {
 
   @Test
   public void testClusterFlex2DownTo1() throws Throwable {
-    assert flexHBaseClusterTestRun("TestClusterFlex2DownTo1", 2, 1, true, false)
+    assert flexHBaseClusterTestRun(
+        "TestClusterFlex2DownTo1",
+        1, 1,
+        2,
+        1,
+        true,
+        false)
   }
 
 

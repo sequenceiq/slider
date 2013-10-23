@@ -26,7 +26,9 @@ import org.apache.hadoop.hoya.api.OptionKeys;
  */
 public interface HoyaKeys {
 
-  String ROLE_MASTER = "master";
+  String ROLE_HOYA_AM = "hoya";
+  int ROLE_HOYA_AM_PRIORITY_INDEX =1;
+  
   
   /**
    * The path under which cluster and temp data are stored

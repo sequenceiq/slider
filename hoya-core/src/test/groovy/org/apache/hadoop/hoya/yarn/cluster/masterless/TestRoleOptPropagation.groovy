@@ -20,6 +20,7 @@ package org.apache.hadoop.hoya.yarn.cluster.masterless
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.yarn.Arguments
@@ -48,7 +49,7 @@ class TestRoleOptPropagation extends HBaseMiniClusterTestBase {
                                                      (HBaseKeys.ROLE_WORKER): 0,
                                                  ],
                                                  [
-                                                     Arguments.ARG_ROLEOPT, "master", MALLOC_ARENA, "4",
+                                                     Arguments.ARG_ROLEOPT, HoyaKeys.ROLE_HOYA_AM, MALLOC_ARENA, "4",
                                                      Arguments.ARG_ROLEOPT, "unknown", MALLOC_ARENA, "3",
                                                  ],
                                                  true,
@@ -56,7 +57,7 @@ class TestRoleOptPropagation extends HBaseMiniClusterTestBase {
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
     ClusterDescription status = hoyaClient.clusterDescription
-    Map<String, String> masterRole = status.getRole("master");
+    Map<String, String> masterRole = status.getRole(HoyaKeys.ROLE_HOYA_AM);
     assert masterRole[MALLOC_ARENA] == "4"
 
     Map<String, String> unknownRole = status.getRole("unknown");

@@ -22,6 +22,7 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.tools.ZKIntegration
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
@@ -32,17 +33,17 @@ import org.junit.Test
  */
 @CompileStatic
 @Slf4j
-
-class TestLiveTwoNodeRegionService extends HBaseMiniClusterTestBase {
+class TestLiveRegionServiceOnHDFS extends HBaseMiniClusterTestBase {
 
   @Test
-  public void testLiveTwoNodeRegionService() throws Throwable {
-    
-    String clustername = "TestLiveTwoNodeRegionService"
-    int regionServerCount = 2
-    createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, false)
+  public void testLiveRegionServiceOnHDFS() throws Throwable {
+    String clustername = "TestLiveRegionServiceOnHDFS"
+    int regionServerCount = 1
+    createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
+    describe(" Create a single region service cluster");
 
-    describe(" Create a two node region service cluster");
+    //make sure that ZK is up and running at the binding string
+    ZKIntegration zki = createZKIntegrationInstance(ZKBinding, clustername, false, false, 5000)
     //now launch the cluster
     ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount, [], true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
@@ -52,14 +53,17 @@ class TestLiveTwoNodeRegionService extends HBaseMiniClusterTestBase {
     assert ZKHosts == status.zkHosts
     assert ZKPort == status.zkPort
 
+//    dumpFullHBaseConf(hoyaClient)
+
+    log.info("Running basic HBase cluster startup sequence")
     ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient)
 
 
-
     status = waitForHoyaWorkerCount(hoyaClient, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+    describe("Cluster status")
+    log.info(prettyPrint(status.toJsonString()))
     //get the hbase status
     waitForHBaseRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-
 
   }
 

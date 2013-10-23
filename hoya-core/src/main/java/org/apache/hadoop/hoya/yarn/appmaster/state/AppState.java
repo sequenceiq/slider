@@ -87,7 +87,7 @@ public class AppState {
   /**
    * The master node.
    */
-  private RoleInstance masterNode;
+  private RoleInstance appMasterNode;
 
 
   /**
@@ -324,15 +324,15 @@ public class AppState {
    * in the live node set but has a lifecycle bonded to the AM
    * @param containerId the AM master
    */
-  public void buildMasterNode(ContainerId containerId) {
+  public void buildAppMasterNode(ContainerId containerId) {
     Container container = new ContainerPBImpl();
     container.setId(containerId);
-    RoleInstance master = new RoleInstance(container);
-    master.role = HoyaKeys.ROLE_MASTER;
-    master.buildUUID();
-    masterNode = master;
+    RoleInstance am = new RoleInstance(container);
+    am.role = HoyaKeys.ROLE_HOYA_AM;
+    am.buildUUID();
+    appMasterNode = am;
     //it is also added to the set of live nodes
-    getLiveNodes().put(containerId, master);
+    getLiveNodes().put(containerId, am);
   }
 
   /**
@@ -340,8 +340,8 @@ public class AppState {
    * though it isn't considered live until any forked
    * processes are running
    */
-  public void noteMasterNodeLaunched() {
-    addLaunchedContainer(masterNode.container, masterNode);
+  public void noteAMLaunched() {
+    addLaunchedContainer(appMasterNode.container, appMasterNode);
   }
 
   /**
@@ -349,12 +349,12 @@ public class AppState {
    * This is meant to be triggered from the callback
    * indicating the spawned process is up and running.
    */
-  public void noteMasterNodeLive() {
-    masterNode.state = ClusterDescription.STATE_LIVE;
+  public void noteAMLive() {
+    appMasterNode.state = ClusterDescription.STATE_LIVE;
   }
 
-  public RoleInstance getMasterNode() {
-    return masterNode;
+  public RoleInstance getAppMasterNode() {
+    return appMasterNode;
   }
 
   /**
@@ -364,7 +364,7 @@ public class AppState {
    * @return the status
    * @throws YarnRuntimeException on no match
    */
-  public RoleStatus lookupRoleStatus(int key) {
+  public RoleStatus lookupRoleStatus(int key) throws YarnRuntimeException {
     RoleStatus rs = getRoleStatusMap().get(key);
     if (rs == null) {
       throw new YarnRuntimeException("Cannot find role for role key " + key);
@@ -379,7 +379,7 @@ public class AppState {
    * @return the status
    * @throws YarnRuntimeException on no match
    */
-  public RoleStatus lookupRoleStatus(Container c) {
+  public RoleStatus lookupRoleStatus(Container c) throws YarnRuntimeException {
     return lookupRoleStatus(AMUtils.getRoleKey(c));
   }
 
@@ -391,7 +391,7 @@ public class AppState {
    * @return the status
    * @throws YarnRuntimeException on no match
    */
-  public RoleStatus lookupRoleStatus(String name) {
+  public RoleStatus lookupRoleStatus(String name) throws YarnRuntimeException {
     ProviderRole providerRole = roles.get(name);
     if (providerRole == null) {
       throw new YarnRuntimeException("Unknown role " + name);

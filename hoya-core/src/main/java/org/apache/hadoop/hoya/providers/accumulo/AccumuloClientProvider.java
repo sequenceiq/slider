@@ -56,8 +56,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * This class implements both the client-side and server-side aspects
- * of an HBase Cluster
+ * Client-side accumulo provider
  */
 public class AccumuloClientProvider extends Configured implements
                                                        ProviderCore,

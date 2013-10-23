@@ -27,13 +27,14 @@ import org.apache.hadoop.hbase.ServerName
 import org.apache.hadoop.hbase.client.HBaseAdmin
 import org.apache.hadoop.hbase.client.HConnection
 import org.apache.hadoop.hbase.client.HConnectionManager
+import org.apache.hadoop.hbase.client.RetriesExhaustedException
+import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.yarn.Arguments
-import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
@@ -46,7 +47,7 @@ import org.junit.Assume
  */
 @CompileStatic
 @Slf4j
-public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
+public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
 
   public static
   final String NO_HBASE_TAR_DEFINED = "Hbase Archive conf option not set " +
@@ -71,6 +72,7 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
   void teardown() {
     super.teardown();
     killAllRegionServers();
+    killAllMasterServers();
   }
 
 
@@ -82,6 +84,9 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
    */
   public void killAllRegionServers() {
     killJavaProcesses(HREGION, SIGKILL);
+  }
+  public void killAllMasterServers() {
+    killJavaProcesses(HMASTER, SIGKILL);
   }
 
   /**
@@ -219,9 +224,12 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
 
 
   public ClusterStatus basicHBaseClusterStartupSequence(HoyaClient hoyaClient) {
-    int hbaseState = hoyaClient.waitForRoleInstanceLive(HBaseKeys.ROLE_MASTER,
+    int state = hoyaClient.waitForRoleInstanceLive(HoyaKeys.ROLE_HOYA_AM,
                                                         HBASE_CLUSTER_STARTUP_TIME);
-    assert hbaseState == ClusterDescription.STATE_LIVE;
+    assert state == ClusterDescription.STATE_LIVE;
+    state = hoyaClient.waitForRoleInstanceLive(HBaseKeys.ROLE_MASTER,
+                                                        HBASE_CLUSTER_STARTUP_TIME);
+    assert state == ClusterDescription.STATE_LIVE;
     //sleep for a bit to give things a chance to go live
     assert spinForClusterStartup(hoyaClient, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME);
 
@@ -266,33 +274,54 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
     return clustat;
   }
 
-
-  public boolean flexHBaseClusterTestRun(String clustername, int workers, int flexTarget, boolean persist, boolean testHBaseAfter) {
+  public boolean flexHBaseClusterTestRun(
+      String clustername,
+      int masters,
+      int masterFlexTarget,
+      int workers,
+      int flexTarget,
+      boolean persist,
+      boolean testHBaseAfter) {
     createMiniCluster(clustername, createConfiguration(),
                       1,
                       true);
     //now launch the cluster
     HoyaClient hoyaClient = null;
-    ServiceLauncher launcher = createHBaseCluster(clustername, workers, [], true, true);
+    ServiceLauncher launcher = createHoyaCluster(clustername,
+                         [
+                             (HBaseKeys.ROLE_MASTER): masters,
+                             (HBaseKeys.ROLE_WORKER): workers,
+                         ],
+                         [],
+                         true,
+                         true, [:]);
     hoyaClient = (HoyaClient) launcher.service;
     try {
       basicHBaseClusterStartupSequence(hoyaClient);
 
       describe("Waiting for initial worker count of $workers");
 
-      //verify the #of region servers is as expected
+      //verify the #of roles is as expected
       //get the hbase status
       waitForHoyaWorkerCount(hoyaClient, workers, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME);
+      waitForHoyaMasterCount(hoyaClient, masters, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME);
+
       log.info("Hoya worker count at $workers, waiting for region servers to match");
       waitForHBaseRegionServerCount(hoyaClient, clustername, workers, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME);
 
-      //start to add some more workers
-      describe("Flexing from $workers worker(s) to $flexTarget worker");
+      //now flex
+      describe("Flexing  masters:$masters -> $masterFlexTarget ; workers $workers -> $flexTarget");
       boolean flexed;
       flexed = 0 == hoyaClient.flex(clustername,
-                                    [(HBaseKeys.ROLE_WORKER): flexTarget],
+                                    [
+                                        (HBaseKeys.ROLE_WORKER): flexTarget,
+                                        (HBaseKeys.ROLE_MASTER): masterFlexTarget
+                                    ],
                                     persist);
       waitForHoyaWorkerCount(hoyaClient, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME);
+      waitForHoyaMasterCount(hoyaClient, masterFlexTarget,
+                             HBASE_CLUSTER_STARTUP_TO_LIVE_TIME);
+
       if (testHBaseAfter) {
         waitForHBaseRegionServerCount(hoyaClient, clustername, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME);
       }
@@ -314,6 +343,12 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
                                                    int timeout) {
     return waitForRoleCount(hoyaClient, HBaseKeys.ROLE_WORKER, desiredCount, timeout)
   }
+  public ClusterDescription waitForHoyaMasterCount(HoyaClient hoyaClient,
+                                                   int desiredCount,
+                                                   int timeout) {
+    return waitForRoleCount(hoyaClient, HBaseKeys.ROLE_MASTER, desiredCount, timeout)
+  }
+  
   public String getHBaseHome() {
     YarnConfiguration conf = getTestConfiguration()
     String hbaseHome = conf.getTrimmed(KeysForTests.HOYA_TEST_HBASE_HOME)
@@ -362,4 +397,38 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase{
     }
   }
 
+  /**
+   * attempt to talk to the hbase master; expect a failure
+   * @param clientConf client config
+   */
+  public void assertNoHBaseMaster(Configuration clientConf) {
+    boolean masterFound = isHBaseMasterFound(clientConf)
+    if (masterFound) {
+      fail("HBase master running")
+    }
+  }
+  /**
+   * attempt to talk to the hbase master; expect success
+   * @param clientConf client config
+   */
+  public void assertHBaseMaster(Configuration clientConf) {
+    boolean masterFound = isHBaseMasterFound(clientConf)
+    if (masterFound) {
+      fail("HBase master running")
+    }
+  }
+
+  public boolean isHBaseMasterFound(Configuration clientConf) {
+    HConnection hbaseConnection
+    hbaseConnection = createHConnection(clientConf)
+    HBaseAdmin hBaseAdmin = new HBaseAdmin(hbaseConnection);
+    boolean masterFound
+    try {
+      ClusterStatus hBaseClusterStatus = hBaseAdmin.getClusterStatus();
+      masterFound = true;
+    } catch (RetriesExhaustedException e) {
+      masterFound = false;
+    }
+    return masterFound
+  }
 }

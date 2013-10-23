@@ -48,11 +48,11 @@ PACKAGE MANAGEMENT
  */
 public interface HBaseKeys {
 
-  String ROLE_WORKER = "worker";
-  String ROLE_MASTER = HoyaKeys.ROLE_MASTER;
-  
   /** {@value */
   String MASTER = "master";
+  String ROLE_WORKER = "worker";
+  
+  String ROLE_MASTER = MASTER;
 
   /** {@value */
   String REGION_SERVER = "regionserver";
@@ -61,6 +61,11 @@ public interface HBaseKeys {
    *  name of the hbase subdir in the archive:  {@value}
    */
   String VERSION = "hbase-0.96.0";
+
+  /**
+   * What is the command for hbase to print a version: {@value}
+   */
+  String COMMAND_VERSION = "version";
 
   String ACTION_START = "start";
   String ACTION_STOP = "stop";

@@ -16,12 +16,16 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.cluster.live
+package org.apache.hadoop.hoya.yarn.cluster.failures
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.ClusterStatus
+import org.apache.hadoop.hbase.HConstants
+import org.apache.hadoop.hbase.ServerName
 import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
@@ -32,35 +36,47 @@ import org.junit.Test
  */
 @CompileStatic
 @Slf4j
-
-class TestLiveTwoNodeRegionService extends HBaseMiniClusterTestBase {
+class TestKilledHBaseMaster extends HBaseMiniClusterTestBase {
 
   @Test
-  public void testLiveTwoNodeRegionService() throws Throwable {
-    
-    String clustername = "TestLiveTwoNodeRegionService"
-    int regionServerCount = 2
-    createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, false)
+  public void testKilledHBaseMaster() throws Throwable {
+    String clustername = "TestKilledHBaseMaster"
+    int regionServerCount = 1
+    createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
+    describe("Kill the hbase master and expect a restart");
 
-    describe(" Create a two node region service cluster");
     //now launch the cluster
     ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount, [], true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
     ClusterDescription status = hoyaClient.getClusterDescription(clustername)
-    log.info("${status.toJsonString()}")
-    assert ZKHosts == status.zkHosts
-    assert ZKPort == status.zkPort
 
     ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient)
 
 
-
     status = waitForHoyaWorkerCount(hoyaClient, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     //get the hbase status
-    waitForHBaseRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+    ClusterStatus hbaseStat = waitForHBaseRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+    ServerName master = hbaseStat.master
+    log.info("HBase master providing status information at {}",
+             hbaseStat.master)
+    
+    Configuration clientConf = createHBaseConfiguration(hoyaClient)
+    clientConf.setInt(HConstants.HBASE_CLIENT_RETRIES_NUMBER, 10);
+    killAllMasterServers();
+    status = waitForRoleCount(
+        hoyaClient, HBaseKeys.ROLE_MASTER, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+    hbaseStat = waitForHBaseRegionServerCount(
+        hoyaClient,
+        clustername,
+        regionServerCount,
+        HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
-
+    ServerName master2 = hbaseStat.master
+    log.info("HBase master providing status information again at {}",
+             master2)
+    assert master2 != master
   }
+
 
 }
