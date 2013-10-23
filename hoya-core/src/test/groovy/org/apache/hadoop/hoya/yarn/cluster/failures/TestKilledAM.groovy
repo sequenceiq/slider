@@ -73,6 +73,7 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
     lsJavaProcesses()
     describe("killing services")
     killServiceLaunchers(SIGTERM);
+    killAllMasterServers();
     waitWhileClusterExists(hoyaClient, 30000);
     //give yarn some time to notice
     sleep(2000)
