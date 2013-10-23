@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -88,6 +89,23 @@ public abstract class AbstractProviderService
     
   }
 
+  /**
+   * Scan through the roles and see if it is supported.
+   * @param role role to look for
+   * @return true if the role is known about -and therefore
+   * that a launcher thread can be deployed to launch it
+   */
+  @Override
+  public boolean isSupportedRole(String role) {
+    Collection<ProviderRole> roles = getRoles();
+    for (ProviderRole providedRole : roles) {
+      if (providedRole.name.equals(role)) {
+        return true;
+      }
+    }
+    return false;
+  }
+  
   @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
   @Override // ExitCodeProvider
   public int getExitCode() {

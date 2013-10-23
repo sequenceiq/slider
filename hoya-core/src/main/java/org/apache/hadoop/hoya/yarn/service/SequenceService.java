@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.yarn.service;
 
+import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.service.ServiceStateChangeListener;
@@ -26,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -241,4 +243,5 @@ public class SequenceService extends AbstractService implements Parent,
     return super.toString() + "; current service " + currentService
            + "; queued service count=" + serviceList.size();
   }
+
 }

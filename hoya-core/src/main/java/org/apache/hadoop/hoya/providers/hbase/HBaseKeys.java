@@ -62,6 +62,11 @@ public interface HBaseKeys {
    */
   String VERSION = "hbase-0.96.0";
 
+  /**
+   * What is the command for hbase to print a version: {@value}
+   */
+  String COMMAND_VERSION = "version";
+
   String ACTION_START = "start";
   String ACTION_STOP = "stop";
 

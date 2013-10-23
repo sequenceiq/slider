@@ -52,12 +52,12 @@ public class RoleLauncher implements Runnable {
   private final HoyaAppMaster owner;
 
   // Allocated container
-  private final Container container;
-  private final String containerRole;
+  public final Container container;
+  public  final String containerRole;
   private final Map<String, String> roleOptions;
-  private final ProviderService provider;
+  public final ProviderService provider;
   private final ClusterDescription clusterSpec;
-  private final ProviderRole role;
+  public final ProviderRole role;
 
   public RoleLauncher(HoyaAppMaster owner,
                       Container container,
@@ -80,8 +80,16 @@ public class RoleLauncher implements Runnable {
   }
 
   @Override
-  public void run() {
+  public String toString() {
+    return "RoleLauncher{" +
+           "container=" + container.getId() +
+           ", containerRole='" + containerRole + '\'' +
+           '}';
+  }
 
+  @Override
+  public void run() {
+    Exception ex = null;
     try {
       UserGroupInformation user =
         UserGroupInformation.createRemoteUser(container.getId().toString());
@@ -104,7 +112,8 @@ public class RoleLauncher implements Runnable {
       ContainerLaunchContext ctx = Records
         .newRecord(ContainerLaunchContext.class);
       //now build up the configuration data    
-      provider.buildContainerLaunchContext(ctx, fs,
+      provider.buildContainerLaunchContext(ctx,
+                                           fs,
                                            generatedConfPath,
                                            containerRole,
                                            clusterSpec,
@@ -148,8 +157,9 @@ public class RoleLauncher implements Runnable {
       log.error(
         "Exception thrown while trying to start " + containerRole + ": " + e,
         e);
+      ex = e;
     } finally {
-      owner.launchedThreadCompleted(this);
+      owner.launchedThreadCompleted(this, ex);
     }
   }
 

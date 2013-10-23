@@ -68,6 +68,14 @@ public interface ProviderService extends ProviderCore, Service,
             EventCallback execInProgress) throws IOException,
                                                  HoyaException;
 
+  /**
+   * Scan through the roles and see if it is supported.
+   * @param role role to look for
+   * @return true if the role is known about -and therefore
+   * that a launcher thread can be deployed to launch it
+   */
+  boolean isSupportedRole(String role);
+
   boolean buildStatusReport(ClusterNode masterNode);
 
   /**
