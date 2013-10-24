@@ -304,54 +304,53 @@ public class AccumuloProviderService extends AbstractProviderService implements
       throw new BadClusterStateException(
         "Interrupted while trying to connect to Zookeeper at %s",
         zkQuorum);
-
     }
     boolean inited = isInited(cd);
+    List<String> commands;
     if (!inited) {
       log.info("Initializing accumulo datastore {}", cd.dataPath);
-      List<String> commands =
-        buildProcessCommandList(cd, confDir, env,
-                                "init",
-                                PARAM_INSTANCE_NAME, providerUtils.getUserName() + "-" + cd.name,
-                                PARAM_PASSWORD,
-                                cd.getMandatoryOption(OPTION_ACCUMULO_PASSWORD),
-                                "--clear-instance-name");
-      ForkedProcessService initProcess =
-        queueCommand(getName(), env, commands);
-      //add a timeout to this process
-      initProcess.setTimeout(
-        cd.getOptionInt(OPTION_ACCUMULO_INIT_TIMEOUT,
-                        INIT_TIMEOUT_DEFAULT), 1);
+      commands = buildProcessCommandList(cd, confDir, env,
+                              "init",
+                              PARAM_INSTANCE_NAME,
+                              providerUtils.getUserName() + "-" + cd.name,
+                              PARAM_PASSWORD,
+                              cd.getMandatoryOption(OPTION_ACCUMULO_PASSWORD),
+                              "--clear-instance-name");
+
+    } else {
+      // otherwise, just run accumulo version. That way, detect problems fast
+      String accumuloAction =
+        cd.getOption(HoyaKeys.OPTION_HOYA_MASTER_COMMAND, "version");
+      commands =
+        buildProcessCommand(cd, confDir, env, accumuloAction);
     }
-    //now add the main operation along with 
-    //an event notifier.
-    String masterCommand =
-      cd.getOption(HoyaKeys.OPTION_HOYA_MASTER_COMMAND, null);
+    
 
-    List<String> commands =
-      buildProcessCommand(cd, confDir, env, masterCommand);
+    ForkedProcessService subprocess = buildProcess(getName(), env, commands);
+    subprocess.setTimeout(
+      cd.getOptionInt(OPTION_ACCUMULO_INIT_TIMEOUT,
+                      INIT_TIMEOUT_DEFAULT), 1);
 
-    ForkedProcessService masterProcess = buildProcess(getName(), env, commands);
     CompoundService compound = new CompoundService(getName());
-    compound.addService(masterProcess);
+    compound.addService(subprocess);
     compound.addService(new EventNotifyingService(execInProgress,
                                                   cd.getOptionInt(
                                                     OptionKeys.OPTION_CONTAINER_STARTUP_DELAY,
                                                     CONTAINER_STARTUP_DELAY)));
-    //register the service for lifecycle management; when this service
-    //is terminated, so is the master process
+    // register the service for lifecycle management; when this service
+    // is terminated, so is the master process
     addService(compound);
 
-    //now trigger the command sequence
+    // now trigger the command sequence
     maybeStartCommandSequence();
 
   }
 
   /**
    * probe to see if accumulo has already been installed.
-   * @param cd
-   * @return
-   * @throws IOException
+   * @param cd cluster description
+   * @return true if the relevant data directory looks inited
+   * @throws IOException IO problems
    */
   private boolean isInited(ClusterDescription cd) throws IOException {
     providerUtils.createDataDirectory(cd, getConf());
