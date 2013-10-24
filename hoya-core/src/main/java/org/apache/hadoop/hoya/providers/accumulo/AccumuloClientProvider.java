@@ -382,7 +382,7 @@ public class AccumuloClientProvider extends Configured implements
     providerUtils.validateNodeCount(AccumuloKeys.ROLE_MASTER,
                                     clusterSpec.getDesiredInstanceCount(
                                       AccumuloKeys.ROLE_MASTER,
-                                      1), 1, 1);
+                                      1), 1, -1);
 
     providerUtils.validateNodeCount(AccumuloKeys.ROLE_GARBAGE_COLLECTOR,
                                     clusterSpec.getDesiredInstanceCount(

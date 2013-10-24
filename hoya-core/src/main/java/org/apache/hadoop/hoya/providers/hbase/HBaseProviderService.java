@@ -248,9 +248,9 @@ public class HBaseProviderService extends AbstractProviderService implements
     List<String> commands =
       buildProcessCommand(cd, confDir, env, masterCommand);
 
-    ForkedProcessService masterProcess = buildProcess(getName(), env, commands);
+    ForkedProcessService subprocess = buildProcess(getName(), env, commands);
     CompoundService composite = new CompoundService(getName());
-    composite.addService(masterProcess);
+    composite.addService(subprocess);
     composite.addService(new EventNotifyingService(execInProgress,
                            cd.getOptionInt(
                              OptionKeys.OPTION_CONTAINER_STARTUP_DELAY,
