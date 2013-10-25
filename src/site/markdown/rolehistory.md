@@ -51,6 +51,10 @@ For this to work in a dynamic cluster, Hoya needs to bring up Region Servers
 on the previously used hosts, so that the HBase Master can re-assign the same
 tables.
 
+Note that it does not need to care about the placement of other roles, such
+as the HBase masters -there anti-affinity between other instances is
+the key requirement.
+
 ### Terminology
 
 * **Role Instance** : a single instance of a role.
@@ -64,7 +68,6 @@ manage its Hoya Cluster.
 ### Assumptions
 
 Here are some assumptions in Hoya's design
-
 
 1. Instances of a specific role should preferably be deployed onto different
 servers. This enables Hoya to only remember the set of server nodes onto
@@ -108,8 +111,8 @@ of rolling statistics on recent failures would be a first step to this
 The RoleHistory is a datastructure which models the role assignment, and
 can persist it to and restore it from the (shared) filesystem.
 
-* For each role, there is a list of nodes used in the past
-* This history is used when selecting a node for a role
+* For each role, there is a list of nodes used in the past.
+* This history is used when selecting a node for a role.
 * This history remembers when nodes were allocated. These are re-requested
 when thawing a cluster.
 * It must also remember when nodes were released -these are re-requested
@@ -120,8 +123,7 @@ due to outstanding requests.
 * It does not retain a complete history of the role -and does not need to.
 All it needs to retain is the recent history for every node onto which a role
 instance has been deployed. Specifically, the last allocation or release
-operation on a a nodes is all that needs to be persisted. 
-
+operation on a node is all that needs to be persisted.
 * On AM startup, all nodes are considered candidates, even those nodes marked
 as active -as they were from the previous instance.
 * During cluster flexing, nodes marked as released -and for which there is no
@@ -130,7 +132,8 @@ outstanding request - are considered candidates for requesting new instances.
 
 ### Persistence
 
-The state of the role is persisted to HDFS on changes
+The state of the role is persisted to HDFS on changes -but not on cluster
+termination.
 
 1. When nodes are allocated, the Role History is marked as dirty
 1. When container release callbacks are received, the Role History is marked as dirty
@@ -153,7 +156,7 @@ container allocation response (which will actually be the initial implementation
 ## Weaknesses in this design
 
 **Blacklisting**: even if a node fails repeatedly, this design will still try to re-request
-instances on this node: there is no blacklisting. As a central blacklist
+instances on this node; there is no blacklisting. As a central blacklist
 for YARN has been proposed, it is hoped that this issue will be addressed centrally,
 without Hoya having to remember which nodes are unreliable *for that particular
 Hoya cluster*.
@@ -173,9 +176,6 @@ This may be possible, but we'd need evidence that the problem existed before
 trying to address it.
 
 
-
-
-
 # The NodeMap: the core of the Role History
 
 The core data structure is a map of every node in the cluster tracking
@@ -192,12 +192,12 @@ of correlating allocation responses with the original requests -and so the
 actual hosts originally requested.
 
 1. Hoya builds up a map of which nodes have recently been used.
-1. Every node counts the no. of active containers in each role.
+1. Every node counts the number. of active containers in each role.
 1. Nodes are only chosen for allocation requests when there are no
 active or requested containers on that node.
 1. When choosing which instances to release, Hoya could pick the node with the
-most containers on it. Ths would spread load.
-1. When there are no empty nodes to request containers on, a random request would
+most containers on it. Ths would spread the load.
+1. When there are no empty nodes to request containers on, a request would
 let YARN choose.
 
 #### Strengths
