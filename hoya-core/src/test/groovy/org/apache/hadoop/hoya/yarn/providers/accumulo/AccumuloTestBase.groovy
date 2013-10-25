@@ -52,6 +52,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
    * expect meaningful results.
    */
   public static final int ACCUMULO_CLUSTER_STARTUP_TO_LIVE_TIME = ACCUMULO_CLUSTER_STARTUP_TIME
+  public static final int ACCUMULO_GO_LIVE_TIME = 60000
 
 
   @Override

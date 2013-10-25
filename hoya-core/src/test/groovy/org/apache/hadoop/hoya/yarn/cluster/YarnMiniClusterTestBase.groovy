@@ -41,12 +41,10 @@ import org.apache.hadoop.hoya.tools.BlockingZKWatcher
 import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.Arguments
-import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.MicroZKCluster
 import org.apache.hadoop.hoya.tools.ZKIntegration
-import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.service.ServiceOperations
 import org.apache.hadoop.yarn.api.records.ApplicationReport
@@ -731,7 +729,7 @@ implements KeysForTests, HoyaExitCodes {
    * @param timeout timeout
    */
   public ClusterDescription waitForRoleCount(HoyaClient hoyaClient, String role, int desiredCount, int timeout) {
-    return waitForRoleCount(hoyaClient, [(role):desiredCount], timeout)
+    return waitForRoleCount(hoyaClient, [(role): desiredCount], timeout)
   }
   
   /**
@@ -741,7 +739,11 @@ implements KeysForTests, HoyaExitCodes {
    * @param desiredCount RS count
    * @param timeout timeout
    */
-  public ClusterDescription waitForRoleCount(HoyaClient hoyaClient, Map<String, Integer> roles, int timeout) {
+  public ClusterDescription waitForRoleCount(
+      HoyaClient hoyaClient,
+      Map<String, Integer> roles,
+      int timeout,
+      String operation = "startup") {
     String clustername = hoyaClient.deployedClusterName;
     ClusterDescription status = null
     Duration duration = new Duration(timeout);
@@ -767,15 +769,15 @@ implements KeysForTests, HoyaExitCodes {
       }
       if (roleCountFound) {
         //successful
-        log.info("Role count as desired: " + details)
+        log.info("$operation: role count as desired: $details")
 
         break;
       }
 
       if (duration.limitExceeded) {
-        describe("Role count not met : "+ details)
+        describe("$operation: role count not met after $duration : $details")
         log.info(prettyPrint(status.toJsonString()))
-        fail("Role counts not met $timeout millis: $details in \n$status ")
+        fail("$operation: role counts not met  after $duration : $details in \n$status ")
       }
       log.info("Waiting: " + details)
       Thread.sleep(1000)

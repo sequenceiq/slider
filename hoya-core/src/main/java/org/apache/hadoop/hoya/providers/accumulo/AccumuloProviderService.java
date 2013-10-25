@@ -35,7 +35,6 @@ import org.apache.hadoop.hoya.providers.ProviderUtils;
 import org.apache.hadoop.hoya.tools.BlockingZKWatcher;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
-import org.apache.hadoop.hoya.yarn.service.CompoundService;
 import org.apache.hadoop.hoya.yarn.service.EventCallback;
 import org.apache.hadoop.hoya.yarn.service.EventNotifyingService;
 import org.apache.hadoop.hoya.yarn.service.ForkedProcessService;
@@ -320,26 +319,27 @@ public class AccumuloProviderService extends AbstractProviderService implements
     } else {
       // otherwise, just run accumulo version. That way, detect problems fast
       String accumuloAction =
-        cd.getOption(HoyaKeys.OPTION_HOYA_MASTER_COMMAND, "version");
+        cd.getOption(HoyaKeys.OPTION_HOYA_MASTER_COMMAND,
+                     ACCUMULO_VERSION_COMMAND);
       commands =
         buildProcessCommand(cd, confDir, env, accumuloAction);
-    }
-    
 
-    ForkedProcessService subprocess = buildProcess(getName(), env, commands);
-    subprocess.setTimeout(
+    }
+    ForkedProcessService accumulo =
+      queueCommand(getName(), env, commands);
+    //add a timeout to this process
+    accumulo.setTimeout(
       cd.getOptionInt(OPTION_ACCUMULO_INIT_TIMEOUT,
                       INIT_TIMEOUT_DEFAULT), 1);
-
-    CompoundService compound = new CompoundService(getName());
-    compound.addService(subprocess);
-    compound.addService(new EventNotifyingService(execInProgress,
-                                                  cd.getOptionInt(
-                                                    OptionKeys.OPTION_CONTAINER_STARTUP_DELAY,
-                                                    CONTAINER_STARTUP_DELAY)));
-    // register the service for lifecycle management; when this service
-    // is terminated, so is the master process
-    addService(compound);
+    
+    //callback to AM to trigger cluster review is set up to happen after
+    //the init/verify action has succeeded
+    EventNotifyingService notifier = new EventNotifyingService(execInProgress,
+      cd.getOptionInt( OptionKeys.OPTION_CONTAINER_STARTUP_DELAY,
+                      CONTAINER_STARTUP_DELAY));
+    // register the service for lifecycle management; 
+    // this service is started after the accumulo process completes
+    addService(notifier);
 
     // now trigger the command sequence
     maybeStartCommandSequence();

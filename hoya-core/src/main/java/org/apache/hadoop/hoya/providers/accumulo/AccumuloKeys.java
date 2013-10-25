@@ -113,4 +113,5 @@ public interface AccumuloKeys {
   String MONITOR_PAGE_JSON = "/json";
   String MONITOR_PAGE_XML = "/xml";
 
+  String ACCUMULO_VERSION_COMMAND = "version";
 }
