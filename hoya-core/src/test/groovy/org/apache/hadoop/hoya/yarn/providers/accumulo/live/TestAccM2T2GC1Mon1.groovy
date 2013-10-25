@@ -70,7 +70,8 @@ class TestAccM2T2GC1Mon1 extends AccumuloTestBase {
     //now give the cluster a bit of time to actually start work
 
     log.info("Sleeping for a while")
-    sleep(60000);
+    sleep(ACCUMULO_GO_LIVE_TIME);
+
     //verify that all is still there
     waitForRoleCount(hoyaClient, roles, 0)
 

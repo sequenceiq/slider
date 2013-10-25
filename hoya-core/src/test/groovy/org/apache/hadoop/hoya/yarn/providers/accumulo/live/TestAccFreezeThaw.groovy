@@ -20,23 +20,21 @@ package org.apache.hadoop.hoya.yarn.providers.accumulo.live
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.providers.accumulo.AccumuloConfigFileOptions
 import org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys
 import org.apache.hadoop.hoya.tools.ZKIntegration
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.accumulo.AccumuloTestBase
-import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
 @CompileStatic
 @Slf4j
-class TestAccM1T1GC1Mon1 extends AccumuloTestBase {
+class TestAccFreezeThaw extends AccumuloTestBase {
 
   @Test
-  public void testAccM1T1GC1Mon1() throws Throwable {
-    String clustername = "TestAccM1T1GC1Mon1"
+  public void testAccFreezeThaw() throws Throwable {
+    String clustername = "TestAccFreezeThaw"
     int tablets = 1
     int monitor = 1
     int gc = 1
@@ -57,32 +55,53 @@ class TestAccM1T1GC1Mon1 extends AccumuloTestBase {
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
 
-
-    waitWhileClusterExists(hoyaClient, 30000);
-    assert hoyaClient.applicationReport.yarnApplicationState == YarnApplicationState.RUNNING
+    
     waitForRoleCount(hoyaClient, roles, ACCUMULO_CLUSTER_STARTUP_TO_LIVE_TIME)
-    describe("Cluster status")
-    ClusterDescription status
-    status = hoyaClient.getClusterDescription(clustername)
-    log.info(prettyPrint(status.toJsonString()))
-
     //now give the cluster a bit of time to actually start work
 
     log.info("Sleeping for a while")
     sleep(ACCUMULO_GO_LIVE_TIME);
-
     //verify that all is still there
-    waitForRoleCount(hoyaClient, roles, 0)
+    waitForRoleCount(hoyaClient, roles, 0, "extended cluster operation")
 
     String page = fetchLocalPage(AccumuloConfigFileOptions.MONITOR_PORT_CLIENT_INT,
                                  AccumuloKeys.MONITOR_PAGE_JSON)
     log.info(page);
 
-    log.info("Finishing")
-    status = hoyaClient.getClusterDescription(clustername)
-    log.info(prettyPrint(status.toJsonString()))
-    maybeStopCluster(hoyaClient, clustername, "shut down $clustername")
+    log.info("Freezing")
+    clusterActionFreeze(hoyaClient, clustername, "freeze");
+    waitForAppToFinish(hoyaClient)
+    
+    //make sure the fetch fails
+    try {
+      page = fetchLocalPage(AccumuloConfigFileOptions.MONITOR_PORT_CLIENT_INT,
+                     AccumuloKeys.MONITOR_PAGE_JSON)
+      //this should have failed
+      log.error("The accumulo monitor is still live")
+      log.error(page)
+    } catch (ConnectException expected) {
+      //
+      log.debug("expected exception", expected)
+    }
+    //force kill any accumulo processes
+    killAllAccumuloProcesses()
+    sleep(ACCUMULO_GO_LIVE_TIME);
 
+    log.info("Thawing")
+    
+    ServiceLauncher launcher2 = thawHoyaCluster(clustername, [], true);
+    HoyaClient hoyaClient2 = (HoyaClient) launcher2.service
+    addToTeardown(hoyaClient2)
+    waitForRoleCount(hoyaClient, roles, ACCUMULO_CLUSTER_STARTUP_TO_LIVE_TIME, "thawing")
+
+
+    sleep(ACCUMULO_GO_LIVE_TIME);
+    //verify that all is still there
+    waitForRoleCount(hoyaClient, roles, 0, "extended cluster operation after thawing")
+    page = fetchLocalPage(
+        AccumuloConfigFileOptions.MONITOR_PORT_CLIENT_INT,
+        AccumuloKeys.MONITOR_PAGE_JSON)
+    log.info(page);
   }
 
 }
