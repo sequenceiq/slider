@@ -367,7 +367,7 @@ public class AppState {
   public RoleStatus lookupRoleStatus(int key) throws YarnRuntimeException {
     RoleStatus rs = getRoleStatusMap().get(key);
     if (rs == null) {
-      throw new YarnRuntimeException("Cannot find role for role key " + key);
+      throw new YarnRuntimeException("Cannot find role for role ID " + key);
     }
     return rs;
   }
@@ -669,6 +669,15 @@ public class AppState {
       //a container has failed and its role needs to be decremented
       RoleInstance roleInstance = activeContainers.remove(containerId);
       if (roleInstance != null) {
+        //it was active, move it to failed 
+        incFailedCountainerCount();
+        failedNodes.put(containerId,roleInstance);
+      } else {
+        // the container may have been noted as failed already, so look
+        // it up
+        roleInstance = failedNodes.get(containerId);
+      }
+      if (roleInstance != null) {
         int roleId = roleInstance.roleId;
         log.info("Failed container in role {}", roleId);
         try {
@@ -678,8 +687,10 @@ public class AppState {
           log.error("Failed container of unknown role {}", roleId);
         }
       } else {
+        //this isn't a known container.
+        
         log.error("Notified of completed container that is not in the list" +
-                  " of active containers");
+                  " of active or failed containers");
       }
     }
     //record the complete node's details; this pulls it from the livenode set 

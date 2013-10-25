@@ -802,5 +802,11 @@ implements KeysForTests, HoyaExitCodes {
   }
 
 
-
+  String roleMapToString(Map<String,Integer> roles) {
+    StringBuilder builder = new StringBuilder()
+    roles.each { String name, int value ->
+      builder.append("$name->$value ")
+    }
+    return builder.toString()
+  }
 }
