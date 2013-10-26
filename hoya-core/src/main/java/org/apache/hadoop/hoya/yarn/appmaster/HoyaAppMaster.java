@@ -44,7 +44,9 @@ import org.apache.hadoop.hoya.yarn.HoyaActions;
 import org.apache.hadoop.hoya.yarn.appmaster.rpc.HoyaAMPolicyProvider;
 import org.apache.hadoop.hoya.yarn.appmaster.rpc.HoyaClusterProtocolPBImpl;
 import org.apache.hadoop.hoya.yarn.appmaster.rpc.RpcBinder;
+import org.apache.hadoop.hoya.yarn.appmaster.state.AbstractRMOperation;
 import org.apache.hadoop.hoya.yarn.appmaster.state.AppState;
+import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerReleaseOperation;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RMOperationHandler;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleInstance;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleStatus;
@@ -1088,8 +1090,11 @@ public class HoyaAppMaster extends CompositeService
    * Shutdown operation: release all containers
    */
   private void releaseAllContainers() {
+
     Collection<RoleInstance> targets = appState.cloneActiveContainerList();
     log.info("Releasing {} containers", targets.size());
+    List<AbstractRMOperation> operations = new ArrayList<AbstractRMOperation>(
+      targets.size());
     for (RoleInstance instance : targets) {
       Container possible = instance.container;
       ContainerId id = possible.getId();
@@ -1099,10 +1104,11 @@ public class HoyaAppMaster extends CompositeService
         } catch (HoyaInternalStateException e) {
           log.warn("when releasing container {} :", possible, e);
         }
-        log.debug("Releasing container {}", id);
-        asyncRMClient.releaseAssignedContainer(id);
+        operations.add(new ContainerReleaseOperation(id));
       }
     }
+    //now apply the operations
+    rmOperationHandler.execute(operations);
   }
 
   /**

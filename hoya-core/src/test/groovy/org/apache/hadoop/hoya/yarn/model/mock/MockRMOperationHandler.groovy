@@ -29,17 +29,17 @@ import org.apache.hadoop.yarn.client.api.AMRMClient
 
 @Slf4j
 class MockRMOperationHandler extends RMOperationHandler {
-  List<AbstractRMOperation> history = [];
+  List<AbstractRMOperation> operations = [];
   
   @Override
   void releaseAssignedContainer(ContainerId containerId) {
-    history.add(new ContainerReleaseOperation(containerId))
+    operations.add(new ContainerReleaseOperation(containerId))
     log.info("Releasing container ID " + containerId.getId())
   }
 
   @Override
   void addContainerRequest(AMRMClient.ContainerRequest req) {
-    history.add(new ContainerRequestOperation(req))
+    operations.add(new ContainerRequestOperation(req))
     log.info("Requesting container role #" + req.priority);
 
   }

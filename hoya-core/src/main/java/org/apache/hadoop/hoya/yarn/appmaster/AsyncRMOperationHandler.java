@@ -22,13 +22,16 @@ import org.apache.hadoop.hoya.yarn.appmaster.state.RMOperationHandler;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Hands off RM operations to the Resource Manager
  */
 public class AsyncRMOperationHandler extends RMOperationHandler {
-
-  AMRMClientAsync client;
+  protected static final Logger log =
+    LoggerFactory.getLogger(AsyncRMOperationHandler.class);
+  private final AMRMClientAsync client;
 
   public AsyncRMOperationHandler(AMRMClientAsync client) {
     this.client = client;
@@ -36,6 +39,8 @@ public class AsyncRMOperationHandler extends RMOperationHandler {
 
   @Override
   public void releaseAssignedContainer(ContainerId containerId) {
+    log.debug("Releasing container {}", containerId);
+
     client.releaseAssignedContainer(containerId);
   }
 
