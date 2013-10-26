@@ -18,27 +18,13 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
-import org.apache.hadoop.yarn.client.api.AMRMClient;
+import org.apache.hadoop.yarn.api.records.Resource;
 
-public class ContainerRequestOperation extends AbstractRMOperation {
-
-  private final AMRMClient.ContainerRequest request;
-
-  public ContainerRequestOperation(AMRMClient.ContainerRequest request) {
-    this.request = request;
-  }
-
-  public AMRMClient.ContainerRequest getRequest() {
-    return request;
-  }
-
-  @Override
-  public void execute(RMOperationHandler handler) {
-    handler.addContainerRequest(request);
-  }
-
-  @Override
-  public String toString() {
-    return "request container ";
-  }
+/**
+ * Factory supplying records created by the App state; entry point
+ * for mock code.
+ */
+public abstract class AbstractRecordFactory {
+  
+  public abstract Resource newResource();
 }

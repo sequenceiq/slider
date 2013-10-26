@@ -32,7 +32,8 @@ class BaseMockAppStateTest {
   @Before
   void initApp(){
 
-    appState = new AppState()
+    appState = new AppState(new MockRecordFactory())
+    appState.setContainerLimits(4096,64)
     appState.buildInstance(factory.newClusterSpec(0,0,0),
                            new Configuration(false),
                            factory.ROLES)

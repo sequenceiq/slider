@@ -65,6 +65,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class AppState {
   protected static final Logger log =
     LoggerFactory.getLogger(AppState.class);
+  
+  private final AbstractRecordFactory recordFactory;
+  
   public static final String ROLE_UNKNOWN = "unknown";
 
   /**
@@ -168,6 +171,23 @@ public class AppState {
   private final AtomicInteger completionOfUnknownContainerEvent =
     new AtomicInteger();
 
+
+  /**
+   * Record of the max no. of cores allowed in this cluster
+   */
+  private int containerMaxCores;
+
+
+  /**
+   * limit container memory
+   */
+  private int containerMaxMemory;
+
+
+  public AppState(AbstractRecordFactory recordFactory) {
+    this.recordFactory = recordFactory;
+  }
+
   public int getFailedCountainerCount() {
     return failedContainerCount.get();
   }
@@ -253,6 +273,13 @@ public class AppState {
     this.clusterSpec = clusterSpec;
   }
 
+
+  
+  public void setContainerLimits(int maxMemory, int maxCores) {
+    containerMaxCores = maxCores;
+    containerMaxMemory = maxMemory;
+  }
+  
   /**
    * Build up the application state
    * @param clusterSpec cluster specification
@@ -821,5 +848,166 @@ public class AppState {
     hoyastats.put(StatusKeys.STAT_CONTAINERS_LIVE, liveNodes.size());
     cd.stats.put(HoyaKeys.ROLE_HOYA_AM,hoyastats);
     
+  }
+
+  /**
+   * Look at where the current node state is -and whether it should be changed
+   */
+  public synchronized List<AbstractRMOperation> reviewRequestAndReleaseNodes() throws
+                                                              HoyaInternalStateException {
+    log.debug("in reviewRequestAndReleaseNodes()");
+    List<AbstractRMOperation> allOperations =
+      new ArrayList<AbstractRMOperation>();
+    for (RoleStatus roleStatus : getRoleStatusMap().values()) {
+      if (!roleStatus.getExcludeFromFlexing()) {
+        List<AbstractRMOperation> operations = reviewOneRole(roleStatus);
+        allOperations.addAll(operations);
+      }
+    }
+    return allOperations;
+  }
+  
+  /**
+   * Look at the allocation status of one role, and trigger add/release
+   * actions if the number of desired role instances doesnt equal 
+   * (actual+pending)
+   * @param role role
+   * @return a list of operations
+   * @throws HoyaInternalStateException if the review implies that
+   * the system is too confused to know its own name.
+   */
+  public List<AbstractRMOperation> reviewOneRole(RoleStatus role) throws
+                                                                   HoyaInternalStateException {
+    List<AbstractRMOperation> operations = new ArrayList<AbstractRMOperation>();
+    int delta;
+    String details;
+    int expected;
+    String name = role.getName();
+    synchronized (role) {
+      delta = role.getDelta();
+      details = role.toString();
+      expected = role.getDesired();
+    }
+
+    log.info(details);
+    if (delta > 0) {
+      log.info("{}: Asking for {} more nodes(s) for a total of {} ", name,
+               delta, expected);
+      //more workers needed than we have -ask for more
+      for (int i = 0; i < delta; i++) {
+        Resource capability = recordFactory.newResource();
+        AMRMClient.ContainerRequest containerAsk =
+          buildContainerResourceAndRequest(role, capability);
+        log.info("Container ask is {}", containerAsk);
+        if (containerAsk.getCapability().getMemory() >
+            this.containerMaxMemory) {
+          log.warn(
+            "Memory requested: " + containerAsk.getCapability().getMemory() +
+            " > " +
+            this.containerMaxMemory);
+        }
+        operations.add(new ContainerRequestOperation(containerAsk));
+      }
+    } else if (delta < 0) {
+      log.info("{}: Asking for {} fewer node(s) for a total of {}", name,
+               -delta,
+               expected);
+      //reduce the number expected (i.e. subtract the delta)
+
+      //then pick some containers to kill
+      int excess = -delta;
+      List<RoleInstance> targets = cloneActiveContainerList();
+      for (RoleInstance instance : targets) {
+        if (excess > 0) {
+          Container possible = instance.container;
+          if (!instance.released) {
+            ContainerId id = possible.getId();
+            log.info("Requesting release of container {} in role {}", id, name);
+            containerReleaseSubmitted(id);
+            operations.add(new ContainerReleaseOperation(id));
+            excess--;
+          }
+        }
+      }
+      //here everything should be freed up, though there may be an excess due 
+      //to race conditions with requests coming in
+      if (excess > 0) {
+        log.warn(
+          "{}: After releasing all nodes that could be free, there was an excess of {} nodes",
+          name,
+          excess);
+      }
+    }
+
+    return operations;
+  }
+
+
+  /**
+   * Release all containers.
+   * @return a list of operations to execute
+   */
+  public synchronized List<AbstractRMOperation> releaseAllContainers() {
+
+    Collection<RoleInstance> targets = cloneActiveContainerList();
+    log.info("Releasing {} containers", targets.size());
+    List<AbstractRMOperation> operations =
+      new ArrayList<AbstractRMOperation>(targets.size());
+    for (RoleInstance instance : targets) {
+      Container possible = instance.container;
+      ContainerId id = possible.getId();
+      if (!instance.released) {
+        try {
+          containerReleaseSubmitted(id);
+        } catch (HoyaInternalStateException e) {
+          log.warn("when releasing container {} :", possible, e);
+        }
+        operations.add(new ContainerReleaseOperation(id));
+      }
+    }
+    return operations;
+  }
+
+  public void onContainersAllocated(List<Container> allocatedContainers,
+                                    List<ContainerAssignment> assignments,
+                                    List<AbstractRMOperation> operations) {
+    for (Container container : allocatedContainers) {
+      String containerHostInfo = container.getNodeId().getHost()
+                                 + ":" +
+                                 container.getNodeId().getPort();
+      int allocated;
+      int desired;
+      //get the role
+      RoleStatus role;
+      role = lookupRoleStatus(container);
+      synchronized (role) {
+        //sync on all container details. Even though these are atomic,
+        //we don't really want multiple updates happening simultaneously
+        
+        //dec requested count
+        allocated = role.transitFromRequestedToActual();
+
+        //look for (race condition) where we get more back than we asked
+        desired = role.getDesired();
+      }
+      if (allocated > desired) {
+        log.info("Discarding surplus container {} on {}", container.getId(),
+                 containerHostInfo);
+        operations.add(new ContainerReleaseOperation(container.getId()));
+      } else {
+
+        String roleName = role.getName();
+        log.info("Assiging role {} to container" +
+                 " {}," +
+                 " on {}:{},",
+                 roleName,
+                 container.getId(),
+                 container.getNodeId().getHost(),
+                 container.getNodeId().getPort()
+                 );
+
+        assignments.add(new ContainerAssignment(container, role));
+      }
+    }
   }
 }

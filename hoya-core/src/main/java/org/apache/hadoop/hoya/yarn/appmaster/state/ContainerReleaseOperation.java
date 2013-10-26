@@ -22,10 +22,14 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 
 public class ContainerReleaseOperation extends AbstractRMOperation {
 
-  ContainerId containerId;
+  private final ContainerId containerId;
 
   public ContainerReleaseOperation(ContainerId containerId) {
     this.containerId = containerId;
+  }
+
+  public ContainerId getContainerId() {
+    return containerId;
   }
 
   @Override

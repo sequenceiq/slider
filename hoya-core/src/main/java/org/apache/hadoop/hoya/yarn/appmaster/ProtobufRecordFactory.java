@@ -16,29 +16,14 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.appmaster.state;
+package org.apache.hadoop.hoya.yarn.appmaster;
 
-import org.apache.hadoop.yarn.client.api.AMRMClient;
+import org.apache.hadoop.hoya.yarn.appmaster.state.AbstractRecordFactory;
+import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.util.Records;
 
-public class ContainerRequestOperation extends AbstractRMOperation {
-
-  private final AMRMClient.ContainerRequest request;
-
-  public ContainerRequestOperation(AMRMClient.ContainerRequest request) {
-    this.request = request;
-  }
-
-  public AMRMClient.ContainerRequest getRequest() {
-    return request;
-  }
-
-  @Override
-  public void execute(RMOperationHandler handler) {
-    handler.addContainerRequest(request);
-  }
-
-  @Override
-  public String toString() {
-    return "request container ";
+public class ProtobufRecordFactory extends AbstractRecordFactory {
+  public Resource newResource() {
+    return Records.newRecord(Resource.class);
   }
 }

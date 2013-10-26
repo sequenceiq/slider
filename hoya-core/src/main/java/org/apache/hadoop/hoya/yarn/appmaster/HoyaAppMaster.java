@@ -46,8 +46,7 @@ import org.apache.hadoop.hoya.yarn.appmaster.rpc.HoyaClusterProtocolPBImpl;
 import org.apache.hadoop.hoya.yarn.appmaster.rpc.RpcBinder;
 import org.apache.hadoop.hoya.yarn.appmaster.state.AbstractRMOperation;
 import org.apache.hadoop.hoya.yarn.appmaster.state.AppState;
-import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerReleaseOperation;
-import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerRequestOperation;
+import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerAssignment;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RMOperationHandler;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleInstance;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleStatus;
@@ -76,19 +75,16 @@ import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.hadoop.yarn.client.api.async.NMClientAsync;
 import org.apache.hadoop.yarn.client.api.async.impl.NMClientAsyncImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
-import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.hadoop.yarn.ipc.YarnRPC;
 import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenSecretManager;
 import org.apache.hadoop.yarn.service.launcher.RunService;
 import org.apache.hadoop.yarn.util.ConverterUtils;
-import org.apache.hadoop.yarn.util.Records;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,7 +94,6 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -193,7 +188,7 @@ public class HoyaAppMaster extends CompositeService
    * Ongoing state of the cluster: containers, nodes they
    * live on, etc.
    */
-  private final AppState appState = new AppState();
+  private final AppState appState = new AppState(new ProtobufRecordFactory());
 
   /**
    * Map of launched threads.
@@ -516,6 +511,8 @@ public class HoyaAppMaster extends CompositeService
       response.getMaximumResourceCapability();
     containerMaxMemory = maxResources.getMemory();
     containerMaxCores = maxResources.getVirtualCores();
+    appState.setContainerLimits(maxResources.getMemory(),
+                                maxResources.getVirtualCores());
     boolean securityEnabled = UserGroupInformation.isSecurityEnabled();
     if (securityEnabled) {
       secretManager.setMasterKey(
@@ -757,23 +754,6 @@ public class HoyaAppMaster extends CompositeService
     return server;
   }
 
-  /**
-   * Setup the request that will be sent to the RM for the container ask.
-   *
-   * much of the container ask will be built up in AppState
-   * @param role @return the setup ResourceRequest to be sent to RM
-   */
-  private AMRMClient.ContainerRequest buildContainerRequest(RoleStatus role) {
-
-    // Set up resource type requirements
-    Resource capability = Records.newRecord(Resource.class);
-    AMRMClient.ContainerRequest request =
-      appState.buildContainerResourceAndRequest(role, capability);
-
-    return request;
-  }
-
-
   private void launchThread(RoleLauncher launcher, String name) {
     Thread launchThread = new Thread(launcherThreadGroup,
                                      launcher,
@@ -829,17 +809,6 @@ public class HoyaAppMaster extends CompositeService
   }
 
 
-  /**
-   * Look up a role from its key -or fail 
-   *
-   * @param c container in a role
-   * @return the status
-   * @throws YarnRuntimeException on no match
-   */
-  public RoleStatus lookupRoleStatus(Container c) {
-    return appState.lookupRoleStatus(c);
-  }
-  
 /* =================================================================== */
 /* AMRMClientAsync callbacks */
 /* =================================================================== */
@@ -853,70 +822,35 @@ public class HoyaAppMaster extends CompositeService
   @Override //AMRMClientAsync
   public void onContainersAllocated(List<Container> allocatedContainers) {
     LOG_YARN.info("onContainersAllocated({})", allocatedContainers.size());
-    List<Container> surplus = new ArrayList<Container>();
-    for (Container container : allocatedContainers) {
-      String containerHostInfo = container.getNodeId().getHost()
-                                 + ":" +
-                                 container.getNodeId().getPort();
-      int allocated;
-      int desired;
-      //get the role
-      RoleStatus role;
-      role = lookupRoleStatus(container);
-      synchronized (role) {
-        //sync on all container details. Even though these are atomic,
-        //we don't really want multiple updates happening simultaneously
-        log.info(getContainerDiagnosticInfo());
-        //dec requested count
-        allocated = role.transitFromRequestedToActual();
+    List<ContainerAssignment> assignments = new ArrayList<ContainerAssignment>();
+    List<AbstractRMOperation> operations = new ArrayList<AbstractRMOperation>();
+    
+    //app state makes all the decisions
+    appState.onContainersAllocated(allocatedContainers,assignments, operations);
 
-        //look for (race condition) where we get more back than we asked
-        desired = role.getDesired();
-      }
-      if (allocated > desired) {
-        log.info("Discarding surplus container {} on {}", container.getId(),
-                 containerHostInfo);
-        surplus.add(container);
-      } else {
-
-        log.info("Launching shell command on a new container.," +
-                 " containerId={}," +
-                 " containerNode={}:{}," +
-                 " containerNodeURI={}," +
-                 " containerResource={}",
-                 container.getId(),
-                 container.getNodeId().getHost(),
-                 container.getNodeId().getPort(),
-                 container.getNodeHttpAddress(),
-                 container.getResource());
-
-        String roleName = role.getName();
-        //emergency step: verify that this role is handled by the provider
-        assert provider.isSupportedRole(roleName);
-        RoleLauncher launcher =
-          new RoleLauncher(this,
-                           container,
-                           role.getProviderRole(),
-                           provider,
-                           getClusterSpec(),
-                           getClusterSpec().getOrAddRole(
-                             roleName));
-        launchThread(launcher, "container-" + containerHostInfo);
-      }
+    //for each assignment: launch a thread to instantiate that role
+    for (ContainerAssignment assignment : assignments) {
+      RoleStatus role = assignment.role;
+      Container container = assignment.container;
+      String roleName = role.getName();
+      //emergency step: verify that this role is handled by the provider
+      assert provider.isSupportedRole(roleName);
+      RoleLauncher launcher =
+        new RoleLauncher(this,
+                         container,
+                         role.getProviderRole(),
+                         provider,
+                         getClusterSpec(),
+                         getClusterSpec().getOrAddRole(
+                           roleName));
+      launchThread(launcher,
+                   String.format("%s on %s:%d", roleName,
+                                 container.getNodeId().getHost(),
+                                 container.getNodeId().getPort()));
     }
-    //now discard those surplus containers
-    for (Container container : surplus) {
-      ContainerId id = container.getId();
-      log.info("Releasing surplus container {} on {}:{}",
-               id.getApplicationAttemptId(),
-               container.getNodeId().getHost(),
-               container.getNodeId().getPort());
-      RoleStatus role = lookupRoleStatus(container);
-      synchronized (role) {
-        role.incReleasing();
-      }
-      asyncRMClient.releaseAssignedContainer(id);
-    }
+    
+    //for all the operations, exec them
+    rmOperationHandler.execute(operations);
     log.info("Diagnostics: " + getContainerDiagnosticInfo());
   }
 
@@ -992,127 +926,18 @@ public class HoyaAppMaster extends CompositeService
       log.info("Ignoring node review operation: shutdown in progress");
       return false;
     }
-
-    boolean updatedNodeCount = false;
-
-    for (RoleStatus roleStatus : getRoleStatusMap().values()) {
-      if (!roleStatus.getExcludeFromFlexing()) {
-        updatedNodeCount |= reviewOneRole(roleStatus);
-      }
-    }
-    return updatedNodeCount;
-  }
-
-  /**
-   * Look at the allocation status of one role, and trigger add/release
-   * actions if the number of desired role instances doesnt equal 
-   * (actual+pending)
-   * @param role role
-   * @return true if the state of the application was updated
-   * @throws HoyaInternalStateException if the review implies that
-   * the system is too confused to know its own name.
-   */
-  private boolean reviewOneRole(RoleStatus role) throws
-                                                 HoyaInternalStateException {
-    List<AbstractRMOperation> operations = new ArrayList<AbstractRMOperation>();
-    int delta;
-    String details;
-    int expected;
-    String name = role.getName();
-    synchronized (role) {
-      delta = role.getDelta();
-      details = role.toString();
-      expected = role.getDesired();
-    }
-
-    log.info(details);
-    boolean updated = false;
-    if (delta > 0) {
-      log.info("{}: Asking for {} more nodes(s) for a total of {} ", name,
-               delta, expected);
-      //more workers needed than we have -ask for more
-      for (int i = 0; i < delta; i++) {
-        AMRMClient.ContainerRequest containerAsk =
-          buildContainerRequest(role);
-        log.info("Container ask is {}", containerAsk);
-        if (containerAsk.getCapability().getMemory() > this.containerMaxMemory) {
-          log.warn("Memory requested: " + containerAsk.getCapability().getMemory() + " > " +
-              this.containerMaxMemory);
-        } else {
-          operations.add(new ContainerRequestOperation(containerAsk));
-          updated = true;
-        }
-      }
-    } else if (delta < 0) {
-
-      //special case: there are no more containers
-/*
-      if (total == 0 && !noMaster) {
-        //just exit the entire application here, rather than a node at a time.
-        signalAMComplete("#of workers is set to zero: exiting");
-        return;
-      }
-*/
-
-      log.info("{}: Asking for {} fewer node(s) for a total of {}", name,
-               -delta,
-               expected);
-      //reduce the number expected (i.e. subtract the delta)
-
-      //then pick some containers to kill
-      int excess = -delta;
-      List<RoleInstance> targets = appState.cloneActiveContainerList();
-      for (RoleInstance instance : targets) {
-        if (excess > 0) {
-          Container possible = instance.container;
-          if (!instance.released) {
-            ContainerId id = possible.getId();
-            log.info("Requesting release of container {} in role {}", id, name);
-            appState.containerReleaseSubmitted(id);
-            operations.add(new ContainerReleaseOperation(id));
-            excess--;
-          }
-        }
-      }
-      //here everything should be freed up, though there may be an excess due 
-      //to race conditions with requests coming in
-      if (excess > 0) {
-        log.warn(
-          "{}: After releasing all nodes that could be free, there was an excess of {} nodes",
-          name ,
-          excess);
-      }
-      updated = true;
-
-    }
+    List<AbstractRMOperation> allOperations = appState.reviewRequestAndReleaseNodes();
     //now apply the operations
-    rmOperationHandler.execute(operations);
-    return updated;
+    rmOperationHandler.execute(allOperations);
+    return !allOperations.isEmpty();
   }
 
   /**
    * Shutdown operation: release all containers
    */
   private void releaseAllContainers() {
-
-    Collection<RoleInstance> targets = appState.cloneActiveContainerList();
-    log.info("Releasing {} containers", targets.size());
-    List<AbstractRMOperation> operations = new ArrayList<AbstractRMOperation>(
-      targets.size());
-    for (RoleInstance instance : targets) {
-      Container possible = instance.container;
-      ContainerId id = possible.getId();
-      if (!instance.released) {
-        try {
-          appState.containerReleaseSubmitted(id);
-        } catch (HoyaInternalStateException e) {
-          log.warn("when releasing container {} :", possible, e);
-        }
-        operations.add(new ContainerReleaseOperation(id));
-      }
-    }
     //now apply the operations
-    rmOperationHandler.execute(operations);
+    rmOperationHandler.execute(appState.releaseAllContainers());
   }
 
   /**

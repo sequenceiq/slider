@@ -16,29 +16,15 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.appmaster.state;
+package org.apache.hadoop.hoya.yarn.model.mock
 
-import org.apache.hadoop.yarn.client.api.AMRMClient;
+import org.apache.hadoop.hoya.yarn.appmaster.state.AbstractRecordFactory
+import org.apache.hadoop.yarn.api.records.Resource
 
-public class ContainerRequestOperation extends AbstractRMOperation {
-
-  private final AMRMClient.ContainerRequest request;
-
-  public ContainerRequestOperation(AMRMClient.ContainerRequest request) {
-    this.request = request;
-  }
-
-  public AMRMClient.ContainerRequest getRequest() {
-    return request;
-  }
+class MockRecordFactory extends AbstractRecordFactory {
 
   @Override
-  public void execute(RMOperationHandler handler) {
-    handler.addContainerRequest(request);
-  }
-
-  @Override
-  public String toString() {
-    return "request container ";
+  Resource newResource() {
+    return new MockResource()
   }
 }

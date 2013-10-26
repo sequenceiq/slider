@@ -18,27 +18,16 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
-import org.apache.hadoop.yarn.client.api.AMRMClient;
+import org.apache.hadoop.yarn.api.records.Container;
 
-public class ContainerRequestOperation extends AbstractRMOperation {
+public class ContainerAssignment {
+  
+  public final Container container;
+  public final RoleStatus role;
 
-  private final AMRMClient.ContainerRequest request;
-
-  public ContainerRequestOperation(AMRMClient.ContainerRequest request) {
-    this.request = request;
-  }
-
-  public AMRMClient.ContainerRequest getRequest() {
-    return request;
-  }
-
-  @Override
-  public void execute(RMOperationHandler handler) {
-    handler.addContainerRequest(request);
-  }
-
-  @Override
-  public String toString() {
-    return "request container ";
+  public ContainerAssignment(Container container,
+                             RoleStatus role) {
+    this.container = container;
+    this.role = role;
   }
 }

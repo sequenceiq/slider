@@ -1,3 +1,5 @@
+package org.apache.hadoop.hoya.yarn.model.mock
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,29 +18,9 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.appmaster.state;
+public interface MockRoles {
 
-import org.apache.hadoop.yarn.client.api.AMRMClient;
-
-public class ContainerRequestOperation extends AbstractRMOperation {
-
-  private final AMRMClient.ContainerRequest request;
-
-  public ContainerRequestOperation(AMRMClient.ContainerRequest request) {
-    this.request = request;
-  }
-
-  public AMRMClient.ContainerRequest getRequest() {
-    return request;
-  }
-
-  @Override
-  public void execute(RMOperationHandler handler) {
-    handler.addContainerRequest(request);
-  }
-
-  @Override
-  public String toString() {
-    return "request container ";
-  }
+  public static final String ROLE1 = "role1"
+  public static final String ROLE2 = "role2"
+  public static final String ROLE3 = "role3"
 }

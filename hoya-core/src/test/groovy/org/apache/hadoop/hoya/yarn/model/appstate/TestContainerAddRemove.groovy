@@ -18,38 +18,42 @@
 
 package org.apache.hadoop.hoya.yarn.model.appstate
 
+import groovy.transform.CompileStatic
+import groovy.util.logging.Slf4j
+import org.apache.hadoop.hoya.yarn.appmaster.state.AbstractRMOperation
+import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerRequestOperation
+import org.apache.hadoop.hoya.yarn.appmaster.state.RMOperationHandler
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleInstance
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleStatus
 import org.apache.hadoop.hoya.yarn.model.mock.BaseMockAppStateTest
-import org.apache.hadoop.yarn.api.records.Container
-import org.apache.hadoop.yarn.client.api.AMRMClient
+import org.apache.hadoop.hoya.yarn.model.mock.MockRMOperationHandler
+import org.apache.hadoop.hoya.yarn.model.mock.MockRoles
 import org.junit.Test
 
-class TestContainerAddRemove extends BaseMockAppStateTest {
+@CompileStatic
+@Slf4j
+class TestContainerAddRemove extends BaseMockAppStateTest implements MockRoles {
   
   @Test
   public void testContainerAddRemoveOps() throws Throwable {
 
 
-    Container container = factory.newContainer()
-    RoleInstance roleInstance = new RoleInstance(container)
-    appState.addLaunchedContainer(container,
-                                  roleInstance)
-    List<RoleInstance> active = appState.cloneActiveContainerList()
-    assert active.size() == 1
-
-  }
-
-
-  @Test
-  public void testBuildRequestForRole() throws Throwable {
-    AMRMClient.ContainerRequest request =
-        appState.buildContainerResourceAndRequest(role1Status,
-                                                  factory.newResource());
-  }
+    
+    role1Status.desired = 1
+    List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
+    assert ops.size() == 1
+    ContainerRequestOperation operation = (ContainerRequestOperation)ops[0]
+    assert operation.request.priority.priority == 1
+    RMOperationHandler handler = new MockRMOperationHandler()
+    handler.execute(ops)
+    
+    //tell the container its been allocated
+    
+  }    
+    
 
   public RoleStatus getRole1Status() {
-    return appState.lookupRoleStatus(factory.ROLE1)
+    return appState.lookupRoleStatus(ROLE1)
   }
 
 }

@@ -51,12 +51,14 @@ class TestAccFlex1to3 extends AccumuloTestBase {
                 (AccumuloKeys.ROLE_MONITOR): 1,
                 (AccumuloKeys.ROLE_GARBAGE_COLLECTOR): 1
             ],
+/*
             [
                 (AccumuloKeys.ROLE_MASTER): 3,
                 (AccumuloKeys.ROLE_TABLET): 3,
                 (AccumuloKeys.ROLE_MONITOR): 1,
                 (AccumuloKeys.ROLE_GARBAGE_COLLECTOR): 1
             ],
+*/
 
         ],
         true)

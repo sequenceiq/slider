@@ -27,6 +27,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationAttemptId
 import org.apache.hadoop.yarn.api.records.ApplicationId
 import org.apache.hadoop.yarn.api.records.Container
 import org.apache.hadoop.yarn.api.records.ContainerId
+import org.apache.hadoop.yarn.api.records.ContainerStatus
 import org.apache.hadoop.yarn.api.records.Resource
 
 /**
@@ -34,10 +35,7 @@ import org.apache.hadoop.yarn.api.records.Resource
  */
 @CompileStatic
 @Slf4j
-class MockFactory {
-  public static final String ROLE1 = "role1"
-  public static final String ROLE2 = "role2"
-  public static final String ROLE3 = "role3"
+class MockFactory implements  MockRoles {
   int appIdCount;
   int attemptIdCount;
   int containerIdCount;
@@ -134,5 +132,10 @@ class MockFactory {
   
   Resource newResource() {
     return new MockResource()
+  }
+
+  ContainerStatus newContainerStatus() {
+    return new MockContainerStatus()
+    
   }
 }
