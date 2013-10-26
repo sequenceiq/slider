@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.appmaster.state;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.api.StatusKeys;
 import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hadoop.hoya.exceptions.NoSuchNodeException;
 import org.apache.hadoop.hoya.providers.ProviderRole;
@@ -113,13 +114,13 @@ public class AppState {
   /**
    * Counter for completed containers ( complete denotes successful or failed )
    */
-  private final AtomicInteger numCompletedContainers = new AtomicInteger();
+  private final AtomicInteger completedContainerCount = new AtomicInteger();
 
   /**
    *   Count of failed containers
 
    */
-  private final AtomicInteger numFailedContainers = new AtomicInteger();
+  private final AtomicInteger failedContainerCount = new AtomicInteger();
 
   /**
    * # of started containers
@@ -130,6 +131,7 @@ public class AppState {
    * # of containers that failed to start 
    */
   private final AtomicInteger startFailedContainers = new AtomicInteger();
+  private final AtomicInteger requestedContainers = new AtomicInteger();
 
 
   /**
@@ -160,9 +162,13 @@ public class AppState {
    */
   private final Map<ContainerId, RoleInstance> liveNodes =
     new ConcurrentHashMap<ContainerId, RoleInstance>();
+  private final AtomicInteger completionOfNodeNotInLiveListEvent =
+    new AtomicInteger();
+  private final AtomicInteger completionOfUnknownContainerEvent =
+    new AtomicInteger();
 
   public int getFailedCountainerCount() {
-    return numFailedContainers.get();
+    return failedContainerCount.get();
   }
 
   /**
@@ -170,7 +176,7 @@ public class AppState {
    * @return the latest failed container count
    */
   public int incFailedCountainerCount() {
-    return numFailedContainers.incrementAndGet();
+    return failedContainerCount.incrementAndGet();
   }
 
   public int getStartFailedCountainerCount() {
@@ -197,10 +203,18 @@ public class AppState {
     return startFailedContainers.incrementAndGet();
   }
 
+  
   public AtomicInteger getStartFailedContainers() {
     return startFailedContainers;
   }
 
+  public AtomicInteger getCompletionOfNodeNotInLiveListEvent() {
+    return completionOfNodeNotInLiveListEvent;
+  }
+
+  public AtomicInteger getCompletionOfUnknownContainerEvent() {
+    return completionOfUnknownContainerEvent;
+  }
 
   public Map<Integer, RoleStatus> getRoleStatusMap() {
     return roleStatusMap;
@@ -683,6 +697,7 @@ public class AppState {
         try {
           RoleStatus roleStatus = lookupRoleStatus(roleId);
           roleStatus.decActual();
+          roleStatus.incCompleted();
         } catch (YarnRuntimeException e1) {
           log.error("Failed container of unknown role {}", roleId);
         }
@@ -691,6 +706,7 @@ public class AppState {
         
         log.error("Notified of completed container that is not in the list" +
                   " of active or failed containers");
+        completionOfUnknownContainerEvent.incrementAndGet();
       }
     }
     //record the complete node's details; this pulls it from the livenode set 
@@ -699,6 +715,7 @@ public class AppState {
     RoleInstance node = getLiveNodes().remove(id);
     if (node == null) {
       log.warn("Received notification of completion of unknown node");
+      completionOfNodeNotInLiveListEvent.incrementAndGet();
       return;
     }
     node.state = ClusterDescription.STATE_DESTROYED;
@@ -734,15 +751,16 @@ public class AppState {
    */
   public void refreshClusterStatus() {
 
-    getClusterDescription().statusTime = System.currentTimeMillis();
-    getClusterDescription().stats = new HashMap<String, Map<String, Integer>>();
+    ClusterDescription cd = getClusterDescription();
+    cd.statusTime = System.currentTimeMillis();
+    cd.stats = new HashMap<String, Map<String, Integer>>();
     Map<String, Integer> instanceMap = createRoleToInstanceMap();
     if (log.isDebugEnabled()) {
       for (Map.Entry<String, Integer> entry : instanceMap.entrySet()) {
         log.debug("[{}]: {}", entry.getKey(), entry.getValue());
       }
     }
-    getClusterDescription().instances = instanceMap;
+    cd.instances = instanceMap;
     
     for (RoleStatus role : getRoleStatusMap().values()) {
       String rolename = role.getName();
@@ -751,9 +769,18 @@ public class AppState {
         count = 0;
       } 
       int nodeCount = count;
-      getClusterDescription().setActualInstanceCount(rolename, nodeCount);
+      cd.setActualInstanceCount(rolename, nodeCount);
       Map<String, Integer> stats = role.buildStatistics();
-      getClusterDescription().stats.put(rolename, stats);
+      cd.stats.put(rolename, stats);
     }
+    Map<String, Integer> hoyastats = new HashMap<String, Integer>();
+    hoyastats.put(StatusKeys.STAT_CONTAINERS_STARTED,startedContainers.get());
+    hoyastats.put(StatusKeys.STAT_CONTAINERS_START_FAILED, startFailedContainers.get());
+    hoyastats.put(StatusKeys.STAT_CONTAINERS_FAILED, failedContainerCount.get());
+    hoyastats.put(StatusKeys.STAT_CONTAINERS_COMPLETED, completedContainerCount.get());
+    hoyastats.put(StatusKeys.STAT_CONTAINERS_LIVE, liveNodes.size());
+//    hoyastats.put(StatusKeys.STAT_CONTAINERS_REQUESTED,liveNodes.size());
+    cd.stats.put(HoyaKeys.ROLE_HOYA_AM,hoyastats);
+    
   }
 }

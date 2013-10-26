@@ -44,7 +44,7 @@ public final class RoleStatus implements Cloneable {
   private final ProviderRole providerRole;
 
   private int desired, actual, requested, releasing;
-  private int failed, started, startFailed, completed;
+  private int failed, started, startFailed, completed, totalRequested;
 
 
   public RoleStatus(ProviderRole providerRole) {
@@ -81,11 +81,6 @@ public final class RoleStatus implements Cloneable {
     return actual;
   }
 
-  public void setActual(int actual) {
-    this.actual = actual;
-  }
-
-
   public int incActual() {
     return ++actual;
   }
@@ -101,15 +96,12 @@ public final class RoleStatus implements Cloneable {
     return requested;
   }
 
-  public void setRequested(int requested) {
-    this.requested = requested;
-  }
-
-  public int incRequested() {
+  public synchronized int incRequested() {
+    totalRequested++;
     return ++requested;
   }
 
-  public int decRequested() {
+  public synchronized int decRequested() {
     if (0 > --requested) {
       requested = 0;
     }
@@ -118,10 +110,6 @@ public final class RoleStatus implements Cloneable {
 
   public int getReleasing() {
     return releasing;
-  }
-
-  public void setReleasing(int releasing) {
-    this.releasing = releasing;
   }
 
   public int incReleasing() {
@@ -147,8 +135,8 @@ public final class RoleStatus implements Cloneable {
     return startFailed;
   }
 
-  public void setStartFailed(int startFailed) {
-    this.startFailed = startFailed;
+  public void incStartFailed() {
+    startFailed++;
   }
 
   public int getCompleted() {
@@ -159,12 +147,19 @@ public final class RoleStatus implements Cloneable {
     this.completed = completed;
   }
 
+  public void incCompleted() {
+    completed ++;
+  }
   public int getStarted() {
     return started;
   }
 
-  public void setStarted(int started) {
-    this.started = started;
+  public void incStarted() {
+    started++;
+  }
+
+  public int getTotalRequested() {
+    return totalRequested;
   }
 
   /**
@@ -173,7 +168,7 @@ public final class RoleStatus implements Cloneable {
    * @return the positive or negative number of roles to add/release.
    * 0 means "do nothing".
    */
-  public int getDelta() {
+  public synchronized int getDelta() {
     int inuse = actual + requested;
     //don't know how to view these. Are they in-use or not?
     //inuse += releasing;
@@ -185,6 +180,16 @@ public final class RoleStatus implements Cloneable {
       delta = Math.min(delta, 0);
     }
     return delta;
+  }
+
+  /**
+   * transit a node from requested to actual
+   * @return the current allocated count
+   */
+  public synchronized int transitFromRequestedToActual() {
+    decRequested();
+    //inc allocated count
+    return incActual();
   }
 
   @Override
@@ -222,12 +227,13 @@ public final class RoleStatus implements Cloneable {
    */
   public Map<String, Integer> buildStatistics() {
     Map<String, Integer> stats = new HashMap<String, Integer>();
-    stats.put(StatusKeys.STAT_CONTAINERS_REQUESTED, getRequested());
-    stats.put(StatusKeys.STAT_CONTAINERS_ALLOCATED, getActual());
+    stats.put(StatusKeys.STAT_CONTAINERS_REQUESTED, getTotalRequested());
+    stats.put(StatusKeys.STAT_CONTAINERS_ACTIVE_REQUESTS, getRequested());
+    stats.put(StatusKeys.STAT_CONTAINERS_LIVE, getActual());
     stats.put(StatusKeys.STAT_CONTAINERS_COMPLETED, getCompleted());
     stats.put(StatusKeys.STAT_CONTAINERS_FAILED, getFailed());
     stats.put(StatusKeys.STAT_CONTAINERS_STARTED, getStarted());
-    stats.put(StatusKeys.STAT_CONTAINERS_STARTED_FAILED, getStartFailed());
+    stats.put(StatusKeys.STAT_CONTAINERS_START_FAILED, getStartFailed());
     return stats;
   }
 }

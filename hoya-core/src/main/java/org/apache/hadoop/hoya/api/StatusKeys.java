@@ -33,14 +33,16 @@
 package org.apache.hadoop.hoya.api;
 
 public interface StatusKeys {
+  String STAT_CONTAINERS_ACTIVE_REQUESTS = "containers.active.requests";
   String STAT_CONTAINERS_REQUESTED = "containers.requested";
-  String STAT_CONTAINERS_ALLOCATED = "containers.allocated";
   String STAT_CONTAINERS_COMPLETED = "containers.completed";
   String STAT_CONTAINERS_FAILED = "containers.failed";
   String STAT_CONTAINERS_STARTED =
     "containers.start.started";
-  String STAT_CONTAINERS_STARTED_FAILED =
+  String STAT_CONTAINERS_START_FAILED =
       "containers.start.failed";
+  String STAT_CONTAINERS_LIVE =
+      "containers.live";
 
   String STAT_CREATE_TIME = "create.time";
 }

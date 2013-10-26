@@ -760,12 +760,9 @@ implements KeysForTests, HoyaExitCodes {
         Integer instances = status.instances[role];
         int instanceCount = instances != null ? instances.intValue() : 0;
         if (instanceCount != desiredCount) {
-          
           roleCountFound = false;
-          details.append("[$role]: $instanceCount of $desiredCount ")
-        } else {
-          details.append("[$role]: $desiredCount ")
         }
+        details.append("[$role]: $instanceCount of $desiredCount ")
       }
       if (roleCountFound) {
         //successful
@@ -775,9 +772,10 @@ implements KeysForTests, HoyaExitCodes {
       }
 
       if (duration.limitExceeded) {
-        describe("$operation: role count not met after $duration : $details")
+        duration.finish();
+        describe("$operation: role count not met after $duration: $details")
         log.info(prettyPrint(status.toJsonString()))
-        fail("$operation: role counts not met  after $duration : $details in \n$status ")
+        fail("$operation: role counts not met  after $duration: $details in \n$status ")
       }
       log.info("Waiting: " + details)
       Thread.sleep(1000)

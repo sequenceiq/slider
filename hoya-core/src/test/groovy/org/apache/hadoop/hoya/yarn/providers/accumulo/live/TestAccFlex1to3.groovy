@@ -36,7 +36,7 @@ class TestAccFlex1to3 extends AccumuloTestBase {
 
   @Test
   public void testAccFlex1to3() throws Throwable {
-    assert flexAccClusterTestRun(
+    ClusterDescription cd = flexAccClusterTestRun(
         "TestAccFlex1to3",
         [
             [
@@ -60,6 +60,8 @@ class TestAccFlex1to3 extends AccumuloTestBase {
 
         ],
         true)
+    
+    log.info("Final CD \n{}", cd)
   }
 
 

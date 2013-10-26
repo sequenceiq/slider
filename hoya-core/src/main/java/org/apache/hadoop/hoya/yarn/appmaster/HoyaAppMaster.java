@@ -878,13 +878,11 @@ public class HoyaAppMaster extends CompositeService
       RoleStatus role;
       role = lookupRoleStatus(container);
       synchronized (role) {
-        //sync on all container details. Even though these are atomic,
+        //sync on all container details. 
         //we don't really want multiple updates happening simultaneously
         log.info(getContainerDiagnosticInfo());
         //dec requested count
-        role.decRequested();
-        //inc allocated count
-        allocated = role.incActual();
+        allocated = role.transitFromRequestedToActual();
 
         //look for (race condition) where we get more back than we asked
         desired = role.getDesired();

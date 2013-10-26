@@ -226,7 +226,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
   }
 
 
-  public boolean flexAccClusterTestRun(
+  public ClusterDescription flexAccClusterTestRun(
       String clustername,
       List<Map<String,Integer>> plan,
       boolean persist) {
@@ -253,23 +253,24 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
 
       plan.remove(0)
 
+      ClusterDescription cd = null
       while (!plan.empty) {
 
         Map<String, Integer> flexTarget = plan.remove(0)
         //now flex
         describe(
             "Flexing " + roleMapToString(flexTarget));
-        boolean flexed;
-        flexed = 0 == hoyaClient.flex(clustername,
+        boolean flexed = 0 == hoyaClient.flex(clustername,
                                       flexTarget,
                                       persist);
-        waitForRoleCount(hoyaClient, flexTarget,
-                         ACCUMULO_CLUSTER_STARTUP_TO_LIVE_TIME);
+        cd = waitForRoleCount(hoyaClient, flexTarget,
+                              ACCUMULO_CLUSTER_STARTUP_TO_LIVE_TIME);
 
         sleep(ACCUMULO_GO_LIVE_TIME);
-        return flexed;
 
       }
+      
+      return cd;
 
     } finally {
       maybeStopCluster(hoyaClient, null, "end of flex test run");
