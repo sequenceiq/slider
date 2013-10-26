@@ -47,6 +47,7 @@ import org.apache.hadoop.hoya.yarn.appmaster.rpc.RpcBinder;
 import org.apache.hadoop.hoya.yarn.appmaster.state.AbstractRMOperation;
 import org.apache.hadoop.hoya.yarn.appmaster.state.AppState;
 import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerReleaseOperation;
+import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerRequestOperation;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RMOperationHandler;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleInstance;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleStatus;
@@ -1013,6 +1014,7 @@ public class HoyaAppMaster extends CompositeService
    */
   private boolean reviewOneRole(RoleStatus role) throws
                                                  HoyaInternalStateException {
+    List<AbstractRMOperation> operations = new ArrayList<AbstractRMOperation>();
     int delta;
     String details;
     int expected;
@@ -1037,7 +1039,7 @@ public class HoyaAppMaster extends CompositeService
           log.warn("Memory requested: " + containerAsk.getCapability().getMemory() + " > " +
               this.containerMaxMemory);
         } else {
-          asyncRMClient.addContainerRequest(containerAsk);
+          operations.add(new ContainerRequestOperation(containerAsk));
           updated = true;
         }
       }
@@ -1067,7 +1069,7 @@ public class HoyaAppMaster extends CompositeService
             ContainerId id = possible.getId();
             log.info("Requesting release of container {} in role {}", id, name);
             appState.containerReleaseSubmitted(id);
-            asyncRMClient.releaseAssignedContainer(id);
+            operations.add(new ContainerReleaseOperation(id));
             excess--;
           }
         }
@@ -1083,6 +1085,8 @@ public class HoyaAppMaster extends CompositeService
       updated = true;
 
     }
+    //now apply the operations
+    rmOperationHandler.execute(operations);
     return updated;
   }
 
