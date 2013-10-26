@@ -37,7 +37,7 @@ public interface RoleKeys {
   /**
    * Status report: number actually granted : {@value} 
    */
-  String ROLE_ACTUAL_INSTANCES = "role.instances";
+  String ROLE_ACTUAL_INSTANCES = "role.actual.instances";
 
 
   /**

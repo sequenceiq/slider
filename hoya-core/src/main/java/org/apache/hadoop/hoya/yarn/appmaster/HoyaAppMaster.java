@@ -45,6 +45,7 @@ import org.apache.hadoop.hoya.yarn.appmaster.rpc.HoyaAMPolicyProvider;
 import org.apache.hadoop.hoya.yarn.appmaster.rpc.HoyaClusterProtocolPBImpl;
 import org.apache.hadoop.hoya.yarn.appmaster.rpc.RpcBinder;
 import org.apache.hadoop.hoya.yarn.appmaster.state.AppState;
+import org.apache.hadoop.hoya.yarn.appmaster.state.RMOperationHandler;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleInstance;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleStatus;
 import org.apache.hadoop.hoya.yarn.service.EventCallback;
@@ -146,6 +147,8 @@ public class HoyaAppMaster extends CompositeService
 
   /** Handle to communicate with the Resource Manager*/
   private AMRMClientAsync asyncRMClient;
+  
+  private RMOperationHandler rmOperationHandler;
 
   /** Handle to communicate with the Node Manager*/
   public NMClientAsync nmClientAsync;
@@ -188,7 +191,6 @@ public class HoyaAppMaster extends CompositeService
    * live on, etc.
    */
   private final AppState appState = new AppState();
-
 
   /**
    * Map of launched threads.
@@ -452,6 +454,8 @@ public class HoyaAppMaster extends CompositeService
     asyncRMClient = AMRMClientAsync.createAMRMClientAsync(HEARTBEAT_INTERVAL,
                                                           this);
     addService(asyncRMClient);
+    //wrap it for the app state model
+    rmOperationHandler = new AsyncRMOperationHandler(asyncRMClient);
     //now bring it up
     asyncRMClient.init(conf);
     asyncRMClient.start();
@@ -759,32 +763,11 @@ public class HoyaAppMaster extends CompositeService
   private AMRMClient.ContainerRequest buildContainerRequest(RoleStatus role) {
 
     // Set up resource type requirements
-    Resource capability = buildResourceRequirementsForRole(role);
+    Resource capability = Records.newRecord(Resource.class);
     AMRMClient.ContainerRequest request =
-      appState.createContainerRequest(role, capability);
+      appState.buildContainerResourceAndRequest(role, capability);
 
     return request;
-  }
-
-
-  /**
-   * Create the resource requirements for an instance of this role 
-   * -done by looking up the cluster spec
-   * @param role
-   * @return
-   */
-  private Resource buildResourceRequirementsForRole(RoleStatus role) {
-    Resource capability;
-    capability = Records.newRecord(Resource.class);
-    // Set up resource requirements from role valuesx
-    String name = role.getName();
-    capability.setVirtualCores(getClusterSpec().getRoleOptInt(name,
-                                                              YARN_CORES,
-                                                              DEF_YARN_CORES));
-    capability.setMemory(getClusterSpec().getRoleOptInt(name,
-                                                        YARN_MEMORY,
-                                                        DEF_YARN_MEMORY));
-    return capability;
   }
 
 
@@ -878,7 +861,7 @@ public class HoyaAppMaster extends CompositeService
       RoleStatus role;
       role = lookupRoleStatus(container);
       synchronized (role) {
-        //sync on all container details. 
+        //sync on all container details. Even though these are atomic,
         //we don't really want multiple updates happening simultaneously
         log.info(getContainerDiagnosticInfo());
         //dec requested count

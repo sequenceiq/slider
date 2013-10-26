@@ -22,6 +22,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.StatusKeys;
+import static org.apache.hadoop.hoya.api.RoleKeys.*;
 import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hadoop.hoya.exceptions.NoSuchNodeException;
 import org.apache.hadoop.hoya.providers.ProviderRole;
@@ -93,7 +94,7 @@ public class AppState {
 
   /**
    * Hash map of the containers we have. This includes things that have
-   * been allocated but are not live; it is a superset
+   * been allocated but are not live; it is a superset of the live list
    */
   private final ConcurrentMap<ContainerId, RoleInstance> activeContainers =
     new ConcurrentHashMap<ContainerId, RoleInstance>();
@@ -252,6 +253,12 @@ public class AppState {
     this.clusterSpec = clusterSpec;
   }
 
+  /**
+   * Build up the application state
+   * @param clusterSpec cluster specification
+   * @param siteConf site configuration
+   * @param providerRoles roles offered by a provider
+   */
   public void buildInstance(ClusterDescription clusterSpec,
                             Configuration siteConf,
                             List<ProviderRole> providerRoles) {
@@ -341,6 +348,7 @@ public class AppState {
   public void buildAppMasterNode(ContainerId containerId) {
     Container container = new ContainerPBImpl();
     container.setId(containerId);
+    
     RoleInstance am = new RoleInstance(container);
     am.role = HoyaKeys.ROLE_HOYA_AM;
     am.buildUUID();
@@ -446,7 +454,8 @@ public class AppState {
    * @throws NoSuchNodeException if the node cannot be found
    * @throws IOException IO problems
    */
-  public synchronized RoleInstance getLiveInstanceByUUID(String uuid) throws IOException, NoSuchNodeException {
+  public synchronized RoleInstance getLiveInstanceByUUID(String uuid)
+    throws IOException, NoSuchNodeException {
     Collection<RoleInstance> nodes = getLiveNodes().values();
     for (RoleInstance node : nodes) {
       if (uuid.equals(node.uuid)) {
@@ -569,6 +578,20 @@ public class AppState {
 
 
   /**
+   * Set up the resource requirements with all that this role needs, 
+   * then create the container request itself.
+   * @param role role to ask an instance of
+   * @param capability a resource to set up
+   * @return
+   */
+  public AMRMClient.ContainerRequest buildContainerResourceAndRequest(
+    RoleStatus role,
+    Resource capability) {
+    buildResourceRequirements(role, capability);
+    return createContainerRequest(role, capability);
+  }
+
+  /**
    * Create a container request.
    * This can update internal state, such as the role request count
    * TODO: this is where role history information will be used for placement decisions -
@@ -595,6 +618,22 @@ public class AppState {
     return request;
   }
 
+  /**
+   * Build up the resource requirements for this role from the
+   * cluster specification 
+   * @param role role
+   * @param capability capability to set up
+   */
+  public void buildResourceRequirements(RoleStatus role, Resource capability) {
+    // Set up resource requirements from role values
+    String name = role.getName();
+    capability.setVirtualCores(getClusterSpec().getRoleOptInt(name,
+                                                              YARN_CORES,
+                                                              DEF_YARN_CORES));
+    capability.setMemory(getClusterSpec().getRoleOptInt(name,
+                                                        YARN_MEMORY,
+                                                        DEF_YARN_MEMORY));
+  }
 
   /**
    * add a launched container to the node map for status responss
@@ -769,6 +808,7 @@ public class AppState {
         count = 0;
       } 
       int nodeCount = count;
+      cd.setDesiredInstanceCount(rolename,role.getDesired());
       cd.setActualInstanceCount(rolename, nodeCount);
       Map<String, Integer> stats = role.buildStatistics();
       cd.stats.put(rolename, stats);
@@ -779,7 +819,6 @@ public class AppState {
     hoyastats.put(StatusKeys.STAT_CONTAINERS_FAILED, failedContainerCount.get());
     hoyastats.put(StatusKeys.STAT_CONTAINERS_COMPLETED, completedContainerCount.get());
     hoyastats.put(StatusKeys.STAT_CONTAINERS_LIVE, liveNodes.size());
-//    hoyastats.put(StatusKeys.STAT_CONTAINERS_REQUESTED,liveNodes.size());
     cd.stats.put(HoyaKeys.ROLE_HOYA_AM,hoyastats);
     
   }
