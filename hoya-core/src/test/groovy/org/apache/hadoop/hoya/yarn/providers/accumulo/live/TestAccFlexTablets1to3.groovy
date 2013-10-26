@@ -32,7 +32,7 @@ import org.junit.Test
 
 @CompileStatic
 @Slf4j
-class TestAccFlex1to3 extends AccumuloTestBase {
+class TestAccFlexTablets1to3 extends AccumuloTestBase {
 
   @Test
   public void testAccFlex1to3() throws Throwable {

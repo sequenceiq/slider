@@ -762,7 +762,7 @@ implements KeysForTests, HoyaExitCodes {
         if (instanceCount != desiredCount) {
           roleCountFound = false;
         }
-        details.append("[$role]: $instanceCount of $desiredCount ")
+        details.append("[$role]: $instanceCount of $desiredCount; ")
       }
       if (roleCountFound) {
         //successful

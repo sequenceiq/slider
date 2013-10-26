@@ -127,8 +127,8 @@ public final class RoleStatus implements Cloneable {
     return failed;
   }
 
-  public void setFailed(int failed) {
-    this.failed = failed;
+  public void incFailed() {
+    failed++;
   }
 
   public int getStartFailed() {
@@ -182,16 +182,6 @@ public final class RoleStatus implements Cloneable {
     return delta;
   }
 
-  /**
-   * transit a node from requested to actual
-   * @return the current allocated count
-   */
-  public synchronized int transitFromRequestedToActual() {
-    decRequested();
-    //inc allocated count
-    return incActual();
-  }
-
   @Override
   public String toString() {
     return "RoleStatus{" +
@@ -227,11 +217,12 @@ public final class RoleStatus implements Cloneable {
    */
   public Map<String, Integer> buildStatistics() {
     Map<String, Integer> stats = new HashMap<String, Integer>();
-    stats.put(StatusKeys.STAT_CONTAINERS_REQUESTED, getTotalRequested());
     stats.put(StatusKeys.STAT_CONTAINERS_ACTIVE_REQUESTS, getRequested());
-    stats.put(StatusKeys.STAT_CONTAINERS_LIVE, getActual());
     stats.put(StatusKeys.STAT_CONTAINERS_COMPLETED, getCompleted());
+    stats.put(StatusKeys.STAT_CONTAINERS_DESIRED, getDesired());
     stats.put(StatusKeys.STAT_CONTAINERS_FAILED, getFailed());
+    stats.put(StatusKeys.STAT_CONTAINERS_LIVE, getActual());
+    stats.put(StatusKeys.STAT_CONTAINERS_REQUESTED, getTotalRequested());
     stats.put(StatusKeys.STAT_CONTAINERS_STARTED, getStarted());
     stats.put(StatusKeys.STAT_CONTAINERS_START_FAILED, getStartFailed());
     return stats;
