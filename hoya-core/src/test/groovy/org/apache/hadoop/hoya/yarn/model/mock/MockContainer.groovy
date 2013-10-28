@@ -46,5 +46,12 @@ class MockContainer extends Container{
       return this.getId().compareTo(other.getId());
     }
   }
-  
+
+
+  @Override
+  public String toString() {
+    return "MockContainer{ id=$id" +
+           ", nodeHttpAddress='$nodeHttpAddress'," +
+           " priority=$priority }"
+  }
 }
