@@ -18,10 +18,6 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
-import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
-
-import java.util.List;
-
 public class AbstractRMOperation {
 
   /**
