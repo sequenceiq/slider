@@ -26,6 +26,7 @@ import org.junit.Test
 class BaseMockAppStateTest {
   MockFactory factory = new MockFactory()
   AppState appState
+  RMOpsProcessor processor = new RMOpsProcessor();
 
 
 

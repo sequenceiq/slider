@@ -18,12 +18,14 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.StatusKeys;
 import static org.apache.hadoop.hoya.api.RoleKeys.*;
 import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
+import org.apache.hadoop.hoya.exceptions.HoyaRuntimeException;
 import org.apache.hadoop.hoya.exceptions.NoSuchNodeException;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
@@ -420,10 +422,10 @@ public class AppState {
    * @return the status
    * @throws YarnRuntimeException on no match
    */
-  public RoleStatus lookupRoleStatus(int key) throws YarnRuntimeException {
+  public RoleStatus lookupRoleStatus(int key) throws HoyaRuntimeException {
     RoleStatus rs = getRoleStatusMap().get(key);
     if (rs == null) {
-      throw new YarnRuntimeException("Cannot find role for role ID " + key);
+      throw new HoyaRuntimeException("Cannot find role for role ID " + key);
     }
     return rs;
   }
@@ -674,7 +676,7 @@ public class AppState {
    * @param container id
    * @param node node details
    */
-  public void addLaunchedContainer(Container container, RoleInstance node) {
+  private void addLaunchedContainer(Container container, RoleInstance node) {
     node.container = container;
     if (node.role == null) {
       log.warn("Unknown role for node {}", node);
@@ -689,26 +691,39 @@ public class AppState {
    * @return
    */
   public synchronized RoleInstance onNodeManagerContainerStarted(ContainerId containerId) {
+    try {
+      return onNodeManagerContainerStartedFaulting(containerId);
+    } catch (YarnRuntimeException e) {
+      log.error("NodeManager callback on started container {} failed",
+                containerId,
+                e);
+      return null;
+    }
+  }
+
+  @VisibleForTesting
+  public RoleInstance onNodeManagerContainerStartedFaulting(ContainerId containerId)
+      throws HoyaRuntimeException {
     incStartedCountainerCount();
     RoleInstance active = activeContainers.get(containerId);
     if (active == null) {
       //serious problem
-      log.error("Notification of container not in active containers start {}",
+      throw new HoyaRuntimeException("Container not in active containers start %s",
                 containerId);
-      return null;
     }
     active.startTime = System.currentTimeMillis();
     RoleInstance starting = getStartingNodes().remove(containerId);
     if (null == starting) {
-      log.error(
-        "Received Notification about unknown container {}", containerId);
+      throw new HoyaRuntimeException(
+        "Unknown container %s", containerId);
     }
     if (active != starting) {
       //nowe have a problem
       log.warn("active container and starting container are unequal");
     }
     active.state = ClusterDescription.STATE_LIVE;
-    lookupRoleStatus(active.roleId).incStarted();
+    RoleStatus roleStatus = lookupRoleStatus(active.roleId);
+    roleStatus.incStarted();
     addLaunchedContainer(active.container, active);
     return active;
   }

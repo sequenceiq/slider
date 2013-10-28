@@ -18,33 +18,14 @@
 
 package org.apache.hadoop.hoya.yarn.model.mock
 
-import org.apache.hadoop.yarn.api.records.Token
-import org.apache.hadoop.yarn.api.records.Container
-import org.apache.hadoop.yarn.api.records.ContainerId
 import org.apache.hadoop.yarn.api.records.NodeId
-import org.apache.hadoop.yarn.api.records.Priority
-import org.apache.hadoop.yarn.api.records.Resource
 
-class MockContainer extends Container{
-  
-  ContainerId id;
-  NodeId nodeId
-  String nodeHttpAddress;
-  Resource resource
-  Priority priority;
-  Token containerToken
+class MockNodeId extends NodeId {
+  String host
+  int port
 
   @Override
-  public int compareTo(Container other) {
-    if (this.getId().compareTo(other.getId()) == 0) {
-      if (this.getNodeId().compareTo(other.getNodeId()) == 0) {
-        return this.getResource().compareTo(other.getResource());
-      } else {
-        return this.getNodeId().compareTo(other.getNodeId());
-      }
-    } else {
-      return this.getId().compareTo(other.getId());
-    }
+  protected void build() {
+
   }
-  
 }
