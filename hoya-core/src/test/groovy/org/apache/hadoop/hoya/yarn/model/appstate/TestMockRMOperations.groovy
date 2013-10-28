@@ -20,6 +20,7 @@ package org.apache.hadoop.hoya.yarn.model.appstate
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.apache.hadoop.hoya.exceptions.HoyaRuntimeException
 import org.apache.hadoop.hoya.yarn.appmaster.state.AbstractRMOperation
 import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerAssignment
 import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerReleaseOperation
@@ -72,9 +73,7 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
     int roleId = assigned.role.priority
     assert roleId == request.priority.priority
     assert assigned.role.name == ROLE1
-    RoleInstance ri = new RoleInstance(target)
-    ri.buildUUID();
-    ri.roleId = roleId
+    RoleInstance ri = buildInstance(assigned)
     //tell the app it arrived
     appState.containerStartSubmitted(target, ri);
     appState.onNodeManagerContainerStartedFaulting(target.id)
@@ -89,7 +88,6 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
     ContainerReleaseOperation release = (ContainerReleaseOperation) ops[0]
     assert release.containerId == cont.id
   }
-
 
   @Test
   public void testComplexAllocation() throws Throwable {
@@ -124,6 +122,38 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
     assert assignments.empty
     assert releases.empty
   }
+
+  @Test
+  public void testDoubleNodeManagerStartEvent() throws Throwable {
+    role1Status.desired = 1
+
+    List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
+    List<Container> allocations = engine.process(ops)
+    List<ContainerAssignment> assignments = [];
+    List<AbstractRMOperation> releases = []
+    appState.onContainersAllocated(allocations, assignments, releases)
+    assert assignments.size() == 1
+    ContainerAssignment assigned = assignments[0]
+    Container target = assigned.container
+    RoleInstance ri = buildInstance(assigned)
+    appState.containerStartSubmitted(target, ri);
+    RoleInstance ri2 = appState.onNodeManagerContainerStartedFaulting(target.id)
+    assert ri2 == ri
+    //try a second time, expect an error
+    try {
+      appState.onNodeManagerContainerStartedFaulting(target.id)
+      fail("Expected an exception")
+    } catch (HoyaRuntimeException expected) {
+      // expected
+    }
+    //and non-faulter should not downgrade to a null
+    log.warn("Ignore any exception/stack trace that appears below")
+    RoleInstance ri3 = appState.onNodeManagerContainerStarted(target.id)
+
+    assert ri3 == null
+
+  }
+
 
 
 }

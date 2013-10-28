@@ -24,9 +24,10 @@ import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerAssignment
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleInstance
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleStatus
 import org.apache.hadoop.yarn.api.records.Container
+import org.junit.Assert
 import org.junit.Before
 
-class BaseMockAppStateTest implements MockRoles {
+class BaseMockAppStateTest extends Assert implements MockRoles {
   MockFactory factory = new MockFactory()
   AppState appState
   MockYarnEngine engine = new MockYarnEngine();
