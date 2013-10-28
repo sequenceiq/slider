@@ -152,7 +152,43 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
     RoleInstance ri3 = appState.onNodeManagerContainerStarted(target.id)
     log.warn("===============================================================")
     assert ri3 == null
+  }
 
+  @Test
+  public void testFlexDuringLaunchPhase() throws Throwable {
+    role1Status.desired = 1
+
+    List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
+    List<Container> allocations = engine.process(
+        ops)
+    List<ContainerAssignment> assignments = [];
+    List<AbstractRMOperation> releases = []
+    appState.onContainersAllocated(allocations, assignments, releases)
+    assert assignments.size() == 1
+    ContainerAssignment assigned = assignments[0]
+    Container target = assigned.container
+    RoleInstance ri = buildInstance(assigned)
+
+    ops = appState.reviewRequestAndReleaseNodes()
+    assert ops.empty
+
+    //now this is the start point.
+    appState.containerStartSubmitted(target, ri);
+
+    ops = appState.reviewRequestAndReleaseNodes()
+    assert ops.empty
+
+    RoleInstance ri2 = appState.onNodeManagerContainerStartedFaulting(target.id)
+  }
+
+  @Test
+  public void testFlexBeforeAllocationPhase() throws Throwable {
+    role1Status.desired = 1
+
+    List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
+    assert !ops.empty
+    List<AbstractRMOperation> ops2 = appState.reviewRequestAndReleaseNodes()
+    assert ops2.empty
   }
 
 
