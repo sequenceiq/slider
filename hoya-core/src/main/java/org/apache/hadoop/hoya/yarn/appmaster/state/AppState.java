@@ -687,8 +687,8 @@ public class AppState {
 
   /**
    * container start event
-   * @param containerId
-   * @return
+   * @param containerId container that is to be started
+   * @return the role instance, or null if there was a problem
    */
   public synchronized RoleInstance onNodeManagerContainerStarted(ContainerId containerId) {
     try {
@@ -701,6 +701,12 @@ public class AppState {
     }
   }
 
+   /**
+   * container start event
+   * @param containerId container that is to be started
+   * @return the role instance
+   * @throws HoyaRuntimeException null if there was a problem
+   */
   @VisibleForTesting
   public RoleInstance onNodeManagerContainerStartedFaulting(ContainerId containerId)
       throws HoyaRuntimeException {
@@ -715,11 +721,7 @@ public class AppState {
     RoleInstance starting = getStartingNodes().remove(containerId);
     if (null == starting) {
       throw new HoyaRuntimeException(
-        "Unknown container %s", containerId);
-    }
-    if (active != starting) {
-      //nowe have a problem
-      log.warn("active container and starting container are unequal");
+        "Container %s is already started", containerId);
     }
     active.state = ClusterDescription.STATE_LIVE;
     RoleStatus roleStatus = lookupRoleStatus(active.roleId);
@@ -1007,6 +1009,8 @@ public class AppState {
   public synchronized void onContainersAllocated(List<Container> allocatedContainers,
                                     List<ContainerAssignment> assignments,
                                     List<AbstractRMOperation> operations) {
+    assignments.clear();
+    operations.clear();
     for (Container container : allocatedContainers) {
       String containerHostInfo = container.getNodeId().getHost()
                                  + ":" +

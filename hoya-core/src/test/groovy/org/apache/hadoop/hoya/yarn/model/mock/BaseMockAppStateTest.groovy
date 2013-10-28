@@ -20,13 +20,16 @@ package org.apache.hadoop.hoya.yarn.model.mock
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.yarn.appmaster.state.AppState
+import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerAssignment
+import org.apache.hadoop.hoya.yarn.appmaster.state.RoleInstance
+import org.apache.hadoop.hoya.yarn.appmaster.state.RoleStatus
+import org.apache.hadoop.yarn.api.records.Container
 import org.junit.Before
-import org.junit.Test
 
-class BaseMockAppStateTest {
+class BaseMockAppStateTest implements MockRoles {
   MockFactory factory = new MockFactory()
   AppState appState
-  RMOpsProcessor processor = new RMOpsProcessor();
+  MockYarnEngine engine = new MockYarnEngine();
 
 
 
@@ -41,5 +44,28 @@ class BaseMockAppStateTest {
 
   }
 
-  
+  public RoleStatus getRole1Status() {
+    return appState.lookupRoleStatus(ROLE1)
+  }
+
+  public RoleStatus getRole2Status() {
+    return appState.lookupRoleStatus(ROLE2)
+  }
+
+  public RoleStatus getRole3Status() {
+    return appState.lookupRoleStatus(ROLE3)
+  }
+
+  /**
+   * Build a role instance from a container assignment
+   * @param assigned
+   * @return
+   */
+  RoleInstance buildInstance(ContainerAssignment assigned) {
+    Container target = assigned.container
+    RoleInstance ri = new RoleInstance(target)
+    ri.buildUUID();
+    ri.roleId = assigned.role.priority
+    return ri
+  }
 }

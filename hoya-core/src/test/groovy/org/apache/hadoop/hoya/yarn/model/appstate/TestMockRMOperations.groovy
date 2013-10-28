@@ -20,7 +20,12 @@ package org.apache.hadoop.hoya.yarn.model.appstate
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import org.apache.hadoop.hoya.yarn.appmaster.state.*
+import org.apache.hadoop.hoya.yarn.appmaster.state.AbstractRMOperation
+import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerAssignment
+import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerReleaseOperation
+import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerRequestOperation
+import org.apache.hadoop.hoya.yarn.appmaster.state.RMOperationHandler
+import org.apache.hadoop.hoya.yarn.appmaster.state.RoleInstance
 import org.apache.hadoop.hoya.yarn.model.mock.BaseMockAppStateTest
 import org.apache.hadoop.hoya.yarn.model.mock.MockRMOperationHandler
 import org.apache.hadoop.hoya.yarn.model.mock.MockRoles
@@ -55,7 +60,7 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
     List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
     ContainerRequestOperation operation = (ContainerRequestOperation) ops[0]
     AMRMClient.ContainerRequest request = operation.request
-    Container cont = processor.allocateContainer(request)
+    Container cont = engine.allocateContainer(request)
     List<ContainerAssignment> assignments = [];
     List<AbstractRMOperation> operations = []
     appState.onContainersAllocated([cont], assignments, operations)
@@ -74,21 +79,51 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
     appState.containerStartSubmitted(target, ri);
     appState.onNodeManagerContainerStartedFaulting(target.id)
     assert role1Status.started == 1
-   
 
     //now release it by changing the role status
     role1Status.desired = 0
     ops = appState.reviewRequestAndReleaseNodes()
     assert ops.size() == 1
 
-    
     assert ops[0] instanceof ContainerReleaseOperation
     ContainerReleaseOperation release = (ContainerReleaseOperation) ops[0]
-    assert release.containerId == cont.id 
+    assert release.containerId == cont.id
   }
 
-  public RoleStatus getRole1Status() {
-    return appState.lookupRoleStatus(ROLE1)
+
+  @Test
+  public void testComplexAllocation() throws Throwable {
+    role1Status.desired = 1
+    role2Status.desired = 3
+
+    List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
+    List<Container> allocations = engine.process(ops)
+    List<ContainerAssignment> assignments = [];
+    List<AbstractRMOperation> releases = []
+    appState.onContainersAllocated(allocations, assignments, releases)
+    assert releases.size() == 0
+    assert assignments.size() == 4
+    assignments.each { ContainerAssignment assigned ->
+      Container target = assigned.container
+      RoleInstance ri = buildInstance(assigned)
+      appState.containerStartSubmitted(target, ri);
+    }
+    //insert some async operation here
+    assignments.each { ContainerAssignment assigned ->
+      Container target = assigned.container
+      appState.onNodeManagerContainerStartedFaulting(target.id)
+    }
+    assert engine.containerCount() == 4;
+    role2Status.desired = 0
+    ops = appState.reviewRequestAndReleaseNodes()
+    assert ops.size() == 3
+    allocations = engine.process(ops)
+    assert engine.containerCount() == 1;
+
+    appState.onContainersAllocated(allocations, assignments, releases)
+    assert assignments.empty
+    assert releases.empty
   }
+
 
 }

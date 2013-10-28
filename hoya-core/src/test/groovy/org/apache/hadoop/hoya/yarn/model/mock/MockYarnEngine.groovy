@@ -18,6 +18,9 @@
 
 package org.apache.hadoop.hoya.yarn.model.mock
 
+import org.apache.hadoop.hoya.yarn.appmaster.state.AbstractRMOperation
+import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerReleaseOperation
+import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerRequestOperation
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId
 import org.apache.hadoop.yarn.api.records.ApplicationId
 import org.apache.hadoop.yarn.api.records.Container
@@ -27,22 +30,34 @@ import org.apache.hadoop.yarn.api.records.Priority
 import org.apache.hadoop.yarn.api.records.Resource
 import org.apache.hadoop.yarn.client.api.AMRMClient
 
-class RMOpsProcessor {
+class MockYarnEngine {
 
   int containerId = 0;
   int nodes = 1;
+
+  Map<Integer, MockContainer> activeContainers = [:]
+
   ApplicationId appId = new MockApplicationId(
       id: 0,
       clusterTimestamp: 0,
-  )
+      )
   ApplicationAttemptId attemptId = new MockApplicationAttemptId(
-      applicationId:  appId,
+      applicationId: appId,
       attemptId: 1,
-  )
+      )
   NodeId nodeId = new MockNodeId(
       host: "host-$nodes",
       port: 80
   )
+
+  int containerCount() {
+    return activeContainers.size();
+  }
+
+  void reset() {
+    activeContainers = [:]
+    containerId = 0
+  }
 
   /**
    * Allocate a container from a request. The containerID will be
@@ -54,19 +69,46 @@ class RMOpsProcessor {
   Container allocateContainer(AMRMClient.ContainerRequest request) {
     Resource resource = request.getCapability();
     Priority pri = request.getPriority();
+    int containerNo = containerId++
     ContainerId cid = new MockContainerId(
-        id: containerId++,
+        id: containerNo,
         applicationAttemptId: attemptId
     )
-    
+
     MockContainer container = new MockContainer(
         id: cid,
         priority: request.priority,
         resource: resource,
         nodeId: nodeId,
-        
+
         nodeHttpAddress: "http://${nodeId.host}/"
     )
+    activeContainers[containerNo] = container
     return container
   }
+
+  boolean releaseContainer(ContainerId containerId) {
+    MockContainer container = activeContainers.remove(containerId.id)
+    return container != null
+  }
+
+  /**
+   * Process a list of operations
+   * @param ops
+   * @return
+   */
+  List<Container> process(List<AbstractRMOperation> ops) {
+    List<Container> allocation = [];
+    ops.each { AbstractRMOperation op ->
+      if (op instanceof ContainerReleaseOperation) {
+        ContainerReleaseOperation cro = (ContainerReleaseOperation) op
+        releaseContainer(cro.containerId);
+      } else {
+        ContainerRequestOperation req = (ContainerRequestOperation) op
+        allocation.add(allocateContainer(req.request))
+      }
+    }
+    return allocation
+  }
+
 }
