@@ -18,10 +18,14 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.api.StatusKeys;
+import static org.apache.hadoop.hoya.api.RoleKeys.*;
 import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
+import org.apache.hadoop.hoya.exceptions.HoyaRuntimeException;
 import org.apache.hadoop.hoya.exceptions.NoSuchNodeException;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
@@ -63,6 +67,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class AppState {
   protected static final Logger log =
     LoggerFactory.getLogger(AppState.class);
+  
+  private final AbstractRecordFactory recordFactory;
+  
   public static final String ROLE_UNKNOWN = "unknown";
 
   /**
@@ -92,7 +99,7 @@ public class AppState {
 
   /**
    * Hash map of the containers we have. This includes things that have
-   * been allocated but are not live; it is a superset
+   * been allocated but are not live; it is a superset of the live list
    */
   private final ConcurrentMap<ContainerId, RoleInstance> activeContainers =
     new ConcurrentHashMap<ContainerId, RoleInstance>();
@@ -113,13 +120,13 @@ public class AppState {
   /**
    * Counter for completed containers ( complete denotes successful or failed )
    */
-  private final AtomicInteger numCompletedContainers = new AtomicInteger();
+  private final AtomicInteger completedContainerCount = new AtomicInteger();
 
   /**
    *   Count of failed containers
 
    */
-  private final AtomicInteger numFailedContainers = new AtomicInteger();
+  private final AtomicInteger failedContainerCount = new AtomicInteger();
 
   /**
    * # of started containers
@@ -130,6 +137,8 @@ public class AppState {
    * # of containers that failed to start 
    */
   private final AtomicInteger startFailedContainers = new AtomicInteger();
+  private final AtomicInteger requestedContainers = new AtomicInteger();
+  private final AtomicInteger surplusContainers = new AtomicInteger();
 
 
   /**
@@ -155,14 +164,41 @@ public class AppState {
     new ConcurrentHashMap<ContainerId, RoleInstance>();
 
   /**
+   * Nodes that came assigned to a role above that
+   * which were asked for -this appears to happen
+   */
+  private final Set<ContainerId> surplusNodes = new HashSet<ContainerId>();
+
+  /**
    * Map of containerID -> cluster nodes, for status reports.
    * Access to this should be synchronized on the clusterDescription
    */
   private final Map<ContainerId, RoleInstance> liveNodes =
     new ConcurrentHashMap<ContainerId, RoleInstance>();
+  private final AtomicInteger completionOfNodeNotInLiveListEvent =
+    new AtomicInteger();
+  private final AtomicInteger completionOfUnknownContainerEvent =
+    new AtomicInteger();
+
+
+  /**
+   * Record of the max no. of cores allowed in this cluster
+   */
+  private int containerMaxCores;
+
+
+  /**
+   * limit container memory
+   */
+  private int containerMaxMemory;
+
+
+  public AppState(AbstractRecordFactory recordFactory) {
+    this.recordFactory = recordFactory;
+  }
 
   public int getFailedCountainerCount() {
-    return numFailedContainers.get();
+    return failedContainerCount.get();
   }
 
   /**
@@ -170,7 +206,7 @@ public class AppState {
    * @return the latest failed container count
    */
   public int incFailedCountainerCount() {
-    return numFailedContainers.incrementAndGet();
+    return failedContainerCount.incrementAndGet();
   }
 
   public int getStartFailedCountainerCount() {
@@ -197,10 +233,18 @@ public class AppState {
     return startFailedContainers.incrementAndGet();
   }
 
+  
   public AtomicInteger getStartFailedContainers() {
     return startFailedContainers;
   }
 
+  public AtomicInteger getCompletionOfNodeNotInLiveListEvent() {
+    return completionOfNodeNotInLiveListEvent;
+  }
+
+  public AtomicInteger getCompletionOfUnknownContainerEvent() {
+    return completionOfUnknownContainerEvent;
+  }
 
   public Map<Integer, RoleStatus> getRoleStatusMap() {
     return roleStatusMap;
@@ -238,6 +282,19 @@ public class AppState {
     this.clusterSpec = clusterSpec;
   }
 
+
+  
+  public void setContainerLimits(int maxMemory, int maxCores) {
+    containerMaxCores = maxCores;
+    containerMaxMemory = maxMemory;
+  }
+  
+  /**
+   * Build up the application state
+   * @param clusterSpec cluster specification
+   * @param siteConf site configuration
+   * @param providerRoles roles offered by a provider
+   */
   public void buildInstance(ClusterDescription clusterSpec,
                             Configuration siteConf,
                             List<ProviderRole> providerRoles) {
@@ -327,6 +384,7 @@ public class AppState {
   public void buildAppMasterNode(ContainerId containerId) {
     Container container = new ContainerPBImpl();
     container.setId(containerId);
+    
     RoleInstance am = new RoleInstance(container);
     am.role = HoyaKeys.ROLE_HOYA_AM;
     am.buildUUID();
@@ -364,10 +422,10 @@ public class AppState {
    * @return the status
    * @throws YarnRuntimeException on no match
    */
-  public RoleStatus lookupRoleStatus(int key) throws YarnRuntimeException {
+  public RoleStatus lookupRoleStatus(int key) throws HoyaRuntimeException {
     RoleStatus rs = getRoleStatusMap().get(key);
     if (rs == null) {
-      throw new YarnRuntimeException("Cannot find role for role key " + key);
+      throw new HoyaRuntimeException("Cannot find role for role ID " + key);
     }
     return rs;
   }
@@ -432,7 +490,8 @@ public class AppState {
    * @throws NoSuchNodeException if the node cannot be found
    * @throws IOException IO problems
    */
-  public synchronized RoleInstance getLiveInstanceByUUID(String uuid) throws IOException, NoSuchNodeException {
+  public synchronized RoleInstance getLiveInstanceByUUID(String uuid)
+    throws IOException, NoSuchNodeException {
     Collection<RoleInstance> nodes = getLiveNodes().values();
     for (RoleInstance node : nodes) {
       if (uuid.equals(node.uuid)) {
@@ -555,6 +614,20 @@ public class AppState {
 
 
   /**
+   * Set up the resource requirements with all that this role needs, 
+   * then create the container request itself.
+   * @param role role to ask an instance of
+   * @param capability a resource to set up
+   * @return
+   */
+  public AMRMClient.ContainerRequest buildContainerResourceAndRequest(
+    RoleStatus role,
+    Resource capability) {
+    buildResourceRequirements(role, capability);
+    return createContainerRequest(role, capability);
+  }
+
+  /**
    * Create a container request.
    * This can update internal state, such as the role request count
    * TODO: this is where role history information will be used for placement decisions -
@@ -581,13 +654,29 @@ public class AppState {
     return request;
   }
 
+  /**
+   * Build up the resource requirements for this role from the
+   * cluster specification 
+   * @param role role
+   * @param capability capability to set up
+   */
+  public void buildResourceRequirements(RoleStatus role, Resource capability) {
+    // Set up resource requirements from role values
+    String name = role.getName();
+    capability.setVirtualCores(getClusterSpec().getRoleOptInt(name,
+                                                              YARN_CORES,
+                                                              DEF_YARN_CORES));
+    capability.setMemory(getClusterSpec().getRoleOptInt(name,
+                                                        YARN_MEMORY,
+                                                        DEF_YARN_MEMORY));
+  }
 
   /**
    * add a launched container to the node map for status responss
    * @param container id
    * @param node node details
    */
-  public void addLaunchedContainer(Container container, RoleInstance node) {
+  private void addLaunchedContainer(Container container, RoleInstance node) {
     node.container = container;
     if (node.role == null) {
       log.warn("Unknown role for node {}", node);
@@ -598,29 +687,45 @@ public class AppState {
 
   /**
    * container start event
-   * @param containerId
-   * @return
+   * @param containerId container that is to be started
+   * @return the role instance, or null if there was a problem
    */
   public synchronized RoleInstance onNodeManagerContainerStarted(ContainerId containerId) {
+    try {
+      return onNodeManagerContainerStartedFaulting(containerId);
+    } catch (YarnRuntimeException e) {
+      log.error("NodeManager callback on started container {} failed",
+                containerId,
+                e);
+      return null;
+    }
+  }
+
+   /**
+   * container start event
+   * @param containerId container that is to be started
+   * @return the role instance
+   * @throws HoyaRuntimeException null if there was a problem
+   */
+  @VisibleForTesting
+  public RoleInstance onNodeManagerContainerStartedFaulting(ContainerId containerId)
+      throws HoyaRuntimeException {
     incStartedCountainerCount();
     RoleInstance active = activeContainers.get(containerId);
     if (active == null) {
       //serious problem
-      log.error("Notification of container not in active containers start {}",
+      throw new HoyaRuntimeException("Container not in active containers start %s",
                 containerId);
-      return null;
     }
     active.startTime = System.currentTimeMillis();
     RoleInstance starting = getStartingNodes().remove(containerId);
     if (null == starting) {
-      log.error(
-        "Received Notification about unknown container {}", containerId);
-    }
-    if (active != starting) {
-      //nowe have a problem
-      log.warn("active container and starting container are unequal");
+      throw new HoyaRuntimeException(
+        "Container %s is already started", containerId);
     }
     active.state = ClusterDescription.STATE_LIVE;
+    RoleStatus roleStatus = lookupRoleStatus(active.roleId);
+    roleStatus.incStarted();
     addLaunchedContainer(active.container, active);
     return active;
   }
@@ -640,12 +745,13 @@ public class AppState {
     activeContainers.remove(containerId);
     incFailedCountainerCount();
     incStartFailedCountainerCount();
-    RoleInstance node = getStartingNodes().remove(containerId);
-    if (null != node) {
+    RoleInstance instance = getStartingNodes().remove(containerId);
+    if (null != instance) {
+      lookupRoleStatus(instance.roleId).incStarted();
       if (null != thrown) {
-        node.diagnostics = HoyaUtils.stringify(thrown);
+        instance.diagnostics = HoyaUtils.stringify(thrown);
       }
-      getFailedNodes().put(containerId, node);
+      getFailedNodes().put(containerId, instance);
     }
   }
 
@@ -657,30 +763,52 @@ public class AppState {
   public synchronized void onCompletedNode(ContainerStatus status) {
 
     ContainerId containerId = status.getContainerId();
+    boolean surplusNode = false;
 
     if (containersBeingReleased.containsKey(containerId)) {
       log.info("Container was queued for release");
       Container container = containersBeingReleased.remove(containerId);
       RoleStatus roleStatus = lookupRoleStatus(container);
-        log.info("decrementing role count for role {}", roleStatus.getName());
-        roleStatus.decReleasing();
-        roleStatus.decActual();
+      log.info("decrementing role count for role {}", roleStatus.getName());
+      roleStatus.decReleasing();
+      roleStatus.decActual();
+      roleStatus.incCompleted();
+    } else if (surplusNodes.remove(containerId)) {
+      //its a surplus one being purged
+      surplusNode = true;
     } else {
       //a container has failed and its role needs to be decremented
       RoleInstance roleInstance = activeContainers.remove(containerId);
+      if (roleInstance != null) {
+        //it was active, move it to failed 
+        incFailedCountainerCount();
+        failedNodes.put(containerId,roleInstance);
+      } else {
+        // the container may have been noted as failed already, so look
+        // it up
+        roleInstance = failedNodes.get(containerId);
+      }
       if (roleInstance != null) {
         int roleId = roleInstance.roleId;
         log.info("Failed container in role {}", roleId);
         try {
           RoleStatus roleStatus = lookupRoleStatus(roleId);
           roleStatus.decActual();
+          roleStatus.incFailed();
         } catch (YarnRuntimeException e1) {
           log.error("Failed container of unknown role {}", roleId);
         }
       } else {
+        //this isn't a known container.
+        
         log.error("Notified of completed container that is not in the list" +
-                  " of active containers");
+                  " of active or failed containers");
+        completionOfUnknownContainerEvent.incrementAndGet();
       }
+    }
+    
+    if (surplusNode) {
+      return;
     }
     //record the complete node's details; this pulls it from the livenode set 
     //remove the node
@@ -688,6 +816,7 @@ public class AppState {
     RoleInstance node = getLiveNodes().remove(id);
     if (node == null) {
       log.warn("Received notification of completion of unknown node");
+      completionOfNodeNotInLiveListEvent.incrementAndGet();
       return;
     }
     node.state = ClusterDescription.STATE_DESTROYED;
@@ -723,15 +852,16 @@ public class AppState {
    */
   public void refreshClusterStatus() {
 
-    getClusterDescription().statusTime = System.currentTimeMillis();
-    getClusterDescription().stats = new HashMap<String, Map<String, Integer>>();
+    ClusterDescription cd = getClusterDescription();
+    cd.statusTime = System.currentTimeMillis();
+    cd.stats = new HashMap<String, Map<String, Integer>>();
     Map<String, Integer> instanceMap = createRoleToInstanceMap();
     if (log.isDebugEnabled()) {
       for (Map.Entry<String, Integer> entry : instanceMap.entrySet()) {
         log.debug("[{}]: {}", entry.getKey(), entry.getValue());
       }
     }
-    getClusterDescription().instances = instanceMap;
+    cd.instances = instanceMap;
     
     for (RoleStatus role : getRoleStatusMap().values()) {
       String rolename = role.getName();
@@ -740,9 +870,187 @@ public class AppState {
         count = 0;
       } 
       int nodeCount = count;
-      getClusterDescription().setActualInstanceCount(rolename, nodeCount);
+      cd.setDesiredInstanceCount(rolename,role.getDesired());
+      cd.setActualInstanceCount(rolename, nodeCount);
       Map<String, Integer> stats = role.buildStatistics();
-      getClusterDescription().stats.put(rolename, stats);
+      cd.stats.put(rolename, stats);
+    }
+    Map<String, Integer> hoyastats = new HashMap<String, Integer>();
+    hoyastats.put(StatusKeys.STAT_CONTAINERS_COMPLETED, completedContainerCount.get());
+    hoyastats.put(StatusKeys.STAT_CONTAINERS_FAILED, failedContainerCount.get());
+    hoyastats.put(StatusKeys.STAT_CONTAINERS_LIVE, liveNodes.size());
+    hoyastats.put(StatusKeys.STAT_CONTAINERS_STARTED,startedContainers.get());
+    hoyastats.put(StatusKeys.STAT_CONTAINERS_START_FAILED, startFailedContainers.get());
+    hoyastats.put(StatusKeys.STAT_CONTAINERS_SURPLUS, surplusContainers.get());
+    hoyastats.put(StatusKeys.STAT_CONTAINERS_UNKNOWN_COMPLETED,
+                  completionOfUnknownContainerEvent.get());
+    cd.stats.put(HoyaKeys.ROLE_HOYA_AM,hoyastats);
+    
+  }
+
+  /**
+   * Look at where the current node state is -and whether it should be changed
+   */
+  public synchronized List<AbstractRMOperation> reviewRequestAndReleaseNodes() throws
+                                                              HoyaInternalStateException {
+    log.debug("in reviewRequestAndReleaseNodes()");
+    List<AbstractRMOperation> allOperations =
+      new ArrayList<AbstractRMOperation>();
+    for (RoleStatus roleStatus : getRoleStatusMap().values()) {
+      if (!roleStatus.getExcludeFromFlexing()) {
+        List<AbstractRMOperation> operations = reviewOneRole(roleStatus);
+        allOperations.addAll(operations);
+      }
+    }
+    return allOperations;
+  }
+  
+  /**
+   * Look at the allocation status of one role, and trigger add/release
+   * actions if the number of desired role instances doesnt equal 
+   * (actual+pending)
+   * @param role role
+   * @return a list of operations
+   * @throws HoyaInternalStateException if the review implies that
+   * the system is too confused to know its own name.
+   */
+  public List<AbstractRMOperation> reviewOneRole(RoleStatus role) throws
+                                                                   HoyaInternalStateException {
+    List<AbstractRMOperation> operations = new ArrayList<AbstractRMOperation>();
+    int delta;
+    String details;
+    int expected;
+    String name = role.getName();
+    synchronized (role) {
+      delta = role.getDelta();
+      details = role.toString();
+      expected = role.getDesired();
+    }
+
+    log.info(details);
+    if (delta > 0) {
+      log.info("{}: Asking for {} more nodes(s) for a total of {} ", name,
+               delta, expected);
+      //more workers needed than we have -ask for more
+      for (int i = 0; i < delta; i++) {
+        Resource capability = recordFactory.newResource();
+        AMRMClient.ContainerRequest containerAsk =
+          buildContainerResourceAndRequest(role, capability);
+        log.info("Container ask is {}", containerAsk);
+        if (containerAsk.getCapability().getMemory() >
+            this.containerMaxMemory) {
+          log.warn(
+            "Memory requested: " + containerAsk.getCapability().getMemory() +
+            " > " +
+            this.containerMaxMemory);
+        }
+        operations.add(new ContainerRequestOperation(containerAsk));
+      }
+    } else if (delta < 0) {
+      log.info("{}: Asking for {} fewer node(s) for a total of {}", name,
+               -delta,
+               expected);
+      //reduce the number expected (i.e. subtract the delta)
+
+      //then pick some containers to kill
+      int excess = -delta;
+      List<RoleInstance> targets = cloneActiveContainerList();
+      for (RoleInstance instance : targets) {
+        if (excess > 0) {
+          Container possible = instance.container;
+          if (!instance.released) {
+            ContainerId id = possible.getId();
+            log.info("Requesting release of container {} in role {}", id, name);
+            containerReleaseSubmitted(id);
+            operations.add(new ContainerReleaseOperation(id));
+            excess--;
+          }
+        }
+      }
+      //here everything should be freed up, though there may be an excess due 
+      //to race conditions with requests coming in
+      if (excess > 0) {
+        log.warn(
+          "{}: After releasing all nodes that could be free, there was an excess of {} nodes",
+          name,
+          excess);
+      }
+    }
+
+    return operations;
+  }
+
+
+  /**
+   * Release all containers.
+   * @return a list of operations to execute
+   */
+  public synchronized List<AbstractRMOperation> releaseAllContainers() {
+
+    Collection<RoleInstance> targets = cloneActiveContainerList();
+    log.info("Releasing {} containers", targets.size());
+    List<AbstractRMOperation> operations =
+      new ArrayList<AbstractRMOperation>(targets.size());
+    for (RoleInstance instance : targets) {
+      Container possible = instance.container;
+      ContainerId id = possible.getId();
+      if (!instance.released) {
+        try {
+          containerReleaseSubmitted(id);
+        } catch (HoyaInternalStateException e) {
+          log.warn("when releasing container {} :", possible, e);
+        }
+        operations.add(new ContainerReleaseOperation(id));
+      }
+    }
+    return operations;
+  }
+
+  public synchronized void onContainersAllocated(List<Container> allocatedContainers,
+                                    List<ContainerAssignment> assignments,
+                                    List<AbstractRMOperation> operations) {
+    assignments.clear();
+    operations.clear();
+    for (Container container : allocatedContainers) {
+      String containerHostInfo = container.getNodeId().getHost()
+                                 + ":" +
+                                 container.getNodeId().getPort();
+      int allocated;
+      int desired;
+      //get the role
+      ContainerId cid = container.getId();
+      RoleStatus role = lookupRoleStatus(container);
+
+      //dec requested count
+      role.decRequested();
+      //inc allocated count
+      allocated = role.incActual();
+
+      //look for (race condition) where we get more back than we asked
+      desired = role.getDesired();
+      if (allocated > desired) {
+        log.info("Discarding surplus container {} on {}", cid,
+                 containerHostInfo);
+        operations.add(new ContainerReleaseOperation(cid));
+        //register as a surplus node
+        surplusNodes.add(cid);
+        surplusContainers.incrementAndGet();
+        //and, as we aren't binding it to role, dec that role's actual count
+        role.decActual();
+      } else {
+
+        String roleName = role.getName();
+        log.info("Assiging role {} to container" +
+                 " {}," +
+                 " on {}:{},",
+                 roleName,
+                 cid,
+                 container.getNodeId().getHost(),
+                 container.getNodeId().getPort()
+                );
+
+        assignments.add(new ContainerAssignment(container, role));
+      }
     }
   }
 }
