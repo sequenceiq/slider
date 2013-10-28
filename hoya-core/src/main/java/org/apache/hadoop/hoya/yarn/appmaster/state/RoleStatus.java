@@ -92,7 +92,7 @@ public final class RoleStatus implements Cloneable {
     return actual;
   }
 
-  public int getRequested() {
+  public synchronized int getRequested() {
     return requested;
   }
 
