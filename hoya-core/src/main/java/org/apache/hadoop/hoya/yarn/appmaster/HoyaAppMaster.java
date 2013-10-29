@@ -51,10 +51,9 @@ import org.apache.hadoop.hoya.yarn.appmaster.state.RMOperationHandler;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleInstance;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleStatus;
 import org.apache.hadoop.hoya.yarn.service.EventCallback;
+import org.apache.hadoop.hoya.yarn.service.RpcService;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.ipc.ProtocolSignature;
-import org.apache.hadoop.ipc.Server;
-import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.SaslRpcServer;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -114,7 +113,8 @@ public class HoyaAppMaster extends CompositeService
              HoyaClusterProtocol,
              ServiceStateChangeListener,
              RoleKeys,
-             EventCallback {
+             EventCallback,
+             ContainerStartOperation{
   protected static final Logger log =
     LoggerFactory.getLogger(HoyaAppMaster.class);
 
@@ -124,12 +124,6 @@ public class HoyaAppMaster extends CompositeService
   protected static final Logger LOG_YARN =
     LoggerFactory.getLogger(
       "org.apache.hadoop.hoya.yarn.appmaster.HoyaAppMaster.yarn");
-
-  /**
-   * How long to expect launcher threads to shut down on AM termination:
-   * {@value}
-   */
-  public static final int LAUNCHER_THREAD_SHUTDOWN_TIME = 10000;
 
   /**
    * time to wait from shutdown signal being rx'd to telling
@@ -155,9 +149,8 @@ public class HoyaAppMaster extends CompositeService
    * token blob
    */
   private ByteBuffer allTokens;
-  
-  /** RPC server*/
-  private Server server;
+
+  private RpcService rpcService;
 
   /**
    * Secret manager
@@ -190,24 +183,6 @@ public class HoyaAppMaster extends CompositeService
    */
   private final AppState appState = new AppState(new ProtobufRecordFactory());
 
-  /**
-   * Map of launched threads.
-   * These are retained so that at shutdown time the AM can signal
-   * all threads to stop.
-   * 
-   * However, we don't want to run out of memory even if many containers
-   * get launched over time, so the AM tries to purge this
-   * of the latest launched thread when the RoleLauncher signals
-   * the AM that it has finished
-   */
-  private final Map<RoleLauncher, Thread> launchThreads =
-    new HashMap<RoleLauncher, Thread>();
-
-  /**
-   * Thread group for the launchers; gives them all a useful name
-   * in stack dumps
-   */
-  private final ThreadGroup launcherThreadGroup = new ThreadGroup("launcher");
 
   /**
    * model the state using locks and conditions
@@ -259,6 +234,9 @@ public class HoyaAppMaster extends CompositeService
    */
   private int containerMaxMemory;
   private String amCompletionReason;
+
+  private RoleLaunchService launchService;
+
 
   /**
    * Policy switch to decide whether any early exit of the process is a failure
@@ -372,6 +350,18 @@ public class HoyaAppMaster extends CompositeService
     return exitCode;
   }
 
+  /**
+   * Run a child service -initing and starting it if this
+   * service has already passed those parts of its own lifecycle
+   * @param service
+   */
+  @SuppressWarnings("EnumSwitchStatementWhichMissesCases")
+  private void runChildService(Service service) {
+    service.init(getConfig());
+    service.start();
+    addService(service);
+  }
+
 /* =================================================================== */
 
   /**
@@ -388,7 +378,8 @@ public class HoyaAppMaster extends CompositeService
     Path clusterSpecPath =
       new Path(clusterDirPath, HoyaKeys.CLUSTER_SPECIFICATION_FILE);
     FileSystem fs = getClusterFS();
-    ClusterDescription.verifyClusterSpecExists(clustername, fs,
+    ClusterDescription.verifyClusterSpecExists(clustername,
+                                               fs,
                                                clusterSpecPath);
 
     ClusterDescription clusterSpec = ClusterDescription.load(fs, clusterSpecPath);
@@ -407,11 +398,10 @@ public class HoyaAppMaster extends CompositeService
       HoyaProviderFactory.createHoyaProviderFactory(
         providerType);
     provider = factory.createServerProvider();
-    provider.init(conf);
-    provider.start();
-    addService(provider);
+    runChildService(provider);
     //verify that the cluster specification is now valid
     provider.validateClusterSpec(clusterSpec);
+
 
     HoyaAMClientProvider hoyaClientProvider = new HoyaAMClientProvider(conf);
 
@@ -455,22 +445,19 @@ public class HoyaAppMaster extends CompositeService
     //wrap it for the app state model
     rmOperationHandler = new AsyncRMOperationHandler(asyncRMClient);
     //now bring it up
-    asyncRMClient.init(conf);
-    asyncRMClient.start();
+    runChildService(asyncRMClient);
 
 
     //nmclient relays callbacks back to this class
     nmClientAsync = new NMClientAsyncImpl("hoya", this);
-    addService(nmClientAsync);
-    nmClientAsync.init(conf);
-    nmClientAsync.start();
+    runChildService(nmClientAsync);
 
     //bring up the Hoya RPC service
     startHoyaRPCServer();
 
-    String hostname = NetUtils.getConnectAddress(server).getHostName();
-    appMasterHostname = hostname;
-    appMasterRpcPort = server.getPort();
+    InetSocketAddress rpcServiceAddr = rpcService.getConnectAddress();
+    appMasterHostname = rpcServiceAddr.getHostName();
+    appMasterRpcPort = rpcServiceAddr.getPort();
     appMasterTrackingUrl = null;
     log.info("HoyaAM Server is listening at {}:{}", appMasterHostname,
              appMasterRpcPort);
@@ -520,7 +507,7 @@ public class HoyaAppMaster extends CompositeService
       applicationACLs = response.getApplicationACLs();
 
       //tell the server what the ACLs are 
-      server.refreshServiceAcl(conf, new HoyaAMPolicyProvider());
+      rpcService.getServer().refreshServiceAcl(conf, new HoyaAMPolicyProvider());
     }
 
 
@@ -551,6 +538,11 @@ public class HoyaAppMaster extends CompositeService
 
     appState.buildAppMasterNode(appMasterContainerID);
 
+    //launcher service
+    launchService = new RoleLaunchService(this,
+                                          provider, getClusterFS(),
+                                          new Path(getDFSConfDir()));
+    runChildService(launchService);
 
     boolean noLocalProcess = clusterSpec.getDesiredInstanceCount(ROLE_HOYA_AM, 1) <= 0;
     if (noLocalProcess) {
@@ -681,7 +673,9 @@ public class HoyaAppMaster extends CompositeService
       exitCode = stopForkedProcess();
       log.debug("Stopping forked process: exit code={}", exitCode);
     }
-    joinAllLaunchedThreads();
+
+    //stop any launches in progress
+    launchService.stop();
 
 
     //now release all containers
@@ -713,9 +707,6 @@ public class HoyaAppMaster extends CompositeService
     } catch (IOException e) {
       log.info("Failed to unregister application: " + e, e);
     }
-    if (server != null) {
-      server.stop();
-    }
   }
 
   /**
@@ -734,78 +725,22 @@ public class HoyaAppMaster extends CompositeService
   }
 
   /**
-   * Register self as a server
-   * @return the new server
+   * Start the hoya RPC server
    */
-  private Server startHoyaRPCServer() throws IOException {
+  private void startHoyaRPCServer() throws IOException {
     HoyaClusterProtocolPBImpl protobufRelay = new HoyaClusterProtocolPBImpl(this);
     BlockingService blockingService = HoyaClusterAPI.HoyaClusterProtocolPB
                                                     .newReflectiveBlockingService(
                                                       protobufRelay);
 
-    server = RpcBinder.createProtobufServer(
+    rpcService = new RpcService(RpcBinder.createProtobufServer(
       new InetSocketAddress("0.0.0.0", 0),
       getConfig(),
       secretManager,
       NUM_RPC_HANDLERS,
       blockingService,
-      null);
-    server.start();
-    return server;
-  }
-
-  private void launchThread(RoleLauncher launcher, String name) {
-    Thread launchThread = new Thread(launcherThreadGroup,
-                                     launcher,
-                                     name);
-
-    // launch and start the container on a separate thread to keep
-    // the main thread unblocked
-    // as all containers may not be allocated at one go.
-    synchronized (launchThreads) {
-      launchThreads.put(launcher, launchThread);
-    }
-    launchThread.start();
-  }
-
-  /**
-   * Method called by a launcher thread when it has completed; 
-   * this removes the launcher of the map of active
-   * launching threads.
-   * @param launcher launcher that completed
-   * @param ex any exception raised
-   */
-  public void launchedThreadCompleted(RoleLauncher launcher, Exception ex) {
-    log.debug("Launched thread {} completed", launcher, ex);
-    synchronized (launchThreads) {
-      launchThreads.remove(launcher);
-    }
-  }
-
-  /**
-   Join all launched threads
-   needed for when we time out
-   and we need to release containers
-   */
-  private void joinAllLaunchedThreads() {
-
-
-    //first: take a snapshot of the thread list
-    List<Thread> liveThreads;
-    synchronized (launchThreads) {
-      liveThreads = new ArrayList<Thread>(launchThreads.values());
-    }
-    int size = liveThreads.size();
-    if (size > 0) {
-      log.info("Waiting for the completion of {} threads", size);
-      for (Thread launchThread : liveThreads) {
-        try {
-          launchThread.join(LAUNCHER_THREAD_SHUTDOWN_TIME);
-        } catch (InterruptedException e) {
-          log.info("Exception thrown in thread join: " + e, e);
-        }
-      }
-    }
+      null));
+    runChildService(rpcService);
   }
 
 
@@ -832,21 +767,7 @@ public class HoyaAppMaster extends CompositeService
     for (ContainerAssignment assignment : assignments) {
       RoleStatus role = assignment.role;
       Container container = assignment.container;
-      String roleName = role.getName();
-      //emergency step: verify that this role is handled by the provider
-      assert provider.isSupportedRole(roleName);
-      RoleLauncher launcher =
-        new RoleLauncher(this,
-                         container,
-                         role.getProviderRole(),
-                         provider,
-                         getClusterSpec(),
-                         getClusterSpec().getOrAddRole(
-                           roleName));
-      launchThread(launcher,
-                   String.format("%s on %s:%d", roleName,
-                                 container.getNodeId().getHost(),
-                                 container.getNodeId().getPort()));
+      launchService.launchRole(container,role, getClusterSpec());
     }
     
     //for all the operations, exec them
@@ -885,7 +806,6 @@ public class HoyaAppMaster extends CompositeService
     } catch (HoyaInternalStateException e) {
       log.warn("Exception while flexing nodes", e);
     }
-
   }
 
   /**
@@ -899,11 +819,9 @@ public class HoyaAppMaster extends CompositeService
    * @return true if the number of workers changed
    * @throws IOException
    */
-  private boolean flexCluster(ClusterDescription updated) throws
-                                                               IOException,
-                                                               HoyaInternalStateException {
+  private boolean flexCluster(ClusterDescription updated)
+      throws IOException, HoyaInternalStateException {
 
-    
     //validation
     try {
       provider.validateClusterSpec(updated);
@@ -919,8 +837,8 @@ public class HoyaAppMaster extends CompositeService
   /**
    * Look at where the current node state is -and whether it should be changed
    */
-  private synchronized boolean reviewRequestAndReleaseNodes() throws
-                                                              HoyaInternalStateException {
+  private synchronized boolean reviewRequestAndReleaseNodes()
+      throws HoyaInternalStateException {
     log.debug("in reviewRequestAndReleaseNodes()");
     if (amCompletionFlag.get()) {
       log.info("Ignoring node review operation: shutdown in progress");
@@ -1020,9 +938,6 @@ public class HoyaAppMaster extends CompositeService
 
     ClusterDescription updated =
       ClusterDescription.fromJson(request.getClusterSpec());
-    //verify that the cluster specification is now valid
-    provider.validateClusterSpec(updated);
-
     boolean flexed = flexCluster(updated);
     return Messages.FlexClusterResponseProto.newBuilder().setResponse(flexed).build();
   }
@@ -1198,14 +1113,13 @@ public class HoyaAppMaster extends CompositeService
   }
 
   /**
-   * Package scoped operation to add a node to the list of starting
-   * nodes then trigger the NM start operation with the given
-   * launch context
+   *  Async start container request
    * @param container container
    * @param ctx context
    * @param instance node details
    */
-  void startContainer(Container container,
+  @Override // ContainerStartOperation
+  public void startContainer(Container container,
                              ContainerLaunchContext ctx,
                              RoleInstance instance) {
     // Set up tokens for the container too. Today, for normal shell commands,
