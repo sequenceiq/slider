@@ -76,8 +76,6 @@ public interface ProviderService extends ProviderCore, Service,
    */
   boolean isSupportedRole(String role);
 
-  boolean buildStatusReport(ClusterNode masterNode);
-
   /**
    * This is a validation of the application configuration on the AM.
    * Here is where things like the existence of keytabs and other

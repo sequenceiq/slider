@@ -1014,11 +1014,6 @@ public class HoyaAppMaster extends CompositeService
    */
   private void updateClusterStatus() {
 
-    long t = System.currentTimeMillis();
-    RoleInstance masterNode = appState.getAppMasterNode();
-    if (masterNode != null) {
-      provider.buildStatusReport(masterNode.toClusterNodeFormat());
-    }
     appState.refreshClusterStatus();
   }
 

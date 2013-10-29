@@ -163,34 +163,6 @@ public abstract class AbstractProviderService
   }
 
   /**
-   * Build a status report 
-   * @param masterNode node to fill in
-   * @return true iff there was a process to build a status
-   * report from
-   */
-  @Override
-  public boolean buildStatusReport(ClusterNode masterNode) {
-    ForkedProcessService masterProcess = latestProcess();
-    if (masterProcess != null) {
-      masterNode.command = masterProcess.getCommandLine();
-      masterNode.state = masterProcess.isProcessStarted() ?
-                         ClusterDescription.STATE_LIVE :
-                         ClusterDescription.STATE_STOPPED;
-
-      masterNode.diagnostics = "Exit code = " + masterProcess.getExitCode();
-      //pull in recent lines of output
-      List<String> output = masterProcess.getRecentOutput();
-      masterNode.output = output.toArray(new String[output.size()]);
-      return true;
-    } else {
-      masterNode.state = ClusterDescription.STATE_CREATED;
-      masterNode.output = new String[] {"Master process not running"};
-      return false;
-    }
-
-  }
-
-  /**
    * if we are already running, start this service
    */
   protected void maybeStartCommandSequence() {
