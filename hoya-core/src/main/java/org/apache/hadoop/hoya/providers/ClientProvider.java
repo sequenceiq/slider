@@ -28,6 +28,7 @@ import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.servicemonitor.Probe;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.zookeeper.KeeperException;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -159,4 +160,9 @@ public interface ClientProvider extends ProviderCore {
    * @return Configuration customized for the corresponding provider
    */
   Configuration create(Configuration conf);
+  
+  /*
+   * @return host and port for the master
+   */
+  HostAndPort getMasterAddress() throws IOException, KeeperException;
 }

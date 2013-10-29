@@ -40,6 +40,7 @@ import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import static org.apache.hadoop.hoya.providers.accumulo.AccumuloConfigFileOptions.*;
@@ -83,6 +84,11 @@ public class AccumuloClientProvider extends Configured implements
   @Override
   public Configuration create(Configuration conf) {
     return conf;
+  }
+  
+  @Override
+  public HostAndPort getMasterAddress() throws IOException, KeeperException {
+    return null;
   }
   
   @Override

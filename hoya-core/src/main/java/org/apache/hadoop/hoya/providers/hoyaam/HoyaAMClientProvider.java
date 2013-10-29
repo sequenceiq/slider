@@ -36,6 +36,7 @@ import org.apache.hadoop.hoya.providers.ProviderUtils;
 import org.apache.hadoop.hoya.servicemonitor.Probe;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -230,6 +231,11 @@ public class HoyaAMClientProvider extends Configured implements
   public void prepareAMServiceData(ClusterDescription clusterSpec,
                                    Map<String, ByteBuffer> serviceData) {
 
+  }
+
+  @Override
+  public HostAndPort getMasterAddress() throws IOException, KeeperException {
+    return null;
   }
 
   @Override

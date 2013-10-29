@@ -41,6 +41,7 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,6 +107,11 @@ public class LoadGenProvider extends Configured implements
   @Override
   public List<ProviderRole> getRoles() {
     return ROLES;
+  }
+
+  @Override
+  public HostAndPort getMasterAddress() throws IOException, KeeperException {
+    return null;
   }
 
   @Override
