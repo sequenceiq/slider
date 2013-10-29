@@ -152,8 +152,8 @@ termination.
 
 1. When nodes are allocated, the Role History is marked as dirty
 1. When container release callbacks are received, the Role History is marked as dirty
-1. When nodes are requested or a release request made, the Role History is *not* marked as dirty. This
-information is not relevant on AM restart.
+1. When nodes are requested or a release request made, the Role History is *not*
+ marked as dirty. This information is not relevant on AM restart.
 
 As at startup, a large number of allocations may arrive in a short period of time,
 the Role History may be updated very rapidly -yet as the containers are
@@ -166,6 +166,13 @@ the dirty bit triggering an flushing of the state to HDFS. The datastructure
 will still need to be synchronized for cross thread access, but the 
 sync operation will not be a major deadlock, compared to saving the file on every
 container allocation response (which will actually be the initial implementation).
+
+There's no need to persist the format in a human-readable form; while protobuf
+might seem the approach most consistent with the rest of YARN, it's not
+an easy structure to work with.
+
+The initial implementation will use Apache Avro as the persistence format,
+with the data saved in JSON or compressed format.
 
 
 ## Weaknesses in this design
@@ -190,7 +197,6 @@ history of a node -maintaining some kind of moving average of
 node use and picking the heaviest used, or some other more-complex algorithm.
 This may be possible, but we'd need evidence that the problem existed before
 trying to address it.
-
 
 # The NodeMap: the core of the Role History
 
@@ -243,23 +249,39 @@ parts of the YARN cluster.
 
 ## Data Structures
 
+### RoleHistory
+
+    starTtime: long
+    saveTime: long
+    dirty: boolean
+    nodemap: NodeMap
+    roles: RoleStatus[]
+    outstandingRequests: transient OutstandingRequestTracker
+    availableNodes: transient List<ClusterNode>[]
+
+This is the aggregate data structure that is persisted to/from file
+
 ### NodeMap
 
-    Map: NodeId -> Node
-    
+    clusterNodes: Map: NodeId -> ClusterNode
+    clusterNodes(): Iterable<ClusterNode>
+    getOrCreate(NodeId): ClusterNode
 
-### Node
+  Maps a YARN NodeID record to a Hoya `ClusterNode` structure
 
-Every node is modeled as a ragged array of `NodeEntry` instances, indexed
-by role index
+### ClusterNode
+
+Every node in the cluster is modeled as an ragged array of `NodeEntry` instances, indexed
+by role index -
 
     NodeEntry[roles]
     get(roleId): NodeEntry or null
-    create(roleId): NodeEntry 
-    
+    create(roleId): NodeEntry
+    getNodeEntries(): NodeEntry[roles]
     getOrCreate(roleId): NodeEntry
+    remove(roleId): NodeEntry
 
-This could be implemented in a map or an indexed array; the array is more 
+This could be implemented in a map or an indexed array; the array is more
 efficient but it does mandate that the number of roles are bounded and fixed.
 
 ### NodeEntry
@@ -285,23 +307,14 @@ unexpected container release responses as failures.
 The `active` counter is only updated after a container release response
 has been received.
 
-### RoleHistory
+### RoleStatus
 
-    starttime: long
-    saved: long
-    dirty: boolean
-    nodemap: NodeMap
-    roles: RoleList
-    
-    relecentlyReleased[]: transient RecentlyReleasedList
-    outstandingRequests: transient OutstandingRequestTracker
-
-This is the aggregate data structure that is persisted to/from file
+This is the existing `org.apache.hadoop.hoya.yarn.appmaster.state.RoleStatus` class
 
 ### RoleList
 
 A list mapping role to int enum is needed to index NodeEntry elements in
-the Node arrays. Although such an enum is already implemented in the Hoya
+the ClusterNode arrays. Although such an enum is already implemented in the Hoya
 Providers, explicitly serializing and deserializing it would make
 the persistent structure easier to parse in other tools, and resilient
 to changes in the number or position of roles.
@@ -330,6 +343,9 @@ rolling integer -Hoya will assume that after 2^24 requests per role, it can be r
 The main requirement  is: not have > 2^24 outstanding requests for instances of a specific role,
 which places an upper bound on the size of a Hoya cluster.
 
+The splitting and merging will be implemented in a PriorityHelper class,
+for uniform access.
+
 ### OutstandingRequest ###
 
 Tracks an outstanding request. This is used to correlate an allocation response
@@ -354,17 +370,23 @@ Contains a map from requestID to the specific `OutstandingRequest` made.
 
 Operations
 
-    addRequest(Node, RoleId): OutstandingRequest 
+    addRequest(ClusterNode, RoleId): OutstandingRequest
         (and an updated request Map with a new entry)
+    lookup(RequestID): OutstandingRequest
+    remove(RequestID): OutstandingRequest
+    listRequestsForNode(ClusterID): [OutstandingRequest]
 
-
+The list operation can be implemented inefficiently unless it is found
+to be important -if so a more complex structure will be needed.
 
 ### AvailableNodes
 
-This is an `array[roleId]` of `List<Node>` storing nodes that are
-available for allocation, ordered by more recently released. 
-To accelerate node selection, rather than scan the entire set of nodes to find
-the most recent available node, this list can be picked instead.
+    availableNodes: List<ClusterNode>[]
+
+
+For each role, lists nodes that are available for data-local allocation,
+ordered by more recently released - To accelerate node selection
+
 The performance benefit is most significant when requesting multiple nodes,
 as the scan for M locations from N nodes is reduced from `M*N` comparisons
 to 1 Sort + M list lookups.
@@ -375,8 +397,7 @@ using a comparator that places the most recently released node ahead of older
 nodes.
 
 This list is not persisted -when a Hoya Cluster is frozen it is moot, and when
-an AM is restarted this structure can be build up while rebuilding the model
-of the cluster. 
+an AM is restarted this structure will be rebuilt.
 
 1. When a node is needed for a new request, this list is consulted first.
 1. After the request is issued it can be removed from the list
@@ -384,13 +405,12 @@ of the cluster.
 requests for that node, should be added to to the front
 of the list for that role.
 
-
-If the AM cannot find an entry in the list when looking for a node to request
-data from, it should assume that the Role History does not know of any nodes
+If the list is empty during a container request operation, it means
+that the Role History does not know of any nodes
 in the cluster that have hosted instances of that role and which are not
 in use. There are then two possible strategies to select a role
 
-1. Ask for an instance anywhere in the cluster (Hoya 0.5 policy)
+1. Ask for an instance anywhere in the cluster (policy in Hoya 0.5)
 1. Search the node map to identify other nodes which are (now) known about,
 but which are not hosting instances of a specific role -this can be used
 as the target for the next resource request.
@@ -414,8 +434,6 @@ will not be satisfied by that node.
 
 If there is a problem with the node, such that containers repeatedly fail on it,
 then re-requesting containers on it will amplify the damage.
-
-
 
 ## Actions
 
@@ -441,35 +459,57 @@ save time must be converted into the data that indicates that the nodes
 were at least in use *at the time the data was saved*. The state of the cluster
 after the last save is unknown.
 
-1. Role History loaded; Failure => Bootstrap.
-1. Future: if role list enum != current enum, remapping could take place.
-   Until then: fail.
-1. iterate through all NodeEntry instances in each Node and set its last_used
-time to the time the role history was last saved. 
-1. Maybe: purge entries > N weeks older than the save time of the role history
+1: Role History loaded; Failure => Bootstrap.
+2: Future: if role list enum != current enum, remapping could take place. Until then: fail.
+3: Mark all nodes as active at save time to that of the
 
-If the list of recently used nodes is built by creating a sorted list of the
-nodes for each role, this sort must take place after the previous operations
-have completed. These sorted lists would have the active-at-time-of-save
-nodes at their heads, followed by the inactive nodes in the order of the most
-recently used.
+   //define a threshold
+   threshold = rolehistory.saveTime - 7*24*60*60* 1000
+
+
+    for (clusterId, clusternode) in rolehistory.clusterNodes().entries() :
+      for (role, nodeEntry) in clusterNode.getNodeEntries():
+        nodeEntry.requested = 0
+        nodeEntry.releasing = 0
+        if nodeEntry.active > 0 :
+          nodeEntry.last_used = rolehistory.saveTime;
+        nodeEntry.n.active = 0
+        if nodeEntry.last_used < threshold :
+          clusterNode.remove(role)
+        else:
+         availableNodes[role].add(clusterId)
+       if clusterNode.getNodeEntries() isEmpty :
+         rolehistory.clusterNodes.remove(clusterId)
+
+
+    for availableNode in availableNodes:
+      sort(availableNode,new last_used_comparator())
+
+After this operation, the structures are purged with all out of date entries,
+and the available node list contains a sorted list of the remainder.
 
 ### AM Restart
 
-1. RoleHistory reloaded
-1. Failure => create empty map.
-1. Success => set the active counts for each NodeEntry to 0, with the `last_used`
-value to that of the file's save time.
-1. Enum existing containers and determine role of each container.
-1. For each Node: create a `NodeEntry` each role with a container on that node, then
-set the `NodeEntry.active` count to the #of containers on that node.
-1. For each Node in the NodeMap, if there are no active instances of a role
- in that Node, then its count remains 0 -it is implicitly available.
-1. For other (existing) container data structures in the AM, add entries
-recording container details there.
-1. Set the outstanding request queue to `null`, and reset the counters.
-1. Generate the sorted AvailableNodes lists for each role. 
-1. Trigger a cluster node count review -and request & release nodes as appropriate
+
+1: Create the initial data structures as the thaw operation
+2: update the structure with the list of live nodes, removing those nodes
+from the list of available nodes
+
+    now = time()
+    activeContainers = RM.getActiveContainers()
+
+    for container in activeContainers:
+       nodeId = container.nodeId
+       clusterNode = roleHistory.nodemap.getOrCreate(nodeId)
+       role = extractRoleId(container.getPriority)
+       nodeEntry = clusterNode.getOrCreate(role)
+       nodeEntry.active++
+       nodeEntry.last_used = now
+       availableNodes[role].remove(nodeId)
+
+There's no need to resort the available node list -all that has happened
+is that some entries have been removed
+
 
 **Issue**: what if requests come in for a `(role, requestID)` for
 the previous instance of the AM? Could we just always set the initial
@@ -566,29 +606,6 @@ The proposed `recentlyReleasedList` addresses this, though it creates
 another data structure to maintain and rebuild at cluster thaw time
 from the last-used fields in the node entries.
 
-### Flex: Removing a role instance from the cluster
-
-Simple strategy: find a node with at least one active container
-
-    select a node N in nodemap where for NodeEntry[roleId]: active > releasing; 
-    nodeentry = node.get(roleId)
-    nodeentry.active--;
-
-Advanced Strategy:
-
-    Scan through the map looking for a node where active >1 && active > releasing.
-    If none are found, fall back to the previous strategy
-
-This is guaranteed to release a container on any node with >1 container in use,
-if such a node exists. If not, the scan time has increased to #(nodes).
-
-Once a node has been identified
-
-1. a container on it is located (via the existing container map)
-1. The RM is asked to release that container.
-1. The (existing) `containersBeingReleased` Map has the container inserted into it
-
-
 ### AM Callback : onContainersAllocated 
 
     void onContainersAllocated(List<Container> allocatedContainers) 
@@ -607,18 +624,18 @@ to the node originally requested.
     assignments = []
     operations =  []
     for container in allocatedContainers:
-      ContainerId cid = container.getId();
+      cid = container.getId();
       roleId = container.priority & 0xff
       nodeId = container.nodeId
       outstanding = outstandingRequestTracker.remove(C.priority)
-      RoleStatus role = lookupRoleStatus(container);
-      role.decRequested();
-      allocated = role.incActual();
+      roleStatus = lookupRoleStatus(container);
+      roleStatus.decRequested();
+      allocated = roleStatus.incActual();
       if outstanding == null || allocated > desired :
         operations.add(new ContainerReleaseOperation(cid))
         surplusNodes.add(cid);
         surplusContainers++
-        role.decActual();
+        roleStatus.decActual();
       else:
         assignments.add(new ContainerAssignment(container, role))
         node = nodemap.getOrCreate(nodeId)
@@ -663,11 +680,34 @@ in the total ordering of the list.
 
     onContainerStarted(ContainerId containerId)
  
-Currently the AM uses this as a signal to remove the container from the list
+The AM uses this as a signal to remove the container from the list
 of starting containers, moving it into the map of live nodes; the counters
 in the associated `RoleInstance` are updated accordingly
 
 
+### Flex: Releasing a  role instance from the cluster
+
+Simple strategy: find a node with at least one active container
+
+    select a node N in nodemap where for NodeEntry[roleId]: active > releasing; 
+    nodeentry = node.get(roleId)
+    nodeentry.active--;
+
+Advanced Strategy:
+
+    Scan through the map looking for a node where active >1 && active > releasing.
+    If none are found, fall back to the previous strategy
+
+This is guaranteed to release a container on any node with >1 container in use,
+if such a node exists. If not, the scan time has increased to #(nodes).
+
+Once a node has been identified
+
+1. a container on it is located (via the existing container map)
+1. A release operation is queued trigger a request for the RM.
+1. The (existing) `containersBeingReleased` Map has the container inserted into it
+
+After the AM processes the request, it triggers a callback
  
 ### AM callback onContainersCompleted: 
 
