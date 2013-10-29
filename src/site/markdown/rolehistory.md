@@ -14,7 +14,7 @@
   
 # Role History: how Hoya brings back nodes in the same location
 
-### 2013-09-24: WiP design doc
+### 2013-10-29: WiP design doc
 
 ## Outstanding issues
 
@@ -36,11 +36,12 @@ significantly harder.
 
 ## Introduction
 
-Hoya tries to bring up instances of a given role on the machine(s) on which
-they last ran -it remembers after flexing or cluster freeze which
-servers were last used for a role, and persists this for use in restarts.
+Hoya should try to bring up instances of a given role on the machine(s) on which
+they last ran -it should remember after shrinking or freezing a cluster  which
+servers were last used for a role -and use this (persisted) data to select
+clusters next time
 
-It does this in the assumption that the role instances prefer node-local
+It does this in the basis that the role instances prefer node-local
 access to data previously persisted to HDFS. This is precisely the case
 for Apache HBase, which can use Unix Domain Sockets to talk to the DataNode
 without using the TCP stack. The HBase master persists to HDFS the tables
@@ -79,7 +80,7 @@ in the role deployment, so increase their resilience to failure.
 
 1. There is no need to make sophisticated choices on which nodes to request
 re-assignment -such as recording the amount of data persisted by a previous
-instance and prioritising nodes based on such data. More succinctly 'the
+instance and prioritizing nodes based on such data. More succinctly 'the
 only priority needed when asking for nodes is *ask for the most recently used*.
 
 1. Different roles are independent: it is not an issue if a role of one type
@@ -100,7 +101,8 @@ will not decrement the number of instances to deploy: instead it will rely
 on YARN to locate a new node -ideally on the same rack.
 
 1. If two instances of the same role do get assigned to the same server, it
-is not a failure condition.
+is not a failure condition. (This may be problematic for some roles 
+-we may need a role-by-role policy here, so that master nodes can be anti-affine)
 
 1. Tracking failure statistics of nodes may be a feature to add in future;
 designing the Role History datastructures to enable future collection
@@ -108,27 +110,40 @@ of rolling statistics on recent failures would be a first step to this
 
 ### The Role History
 
-The RoleHistory is a datastructure which models the role assignment, and
+The `RoleHistory` is a datastructure which models the role assignment, and
 can persist it to and restore it from the (shared) filesystem.
 
-* For each role, there is a list of nodes used in the past.
+* For each role, there is a list of cluster nodes which have supported this role
+used in the past.
+
 * This history is used when selecting a node for a role.
+
 * This history remembers when nodes were allocated. These are re-requested
 when thawing a cluster.
+
 * It must also remember when nodes were released -these are re-requested
 when returning the cluster size to a previous size during flex operations.
+
 * It has to track nodes for which Hoya has an outstanding container request
 with YARN. This ensures that the same node is not requested more than once
 due to outstanding requests.
+
 * It does not retain a complete history of the role -and does not need to.
 All it needs to retain is the recent history for every node onto which a role
 instance has been deployed. Specifically, the last allocation or release
 operation on a node is all that needs to be persisted.
-* On AM startup, all nodes are considered candidates, even those nodes marked
+
+* On AM startup, all nodes in the history are considered candidates, even those nodes currently marked
 as active -as they were from the previous instance.
+
+* On AM restart, nodes in the role history marked as active have to be considered
+still active -the YARN RM will have to provide the full list of which are not.
+
 * During cluster flexing, nodes marked as released -and for which there is no
 outstanding request - are considered candidates for requesting new instances.
-* The AM picks the candidate nodes from the head of the time-ordered list.
+
+* When choosing a candidate node for hosting a role instance, it from the head
+of the time-ordered list of nodes that last ran an instance of that role
 
 ### Persistence
 
@@ -140,7 +155,7 @@ termination.
 1. When nodes are requested or a release request made, the Role History is *not* marked as dirty. This
 information is not relevant on AM restart.
 
-As at startup a large number of allocations may arrive in a short period of time,
+As at startup, a large number of allocations may arrive in a short period of time,
 the Role History may be updated very rapidly -yet as the containers are
 only recently activated, it is not likely that an immediately restarted Hoya
 cluster would gain by re-requesting containers on them -their historical
@@ -163,7 +178,8 @@ Hoya cluster*.
 
 **Anti-affinity**: If multiple role instances are assigned to the same node,
 Hoya has to choose on restart or flexing whether to ask for multiple
-nodes on that node again, or to pick other nodes.
+nodes on that node again, or to pick other nodes. The assumed policy is
+"only ask for one node"
 
 **Bias towards recent nodes over most-used**: re-requesting the most
 recent nodes, rather than those with the most history of use, may
@@ -178,7 +194,7 @@ trying to address it.
 
 # The NodeMap: the core of the Role History
 
-The core data structure is a map of every node in the cluster tracking
+The core data structure, the `NodeMap` is a map of every known node in the cluster, tracking
 how many containers are allocated to specific roles in it, and, when there
 are no active instances, when it was last used. This history is used to
 choose where to request new containers. Because of the asynchronous
@@ -186,7 +202,7 @@ allocation and release of containers, the Role History also needs to track
 outstanding release requests --and, more critically, outstanding allocation
 requests. If Hoya has already requested a container for a specific role
 on a host, then asking for another container of that role would break
-anti-affinity requirements. Note that not tracking oustanding requests would
+anti-affinity requirements. Note that not tracking outstanding requests would
 radically simplify some aspects of the design, especially the complexity
 of correlating allocation responses with the original requests -and so the
 actual hosts originally requested.
@@ -196,7 +212,7 @@ actual hosts originally requested.
 1. Nodes are only chosen for allocation requests when there are no
 active or requested containers on that node.
 1. When choosing which instances to release, Hoya could pick the node with the
-most containers on it. Ths would spread the load.
+most containers on it. This would spread the load.
 1. When there are no empty nodes to request containers on, a request would
 let YARN choose.
 
@@ -212,48 +228,25 @@ let YARN choose.
 
 #### Weaknesses
 
-* Size of the data structure is O(nodes * role-instances). This
+* Size of the data structure is `O(nodes * role-instances`). This
 could be mitigated by regular cleansing of the structure. For example, at
 thaw time (or intermittently) all unused nodes > 2 weeks old could be dropped.
-* Locating a free node could take O(nodes) lookups -and if the criteria of "newest"
-is included, will take exactly O(nodes) lookups. As an optimization, a list
+* Locating a free node could take `O(nodes)` lookups -and if the criteria of "newest"
+is included, will take exactly `O(nodes)` lookups. As an optimization, a list
 of recently explicitly released nodes can be maintained.
 * Need to track outstanding requests against nodes, so that if a request
-was satisifed on a different node, the original node's request count is
- decremented, *not that of the node actually allocated*.  
+was satisfied on a different node, the original node's request count is
+ decremented, *not that of the node actually allocated*. 
+* In a virtual cluster, may fill with node entries that are no longer in the cluster.
+Hoya should query the RM (or topology scripts?) to determine if nodes are still
+parts of the YARN cluster. 
 
 ## Data Structures
 
-
-### RoleHistory
-
-    starttime: long
-    saved: long
-    dirty: boolean
-
-    nodemap: NodeMap
-    roles: RoleList
-    
-    
-    relecentlyReleased[]: transient RecentlyReleasedList
-    outstandingRequests: transient OutstandingRequestTracker
-
-    
 ### NodeMap
 
     Map: NodeId -> Node
     
-### RoleList
-
-A list mapping role to int enum is needed to index NodeEntry elements in
-the Node arrays. Although such an enum is already implemented in the Hoya
-Providers, explicitly serializing and deserializing it would make
-the persitent structure easier to parse in other tools, and resilient
-to changes in the number or position of roles.
-
-This list could also retain information about recently used/released nodes,
-so that the selection of containers to request could shortcut a search
-
 
 ### Node
 
@@ -261,24 +254,28 @@ Every node is modeled as a ragged array of `NodeEntry` instances, indexed
 by role index
 
     NodeEntry[roles]
-    get(roleId): NodeEntry
+    get(roleId): NodeEntry or null
     create(roleId): NodeEntry 
+    
+    getOrCreate(roleId): NodeEntry
 
+This could be implemented in a map or an indexed array; the array is more 
+efficient but it does mandate that the number of roles are bounded and fixed.
 
 ### NodeEntry
 
 Records the details about all of a roles containers on a node. The
-`active` field records the no. of containers currently active.
+`active` field records the number of containers currently active.
 
     active: int
     requested: transient int
     releasing: transient int
     last_used: long
-    
-    NodeEntry.available(): boolean = active-releasing == 0 and requested == 0
 
-The two fields releasing and requested are used to track the ongoing
-state of YARN requests: they do not need to be persisted across freeze/thaw
+    NodeEntry.available(): boolean = active - releasing == 0 && requested == 0
+
+The two fields `releasing` and `requested` are used to track the ongoing
+state of YARN requests; they do not need to be persisted across freeze/thaw
 cycles. They may be relevant across AM restart, but without other data
 structures in the AM, not enough to track what the AM was up to before
 it was restarted. The strategy will be to ignore unexpected allocation
@@ -288,21 +285,46 @@ unexpected container release responses as failures.
 The `active` counter is only updated after a container release response
 has been received.
 
+### RoleHistory
+
+    starttime: long
+    saved: long
+    dirty: boolean
+    nodemap: NodeMap
+    roles: RoleList
+    
+    relecentlyReleased[]: transient RecentlyReleasedList
+    outstandingRequests: transient OutstandingRequestTracker
+
+This is the aggregate data structure that is persisted to/from file
+
+### RoleList
+
+A list mapping role to int enum is needed to index NodeEntry elements in
+the Node arrays. Although such an enum is already implemented in the Hoya
+Providers, explicitly serializing and deserializing it would make
+the persistent structure easier to parse in other tools, and resilient
+to changes in the number or position of roles.
+
+This list could also retain information about recently used/released nodes,
+so that the selection of containers to request could shortcut a search
+
+
 ### Container Priority
 
-The container priority field (a 32 bit integer) is currently used by Hoya
+The container priority field (a 32 bit integer) is used by Hoya (0.5.x)
 to index the specific role in a container so as to determine which role
 has been offered in a container allocation message, and which role has
 been released on a release event.
 
-The RoleHistory appears to need to track outstanding requests, so that
-when an allocation comes in, it can be mapped back to the request.
+The Role History needs to track outstanding requests, so that
+when an allocation comes in, it can be mapped back to the original request.
 Simply looking up the nodes on the provided container and decrementing
 its request counter is not going to work -the container may be allocated
 on a different node from that requested.
 
-**Proposal**: The priority field of a request is divided by Hoya into 8 bits for role ID,
-24 bits for requestID. The request ID will be a simple
+**Proposal**: The priority field of a request is divided by Hoya into 8 bits for
+`roleID` and 24 bits for `requestID`. The request ID will be a simple
 rolling integer -Hoya will assume that after 2^24 requests per role, it can be rolled,
 -though as we will be retaining a list of outstanding requests, a clash should not occur.
 The main requirement  is: not have > 2^24 outstanding requests for instances of a specific role,
@@ -316,9 +338,12 @@ node and role used in the request.
 
       roleId:  int
       requestID :  int
-      node: string
+      node: string (may be null)
       requestedTime: long
       priority: int = requestID << 24 | roleId
+
+The node identifier may be null -which indicates that a request was made without
+a specific target node
 
 ### OutstandingRequestTracker ###
 
@@ -329,17 +354,19 @@ Contains a map from requestID to the specific `OutstandingRequest` made.
 
 Operations
 
-    addRequest(Node, roleId) -> OutstandingRequest 
+    addRequest(Node, RoleId): OutstandingRequest 
         (and an updated request Map with a new entry)
 
-### AvailableNodes ###
+
+
+### AvailableNodes
 
 This is an `array[roleId]` of `List<Node>` storing nodes that are
 available for allocation, ordered by more recently released. 
 To accelerate node selection, rather than scan the entire set of nodes to find
 the most recent available node, this list can be picked instead.
 The performance benefit is most significant when requesting multiple nodes,
-as the scan for M locations from N nodes is reduced from M*N comparisons
+as the scan for M locations from N nodes is reduced from `M*N` comparisons
 to 1 Sort + M list lookups.
 
 Each list can be created off the Node Map by building for each role a sorted
@@ -361,14 +388,14 @@ of the list for that role.
 If the AM cannot find an entry in the list when looking for a node to request
 data from, it should assume that the Role History does not know of any nodes
 in the cluster that have hosted instances of that role and which are not
-in use. There are two possible strategies here
+in use. There are then two possible strategies to select a role
 
-1. Ask for an instance anywhere in the cluster
+1. Ask for an instance anywhere in the cluster (Hoya 0.5 policy)
 1. Search the node map to identify other nodes which are (now) known about,
 but which are not hosting instances of a specific role -this can be used
 as the target for the next resource request.
 
-Strategy #1 is simpler; Strategy #2 *may* increase the affinity in the cluster,
+Strategy #1 is simpler; Strategy #2 *may* decrease the affinity in the cluster,
 as the AM will be explicitly requesting an instance on a node which it knows
 is not running an instance of that role.
 
@@ -383,7 +410,7 @@ for that container back *is the absolute right strategy* -it will bring
 back a new role instance on that machine. 
 
 If the container failed because the node is now offline, the container request 
-will not be satisified by that node.
+will not be satisfied by that node.
 
 If there is a problem with the node, such that containers repeatedly fail on it,
 then re-requesting containers on it will amplify the damage.
@@ -398,14 +425,14 @@ then re-requesting containers on it will amplify the damage.
 
 ### Thaw
 
-When thawing, the role history should be loaded -if it is missing Hoya
+When thawing, the Role History should be loaded -if it is missing Hoya
 must revert to the bootstrap actions.
 
-If found, the role history will contain Hoya's view of the Hoya Cluster's
+If found, the Role History will contain Hoya's view of the Hoya Cluster's
 state at the time the history was saved, explicitly recording the last-used
 time of all nodes no longer hosting a role's container. By noting which roles
-were actually being served, it implicitly nodes which nodes have a last_used
-value greater than any of the last_used fields persisted in the file. That is:
+were actually being served, it implicitly notes which nodes have a `last_used`
+value greater than any of the `last_used` fields persisted in the file. That is:
 all node entries listed as having active nodes at the time the history was
 saved must have more recent data than those nodes listed as inactive.
 
@@ -434,7 +461,7 @@ recently used.
 1. Success => set the active counts for each NodeEntry to 0, with the `last_used`
 value to that of the file's save time.
 1. Enum existing containers and determine role of each container.
-1. For each Node: create a NodeEntry each role with a container on that node, then
+1. For each Node: create a `NodeEntry` each role with a container on that node, then
 set the `NodeEntry.active` count to the #of containers on that node.
 1. For each Node in the NodeMap, if there are no active instances of a role
  in that Node, then its count remains 0 -it is implicitly available.
@@ -444,7 +471,7 @@ recording container details there.
 1. Generate the sorted AvailableNodes lists for each role. 
 1. Trigger a cluster node count review -and request & release nodes as appropriate
 
-**Issue**: what if requests come in for a (role, requestID) for
+**Issue**: what if requests come in for a `(role, requestID)` for
 the previous instance of the AM? Could we just always set the initial
 requestId counter to a random number and hope the collision rate is very, very 
 low (2^24 * #(outstanding_requests)). If YARN-1041 ensures that
@@ -467,14 +494,10 @@ in it is only an approximate about what the previous state of the cluster was.
 
 ### Flex: Requesting a container in role `role`
 
-    t: long = now() or if booting: t = rolehistory.saved 
+
     node = availableNodes[roleId].pop() 
     if node != null :
-      N.nodeEntry[roleId].requested++;
-      issue request with lax criteria
-    else:
-      set node == null in request
-      
+      node.nodeEntry[roleId].requested++;
     outstanding = outstandingRequestTracker.addRequest(node, roleId)
     request.node = node
     request.priority = outstanding.priority
@@ -482,11 +505,11 @@ in it is only an approximate about what the previous state of the cluster was.
     //update existing Hoya role status
     roleStatus[roleId].incRequested();
       
-      
+
 There is a bias here towards previous nodes, even if the number of nodes
 in the cluster has changed. This is why a node is picked where the number
 of `active-releasing ==0 and requested == 0`, rather than where it is simply the lowest
-value of `active+requested-releasing`: if there is no node in the nodemap that
+value of `active + requested - releasing`: if there is no node in the nodemap that
 is not running an instance of that role, it is left to the RM to decide where
 the role instance should be instantiated.
 
@@ -510,22 +533,21 @@ node from being requested first.
 1. Keep track of requests, perhaps through a last-requested counter -and use
 this in the selection process. This would radically complicate the selection
 algorithm, and would not even distinguish "node recently released that was
-also the last requested" from "node that has not recently satisifed requests
+also the last requested" from "node that has not recently satisfied requests
 even though it was recently requested".
   
-1. Keep track of requests that weren't satisifed, so identify a node that
+1. Keep track of requests that weren't satisfied, so identify a node that
 isn't currently satisfying requests.
-     
-    
+
+
 #### History Issues 
 
 Without using that history, there is a risk that a very old assignment
 is used in place of a recent one and the value of locality decreased.
 
 But there are consequences:
-    
-**Performance**:
 
+**Performance**:
 
 Using the history to pick a recent node may increase selection times on a
 large cluster, as for every instance needed, a scan of all nodes in the
@@ -540,24 +562,20 @@ flag may be updated while the cluster flex is in progress, so making the saved
 nodes appear out of date. Perhaps the list of recently released nodes could
 be rebuilt at thaw time.
 
-
 The proposed `recentlyReleasedList` addresses this, though it creates
 another data structure to maintain and rebuild at cluster thaw time
 from the last-used fields in the node entries.
 
-
-
 ### Flex: Removing a role instance from the cluster
 
-Simple strategy:
+Simple strategy: find a node with at least one active container
 
-    //find a node with at least one active container
-    pick a node N in nodemap where for NodeEntry[roleId]: active > releasing; 
+    select a node N in nodemap where for NodeEntry[roleId]: active > releasing; 
     nodeentry = node.get(roleId)
     nodeentry.active--;
-    
+
 Advanced Strategy:
-    
+
     Scan through the map looking for a node where active >1 && active > releasing.
     If none are found, fall back to the previous strategy
 
@@ -566,68 +584,66 @@ if such a node exists. If not, the scan time has increased to #(nodes).
 
 Once a node has been identified
 
-1. a container on it is located (via the existing
-container map)
+1. a container on it is located (via the existing container map)
 1. The RM is asked to release that container.
 1. The (existing) `containersBeingReleased` Map has the container inserted into it
 
 
-
-
-### AM Callback : Allocation 
+### AM Callback : onContainersAllocated 
 
     void onContainersAllocated(List<Container> allocatedContainers) 
 
-This is the callback recevied when containers have been allocated.
+This is the callback received when containers have been allocated.
 Due to (apparently) race conditions, the AM may receive duplicate
-container allocations -Hoya already has to recognise this and 
+container allocations -Hoya already has to recognize this and 
 currently simply discards any surplus.
 
-
 If the AM tracks outstanding requests made for specific hosts, it
-will need to correlate allocations with requests, so as to decrement
+will need to correlate allocations with the original requests, so as to decrement
 the node-specific request count. Decrementing the request count
 on the allocated node will not work, as the allocation may not be
 to the node originally requested.
 
-    C = container allocation
-    roleId = C.priority & 0xff
-    nodeId = C.nodeId
-    outstanding = outstandingRequestTracker.remove(C.priority)
-    if outstanding==null :
-      raise UnknownRequest
+    assignments = []
+    operations =  []
+    for container in allocatedContainers:
+      ContainerId cid = container.getId();
+      roleId = container.priority & 0xff
+      nodeId = container.nodeId
+      outstanding = outstandingRequestTracker.remove(C.priority)
+      RoleStatus role = lookupRoleStatus(container);
+      role.decRequested();
+      allocated = role.incActual();
+      if outstanding == null || allocated > desired :
+        operations.add(new ContainerReleaseOperation(cid))
+        surplusNodes.add(cid);
+        surplusContainers++
+        role.decActual();
+      else:
+        assignments.add(new ContainerAssignment(container, role))
+        node = nodemap.getOrCreate(nodeId)
+        nodeentry = node.get(roleId)
+        if nodeentry == null :
+          nodeentry = new NodeEntry()
+          node[roleId] = nodeentry
+          nodeentry.active = 1
+        else:
+          if nodeentry.requested > 0 :
+            nodeentry.requested--
+          nodeentry.active++
+        nodemap.dirty = true
     
-    nodemap = rolemap.getNodeMap(role)
-    node = nodemap.get(nodeId)
-    if node == null :
-      node = new Node()
-      nodemap.put(nodeId, node)
-    nodeentry = node.get(roleId)
-    if nodeentry == null :
-      nodeentry = new NodeEntry()
-      node[roleId] = nodeentry
-      nodeentry.active = 1
-    else:
-      if nodeentry.requested > 0:
-        nodeentry.requested--
-    nodeentry.active++
-    nodemap.dirty = true
-    
-    //work back from request ID to node where the 
-    //request was outstanding
-    requestID = outstanding.nodeId
-    if requestID != null:
-      reqNode = nodeMap.get(requestID)
-      reqNodeEntry = reqNode.get(roleId)
-      reqNodeEntry.requested--;
-      if reqNodeEntry.available() :
-        availableNodeList.insert(reqNodeEntry)
+        // work back from request ID to node where the 
+        // request was outstanding
+        requestID = outstanding.nodeId
+        if requestID != null:
+          reqNode = nodeMap.get(requestID)
+          reqNodeEntry = reqNode.get(roleId)
+          reqNodeEntry.requested--
+          if reqNodeEntry.available() :
+            availableNodeList.insert(reqNodeEntry)
 
 
-    //update role summary data
-    roleStatus[roleId].decRequested();
-    roleStatus[roleId].incActive();
-     
  
 1. At end of this, there is a node in the nodemap, which has recorded that
 there is now an active node entry for that role. The outstanding request has
@@ -641,22 +657,33 @@ other sync problem.
 decremented, so that it may be viewed as available again. The node is also
 re-inserted into the AvailableNodes list -not at its head, but at its position
 in the total ordering of the list.
-
  
+### NMClientAsync Callback:  onContainerStarted()
+
+
+    onContainerStarted(ContainerId containerId)
+ 
+Currently the AM uses this as a signal to remove the container from the list
+of starting containers, moving it into the map of live nodes; the counters
+in the associated `RoleInstance` are updated accordingly
+
+
  
 ### AM callback onContainersCompleted: 
 
     void onContainersCompleted(List<ContainerStatus> completedContainers)
-    
+
 This callback returns a list of containers that have completed.
 
 These need to be split into successful completion of a release request
 and containers which have failed. 
 
-This is currently done by tracking whch containers have been queued
-for release (the AM contains a map `ContainerID->Container` to track this)
-A container is considered to have failed if it completed and wasn't on
-the list of containers to rlease
+This is currently done by tracking which containers have been queued
+for release, as well as which were rejected as surplus before even having
+any role allocated onto them.
+
+A container  is considered to  have failed if it  was an active  container which
+has completed although it wasn't on the list of containers to release
 
     shouldReview = false
     for container in completedContainers:
@@ -666,17 +693,15 @@ the list of containers to rlease
       if node == null :
         // unknown node
         continue
-      roleId = node.rooleId
+      roleId = node.roleId
       nodeentry = node.get(roleId)
       nodeentry.active--
       nodemap.dirty = true
-
-  
       if getContainersBeingReleased().containsKey(containerId) :
-        //handle container completion
+        // handle container completion
         nodeentry.releasing --
          
-        //update existing Hoya role status
+        // update existing Hoya role status
         roleStatus[roleId].decReleasing();
         containersBeingReleased.remove(containerId)
       else: 
@@ -687,7 +712,6 @@ the list of containers to rlease
       if nodeentry.available():
         nodentry.last_used = now()
         availableNodes[roleId].insert(node)      
-  
       //trigger a comparison of actual vs desired
     if shouldReview :
       reviewRequestAndReleaseNodes()
@@ -699,8 +723,6 @@ on that node, it will have been inserted at the front of the `availableNodes` li
 As a result, it is highly likely that a new container will be requested on 
 the same node. (The only way a node the list would be newer is 
 be if other containers were completed in the same callback)
- 
-## NMClientAsync Callback:  onContainerStarted(ContainerId containerId)
 
-Currently the AM uses this as a signal to remove the container from the list
-of requested containers
+
+
