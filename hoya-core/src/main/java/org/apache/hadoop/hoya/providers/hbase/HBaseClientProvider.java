@@ -22,12 +22,15 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.Abortable;
 import org.apache.hadoop.hbase.ClusterStatus;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HConnectionManager;
+import org.apache.hadoop.hbase.zookeeper.MasterAddressTracker;
+import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.hadoop.hoya.HostAndPort;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
@@ -47,6 +50,7 @@ import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,14 +77,28 @@ public class HBaseClientProvider extends Configured implements
                                                           ClientProvider,
                                                           HBaseConfigFileOptions {
 
-
+  private class ClientProviderAbortable implements Abortable {
+    @Override
+    public void abort(String why, Throwable e) {
+    }
+    @Override
+    public boolean isAborted() {
+      return false;
+    }
+  }
   protected static final Logger log =
     LoggerFactory.getLogger(HBaseClientProvider.class);
   protected static final String NAME = "hbase";
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
+  private ZooKeeperWatcher zkw = null;
 
   protected HBaseClientProvider(Configuration conf) {
     super(conf);
+    try {
+      zkw = new ZooKeeperWatcher(create(conf), "HBaseClient", new ClientProviderAbortable());
+    } catch (IOException ioe) {
+      log.error("Couldn't instantiate ZooKeeperWatcher", ioe);
+    }
   }
 
 
@@ -130,6 +148,12 @@ public class HBaseClientProvider extends Configured implements
     return probes;
   }
 
+  @Override
+  public HostAndPort getMasterAddress() throws IOException, KeeperException {
+    ServerName sn = MasterAddressTracker.getMasterAddress(zkw);
+    return new HostAndPort(sn.getHostname(), sn.getPort());
+  }
+  
   private Collection<HostAndPort> serverNameToHostAndPort(Collection<ServerName> servers) {
     Collection<HostAndPort> col = new ArrayList<HostAndPort>();
     if (servers == null || servers.isEmpty()) return col;
