@@ -103,6 +103,12 @@ on YARN to locate a new node -ideally on the same rack.
 1. If two instances of the same role do get assigned to the same server, it
 is not a failure condition. (This may be problematic for some roles 
 -we may need a role-by-role policy here, so that master nodes can be anti-affine)
+[specifically, >1 HBase master mode will not come up on the same host]
+
+1. If a role instance fails on a specific node, asking for a container on
+that same node for the replacement instance is a valid recovery strategy.
+This contains assumptions about failure modes -some randomness here may
+be a valid tactic, especially for roles that do not care about locality.
 
 1. Tracking failure statistics of nodes may be a feature to add in future;
 designing the Role History datastructures to enable future collection
@@ -251,25 +257,25 @@ parts of the YARN cluster.
 
 ### RoleHistory
 
-    starTtime: long
+    startTime: long
     saveTime: long
     dirty: boolean
     nodemap: NodeMap
     roles: RoleStatus[]
     outstandingRequests: transient OutstandingRequestTracker
-    availableNodes: transient List<ClusterNode>[]
+    availableNodes: transient List<NodeInstance>[]
 
 This is the aggregate data structure that is persisted to/from file
 
 ### NodeMap
 
-    clusterNodes: Map: NodeId -> ClusterNode
-    clusterNodes(): Iterable<ClusterNode>
-    getOrCreate(NodeId): ClusterNode
+    clusterNodes: Map: NodeId -> NodeInstance
+    clusterNodes(): Iterable<NodeInstance>
+    getOrCreate(NodeId): NodeInstance
 
-  Maps a YARN NodeID record to a Hoya `ClusterNode` structure
+  Maps a YARN NodeID record to a Hoya `NodeInstance` structure
 
-### ClusterNode
+### NodeInstance
 
 Every node in the cluster is modeled as an ragged array of `NodeEntry` instances, indexed
 by role index -
@@ -304,7 +310,7 @@ it was restarted. The strategy will be to ignore unexpected allocation
 responses (which may come from pre-restart) requests, while treating
 unexpected container release responses as failures.
 
-The `active` counter is only updated after a container release response
+The `active` counter is only decremented after a container release response
 has been received.
 
 ### RoleStatus
@@ -314,7 +320,7 @@ This is the existing `org.apache.hadoop.hoya.yarn.appmaster.state.RoleStatus` cl
 ### RoleList
 
 A list mapping role to int enum is needed to index NodeEntry elements in
-the ClusterNode arrays. Although such an enum is already implemented in the Hoya
+the NodeInstance arrays. Although such an enum is already implemented in the Hoya
 Providers, explicitly serializing and deserializing it would make
 the persistent structure easier to parse in other tools, and resilient
 to changes in the number or position of roles.
@@ -323,7 +329,7 @@ This list could also retain information about recently used/released nodes,
 so that the selection of containers to request could shortcut a search
 
 
-### Container Priority
+### ContainerPriority
 
 The container priority field (a 32 bit integer) is used by Hoya (0.5.x)
 to index the specific role in a container so as to determine which role
@@ -343,7 +349,7 @@ rolling integer -Hoya will assume that after 2^24 requests per role, it can be r
 The main requirement  is: not have > 2^24 outstanding requests for instances of a specific role,
 which places an upper bound on the size of a Hoya cluster.
 
-The splitting and merging will be implemented in a PriorityHelper class,
+The splitting and merging will be implemented in a ContainerPriority class,
 for uniform access.
 
 ### OutstandingRequest ###
@@ -363,14 +369,15 @@ a specific target node
 
 ### OutstandingRequestTracker ###
 
-Contains a map from requestID to the specific `OutstandingRequest` made.
+Contains a map from requestID to the specific `OutstandingRequest` made,
+and generates the request ID
 
-    lastID: int
+    nextRequestId: int
     requestMap(RequestID) -> OutstandingRequest
 
 Operations
 
-    addRequest(ClusterNode, RoleId): OutstandingRequest
+    addRequest(NodeInstance, RoleId): OutstandingRequest
         (and an updated request Map with a new entry)
     lookup(RequestID): OutstandingRequest
     remove(RequestID): OutstandingRequest
@@ -381,7 +388,9 @@ to be important -if so a more complex structure will be needed.
 
 ### AvailableNodes
 
-    availableNodes: List<ClusterNode>[]
+This is a field in `RoleHistory`
+
+    availableNodes: List<NodeInstance>[]
 
 
 For each role, lists nodes that are available for data-local allocation,
