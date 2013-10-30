@@ -51,12 +51,29 @@ public class HostAndPort {
     if (!(o instanceof HostAndPort)) return false;
     return this.compareTo((HostAndPort)o) == 0;
   }
-
+  
   public int compareTo(HostAndPort other) {
     int compare = this.getHostname().toLowerCase().
       compareTo(other.getHostname().toLowerCase());
     if (compare != 0) return compare;
     compare = this.getPort() - other.getPort();
     return compare;
+  }
+
+  @Override
+  public String toString() {
+    return hostname + ":" + port;
+  }
+  
+  /*
+   * @param s String representation of HostAndPort
+   * @return HostAndPort if s conforms to "host:port: format, otherwise null.
+   */
+  public static HostAndPort fromString(String s) {
+    if (s == null || s.length() == 0) return null;
+    int pos = s.indexOf(':');
+    if (pos <= 0 || pos == s.length()-1) return null;
+    int port = Integer.parseInt(s.substring(pos+1));
+    return new HostAndPort(s.substring(0, pos), port);
   }
 }

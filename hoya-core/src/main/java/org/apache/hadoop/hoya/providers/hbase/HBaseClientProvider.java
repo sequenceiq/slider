@@ -90,12 +90,14 @@ public class HBaseClientProvider extends Configured implements
     LoggerFactory.getLogger(HBaseClientProvider.class);
   protected static final String NAME = "hbase";
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
-  private ZooKeeperWatcher zkw = null;
+  private MasterAddressTracker masterTracker = null;
 
   protected HBaseClientProvider(Configuration conf) {
     super(conf);
     try {
-      zkw = new ZooKeeperWatcher(create(conf), "HBaseClient", new ClientProviderAbortable());
+      Abortable abortable = new ClientProviderAbortable();
+      ZooKeeperWatcher zkw = new ZooKeeperWatcher(create(conf), "HBaseClient", abortable);
+      masterTracker = new MasterAddressTracker(zkw, abortable);
     } catch (IOException ioe) {
       log.error("Couldn't instantiate ZooKeeperWatcher", ioe);
     }
@@ -150,7 +152,8 @@ public class HBaseClientProvider extends Configured implements
 
   @Override
   public HostAndPort getMasterAddress() throws IOException, KeeperException {
-    ServerName sn = MasterAddressTracker.getMasterAddress(zkw);
+    // masterTracker receives notification from zookeeper on current master
+    ServerName sn = masterTracker.getMasterAddress();
     return new HostAndPort(sn.getHostname(), sn.getPort());
   }
   
