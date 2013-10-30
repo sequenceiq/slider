@@ -19,6 +19,7 @@
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
 import org.apache.hadoop.hoya.api.StatusKeys;
+import org.apache.hadoop.hoya.providers.PlacementPolicy;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 
 import java.util.HashMap;
@@ -65,8 +66,17 @@ public final class RoleStatus implements Cloneable {
     return getKey();
   }
 
+  /**
+   * Get the placement policy enum, from the values in
+   * {@link PlacementPolicy}
+   * @return the placement policy for this role
+   */
+  public int getPlacementPolicy() {
+    return providerRole.placementPolicy;
+  }
+
   public boolean getExcludeFromFlexing() {
-    return providerRole.excludeFromFlexing;
+    return 0 != (getPlacementPolicy() & PlacementPolicy.EXCLUDE_FROM_FLEXING);
   }
 
   public int getDesired() {

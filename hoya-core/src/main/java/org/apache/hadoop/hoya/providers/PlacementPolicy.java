@@ -18,27 +18,16 @@
 
 package org.apache.hadoop.hoya.providers;
 
-import java.util.EnumSet;
-
+/**
+ * Placement values
+ */
 public class PlacementPolicy {
 
+  public static final int DEFAULT = 0;
+  public static final int EXCLUDE_FROM_FLEXING = 1;
+  public static final int NO_DATA_LOCALITY = 2;
+  public static final int ANTI_AFFINITY_REQUIRED = 4;
 
-  public enum Policy {
-
-    EXCLUDE_FROM_FLEXING,
-    NO_DATA_LOCALITY,
-    ANTI_AFFINITY_REQUIRED,
-
-
-  }
-
-  static EnumSet<Policy> create() {
-    return EnumSet.noneOf(Policy.class);
-  }
-
-  static EnumSet<Policy> create(Policy first, Policy...rest) {
-    return EnumSet.of(first, rest);
-  }
 
 
 }

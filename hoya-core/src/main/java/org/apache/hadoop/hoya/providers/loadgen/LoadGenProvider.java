@@ -80,7 +80,7 @@ public class LoadGenProvider extends Configured implements
    * Initialize role list
    */
   static {
-    ROLES.add(new ProviderRole(ROLE_MASTER, 1, true));
+    ROLES.add(new ProviderRole(ROLE_MASTER, 1));
     ROLES.add(new ProviderRole(ROLE_CPULOAD, 2));
     ROLES.add(new ProviderRole(ROLE_FAILING, 3));
     ROLES.add(new ProviderRole(ROLE_GENERAL1, 4 ));

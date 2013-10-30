@@ -27,20 +27,13 @@ package org.apache.hadoop.hoya.providers;
 public final class ProviderRole {
   public final String name;
   public final int id;
-  public final boolean excludeFromFlexing;
-  public final PlacementPolicy placementPolicy;
+  public final int placementPolicy;
 
   public ProviderRole(String name, int id) {
-    this(name, id, PlacementPolicy);
+    this(name, id, PlacementPolicy.DEFAULT);
   }
 
-  public ProviderRole(String name, int id, boolean excludeFromFlexing) {
-    this.name = name;
-    this.id = id;
-    this.excludeFromFlexing = excludeFromFlexing;
-  }
-
-  public ProviderRole(String name, int id, placementPolicy policy) {
+  public ProviderRole(String name, int id, int policy) {
     this.name = name;
     this.id = id;
     this.placementPolicy = policy;
@@ -72,7 +65,7 @@ public final class ProviderRole {
     return "ProviderRole{" +
            "name='" + name + '\'' +
            ", key=" + id +
-           ", excludeFromFlexing=" + excludeFromFlexing +
+           ", policy=" + placementPolicy +
            '}';
   }
 }
