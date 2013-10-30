@@ -45,13 +45,4 @@ public class AMUtils {
       && mappedExitCode!= LauncherExitCodes.EXIT_CLIENT_INITIATED_SHUTDOWN;
   }
 
-  /**
-   * Map from a container to a role key by way of its priority
-   * @param container
-   * @return role key
-   */
-  public static int getRoleKey(Container c) {
-    return c.getPriority().getPriority();
-  }
-
 }

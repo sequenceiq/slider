@@ -30,7 +30,6 @@ import org.apache.hadoop.hoya.exceptions.NoSuchNodeException;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
-import org.apache.hadoop.hoya.yarn.appmaster.AMUtils;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
@@ -95,7 +94,6 @@ public class AppState {
    * The master node.
    */
   private RoleInstance appMasterNode;
-
 
   /**
    * Hash map of the containers we have. This includes things that have
@@ -438,7 +436,7 @@ public class AppState {
    * @throws YarnRuntimeException on no match
    */
   public RoleStatus lookupRoleStatus(Container c) throws YarnRuntimeException {
-    return lookupRoleStatus(AMUtils.getRoleKey(c));
+    return lookupRoleStatus(ContainerPriority.extractRole(c));
   }
 
 
@@ -642,7 +640,7 @@ public class AppState {
     String[] hosts = null;
     String[] racks = null;
     Priority pri = Records.newRecord(Priority.class);
-    pri.setPriority(role.getPriority());
+    pri.setPriority(ContainerPriority.buildPriority(role.getPriority(), 0));
     AMRMClient.ContainerRequest request;
     request = new AMRMClient.ContainerRequest(resource,
                                               hosts,
