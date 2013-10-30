@@ -1,0 +1,72 @@
+[
+  {
+    "type": "record",
+    "name": "org.apache.hoya.avro.NodeRefRecord",
+    "fields": [
+      {
+        "name": "host",
+        "type": "string"
+      },
+      {
+        "name": "port",
+        "type": "boolean"
+      }
+    ]
+  },
+    
+  {
+    "type": "record",
+    "name": "NodeEntryRecord",
+    "namespace": "org.apache.hoya.avro",
+    "fields": [
+      {
+        "name": "node",
+        "type": "org.apache.hoya.avro.NodeRefRecord"
+      },
+      {
+        "name": "role",
+        "type": "int"
+      },
+      {
+        "name": "active",
+        "type": "boolean"
+      },
+      {
+        "name": "last_used",
+        "type": "int"
+      }
+    ]
+  },
+
+  {
+    "type": "record",
+    "name": "RoleHistoryHeader",
+    "namespace": "org.apache.hoya.avro",
+    "fields": [
+      {
+        "name": "saved",
+        "type": "long"
+      },
+      {
+        "name": "roles",
+        "type": "int"
+      }
+    ]
+  },
+
+  {
+    "type": "record",
+    "name": "RoleHistoryRecord",
+    "namespace": "org.apache.hoya.avro",
+    "fields": [
+      {
+        "entry": "saved",
+        "type": [
+          "org.apache.hoya.avro.NodeEntryRecord",
+          "org.apache.hoya.avro.RoleHistoryHeader"
+        ]
+      }
+    ]
+  }
+
+]
