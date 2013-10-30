@@ -21,30 +21,10 @@ package org.apache.hadoop.hoya.yarn.appmaster.state;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hoya.avro.NodeAddress;
 
-import java.util.HashMap;
-
-public class NodeMap extends HashMap<NodeAddress, NodeInstance> {
-
-  private final int roleSize;
-
-
-  public NodeMap(int roleSize) {
-    this.roleSize = roleSize;
+public class RoleHistoryUtils {
+  public static NodeAddress addressOf(NodeId nodeId) {
+    return new NodeAddress(nodeId.getHost(), nodeId.getPort());
   }
-
-  /**
-   * Get the node instance for the specific node -creating it if needed
-   * @param nodeId node
-   * @return the instance
-   */
-  public NodeInstance getOrCreate(NodeAddress nodeId) {
-    NodeInstance node = get(nodeId);
-    if (node == null) {
-      node = new NodeInstance(nodeId, roleSize);
-      put(nodeId, node);
-    }
-    return node;
-  }
-
-
+  
+  
 }

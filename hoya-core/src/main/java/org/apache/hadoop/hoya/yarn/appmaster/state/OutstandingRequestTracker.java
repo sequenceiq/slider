@@ -57,7 +57,7 @@ public class OutstandingRequestTracker {
       //wraparound
       log.warn("Request ID counter has just wrapped around");
     }
-    OutstandingRequest request = new OutstandingRequest(role, id, instance.nodeId);
+    OutstandingRequest request = new OutstandingRequest(role, id, instance.nodeAddress);
     requests.put(id, request);
     return request;
   }

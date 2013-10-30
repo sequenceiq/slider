@@ -1,7 +1,7 @@
 [
   {
     "type": "record",
-    "name": "org.apache.hoya.avro.NodeRefRecord",
+    "name": "org.apache.hoya.avro.NodeAddress",
     "fields": [
       {
         "name": "host",
@@ -9,11 +9,11 @@
       },
       {
         "name": "port",
-        "type": "boolean"
+        "type": "int"
       }
     ]
   },
-    
+
   {
     "type": "record",
     "name": "NodeEntryRecord",
@@ -21,7 +21,7 @@
     "fields": [
       {
         "name": "node",
-        "type": "org.apache.hoya.avro.NodeRefRecord"
+        "type": "org.apache.hoya.avro.NodeAddress"
       },
       {
         "name": "role",
@@ -33,7 +33,7 @@
       },
       {
         "name": "last_used",
-        "type": "int"
+        "type": "long"
       }
     ]
   },
@@ -60,7 +60,7 @@
     "namespace": "org.apache.hoya.avro",
     "fields": [
       {
-        "entry": "saved",
+        "name": "entry",
         "type": [
           "org.apache.hoya.avro.NodeEntryRecord",
           "org.apache.hoya.avro.RoleHistoryHeader"

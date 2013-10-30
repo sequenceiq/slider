@@ -19,7 +19,7 @@
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
 
-import org.apache.hadoop.yarn.api.records.NodeId;
+import org.apache.hoya.avro.NodeAddress;
 
 /**
  * Tracks an outstanding request. This is used to correlate an allocation response
@@ -44,12 +44,12 @@ public final class OutstandingRequest {
   public final int roleId;
   public final int requestID;
 
-  public NodeId node;
+  public NodeAddress node;
   public long requestedTime;
 
   public OutstandingRequest(int roleId,
                             int requestID,
-                            NodeId node) {
+                            NodeAddress node) {
     this.roleId = roleId;
     this.requestID = requestID;
     this.node = node;

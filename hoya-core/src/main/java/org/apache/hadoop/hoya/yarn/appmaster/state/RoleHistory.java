@@ -29,8 +29,9 @@ public class RoleHistory {
     LoggerFactory.getLogger(RoleHistory.class);
   private long startTime;
   private long saveTime;
-  private final NodeMap nodemap;
-  private final int roleSize;
+  private NodeMap nodemap;
+  private int roleSize;
+  private boolean dirty;
 
   private RoleStatus[] roles;
   private OutstandingRequestTracker outstandingRequests =
@@ -40,9 +41,15 @@ public class RoleHistory {
    * For each role, lists nodes that are available for data-local allocation,
    ordered by more recently released - To accelerate node selection
    */
-  private final List<NodeInstance> availableNodes[];
+  private List<NodeInstance> availableNodes[];
 
   public RoleHistory(int roleSize) {
+    reset(roleSize);
+
+  }
+
+
+  public void reset(int roleSize) {
     this.roleSize = roleSize;
     nodemap = new NodeMap(roleSize);
     availableNodes = new List[roleSize];
@@ -50,10 +57,62 @@ public class RoleHistory {
       availableNodes[i] = new LinkedList<NodeInstance>();
     }
   }
+  
+
+  public long getStartTime() {
+    return startTime;
+  }
+
+  public long getSaveTime() {
+    return saveTime;
+  }
+
+  public void setSaveTime(long saveTime) {
+    this.saveTime = saveTime;
+  }
+
+  public int getRoleSize() {
+    return roleSize;
+  }
+
+  public boolean isDirty() {
+    return dirty;
+  }
+
+  public void setDirty(boolean dirty) {
+    this.dirty = dirty;
+  }
+
+  public void saved(long timestamp) {
+    dirty = false;
+    saveTime = timestamp;
+  }
+  
+  public RoleStatus[] getRoles() {
+    return roles;
+  }
+
+  public NodeMap getNodemap() {
+    return nodemap;
+  }
+
+  public OutstandingRequestTracker getOutstandingRequests() {
+    return outstandingRequests;
+  }
 
 
-  public void bootstrap() {
+  /**
+   * Handler for bootstrap event
+   */
+  public void onBootstrap() {
     log.info("Role history bootstrapped");
     startTime = System.currentTimeMillis();
+  }
+
+  /**
+   * Handle the thaw process <i>after the history has been rebuilt</i>
+   */
+  public void onThaw() {
+    
   }
 }

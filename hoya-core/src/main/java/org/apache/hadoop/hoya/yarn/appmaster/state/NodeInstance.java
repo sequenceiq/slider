@@ -18,14 +18,14 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
-import org.apache.hadoop.yarn.api.records.NodeId;
+import org.apache.hoya.avro.NodeAddress;
 
 /**
  * Create a node instance
  */
 public class NodeInstance {
 
-  public final NodeId nodeId;
+  public final NodeAddress nodeAddress;
 
   private final NodeEntry[] nodeEntries;
 
@@ -33,8 +33,8 @@ public class NodeInstance {
    * Create an instance and the (empty) array of nodes
    * @param roles role count -the
    */
-  public NodeInstance(NodeId nodeId, int roles) {
-    this.nodeId = nodeId;
+  public NodeInstance(NodeAddress nodeAddress, int roles) {
+    this.nodeAddress = nodeAddress;
     nodeEntries = new NodeEntry[roles];
   }
 
@@ -82,4 +82,7 @@ public class NodeInstance {
     return nodeEntry;
   }
 
+  public void set(int role, NodeEntry nodeEntry) {
+    nodeEntries[role] = nodeEntry;
+  }
 }
