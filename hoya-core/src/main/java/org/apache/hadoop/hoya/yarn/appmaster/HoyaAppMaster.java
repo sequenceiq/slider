@@ -219,9 +219,14 @@ public class HoyaAppMaster extends CompositeService
   private ContainerId appMasterContainerID;
 
   /**
+   * ProviderService of this cluster
+   */
+  private ProviderService providerService;
+
+  /**
    * Provider of this cluster
    */
-  private ProviderService provider;
+  private HoyaAMClientProvider clientProvider;
 
   /**
    * Record of the max no. of cores allowed in this cluster
@@ -397,14 +402,12 @@ public class HoyaAppMaster extends CompositeService
     HoyaProviderFactory factory =
       HoyaProviderFactory.createHoyaProviderFactory(
         providerType);
-    provider = factory.createServerProvider();
-    runChildService(provider);
+    providerService = factory.createServerProvider();
+    runChildService(providerService);
     //verify that the cluster specification is now valid
-    provider.validateClusterSpec(clusterSpec);
+    providerService.validateClusterSpec(clusterSpec);
 
-
-    HoyaAMClientProvider hoyaClientProvider = new HoyaAMClientProvider(conf);
-
+    clientProvider = new HoyaAMClientProvider(conf);
 
     InetSocketAddress address = HoyaUtils.getRmSchedulerAddress(conf);
     log.info("RM is at {}", address);
@@ -464,8 +467,8 @@ public class HoyaAppMaster extends CompositeService
 
     //build the role map
     List<ProviderRole> providerRoles =
-      new ArrayList<ProviderRole>(provider.getRoles());
-    providerRoles.addAll(hoyaClientProvider.getRoles());
+      new ArrayList<ProviderRole>(providerService.getRoles());
+    providerRoles.addAll(clientProvider.getRoles());
 
 
     // work out a port for the AM
@@ -474,7 +477,7 @@ public class HoyaAppMaster extends CompositeService
                                                   0);
     if (0 == infoport) {
       infoport =
-        HoyaUtils.findFreePort(provider.getDefaultMasterInfoPort(), 128);
+        HoyaUtils.findFreePort(providerService.getDefaultMasterInfoPort(), 128);
       //need to get this to the app
 
       clusterSpec.setRoleOpt(ROLE_HOYA_AM,
@@ -516,7 +519,7 @@ public class HoyaAppMaster extends CompositeService
 
     //now validate the dir by loading in a hadoop-site.xml file from it
     
-    String siteXMLFilename = provider.getSiteXMLFilename();
+    String siteXMLFilename = providerService.getSiteXMLFilename();
     File siteXML = new File(confDir, siteXMLFilename);
     if (!siteXML.exists()) {
       throw new BadCommandArgumentsException(
@@ -527,7 +530,7 @@ public class HoyaAppMaster extends CompositeService
     //now read it in
     Configuration siteConf = ConfigHelper.loadConfFromFile(siteXML);
 
-    provider.validateApplicationConfiguration(clusterSpec, confDir, securityEnabled);
+    providerService.validateApplicationConfiguration(clusterSpec, confDir, securityEnabled);
 
     //build the instance
     appState.buildInstance(clusterSpec, siteConf, providerRoles);
@@ -540,7 +543,7 @@ public class HoyaAppMaster extends CompositeService
 
     //launcher service
     launchService = new RoleLaunchService(this,
-                                          provider, getClusterFS(),
+                                          providerService, getClusterFS(),
                                           new Path(getDFSConfDir()));
     runChildService(launchService);
 
@@ -824,7 +827,7 @@ public class HoyaAppMaster extends CompositeService
 
     //validation
     try {
-      provider.validateClusterSpec(updated);
+      providerService.validateClusterSpec(updated);
     } catch (HoyaException e) {
       throw new IOException("Invalid cluster specification " + e, e);
     }
@@ -1029,10 +1032,10 @@ public class HoyaAppMaster extends CompositeService
                                                     File confDir)
     throws IOException, HoyaException {
     Map<String, String> env = new HashMap<String, String>();
-    provider.exec(cd, confDir, env, this);
+    providerService.exec(cd, confDir, env, this);
 
-    provider.registerServiceListener(this);
-    provider.start();
+    providerService.registerServiceListener(this);
+    providerService.start();
   }
 
   /* =================================================================== */
@@ -1064,9 +1067,9 @@ public class HoyaAppMaster extends CompositeService
    */
   @Override //ServiceStateChangeListener
   public void stateChanged(Service service) {
-    if (service == provider) {
+    if (service == providerService) {
       //its the current master process in play
-      int exitCode = provider.getExitCode();
+      int exitCode = providerService.getExitCode();
       spawnedProcessExitCode = exitCode;
       mappedProcessExitCode =
         AMUtils.mapProcessExitCodeToYarnExitCode(exitCode);
@@ -1103,8 +1106,8 @@ public class HoyaAppMaster extends CompositeService
    * @return the process exit code
    */
   protected synchronized Integer stopForkedProcess() {
-    provider.stop();
-    return provider.getExitCode();
+    providerService.stop();
+    return providerService.getExitCode();
   }
 
   /**
