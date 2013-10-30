@@ -1,0 +1,19 @@
+{"type": "record",
+  "name": "RoleHistoryRecord",
+  "namespace":"org.apache.hoya.avro",
+  "fields": [
+    {
+      "name": "saved",
+      "type": "long"
+    },
+    {
+      "name": "roles",
+      "type": "int"
+    },
+    {
+      "name": "entries",
+      "type": "array",
+      "items": "org.apache.hoya.avro.NodeEntryRecord"
+    }
+  ]
+}

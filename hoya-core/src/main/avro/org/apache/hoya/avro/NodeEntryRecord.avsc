@@ -1,0 +1,25 @@
+{"type": "record",
+  "name": "NodeEntryRecord",
+  "namespace": "org.apache.hoya.avro",
+  "fields": [
+    {
+      "name": "node",
+      "type": {
+        "type": "record",
+        "name": "org.apache.hoya.avro.NodeRefRecord"
+      }
+    },
+    {
+      "name": "role",
+      "type": "int"
+    },
+    {
+      "name": "active",
+      "type": "boolean"
+    },
+    {
+      "name": "last_used",
+      "type": "int"
+    }
+  ]
+}
