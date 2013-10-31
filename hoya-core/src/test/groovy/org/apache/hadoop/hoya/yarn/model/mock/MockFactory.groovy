@@ -52,27 +52,6 @@ class MockFactory implements  MockRoles {
       new ProviderRole(ROLE3, 3),
   ]
 
-  
-  int getAppIdCount() {
-    return appIdCount
-  }
-
-  int getAttemptIdCount() {
-    return attemptIdCount
-  }
-
-  int getContainerIdCount() {
-    return containerIdCount
-  }
-
-  ApplicationId getAppId() {
-    return appId
-  }
-
-  ApplicationAttemptId getAttemptId() {
-    return attemptId
-  }
-
   ContainerId newContainerId() {
     newContainerId(attemptId)
   }

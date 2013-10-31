@@ -26,23 +26,6 @@ class MockContainerId extends ContainerId {
   int id;
   ApplicationAttemptId applicationAttemptId;
 
-  ApplicationAttemptId getApplicationAttemptId() {
-    return applicationAttemptId
-  }
-
-  void setApplicationAttemptId(ApplicationAttemptId applicationAttemptId) {
-    this.applicationAttemptId = applicationAttemptId
-  }
-
-  @Override
-  int getId() {
-    return id;
-  }
-
-  @Override
-  public void setId(int id) {
-    this.id = id;
-  }
 
   @Override
   public void build() {
