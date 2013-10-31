@@ -25,6 +25,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Abortable;
 import org.apache.hadoop.hbase.ClusterStatus;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HConnection;
@@ -91,12 +92,14 @@ public class HBaseClientProvider extends Configured implements
   protected static final String NAME = "hbase";
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
   private MasterAddressTracker masterTracker = null;
+  private Configuration conf;
 
   protected HBaseClientProvider(Configuration conf) {
     super(conf);
+    this.conf = create(conf);
     try {
       Abortable abortable = new ClientProviderAbortable();
-      ZooKeeperWatcher zkw = new ZooKeeperWatcher(create(conf), "HBaseClient", abortable);
+      ZooKeeperWatcher zkw = new ZooKeeperWatcher(this.conf, "HBaseClient", abortable);
       masterTracker = new MasterAddressTracker(zkw, abortable);
     } catch (IOException ioe) {
       log.error("Couldn't instantiate ZooKeeperWatcher", ioe);
@@ -154,6 +157,8 @@ public class HBaseClientProvider extends Configured implements
   public HostAndPort getMasterAddress() throws IOException, KeeperException {
     // masterTracker receives notification from zookeeper on current master
     ServerName sn = masterTracker.getMasterAddress();
+    log.debug("getMasterAddress " + sn + ", quorum=" + this.conf.get(HConstants.ZOOKEEPER_QUORUM));
+    if (sn == null) return null;
     return new HostAndPort(sn.getHostname(), sn.getPort());
   }
   

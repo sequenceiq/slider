@@ -55,6 +55,8 @@ public interface ProviderService extends ProviderCore, Service,
 
   String getSiteXMLFilename();
 
+  ClientProvider getClientProvider();
+  
   List<String> buildProcessCommand(ClusterDescription cd,
                                    File confDir,
                                    Map<String, String> env,

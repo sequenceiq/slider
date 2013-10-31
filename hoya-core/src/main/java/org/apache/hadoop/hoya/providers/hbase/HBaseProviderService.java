@@ -28,6 +28,7 @@ import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hadoop.hoya.providers.AbstractProviderService;
+import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
@@ -82,6 +83,11 @@ public class HBaseProviderService extends AbstractProviderService implements
     clientProvider = new HBaseClientProvider(conf);
   }
 
+  @Override
+  public ClientProvider getClientProvider() {
+    return clientProvider;
+  }
+  
   @Override
   public int getDefaultMasterInfoPort() {
     return HBaseConfigFileOptions.DEFAULT_MASTER_INFO_PORT;

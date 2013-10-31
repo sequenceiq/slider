@@ -1667,6 +1667,11 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                app.getYarnApplicationState());
       return EXIT_SUCCESS;
     }
+    if (log.isDebugEnabled()) {
+      ClusterDescription clusterSpec = getClusterDescription(clustername);
+
+      log.debug(clusterSpec.toString());
+    }
     HoyaClusterProtocol appMaster = connect(app);
     Messages.StopClusterRequestProto r =
       Messages.StopClusterRequestProto.newBuilder().setMessage(text).build();

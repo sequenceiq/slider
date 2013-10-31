@@ -75,6 +75,11 @@ public abstract class AbstractProviderService
     return getConfig();
   }
 
+  @Override
+  public ClientProvider getClientProvider() {
+    return null;
+  }
+  
   /**
    * No-op implementation of this method.
    * 

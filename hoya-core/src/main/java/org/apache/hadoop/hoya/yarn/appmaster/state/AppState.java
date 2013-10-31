@@ -849,11 +849,12 @@ public class AppState {
 
   /**
    * Update the cluster description with anything interesting
+   * @param masterAddr
    */
-  public void refreshClusterStatus() {
-
+  public void refreshClusterStatus(String masterAddr) {
     ClusterDescription cd = getClusterDescription();
     cd.statusTime = System.currentTimeMillis();
+    cd.masterAddr = masterAddr;
     cd.stats = new HashMap<String, Map<String, Integer>>();
     Map<String, Integer> instanceMap = createRoleToInstanceMap();
     if (log.isDebugEnabled()) {

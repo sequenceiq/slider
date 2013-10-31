@@ -23,7 +23,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
+import org.apache.hadoop.hoya.HostAndPort;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
@@ -224,11 +226,6 @@ public class HoyaAppMaster extends CompositeService
   private ProviderService providerService;
 
   /**
-   * Provider of this cluster
-   */
-  private HoyaAMClientProvider clientProvider;
-
-  /**
    * Record of the max no. of cores allowed in this cluster
    */
   private int containerMaxCores;
@@ -407,7 +404,7 @@ public class HoyaAppMaster extends CompositeService
     //verify that the cluster specification is now valid
     providerService.validateClusterSpec(clusterSpec);
 
-    clientProvider = new HoyaAMClientProvider(conf);
+    HoyaAMClientProvider clientProvider = new HoyaAMClientProvider(conf);
 
     InetSocketAddress address = HoyaUtils.getRmSchedulerAddress(conf);
     log.info("RM is at {}", address);
@@ -1016,8 +1013,16 @@ public class HoyaAppMaster extends CompositeService
    * Update the cluster description with anything interesting
    */
   private void updateClusterStatus() {
-
-    appState.refreshClusterStatus();
+    String addr = "";
+    try {
+      HostAndPort host = providerService.getClientProvider().getMasterAddress();
+      if (host != null) {
+        addr = host.toString();
+      }
+    } catch (Exception e) {
+      log.warn("Getting exception when retrieving master address", e);
+    }
+    appState.refreshClusterStatus(addr);
   }
 
   /**
