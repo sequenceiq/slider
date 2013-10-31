@@ -27,7 +27,10 @@ import org.apache.hadoop.hoya.api.OptionKeys;
 public interface HoyaKeys {
 
   String ROLE_HOYA_AM = "hoya";
-  int ROLE_HOYA_AM_PRIORITY_INDEX =1;
+  /**
+   * Hoya role is "special"
+   */
+  int ROLE_HOYA_AM_PRIORITY_INDEX = 0;
   
   
   /**
