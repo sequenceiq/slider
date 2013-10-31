@@ -31,6 +31,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.yarn.appmaster.state.NodeEntry;
 import org.apache.hadoop.hoya.yarn.appmaster.state.NodeInstance;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleHistory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -41,18 +43,20 @@ import java.util.Collection;
  * Write out the role history to an output stream
  */
 public class RoleHistoryWriter {
-
+  protected static final Logger log =
+    LoggerFactory.getLogger(RoleHistoryWriter.class);
 
   /**
    * Write out the history.
    * This does not update the history's dirty/savetime fields
+   *
    * @param out outstream
    * @param history history
    * @param savetime time in millis for the save time to go in as a record
    * @return no of records written
    * @throws IOException IO failures
    */
-  public int write(OutputStream out, RoleHistory history, long savetime)
+  public long write(OutputStream out, RoleHistory history, long savetime)
     throws IOException {
     DatumWriter<RoleHistoryRecord> datumWriter =
       new SpecificDatumWriter<RoleHistoryRecord>(RoleHistoryRecord.class);
@@ -65,7 +69,7 @@ public class RoleHistoryWriter {
     RoleHistoryRecord record = new RoleHistoryRecord(header);
     writer.create(record.getSchema(), out);
     writer.append(record);
-    int count = 0;
+    long count = 0;
     //now for every role history entry, write out its record
     Collection<NodeInstance> instances = history.getNodemap().values();
     for (NodeInstance instance : instances) {
@@ -80,12 +84,15 @@ public class RoleHistoryWriter {
         }
       }
     }
+    // footer
+    RoleHistoryFooter footer = new RoleHistoryFooter(count);
     writer.close();
     return count;
   }
 
   /**
    * Write write the file
+   *
    *
    * @param fs filesystem
    * @param path path
@@ -95,8 +102,8 @@ public class RoleHistoryWriter {
    * @return no of records written
    * @throws IOException IO failures
    */
-  public int write(FileSystem fs, Path path, boolean overwrite,
-                   RoleHistory history, long savetime) throws IOException {
+  public long write(FileSystem fs, Path path, boolean overwrite,
+                    RoleHistory history, long savetime) throws IOException {
     FSDataOutputStream out = fs.create(path, overwrite);
     return write(out, history, savetime);
   }
@@ -133,13 +140,21 @@ public class RoleHistoryWriter {
     Integer roleSize = header.getRoles();
     Long saved = header.getSaved();
     RoleHistory history = new RoleHistory(roleSize);
+    RoleHistoryFooter footer = null;
+    int records = 0;
     while (reader.hasNext()) {
       record = reader.next();
       entry = record.getEntry();
 
-      if (!(entry instanceof NodeEntryRecord)) {
+      if (entry instanceof RoleHistoryHeader) {
         throw new IOException("Duplicate Role History Header found");
       }
+      if (entry instanceof RoleHistoryFooter) {
+        //tail end of the file
+        footer = (RoleHistoryFooter) entry;
+        break;
+      }
+      records++;
       NodeEntryRecord nodeEntryRecord = (NodeEntryRecord) entry;
       NodeEntry nodeEntry = new NodeEntry();
       nodeEntry.last_used = nodeEntryRecord.getLastUsed();
@@ -151,6 +166,20 @@ public class RoleHistoryWriter {
       NodeAddress addr = nodeEntryRecord.getNode();
       NodeInstance instance = history.getNodemap().getOrCreate(addr);
       instance.set(nodeEntryRecord.getRole(), nodeEntry);
+    }
+    //here the footer has been found or the stream ran out early
+    if (footer==null) {
+      throw new EOFException(
+        "End of file reached after " + records + " records");
+    }
+    if (reader.hasNext()) {
+      // footer is in stream before the last record
+      throw new EOFException(
+        "File footer reached before end of file -after " + records + " records");
+    }
+    if (records != footer.getCount()) {
+      log.warn("mismatch between no of records saved {} and number read {}",
+               footer.getCount(), records);
     }
     
     return history;

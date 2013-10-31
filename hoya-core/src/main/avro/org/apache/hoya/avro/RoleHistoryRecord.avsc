@@ -53,6 +53,17 @@
       }
     ]
   },
+  {
+    "type": "record",
+    "name": "RoleHistoryFooter",
+    "namespace": "org.apache.hoya.avro",
+    "fields": [
+      {
+        "name": "count",
+        "type": "long"
+      }
+    ]
+  },
 
   {
     "type": "record",
@@ -63,7 +74,8 @@
         "name": "entry",
         "type": [
           "org.apache.hoya.avro.NodeEntryRecord",
-          "org.apache.hoya.avro.RoleHistoryHeader"
+          "org.apache.hoya.avro.RoleHistoryHeader",
+          "org.apache.hoya.avro.RoleHistoryFooter"
         ]
       }
     ]
