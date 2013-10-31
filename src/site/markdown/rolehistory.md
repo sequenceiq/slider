@@ -788,3 +788,22 @@ may get overloaded. (it assumes a limited set of priorities)
 Access to the role history datastructures was restricted to avoid
 synchronization problems. Protected access is permitted so that a
 test subclass can examine (and change?) the internals.
+
+`NodeEntries need to add a launching value separate from active so that
+when looking for nodes to release, no attempt is made to release
+a node that has been allocated but is not yet live.
+
+We can't reliably map from a request to a response. Does that matter?
+If we issue a request for a host and it comes in on a different port, do we
+care? Yes -but only because we are trying to track nodes which have requests
+outstanding so as not to issue new ones. But if we just pop the entry
+off the available list, that becomes moot.
+
+Proposal: don't track the requesting numbers in the node entries, just
+in the role status fields.
+
+but: this means that we never re-insert nodes onto the available list if a
+node on them was requested but not satisfied.
+
+Other issues: should we place nodes on the available list as soon as all the entries
+have been released?  I.e. Before YARN has replied

@@ -110,7 +110,7 @@ public class RoleHistoryWriter {
 
   private NodeEntryRecord build(NodeEntry entry, int role, NodeAddress ref) {
     NodeEntryRecord record = new NodeEntryRecord(
-      ref, role, entry.getActive() > 0, entry.getLastUsed()
+      ref, role, entry.getLive() > 0, entry.getLastUsed()
     );
     return record;
   }

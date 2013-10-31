@@ -583,18 +583,22 @@ public class AppState {
     instance.createTime = System.currentTimeMillis();
     getStartingNodes().put(container.getId(), instance);
     activeContainers.put(container.getId(), instance);
+    roleHistory.containerStartSubmitted(container, instance);
   }
 
   /**
    * Note that a container has been submitted for release; update internal state
    * and mark the associated ContainerInfo released field to indicate that
    * while it is still in the active list, it has been queued for release.
+   *
    * @param id container ID
+   * @param container
    * @throws HoyaInternalStateException if there is no container of that ID
    * on the active list
    */
-  public synchronized void containerReleaseSubmitted(ContainerId id) throws
+  public synchronized void containerReleaseSubmitted(Container container) throws
                                                                      HoyaInternalStateException {
+    ContainerId id = container.getId();
     //look up the container
     RoleInstance info = getActiveContainer(id);
     if (info == null) {
@@ -610,6 +614,7 @@ public class AppState {
     containersBeingReleased.put(id, info.container);
     RoleStatus role = lookupRoleStatus(info.roleId);
     role.incReleasing();
+    roleHistory.containerReleaseSubmitted(container);
   }
 
 
@@ -624,8 +629,10 @@ public class AppState {
     RoleStatus role,
     Resource capability) {
     buildResourceRequirements(role, capability);
-    roleHistory.requestNode(role.getKey(), capability);
-    return createContainerRequest(role, capability);
+    AMRMClient.ContainerRequest containerRequest =
+      roleHistory.requestNode(role.getKey(), capability);
+    createContainerRequest(role, capability);
+    return  containerRequest;
   }
 
   /**
@@ -640,7 +647,8 @@ public class AppState {
                                                             Resource resource) {
     // setup requirements for hosts
     // using * as any host initially
-    Priority pri = ContainerPriority.createPriority(role.getPriority(), 0);
+    Priority pri = ContainerPriority.createPriority(role.getPriority(), 0,
+                                                    false);
     AMRMClient.ContainerRequest request;
     request = new AMRMClient.ContainerRequest(resource,
                                               null,
@@ -670,7 +678,7 @@ public class AppState {
   }
 
   /**
-   * add a launched container to the node map for status responss
+   * add a launched container to the node map for status responses
    * @param container id
    * @param node node details
    */
@@ -724,7 +732,9 @@ public class AppState {
     active.state = ClusterDescription.STATE_LIVE;
     RoleStatus roleStatus = lookupRoleStatus(active.roleId);
     roleStatus.incStarted();
-    addLaunchedContainer(active.container, active);
+    Container container = active.container;
+    addLaunchedContainer(container, active);
+    roleHistory.onContainerStarted(container);
     return active;
   }
 
@@ -771,6 +781,8 @@ public class AppState {
       roleStatus.decReleasing();
       roleStatus.decActual();
       roleStatus.incCompleted();
+      roleHistory.onReleaseCompleted(container);
+
     } else if (surplusNodes.remove(containerId)) {
       //its a surplus one being purged
       surplusNode = true;
@@ -780,7 +792,7 @@ public class AppState {
       if (roleInstance != null) {
         //it was active, move it to failed 
         incFailedCountainerCount();
-        failedNodes.put(containerId,roleInstance);
+        failedNodes.put(containerId, roleInstance);
       } else {
         // the container may have been noted as failed already, so look
         // it up
@@ -793,6 +805,9 @@ public class AppState {
           RoleStatus roleStatus = lookupRoleStatus(roleId);
           roleStatus.decActual();
           roleStatus.incFailed();
+          
+          roleHistory.onFailedNode(roleInstance.container);
+          
         } catch (YarnRuntimeException e1) {
           log.error("Failed container of unknown role {}", roleId);
         }
@@ -959,7 +974,7 @@ public class AppState {
           if (!instance.released) {
             ContainerId id = possible.getId();
             log.info("Requesting release of container {} in role {}", id, name);
-            containerReleaseSubmitted(id);
+            containerReleaseSubmitted(possible);
             operations.add(new ContainerReleaseOperation(id));
             excess--;
           }
@@ -994,7 +1009,7 @@ public class AppState {
       ContainerId id = possible.getId();
       if (!instance.released) {
         try {
-          containerReleaseSubmitted(id);
+          containerReleaseSubmitted(possible);
         } catch (HoyaInternalStateException e) {
           log.warn("when releasing container {} :", possible, e);
         }
@@ -1018,6 +1033,7 @@ public class AppState {
       //get the role
       ContainerId cid = container.getId();
       RoleStatus role = lookupRoleStatus(container);
+      
 
       //dec requested count
       role.decRequested();
@@ -1048,6 +1064,8 @@ public class AppState {
                 );
 
         assignments.add(new ContainerAssignment(container, role));
+        //add to the array
+        roleHistory.onContainerAllocated(container);
       }
     }
   }

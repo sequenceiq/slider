@@ -37,21 +37,37 @@ package org.apache.hadoop.hoya.yarn.appmaster.state;
  */
 public class NodeEntry {
   /**
-   * Number of active nodes. Active includes starting as well as live
+   * instance explicitly requested on this node: it's OK if an allocation
+   * comes in that has not been (and when that happens, this count should 
+   * not drop)
    */
-  private int active;
-  
   private int requested;
+  private int starting;
+  /**
+   * Number of live nodes. 
+   */
+  private int live;
   private int releasing;
   private long lastUsed;
   
   /**
-   * Is the node available for assignments.
-   * @return true if there are no outstanding requests or role instances here
+   * Is the node available for assignments. This does not track
+   * whether or not there are any outstanding requests for this node
+   * @return true if there are no role instances here
    * other than some being released.
    */
   public synchronized boolean isAvailable() {
-    return (active - releasing) == 0 && (requested == 0);
+    return getActive() == 0 && (requested == 0) && starting == 0;
+  }
+
+
+  /**
+   * return no of active instances -those that could be released as they
+   * are live and not already being released
+   * @return a number, possibly 0
+   */
+  public synchronized int getActive() {
+    return (live - releasing);
   }
 
   /**
@@ -64,31 +80,37 @@ public class NodeEntry {
     return isAvailable() && lastUsed < absoluteTime;
   }
 
-  /**
-   * Number of active nodes. Active includes starting as well as live
-   */
-  public synchronized int getActive() {
-    return active;
+  public synchronized int getLive() {
+    return live;
   }
 
-  public synchronized void setActive(int active) {
-    this.active = active;
+  private void incLive() {
+    ++live;
   }
 
-  public synchronized void incActive() {
-    ++active;
+  private synchronized void decLive() {
+    live = RoleHistoryUtils.decToFloor(live);
+  }
+  
+  public synchronized void starting() {
+    ++starting;
   }
 
-  public synchronized void decActive() {
-    active = RoleHistoryUtils.decToFloor(active);
-  }
+  private void decStarting() {
+    starting = RoleHistoryUtils.decToFloor(starting);
+    }
 
+  public synchronized void startCompleted() {
+    decStarting();
+    incLive();
+  }
+  
   /**
    * no of requests made of this role of this node. If it goes above
    * 1 there's a problem
    */
 
-  public int getRequested() {
+  public synchronized  int getRequested() {
     return requested;
   }
 
@@ -97,10 +119,10 @@ public class NodeEntry {
    */
   public synchronized void request() {
     ++requested;
-    ++active;
+    ++live;
   }
 
-  public synchronized void requesteCompleted() {
+  public synchronized void requestCompleted() {
     assert requested > 0;
     requested = RoleHistoryUtils.decToFloor(requested);
   }
@@ -116,14 +138,26 @@ public class NodeEntry {
    * Release an instance -which is no longer marked as active
    */
   public synchronized void release() {
-    assert active > 0;
+    assert live > 0;
     releasing++;
-    releasing = RoleHistoryUtils.decToFloor(releasing);
+    live = RoleHistoryUtils.decToFloor(live);
   }
 
-  public synchronized void releaseCompleted() {
-    assert releasing > 0;
-    releasing = RoleHistoryUtils.decToFloor(releasing);
+  /**
+   * completion event, which can be a planned or unplanned
+   * planned: dec our release count
+   * unplanned: dec our live count
+   * @param wasReleased true if this was planned
+   * @return true if this node is now available
+   */
+  public synchronized boolean containerCompleted(boolean wasReleased) {
+    if (wasReleased) {
+      releasing = RoleHistoryUtils.decToFloor(releasing);
+    } else {
+      decLive();
+    }
+
+    return isAvailable();
   }
 
   /**

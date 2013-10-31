@@ -767,7 +767,7 @@ public class HoyaAppMaster extends CompositeService
     for (ContainerAssignment assignment : assignments) {
       RoleStatus role = assignment.role;
       Container container = assignment.container;
-      launchService.launchRole(container,role, getClusterSpec());
+      launchService.launchRole(container, role, getClusterSpec());
     }
     
     //for all the operations, exec them

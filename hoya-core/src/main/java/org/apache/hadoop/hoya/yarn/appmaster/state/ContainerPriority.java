@@ -47,14 +47,19 @@ import org.apache.hadoop.yarn.util.Records;
  */
 public final class ContainerPriority {
 
-  public static int buildPriority(int role, int requestId) {
-    return role | (requestId << 24);
+  public static int buildPriority(int role,
+                                  int requestId,
+                                  boolean locationSpecified) {
+    return (role) | (requestId << 24) ;
   }
 
 
-  public static Priority createPriority(int role, int requestId) {
+  public static Priority createPriority(int role,
+                                        int requestId,
+                                        boolean locationSpecified) {
     Priority pri = Records.newRecord(Priority.class);
-    pri.setPriority(ContainerPriority.buildPriority(role, requestId));
+    pri.setPriority(ContainerPriority.buildPriority(role, requestId,
+                                                    locationSpecified));
     return pri;
   }
   
@@ -69,7 +74,7 @@ public final class ContainerPriority {
    * @return an extracted (rotating and masking)
    */
   public static int extractRequestId(int priority) {
-    return (priority >>> 24 ) & 0x0fff;
+    return (priority >>> 24 ) & 0x07ff;
   }
 
   /**

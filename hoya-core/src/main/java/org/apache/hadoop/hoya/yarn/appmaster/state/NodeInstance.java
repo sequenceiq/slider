@@ -118,6 +118,11 @@ public class NodeInstance {
     return nodeEntries[role].isAvailable();
   }
 
+  @Override
+  public String toString() {
+    return "Node Entry at " + nodeAddress.getHost();
+  }
+
   /**
    * A comparator for sorting entries where the role is newer than
    * the other. 

@@ -19,6 +19,7 @@
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
 import org.apache.hadoop.hoya.providers.ProviderRole;
+import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hoya.avro.NodeAddress;
@@ -63,7 +64,7 @@ public class RoleHistory {
    * For each role, lists nodes that are available for data-local allocation,
    ordered by more recently released - To accelerate node selection
    */
-  private List<NodeInstance> availableNodes[];
+  private LinkedList<NodeInstance> availableNodes[];
 
   public RoleHistory(List<ProviderRole> providerRoles) {
     this.providerRoles = providerRoles;
@@ -83,7 +84,7 @@ public class RoleHistory {
   protected void reset() {
 
     nodemap = new NodeMap(roleSize);
-    availableNodes = new List[roleSize];
+    availableNodes = new LinkedList[roleSize];
 
     resetAvailableNodeLists();
     outstandingRequests = new OutstandingRequestTracker();
@@ -125,6 +126,7 @@ public class RoleHistory {
                             roleSize);
     }
   }
+  
   public synchronized long getStartTime() {
     return startTime;
   }
@@ -309,4 +311,121 @@ public class RoleHistory {
     NodeInstance node = findNodeForNewInstance(role);
      return requestInstanceOnNode(node, role,resource);
   }
+
+
+  /**
+   * Find a node for release; algorithm may make its own
+   * decisions on which to release
+   * @param role role index
+   * @return a node or null if none was found
+   */
+  public NodeInstance findNodeForRelease(int role) {
+    NodeInstance node = findNodeForRelease(role, 2);
+    if (node != null) {
+      return node;
+    } else {
+      return findNodeForRelease(role, 1);
+    }
+  }
+  
+  public synchronized NodeInstance findNodeForRelease(int role, int limit) {
+    //find a node
+
+    for (NodeInstance ni : nodemap.values()) {
+      NodeEntry nodeEntry = ni.get(role);
+      if (nodeEntry !=null && nodeEntry.getActive()>= limit) {
+        return ni;
+      }
+    }
+    return null;
+  }
+
+
+  /**
+   * Get the node entry of a container
+   * @param container
+   * @return
+   */
+  public NodeEntry getNodeEntry(Container container) {
+    NodeInstance node = getNodeInstance(container);
+    return node.getOrCreate(ContainerPriority.extractRole(container));
+  }
+
+  /**
+   * Get the node instance of a container -always returns something
+   * @param container
+   * @return
+   */
+  public NodeInstance getNodeInstance(Container container) {
+    NodeAddress addr = RoleHistoryUtils.addressOf(container.getNodeId());
+    return nodemap.getOrCreate(addr);
+  }
+
+  /**
+   * A container has been allocated on a node -update the data structures
+   * @param container container
+   */
+  public void onContainerAllocated(Container container) {
+    NodeEntry nodeEntry = getNodeEntry(container);
+    nodeEntry.starting();
+  }
+
+
+  public void containerStartSubmitted(Container container,
+                                      RoleInstance instance) {
+    NodeEntry nodeEntry = getNodeEntry(container);
+  }
+
+  /**
+   * Container start event
+   * @param container
+   */
+  public void onContainerStarted(Container container) {
+    NodeEntry nodeEntry = getNodeEntry(container);
+    nodeEntry.startCompleted();
+  }
+  
+  public void containerReleaseSubmitted(Container container) {
+    NodeEntry nodeEntry = getNodeEntry(container);
+    nodeEntry.release();
+  }
+
+  /**
+   * App state notified of a container completed 
+   * @param container completed container
+   */
+  public void onReleaseCompleted(Container container) {
+    markContainerFinished(container, true);
+  }
+
+  /**
+   * App state notified of a container completed -but as
+   * it wasn't being released it is marked as failed
+   * @param container completed container
+   */
+  public void onFailedNode(Container container) {
+    markContainerFinished(container, false);
+  }
+  
+  private synchronized void markContainerFinished(Container container, boolean wasReleased) {
+    NodeEntry nodeEntry = getNodeEntry(container);
+    if (nodeEntry.containerCompleted(wasReleased)) {
+      //node is free
+      nodeEntry.setLastUsed(now());
+      NodeInstance ni = getNodeInstance(container);
+      int roleId = ContainerPriority.extractRole(container);
+      log.debug("Node {} is now available for role id {}", ni, roleId);
+      availableNodes[roleId].addFirst(ni);
+      touch();
+    }
+  }
+
+  /**
+   * Mark ourselves as dirty
+   */
+  private void touch() {
+    setDirty(true);
+  }
+
+
 }

@@ -22,6 +22,8 @@ package org.apache.hadoop.hoya.yarn.appmaster.state;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Tracks an outstanding request. This is used to correlate an allocation response
@@ -41,7 +43,8 @@ import org.apache.hadoop.yarn.client.api.AMRMClient;
  is fixed at construction time.
  */
 public final class OutstandingRequest {
-
+  protected static final Logger log =
+    LoggerFactory.getLogger(OutstandingRequest.class);
 
   public final int roleId;
   public final int requestID;
@@ -55,10 +58,6 @@ public final class OutstandingRequest {
     this.roleId = roleId;
     this.requestID = requestID;
     this.node = node;
-  }
-
-  public int buildPriority() {
-    return ContainerPriority.buildPriority(roleId, requestID);
   }
 
   /**
@@ -75,15 +74,17 @@ public final class OutstandingRequest {
       hosts = new String[1];
       StringBuilder sb = new StringBuilder();
       sb.append(node.nodeAddress.getHost());
-      hosts[1] = sb.toString();
+      String hostname = sb.toString();
+      hosts[1] = hostname;
       relaxLocality = true;
       // tell the node it is in play
-      node.getOrCreate(roleId).request();
+      node.getOrCreate(roleId);
+      log.info("Submitting request for container on {}", hostname);
     } else {
       hosts = null;
       relaxLocality = true;
     }
-    Priority pri = ContainerPriority.createPriority(roleId, requestID);
+    Priority pri = ContainerPriority.createPriority(roleId, requestID, false);
     AMRMClient.ContainerRequest request =
       new AMRMClient.ContainerRequest(resource,
                                       hosts,
