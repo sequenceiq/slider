@@ -32,34 +32,108 @@ package org.apache.hadoop.hoya.yarn.appmaster.state;
 
  The `active` counter is only decremented after a container release response
  has been received.
+ 
+ Accesses are synchronized.
  */
 public class NodeEntry {
-
   /**
    * Number of active nodes. Active includes starting as well as live
    */
-  public int active;
-  /**
-   * no of requests made of this role of this node. If it goes above
-   * 1 there's a problem
-   */
-  public int requested;
-  /**
-   * No of instances in release state
-   */
-  public int releasing;
-
-  /**
-   * Time last used.
-   */
-  public long last_used;
-
+  private int active;
+  
+  private int requested;
+  private int releasing;
+  private long lastUsed;
+  
   /**
    * Is the node available for assignments.
    * @return true if there are no outstanding requests or role instances here
    * other than some being released.
    */
-  public boolean available() {
+  public synchronized boolean isAvailable() {
     return (active - releasing) == 0 && (requested == 0);
+  }
+
+  /**
+   * Return true if the node is not busy, and it
+   * has not been used since the absolute time
+   * @param absoluteTime time
+   * @return true if the node could be cleaned up
+   */
+  public synchronized boolean notUsedSince(long absoluteTime) {
+    return isAvailable() && lastUsed < absoluteTime;
+  }
+
+  /**
+   * Number of active nodes. Active includes starting as well as live
+   */
+  public synchronized int getActive() {
+    return active;
+  }
+
+  public synchronized void setActive(int active) {
+    this.active = active;
+  }
+
+  public synchronized void incActive() {
+    ++active;
+  }
+
+  public synchronized void decActive() {
+    active = RoleHistoryUtils.decToFloor(active);
+  }
+
+  /**
+   * no of requests made of this role of this node. If it goes above
+   * 1 there's a problem
+   */
+
+  public int getRequested() {
+    return requested;
+  }
+
+  /**
+   * request a node: 
+   */
+  public synchronized void request() {
+    ++requested;
+    ++active;
+  }
+
+  public synchronized void requesteCompleted() {
+    assert requested > 0;
+    requested = RoleHistoryUtils.decToFloor(requested);
+  }
+
+  /**
+   * No of instances in release state
+   */
+  public synchronized int getReleasing() {
+    return releasing;
+  }
+
+  /**
+   * Release an instance -which is no longer marked as active
+   */
+  public synchronized void release() {
+    assert active > 0;
+    releasing++;
+    releasing = RoleHistoryUtils.decToFloor(releasing);
+  }
+
+  public synchronized void releaseCompleted() {
+    assert releasing > 0;
+    releasing = RoleHistoryUtils.decToFloor(releasing);
+  }
+
+  /**
+   * Time last used.
+   */
+  public synchronized long getLastUsed() {
+    return lastUsed;
+  }
+
+  public synchronized void setLastUsed(long lastUsed) {
+    this.lastUsed = lastUsed;
   }
 }

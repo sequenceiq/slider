@@ -26,6 +26,9 @@ import java.util.Map;
 
 /**
  * Contains a map from requestID to the specific `OutstandingRequest` made.
+ * 
+ * Not all requests have locations; they still have request IDs and are still
+ * tracked
  */
 
 public class OutstandingRequestTracker {
@@ -34,7 +37,8 @@ public class OutstandingRequestTracker {
   private int nextRequestId = 1;
 
 
-  private Map<Integer, OutstandingRequest> requests =new HashMap<Integer, OutstandingRequest>();
+  private Map<Integer, OutstandingRequest> requests =
+    new HashMap<Integer, OutstandingRequest>();
 
   /*
      : OutstandingRequest
@@ -53,20 +57,23 @@ public class OutstandingRequestTracker {
    */
   public OutstandingRequest addRequest(NodeInstance instance, int role) {
     int id = nextRequestId++;
-    if (nextRequestId==0) {
+    if (nextRequestId == 0) {
       //wraparound
       log.warn("Request ID counter has just wrapped around");
+      //skip the special "0" id
+      nextRequestId = 1;
     }
-    OutstandingRequest request = new OutstandingRequest(role, id, instance.nodeAddress);
+    OutstandingRequest request =
+      new OutstandingRequest(role, id, instance);
     requests.put(id, request);
     return request;
   }
 
-  public OutstandingRequest lookup( int requestID) {
+  public OutstandingRequest lookup(int requestID) {
     return requests.get(requestID);
   }
 
-  public OutstandingRequest remove( int requestID) {
+  public OutstandingRequest remove(int requestID) {
     return requests.remove(requestID);
   }
 

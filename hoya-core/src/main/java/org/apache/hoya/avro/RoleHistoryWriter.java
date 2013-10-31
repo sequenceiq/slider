@@ -71,7 +71,7 @@ public class RoleHistoryWriter {
     writer.append(record);
     long count = 0;
     //now for every role history entry, write out its record
-    Collection<NodeInstance> instances = history.getNodemap().values();
+    Collection<NodeInstance> instances = history.cloneNodemap().values();
     for (NodeInstance instance : instances) {
       for (int role = 0; role < roles; role++) {
         NodeEntry nodeEntry = instance.get(role);
@@ -110,7 +110,7 @@ public class RoleHistoryWriter {
 
   private NodeEntryRecord build(NodeEntry entry, int role, NodeAddress ref) {
     NodeEntryRecord record = new NodeEntryRecord(
-      ref, role, entry.active > 0, entry.last_used
+      ref, role, entry.getActive() > 0, entry.getLastUsed()
     );
     return record;
   }
@@ -119,11 +119,13 @@ public class RoleHistoryWriter {
    * Read a history, returning one that is ready to have its onThaw() 
    * method called
    * @param in input source
-   * @return a history with a node map configured with the node instances
+   * @param history a history set up with the expected roles; 
+   * this will be built up with a node map configured with the node instances
    * and entries loaded from the source
-   * @throws IOException
+   * @return no. of entries read
+   * @throws IOException problems
    */
-  public RoleHistory read(SeekableInput in) throws IOException {
+  public int read(SeekableInput in, RoleHistory history) throws IOException {
     DatumReader<RoleHistoryRecord> datumReader =
       new SpecificDatumReader<RoleHistoryRecord>(RoleHistoryRecord.class);
     DataFileReader<RoleHistoryRecord> reader =
@@ -139,7 +141,7 @@ public class RoleHistoryWriter {
     RoleHistoryHeader header = (RoleHistoryHeader) entry;
     Integer roleSize = header.getRoles();
     Long saved = header.getSaved();
-    RoleHistory history = new RoleHistory(roleSize);
+    history.prepareForReading(roleSize);
     RoleHistoryFooter footer = null;
     int records = 0;
     while (reader.hasNext()) {
@@ -157,32 +159,33 @@ public class RoleHistoryWriter {
       records++;
       NodeEntryRecord nodeEntryRecord = (NodeEntryRecord) entry;
       NodeEntry nodeEntry = new NodeEntry();
-      nodeEntry.last_used = nodeEntryRecord.getLastUsed();
+      nodeEntry.setLastUsed(nodeEntryRecord.getLastUsed());
       if (nodeEntryRecord.getActive()) {
         //if active at the time of save, make the last used time the save time
-        nodeEntry.last_used  = saved;
+        nodeEntry.setLastUsed(saved);
       }
       Integer roleId = nodeEntryRecord.getRole();
       NodeAddress addr = nodeEntryRecord.getNode();
-      NodeInstance instance = history.getNodemap().getOrCreate(addr);
+      NodeInstance instance = history.getOrCreateNodeInstance(addr);
       instance.set(nodeEntryRecord.getRole(), nodeEntry);
     }
     //here the footer has been found or the stream ran out early
-    if (footer==null) {
+    if (footer == null) {
       throw new EOFException(
         "End of file reached after " + records + " records");
     }
     if (reader.hasNext()) {
       // footer is in stream before the last record
       throw new EOFException(
-        "File footer reached before end of file -after " + records + " records");
+        "File footer reached before end of file -after " + records +
+        " records");
     }
     if (records != footer.getCount()) {
       log.warn("mismatch between no of records saved {} and number read {}",
                footer.getCount(), records);
     }
-    
-    return history;
+
+    return records;
   }
 
 

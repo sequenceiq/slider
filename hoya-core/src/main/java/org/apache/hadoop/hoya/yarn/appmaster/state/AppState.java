@@ -38,7 +38,6 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.impl.pb.ContainerPBImpl;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
-import org.apache.hadoop.yarn.util.Records;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -189,8 +188,9 @@ public class AppState {
    * limit container memory
    */
   private int containerMaxMemory;
-
-
+  
+  private RoleHistory roleHistory;
+  
   public AppState(AbstractRecordFactory recordFactory) {
     this.recordFactory = recordFactory;
   }
@@ -330,7 +330,9 @@ public class AppState {
 
     //set the app state to this status
     setClusterDescription(clusterStatus);
-    //now do an update, which 
+    
+    // add the roles
+    roleHistory = new RoleHistory(providerRoles);
   }
 
   public synchronized void updateClusterSpec(ClusterDescription cd) {
@@ -622,6 +624,7 @@ public class AppState {
     RoleStatus role,
     Resource capability) {
     buildResourceRequirements(role, capability);
+    roleHistory.requestNode(role.getKey(), capability);
     return createContainerRequest(role, capability);
   }
 
@@ -637,14 +640,11 @@ public class AppState {
                                                             Resource resource) {
     // setup requirements for hosts
     // using * as any host initially
-    String[] hosts = null;
-    String[] racks = null;
-    Priority pri = Records.newRecord(Priority.class);
-    pri.setPriority(ContainerPriority.buildPriority(role.getPriority(), 0));
+    Priority pri = ContainerPriority.createPriority(role.getPriority(), 0);
     AMRMClient.ContainerRequest request;
     request = new AMRMClient.ContainerRequest(resource,
-                                              hosts,
-                                              racks,
+                                              null,
+                                              null,
                                               pri,
                                               true);
     role.incRequested();

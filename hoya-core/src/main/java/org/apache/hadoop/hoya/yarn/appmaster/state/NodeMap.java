@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
-import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hoya.avro.NodeAddress;
 
 import java.util.HashMap;
@@ -34,17 +33,25 @@ public class NodeMap extends HashMap<NodeAddress, NodeInstance> {
 
   /**
    * Get the node instance for the specific node -creating it if needed
-   * @param nodeId node
+   * @param nodeAddr node
    * @return the instance
    */
-  public NodeInstance getOrCreate(NodeAddress nodeId) {
-    NodeInstance node = get(nodeId);
+  public NodeInstance getOrCreate(NodeAddress nodeAddr) {
+    NodeInstance node = get(nodeAddr);
     if (node == null) {
-      node = new NodeInstance(nodeId, roleSize);
-      put(nodeId, node);
+      node = new NodeInstance(nodeAddr, roleSize);
+      put(nodeAddr, node);
     }
     return node;
   }
 
 
+  /**
+   * Clone point
+   * @return
+   */
+  @Override
+  public Object clone() {
+    return super.clone();
+  }
 }

@@ -775,3 +775,16 @@ be if other containers were completed in the same callback)
 
 
 
+### Implementation Notes ###
+
+Notes made while implementing the design.
+
+`OutstandingRequestTracker` should also track requests made with
+no target node; this makes seeing what is going on easier. `ARMClientImpl`
+is doing something similar, on a priority-by-priority basis -if many
+requests are made, each with their own priority, that base class's hash tables
+may get overloaded. (it assumes a limited set of priorities)
+
+Access to the role history datastructures was restricted to avoid
+synchronization problems. Protected access is permitted so that a
+test subclass can examine (and change?) the internals.

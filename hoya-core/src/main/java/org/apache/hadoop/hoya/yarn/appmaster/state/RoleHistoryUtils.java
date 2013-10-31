@@ -25,6 +25,19 @@ public class RoleHistoryUtils {
   public static NodeAddress addressOf(NodeId nodeId) {
     return new NodeAddress(nodeId.getHost(), nodeId.getPort());
   }
-  
+
+  /**
+   * Decrement a value but hold it at zero. Usually a sanity check
+   * on counters tracking outstanding operations
+   * @param val value
+   * @return decremented value
+   */
+  public static int decToFloor(int val) {
+    int v = val-1;
+    if (v < 0) {
+      v = 0;
+    }
+    return v;
+  }
   
 }

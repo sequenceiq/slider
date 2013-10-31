@@ -19,7 +19,9 @@
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
 
-import org.apache.hoya.avro.NodeAddress;
+import org.apache.hadoop.yarn.api.records.Priority;
+import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.client.api.AMRMClient;
 
 /**
  * Tracks an outstanding request. This is used to correlate an allocation response
@@ -44,12 +46,12 @@ public final class OutstandingRequest {
   public final int roleId;
   public final int requestID;
 
-  public NodeAddress node;
+  public NodeInstance node;
   public long requestedTime;
 
   public OutstandingRequest(int roleId,
                             int requestID,
-                            NodeAddress node) {
+                            NodeInstance node) {
     this.roleId = roleId;
     this.requestID = requestID;
     this.node = node;
@@ -59,6 +61,40 @@ public final class OutstandingRequest {
     return ContainerPriority.buildPriority(roleId, requestID);
   }
 
+  /**
+   * Build a container request.
+   * If the request has an address, it is set in the container request
+   * (with a flag to enable relaxed priorities)
+   * @param resource resource
+   * @return the request to raise
+   */
+  public AMRMClient.ContainerRequest buildContainerRequest(Resource resource) {
+    String[] hosts;
+    boolean relaxLocality;
+    if (node != null) {
+      hosts = new String[1];
+      StringBuilder sb = new StringBuilder();
+      sb.append(node.nodeAddress.getHost());
+      hosts[1] = sb.toString();
+      relaxLocality = true;
+      // tell the node it is in play
+      node.getOrCreate(roleId).request();
+    } else {
+      hosts = null;
+      relaxLocality = true;
+    }
+    Priority pri = ContainerPriority.createPriority(roleId, requestID);
+    AMRMClient.ContainerRequest request =
+      new AMRMClient.ContainerRequest(resource,
+                                      hosts,
+                                      null,
+                                      pri,
+                                      relaxLocality);
+    
+    return request;
+  }
+  
+  
   @Override
   public boolean equals(Object o) {
     if (this == o) {

@@ -19,6 +19,8 @@
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
 import org.apache.hadoop.yarn.api.records.Container;
+import org.apache.hadoop.yarn.api.records.Priority;
+import org.apache.hadoop.yarn.util.Records;
 
 /**
  * Class containing the logic to build/split container priorities into the
@@ -48,6 +50,15 @@ public final class ContainerPriority {
   public static int buildPriority(int role, int requestId) {
     return role | (requestId << 24);
   }
+
+
+  public static Priority createPriority(int role, int requestId) {
+    Priority pri = Records.newRecord(Priority.class);
+    pri.setPriority(ContainerPriority.buildPriority(role, requestId));
+    return pri;
+  }
+  
+  
   public static int extractRole(int priority) {
     return priority & 0x7;
   }
