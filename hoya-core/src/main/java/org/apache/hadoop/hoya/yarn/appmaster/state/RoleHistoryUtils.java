@@ -25,7 +25,6 @@ import org.apache.hadoop.yarn.api.records.NodeId;
 
 public class RoleHistoryUtils {
 
-  
   public static String hostnameOf(Container container) {
     NodeId nodeId = container.getNodeId();
     if (nodeId== null) {

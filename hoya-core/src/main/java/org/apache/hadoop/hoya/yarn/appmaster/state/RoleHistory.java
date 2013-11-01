@@ -83,7 +83,6 @@ public class RoleHistory {
     reset();
   }
 
-
   /**
    * Reset the variables -this does not adjust the fixed attributes
    * of the history
@@ -358,7 +357,14 @@ public class RoleHistory {
     OutstandingRequest outstanding = outstandingRequests.addRequest(node, role);
     return outstanding.buildContainerRequest(resource);
   }
-  
+
+  /**
+   * Find a node for a role and request an instance on that (or a location-less
+   * instance)
+   * @param role role index
+   * @param resource resource capabilities
+   * @return a request ready to go
+   */
   public synchronized AMRMClient.ContainerRequest requestNode(int role, Resource resource) {
     NodeInstance node = findNodeForNewInstance(role);
      return requestInstanceOnNode(node, role,resource);
@@ -379,13 +385,13 @@ public class RoleHistory {
       return findNodeForRelease(role, 1);
     }
   }
-  
+
   public synchronized NodeInstance findNodeForRelease(int role, int limit) {
     //find a node
 
     for (NodeInstance ni : nodemap.values()) {
       NodeEntry nodeEntry = ni.get(role);
-      if (nodeEntry !=null && nodeEntry.getActive()>= limit) {
+      if (nodeEntry != null && nodeEntry.getActive() >= limit) {
         return ni;
       }
     }
@@ -422,8 +428,6 @@ public class RoleHistory {
     return nodemap.get(hostname);
   }
 
-  
-  
   /**
    * A container has been allocated on a node -update the data structures
    * @param container container
