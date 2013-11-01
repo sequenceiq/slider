@@ -28,7 +28,6 @@ import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
-import org.apache.hadoop.hoya.avro.NodeAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -188,11 +187,12 @@ public class RoleHistory {
 
   /**
    * Get the node instance for the specific node -creating it if needed
-   * @param nodeAddr node
+   * @param nodeAddr node address
    * @return the instance
    */
-  public NodeInstance getOrCreateNodeInstance(NodeAddress nodeAddr) {
-    return nodemap.getOrCreate(nodeAddr);
+  public NodeInstance getOrCreateNodeInstance(String hostname) {
+    //convert to a string
+    return nodemap.getOrCreate(hostname);
   }
   
   /**
@@ -236,11 +236,10 @@ public class RoleHistory {
    * @param absoluteTime time
    */
   public synchronized void purgeUnusedEntries(long absoluteTime) {
-    Iterator<Map.Entry<NodeAddress,NodeInstance>> iterator =
+    Iterator<Map.Entry<String ,NodeInstance>> iterator =
       nodemap.entrySet().iterator();
     while (iterator.hasNext()) {
-      Map.Entry<NodeAddress, NodeInstance> entry = iterator.next();
-      NodeAddress addr = entry.getKey();
+      Map.Entry<String, NodeInstance> entry = iterator.next();
       NodeInstance ni = entry.getValue();
       if (!ni.purgeUnusedEntries(absoluteTime)) {
         iterator.remove();
@@ -303,9 +302,8 @@ public class RoleHistory {
   public synchronized void onThaw() {
     resetAvailableNodeLists();
     // build the list of available nodes
-    for (Map.Entry<NodeAddress, NodeInstance> entry : nodemap
+    for (Map.Entry<String, NodeInstance> entry : nodemap
       .entrySet()) {
-      NodeAddress addr = entry.getKey();
       NodeInstance ni = entry.getValue();
       for (int i = 0; i < roleSize; i++) {
         NodeEntry nodeEntry = ni.get(i);
@@ -411,8 +409,8 @@ public class RoleHistory {
    * @return a (possibly new) node instance
    */
   public NodeInstance getOrCreateNodeInstance(Container container) {
-    NodeAddress addr = RoleHistoryUtils.addressOf(container);
-    return nodemap.getOrCreate(addr);
+    String hostname = RoleHistoryUtils.hostnameOf(container);
+    return nodemap.getOrCreate(hostname);
   }
 
   /**
@@ -420,8 +418,8 @@ public class RoleHistory {
    * @param addr address
    * @return a node instance or null
    */
-  public NodeInstance getExistingNodeInstance(NodeAddress addr) {
-    return nodemap.get(addr);
+  public NodeInstance getExistingNodeInstance(String hostname) {
+    return nodemap.get(hostname);
   }
 
   

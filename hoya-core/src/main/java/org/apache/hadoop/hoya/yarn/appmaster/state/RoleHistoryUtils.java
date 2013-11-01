@@ -22,24 +22,17 @@ import org.apache.hadoop.hoya.exceptions.HoyaRuntimeException;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.NodeId;
-import org.apache.hadoop.hoya.avro.NodeAddress;
 
 public class RoleHistoryUtils {
-  public static NodeAddress addressOf(Container container) {
+
+  
+  public static String hostnameOf(Container container) {
     NodeId nodeId = container.getNodeId();
     if (nodeId== null) {
       throw new HoyaRuntimeException("Container has no node ID: %s",
          HoyaUtils.containerToString(container));
     }
-    return new NodeAddress(nodeId.getHost(), nodeId.getPort());
-  }
-  
-  public static NodeAddress addressOf(NodeId nodeId) {
-    return new NodeAddress(nodeId.getHost(), nodeId.getPort());
-  }
-
-  public static String toString(NodeAddress addr) {
-    return addr.getHost() + ":" + addr.getPort();
+    return nodeId.getHost();
   }
 
   /**

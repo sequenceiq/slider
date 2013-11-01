@@ -19,7 +19,6 @@
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
 import com.google.common.annotations.VisibleForTesting;
-import org.apache.hadoop.hoya.avro.NodeAddress;
 
 import java.io.Serializable;
 import java.util.Comparator;
@@ -31,16 +30,16 @@ import java.util.Comparator;
  */
 public class NodeInstance {
 
-  public final NodeAddress nodeAddress;
+  public final String hostname;
 
   private final NodeEntry[] nodeEntries;
 
   /**
    * Create an instance and the (empty) array of nodes
-   * @param roles role count -the
+   * @param roles role count -the no. of roles
    */
-  public NodeInstance(NodeAddress nodeAddress, int roles) {
-    this.nodeAddress = nodeAddress;
+  public NodeInstance(String hostname, int roles) {
+    this.hostname = hostname;
     nodeEntries = new NodeEntry[roles];
   }
 
@@ -113,9 +112,7 @@ public class NodeInstance {
 
   @Override
   public String toString() {
-    final StringBuilder sb =
-      new StringBuilder(RoleHistoryUtils.toString(nodeAddress));
-    return sb.toString();
+    return hostname;
   }
 
   /**
@@ -152,13 +149,13 @@ public class NodeInstance {
 
     NodeInstance that = (NodeInstance) o;
 
-    return nodeAddress.getHost().equals(that.nodeAddress.getHost());
+    return hostname.equals(that.hostname);
 
   }
 
   @Override
   public int hashCode() {
-    return nodeAddress.hashCode();
+    return hostname.hashCode();
   }
 
   /**

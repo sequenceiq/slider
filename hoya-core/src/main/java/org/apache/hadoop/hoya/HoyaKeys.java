@@ -75,7 +75,7 @@ public interface HoyaKeys {
   /**
    * Filename pattern is required to save in strict temporal order
    */
-  String HISTORY_FILENAME_PATTERN = "rolehistory-%08d.json";
+  String HISTORY_FILENAME_PATTERN = "rolehistory-%08x.json";
   String CLUSTER_SPECIFICATION_FILE = "cluster.json";
 
   int MIN_HEAP_SIZE = 0;

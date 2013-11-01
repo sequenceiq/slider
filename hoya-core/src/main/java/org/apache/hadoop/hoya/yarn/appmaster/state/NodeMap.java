@@ -18,11 +18,9 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
-import org.apache.hadoop.hoya.avro.NodeAddress;
-
 import java.util.HashMap;
 
-public class NodeMap extends HashMap<NodeAddress, NodeInstance> {
+public class NodeMap extends HashMap<String, NodeInstance> {
 
   private final int roleSize;
 
@@ -33,14 +31,14 @@ public class NodeMap extends HashMap<NodeAddress, NodeInstance> {
 
   /**
    * Get the node instance for the specific node -creating it if needed
-   * @param nodeAddr node
+   * @param hostname node
    * @return the instance
    */
-  public NodeInstance getOrCreate(NodeAddress nodeAddr) {
-    NodeInstance node = get(nodeAddr);
+  public NodeInstance getOrCreate(String hostname) {
+    NodeInstance node = get(hostname);
     if (node == null) {
-      node = new NodeInstance(nodeAddr, roleSize);
-      put(nodeAddr, node);
+      node = new NodeInstance(hostname, roleSize);
+      put(hostname, node);
     }
     return node;
   }

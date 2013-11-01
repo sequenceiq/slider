@@ -21,9 +21,7 @@ package org.apache.hadoop.hoya.yarn.model.appstate
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.hoya.avro.NodeAddress
 import org.apache.hadoop.hoya.avro.RoleHistoryWriter
-import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.appmaster.state.NodeEntry
 import org.apache.hadoop.hoya.yarn.appmaster.state.NodeInstance
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleHistory
@@ -35,7 +33,7 @@ import org.junit.Test
 @CompileStatic
 class TestHistoryRW extends BaseMockAppStateTest {
 
-  static long time = 0;
+  static long time = System.currentTimeMillis();
   
   @Override
   String getTestName() {
@@ -46,7 +44,6 @@ class TestHistoryRW extends BaseMockAppStateTest {
   public void testWriteReadEmpty() throws Throwable {
     RoleHistory roleHistory = new RoleHistory(MockFactory.ROLES)
     roleHistory.onStart(fs, historyPath)
-    
     Path history = roleHistory.saveHistory(time++)
     assert fs.isFile(history)
     RoleHistoryWriter historyWriter = new RoleHistoryWriter();
@@ -57,7 +54,7 @@ class TestHistoryRW extends BaseMockAppStateTest {
   public void testWriteReadData() throws Throwable {
     RoleHistory roleHistory = new RoleHistory(MockFactory.ROLES)
     roleHistory.onStart(fs, historyPath)
-    NodeAddress addr = new NodeAddress("localhost", 80)
+    String addr = "localhost"
     NodeInstance instance = roleHistory.getOrCreateNodeInstance(addr)
     NodeEntry ne1 = instance.getOrCreate(0)
     ne1.lastUsed = 0xf00d
@@ -79,8 +76,8 @@ class TestHistoryRW extends BaseMockAppStateTest {
   public void testWriteReadActiveData() throws Throwable {
     RoleHistory roleHistory = new RoleHistory(MockFactory.ROLES)
     roleHistory.onStart(fs, historyPath)
-    NodeAddress addr = new NodeAddress("localhost", 80)
-    NodeAddress addr2 = new NodeAddress("rack1server5", 80)
+    String addr = "localhost"
+    String addr2 = "rack1server5"
     NodeInstance localhost = roleHistory.getOrCreateNodeInstance(addr)
     NodeEntry orig1 = localhost.getOrCreate(0)
     orig1.lastUsed = 0x10
@@ -94,15 +91,9 @@ class TestHistoryRW extends BaseMockAppStateTest {
     assert !orig3.available
     orig3.release()
     assert orig3.available
-
-
-
     roleHistory.dump()
     
-    
     long savetime = 0x0001000
-    
-    
     Path history = roleHistory.saveHistory(savetime)
     assert fs.isFile(history)
     describe("Loaded")
@@ -111,7 +102,6 @@ class TestHistoryRW extends BaseMockAppStateTest {
     RoleHistory rh2 = new RoleHistory(MockFactory.ROLES)
 
     assert 3 == historyWriter.read(fs, history, rh2)
-    
     rh2.dump()
     
     assert rh2.clusterSize == 2;
@@ -124,24 +114,21 @@ class TestHistoryRW extends BaseMockAppStateTest {
     NodeEntry loadedNE2 = ni2b.get(1)
     assert loadedNE2 != null
     assert loadedNE2.lastUsed == savetime
-    
-    describe("thawing")
-    
+
     // now thaw it
     rh2.onThaw();
+    describe("thawing")
     rh2.dump();
     List<NodeInstance> available0 = rh2.cloneAvailableList(0)
     assert available0.size() == 1
     
     NodeInstance entry = available0.get(0)
-    CharSequence hostname = entry.nodeAddress.host
-    assert HoyaUtils.sequenceToString(hostname) == "localhost"
+    assert entry.hostname == "localhost"
+    assert entry == localhost
     List<NodeInstance> available1 = rh2.cloneAvailableList(1)
     assert available1.size() == 2
     //and verify that even if last used was set, the save time is picked up
     assert entry.get(1).lastUsed == roleHistory.saveTime
-
-
   }
   
 }

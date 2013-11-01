@@ -1,18 +1,4 @@
 [
-  {
-    "type": "record",
-    "name": "org.apache.hadoop.hoya.avro.NodeAddress",
-    "fields": [
-      {
-        "name": "host",
-        "type": "string"
-      },
-      {
-        "name": "port",
-        "type": "int"
-      }
-    ]
-  },
 
   {
     "type": "record",
@@ -20,8 +6,8 @@
     "namespace": "org.apache.hadoop.hoya.avro",
     "fields": [
       {
-        "name": "node",
-        "type": "org.apache.hadoop.hoya.avro.NodeAddress"
+        "name": "host",
+        "type": "string"
       },
       {
         "name": "role",

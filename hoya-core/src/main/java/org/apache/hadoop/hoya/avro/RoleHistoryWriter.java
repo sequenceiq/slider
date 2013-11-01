@@ -34,6 +34,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.appmaster.state.NodeEntry;
 import org.apache.hadoop.hoya.yarn.appmaster.state.NodeInstance;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleHistory;
@@ -86,7 +87,7 @@ public class RoleHistoryWriter {
           NodeEntry nodeEntry = instance.get(role);
 
           if (nodeEntry != null) {
-            NodeEntryRecord ner = build(nodeEntry, role, instance.nodeAddress);
+            NodeEntryRecord ner = build(nodeEntry, role, instance.hostname);
             record = new RoleHistoryRecord(ner);
             writer.write(record, encoder);
             count++;
@@ -122,9 +123,9 @@ public class RoleHistoryWriter {
     return write(out, history, savetime);
   }
 
-  private NodeEntryRecord build(NodeEntry entry, int role, NodeAddress ref) {
+  private NodeEntryRecord build(NodeEntry entry, int role, String hostname) {
     NodeEntryRecord record = new NodeEntryRecord(
-      ref, role, entry.getLive() > 0, entry.getLastUsed()
+      hostname, role, entry.getLive() > 0, entry.getLastUsed()
     );
     return record;
   }
@@ -181,8 +182,8 @@ public class RoleHistoryWriter {
           nodeEntry.setLastUsed(saved);
         }
         Integer roleId = nodeEntryRecord.getRole();
-        NodeAddress addr = nodeEntryRecord.getNode();
-        NodeInstance instance = history.getOrCreateNodeInstance(addr);
+        String hostname = HoyaUtils.sequenceToString(nodeEntryRecord.getHost());
+        NodeInstance instance = history.getOrCreateNodeInstance(hostname);
         instance.set(roleId, nodeEntry);
       } } catch (EOFException e) {
         EOFException ex = new EOFException(
