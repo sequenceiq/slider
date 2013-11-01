@@ -58,7 +58,7 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
     
     YarnConfiguration conf = createConfiguration()
     fs = HadoopFS.get(new URI("file:///"), conf)
-    historyWorkDir = new File("target", historyDirName)
+    historyWorkDir = new File("target/history", historyDirName)
     historyPath = new Path(historyWorkDir.toURI())
 //    fs.delete(targetHistoryPath, true)
     appState.buildInstance(factory.newClusterSpec(0, 0, 0),

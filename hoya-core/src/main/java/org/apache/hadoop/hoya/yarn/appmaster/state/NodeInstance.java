@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.appmaster.state;
 import org.apache.hadoop.hoya.avro.NodeAddress;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Comparator;
 
 /**
@@ -120,7 +121,16 @@ public class NodeInstance {
 
   @Override
   public String toString() {
-    return "Node Entry at " + nodeAddress.getHost();
+    final StringBuilder sb =
+      new StringBuilder(RoleHistoryUtils.toString(nodeAddress));
+    for (int i = 0; i < nodeEntries.length; i++) {
+      NodeEntry entry = nodeEntries[i];
+      sb.append(String.format("\n  [%02d]  ", i));
+      if (entry != null) {
+        sb.append(entry.toString());
+      }
+    }
+    return sb.toString();
   }
 
   /**
@@ -150,5 +160,6 @@ public class NodeInstance {
       // equal
       return 0;
     }
+
   }
 }

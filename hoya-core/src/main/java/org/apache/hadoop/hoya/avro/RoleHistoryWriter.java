@@ -161,7 +161,7 @@ public class RoleHistoryWriter {
       int records = 0;
       //go through reading data
       try { while (true) {
-        record = reader.read(record, decoder);
+        record = reader.read(null, decoder);
         entry = record.getEntry();
 
         if (entry instanceof RoleHistoryHeader) {

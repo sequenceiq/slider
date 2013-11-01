@@ -64,7 +64,7 @@ public final class ProviderRole {
   public String toString() {
     return "ProviderRole{" +
            "name='" + name + '\'' +
-           ", key=" + id +
+           ", id=" + id +
            ", policy=" + placementPolicy +
            '}';
   }

@@ -84,6 +84,14 @@ public class NodeEntry {
     return live;
   }
 
+  /**
+   * Set the live value directly -used on AM restart
+   * @param v value
+   */
+  public synchronized void setLive(int v) {
+    live = v;
+  }
+  
   private void incLive() {
     ++live;
   }
@@ -177,5 +185,17 @@ public class NodeEntry {
 
   public synchronized void setLastUsed(long lastUsed) {
     this.lastUsed = lastUsed;
+  }
+
+  @Override
+  public String toString() {
+    final StringBuilder sb = new StringBuilder("NodeEntry{");
+    sb.append("requested=").append(requested);
+    sb.append(", starting=").append(starting);
+    sb.append(", live=").append(live);
+    sb.append(", releasing=").append(releasing);
+    sb.append(", lastUsed=").append(lastUsed);
+    sb.append('}');
+    return sb.toString();
   }
 }

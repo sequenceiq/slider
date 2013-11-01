@@ -18,13 +18,14 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.avro.RoleHistoryWriter;
 import org.apache.hadoop.hoya.providers.ProviderRole;
+import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.yarn.api.records.Container;
-import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.hoya.avro.NodeAddress;
@@ -151,7 +152,15 @@ public class RoleHistory {
     return roleSize;
   }
 
-  public synchronized boolean isDirty() {
+  /**
+   * Get the total size of the cluster -the number of NodeInstances
+   * @return a count
+   */
+  public int getClusterSize() {
+    return nodemap.size();
+  }
+  
+    public synchronized boolean isDirty() {
     return dirty;
   }
 
@@ -159,6 +168,10 @@ public class RoleHistory {
     this.dirty = dirty;
   }
 
+  /**
+   * Tell the history that it has been saved; marks itself as clean
+   * @param timestamp timestamp -updates the savetime field
+   */
   public synchronized void saved(long timestamp) {
     dirty = false;
     saveTime = timestamp;
@@ -243,6 +256,11 @@ public class RoleHistory {
     return historyPath;
   }
 
+  /**
+   * Create the filename for the history
+   * @param time time value
+   * @return a filename such that later filenames sort later in the directory
+   */
   private Path createHistoryFilename(long time) {
     String filename = String.format(Locale.ENGLISH,
                                     HoyaKeys.HISTORY_FILENAME_PATTERN,
@@ -275,7 +293,7 @@ public class RoleHistory {
    */
   public void onBootstrap() {
     log.info("Role history bootstrapped");
-    startTime = System.currentTimeMillis();
+    startTime = now();
   }
 
   /**
@@ -381,8 +399,8 @@ public class RoleHistory {
    * @param container
    * @return
    */
-  public NodeEntry getNodeEntry(Container container) {
-    NodeInstance node = getNodeInstance(container);
+  public NodeEntry getOrCreateNodeEntry(Container container) {
+    NodeInstance node = getOrCreateNodeInstance(container);
     return node.getOrCreate(ContainerPriority.extractRole(container));
   }
 
@@ -391,17 +409,28 @@ public class RoleHistory {
    * @param container container to look up
    * @return a (possibly new) node instance
    */
-  public NodeInstance getNodeInstance(Container container) {
+  public NodeInstance getOrCreateNodeInstance(Container container) {
     NodeAddress addr = RoleHistoryUtils.addressOf(container);
     return nodemap.getOrCreate(addr);
   }
 
   /**
+   * Get the node instance of a an address if defined
+   * @param addr address
+   * @return a node instance or null
+   */
+  public NodeInstance getExistingNodeInstance(NodeAddress addr) {
+    return nodemap.get(addr);
+  }
+
+  
+  
+  /**
    * A container has been allocated on a node -update the data structures
    * @param container container
    */
   public void onContainerAllocated(Container container) {
-    NodeEntry nodeEntry = getNodeEntry(container);
+    NodeEntry nodeEntry = getOrCreateNodeEntry(container);
     nodeEntry.starting();
   }
 
@@ -412,7 +441,7 @@ public class RoleHistory {
    */
   public void onContainerStartSubmitted(Container container,
                                         RoleInstance instance) {
-    NodeEntry nodeEntry = getNodeEntry(container);
+    NodeEntry nodeEntry = getOrCreateNodeEntry(container);
     int role = ContainerPriority.extractRole(container);
     // any actions we want here
   }
@@ -422,7 +451,7 @@ public class RoleHistory {
    * @param container
    */
   public void onContainerStarted(Container container) {
-    NodeEntry nodeEntry = getNodeEntry(container);
+    NodeEntry nodeEntry = getOrCreateNodeEntry(container);
     nodeEntry.startCompleted();
   }
 
@@ -433,7 +462,7 @@ public class RoleHistory {
    * @return true if the node was queued
    */
   public boolean onNodeManagerContainerStartFailed(Container container) {
-    NodeEntry nodeEntry = getNodeEntry(container);
+    NodeEntry nodeEntry = getOrCreateNodeEntry(container);
     boolean available = nodeEntry.startFailed();
     return maybeQueueNode(container, nodeEntry, available);
   }
@@ -443,7 +472,7 @@ public class RoleHistory {
    * @param container container submitted
    */
   public void onContainerReleaseSubmitted(Container container) {
-    NodeEntry nodeEntry = getNodeEntry(container);
+    NodeEntry nodeEntry = getOrCreateNodeEntry(container);
     nodeEntry.release();
   }
 
@@ -477,7 +506,7 @@ public class RoleHistory {
    */
   protected synchronized boolean markContainerFinished(Container container,
                                                        boolean wasReleased) {
-    NodeEntry nodeEntry = getNodeEntry(container);
+    NodeEntry nodeEntry = getOrCreateNodeEntry(container);
     boolean available = nodeEntry.containerCompleted(wasReleased);
     return maybeQueueNode(container, nodeEntry, available);
   }
@@ -496,7 +525,7 @@ public class RoleHistory {
     if (available) {
       //node is free
       nodeEntry.setLastUsed(now());
-      NodeInstance ni = getNodeInstance(container);
+      NodeInstance ni = getOrCreateNodeInstance(container);
       int roleId = ContainerPriority.extractRole(container);
       log.debug("Node {} is now available for role id {}", ni, roleId);
       availableNodes[roleId].addFirst(ni);
@@ -505,4 +534,20 @@ public class RoleHistory {
     return available;
   }
 
+  /**
+   * Print the history to the log. This is for testing and diagnostics 
+   */
+  public synchronized void dump() {
+    for (ProviderRole role : providerRoles) {
+      log.info(role.toString());
+      log.info("  available: " + availableNodes[role.id].size());
+      log.info(" " + HoyaUtils.joinWithInnerSeparator(", ", availableNodes[role.id]));
+    }
+
+    log.info("Nodes in Cluster: {}", getClusterSize());
+    for (NodeInstance node : nodemap.values()) {
+      log.info(node.toString());
+    }
+    
+  }
 }

@@ -33,8 +33,13 @@ public class RoleHistoryUtils {
     }
     return new NodeAddress(nodeId.getHost(), nodeId.getPort());
   }
+  
   public static NodeAddress addressOf(NodeId nodeId) {
     return new NodeAddress(nodeId.getHost(), nodeId.getPort());
+  }
+
+  public static String toString(NodeAddress addr) {
+    return addr.getHost() + ":" + addr.getPort();
   }
 
   /**

@@ -510,17 +510,17 @@ public final class HoyaUtils {
    * @return the list
    */
   public static String joinWithInnerSeparator(String separator,
-                                              String... collection) {
+                                              Object... collection) {
     StringBuilder b = new StringBuilder();
     boolean first = true;
 
-    for (String o : collection) {
+    for (Object o : collection) {
       if (first) {
         first = false;
       } else {
         b.append(separator);
       }
-      b.append(o);
+      b.append(o.toString());
       b.append(separator);
     }
     return b.toString();
