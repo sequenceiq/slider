@@ -65,7 +65,7 @@ public final class ContainerPriority {
   
   
   public static int extractRole(int priority) {
-    return priority & 0x7;
+    return priority & 0xff;
   }
 
   /**
@@ -84,6 +84,14 @@ public final class ContainerPriority {
    */
   public static int extractRole(Container container) {
     return extractRole(container.getPriority().getPriority());
+  }
+  /**
+   * Map from a container to a role key by way of its priority
+   * @param container container
+   * @return role key
+   */
+  public static int extractRole(Priority priorityRecord) {
+    return extractRole(priorityRecord.getPriority());
   }
 
   /**

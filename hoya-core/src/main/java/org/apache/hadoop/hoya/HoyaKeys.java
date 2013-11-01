@@ -19,8 +19,6 @@
 package org.apache.hadoop.hoya;
 
 
-import org.apache.hadoop.hoya.api.OptionKeys;
-
 /**
  * Keys and various constants for Hoya
  */
@@ -73,6 +71,11 @@ public interface HoyaKeys {
   String GENERATED_CONF_DIR_NAME = "generated";
   String ORIG_CONF_DIR_NAME = "original";
   String DATA_DIR_NAME = "database";
+  String HISTORY_DIR_NAME = "history";
+  /**
+   * Filename pattern is required to save in strict temporal order
+   */
+  String HISTORY_FILENAME_PATTERN = "rolehistory-%08d.json";
   String CLUSTER_SPECIFICATION_FILE = "cluster.json";
 
   int MIN_HEAP_SIZE = 0;
@@ -150,4 +153,5 @@ public interface HoyaKeys {
    * {@value}
    */
   String KEY_HOYA_ACL = "security.hoya.protocol.acl";
+
 }

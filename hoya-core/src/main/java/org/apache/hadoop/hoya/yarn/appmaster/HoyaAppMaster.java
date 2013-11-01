@@ -510,10 +510,6 @@ public class HoyaAppMaster extends CompositeService
       rpcService.getServer().refreshServiceAcl(conf, new HoyaAMPolicyProvider());
     }
 
-
-
-
-
     //now validate the dir by loading in a hadoop-site.xml file from it
     
     String siteXMLFilename = provider.getSiteXMLFilename();
@@ -529,8 +525,11 @@ public class HoyaAppMaster extends CompositeService
 
     provider.validateApplicationConfiguration(clusterSpec, confDir, securityEnabled);
 
+    //determine the location for the role history data
+    Path historyDir = new Path(clusterDirPath, HISTORY_DIR_NAME);
+    
     //build the instance
-    appState.buildInstance(clusterSpec, siteConf, providerRoles);
+    appState.buildInstance(clusterSpec, siteConf, providerRoles, fs, historyDir);
 
     //before bothering to start the containers, bring up the master.
     //This ensures that if the master doesn't come up, less

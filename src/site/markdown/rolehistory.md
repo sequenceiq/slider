@@ -691,7 +691,17 @@ in the total ordering of the list.
  
 The AM uses this as a signal to remove the container from the list
 of starting containers, moving it into the map of live nodes; the counters
-in the associated `RoleInstance` are updated accordingly
+in the associated `RoleInstance` are updated accordingly; the node entry
+adjusted to indicate it has one more live node and one less starting node.
+
+ 
+### NMClientAsync Callback:  onContainerStartFailed()
+
+
+The AM uses this as a signal to remove the container from the list
+of starting containers -the count of starting containers for the relevant
+NodeEntry is decremented. If the node is now available for instances of this
+container, it is returned to the queue of available nodes.
 
 
 ### Flex: Releasing a  role instance from the cluster
@@ -807,3 +817,7 @@ node on them was requested but not satisfied.
 
 Other issues: should we place nodes on the available list as soon as all the entries
 have been released?  I.e. Before YARN has replied
+
+RoleStats were removed -left in app state. Although the rolestats would
+belong here, leaving them where they were reduced the amount of change
+in the `AppState` class, so risk of something breaking.

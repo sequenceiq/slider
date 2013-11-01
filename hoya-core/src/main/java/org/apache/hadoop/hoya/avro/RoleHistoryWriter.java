@@ -86,6 +86,7 @@ public class RoleHistoryWriter {
     }
     // footer
     RoleHistoryFooter footer = new RoleHistoryFooter(count);
+    writer.append(new RoleHistoryRecord(footer));
     writer.close();
     return count;
   }

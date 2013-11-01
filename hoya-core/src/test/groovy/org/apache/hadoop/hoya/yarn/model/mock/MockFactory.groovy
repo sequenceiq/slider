@@ -47,9 +47,9 @@ class MockFactory implements  MockRoles {
    * List of roles
    */
   List<ProviderRole> ROLES = [
-      new ProviderRole(ROLE1, 1),
-      new ProviderRole(ROLE2, 2),
-      new ProviderRole(ROLE3, 3),
+      new ProviderRole(ROLE1, 0),
+      new ProviderRole(ROLE2, 1),
+      new ProviderRole(ROLE3, 2),
   ]
 
   ContainerId newContainerId() {
@@ -72,7 +72,7 @@ class MockFactory implements  MockRoles {
   
   ApplicationId newAppId() {
     MockApplicationId id = new MockApplicationId()
-    id.id = appIdCount++;
+    id.setId(appIdCount++);
     return id;
   }
 

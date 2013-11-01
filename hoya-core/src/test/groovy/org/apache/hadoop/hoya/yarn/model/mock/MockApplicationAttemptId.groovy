@@ -28,6 +28,26 @@ class MockApplicationAttemptId extends ApplicationAttemptId {
   int attemptId
 
   @Override
+  ApplicationId getApplicationId() {
+    return applicationId
+  }
+
+  @Override
+  void setApplicationId(ApplicationId applicationId) {
+    this.applicationId = applicationId
+  }
+
+  @Override
+  int getAttemptId() {
+    return attemptId
+  }
+
+  @Override
+  void setAttemptId(int attemptId) {
+    this.attemptId = attemptId
+  }
+
+  @Override
   protected void build() {
 
   }

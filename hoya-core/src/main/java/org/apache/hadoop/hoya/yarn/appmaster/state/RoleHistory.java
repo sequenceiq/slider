@@ -18,6 +18,10 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hoya.HoyaKeys;
+import org.apache.hadoop.hoya.avro.RoleHistoryWriter;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -32,6 +36,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -55,8 +60,10 @@ public class RoleHistory {
   private NodeMap nodemap;
   private int roleSize;
   private boolean dirty;
+  private FileSystem filesystem;
+  private Path historyPath;
+  private RoleHistoryWriter historyWriter = new RoleHistoryWriter();
 
-  private RoleStatus[] roleStats;
   private OutstandingRequestTracker outstandingRequests =
     new OutstandingRequestTracker();
 
@@ -73,7 +80,6 @@ public class RoleHistory {
       providerRoleMap.put(providerRole.name, providerRole);
     }
     reset();
-
   }
 
 
@@ -88,18 +94,20 @@ public class RoleHistory {
 
     resetAvailableNodeLists();
     outstandingRequests = new OutstandingRequestTracker();
+    RoleStatus[] roleStats;
 
     roleStats = new RoleStatus[roleSize];
 
     for (ProviderRole providerRole : providerRoles) {
       int index = providerRole.id;
-      if (index > roleSize || index < 0) {
+      if (index >= roleSize || index < 0) {
         throw new ArrayIndexOutOfBoundsException("Provider " + providerRole
                                                  + " id is out of range");
       }
-      if (roleStats[index]!=null) {
+      if (roleStats[index] != null) {
         throw new ArrayIndexOutOfBoundsException(
-          providerRole.toString() + " id duplicates that of " + roleStats[index]);
+          providerRole.toString() + " id duplicates that of " +
+          roleStats[index]);
       }
       roleStats[index] = new RoleStatus(providerRole);
     }
@@ -111,7 +119,6 @@ public class RoleHistory {
       availableNodes[i] = new LinkedList<NodeInstance>();
     }
   }
-
 
   /**
    * Reset the variables -this does not adjust the fixed attributes
@@ -154,21 +161,6 @@ public class RoleHistory {
   public synchronized void saved(long timestamp) {
     dirty = false;
     saveTime = timestamp;
-  }
-
-  @SuppressWarnings("ReturnOfCollectionOrArrayField")
-  public List<ProviderRole> getProviderRoles() {
-    return providerRoles;
-  }
-
-  @SuppressWarnings("ReturnOfCollectionOrArrayField")
-  public RoleStatus[] getRoleStats() {
-    return roleStats;
-  }
-
-  @SuppressWarnings("ReturnOfCollectionOrArrayField")
-  protected NodeMap getNodemap() {
-    return nodemap;
   }
 
   /**
@@ -217,6 +209,14 @@ public class RoleHistory {
 
 
   /**
+   * Mark ourselves as dirty
+   */
+  public void touch() {
+    setDirty(true);
+  }
+
+
+  /**
    * purge the history of
    * all nodes that have been inactive since the absolute time
    * @param absoluteTime time
@@ -234,6 +234,41 @@ public class RoleHistory {
     }
   }
 
+  /**
+   * Get the path used for history files
+   * @return the directory used for history files
+   */
+  public Path getHistoryPath() {
+    return historyPath;
+  }
+
+  private Path createHistoryFilename(long time) {
+    String filename = String.format(Locale.ENGLISH,
+                                    HoyaKeys.HISTORY_FILENAME_PATTERN,
+                                    time);
+    Path path = new Path(historyPath, filename);
+    return path;
+  }
+
+  public Path saveHistory(long time) throws IOException {
+    Path filename = createHistoryFilename(time);
+    saveTime = time;
+    setDirty(false);
+    historyWriter.write(filesystem, filename, true, this, time);
+    return filename;
+  }
+
+  /**
+   * Start up
+   * @param fs filesystem 
+   * @param historyDir path in FS for history
+   */
+  public void onStart(FileSystem fs, Path historyDir) {
+    this.filesystem = fs;
+    this.historyPath = historyDir;
+    onBootstrap();
+    }
+  
   /**
    * Handler for bootstrap event
    */
@@ -303,7 +338,6 @@ public class RoleHistory {
   public synchronized AMRMClient.ContainerRequest requestInstanceOnNode(
     NodeInstance node, int role, Resource resource) {
     OutstandingRequest outstanding = outstandingRequests.addRequest(node, role);
-    roleStats[role].incRequested();
     return outstanding.buildContainerRequest(resource);
   }
   
@@ -353,8 +387,8 @@ public class RoleHistory {
 
   /**
    * Get the node instance of a container -always returns something
-   * @param container
-   * @return
+   * @param container container to look up
+   * @return a (possibly new) node instance
    */
   public NodeInstance getNodeInstance(Container container) {
     NodeAddress addr = RoleHistoryUtils.addressOf(container.getNodeId());
@@ -370,10 +404,16 @@ public class RoleHistory {
     nodeEntry.starting();
   }
 
-
-  public void containerStartSubmitted(Container container,
-                                      RoleInstance instance) {
+  /**
+   * Event: a container start has been submitter
+   * @param container container being started
+   * @param instance instance bound to the container
+   */
+  public void onContainerStartSubmitted(Container container,
+                                        RoleInstance instance) {
     NodeEntry nodeEntry = getNodeEntry(container);
+    int role = ContainerPriority.extractRole(container);
+    // any actions we want here
   }
 
   /**
@@ -384,8 +424,24 @@ public class RoleHistory {
     NodeEntry nodeEntry = getNodeEntry(container);
     nodeEntry.startCompleted();
   }
-  
-  public void containerReleaseSubmitted(Container container) {
+
+  /**
+   * A container failed to start: update the node entry state
+   * and return the container to the queue
+   * @param container container that failed
+   * @return true if the node was queued
+   */
+  public boolean onNodeManagerContainerStartFailed(Container container) {
+    NodeEntry nodeEntry = getNodeEntry(container);
+    boolean available = nodeEntry.startFailed();
+    return maybeQueueNode(container, nodeEntry, available);
+  }
+
+  /**
+   * A container release request was issued
+   * @param container container submitted
+   */
+  public void onContainerReleaseSubmitted(Container container) {
     NodeEntry nodeEntry = getNodeEntry(container);
     nodeEntry.release();
   }
@@ -393,23 +449,50 @@ public class RoleHistory {
   /**
    * App state notified of a container completed 
    * @param container completed container
+   * @return true if the node was queued
    */
-  public void onReleaseCompleted(Container container) {
-    markContainerFinished(container, true);
+  public boolean onReleaseCompleted(Container container) {
+    return markContainerFinished(container, true);
   }
 
   /**
    * App state notified of a container completed -but as
    * it wasn't being released it is marked as failed
    * @param container completed container
+   * @return true if the node was queued
    */
-  public void onFailedNode(Container container) {
-    markContainerFinished(container, false);
+  public boolean onFailedNode(Container container) {
+    return markContainerFinished(container, false);
   }
-  
-  private synchronized void markContainerFinished(Container container, boolean wasReleased) {
+
+  /**
+   * Mark a container finished; if it was released then that is treated
+   * differently.
+   *
+   * @param container completed container
+   * @param wasReleased was the container released?
+   * @return true if the node was queued
+
+   */
+  protected synchronized boolean markContainerFinished(Container container,
+                                                       boolean wasReleased) {
     NodeEntry nodeEntry = getNodeEntry(container);
-    if (nodeEntry.containerCompleted(wasReleased)) {
+    boolean available = nodeEntry.containerCompleted(wasReleased);
+    return maybeQueueNode(container, nodeEntry, available);
+  }
+
+  /**
+   * If the node is marked as available; queue it for assignments, mark
+   * this structure as dirty
+   * @param container completed container
+   * @param nodeEntry node
+   * @param available available flag
+   * @return true if the node was queued
+   */
+  private boolean maybeQueueNode(Container container,
+                              NodeEntry nodeEntry,
+                              boolean available) {
+    if (available) {
       //node is free
       nodeEntry.setLastUsed(now());
       NodeInstance ni = getNodeInstance(container);
@@ -418,14 +501,7 @@ public class RoleHistory {
       availableNodes[roleId].addFirst(ni);
       touch();
     }
+    return available;
   }
-
-  /**
-   * Mark ourselves as dirty
-   */
-  private void touch() {
-    setDirty(true);
-  }
-
 
 }

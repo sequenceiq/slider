@@ -22,8 +22,28 @@ import org.apache.hadoop.yarn.api.records.ApplicationId
 
 class MockApplicationId extends ApplicationId {
 
-  int id;
-  long clusterTimestamp
+  private int id;
+  private long clusterTimestamp
+
+  @Override
+  int getId() {
+    return id;
+  }
+
+  @Override
+  public void setId(int id) {
+    this.id = id;
+  }
+
+  @Override
+  long getClusterTimestamp() {
+    return clusterTimestamp
+  }
+
+  @Override
+  public  void setClusterTimestamp(long clusterTimestamp) {
+    this.clusterTimestamp = clusterTimestamp
+  }
 
   @Override
   public void build() {

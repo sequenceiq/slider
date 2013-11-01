@@ -20,6 +20,8 @@ package org.apache.hadoop.hoya.yarn.appmaster.state;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.StatusKeys;
@@ -281,6 +283,23 @@ public class AppState {
   }
 
 
+  /**
+   * Get the role history of the application
+   * @return the role history
+   */
+  @VisibleForTesting
+  public RoleHistory getRoleHistory() {
+    return roleHistory;
+  }
+
+  /**
+   * Get the path used for history files
+   * @return the directory used for history files
+   */
+  @VisibleForTesting
+  public Path getHistoryPath() {
+    return roleHistory.getHistoryPath();
+  }
   
   public void setContainerLimits(int maxMemory, int maxCores) {
     containerMaxCores = maxCores;
@@ -292,10 +311,14 @@ public class AppState {
    * @param clusterSpec cluster specification
    * @param siteConf site configuration
    * @param providerRoles roles offered by a provider
+   * @param fs
+   * @param historyDir
    */
   public void buildInstance(ClusterDescription clusterSpec,
                             Configuration siteConf,
-                            List<ProviderRole> providerRoles) {
+                            List<ProviderRole> providerRoles,
+                            FileSystem fs,
+                            Path historyDir) {
 
 
     // set the cluster specification
@@ -333,8 +356,13 @@ public class AppState {
     
     // add the roles
     roleHistory = new RoleHistory(providerRoles);
+    roleHistory.onStart(fs, historyDir);
   }
 
+  /**
+   * The cluster specification has been updated
+   * @param cd updated cluster specification
+   */
   public synchronized void updateClusterSpec(ClusterDescription cd) {
     setClusterSpec(cd);
 
@@ -346,6 +374,9 @@ public class AppState {
     buildRoleRequirementsFromClusterSpec();
   }
 
+  /**
+   * build the role requirements from the cluster specification
+   */
   private void buildRoleRequirementsFromClusterSpec() {
     //now update every role's desired count.
     //if there are no instance values, that role count goes to zero
@@ -583,7 +614,7 @@ public class AppState {
     instance.createTime = System.currentTimeMillis();
     getStartingNodes().put(container.getId(), instance);
     activeContainers.put(container.getId(), instance);
-    roleHistory.containerStartSubmitted(container, instance);
+    roleHistory.onContainerStartSubmitted(container, instance);
   }
 
   /**
@@ -614,7 +645,7 @@ public class AppState {
     containersBeingReleased.put(id, info.container);
     RoleStatus role = lookupRoleStatus(info.roleId);
     role.incReleasing();
-    roleHistory.containerReleaseSubmitted(container);
+    roleHistory.onContainerReleaseSubmitted(container);
   }
 
 
@@ -689,6 +720,8 @@ public class AppState {
       node.role = ROLE_UNKNOWN;
     }
     getLiveNodes().put(node.getContainerId(), node);
+    //tell role history
+    roleHistory.onContainerStarted(container);
   }
 
   /**
@@ -734,7 +767,6 @@ public class AppState {
     roleStatus.incStarted();
     Container container = active.container;
     addLaunchedContainer(container, active);
-    roleHistory.onContainerStarted(container);
     return active;
   }
 
@@ -760,6 +792,7 @@ public class AppState {
         instance.diagnostics = HoyaUtils.stringify(thrown);
       }
       getFailedNodes().put(containerId, instance);
+      roleHistory.onNodeManagerContainerStartFailed(instance.container);
     }
   }
 
@@ -1037,7 +1070,8 @@ public class AppState {
 
       //dec requested count
       role.decRequested();
-      //inc allocated count
+      //inc allocated count -this may need to be dropped in a moment,
+      // but us needed to update the logic below
       allocated = role.incActual();
 
       //look for (race condition) where we get more back than we asked

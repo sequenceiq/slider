@@ -105,6 +105,15 @@ public class NodeEntry {
     incLive();
   }
   
+    /**
+   * start failed -decrement the starting flag.
+   * @return true if the node is now available
+   */
+  public synchronized boolean startFailed() {
+    decStarting();
+    return isAvailable();
+  }
+  
   /**
    * no of requests made of this role of this node. If it goes above
    * 1 there's a problem
@@ -156,7 +165,6 @@ public class NodeEntry {
     } else {
       decLive();
     }
-
     return isAvailable();
   }
 
