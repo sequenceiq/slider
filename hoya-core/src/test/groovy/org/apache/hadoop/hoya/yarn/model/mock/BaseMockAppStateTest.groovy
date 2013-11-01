@@ -66,16 +66,16 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
 
   abstract String getTestName();
 
+  public RoleStatus getRole0Status() {
+    return appState.lookupRoleStatus(ROLE0)
+  }
+
   public RoleStatus getRole1Status() {
     return appState.lookupRoleStatus(ROLE1)
   }
 
   public RoleStatus getRole2Status() {
     return appState.lookupRoleStatus(ROLE2)
-  }
-
-  public RoleStatus getRole3Status() {
-    return appState.lookupRoleStatus(ROLE3)
   }
 
   /**

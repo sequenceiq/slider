@@ -36,6 +36,16 @@ import org.apache.hadoop.yarn.api.records.Resource
 @CompileStatic
 @Slf4j
 class MockFactory implements  MockRoles {
+
+  public static final ProviderRole PROVIDER_ROLE0 = new ProviderRole(
+      MockRoles.ROLE0,
+      0)
+  public static final ProviderRole PROVIDER_ROLE1 = new ProviderRole(
+      MockRoles.ROLE1,
+      1)
+  public static final ProviderRole PROVIDER_ROLE2 = new ProviderRole(
+      MockRoles.ROLE2,
+      2)
   int appIdCount;
   int attemptIdCount;
   int containerIdCount;
@@ -46,10 +56,10 @@ class MockFactory implements  MockRoles {
   /**
    * List of roles
    */
-  List<ProviderRole> ROLES = [
-      new ProviderRole(ROLE1, 0),
-      new ProviderRole(ROLE2, 1),
-      new ProviderRole(ROLE3, 2),
+  public static final List<ProviderRole> ROLES = [
+      PROVIDER_ROLE0,
+      PROVIDER_ROLE1,
+      PROVIDER_ROLE2,
   ]
 
   ContainerId newContainerId() {
@@ -95,9 +105,9 @@ class MockFactory implements  MockRoles {
   ClusterDescription newClusterSpec(int r1, int r2, int r3) {
     ClusterDescription cd = new ClusterDescription()
     cd.roles = [
-        (ROLE1):roleMap(r1),
-        (ROLE2):roleMap(r2),
-        (ROLE3):roleMap(r3),
+        (ROLE0):roleMap(r1),
+        (ROLE1):roleMap(r2),
+        (ROLE2):roleMap(r3),
     ]
 
     return cd

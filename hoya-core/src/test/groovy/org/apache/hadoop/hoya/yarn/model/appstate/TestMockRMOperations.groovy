@@ -23,16 +23,15 @@ import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.exceptions.HoyaRuntimeException
 import org.apache.hadoop.hoya.yarn.appmaster.state.AbstractRMOperation
 import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerAssignment
-import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerPriority
 import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerReleaseOperation
 import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerRequestOperation
 import org.apache.hadoop.hoya.yarn.appmaster.state.RMOperationHandler
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleInstance
 import org.apache.hadoop.hoya.yarn.model.mock.BaseMockAppStateTest
+import org.apache.hadoop.hoya.yarn.model.mock.MockFactory
 import org.apache.hadoop.hoya.yarn.model.mock.MockRMOperationHandler
 import org.apache.hadoop.hoya.yarn.model.mock.MockRoles
 import org.apache.hadoop.yarn.api.records.Container
-import org.apache.hadoop.yarn.api.records.Priority
 import org.apache.hadoop.yarn.client.api.AMRMClient
 import static org.apache.hadoop.hoya.yarn.appmaster.state.ContainerPriority.*
 import org.junit.Test
@@ -67,12 +66,12 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
   
   @Test
   public void testMockAddOp() throws Throwable {
-    role1Status.desired = 1
+    role0Status.desired = 1
     List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
     assert ops.size() == 1
     ContainerRequestOperation operation = (ContainerRequestOperation) ops[0]
     int priority = operation.request.priority.priority
-    assert extractRole(priority) == 0
+    assert extractRole(priority) == MockFactory.PROVIDER_ROLE0.id
     RMOperationHandler handler = new MockRMOperationHandler()
     handler.execute(ops)
 
@@ -84,7 +83,7 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
 
   @Test
   public void testAllocateReleaseOp() throws Throwable {
-    role1Status.desired = 1
+    role0Status.desired = 1
 
     List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
     ContainerRequestOperation operation = (ContainerRequestOperation) ops[0]
@@ -100,15 +99,15 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
     assert target.id == cont.id
     int roleId = assigned.role.priority
     assert roleId == extractRole(request.priority)
-    assert assigned.role.name == ROLE1
+    assert assigned.role.name == ROLE0
     RoleInstance ri = buildInstance(assigned)
     //tell the app it arrived
     appState.containerStartSubmitted(target, ri);
     appState.onNodeManagerContainerStartedFaulting(target.id)
-    assert role1Status.started == 1
+    assert role0Status.started == 1
 
     //now release it by changing the role status
-    role1Status.desired = 0
+    role0Status.desired = 0
     ops = appState.reviewRequestAndReleaseNodes()
     assert ops.size() == 1
 
@@ -119,8 +118,8 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
 
   @Test
   public void testComplexAllocation() throws Throwable {
-    role1Status.desired = 1
-    role2Status.desired = 3
+    role0Status.desired = 1
+    role1Status.desired = 3
 
     List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
     List<Container> allocations = engine.process(ops)
@@ -140,7 +139,7 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
       appState.onNodeManagerContainerStartedFaulting(target.id)
     }
     assert engine.containerCount() == 4;
-    role2Status.desired = 0
+    role1Status.desired = 0
     ops = appState.reviewRequestAndReleaseNodes()
     assert ops.size() == 3
     allocations = engine.process(ops)
@@ -153,7 +152,7 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
 
   @Test
   public void testDoubleNodeManagerStartEvent() throws Throwable {
-    role1Status.desired = 1
+    role0Status.desired = 1
 
     List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
     List<Container> allocations = engine.process(ops)
@@ -184,7 +183,7 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
 
   @Test
   public void testFlexDuringLaunchPhase() throws Throwable {
-    role1Status.desired = 1
+    role0Status.desired = 1
 
     List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
     List<Container> allocations = engine.process(
@@ -211,7 +210,7 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
 
   @Test
   public void testFlexBeforeAllocationPhase() throws Throwable {
-    role1Status.desired = 1
+    role0Status.desired = 1
 
     List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
     assert !ops.empty
