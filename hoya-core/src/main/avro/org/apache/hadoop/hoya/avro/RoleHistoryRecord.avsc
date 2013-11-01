@@ -1,7 +1,7 @@
 [
   {
     "type": "record",
-    "name": "org.apache.hoya.avro.NodeAddress",
+    "name": "org.apache.hadoop.hoya.avro.NodeAddress",
     "fields": [
       {
         "name": "host",
@@ -17,11 +17,11 @@
   {
     "type": "record",
     "name": "NodeEntryRecord",
-    "namespace": "org.apache.hoya.avro",
+    "namespace": "org.apache.hadoop.hoya.avro",
     "fields": [
       {
         "name": "node",
-        "type": "org.apache.hoya.avro.NodeAddress"
+        "type": "org.apache.hadoop.hoya.avro.NodeAddress"
       },
       {
         "name": "role",
@@ -41,7 +41,7 @@
   {
     "type": "record",
     "name": "RoleHistoryHeader",
-    "namespace": "org.apache.hoya.avro",
+    "namespace": "org.apache.hadoop.hoya.avro",
     "fields": [
       {
         "name": "saved",
@@ -56,7 +56,7 @@
   {
     "type": "record",
     "name": "RoleHistoryFooter",
-    "namespace": "org.apache.hoya.avro",
+    "namespace": "org.apache.hadoop.hoya.avro",
     "fields": [
       {
         "name": "count",
@@ -68,14 +68,14 @@
   {
     "type": "record",
     "name": "RoleHistoryRecord",
-    "namespace": "org.apache.hoya.avro",
+    "namespace": "org.apache.hadoop.hoya.avro",
     "fields": [
       {
         "name": "entry",
         "type": [
-          "org.apache.hoya.avro.NodeEntryRecord",
-          "org.apache.hoya.avro.RoleHistoryHeader",
-          "org.apache.hoya.avro.RoleHistoryFooter"
+          "org.apache.hadoop.hoya.avro.NodeEntryRecord",
+          "org.apache.hadoop.hoya.avro.RoleHistoryHeader",
+          "org.apache.hadoop.hoya.avro.RoleHistoryFooter"
         ]
       }
     ]

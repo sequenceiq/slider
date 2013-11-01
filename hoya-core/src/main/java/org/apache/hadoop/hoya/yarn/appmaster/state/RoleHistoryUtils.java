@@ -19,7 +19,7 @@
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
 import org.apache.hadoop.yarn.api.records.NodeId;
-import org.apache.hoya.avro.NodeAddress;
+import org.apache.hadoop.hoya.avro.NodeAddress;
 
 public class RoleHistoryUtils {
   public static NodeAddress addressOf(NodeId nodeId) {

@@ -22,7 +22,7 @@ import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
-import org.apache.hoya.avro.NodeAddress;
+import org.apache.hadoop.hoya.avro.NodeAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

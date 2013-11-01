@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.hoya.avro;
+package org.apache.hadoop.hoya.avro;
 
 import org.apache.avro.file.DataFileReader;
 import org.apache.avro.file.DataFileWriter;

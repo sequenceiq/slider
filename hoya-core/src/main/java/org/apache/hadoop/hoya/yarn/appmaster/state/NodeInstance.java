@@ -18,7 +18,7 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
-import org.apache.hoya.avro.NodeAddress;
+import org.apache.hadoop.hoya.avro.NodeAddress;
 
 import java.io.Serializable;
 import java.util.Comparator;
