@@ -1053,4 +1053,14 @@ public final class HoyaUtils {
     return ConfigHelper.loadFromResource(HoyaKeys.HOYA_CLIENT_RESOURCE);
   }
 
+  /**
+   * Convert a char sequence to a string.
+   * This ensures that comparisions work
+   * @param charSequence source
+   * @return the string equivalent
+   */
+  public static String sequenceToString(CharSequence charSequence) {
+    StringBuilder stringBuilder = new StringBuilder(charSequence);
+    return stringBuilder.toString();
+  }
 }

@@ -157,7 +157,6 @@ public class NodeEntry {
   public synchronized void release() {
     assert live > 0;
     releasing++;
-    live = RoleHistoryUtils.decToFloor(live);
   }
 
   /**
@@ -171,8 +170,8 @@ public class NodeEntry {
     if (wasReleased) {
       releasing = RoleHistoryUtils.decToFloor(releasing);
     } else {
-      decLive();
     }
+    decLive();
     return isAvailable();
   }
 

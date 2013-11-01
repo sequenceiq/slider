@@ -308,7 +308,8 @@ public class RoleHistory {
       NodeAddress addr = entry.getKey();
       NodeInstance ni = entry.getValue();
       for (int i = 0; i < roleSize; i++) {
-        if (ni.isAvailable(i)) {
+        NodeEntry nodeEntry = ni.get(i);
+        if (nodeEntry != null && nodeEntry.isAvailable()) {
           availableNodes[i].add(ni);
         }
       }
@@ -540,14 +541,24 @@ public class RoleHistory {
   public synchronized void dump() {
     for (ProviderRole role : providerRoles) {
       log.info(role.toString());
-      log.info("  available: " + availableNodes[role.id].size());
-      log.info(" " + HoyaUtils.joinWithInnerSeparator(", ", availableNodes[role.id]));
+      log.info("  available: " + availableNodes[role.id].size()
+               + " " + HoyaUtils.joinWithInnerSeparator(", ", availableNodes[role.id]));
     }
 
     log.info("Nodes in Cluster: {}", getClusterSize());
     for (NodeInstance node : nodemap.values()) {
-      log.info(node.toString());
+      log.info(node.toFullString());
     }
-    
+  }
+
+
+  /**
+   * Get a clone of the available list
+   * @param role role index
+   * @return a clone of the list
+   */
+  @VisibleForTesting
+  public List<NodeInstance> cloneAvailableList(int role) {
+    return new LinkedList<NodeInstance>(availableNodes[role]);
   }
 }

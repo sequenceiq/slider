@@ -18,10 +18,10 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.hoya.avro.NodeAddress;
 
 import java.io.Serializable;
-import java.util.Arrays;
 import java.util.Comparator;
 
 /**
@@ -73,6 +73,7 @@ public class NodeInstance {
    * not reflected, though they are if you edit the entries themselves
    * @return a copy of the array
    */
+  @VisibleForTesting
   public synchronized NodeEntry[] cloneNodeEntries() {
     return nodeEntries.clone();
   }
@@ -94,7 +95,7 @@ public class NodeInstance {
 
   /**
    * run through each entry; gc'ing & removing old ones
-   * @param age age in millis
+   * @param absoluteTime age in millis
    * @return true if there are still entries left
    */
   public synchronized boolean purgeUnusedEntries(long absoluteTime) {
@@ -110,19 +111,20 @@ public class NodeInstance {
     return active;
   }
 
-  /**
-   * Is this node available for use by a given role
-   * @param role role index
-   * @return true if it is not in use
-   */
-  public synchronized boolean isAvailable(int role) {
-    return nodeEntries[role].isAvailable();
-  }
-
   @Override
   public String toString() {
     final StringBuilder sb =
       new StringBuilder(RoleHistoryUtils.toString(nodeAddress));
+    return sb.toString();
+  }
+
+  /**
+   * Full dump of entry including children
+   * @return a multi-line description fo the node
+   */
+  public String toFullString() {
+    final StringBuilder sb =
+      new StringBuilder(toString());
     for (int i = 0; i < nodeEntries.length; i++) {
       NodeEntry entry = nodeEntries[i];
       sb.append(String.format("\n  [%02d]  ", i));
@@ -131,6 +133,32 @@ public class NodeInstance {
       }
     }
     return sb.toString();
+  }
+
+
+  /**
+   * Equality test is purely on the hostname of the node address
+   * @param o other
+   * @return true if the hostnames are equal
+   */
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    NodeInstance that = (NodeInstance) o;
+
+    return nodeAddress.getHost().equals(that.nodeAddress.getHost());
+
+  }
+
+  @Override
+  public int hashCode() {
+    return nodeAddress.hashCode();
   }
 
   /**
