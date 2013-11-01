@@ -38,6 +38,7 @@ import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.ExitUtil;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
+import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
@@ -731,6 +732,15 @@ public final class HoyaUtils {
     return report == null ||
            report.getYarnApplicationState().ordinal() >=
            YarnApplicationState.FINISHED.ordinal();
+  }
+
+  public static String containerToString(Container container) {
+    return String.format(Locale.ENGLISH,
+                         "ContainerID=%s nodeID=%s http=%s priority=%s",
+                         container.getId(),
+                         container.getNodeId(),
+                         container.getNodeHttpAddress(),
+                         container.getPriority());
   }
 
   public static String reportToString(ApplicationReport report) {

@@ -427,10 +427,12 @@ public class AppState {
   /**
    * Note that the master node has been launched,
    * though it isn't considered live until any forked
-   * processes are running
+   * processes are running. It is NOT registered with
+   * the role history -the container is incomplete
+   * and it will just cause confusion
    */
   public void noteAMLaunched() {
-    addLaunchedContainer(appMasterNode.container, appMasterNode);
+    getLiveNodes().put(appMasterNode.getContainerId(), appMasterNode);
   }
 
   /**

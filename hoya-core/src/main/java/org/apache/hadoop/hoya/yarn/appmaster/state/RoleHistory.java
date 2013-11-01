@@ -24,6 +24,7 @@ import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.avro.RoleHistoryWriter;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.yarn.api.records.Container;
+import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.hoya.avro.NodeAddress;
@@ -391,7 +392,7 @@ public class RoleHistory {
    * @return a (possibly new) node instance
    */
   public NodeInstance getNodeInstance(Container container) {
-    NodeAddress addr = RoleHistoryUtils.addressOf(container.getNodeId());
+    NodeAddress addr = RoleHistoryUtils.addressOf(container);
     return nodemap.getOrCreate(addr);
   }
 
