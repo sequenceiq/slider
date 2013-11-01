@@ -38,7 +38,9 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
   MockFactory factory = new MockFactory()
   AppState appState
   MockYarnEngine engine = new MockYarnEngine()
-  protected HadoopFS fs;
+  protected HadoopFS fs
+  protected File historyWorkDir
+  protected Path historyPath;
 
   @Override
   void setup() {
@@ -56,12 +58,12 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
     
     YarnConfiguration conf = createConfiguration()
     fs = HadoopFS.get(new URI("file:///"), conf)
-    File targetWorkDir = new File("target", historyDirName);
-    Path targetHistoryPath = new Path(targetWorkDir.toURI())
+    historyWorkDir = new File("target", historyDirName)
+    historyPath = new Path(historyWorkDir.toURI())
 //    fs.delete(targetHistoryPath, true)
     appState.buildInstance(factory.newClusterSpec(0, 0, 0),
                            new Configuration(false),
-                           factory.ROLES, fs, targetHistoryPath)
+                           factory.ROLES, fs, historyPath)
   }
 
   abstract String getTestName();
