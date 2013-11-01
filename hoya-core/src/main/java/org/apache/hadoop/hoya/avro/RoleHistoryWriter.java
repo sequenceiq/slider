@@ -18,21 +18,22 @@
 
 package org.apache.hadoop.hoya.avro;
 
-import org.apache.avro.file.DataFileReader;
-import org.apache.avro.file.DataFileWriter;
-import org.apache.avro.file.SeekableInput;
+import org.apache.avro.Schema;
+import org.apache.avro.file.SeekableFileInput;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DatumWriter;
+import org.apache.avro.io.Decoder;
+import org.apache.avro.io.DecoderFactory;
+import org.apache.avro.io.Encoder;
+import org.apache.avro.io.EncoderFactory;
 import org.apache.avro.specific.SpecificDatumReader;
 import org.apache.avro.specific.SpecificDatumWriter;
-import org.apache.commons.io.output.StringBuilderWriter;
 import org.apache.hadoop.fs.AvroFSInput;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hdfs.util.ByteBufferOutputStream;
 import org.apache.hadoop.hoya.yarn.appmaster.state.NodeEntry;
 import org.apache.hadoop.hoya.yarn.appmaster.state.NodeInstance;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleHistory;
@@ -40,9 +41,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.EOFException;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.Collection;
 
@@ -65,37 +67,41 @@ public class RoleHistoryWriter {
    */
   public long write(OutputStream out, RoleHistory history, long savetime)
     throws IOException {
-    DatumWriter<RoleHistoryRecord> datumWriter =
-      new SpecificDatumWriter<RoleHistoryRecord>(RoleHistoryRecord.class);
-    DataFileWriter<RoleHistoryRecord> writer =
-      new DataFileWriter<RoleHistoryRecord>(datumWriter);
+    try {
+      DatumWriter<RoleHistoryRecord> writer =
+        new SpecificDatumWriter<RoleHistoryRecord>(RoleHistoryRecord.class);
 
-    int roles = history.getRoleSize();
-    RoleHistoryHeader header = new RoleHistoryHeader(savetime,
-                                                     roles);
-    RoleHistoryRecord record = new RoleHistoryRecord(header);
-    writer.create(record.getSchema(), out);
-    writer.append(record);
-    long count = 0;
-    //now for every role history entry, write out its record
-    Collection<NodeInstance> instances = history.cloneNodemap().values();
-    for (NodeInstance instance : instances) {
-      for (int role = 0; role < roles; role++) {
-        NodeEntry nodeEntry = instance.get(role);
+      int roles = history.getRoleSize();
+      RoleHistoryHeader header = new RoleHistoryHeader(savetime,
+                                                       roles);
+      RoleHistoryRecord record = new RoleHistoryRecord(header);
+      Schema schema = record.getSchema();
+      Encoder encoder = EncoderFactory.get().jsonEncoder(schema, out);
+      writer.write(record, encoder);
+      long count = 0;
+      //now for every role history entry, write out its record
+      Collection<NodeInstance> instances = history.cloneNodemap().values();
+      for (NodeInstance instance : instances) {
+        for (int role = 0; role < roles; role++) {
+          NodeEntry nodeEntry = instance.get(role);
 
-        if (nodeEntry != null) {
-          NodeEntryRecord ner = build(nodeEntry, role, instance.nodeAddress);
-          record = new RoleHistoryRecord(ner);
-          writer.append(record);
-          count++;
+          if (nodeEntry != null) {
+            NodeEntryRecord ner = build(nodeEntry, role, instance.nodeAddress);
+            record = new RoleHistoryRecord(ner);
+            writer.write(record, encoder);
+            count++;
+          }
         }
       }
+      // footer
+      RoleHistoryFooter footer = new RoleHistoryFooter(count);
+      writer.write(new RoleHistoryRecord(footer), encoder);
+      encoder.flush();
+      out.close();
+      return count;
+    } finally {
+      out.close();
     }
-    // footer
-    RoleHistoryFooter footer = new RoleHistoryFooter(count);
-    writer.append(new RoleHistoryRecord(footer));
-    writer.close();
-    return count;
   }
 
   /**
@@ -133,94 +139,96 @@ public class RoleHistoryWriter {
    * @return no. of entries read
    * @throws IOException problems
    */
-  public int read(SeekableInput in, RoleHistory history) throws IOException {
-    DatumReader<RoleHistoryRecord> datumReader =
-      new SpecificDatumReader<RoleHistoryRecord>(RoleHistoryRecord.class);
-    DataFileReader<RoleHistoryRecord> reader =
-      new DataFileReader<RoleHistoryRecord>(in, datumReader);
-    if (!reader.hasNext()) {
-      throw new EOFException("Empty Role History file");
-    }
-    RoleHistoryRecord record = reader.next();
-    Object entry = record.getEntry();
-    if (!(entry instanceof RoleHistoryHeader)) {
-      throw new IOException("Role History Header not found at start of file");
-    }
-    RoleHistoryHeader header = (RoleHistoryHeader) entry;
-    Integer roleSize = header.getRoles();
-    Long saved = header.getSaved();
-    history.prepareForReading(roleSize);
-    RoleHistoryFooter footer = null;
-    int records = 0;
-    while (reader.hasNext()) {
-      record = reader.next();
-      entry = record.getEntry();
+  public int read(InputStream in, RoleHistory history) throws IOException {
+    try {
+      DatumReader<RoleHistoryRecord> reader =
+        new SpecificDatumReader<RoleHistoryRecord>(RoleHistoryRecord.class);
+      Decoder decoder =
+        DecoderFactory.get().jsonDecoder(RoleHistoryRecord.getClassSchema(),
+                                         in);
 
-      if (entry instanceof RoleHistoryHeader) {
-        throw new IOException("Duplicate Role History Header found");
+      //read header : no entry -> EOF
+      RoleHistoryRecord record = reader.read(null, decoder);
+      Object entry = record.getEntry();
+      if (!(entry instanceof RoleHistoryHeader)) {
+        throw new IOException("Role History Header not found at start of file");
       }
-      if (entry instanceof RoleHistoryFooter) {
-        //tail end of the file
-        footer = (RoleHistoryFooter) entry;
-        break;
+      RoleHistoryHeader header = (RoleHistoryHeader) entry;
+      Integer roleSize = header.getRoles();
+      Long saved = header.getSaved();
+      history.prepareForReading(roleSize);
+      RoleHistoryFooter footer = null;
+      int records = 0;
+      //go through reading data
+      try { while (true) {
+        record = reader.read(record, decoder);
+        entry = record.getEntry();
+
+        if (entry instanceof RoleHistoryHeader) {
+          throw new IOException("Duplicate Role History Header found");
+        }
+        if (entry instanceof RoleHistoryFooter) {
+          //tail end of the file
+          footer = (RoleHistoryFooter) entry;
+          break;
+        }
+        records++;
+        NodeEntryRecord nodeEntryRecord = (NodeEntryRecord) entry;
+        NodeEntry nodeEntry = new NodeEntry();
+        nodeEntry.setLastUsed(nodeEntryRecord.getLastUsed());
+        if (nodeEntryRecord.getActive()) {
+          //if active at the time of save, make the last used time the save time
+          nodeEntry.setLastUsed(saved);
+        }
+        Integer roleId = nodeEntryRecord.getRole();
+        NodeAddress addr = nodeEntryRecord.getNode();
+        NodeInstance instance = history.getOrCreateNodeInstance(addr);
+        instance.set(roleId, nodeEntry);
+      } } catch (EOFException e) {
+        EOFException ex = new EOFException(
+          "End of file reached after " + records + " records");
+        ex.initCause(e);
+        throw ex;
       }
-      records++;
-      NodeEntryRecord nodeEntryRecord = (NodeEntryRecord) entry;
-      NodeEntry nodeEntry = new NodeEntry();
-      nodeEntry.setLastUsed(nodeEntryRecord.getLastUsed());
-      if (nodeEntryRecord.getActive()) {
-        //if active at the time of save, make the last used time the save time
-        nodeEntry.setLastUsed(saved);
+      //at this point there should be no data left. 
+      if (in.read() > 0) {
+        // footer is in stream before the last record
+        throw new EOFException(
+          "File footer reached before end of file -after " + records +
+          " records");
       }
-      Integer roleId = nodeEntryRecord.getRole();
-      NodeAddress addr = nodeEntryRecord.getNode();
-      NodeInstance instance = history.getOrCreateNodeInstance(addr);
-      instance.set(nodeEntryRecord.getRole(), nodeEntry);
-    }
-    //here the footer has been found or the stream ran out early
-    if (footer == null) {
-      throw new EOFException(
-        "End of file reached after " + records + " records");
-    }
-    if (reader.hasNext()) {
-      // footer is in stream before the last record
-      throw new EOFException(
-        "File footer reached before end of file -after " + records +
-        " records");
-    }
-    if (records != footer.getCount()) {
-      log.warn("mismatch between no of records saved {} and number read {}",
-               footer.getCount(), records);
+      if (records != footer.getCount()) {
+        log.warn("mismatch between no of records saved {} and number read {}",
+                 footer.getCount(), records);
+      }
+      return records;
+    } finally {
+      in.close();
     }
 
-    return records;
   }
 
   public int read(FileSystem fs, Path path, RoleHistory roleHistory) throws
                                                                      IOException {
-    FileStatus stat = fs.getFileStatus(path);
     FSDataInputStream instream = fs.open(path);
-    AvroFSInput input = new AvroFSInput(instream, stat.getLen());
-    return read(input, roleHistory);
-  } 
-
-  public int read(String resource, RoleHistory roleHistory) throws
-                                                            IOException {
-
-    InputStream instream =
-      this.getClass().getClassLoader().getResourceAsStream(resource);
-    StringBuilder builder = new StringBuilder();
-    StringBuilderWriter sbw = new StringBuilderWriter(builder);
-    InputStreamReader isr = new InputStreamReader(instream);
-    try {
-      int ch;
-      while ((ch = isr.read()) >= 0) {
-        sbw.write(ch);
-      }
-    } finally {
-      isr.close();
-      sbw.close();
-    }
-    return 0;
+    return read(instream, roleHistory);
   }
+
+  public int read(File file, RoleHistory roleHistory) throws
+                                                      IOException {
+
+
+    
+    return read(new FileInputStream(file), roleHistory);
+  }
+  
+  public int read(String resource, RoleHistory roleHistory) throws
+                                                      IOException {
+
+
+    
+    return read(this.getClass().getClassLoader().getResourceAsStream(resource), roleHistory);
+  }
+  
+  
 }
