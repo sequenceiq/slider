@@ -25,9 +25,14 @@ import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.specific.SpecificDatumReader;
 import org.apache.avro.specific.SpecificDatumWriter;
+import org.apache.commons.io.output.StringBuilderWriter;
+import org.apache.hadoop.fs.AvroFSInput;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.util.ByteBufferOutputStream;
 import org.apache.hadoop.hoya.yarn.appmaster.state.NodeEntry;
 import org.apache.hadoop.hoya.yarn.appmaster.state.NodeInstance;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleHistory;
@@ -36,6 +41,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.Collection;
 
@@ -189,5 +196,31 @@ public class RoleHistoryWriter {
     return records;
   }
 
+  public int read(FileSystem fs, Path path, RoleHistory roleHistory) throws
+                                                                     IOException {
+    FileStatus stat = fs.getFileStatus(path);
+    FSDataInputStream instream = fs.open(path);
+    AvroFSInput input = new AvroFSInput(instream, stat.getLen());
+    return read(input, roleHistory);
+  } 
 
+  public int read(String resource, RoleHistory roleHistory) throws
+                                                            IOException {
+
+    InputStream instream =
+      this.getClass().getClassLoader().getResourceAsStream(resource);
+    StringBuilder builder = new StringBuilder();
+    StringBuilderWriter sbw = new StringBuilderWriter(builder);
+    InputStreamReader isr = new InputStreamReader(instream);
+    try {
+      int ch;
+      while ((ch = isr.read()) >= 0) {
+        sbw.write(ch);
+      }
+    } finally {
+      isr.close();
+      sbw.close();
+    }
+    return 0;
+  }
 }
