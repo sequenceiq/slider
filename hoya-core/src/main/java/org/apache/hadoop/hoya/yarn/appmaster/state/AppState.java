@@ -841,7 +841,7 @@ public class AppState {
           roleStatus.decActual();
           roleStatus.incFailed();
           
-          roleHistory.onFailedNode(roleInstance.container);
+          roleHistory.onFailedContainer(roleInstance.container);
           
         } catch (YarnRuntimeException e1) {
           log.error("Failed container of unknown role {}", roleId);

@@ -157,8 +157,8 @@ public class RoleHistory {
   public int getClusterSize() {
     return nodemap.size();
   }
-  
-    public synchronized boolean isDirty() {
+
+  public synchronized boolean isDirty() {
     return dirty;
   }
 
@@ -220,14 +220,17 @@ public class RoleHistory {
     purgeUnusedEntries(absoluteTime);
   }
 
-
   /**
    * Mark ourselves as dirty
    */
   public void touch() {
     setDirty(true);
+    try {
+      saveHistoryIfDirty();
+    } catch (IOException e) {
+      log.error("Failed to save history file ", e);
+    }
   }
-
 
   /**
    * purge the history of
@@ -267,13 +270,36 @@ public class RoleHistory {
     return path;
   }
 
-  public Path saveHistory(long time) throws IOException {
+  /**
+   * Save the history to its location using the timestamp as part of
+   * the filename. The saveTime and dirty fields are updated
+   * @param time timestamp timestamp to use as the save time
+   * @return the path saved to
+   * @throws IOException IO problems
+   */
+  @VisibleForTesting
+  public synchronized Path saveHistory(long time) throws IOException {
     Path filename = createHistoryFilename(time);
     saveTime = time;
     setDirty(false);
     historyWriter.write(filesystem, filename, true, this, time);
     return filename;
   }
+
+  /**
+   * Save the history with the current timestamp if it is dirty;
+   * return the path saved to if this is the case
+   * @return the path or null if the history was not saved
+   * @throws IOException failed to save for some reason
+   */
+  public synchronized Path saveHistoryIfDirty() throws IOException {
+    if (isDirty()) {
+      long time = now();
+      return saveHistory(time);
+    } else {
+      return null;
+    }
+  } 
 
   /**
    * Start up
@@ -398,7 +424,6 @@ public class RoleHistory {
     return null;
   }
 
-
   /**
    * Get the node entry of a container
    * @param container
@@ -456,6 +481,7 @@ public class RoleHistory {
   public void onContainerStarted(Container container) {
     NodeEntry nodeEntry = getOrCreateNodeEntry(container);
     nodeEntry.startCompleted();
+    touch();
   }
 
   /**
@@ -467,7 +493,9 @@ public class RoleHistory {
   public boolean onNodeManagerContainerStartFailed(Container container) {
     NodeEntry nodeEntry = getOrCreateNodeEntry(container);
     boolean available = nodeEntry.startFailed();
-    return maybeQueueNode(container, nodeEntry, available);
+    maybeQueueNodeForWork(container, nodeEntry, available);
+    touch();
+    return available;
   }
 
   /**
@@ -494,13 +522,13 @@ public class RoleHistory {
    * @param container completed container
    * @return true if the node was queued
    */
-  public boolean onFailedNode(Container container) {
+  public boolean onFailedContainer(Container container) {
     return markContainerFinished(container, false);
   }
 
   /**
    * Mark a container finished; if it was released then that is treated
-   * differently.
+   * differently. history is touch()ed
    *
    * @param container completed container
    * @param wasReleased was the container released?
@@ -511,20 +539,22 @@ public class RoleHistory {
                                                        boolean wasReleased) {
     NodeEntry nodeEntry = getOrCreateNodeEntry(container);
     boolean available = nodeEntry.containerCompleted(wasReleased);
-    return maybeQueueNode(container, nodeEntry, available);
+    maybeQueueNodeForWork(container, nodeEntry, available);
+    touch();
+    return available;
   }
 
   /**
-   * If the node is marked as available; queue it for assignments, mark
-   * this structure as dirty
+   * If the node is marked as available; queue it for assignments.
+   * Unsynced: expects caller to be in a sync block.
    * @param container completed container
    * @param nodeEntry node
    * @param available available flag
    * @return true if the node was queued
    */
-  private boolean maybeQueueNode(Container container,
-                              NodeEntry nodeEntry,
-                              boolean available) {
+  private boolean maybeQueueNodeForWork(Container container,
+                                        NodeEntry nodeEntry,
+                                        boolean available) {
     if (available) {
       //node is free
       nodeEntry.setLastUsed(now());
@@ -532,7 +562,6 @@ public class RoleHistory {
       int roleId = ContainerPriority.extractRole(container);
       log.debug("Node {} is now available for role id {}", ni, roleId);
       availableNodes[roleId].addFirst(ni);
-      touch();
     }
     return available;
   }

@@ -72,11 +72,11 @@ public final class OutstandingRequest {
     boolean relaxLocality;
     if (node != null) {
       hosts = new String[1];
-      hosts[1] = node.hostname;
+      hosts[0] = node.hostname;
       relaxLocality = true;
       // tell the node it is in play
       node.getOrCreate(roleId);
-      log.info("Submitting request for container on {}", hosts[1]);
+      log.info("Submitting request for container on {}", hosts[0]);
     } else {
       hosts = null;
       relaxLocality = true;
