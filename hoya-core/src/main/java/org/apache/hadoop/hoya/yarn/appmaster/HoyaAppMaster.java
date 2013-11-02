@@ -712,11 +712,7 @@ public class HoyaAppMaster extends CompositeService
    * Get diagnostics info about containers
    */
   private String getContainerDiagnosticInfo() {
-    StringBuilder builder = new StringBuilder();
-    for (RoleStatus roleStatus : getRoleStatusMap().values()) {
-      builder.append(roleStatus).append('\n');
-    }
-    return builder.toString();
+   return appState.getContainerDiagnosticInfo();
   }
 
   public Object getProxy(Class protocol, InetSocketAddress addr) {
@@ -1171,16 +1167,10 @@ public class HoyaAppMaster extends CompositeService
     LOG_YARN.error("Failed to query the status of Container {}", containerId);
   }
 
-
   @Override //  NMClientAsync.CallbackHandler 
   public void onStopContainerError(ContainerId containerId, Throwable t) {
     LOG_YARN.warn("Failed to stop Container {}", containerId);
   }
-
-  public Map<Integer, RoleStatus> getRoleStatusMap() {
-    return appState.getRoleStatusMap();
-  }
-
 
   /**
    The cluster description published to callers

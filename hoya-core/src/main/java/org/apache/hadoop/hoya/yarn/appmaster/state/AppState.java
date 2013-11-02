@@ -246,7 +246,7 @@ public class AppState {
     return completionOfUnknownContainerEvent;
   }
 
-  public Map<Integer, RoleStatus> getRoleStatusMap() {
+  private Map<Integer, RoleStatus> getRoleStatusMap() {
     return roleStatusMap;
   }
 
@@ -624,8 +624,7 @@ public class AppState {
    * and mark the associated ContainerInfo released field to indicate that
    * while it is still in the active list, it has been queued for release.
    *
-   * @param id container ID
-   * @param container
+   * @param container container
    * @throws HoyaInternalStateException if there is no container of that ID
    * on the active list
    */
@@ -662,6 +661,7 @@ public class AppState {
     RoleStatus role,
     Resource capability) {
     buildResourceRequirements(role, capability);
+    //get the role history to select a suitable node, if available
     AMRMClient.ContainerRequest containerRequest =
       roleHistory.requestNode(role.getKey(), capability);
     createContainerRequest(role, capability);
@@ -1018,8 +1018,8 @@ public class AppState {
       //here everything should be freed up, though there may be an excess due 
       //to race conditions with requests coming in
       if (excess > 0) {
-        log.warn(
-          "{}: After releasing all nodes that could be free, there was an excess of {} nodes",
+        log.warn("{}: After releasing all nodes that could be free," +
+          " there was an excess of {} nodes",
           name,
           excess);
       }
@@ -1105,4 +1105,16 @@ public class AppState {
       }
     }
   }
+
+  /**
+   * Get diagnostics info about containers
+   */
+  public String getContainerDiagnosticInfo() {
+    StringBuilder builder = new StringBuilder();
+    for (RoleStatus roleStatus : getRoleStatusMap().values()) {
+      builder.append(roleStatus).append('\n');
+    }
+    return builder.toString();
+  }
+
 }
