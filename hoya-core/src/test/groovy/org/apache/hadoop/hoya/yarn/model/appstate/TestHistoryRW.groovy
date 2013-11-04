@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.model.appstate
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.fs.Path
+import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.avro.RoleHistoryWriter
 import org.apache.hadoop.hoya.yarn.appmaster.state.NodeEntry
 import org.apache.hadoop.hoya.yarn.appmaster.state.NodeInstance
@@ -28,6 +29,9 @@ import org.apache.hadoop.hoya.yarn.appmaster.state.RoleHistory
 import org.apache.hadoop.hoya.yarn.model.mock.BaseMockAppStateTest
 import org.apache.hadoop.hoya.yarn.model.mock.MockFactory
 import org.junit.Test
+
+import java.util.regex.Matcher
+import java.util.regex.Pattern
 
 @Slf4j
 @CompileStatic
@@ -116,7 +120,7 @@ class TestHistoryRW extends BaseMockAppStateTest {
     assert loadedNE2.lastUsed == savetime
 
     // now thaw it
-    rh2.onThaw();
+    rh2.onThawCompleted();
     describe("thawing")
     rh2.dump();
     List<NodeInstance> available0 = rh2.cloneAvailableList(0)
@@ -129,6 +133,12 @@ class TestHistoryRW extends BaseMockAppStateTest {
     assert available1.size() == 2
     //and verify that even if last used was set, the save time is picked up
     assert entry.get(1).lastUsed == roleHistory.saveTime
+    
+    // see that history sorting works
+    List<Path> entries = historyWriter.findAllHistoryEntries(fs, historyPath)
+    assert entries.size() == 4
+    //we expect this to be sorted
   }
+
   
 }

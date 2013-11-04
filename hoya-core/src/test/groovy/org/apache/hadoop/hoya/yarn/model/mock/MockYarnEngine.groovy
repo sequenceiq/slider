@@ -35,6 +35,7 @@ class MockYarnEngine {
 
   MockYarnCluster cluster;
   Allocator allocator;
+  List<ContainerRequestOperation> pending = [];
 
   ApplicationId appId = new MockApplicationId(
       id: 0,
@@ -83,20 +84,18 @@ class MockYarnEngine {
    * @return
    */
   List<Container> process(List<AbstractRMOperation> ops) {
-    def (allocation, remainder) = processQueue(ops)
-    return allocation
+    return processQueue(ops)
   }
 
   /**
    * Process a list of operations -release containers to be released,
    * allocate those for which there is space (but don't rescan the list after
-   * the scan)
-   * @param ops
-   * @return
+   * the scan). Unsatisifed entries are appended to the "pending" list
+   * @param ops operations
+   * @return the list of all satisfied operations
    */
-  def processQueue(List<AbstractRMOperation> ops) {
+  List<Container> processQueue(List<AbstractRMOperation> ops) {
     List<Container> allocation = [];
-    List<ContainerRequestOperation> unsatisfiedAllocations = []
     ops.each { AbstractRMOperation op ->
       if (op instanceof ContainerReleaseOperation) {
         ContainerReleaseOperation cro = (ContainerReleaseOperation) op
@@ -107,11 +106,12 @@ class MockYarnEngine {
         if (container != null) {
           allocation.add(container)
         } else {
-          unsatisfiedAllocations.add(req)
+          log.debug("Unsatisfied allocation $req")
+          pending.add(req)
         }
       }
     }
-    return [allocation, unsatisfiedAllocations]
+    return allocation
   }
 
 }

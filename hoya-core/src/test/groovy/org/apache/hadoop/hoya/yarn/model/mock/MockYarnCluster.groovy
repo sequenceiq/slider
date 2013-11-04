@@ -29,16 +29,16 @@ import org.apache.hadoop.yarn.api.records.NodeId
  * nodes retain the slot model with a limit of 2^8 slots/host -this
  * lets us use 24 bits of the container ID for hosts, and so simulate
  * larger hosts.
- * 
+ *
  * upper 32: index into nodes in the cluster
  * NodeID hostname is the index in hex format; this is parsed down to the index
  * to resolve the host
- * 
+ *
  * Important: container IDs will be reused as containers get recycled. This
  * is not an attempt to realistically mimic a real YARN cluster, just 
  * simulate it enough for Hoya to explore node re-use and its handling
  * of successful and unsuccessful allocations.
- * 
+ *
  * There is little or no checking of valid parameters in here -this is for
  * test use, not production.
  */
@@ -78,7 +78,7 @@ public class MockYarnCluster {
   MockYarnClusterNode lookup(NodeId nodeId) {
     return lookup(nodeId.host)
   }
-  
+
   MockYarnClusterNode lookupOwner(ContainerId cid) {
     return nodeAt(extractHost(cid.id))
   }
@@ -92,7 +92,7 @@ public class MockYarnCluster {
     int host = extractHost(cid.id)
     return nodeAt(host).release(cid.id)
   }
-  
+
   int containersInUse() {
     int count = 0;
     nodes.each { MockYarnClusterNode it -> count += it.containersInUse() }
@@ -106,15 +106,39 @@ public class MockYarnCluster {
   int containersFree() {
     return totalClusterCapacity() - containersInUse();
   }
-  
+
   int totalClusterCapacity() {
     return clusterSize * containersPerNode;
   }
 
+  /**
+   * Reset all the containers
+   */
+  public void reset() {
+    nodes.each { MockYarnClusterNode node ->
+      node.reset()
+    }
+  }
+
+  /**
+   * Bulk allocate the specific number of containers on a range of the cluster
+   * @param startNode start of the range
+   * @param endNode end of the range
+   * @param count count 
+   * @return the number actually allocated -it will be less the count supplied
+   * if the node was full
+   */
+  public int bulkAllocate(int startNode, int endNode, int count) {
+    int total = 0;
+    for (int i in startNode..endNode) {
+      total += nodeAt(i).bulkAllocate(count).size()
+    }
+    return total;
+  }
 /**
  * Model cluster nodes on the simpler "slot" model than the YARN-era
  * resource allocation model. Why? Makes it easier to implement.
- * 
+ *
  * When a cluster is offline, 
  */
   public static class MockYarnClusterNode {
@@ -148,15 +172,13 @@ public class MockYarnCluster {
     public void goOffline() {
       if (!offline) {
         offline = true;
-        for (int i = 0; i < containers.size(); i++) {
-          containers[i].busy=false;
-        }
+        reset()
       }
     }
     
     public void goOnline() {
       offline = false;
-    } 
+    }
 
     /**
      * allocate a container -if one is available 
@@ -167,7 +189,7 @@ public class MockYarnCluster {
       if (!offline) {
         for (int i = 0; i < containers.size(); i++) {
           MockYarnClusterContainer c = containers[i]
-          if(!c.busy) {
+          if (!c.busy) {
             c.busy = true;
             return c;
           }
@@ -175,26 +197,60 @@ public class MockYarnCluster {
       }
       return null;
     }
+
+    /**
+     * Bulk allocate the specific number of containers
+     * @param count count
+     * @return the list actually allocated -it will be less the count supplied
+     * if the node was full
+     */
+    public List<MockYarnClusterContainer> bulkAllocate(int count) {
+      List < MockYarnClusterContainer > result = []
+      for (int i = 0; i < count; i++) {
+        MockYarnClusterContainer allocation = allocate();
+        if (allocation == null) {
+          break;
+        }
+        result << allocation
+      }
+      return result
+    }
     
+    
+
+    /**
+     * Release a container
+     * @param cid container ID
+     * @return true if the container was busy before the release
+     */
     public boolean release(int cid) {
       MockYarnClusterContainer container = containers[extractContainer(cid)]
       boolean b = container.busy;
       container.busy = false;
       return b;
     }
-    
+
     public String httpAddress() {
       return "http://$hostname/"
     }
+
+    /**
+     * Reset all the containers
+     */
+    public void reset() {
+      containers.each { MockYarnClusterContainer cont ->
+        cont.reset()
+      }
+    }
     
-    public int containersInUse() {
+   public int containersInUse() {
       int c = 0;
       containers.each { MockYarnClusterContainer cont ->
-        c += cont.busy? 1: 0  
+        c += cont.busy ? 1 : 0
       }
       return c
     }
-    
+
     public int containersFree() {
       return containers.length - containersInUse();
     }
@@ -209,6 +265,10 @@ public class MockYarnCluster {
 
     MockYarnClusterContainer(MockContainerId cid) {
       this.cid = cid
+    }
+    
+    void reset() {
+      busy = false;
     }
   }
 

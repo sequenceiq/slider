@@ -34,6 +34,10 @@
         "type": "long"
       },
       {
+        "name": "version",
+        "type": "int"
+      },
+      {
         "name": "roles",
         "type": "int"
       }

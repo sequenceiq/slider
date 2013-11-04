@@ -18,8 +18,8 @@
 
 package org.apache.hadoop.hoya.avro;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.avro.Schema;
-import org.apache.avro.file.SeekableFileInput;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.Decoder;
@@ -28,12 +28,15 @@ import org.apache.avro.io.Encoder;
 import org.apache.avro.io.EncoderFactory;
 import org.apache.avro.specific.SpecificDatumReader;
 import org.apache.avro.specific.SpecificDatumWriter;
-import org.apache.hadoop.fs.AvroFSInput;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.GlobFilter;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathFilter;
+import org.apache.hadoop.hoya.HoyaKeys;
+import org.apache.hadoop.hoya.exceptions.HoyaIOException;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.appmaster.state.NodeEntry;
 import org.apache.hadoop.hoya.yarn.appmaster.state.NodeInstance;
@@ -44,9 +47,14 @@ import org.slf4j.LoggerFactory;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Collection;
 
 /**
@@ -56,6 +64,14 @@ public class RoleHistoryWriter {
   protected static final Logger log =
     LoggerFactory.getLogger(RoleHistoryWriter.class);
 
+  /**
+   * Although Avro is designed to handle some changes, we still keep a version
+   * marker in the file to catch changes that are fundamentally incompatible
+   * at the semantic level -changes that require either a different
+   * parser or get rejected outright.
+   */
+  public static final int ROLE_HISTORY_VERSION = 0x01;
+  
   /**
    * Write out the history.
    * This does not update the history's dirty/savetime fields
@@ -74,6 +90,7 @@ public class RoleHistoryWriter {
 
       int roles = history.getRoleSize();
       RoleHistoryHeader header = new RoleHistoryHeader(savetime,
+                                                       ROLE_HISTORY_VERSION,
                                                        roles);
       RoleHistoryRecord record = new RoleHistoryRecord(header);
       Schema schema = record.getSchema();
@@ -157,35 +174,43 @@ public class RoleHistoryWriter {
       RoleHistoryHeader header = (RoleHistoryHeader) entry;
       Integer roleSize = header.getRoles();
       Long saved = header.getSaved();
+      if (header.getVersion()!=ROLE_HISTORY_VERSION) {
+        throw new HoyaIOException("Can't read role file version %04x -need %04x",
+                                  header.getVersion(),
+                                  ROLE_HISTORY_VERSION);
+      }
       history.prepareForReading(roleSize);
       RoleHistoryFooter footer = null;
       int records = 0;
       //go through reading data
-      try { while (true) {
-        record = reader.read(null, decoder);
-        entry = record.getEntry();
+      try {
+        while (true) {
+          record = reader.read(null, decoder);
+          entry = record.getEntry();
 
-        if (entry instanceof RoleHistoryHeader) {
-          throw new IOException("Duplicate Role History Header found");
+          if (entry instanceof RoleHistoryHeader) {
+            throw new HoyaIOException("Duplicate Role History Header found");
+          }
+          if (entry instanceof RoleHistoryFooter) {
+            //tail end of the file
+            footer = (RoleHistoryFooter) entry;
+            break;
+          }
+          records++;
+          NodeEntryRecord nodeEntryRecord = (NodeEntryRecord) entry;
+          NodeEntry nodeEntry = new NodeEntry();
+          nodeEntry.setLastUsed(nodeEntryRecord.getLastUsed());
+          if (nodeEntryRecord.getActive()) {
+            //if active at the time of save, make the last used time the save time
+            nodeEntry.setLastUsed(saved);
+          }
+          Integer roleId = nodeEntryRecord.getRole();
+          String hostname =
+            HoyaUtils.sequenceToString(nodeEntryRecord.getHost());
+          NodeInstance instance = history.getOrCreateNodeInstance(hostname);
+          instance.set(roleId, nodeEntry);
         }
-        if (entry instanceof RoleHistoryFooter) {
-          //tail end of the file
-          footer = (RoleHistoryFooter) entry;
-          break;
-        }
-        records++;
-        NodeEntryRecord nodeEntryRecord = (NodeEntryRecord) entry;
-        NodeEntry nodeEntry = new NodeEntry();
-        nodeEntry.setLastUsed(nodeEntryRecord.getLastUsed());
-        if (nodeEntryRecord.getActive()) {
-          //if active at the time of save, make the last used time the save time
-          nodeEntry.setLastUsed(saved);
-        }
-        Integer roleId = nodeEntryRecord.getRole();
-        String hostname = HoyaUtils.sequenceToString(nodeEntryRecord.getHost());
-        NodeInstance instance = history.getOrCreateNodeInstance(hostname);
-        instance.set(roleId, nodeEntry);
-      } } catch (EOFException e) {
+      } catch (EOFException e) {
         EOFException ex = new EOFException(
           "End of file reached after " + records + " records");
         ex.initCause(e);
@@ -209,27 +234,98 @@ public class RoleHistoryWriter {
 
   }
 
+  /**
+   * Read a role history from a path in a filesystem
+   * @param fs filesystem
+   * @param path path to the file
+   * @param roleHistory history to build
+   * @return the number of records read
+   * @throws IOException any problem
+   */
   public int read(FileSystem fs, Path path, RoleHistory roleHistory) throws
                                                                      IOException {
     FSDataInputStream instream = fs.open(path);
     return read(instream, roleHistory);
   }
 
+  /**
+   * Read a role history from local file
+   * @param file path to the file
+   * @param roleHistory history to build
+   * @return the number of records read
+   * @throws IOException any problem
+   */
   public int read(File file, RoleHistory roleHistory) throws
                                                       IOException {
 
 
-    
     return read(new FileInputStream(file), roleHistory);
   }
-  
+
+  /**
+   * Read from a resource in the classpath -used for testing
+   * @param resource resource
+   * @param roleHistory history to build
+   * @return the number of records read
+   * @throws IOException any problem
+   */
   public int read(String resource, RoleHistory roleHistory) throws
-                                                      IOException {
+                                                            IOException {
 
-
-    
-    return read(this.getClass().getClassLoader().getResourceAsStream(resource), roleHistory);
+    return read(this.getClass().getClassLoader().getResourceAsStream(resource),
+                roleHistory);
   }
-  
-  
+
+
+  /**
+   * Find all history entries in a dir. The dir is created if it is
+   * not already defined.
+   * 
+   * The scan uses the match pattern {@link HoyaKeys#HISTORY_FILENAME_MATCH_PATTERN}
+   * while dropping empty files and directories which match the pattern.
+   * The list is then sorted with a comparator that sorts on filename,
+   * relying on the filename of newer created files being later than the old ones.
+   * 
+   * 
+   * @param fs
+   * @param dir
+   * @return a possibly empty list
+   * @throws IOException IO problems
+   * @throws FileNotFoundException if the target dir is actually a path
+   */
+  public List<Path> findAllHistoryEntries(FileSystem fs, Path dir) throws IOException {
+    
+    if(!fs.exists(dir)) {
+      fs.mkdirs(dir);  
+    } else if (!fs.isDirectory(dir)) {
+      throw new FileNotFoundException("Not a directory " + dir.toString());
+    }
+    
+    PathFilter filter = new GlobFilter(HoyaKeys.HISTORY_FILENAME_GLOB_PATTERN);
+    FileStatus[] stats = fs.listStatus(dir);
+    List<Path> paths = new ArrayList<Path>(stats.length);
+    for (FileStatus stat : stats) {
+      log.debug("Possible entry: {}", stat.toString());
+      if (stat.isFile() && stat.getLen()> 0) {
+        paths.add(stat.getPath());
+      }
+    }
+    sortHistoryPaths(paths);
+    return paths;
+  }
+
+  @VisibleForTesting
+  public static void sortHistoryPaths(List<Path> paths) {
+    Collections.sort(paths, new ComparePathByName());
+  }
+
+  /**
+   * Compare two filenames by name; the more recent one comes first
+   */
+  public static class ComparePathByName implements Comparator<Path> {
+    @Override
+    public int compare(Path o1, Path o2) {
+      return -(o1.getName().compareTo(o2.getName()));
+    }
+  }
 }

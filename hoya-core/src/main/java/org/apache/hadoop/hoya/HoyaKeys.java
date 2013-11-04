@@ -72,10 +72,27 @@ public interface HoyaKeys {
   String ORIG_CONF_DIR_NAME = "original";
   String DATA_DIR_NAME = "database";
   String HISTORY_DIR_NAME = "history";
+  String HISTORY_FILENAME_SUFFIX = "json";
+  String HISTORY_FILENAME_PREFIX = "rolehistory-";
+  
   /**
-   * Filename pattern is required to save in strict temporal order
+   * Filename pattern is required to save in strict temporal order.
+   * Important: older files must sort less-than newer files when using
+   * case-sensitive name sort.
    */
-  String HISTORY_FILENAME_PATTERN = "rolehistory-%08x.json";
+  String HISTORY_FILENAME_CREATION_PATTERN = HISTORY_FILENAME_PREFIX +"%016x."+
+                                    HISTORY_FILENAME_SUFFIX;
+  /**
+   * The posix regexp used to locate this 
+   */
+  String HISTORY_FILENAME_MATCH_PATTERN = HISTORY_FILENAME_PREFIX +"[0-9a-f]+\\."+
+                                    HISTORY_FILENAME_SUFFIX;
+    /**
+   * The posix regexp used to locate this 
+   */
+  String HISTORY_FILENAME_GLOB_PATTERN = HISTORY_FILENAME_PREFIX +"*."+
+                                    HISTORY_FILENAME_SUFFIX;
+  
   String CLUSTER_SPECIFICATION_FILE = "cluster.json";
 
   int MIN_HEAP_SIZE = 0;
@@ -105,7 +122,6 @@ public interface HoyaKeys {
    */
   String OPTION_HOYA_MASTER_COMMAND =
     "hoya.test.master.command";
-
 
   /**
    * delay for container startup

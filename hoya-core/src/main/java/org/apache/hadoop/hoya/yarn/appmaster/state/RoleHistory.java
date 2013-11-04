@@ -23,6 +23,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.avro.RoleHistoryWriter;
+import org.apache.hadoop.hoya.exceptions.HoyaIOException;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -114,6 +115,9 @@ public class RoleHistory {
 
   }
 
+  /**
+   * Clear the lists of available nodes
+   */
   private void resetAvailableNodeLists() {
     for (int i = 0; i < roleSize; i++) {
       availableNodes[i] = new LinkedList<NodeInstance>();
@@ -122,15 +126,16 @@ public class RoleHistory {
 
   /**
    * Reset the variables -this does not adjust the fixed attributes
-   * of the history
+   * of the history.
+   * This intended for use by the RoleWriter logic.
    */
   public synchronized void prepareForReading(int roleCountInSource) throws
                                                                     IOException {
     reset();
-    if (roleCountInSource!=roleSize) {
-      throw new IOException("Number of roles in source " + roleCountInSource
-                            + " does not match the expected number of " +
-                            roleSize);
+    if (roleCountInSource != roleSize) {
+      throw new HoyaIOException("Number of roles in source " + roleCountInSource
+                                + " does not match the expected number of " +
+                                roleSize);
     }
   }
   
@@ -264,7 +269,7 @@ public class RoleHistory {
    */
   private Path createHistoryFilename(long time) {
     String filename = String.format(Locale.ENGLISH,
-                                    HoyaKeys.HISTORY_FILENAME_PATTERN,
+                                    HoyaKeys.HISTORY_FILENAME_CREATION_PATTERN,
                                     time);
     Path path = new Path(historyPath, filename);
     return path;
@@ -324,7 +329,21 @@ public class RoleHistory {
    * Handle the thaw process <i>after the history has been rebuilt</i>,
    * and after any gc/purge
    */
-  public synchronized void onThaw() {
+  public synchronized boolean onThaw() {
+    boolean thawSuccessful = false;
+    //load in files from data dir
+    
+    //thaw is then completed
+    onThawCompleted();
+    return thawSuccessful;
+  }
+
+
+  /**
+   * After the thaw, rebuild the availability datastructures
+   */
+  @VisibleForTesting
+  public synchronized void onThawCompleted() {
     resetAvailableNodeLists();
     // build the list of available nodes
     for (Map.Entry<String, NodeInstance> entry : nodemap
@@ -581,7 +600,6 @@ public class RoleHistory {
       log.info(node.toFullString());
     }
   }
-
 
   /**
    * Get a clone of the available list
