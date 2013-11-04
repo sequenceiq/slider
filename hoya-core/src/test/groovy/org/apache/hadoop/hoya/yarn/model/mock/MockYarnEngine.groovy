@@ -18,6 +18,8 @@
 
 package org.apache.hadoop.hoya.yarn.model.mock
 
+import groovy.transform.CompileStatic
+import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.yarn.appmaster.state.AbstractRMOperation
 import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerReleaseOperation
 import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerRequestOperation
@@ -25,17 +27,14 @@ import org.apache.hadoop.yarn.api.records.ApplicationAttemptId
 import org.apache.hadoop.yarn.api.records.ApplicationId
 import org.apache.hadoop.yarn.api.records.Container
 import org.apache.hadoop.yarn.api.records.ContainerId
-import org.apache.hadoop.yarn.api.records.NodeId
 import org.apache.hadoop.yarn.client.api.AMRMClient
 
+@CompileStatic
+@Slf4j
 class MockYarnEngine {
 
-  int containerId = 0;
-  int nodes = 1;
   MockYarnCluster cluster;
   Allocator allocator;
-
-  Map<Integer, MockContainer> activeContainers = [:]
 
   ApplicationId appId = new MockApplicationId(
       id: 0,
@@ -46,8 +45,6 @@ class MockYarnEngine {
       applicationId: appId,
       attemptId: 1,
       )
-
-  NodeId nodeId = new MockNodeId("host-$nodes", 80)
 
   int containerCount() {
     return cluster.containersInUse();
@@ -68,7 +65,7 @@ class MockYarnEngine {
   Container allocateContainer(AMRMClient.ContainerRequest request) {
     MockContainer allocated = allocator.allocate(request)
     if (allocated != null) {
-      MockContainerId id = allocated.id
+      MockContainerId id = allocated.id as MockContainerId
       id.applicationAttemptId = attemptId;
     }
     return allocated
