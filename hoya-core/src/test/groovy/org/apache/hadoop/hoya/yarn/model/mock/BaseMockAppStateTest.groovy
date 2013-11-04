@@ -37,7 +37,7 @@ import org.apache.hadoop.fs.FileSystem as HadoopFS
 abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
   MockFactory factory = new MockFactory()
   AppState appState
-  MockYarnEngine engine = new MockYarnEngine(64, 1)
+  MockYarnEngine engine
   protected HadoopFS fs
   protected File historyWorkDir
   protected Path historyPath;
@@ -47,6 +47,16 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
     super.setup()
     YarnConfiguration conf = createConfiguration()
     fs = HadoopFS.get(new URI("file:///"), conf)
+    engine = createYarnEngine()
+  }
+
+  /**
+   * Override point: called in setup() to create the YARN engine; can
+   * be changed for different sizes and options
+   * @return
+   */
+  public MockYarnEngine createYarnEngine() {
+    return new MockYarnEngine(64, 1)
   }
 
   @Before
