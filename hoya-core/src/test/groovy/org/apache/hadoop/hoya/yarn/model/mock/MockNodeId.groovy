@@ -24,6 +24,34 @@ class MockNodeId extends NodeId {
   String host
   int port
 
+  MockNodeId() {
+  }
+
+  MockNodeId(String host) {
+    this.host = host
+  }
+
+  MockNodeId(String host, int port) {
+    this.host = host
+    this.port = port
+  }
+
+  String getHost() {
+    return host
+  }
+
+  void setHost(String host) {
+    this.host = host
+  }
+
+  int getPort() {
+    return port
+  }
+
+  void setPort(int port) {
+    this.port = port
+  }
+
   @Override
   protected void build() {
 

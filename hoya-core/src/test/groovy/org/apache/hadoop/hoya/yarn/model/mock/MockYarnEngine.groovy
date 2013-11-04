@@ -34,6 +34,8 @@ class MockYarnEngine {
 
   int containerId = 0;
   int nodes = 1;
+  MockYarnCluster cluster;
+  Allocator allocator;
 
   Map<Integer, MockContainer> activeContainers = [:]
 
@@ -41,14 +43,13 @@ class MockYarnEngine {
       id: 0,
       clusterTimestamp: 0,
       )
+  
   ApplicationAttemptId attemptId = new MockApplicationAttemptId(
       applicationId: appId,
       attemptId: 1,
       )
-  NodeId nodeId = new MockNodeId(
-      host: "host-$nodes",
-      port: 80
-  )
+  
+  NodeId nodeId = new MockNodeId("host-$nodes", 80)
 
   int containerCount() {
     return activeContainers.size();
