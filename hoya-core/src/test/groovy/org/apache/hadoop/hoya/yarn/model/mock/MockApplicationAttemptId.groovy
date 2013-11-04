@@ -23,7 +23,6 @@ import org.apache.hadoop.yarn.api.records.ApplicationId
 
 class MockApplicationAttemptId extends ApplicationAttemptId {
 
-
   ApplicationId applicationId
   int attemptId
 

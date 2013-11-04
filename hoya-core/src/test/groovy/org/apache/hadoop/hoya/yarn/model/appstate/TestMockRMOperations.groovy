@@ -60,9 +60,7 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
   public void testPriorityRoundTripWithRequest() throws Throwable {
     int priority = buildPriority(5,0xf,false)
     assert 5 == extractRole(priority)
-//    assert 0xf == extractRequestId(priority);
   }
-  
   
   @Test
   public void testMockAddOp() throws Throwable {

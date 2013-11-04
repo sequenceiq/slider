@@ -20,19 +20,17 @@ package org.apache.hadoop.hoya.yarn.model.mock
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import org.apache.hadoop.yarn.api.records.Resource
 import org.apache.hadoop.yarn.client.api.AMRMClient
 
 /**
  * Provides allocation services to a cluster -both random and placed.
- * 
+ *
  * Important: container allocations need an app attempt ID put into the container ID
  */
 @CompileStatic
 @Slf4j
 class Allocator {
-  
-  
+
   final MockYarnCluster cluster;
   /**
    * Rolling index into the cluster used for the
@@ -52,7 +50,7 @@ class Allocator {
    */
   MockContainer allocate(AMRMClient.ContainerRequest request) {
     MockYarnCluster.MockYarnClusterNode node = null
-    MockYarnCluster.MockYarnClusterContainer allocated = null 
+    MockYarnCluster.MockYarnClusterContainer allocated = null
     request.nodes.each { String host ->
       node = cluster.lookup(host)
       allocated = node.allocate()
@@ -68,8 +66,6 @@ class Allocator {
         return null;
       }
     }
-    
-    
   }
 
   /**
@@ -90,9 +86,7 @@ class Allocator {
     }
 
     //here the allocation is set, so create the response 
-    return createContainerRecord(request , allocated, node)
-    
-
+    return createContainerRecord(request, allocated, node)
   }
 
   /**
@@ -118,10 +112,8 @@ class Allocator {
   }
 
   private int nextIndex() {
-    
-    rollingIndex = (rollingIndex+1) % cluster.clusterSize;
+    rollingIndex = (rollingIndex + 1) % cluster.clusterSize;
     return rollingIndex;
   }
-  
-  
+
 }

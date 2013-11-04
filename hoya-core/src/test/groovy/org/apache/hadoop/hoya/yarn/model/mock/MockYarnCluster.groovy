@@ -66,7 +66,6 @@ public class MockYarnCluster {
     }
   }
 
-
   MockYarnClusterNode nodeAt(int index) {
     return nodes[index]
   }
