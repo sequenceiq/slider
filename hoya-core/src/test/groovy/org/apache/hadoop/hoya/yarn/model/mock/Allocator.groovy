@@ -24,7 +24,9 @@ import org.apache.hadoop.yarn.api.records.Resource
 import org.apache.hadoop.yarn.client.api.AMRMClient
 
 /**
- * Provides allocation services to a cluster -both random and placed
+ * Provides allocation services to a cluster -both random and placed.
+ * 
+ * Important: container allocations need an app attempt ID put into the container ID
  */
 @CompileStatic
 @Slf4j
@@ -108,11 +110,10 @@ class Allocator {
       return null;
     }
     MockContainer container = new MockContainer()
-    container.id = allocated.cid
+    container.id = new MockContainerId(allocated.cid)
     container.nodeId = node.nodeId
     container.nodeHttpAddress = node.httpAddress()
     container.priority = request.priority
-    
     return container;
   }
 

@@ -37,7 +37,7 @@ import org.apache.hadoop.fs.FileSystem as HadoopFS
 abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
   MockFactory factory = new MockFactory()
   AppState appState
-  MockYarnEngine engine = new MockYarnEngine()
+  MockYarnEngine engine = new MockYarnEngine(64, 1)
   protected HadoopFS fs
   protected File historyWorkDir
   protected Path historyPath;

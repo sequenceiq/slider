@@ -49,7 +49,6 @@ public class MockYarnCluster {
   final int clusterSize;
   final int containersPerNode;
   MockYarnClusterNode[] nodes;
-  Map<NodeId, MockYarnClusterNode> nodeMap
 
   MockYarnCluster(int clusterSize, int containersPerNode) {
     this.clusterSize = clusterSize
@@ -84,10 +83,37 @@ public class MockYarnCluster {
   MockYarnClusterNode lookupOwner(ContainerId cid) {
     return nodeAt(extractHost(cid.id))
   }
+
+  /**
+   * Release a container: return true if it was actually in use
+   * @param cid container ID
+   * @return true if the container was released
+   */
+  boolean release(ContainerId cid) {
+    int host = extractHost(cid.id)
+    return nodeAt(host).release(cid.id)
+  }
   
+  int containersInUse() {
+    int count = 0;
+    nodes.each { MockYarnClusterNode it -> count += it.containersInUse() }
+    return count;
+  }
+
+  /**
+   * Containers free
+   * @return
+   */
+  int containersFree() {
+    return totalClusterCapacity() - containersInUse();
+  }
+  
+  int totalClusterCapacity() {
+    return clusterSize * containersPerNode;
+  }
 
 /**
- * We model cluster nodes on the simpler "slot" model than the YARN-era
+ * Model cluster nodes on the simpler "slot" model than the YARN-era
  * resource allocation model. Why? Makes it easier to implement.
  * 
  * When a cluster is offline, 
@@ -151,12 +177,27 @@ public class MockYarnCluster {
       return null;
     }
     
-    public void release(int cid) {
-      containers[extractContainer(cid)].busy = false;
+    public boolean release(int cid) {
+      MockYarnClusterContainer container = containers[extractContainer(cid)]
+      boolean b = container.busy;
+      container.busy = false;
+      return b;
     }
     
     public String httpAddress() {
       return "http://$hostname/"
+    }
+    
+    public int containersInUse() {
+      int c = 0;
+      containers.each { MockYarnClusterContainer cont ->
+        c += cont.busy? 1: 0  
+      }
+      return c
+    }
+    
+    public int containersFree() {
+      return containers.length - containersInUse();
     }
   }
 
