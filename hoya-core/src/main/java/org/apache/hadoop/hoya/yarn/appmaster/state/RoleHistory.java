@@ -22,6 +22,7 @@ import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaKeys;
+import org.apache.hadoop.hoya.avro.RoleHistoryHeader;
 import org.apache.hadoop.hoya.avro.RoleHistoryWriter;
 import org.apache.hadoop.hoya.exceptions.HoyaIOException;
 import org.apache.hadoop.hoya.providers.ProviderRole;
@@ -33,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -58,7 +60,16 @@ public class RoleHistory {
   private final Map<String, ProviderRole> providerRoleMap =
     new HashMap<String, ProviderRole>();
   private long startTime;
+  /**
+   * Time when saved
+   */
   private long saveTime;
+  /**
+   * If the history was loaded, the time at which the history was saved
+   * 
+   */
+  private long thawedDataTime;
+  
   private NodeMap nodemap;
   private int roleSize;
   private boolean dirty;
@@ -129,14 +140,18 @@ public class RoleHistory {
    * of the history.
    * This intended for use by the RoleWriter logic.
    */
-  public synchronized void prepareForReading(int roleCountInSource) throws
+  public synchronized void prepareForReading(RoleHistoryHeader header) throws
                                                                     IOException {
     reset();
+
+    int roleCountInSource = header.getRoles();
     if (roleCountInSource != roleSize) {
       throw new HoyaIOException("Number of roles in source " + roleCountInSource
                                 + " does not match the expected number of " +
                                 roleSize);
     }
+    //record when the data was loaded
+    setThawedDataTime(header.getSaved());
   }
   
   public synchronized long getStartTime() {
@@ -147,8 +162,12 @@ public class RoleHistory {
     return saveTime;
   }
 
-  public synchronized void setSaveTime(long saveTime) {
-    this.saveTime = saveTime;
+  public long getThawedDataTime() {
+    return thawedDataTime;
+  }
+
+  public void setThawedDataTime(long thawedDataTime) {
+    this.thawedDataTime = thawedDataTime;
   }
 
   public int getRoleSize() {
@@ -285,9 +304,8 @@ public class RoleHistory {
   @VisibleForTesting
   public synchronized Path saveHistory(long time) throws IOException {
     Path filename = createHistoryFilename(time);
-    saveTime = time;
-    setDirty(false);
     historyWriter.write(filesystem, filename, true, this, time);
+    saved(time);
     return filename;
   }
 
@@ -314,7 +332,9 @@ public class RoleHistory {
   public void onStart(FileSystem fs, Path historyDir) {
     this.filesystem = fs;
     this.historyPath = historyDir;
-    onBootstrap();
+    startTime = now();
+    //assume the history is being thawed; this will downgrade as appropriate
+    onThaw();
     }
   
   /**
@@ -322,7 +342,6 @@ public class RoleHistory {
    */
   public void onBootstrap() {
     log.info("Role history bootstrapped");
-    startTime = now();
   }
 
   /**
@@ -332,9 +351,23 @@ public class RoleHistory {
   public synchronized boolean onThaw() {
     boolean thawSuccessful = false;
     //load in files from data dir
-    
-    //thaw is then completed
-    onThawCompleted();
+    try {
+      Path loaded =
+        historyWriter.loadFromHistoryDir(filesystem, historyPath, this);
+      if (loaded!=null) {
+        thawSuccessful = true;
+        log.info("loaded history from {}", loaded);
+      }
+    } catch (IOException e) {
+      log.warn("Failed to load history from {}", historyPath, e);
+    }
+    if (thawSuccessful) {
+      //thaw is then completed
+      onThawCompleted();
+    } else {
+      //fallback to bootstrap procedure
+      onBootstrap();
+    }
     return thawSuccessful;
   }
 
@@ -417,30 +450,41 @@ public class RoleHistory {
 
 
   /**
-   * Find a node for release; algorithm may make its own
-   * decisions on which to release
+   * Find a list of node for release; algorithm may make its own
+   * decisions on which to release.
    * @param role role index
-   * @return a node or null if none was found
+   * @param count number of nodes to release
+   * @return a possibly empty list of nodes.
    */
-  public NodeInstance findNodeForRelease(int role) {
-    NodeInstance node = findNodeForRelease(role, 2);
-    if (node != null) {
-      return node;
-    } else {
-      return findNodeForRelease(role, 1);
-    }
-  }
-
-  public synchronized NodeInstance findNodeForRelease(int role, int limit) {
-    //find a node
-
-    for (NodeInstance ni : nodemap.values()) {
-      NodeEntry nodeEntry = ni.get(role);
-      if (nodeEntry != null && nodeEntry.getActive() >= limit) {
-        return ni;
+  public List<NodeInstance> findNodesForRelease(int role, int count) {
+    List<NodeInstance> targets = new ArrayList<NodeInstance>(count);
+    List<NodeInstance> singleInstanceNodes = new ArrayList<NodeInstance>(count);
+    int nodesRemaining = count;
+    for (NodeInstance node : nodemap.values()) {
+      int active = node.getActiveRoleInstances(role);
+      if (active >= 2) {
+        targets.add(node);
+        nodesRemaining--;
+        if (nodesRemaining == 0) {
+          // the target set of nodes has been reached from dual nodes: exit
+          break;
+        }
+      } else {
+        // if it is a single instance node, add it to the list
+        // this places a bias towards the start of the hashmap, which
+        // is based on hostname, so consistent across runs
+        if (active == 1 && singleInstanceNodes.size() < nodesRemaining) {
+          singleInstanceNodes.add(node);
+        }
       }
     }
-    return null;
+    if (nodesRemaining > 0) {
+      // short of dual count nodes, select single-instance nodes
+      int ask = Math.min(nodesRemaining, singleInstanceNodes.size());
+      targets.addAll(singleInstanceNodes.subList(0, ask));
+
+    }
+    return targets;
   }
 
   /**

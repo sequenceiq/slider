@@ -118,7 +118,8 @@ class TestHistoryRW extends BaseMockAppStateTest {
     NodeEntry loadedNE2 = ni2b.get(1)
     assert loadedNE2 != null
     assert loadedNE2.lastUsed == savetime
-
+    assert rh2.thawedDataTime == savetime
+    
     // now thaw it
     rh2.onThawCompleted();
     describe("thawing")
@@ -134,10 +135,6 @@ class TestHistoryRW extends BaseMockAppStateTest {
     //and verify that even if last used was set, the save time is picked up
     assert entry.get(1).lastUsed == roleHistory.saveTime
     
-    // see that history sorting works
-    List<Path> entries = historyWriter.findAllHistoryEntries(fs, historyPath)
-    assert entries.size() == 4
-    //we expect this to be sorted
   }
 
   

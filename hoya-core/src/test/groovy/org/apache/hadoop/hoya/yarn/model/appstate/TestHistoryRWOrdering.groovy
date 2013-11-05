@@ -78,8 +78,6 @@ class TestHistoryRWOrdering extends BaseMockAppStateTest {
     Path history2 = roleHistory.saveHistory(time++)
     Path history3 = roleHistory.saveHistory(time++)
     
-    
-    
     RoleHistoryWriter historyWriter = new RoleHistoryWriter();
     
     List<Path> entries = historyWriter.findAllHistoryEntries(  fs, historyPath)

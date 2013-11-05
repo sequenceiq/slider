@@ -71,8 +71,6 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
     historyWorkDir = new File("target/history", historyDirName)
     historyPath = new Path(historyWorkDir.toURI())
     fs.delete(historyPath, true)
-
-//    fs.delete(targetHistoryPath, true)
     appState.buildInstance(factory.newClusterSpec(0, 0, 0),
                            new Configuration(false),
                            factory.ROLES, fs, historyPath)

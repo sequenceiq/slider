@@ -52,6 +52,7 @@ public class NodeInstance {
   public synchronized NodeEntry get(int role) {
    return nodeEntries[role] ;
   }
+  
   /**
    * Get the entry for a role -if present
    * @param role role index
@@ -67,6 +68,17 @@ public class NodeInstance {
     return entry;
   }
 
+  /**
+   * Cout the number of active role instances on this node
+   * @param role role index
+   * @return 0 if there are none, otherwise the #of nodes that are running and
+   * not being released already.
+   */
+  public int getActiveRoleInstances(int role) {
+    NodeEntry nodeEntry = get(role);
+    return (nodeEntry !=null)?nodeEntry.getActive():0;
+  }
+  
   /**
    * Get a clone of the node entries; changes to it are
    * not reflected, though they are if you edit the entries themselves

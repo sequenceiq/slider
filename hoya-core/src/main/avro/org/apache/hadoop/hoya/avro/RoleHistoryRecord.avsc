@@ -30,12 +30,16 @@
     "namespace": "org.apache.hadoop.hoya.avro",
     "fields": [
       {
+        "name": "version",
+        "type": "int"
+      },
+      {
         "name": "saved",
         "type": "long"
       },
       {
-        "name": "version",
-        "type": "int"
+        "name": "savedx",
+        "type": "string"
       },
       {
         "name": "roles",

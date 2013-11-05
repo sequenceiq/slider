@@ -1002,6 +1002,11 @@ public class AppState {
 
       //then pick some containers to kill
       int excess = -delta;
+
+      // get the nodes to release
+      // TODO: switch
+      roleHistory.findNodesForRelease(role.getKey(), excess);
+      
       List<RoleInstance> targets = cloneActiveContainerList();
       for (RoleInstance instance : targets) {
         if (excess > 0) {

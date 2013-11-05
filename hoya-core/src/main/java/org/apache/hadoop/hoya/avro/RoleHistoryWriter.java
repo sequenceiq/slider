@@ -56,6 +56,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Collection;
+import java.util.ListIterator;
 
 /**
  * Write out the role history to an output stream
@@ -89,9 +90,11 @@ public class RoleHistoryWriter {
         new SpecificDatumWriter<RoleHistoryRecord>(RoleHistoryRecord.class);
 
       int roles = history.getRoleSize();
-      RoleHistoryHeader header = new RoleHistoryHeader(savetime,
-                                                       ROLE_HISTORY_VERSION,
-                                                       roles);
+      RoleHistoryHeader header = new RoleHistoryHeader();
+      header.setVersion(ROLE_HISTORY_VERSION);
+      header.setSaved(savetime);
+      header.setSavedx(Long.toHexString(savetime));
+      header.setRoles( roles);
       RoleHistoryRecord record = new RoleHistoryRecord(header);
       Schema schema = record.getSchema();
       Encoder encoder = EncoderFactory.get().jsonEncoder(schema, out);
@@ -112,7 +115,8 @@ public class RoleHistoryWriter {
         }
       }
       // footer
-      RoleHistoryFooter footer = new RoleHistoryFooter(count);
+      RoleHistoryFooter footer = new RoleHistoryFooter();
+      footer.setCount(count);
       writer.write(new RoleHistoryRecord(footer), encoder);
       encoder.flush();
       out.close();
@@ -172,14 +176,14 @@ public class RoleHistoryWriter {
         throw new IOException("Role History Header not found at start of file");
       }
       RoleHistoryHeader header = (RoleHistoryHeader) entry;
-      Integer roleSize = header.getRoles();
       Long saved = header.getSaved();
-      if (header.getVersion()!=ROLE_HISTORY_VERSION) {
-        throw new HoyaIOException("Can't read role file version %04x -need %04x",
-                                  header.getVersion(),
-                                  ROLE_HISTORY_VERSION);
+      if (header.getVersion() != ROLE_HISTORY_VERSION) {
+        throw new HoyaIOException(
+          "Can't read role file version %04x -need %04x",
+          header.getVersion(),
+          ROLE_HISTORY_VERSION);
       }
-      history.prepareForReading(roleSize);
+      history.prepareForReading(header);
       RoleHistoryFooter footer = null;
       int records = 0;
       //go through reading data
@@ -306,7 +310,7 @@ public class RoleHistoryWriter {
     List<Path> paths = new ArrayList<Path>(stats.length);
     for (FileStatus stat : stats) {
       log.debug("Possible entry: {}", stat.toString());
-      if (stat.isFile() && stat.getLen()> 0) {
+      if (stat.isFile() && stat.getLen() > 0) {
         paths.add(stat.getPath());
       }
     }
@@ -319,6 +323,45 @@ public class RoleHistoryWriter {
     Collections.sort(paths, new ComparePathByName());
   }
 
+
+  /**
+   * Iterate through the paths until one can be loaded
+   * @param roleHistory role history
+   * @param paths paths to load
+   * @return the path of any loaded history -or null if all failed to load
+   */
+  public Path attemptToReadHistory(RoleHistory roleHistory, FileSystem fileSystem,  List<Path> paths) {
+    ListIterator<Path> pathIterator = paths.listIterator();
+    boolean success = false;
+    Path path = null;
+    while (!success && pathIterator.hasNext()) {
+      path = pathIterator.next();
+      try {
+        read(fileSystem, path, roleHistory);
+        //success
+        success = true;
+      } catch (IOException e) {
+        log.info("Failed to read {}", path, e);
+      }
+    }
+    return success ? path : null;
+  }
+
+  /**
+   * Try to load the history from a directory -a failure to load a specific
+   * file is downgraded to a log and the next older path attempted instead
+   * @param fs filesystem
+   * @param dir dir to load from
+   * @param roleHistory role history to build up
+   * @return the path loaded
+   * @throws IOException if indexing the history directory fails. 
+   */
+  public Path loadFromHistoryDir(FileSystem fs, Path dir,
+                                 RoleHistory roleHistory) throws IOException {
+    List<Path> entries = findAllHistoryEntries(fs, dir);
+    return attemptToReadHistory(roleHistory, fs, entries);
+  }
+  
   /**
    * Compare two filenames by name; the more recent one comes first
    */
