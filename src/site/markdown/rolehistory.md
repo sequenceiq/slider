@@ -821,3 +821,38 @@ have been released?  I.e. Before YARN has replied
 RoleStats were removed -left in app state. Although the rolestats would
 belong here, leaving them where they were reduced the amount of change
 in the `AppState` class, so risk of something breaking.
+
+## MiniYARNCluster node IDs
+
+Mini YARN cluster NodeIDs all share the same hostname , at least when running
+against file://; so mini tests with >1 NM don't have a 1:1 mapping of
+`NodeId:NodeInstance`. What will happen is that 
+`NodeInstance getOrCreateNodeInstance(Container container) '
+will always return the same (now shared) `NodeInstance`.
+
+## Releasing Containers when shrinking a cluster
+
+When identifying instances to release in a bulk downscale operation, the full
+list of targets must be identified together. This is not just to eliminate
+multiple scans of the data structures, but because the containers are not
+released until the queued list of actions are executed -the nodes' release-in-progress
+counters will not be incremented until after all the targets have been identified.
+
+It also needs to handle the scenario where there are many role instances on a
+single server -it should prioritize those. 
+
+
+The NodeMap/NodeInstance/NodeEntry structure is adequate for identifying nodes,
+at least provided there is a 1:1 mapping of hostname to NodeInstance. But it
+is not enough to track containers in need of release: the AppState needs
+to be able to work backwards from a NodeEntry to container(s) stored there.
+
+The `AppState` class currently stores this data in a `ConcurrentMap<ContainerId, RoleInstance>`
+
+To map from NodeEntry/NodeInstance to containers to delete, means that either
+a new datastructure is created to identify containers in a role on a specific host
+(e.g a list of ContainerIds under each NodeEntry), or we add an index reference
+in a RoleInstance that identifies the node. We already effectively have that
+in the container
+
+

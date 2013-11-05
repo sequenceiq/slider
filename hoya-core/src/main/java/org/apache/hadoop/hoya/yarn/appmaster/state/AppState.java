@@ -500,6 +500,16 @@ public class AppState {
     return new ArrayList<RoleInstance>(values);
   }
 
+  public List<RoleInstance> findActiveContainers(List<NodeInstance> nodeInstances) {
+    //TODO
+    return new ArrayList<RoleInstance>();
+  }
+  
+  /**
+   * Get any active container with the given ID
+   * @param id container Id
+   * @return the active container or null if it is not found
+   */
   public RoleInstance getActiveContainer(ContainerId id) {
     return activeContainers.get(id);
   }
@@ -1004,9 +1014,19 @@ public class AppState {
       int excess = -delta;
 
       // get the nodes to release
-      // TODO: switch
-      roleHistory.findNodesForRelease(role.getKey(), excess);
+      List<NodeInstance> nodesForRelease =
+        roleHistory.findNodesForRelease(role.getKey(), excess);
+      List<RoleInstance> ContainersToRelease =
+        findActiveContainers(nodesForRelease);
       
+      for (NodeInstance node : nodesForRelease) {
+/*
+        containerReleaseSubmitted(possible);
+        operations.add(new ContainerReleaseOperation(node.id));
+*/
+
+      }
+
       List<RoleInstance> targets = cloneActiveContainerList();
       for (RoleInstance instance : targets) {
         if (excess > 0) {

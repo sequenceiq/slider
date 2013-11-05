@@ -40,6 +40,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
 
@@ -457,40 +458,13 @@ public class RoleHistory {
    * @return a possibly empty list of nodes.
    */
   public List<NodeInstance> findNodesForRelease(int role, int count) {
-    List<NodeInstance> targets = new ArrayList<NodeInstance>(count);
-    List<NodeInstance> singleInstanceNodes = new ArrayList<NodeInstance>(count);
-    int nodesRemaining = count;
-    for (NodeInstance node : nodemap.values()) {
-      int active = node.getActiveRoleInstances(role);
-      if (active >= 2) {
-        targets.add(node);
-        nodesRemaining--;
-        if (nodesRemaining == 0) {
-          // the target set of nodes has been reached from dual nodes: exit
-          break;
-        }
-      } else {
-        // if it is a single instance node, add it to the list
-        // this places a bias towards the start of the hashmap, which
-        // is based on hostname, so consistent across runs
-        if (active == 1 && singleInstanceNodes.size() < nodesRemaining) {
-          singleInstanceNodes.add(node);
-        }
-      }
-    }
-    if (nodesRemaining > 0) {
-      // short of dual count nodes, select single-instance nodes
-      int ask = Math.min(nodesRemaining, singleInstanceNodes.size());
-      targets.addAll(singleInstanceNodes.subList(0, ask));
-
-    }
-    return targets;
+    return nodemap.findNodesForRelease(role, count);
   }
-
+ 
   /**
    * Get the node entry of a container
-   * @param container
-   * @return
+   * @param container container to look up
+   * @return the entry
    */
   public NodeEntry getOrCreateNodeEntry(Container container) {
     NodeInstance node = getOrCreateNodeInstance(container);
