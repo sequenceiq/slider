@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.model.appstate
+package org.apache.hadoop.hoya.yarn.model.appstate.history
 
 import org.apache.hadoop.hoya.yarn.appmaster.state.NodeInstance
 import org.junit.Test

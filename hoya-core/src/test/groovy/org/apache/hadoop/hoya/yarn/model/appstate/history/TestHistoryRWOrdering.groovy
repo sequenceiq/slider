@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.model.appstate
+package org.apache.hadoop.hoya.yarn.model.appstate.history
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
