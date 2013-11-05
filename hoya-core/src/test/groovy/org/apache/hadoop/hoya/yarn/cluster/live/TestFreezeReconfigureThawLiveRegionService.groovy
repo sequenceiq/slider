@@ -30,6 +30,7 @@ import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
+import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
@@ -43,9 +44,13 @@ class TestFreezeReconfigureThawLiveRegionService extends HBaseMiniClusterTestBas
   @Test
   public void testFreezeReconfigureThawLiveRegionService() throws Throwable {
     String clustername = "TestFreezeReconfigureThawLiveRegionService"
-    int regionServerCount = 1
-    createMiniCluster(clustername, createConfiguration(), 1, true)
-    describe("Create a cluster, freeze it, patch the configuration files," +
+    int regionServerCount = 4
+    int nodemanagers = 3
+    YarnConfiguration conf = createConfiguration()
+    //one vcore per node
+    conf.setInt("yarn.nodemanager.resource.cpu-vcores",1)
+    createMiniCluster(clustername, conf, nodemanagers, true)
+    describe("Create a $regionServerCount node cluster, freeze it, patch the configuration files," +
              " thaw it and verify that it came back with the new settings")
 
     ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount, [], true, true)
