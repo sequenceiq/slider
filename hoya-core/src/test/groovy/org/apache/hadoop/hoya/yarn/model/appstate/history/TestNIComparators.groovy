@@ -32,7 +32,7 @@ class TestNIComparators {
   NodeInstance age4Active1 = instance(1005, 0)
   NodeInstance empty = new NodeInstance("empty", 1)
 
-  List<NodeInstance> nodes = [age2Active2,age4Active1,age1Active4,age3Active0]
+  List<NodeInstance> nodes = [age2Active2, age4Active1, age1Active4, age3Active0]
   List<NodeInstance> orig = new ArrayList<>(nodes)
 
 
@@ -41,48 +41,46 @@ class TestNIComparators {
     ni.getOrCreate(0).lastUsed = age
     ni.getOrCreate(0).live = live;
     return ni
-
   }
-
 
   public void assertListEquals(List left, List right) {
     assert left.size() == right.size();
     for (int i = 0; i < left.size(); i++) {
-      assert  left[0] == right[0]
+      assert left[0] == right[0]
     }
   }
-  
+
   @Test
   public void testNewerThan() throws Throwable {
-  
+
     Collections.sort(nodes, new NodeInstance.newerThan(0))
     assertListEquals(nodes,
-        [age4Active1, age3Active0, age2Active2, age1Active4] )
+                     [age4Active1, age3Active0, age2Active2, age1Active4])
   }
-  
+
   @Test
   public void testNewerThanNoRole() throws Throwable {
-  
+
     nodes << empty
     Collections.sort(nodes, new NodeInstance.newerThan(0))
     assertListEquals(nodes,
-        [age4Active1, age3Active0, age2Active2, age1Active4, empty] )
+                     [age4Active1, age3Active0, age2Active2, age1Active4, empty])
   }
-  
+
   @Test
   public void testMoreActiveThan() throws Throwable {
-  
+
     Collections.sort(nodes, new NodeInstance.moreActiveThan(0))
     assertListEquals(nodes,
-        [age1Active4, age2Active2, age4Active1, age3Active0],)
-  }  
+                     [age1Active4, age2Active2, age4Active1, age3Active0],)
+  }
+
   @Test
   public void testMoreActiveThanEmpty() throws Throwable {
     nodes << empty
     Collections.sort(nodes, new NodeInstance.moreActiveThan(0))
     assertListEquals(nodes,
-        [age1Active4, age2Active2, age4Active1, age3Active0, empty] )
+                     [age1Active4, age2Active2, age4Active1, age3Active0, empty])
   }
-  
-  
+
 }
