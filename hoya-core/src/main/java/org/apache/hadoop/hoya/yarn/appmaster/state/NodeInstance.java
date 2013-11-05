@@ -144,7 +144,6 @@ public class NodeInstance {
     return sb.toString();
   }
 
-
   /**
    * Equality test is purely on the hostname of the node address
    * @param o other
@@ -187,8 +186,9 @@ public class NodeInstance {
 
     @Override
     public int compare(NodeInstance o1, NodeInstance o2) {
-      long age = o1.get(role).getLastUsed();
-      long age2 = o2.get(role).getLastUsed();
+      long age = o1.getOrCreate(role).getLastUsed();
+      long age2 = o2.getOrCreate(role).getLastUsed();
+      
       if (age > age2) {
         return -1;
       } else if (age < age2) {
@@ -197,6 +197,29 @@ public class NodeInstance {
       // equal
       return 0;
     }
-
   }
+  
+  /**
+   * A comparator for sorting entries where the role is newer than
+   * the other. 
+   * This sort only compares the lastUsed field, not whether the
+   * node is in use or not
+   */
+  public static class moreActiveThan implements Comparator<NodeInstance>,
+                                           Serializable {
+
+    final int role;
+
+    public moreActiveThan(int role) {
+      this.role = role;
+    }
+
+    @Override
+    public int compare(NodeInstance left, NodeInstance right) {
+      int activeLeft = left.getActiveRoleInstances(role);
+      int activeRight = right.getActiveRoleInstances(role);
+      return activeRight - activeLeft;
+    }
+  }
+
 }
