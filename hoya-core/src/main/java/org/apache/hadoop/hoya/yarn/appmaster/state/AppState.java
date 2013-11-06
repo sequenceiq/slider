@@ -35,7 +35,6 @@ import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
-import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.impl.pb.ContainerPBImpl;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
@@ -805,8 +804,10 @@ public class AppState {
    * handle completed node in the CD -move something from the live
    * server list to the completed server list
    * @param status the node that has just completed
+   * @return true if the node was pulled from the running to completed.
+   * False means unknown/surplus
    */
-  public synchronized void onCompletedNode(ContainerStatus status) {
+  public synchronized boolean onCompletedNode(ContainerStatus status) {
 
     ContainerId containerId = status.getContainerId();
     boolean surplusNode = false;
@@ -859,7 +860,8 @@ public class AppState {
     }
     
     if (surplusNode) {
-      return;
+      //a surplus node
+      return false;
     }
     //record the complete node's details; this pulls it from the livenode set 
     //remove the node
@@ -868,12 +870,13 @@ public class AppState {
     if (node == null) {
       log.warn("Received notification of completion of unknown node");
       completionOfNodeNotInLiveListEvent.incrementAndGet();
-      return;
+      return false;
     }
     node.state = ClusterDescription.STATE_DESTROYED;
     node.exitCode = status.getExitStatus();
     node.diagnostics = status.getDiagnostics();
     getCompletedNodes().put(id, node);
+    return true;
   }
 
 
