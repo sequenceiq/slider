@@ -50,7 +50,7 @@ public final class ContainerPriority {
   public static int buildPriority(int role,
                                   int requestId,
                                   boolean locationSpecified) {
-    return (role) | (requestId << 24) ;
+    return (role)  ;
   }
 
 
@@ -58,7 +58,8 @@ public final class ContainerPriority {
                                         int requestId,
                                         boolean locationSpecified) {
     Priority pri = Records.newRecord(Priority.class);
-    pri.setPriority(ContainerPriority.buildPriority(role, requestId,
+    pri.setPriority(ContainerPriority.buildPriority(role,
+                                                    requestId,
                                                     locationSpecified));
     return pri;
   }

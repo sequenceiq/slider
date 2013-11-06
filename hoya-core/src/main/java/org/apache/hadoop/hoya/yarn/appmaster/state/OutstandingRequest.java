@@ -70,18 +70,23 @@ public final class OutstandingRequest {
   public AMRMClient.ContainerRequest buildContainerRequest(Resource resource) {
     String[] hosts;
     boolean relaxLocality;
+    boolean locationSpecified;
     if (node != null) {
       hosts = new String[1];
       hosts[0] = node.hostname;
       relaxLocality = true;
+      locationSpecified = true;
       // tell the node it is in play
       node.getOrCreate(roleId);
       log.info("Submitting request for container on {}", hosts[0]);
     } else {
       hosts = null;
       relaxLocality = true;
+      locationSpecified = false;
     }
-    Priority pri = ContainerPriority.createPriority(roleId, requestID, false);
+    Priority pri = ContainerPriority.createPriority(roleId,
+                                                    requestID,
+                                                    locationSpecified);
     AMRMClient.ContainerRequest request =
       new AMRMClient.ContainerRequest(resource,
                                       hosts,
