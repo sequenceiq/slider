@@ -144,5 +144,18 @@ class TestFindNodesForRelease extends BaseMockAppStateTest {
                age1Active4, age2Active2])
   }
 
+  @Test
+  public void testPurgeInactiveTime3() throws Throwable {
+    assert nodeMap.purgeUnusedEntries(3) == 0;
+  }
+
+  @Test
+  public void testPurgeInactiveTime4() throws Throwable {
+    assert nodeMap.purgeUnusedEntries(4) == 1;
+  }
+  @Test
+  public void testPurgeInactiveTime5() throws Throwable {
+    assert nodeMap.purgeUnusedEntries(5) == 1;
+  }
 
 }

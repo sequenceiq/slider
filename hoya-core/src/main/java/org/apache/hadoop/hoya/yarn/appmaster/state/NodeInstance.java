@@ -113,10 +113,12 @@ public class NodeInstance {
     boolean active = false;
     for (int i = 0; i < nodeEntries.length; i++) {
       NodeEntry entry = nodeEntries[i];
-      if (entry.notUsedSince(absoluteTime)) {
-        nodeEntries[i] = null;
-      } else {
-        active = true;
+      if (entry != null) {
+        if (entry.notUsedSince(absoluteTime)) {
+          nodeEntries[i] = null;
+        } else {
+          active = true;
+        }
       }
     }
     return active;

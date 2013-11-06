@@ -263,15 +263,7 @@ public class RoleHistory {
    * @param absoluteTime time
    */
   public synchronized void purgeUnusedEntries(long absoluteTime) {
-    Iterator<Map.Entry<String ,NodeInstance>> iterator =
-      nodemap.entrySet().iterator();
-    while (iterator.hasNext()) {
-      Map.Entry<String, NodeInstance> entry = iterator.next();
-      NodeInstance ni = entry.getValue();
-      if (!ni.purgeUnusedEntries(absoluteTime)) {
-        iterator.remove();
-      }
-    }
+    nodemap.purgeUnusedEntries(absoluteTime);
   }
 
   /**
