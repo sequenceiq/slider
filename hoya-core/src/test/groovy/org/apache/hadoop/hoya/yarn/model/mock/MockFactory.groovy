@@ -64,36 +64,36 @@ class MockFactory implements  MockRoles {
   
   public static final int ROLE_COUNT = ROLES.size();
 
-  ContainerId newContainerId() {
+  MockContainerId newContainerId() {
     newContainerId(attemptId)
   }
 
-  ContainerId newContainerId(ApplicationAttemptId attemptId) {
+  MockContainerId newContainerId(ApplicationAttemptId attemptId) {
     MockContainerId cid = new MockContainerId()
     cid.id = containerIdCount++
     cid.applicationAttemptId = attemptId;
     return cid;
   }
-  
-  ApplicationAttemptId newApplicationAttemptId(ApplicationId appId) {
+
+  MockApplicationAttemptId newApplicationAttemptId(ApplicationId appId) {
     MockApplicationAttemptId id = new MockApplicationAttemptId()
     id.attemptId = attemptIdCount++;
     id.applicationId = appId
     return id;
   }
-  
-  ApplicationId newAppId() {
+
+  MockApplicationId newAppId() {
     MockApplicationId id = new MockApplicationId()
     id.setId(appIdCount++);
     return id;
   }
 
-  Container newContainer(ContainerId cid) {
+  MockContainer newContainer(ContainerId cid) {
     MockContainer c = new MockContainer()
     c.id = cid
     return c
   }
-  Container newContainer() {
+  MockContainer newContainer() {
     newContainer(newContainerId())
   }
   
@@ -120,12 +120,12 @@ class MockFactory implements  MockRoles {
         (RoleKeys.ROLE_INSTANCES):count.toString()
     ]
   }
-  
-  Resource newResource() {
+
+  MockResource newResource() {
     return new MockResource()
   }
 
-  ContainerStatus newContainerStatus() {
+  MockContainerStatus newContainerStatus() {
     return new MockContainerStatus()
     
   }
