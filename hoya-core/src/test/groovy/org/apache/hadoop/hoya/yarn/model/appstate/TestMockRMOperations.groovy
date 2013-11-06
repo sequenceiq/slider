@@ -176,6 +176,7 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
     log.warn("===============================================================")
     RoleInstance ri3 = appState.onNodeManagerContainerStarted(target.id)
     log.warn("===============================================================")
+    log.warn("Ignore any exception/stack trace that appeared above")
     assert ri3 == null
   }
 
