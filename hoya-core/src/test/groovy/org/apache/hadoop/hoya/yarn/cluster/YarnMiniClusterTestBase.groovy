@@ -463,6 +463,7 @@ implements KeysForTests, HoyaExitCodes {
         Arguments.ARG_WAIT, WAIT_TIME_ARG,
         Arguments.ARG_FILESYSTEM, fsDefaultName,
         Arguments.ARG_OPTION, OptionKeys.OPTION_TEST, "true",
+        Arguments.ARG_DEBUG,
         Arguments.ARG_CONFDIR, confDir
     ]
     argsList += roleList;

@@ -51,13 +51,19 @@ public interface HoyaKeys {
   /**
    * JVM arg to force IPv4  {@value}
    */
-  String JAVA_FORCE_IPV4 = "-Djava.net.preferIPv4Stack=true";
+  String JVM_ENABLE_ASSERTIONS = "-ea";
+  String JVM_ENABLE_SYSTEM_ASSERTIONS = "-esa";
+
+  /**
+   * JVM arg to force IPv4  {@value}
+   */
+  String JVM_FORCE_IPV4 = "-Djava.net.preferIPv4Stack=true";
 
   /**
    * JVM arg to go headless  {@value}
    */
 
-  String JAVA_HEADLESS = "-Djava.awt.headless=true";
+  String JVM_JAVA_HEADLESS = "-Djava.awt.headless=true";
   String FORMAT_D_CLUSTER_NAME = "-Dhoya.cluster.name=%s";
   String FORMAT_D_CLUSTER_TYPE = "-Dhoya.app.type=%s";
 
