@@ -735,7 +735,7 @@ public class AppState {
    */
   public synchronized RoleInstance onNodeManagerContainerStarted(ContainerId containerId) {
     try {
-      return onNodeManagerContainerStartedFaulting(containerId);
+      return innerOnNodeManagerContainerStarted(containerId);
     } catch (YarnRuntimeException e) {
       log.error("NodeManager callback on started container {} failed",
                 containerId,
@@ -745,13 +745,13 @@ public class AppState {
   }
 
    /**
-   * container start event
+   * container start event handler -throwing an exception on problems
    * @param containerId container that is to be started
    * @return the role instance
    * @throws HoyaRuntimeException null if there was a problem
    */
   @VisibleForTesting
-  public RoleInstance onNodeManagerContainerStartedFaulting(ContainerId containerId)
+  public RoleInstance innerOnNodeManagerContainerStarted(ContainerId containerId)
       throws HoyaRuntimeException {
     incStartedCountainerCount();
     RoleInstance active = activeContainers.get(containerId);
@@ -1075,11 +1075,19 @@ public class AppState {
     return operations;
   }
 
+  /**
+   * Event handler for allocated containers: builds up the lists
+   * of assignment actions (what to run where), and possibly
+   * a list of release operations
+   * @param allocatedContainers the containers allocated
+   * @param assignments the assignments of roles to containers
+   * @param releaseOperations any release operations
+   */
   public synchronized void onContainersAllocated(List<Container> allocatedContainers,
                                     List<ContainerAssignment> assignments,
-                                    List<AbstractRMOperation> operations) {
+                                    List<AbstractRMOperation> releaseOperations) {
     assignments.clear();
-    operations.clear();
+    releaseOperations.clear();
     for (Container container : allocatedContainers) {
       String containerHostInfo = container.getNodeId().getHost()
                                  + ":" +
@@ -1102,7 +1110,7 @@ public class AppState {
       if (allocated > desired) {
         log.info("Discarding surplus container {} on {}", cid,
                  containerHostInfo);
-        operations.add(new ContainerReleaseOperation(cid));
+        releaseOperations.add(new ContainerReleaseOperation(cid));
         //register as a surplus node
         surplusNodes.add(cid);
         surplusContainers.incrementAndGet();
