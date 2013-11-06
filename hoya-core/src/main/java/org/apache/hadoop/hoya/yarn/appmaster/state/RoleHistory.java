@@ -34,13 +34,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
 
@@ -321,13 +318,15 @@ public class RoleHistory {
    * Start up
    * @param fs filesystem 
    * @param historyDir path in FS for history
+   * @return true if the history was thawed
    */
-  public void onStart(FileSystem fs, Path historyDir) {
-    this.filesystem = fs;
-    this.historyPath = historyDir;
+  public boolean onStart(FileSystem fs, Path historyDir) {
+    assert filesystem == null;
+    filesystem = fs;
+    historyPath = historyDir;
     startTime = now();
     //assume the history is being thawed; this will downgrade as appropriate
-    onThaw();
+    return onThaw();
     }
   
   /**
@@ -341,13 +340,16 @@ public class RoleHistory {
    * Handle the thaw process <i>after the history has been rebuilt</i>,
    * and after any gc/purge
    */
+  @VisibleForTesting
   public synchronized boolean onThaw() {
+    assert filesystem != null;
+    assert historyPath != null;
     boolean thawSuccessful = false;
     //load in files from data dir
     try {
       Path loaded =
         historyWriter.loadFromHistoryDir(filesystem, historyPath, this);
-      if (loaded!=null) {
+      if (loaded != null) {
         thawSuccessful = true;
         log.info("loaded history from {}", loaded);
       }
@@ -356,7 +358,7 @@ public class RoleHistory {
     }
     if (thawSuccessful) {
       //thaw is then completed
-      onThawCompleted();
+      buildAvailableNodeLists();
     } else {
       //fallback to bootstrap procedure
       onBootstrap();
@@ -366,10 +368,10 @@ public class RoleHistory {
 
 
   /**
-   * After the thaw, rebuild the availability datastructures
+   * (After the thaw), rebuild the availability datastructures
    */
   @VisibleForTesting
-  public synchronized void onThawCompleted() {
+  public synchronized void buildAvailableNodeLists() {
     resetAvailableNodeLists();
     // build the list of available nodes
     for (Map.Entry<String, NodeInstance> entry : nodemap
@@ -397,7 +399,8 @@ public class RoleHistory {
    * @param role role
    * @return the instance, or null for none
    */
-  protected synchronized NodeInstance findNodeForNewInstance(int role) {
+  @VisibleForTesting
+  public synchronized NodeInstance findNodeForNewInstance(int role) {
     NodeInstance nodeInstance;
     List<NodeInstance> targets = availableNodes[role];
     if (targets.isEmpty()) {

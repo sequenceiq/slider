@@ -21,7 +21,6 @@ package org.apache.hadoop.hoya.yarn.model.appstate.history
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.avro.RoleHistoryWriter
 import org.apache.hadoop.hoya.yarn.appmaster.state.NodeEntry
 import org.apache.hadoop.hoya.yarn.appmaster.state.NodeInstance
@@ -29,9 +28,6 @@ import org.apache.hadoop.hoya.yarn.appmaster.state.RoleHistory
 import org.apache.hadoop.hoya.yarn.model.mock.BaseMockAppStateTest
 import org.apache.hadoop.hoya.yarn.model.mock.MockFactory
 import org.junit.Test
-
-import java.util.regex.Matcher
-import java.util.regex.Pattern
 
 @Slf4j
 @CompileStatic
@@ -57,7 +53,7 @@ class TestHistoryRW extends BaseMockAppStateTest {
   @Test
   public void testWriteReadData() throws Throwable {
     RoleHistory roleHistory = new RoleHistory(MockFactory.ROLES)
-    roleHistory.onStart(fs, historyPath)
+    assert !roleHistory.onStart(fs, historyPath)
     String addr = "localhost"
     NodeInstance instance = roleHistory.getOrCreateNodeInstance(addr)
     NodeEntry ne1 = instance.getOrCreate(0)
@@ -96,7 +92,7 @@ class TestHistoryRW extends BaseMockAppStateTest {
     orig3.release()
     assert orig3.available
     roleHistory.dump()
-    
+
     long savetime = 0x0001000
     Path history = roleHistory.saveHistory(savetime)
     assert fs.isFile(history)
@@ -107,7 +103,7 @@ class TestHistoryRW extends BaseMockAppStateTest {
 
     assert 3 == historyWriter.read(fs, history, rh2)
     rh2.dump()
-    
+
     assert rh2.clusterSize == 2;
     NodeInstance ni2 = rh2.getExistingNodeInstance(addr)
     assert ni2 != null
@@ -119,14 +115,14 @@ class TestHistoryRW extends BaseMockAppStateTest {
     assert loadedNE2 != null
     assert loadedNE2.lastUsed == savetime
     assert rh2.thawedDataTime == savetime
-    
+
     // now thaw it
-    rh2.onThawCompleted();
+    rh2.buildAvailableNodeLists();
     describe("thawing")
     rh2.dump();
     List<NodeInstance> available0 = rh2.cloneAvailableList(0)
     assert available0.size() == 1
-    
+
     NodeInstance entry = available0.get(0)
     assert entry.hostname == "localhost"
     assert entry == localhost
@@ -134,8 +130,30 @@ class TestHistoryRW extends BaseMockAppStateTest {
     assert available1.size() == 2
     //and verify that even if last used was set, the save time is picked up
     assert entry.get(1).lastUsed == roleHistory.saveTime
-    
+
   }
 
-  
+  @Test
+  public void testWriteThaw() throws Throwable {
+    RoleHistory roleHistory = new RoleHistory(MockFactory.ROLES)
+    assert !roleHistory.onStart(fs, historyPath)
+    String addr = "localhost"
+    NodeInstance instance = roleHistory.getOrCreateNodeInstance(addr)
+    NodeEntry ne1 = instance.getOrCreate(0)
+    ne1.lastUsed = 0xf00d
+
+    Path history = roleHistory.saveHistory(time++)
+    long savetime =roleHistory.saveTime;
+    assert fs.isFile(history)
+    RoleHistory rh2 = new RoleHistory(MockFactory.ROLES)
+    assert rh2.onStart(fs, historyPath)
+    NodeInstance ni2 = rh2.getExistingNodeInstance(addr)
+    assert ni2 != null
+    NodeEntry ne2 = ni2.get(0)
+    assert ne2 != null
+    assert ne2.lastUsed == ne1.lastUsed
+    assert rh2.thawedDataTime == savetime
+  }
+
+
 }

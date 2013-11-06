@@ -68,7 +68,7 @@ class TestHistoryRWOrdering extends BaseMockAppStateTest {
     long time = System.currentTimeMillis();
 
     RoleHistory roleHistory = new RoleHistory(MockFactory.ROLES)
-    roleHistory.onStart(fs, historyPath)
+    assert !roleHistory.onStart(fs, historyPath)
     String addr = "localhost"
     NodeInstance instance = roleHistory.getOrCreateNodeInstance(addr)
     NodeEntry ne1 = instance.getOrCreate(0)

@@ -298,9 +298,10 @@ public class RoleHistoryWriter {
    * @throws FileNotFoundException if the target dir is actually a path
    */
   public List<Path> findAllHistoryEntries(FileSystem fs, Path dir) throws IOException {
-    
-    if(!fs.exists(dir)) {
-      fs.mkdirs(dir);  
+    assert fs != null;
+    assert dir != null;
+    if (!fs.exists(dir)) {
+      fs.mkdirs(dir);
     } else if (!fs.isDirectory(dir)) {
       throw new FileNotFoundException("Not a directory " + dir.toString());
     }
@@ -358,6 +359,7 @@ public class RoleHistoryWriter {
    */
   public Path loadFromHistoryDir(FileSystem fs, Path dir,
                                  RoleHistory roleHistory) throws IOException {
+    assert fs != null;
     List<Path> entries = findAllHistoryEntries(fs, dir);
     return attemptToReadHistory(roleHistory, fs, entries);
   }
