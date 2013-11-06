@@ -965,8 +965,8 @@ public class AppState {
    * (actual+pending)
    * @param role role
    * @return a list of operations
-   * @throws HoyaInternalStateException if the review implies that
-   * the system is too confused to know its own name.
+   * @throws HoyaInternalStateException if the operation reveals that
+   * the internal state of the application is inconsistent.
    */
   public List<AbstractRMOperation> reviewOneRole(RoleStatus role) throws
                                                                    HoyaInternalStateException {
@@ -1016,40 +1016,39 @@ public class AppState {
         findActiveContainers(nodesForRelease);
       
       for (NodeInstance node : nodesForRelease) {
-/*
-        containerReleaseSubmitted(possible);
-        operations.add(new ContainerReleaseOperation(node.id));
-*/
-
-      }
-
-      List<RoleInstance> targets = cloneActiveContainerList();
-      for (RoleInstance instance : targets) {
-        if (excess > 0) {
-          Container possible = instance.container;
-          if (!instance.released) {
-            ContainerId id = possible.getId();
-            log.info("Requesting release of container {} in role {}", id, name);
-            containerReleaseSubmitted(possible);
-            operations.add(new ContainerReleaseOperation(id));
-            excess--;
-          }
+        Container possible = findContainerOnHost(node);
+        if (possible == null) {
+          throw new HoyaInternalStateException(
+            "Failed to find a container to release on node %s", node.hostname);
         }
+        containerReleaseSubmitted(possible);
+        operations.add(new ContainerReleaseOperation(possible.getId()));
+
       }
-      //here everything should be freed up, though there may be an excess due 
-      //to race conditions with requests coming in
-      if (excess > 0) {
-        log.warn("{}: After releasing all nodes that could be free," +
-          " there was an excess of {} nodes",
-          name,
-          excess);
-      }
+   
     }
 
     return operations;
   }
 
 
+  /**
+   * Find a container running on a specific host -looking
+   * into the node ID to determine this.
+   * @param node node
+   * @return a container or null if there are no containers on this host
+   */
+  private Container findContainerOnHost(NodeInstance node) {
+    Collection<RoleInstance> targets = cloneActiveContainerList();
+    String hostname = node.hostname;
+    for (RoleInstance ri : targets) {
+      if (hostname.equals(RoleHistoryUtils.hostnameOf(ri.container))) {
+        return ri.container;
+      }
+    }
+    return null;
+  }
+  
   /**
    * Release all containers.
    * @return a list of operations to execute
