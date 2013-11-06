@@ -41,21 +41,6 @@ class TestNIComparators extends BaseMockAppStateTest  {
     return "TestNIComparators"
   }
 
-  public NodeInstance nodeInstance(long age, int live0, int live1, int live2) {
-    NodeInstance ni = new NodeInstance("host-${age}-${live0}",
-                                       MockFactory.ROLE_COUNT)
-    ni.getOrCreate(0).lastUsed = age
-    ni.getOrCreate(0).live = live0;
-    if (live1 > 0) {
-      ni.getOrCreate(1).live = live1;
-    }
-    if (live2 > 0) {
-      ni.getOrCreate(1).live = live2;
-    }
-    return ni
-  }
-
-
   @Test
   public void testNewerThan() throws Throwable {
 

@@ -25,6 +25,7 @@ import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.yarn.HoyaTestBase
 import org.apache.hadoop.hoya.yarn.appmaster.state.AppState
 import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerAssignment
+import org.apache.hadoop.hoya.yarn.appmaster.state.NodeInstance
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleInstance
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleStatus
 import org.apache.hadoop.yarn.api.records.Container
@@ -110,4 +111,17 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
     }
   }
 
+  public NodeInstance nodeInstance(long age, int live0, int live1=0, int live2=0) {
+    NodeInstance ni = new NodeInstance("age${age}live[${live0},${live1},$live2]",
+                                       MockFactory.ROLE_COUNT)
+    ni.getOrCreate(0).lastUsed = age
+    ni.getOrCreate(0).live = live0;
+    if (live1 > 0) {
+      ni.getOrCreate(1).live = live1;
+    }
+    if (live2 > 0) {
+      ni.getOrCreate(1).live = live2;
+    }
+    return ni
+  }
 }
