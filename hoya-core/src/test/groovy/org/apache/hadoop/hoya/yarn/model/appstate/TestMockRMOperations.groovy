@@ -122,7 +122,7 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
     role1Status.desired = 3
 
     List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
-    List<Container> allocations = engine.process(ops)
+    List<Container> allocations = engine.execute(ops)
     List<ContainerAssignment> assignments = [];
     List<AbstractRMOperation> releases = []
     appState.onContainersAllocated(allocations, assignments, releases)
@@ -142,7 +142,7 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
     role1Status.desired = 0
     ops = appState.reviewRequestAndReleaseNodes()
     assert ops.size() == 3
-    allocations = engine.process(ops)
+    allocations = engine.execute(ops)
     assert engine.containerCount() == 1;
 
     appState.onContainersAllocated(allocations, assignments, releases)
@@ -155,7 +155,7 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
     role0Status.desired = 1
 
     List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
-    List<Container> allocations = engine.process(ops)
+    List<Container> allocations = engine.execute(ops)
     List<ContainerAssignment> assignments = [];
     List<AbstractRMOperation> releases = []
     appState.onContainersAllocated(allocations, assignments, releases)
@@ -187,7 +187,7 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
     role0Status.desired = 1
 
     List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
-    List<Container> allocations = engine.process(
+    List<Container> allocations = engine.execute(
         ops)
     List<ContainerAssignment> assignments = [];
     List<AbstractRMOperation> releases = []

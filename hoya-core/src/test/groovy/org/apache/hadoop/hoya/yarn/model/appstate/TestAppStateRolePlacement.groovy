@@ -80,7 +80,9 @@ class TestAppStateRolePlacement extends BaseMockAppStateTest
     role0Status.desired = 0
     ops = appState.reviewRequestAndReleaseNodes()
     ContainerReleaseOperation release = (ContainerReleaseOperation) ops[0]
+    
     assert release.containerId == container.id
+    engine.execute(ops)
     assert appState.onCompletedNode(containerStatus(container))
 
     //view the world
@@ -94,6 +96,8 @@ class TestAppStateRolePlacement extends BaseMockAppStateTest
     AMRMClient.ContainerRequest request2 = operation.request
     assert request2 != null
     assert request2.nodes[0] == containerHostname
+    engine.execute(ops)
+
   }
 
 

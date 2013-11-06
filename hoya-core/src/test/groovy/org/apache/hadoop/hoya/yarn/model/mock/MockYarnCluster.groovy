@@ -135,6 +135,8 @@ public class MockYarnCluster {
     }
     return total;
   }
+  
+  
 /**
  * Model cluster nodes on the simpler "slot" model than the YARN-era
  * resource allocation model. Why? Makes it easier to implement.

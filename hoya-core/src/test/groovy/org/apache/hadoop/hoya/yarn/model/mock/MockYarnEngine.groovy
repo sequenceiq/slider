@@ -29,6 +29,9 @@ import org.apache.hadoop.yarn.api.records.Container
 import org.apache.hadoop.yarn.api.records.ContainerId
 import org.apache.hadoop.yarn.client.api.AMRMClient
 
+/**
+ * This is an evolving engine to mock YARN operations
+ */
 @CompileStatic
 @Slf4j
 class MockYarnEngine {
@@ -83,7 +86,7 @@ class MockYarnEngine {
    * @param ops
    * @return
    */
-  List<Container> process(List<AbstractRMOperation> ops) {
+  List<Container> execute(List<AbstractRMOperation> ops) {
     return processQueue(ops)
   }
 

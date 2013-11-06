@@ -51,10 +51,16 @@ class Allocator {
   MockContainer allocate(AMRMClient.ContainerRequest request) {
     MockYarnCluster.MockYarnClusterNode node = null
     MockYarnCluster.MockYarnClusterContainer allocated = null
-    request.nodes.each { String host ->
-      node = cluster.lookup(host)
-      allocated = node.allocate()
+    if (request.nodes != null) {
+      for (String host : request.nodes) {
+        node = cluster.lookup(host)
+        allocated = node.allocate()
+        if (allocated != null) {
+          break
+        }
+      }
     }
+
     if (allocated) {
       return createContainerRecord(request, allocated, node)
     } else {
