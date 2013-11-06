@@ -505,7 +505,7 @@ public class RoleHistory {
    */
   public void onContainerAllocated(Container container) {
     NodeEntry nodeEntry = getOrCreateNodeEntry(container);
-    nodeEntry.starting();
+    nodeEntry.onStarting();
   }
 
   /**
@@ -526,7 +526,7 @@ public class RoleHistory {
    */
   public void onContainerStarted(Container container) {
     NodeEntry nodeEntry = getOrCreateNodeEntry(container);
-    nodeEntry.startCompleted();
+    nodeEntry.onStartCompleted();
     touch();
   }
 
@@ -538,7 +538,7 @@ public class RoleHistory {
    */
   public boolean onNodeManagerContainerStartFailed(Container container) {
     NodeEntry nodeEntry = getOrCreateNodeEntry(container);
-    boolean available = nodeEntry.startFailed();
+    boolean available = nodeEntry.onStartFailed();
     maybeQueueNodeForWork(container, nodeEntry, available);
     touch();
     return available;

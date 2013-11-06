@@ -84,6 +84,10 @@ public class NodeEntry {
     return live;
   }
 
+  public int getStarting() {
+    return starting;
+  }
+
   /**
    * Set the live value directly -used on AM restart
    * @param v value
@@ -100,7 +104,7 @@ public class NodeEntry {
     live = RoleHistoryUtils.decToFloor(live);
   }
   
-  public synchronized void starting() {
+  public synchronized void onStarting() {
     ++starting;
   }
 
@@ -108,7 +112,7 @@ public class NodeEntry {
     starting = RoleHistoryUtils.decToFloor(starting);
     }
 
-  public synchronized void startCompleted() {
+  public synchronized void onStartCompleted() {
     decStarting();
     incLive();
   }
@@ -117,7 +121,7 @@ public class NodeEntry {
    * start failed -decrement the starting flag.
    * @return true if the node is now available
    */
-  public synchronized boolean startFailed() {
+  public synchronized boolean onStartFailed() {
     decStarting();
     return isAvailable();
   }
@@ -126,7 +130,6 @@ public class NodeEntry {
    * no of requests made of this role of this node. If it goes above
    * 1 there's a problem
    */
-
   public synchronized  int getRequested() {
     return requested;
   }
