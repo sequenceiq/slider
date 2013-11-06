@@ -83,7 +83,9 @@ public final class ContainerPriority {
    * @return role key
    */
   public static int extractRole(Container container) {
-    return extractRole(container.getPriority().getPriority());
+    Priority priority = container.getPriority();
+    assert priority != null;
+    return extractRole(priority.getPriority());
   }
   /**
    * Map from a container to a role key by way of its priority
@@ -100,6 +102,8 @@ public final class ContainerPriority {
    * @return the request ID
    */
   public static int extractRequestId(Container container) {
-    return extractRequestId(container.getPriority().getPriority());
+    Priority priority = container.getPriority();
+    assert priority != null;
+    return extractRequestId(priority.getPriority());
   }
 }
