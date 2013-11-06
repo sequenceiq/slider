@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -214,6 +215,18 @@ public class RoleHistory {
   public NodeInstance getOrCreateNodeInstance(String hostname) {
     //convert to a string
     return nodemap.getOrCreate(hostname);
+  }
+
+  /**
+   * Insert a list of nodes into the map; overwrite any with that name.
+   * This is a bulk operation for testing.
+   * Important: this does not update the available node lists, these
+   * must be rebuilt afterwards.
+   * @param nodes collection of nodes.
+   */
+  @VisibleForTesting
+  public synchronized void insert(Collection<NodeInstance> nodes) {
+    nodemap.insert(nodes);
   }
   
   /**
