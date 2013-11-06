@@ -35,7 +35,6 @@ import org.apache.hadoop.yarn.client.api.AMRMClient
 import org.junit.Before
 import org.junit.Test
 
-
 /**
  * Test container events at the role history level -one below
  * the App State
@@ -43,7 +42,6 @@ import org.junit.Test
 @Slf4j
 @CompileStatic
 class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
-
 
   @Override
   String getTestName() {
@@ -60,7 +58,8 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
   List<NodeInstance> nodes = [age2Active2, age2Active0, age4Active1, age1Active4, age3Active0]
   RoleHistory roleHistory = new RoleHistory(MockFactory.ROLES)
 
-  Resource resource  
+  Resource resource
+
   @Before
   public void setupRH() {
     roleHistory.onStart(fs, historyPath)
@@ -70,25 +69,24 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
                                     RoleKeys.DEF_YARN_MEMORY);
   }
 
-
   @Test
   public void testFindAndCreate() throws Throwable {
     int role = 0
     AMRMClient.ContainerRequest request =
         roleHistory.requestNode(role, resource);
-    
+
     List<String> nodes = request.getNodes()
     assert nodes != null
     assert nodes.size() == 1
     String hostname = nodes[0]
     assert hostname == age3Active0.hostname
-    
+
     //build a container
     MockContainer container = factory.newContainer()
     container.nodeId = new MockNodeId(hostname, 0)
     container.priority = request.getPriority()
     roleHistory.onContainerAllocated(container);
-    
+
     NodeMap nodemap = roleHistory.cloneNodemap();
     NodeInstance allocated = nodemap.get(hostname)
     NodeEntry roleEntry = allocated.get(role)
@@ -106,20 +104,19 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
     assert roleEntry.live == 1
   }
 
-
   @Test
   public void testCreateAndRelease() throws Throwable {
     int role = 1
-    
+
     //verify it is empty
     assert roleHistory.findNodesForRelease(role, 1).isEmpty()
-    
+
     AMRMClient.ContainerRequest request =
         roleHistory.requestNode(role, resource);
 
     List<String> nodes = request.getNodes()
     assert nodes == null
-    
+
     //pick an idle host
     String hostname = age3Active0.hostname;
 
@@ -155,7 +152,7 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
     assert roleEntry.releasing == 1
     assert roleEntry.live == 1
     assert roleEntry.active == 0
-    
+
     // release completed
     roleHistory.onReleaseCompleted(container)
     assert roleEntry.releasing == 0
@@ -165,7 +162,6 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
     // verify it is empty
     assert roleHistory.findNodesForRelease(role, 1).isEmpty()
 
-    
     // ask for a container and expect to get the recently released one
     AMRMClient.ContainerRequest request2 =
         roleHistory.requestNode(role, resource);
