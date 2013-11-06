@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.model.appstate.history
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.api.RoleKeys
+import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerPriority
 import org.apache.hadoop.hoya.yarn.appmaster.state.NodeEntry
 import org.apache.hadoop.hoya.yarn.appmaster.state.NodeInstance
 import org.apache.hadoop.hoya.yarn.appmaster.state.NodeMap
@@ -172,5 +173,148 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
 
     //pick an idle host
     assert hostname2 == age3Active0.hostname;
+  }
+
+
+  @Test
+  public void testStartWithoutWarning() throws Throwable {
+
+    int role = 0
+    //pick an idle host
+    String hostname = age3Active0.hostname;
+    //build a container
+    MockContainer container = factory.newContainer()
+    container.nodeId = new MockNodeId(hostname, 0)
+    container.priority = ContainerPriority.createPriority(0,1,false)
+    
+    NodeMap nodemap = roleHistory.cloneNodemap();
+    NodeInstance allocated = nodemap.get(hostname)
+    NodeEntry roleEntry = allocated.get(role)
+
+    RoleInstance ri = new RoleInstance(container);
+    ri.buildUUID();
+    //tell RH that it started
+    roleHistory.onContainerStarted(container)
+    assert roleEntry.starting == 0
+    assert !roleEntry.available
+    assert roleEntry.active == 1
+    assert roleEntry.live == 1
+  }
+
+  @Test
+  public void testStartFailed() throws Throwable {
+    int role = 0
+    AMRMClient.ContainerRequest request =
+        roleHistory.requestNode(role, resource);
+
+    String hostname = request.getNodes()[0]
+    assert hostname == age3Active0.hostname
+
+    //build a container
+    MockContainer container = factory.newContainer()
+    container.nodeId = new MockNodeId(hostname, 0)
+    container.priority = request.getPriority()
+    roleHistory.onContainerAllocated(container);
+
+    NodeMap nodemap = roleHistory.cloneNodemap();
+    NodeInstance allocated = nodemap.get(hostname)
+    NodeEntry roleEntry = allocated.get(role)
+    assert roleEntry.starting == 1
+    assert !roleEntry.available
+    RoleInstance ri = new RoleInstance(container);
+    ri.buildUUID();
+    //start it
+    roleHistory.onContainerStartSubmitted(container, ri)
+    //later, declare that it started
+    roleHistory.onNodeManagerContainerStartFailed(container)
+    assert roleEntry.starting == 0
+    assert roleEntry.available
+    assert roleEntry.active == 0
+    assert roleEntry.live == 0
+  }
+  
+  @Test
+  public void testStartFailedWithoutWarning() throws Throwable {
+    int role = 0
+    AMRMClient.ContainerRequest request =
+        roleHistory.requestNode(role, resource);
+
+    String hostname = request.getNodes()[0]
+    assert hostname == age3Active0.hostname
+
+    //build a container
+    MockContainer container = factory.newContainer()
+    container.nodeId = new MockNodeId(hostname, 0)
+    container.priority = request.getPriority()
+
+    NodeMap nodemap = roleHistory.cloneNodemap();
+    NodeInstance allocated = nodemap.get(hostname)
+    NodeEntry roleEntry = allocated.get(role)
+
+    roleHistory.onNodeManagerContainerStartFailed(container)
+    assert roleEntry.starting == 0
+    assert roleEntry.available
+    assert roleEntry.active == 0
+    assert roleEntry.live == 0
+  }
+  
+  @Test
+  public void testContainerFailed() throws Throwable {
+    int role = 0
+    AMRMClient.ContainerRequest request =
+        roleHistory.requestNode(role, resource);
+
+    String hostname = request.getNodes()[0]
+    assert hostname == age3Active0.hostname
+
+    //build a container
+    MockContainer container = factory.newContainer()
+    container.nodeId = new MockNodeId(hostname, 0)
+    container.priority = request.getPriority()
+    roleHistory.onContainerAllocated(container);
+
+    NodeMap nodemap = roleHistory.cloneNodemap();
+    NodeInstance allocated = nodemap.get(hostname)
+    NodeEntry roleEntry = allocated.get(role)
+    assert roleEntry.starting == 1
+    assert !roleEntry.available
+    RoleInstance ri = new RoleInstance(container);
+    ri.buildUUID();
+    //start it
+    roleHistory.onContainerStartSubmitted(container, ri)
+    roleHistory.onContainerStarted(container)
+
+    //later, declare that it started
+    roleHistory.onFailedContainer(container)
+    assert roleEntry.starting == 0
+    assert roleEntry.available
+    assert roleEntry.active == 0
+    assert roleEntry.live == 0
+  }
+  
+  @Test
+  public void testContainerFailedWithoutWarning() throws Throwable {
+    int role = 0
+    AMRMClient.ContainerRequest request =
+        roleHistory.requestNode(role, resource);
+
+    String hostname = request.getNodes()[0]
+    assert hostname == age3Active0.hostname
+
+    //build a container
+    MockContainer container = factory.newContainer()
+    container.nodeId = new MockNodeId(hostname, 0)
+    container.priority = request.getPriority()
+
+
+    NodeMap nodemap = roleHistory.cloneNodemap();
+    NodeInstance allocated = nodemap.get(hostname)
+    NodeEntry roleEntry = allocated.get(role)
+    assert roleEntry.available
+    roleHistory.onFailedContainer(container)
+    assert roleEntry.starting == 0
+    assert roleEntry.available
+    assert roleEntry.active == 0
+    assert roleEntry.live == 0
   }
 }
