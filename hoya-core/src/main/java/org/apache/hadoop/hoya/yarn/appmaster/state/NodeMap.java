@@ -18,14 +18,21 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
+import com.google.common.annotations.VisibleForTesting;
+import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
 
 public class NodeMap extends HashMap<String, NodeInstance> {
-
+  protected static final Logger log =
+    LoggerFactory.getLogger(NodeMap.class);
   private final int roleSize;
 
 
@@ -55,7 +62,7 @@ public class NodeMap extends HashMap<String, NodeInstance> {
   public List<NodeInstance> listActiveNodes(int role) {
     List<NodeInstance> nodes = new ArrayList<NodeInstance>();
     for (NodeInstance instance : values()) {
-      if (instance.getActiveRoleInstances(role)>0) {
+      if (instance.getActiveRoleInstances(role) > 0) {
         nodes.add(instance);
       }
     }
@@ -75,17 +82,22 @@ public class NodeMap extends HashMap<String, NodeInstance> {
     List<NodeInstance> active = listActiveNodes(role);
     List<NodeInstance> multiple = new ArrayList<NodeInstance>();
     int nodesRemaining = count;
+    log.debug("searching for {} nodes with candidate set size {}",
+              nodesRemaining, active.size());
     ListIterator<NodeInstance> it = active.listIterator();
-    while (it.hasNext() && count > 0) {
+    while (it.hasNext() && nodesRemaining > 0) {
       NodeInstance ni = it.next();
       int load = ni.getActiveRoleInstances(role);
+      log.debug("Node {} load={}", ni, load);
+      assert load != 0; 
       if (load == 1) {
         // at the tail of the list, from here active[*] is a load=1 entry
         break;
       }
       // load is >1. Add an entry to the target list FOR EACH INSTANCE ABOVE 1
-      for (int i = 0; i < (load - 1); i++) {
+      for (int i = 0; i < (load - 1) && nodesRemaining > 0; i++) {
         nodesRemaining--;
+        log.debug("Push {} #{}", ni, i);
         targets.add(ni);
       }
       // and add to the multiple list
@@ -102,6 +114,8 @@ public class NodeMap extends HashMap<String, NodeInstance> {
       // all the entries in the list have exactly one node
       // so ask for as many as are needed
       int ask = Math.min(nodesRemaining, active.size());
+      log.debug("load=1 nodes to select={} multiples={} available={} ask={}",
+                nodesRemaining, multiple.size(),active.size(), ask);
       targets.addAll(active.subList(0, ask));
     }
     return targets;
@@ -115,5 +129,17 @@ public class NodeMap extends HashMap<String, NodeInstance> {
   @Override
   public Object clone() {
     return super.clone();
+  }
+
+  /**
+   * Insert a list of nodes into the map; overwrite any with that name
+   * This is a bulk operation for testing.
+   * @param nodes collection of nodes.
+   */
+  @VisibleForTesting
+  public void insert(Collection<NodeInstance> nodes) {
+    for (NodeInstance node : nodes) {
+      put(node.hostname, node);
+    }
   }
 }
