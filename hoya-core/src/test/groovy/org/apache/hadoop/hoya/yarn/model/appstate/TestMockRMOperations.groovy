@@ -33,8 +33,10 @@ import org.apache.hadoop.hoya.yarn.model.mock.MockRMOperationHandler
 import org.apache.hadoop.hoya.yarn.model.mock.MockRoles
 import org.apache.hadoop.yarn.api.records.Container
 import org.apache.hadoop.yarn.client.api.AMRMClient
-import static org.apache.hadoop.hoya.yarn.appmaster.state.ContainerPriority.*
 import org.junit.Test
+
+import static org.apache.hadoop.hoya.yarn.appmaster.state.ContainerPriority.buildPriority
+import static org.apache.hadoop.hoya.yarn.appmaster.state.ContainerPriority.extractRole
 
 @CompileStatic
 @Slf4j
@@ -48,20 +50,20 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
 
   @Test
   public void testPriorityOnly() throws Throwable {
-    assert 5 == buildPriority(5,0,false)
+    assert 5 == buildPriority(5, 0, false)
   }
-  
+
   @Test
   public void testPriorityRoundTrip() throws Throwable {
-    assert 5 == extractRole(buildPriority(5,0,false))
+    assert 5 == extractRole(buildPriority(5, 0, false))
   }
-  
+
   @Test
   public void testPriorityRoundTripWithRequest() throws Throwable {
-    int priority = buildPriority(5,0xf,false)
+    int priority = buildPriority(5, 0xf, false)
     assert 5 == extractRole(priority)
   }
-  
+
   @Test
   public void testMockAddOp() throws Throwable {
     role0Status.desired = 1
@@ -216,7 +218,6 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
     List<AbstractRMOperation> ops2 = appState.reviewRequestAndReleaseNodes()
     assert ops2.empty
   }
-
 
 
 }
