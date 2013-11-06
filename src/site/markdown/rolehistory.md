@@ -856,3 +856,33 @@ in a RoleInstance that identifies the node. We already effectively have that
 in the container
 
 
+### Finding a node when a role has instances in the cluster but nothing
+known to be available
+
+One condition found during testing is the following: 
+
+1. A role has one or more instances running in the cluster
+1. A role has no entries in its available list: there is no history of the 
+role ever being on nodes other than which is currently in use.
+1. A new instance is requested.
+
+In this situation, the `findNodeForNewInstance` method returns null: there
+is no recommended location for placement. However, this is untrue: all
+nodes in the cluster `other` than those in use are the recommended nodes. 
+
+It would be possible to build up a list of all known nodes in the cluster that
+are not running this role and use that in the request, effectively telling the
+AM to pick one of the idle nodes. By not doing so, we increase the probability
+that another instance of the same role will be allocated on a node in use,
+a probability which (were there capacity on these nodes and placement random), be
+`1/(clustersize-roleinstances)`. The smaller the cluster and the bigger the
+application, the higher the risk.
+
+This could be revisited, if YARN does not support anti-affinity between new
+requests at a given priority and existing ones: the solution would be to
+issue a relaxed placement request listing all nodes that are in the NodeMap and
+which are not running an instance of the specific role. [To be even more rigorous,
+the request would have to omit those nodes for which an allocation has already been
+made off the available list and yet for which no container has yet been
+granted]. 
+
