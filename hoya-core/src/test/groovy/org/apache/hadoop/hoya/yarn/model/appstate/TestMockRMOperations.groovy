@@ -98,7 +98,7 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
     int roleId = assigned.role.priority
     assert roleId == extractRole(request.priority)
     assert assigned.role.name == ROLE0
-    RoleInstance ri = buildInstance(assigned)
+    RoleInstance ri = roleInstanceInstance(assigned)
     //tell the app it arrived
     appState.containerStartSubmitted(target, ri);
     appState.onNodeManagerContainerStartedFaulting(target.id)
@@ -128,7 +128,7 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
     assert assignments.size() == 4
     assignments.each { ContainerAssignment assigned ->
       Container target = assigned.container
-      RoleInstance ri = buildInstance(assigned)
+      RoleInstance ri = roleInstanceInstance(assigned)
       appState.containerStartSubmitted(target, ri);
     }
     //insert some async operation here
@@ -160,7 +160,7 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
     assert assignments.size() == 1
     ContainerAssignment assigned = assignments[0]
     Container target = assigned.container
-    RoleInstance ri = buildInstance(assigned)
+    RoleInstance ri = roleInstanceInstance(assigned)
     appState.containerStartSubmitted(target, ri);
     RoleInstance ri2 = appState.onNodeManagerContainerStartedFaulting(target.id)
     assert ri2 == ri
@@ -192,7 +192,7 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
     assert assignments.size() == 1
     ContainerAssignment assigned = assignments[0]
     Container target = assigned.container
-    RoleInstance ri = buildInstance(assigned)
+    RoleInstance ri = roleInstanceInstance(assigned)
 
     ops = appState.reviewRequestAndReleaseNodes()
     assert ops.empty

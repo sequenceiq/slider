@@ -19,36 +19,42 @@
 package org.apache.hadoop.hoya.yarn.model.appstate.history
 
 import org.apache.hadoop.hoya.yarn.appmaster.state.NodeInstance
+import org.apache.hadoop.hoya.yarn.model.mock.BaseMockAppStateTest
+import org.apache.hadoop.hoya.yarn.model.mock.MockFactory
 import org.junit.Test
 
 /**
  * Unit test to verify the comparators sort as expected
  */
-class TestNIComparators {
+class TestNIComparators extends BaseMockAppStateTest  {
 
-  NodeInstance age1Active4 = instance(1000, 4)
-  NodeInstance age2Active2 = instance(1001, 2)
-  NodeInstance age3Active0 = instance(1002, 0)
-  NodeInstance age4Active1 = instance(1005, 0)
-  NodeInstance empty = new NodeInstance("empty", 1)
+  NodeInstance age1Active4 = nodeInstance(1000, 4, 0, 0)
+  NodeInstance age2Active2 = nodeInstance(1001, 2, 0, 0)
+  NodeInstance age3Active0 = nodeInstance(1002, 0, 0, 0)
+  NodeInstance age4Active1 = nodeInstance(1005, 0, 0, 0)
+  NodeInstance empty = new NodeInstance("empty", MockFactory.ROLE_COUNT)
 
   List<NodeInstance> nodes = [age2Active2, age4Active1, age1Active4, age3Active0]
-  List<NodeInstance> orig = new ArrayList<>(nodes)
 
+  @Override
+  String getTestName() {
+    return "TestNIComparators"
+  }
 
-  public NodeInstance instance(long age, int live) {
-    NodeInstance ni = new NodeInstance("host-${age}-${live}", 1)
+  public NodeInstance nodeInstance(long age, int live0, int live1, int live2) {
+    NodeInstance ni = new NodeInstance("host-${age}-${live0}",
+                                       MockFactory.ROLE_COUNT)
     ni.getOrCreate(0).lastUsed = age
-    ni.getOrCreate(0).live = live;
+    ni.getOrCreate(0).live = live0;
+    if (live1 > 0) {
+      ni.getOrCreate(1).live = live1;
+    }
+    if (live2 > 0) {
+      ni.getOrCreate(1).live = live2;
+    }
     return ni
   }
 
-  public void assertListEquals(List left, List right) {
-    assert left.size() == right.size();
-    for (int i = 0; i < left.size(); i++) {
-      assert left[0] == right[0]
-    }
-  }
 
   @Test
   public void testNewerThan() throws Throwable {

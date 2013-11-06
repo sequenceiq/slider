@@ -61,6 +61,8 @@ class MockFactory implements  MockRoles {
       PROVIDER_ROLE1,
       PROVIDER_ROLE2,
   ]
+  
+  public static final int ROLE_COUNT = ROLES.size();
 
   ContainerId newContainerId() {
     newContainerId(attemptId)
