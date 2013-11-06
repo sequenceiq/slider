@@ -668,36 +668,29 @@ public class AppState {
    * @return
    */
   public AMRMClient.ContainerRequest buildContainerResourceAndRequest(
-    RoleStatus role,
-    Resource capability) {
+        RoleStatus role,
+        Resource capability) {
     buildResourceRequirements(role, capability);
     //get the role history to select a suitable node, if available
     AMRMClient.ContainerRequest containerRequest =
-      roleHistory.requestNode(role.getKey(), capability);
     createContainerRequest(role, capability);
     return  containerRequest;
   }
 
   /**
    * Create a container request.
-   * This can update internal state, such as the role request count
-   * TODO: this is where role history information will be used for placement decisions -
+   * Update internal state, such as the role request count
+   * This is where role history information will be used for placement decisions -
    * @param role role
    * @param resource requirements
    * @return the container request to submit
    */
   public AMRMClient.ContainerRequest createContainerRequest(RoleStatus role,
                                                             Resource resource) {
-    // setup requirements for hosts
-    // using * as any host initially
-    Priority pri = ContainerPriority.createPriority(role.getPriority(), 0,
-                                                    false);
+    
+    
     AMRMClient.ContainerRequest request;
-    request = new AMRMClient.ContainerRequest(resource,
-                                              null,
-                                              null,
-                                              pri,
-                                              true);
+    request = roleHistory.requestNode(role.getKey(), resource);
     role.incRequested();
 
     return request;
@@ -1125,7 +1118,7 @@ public class AppState {
                 );
 
         assignments.add(new ContainerAssignment(container, role));
-        //add to the array
+        //add to the history
         roleHistory.onContainerAllocated(container);
       }
     }

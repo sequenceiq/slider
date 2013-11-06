@@ -120,7 +120,7 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
       ni.getOrCreate(1).live = live1;
     }
     if (live2 > 0) {
-      ni.getOrCreate(1).live = live2;
+      ni.getOrCreate(2).live = live2;
     }
     return ni
   }
