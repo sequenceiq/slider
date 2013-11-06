@@ -414,6 +414,7 @@ public class RoleHistory {
    */
   @VisibleForTesting
   public synchronized NodeInstance findNodeForNewInstance(int role) {
+    assert role < roleSize;
     NodeInstance nodeInstance;
     List<NodeInstance> targets = availableNodes[role];
     if (targets.isEmpty()) {
