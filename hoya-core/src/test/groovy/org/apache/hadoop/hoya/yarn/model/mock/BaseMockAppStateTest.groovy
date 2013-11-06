@@ -29,7 +29,10 @@ import org.apache.hadoop.hoya.yarn.appmaster.state.NodeInstance
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleInstance
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleStatus
 import org.apache.hadoop.yarn.api.records.Container
+import org.apache.hadoop.yarn.api.records.ContainerState
+import org.apache.hadoop.yarn.api.records.ContainerStatus
 import org.apache.hadoop.yarn.conf.YarnConfiguration
+import org.apache.hadoop.yarn.service.launcher.LauncherExitCodes
 import org.junit.Before
 import org.apache.hadoop.fs.FileSystem as HadoopFS
 
@@ -96,7 +99,7 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
    * @param assigned
    * @return
    */
-  RoleInstance roleInstanceInstance(ContainerAssignment assigned) {
+  RoleInstance roleInstance(ContainerAssignment assigned) {
     Container target = assigned.container
     RoleInstance ri = new RoleInstance(target)
     ri.buildUUID();
@@ -123,5 +126,19 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
       ni.getOrCreate(2).live = live2;
     }
     return ni
+  }
+
+  /**
+   * Create a container status event
+   * @param c container
+   * @return a status
+   */
+  ContainerStatus containerStatus(Container c) {
+    ContainerStatus status = ContainerStatus.newInstance(
+        c.id,
+        ContainerState.COMPLETE,
+        "",
+        LauncherExitCodes.EXIT_CLIENT_INITIATED_SHUTDOWN)
+    return status
   }
 }

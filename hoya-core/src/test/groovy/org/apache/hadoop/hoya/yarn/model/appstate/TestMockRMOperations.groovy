@@ -100,10 +100,10 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
     int roleId = assigned.role.priority
     assert roleId == extractRole(request.priority)
     assert assigned.role.name == ROLE0
-    RoleInstance ri = roleInstanceInstance(assigned)
+    RoleInstance ri = roleInstance(assigned)
     //tell the app it arrived
     appState.containerStartSubmitted(target, ri);
-    appState.onNodeManagerContainerStartedFaulting(target.id)
+    appState.innerOnNodeManagerContainerStarted(target.id)
     assert role0Status.started == 1
 
     //now release it by changing the role status
@@ -130,13 +130,13 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
     assert assignments.size() == 4
     assignments.each { ContainerAssignment assigned ->
       Container target = assigned.container
-      RoleInstance ri = roleInstanceInstance(assigned)
+      RoleInstance ri = roleInstance(assigned)
       appState.containerStartSubmitted(target, ri);
     }
     //insert some async operation here
     assignments.each { ContainerAssignment assigned ->
       Container target = assigned.container
-      appState.onNodeManagerContainerStartedFaulting(target.id)
+      appState.innerOnNodeManagerContainerStarted(target.id)
     }
     assert engine.containerCount() == 4;
     role1Status.desired = 0
@@ -162,13 +162,13 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
     assert assignments.size() == 1
     ContainerAssignment assigned = assignments[0]
     Container target = assigned.container
-    RoleInstance ri = roleInstanceInstance(assigned)
+    RoleInstance ri = roleInstance(assigned)
     appState.containerStartSubmitted(target, ri);
-    RoleInstance ri2 = appState.onNodeManagerContainerStartedFaulting(target.id)
+    RoleInstance ri2 = appState.innerOnNodeManagerContainerStarted(target.id)
     assert ri2 == ri
     //try a second time, expect an error
     try {
-      appState.onNodeManagerContainerStartedFaulting(target.id)
+      appState.innerOnNodeManagerContainerStarted(target.id)
       fail("Expected an exception")
     } catch (HoyaRuntimeException expected) {
       // expected
@@ -195,7 +195,7 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
     assert assignments.size() == 1
     ContainerAssignment assigned = assignments[0]
     Container target = assigned.container
-    RoleInstance ri = roleInstanceInstance(assigned)
+    RoleInstance ri = roleInstance(assigned)
 
     ops = appState.reviewRequestAndReleaseNodes()
     assert ops.empty
@@ -206,7 +206,7 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
     ops = appState.reviewRequestAndReleaseNodes()
     assert ops.empty
 
-    RoleInstance ri2 = appState.onNodeManagerContainerStartedFaulting(target.id)
+    RoleInstance ri2 = appState.innerOnNodeManagerContainerStarted(target.id)
   }
 
   @Test
