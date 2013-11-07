@@ -28,7 +28,7 @@ code has not been tested at any scale.
 
 ## Using Hoya
 
-* [Announcement](src/site/markdown/src/site/markdown/announcement.md)
+* [Announcement](src/site/markdown/announcement.md)
 * [Installing](src/site/markdown/installing.md)
 * [Man Page](src/site/markdown/manpage.md)
 * [Examples](src/site/markdown/examples.md)
