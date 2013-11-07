@@ -510,10 +510,6 @@ public class HoyaAppMaster extends CompositeService
       rpcService.getServer().refreshServiceAcl(conf, new HoyaAMPolicyProvider());
     }
 
-
-
-
-
     //now validate the dir by loading in a hadoop-site.xml file from it
     
     String siteXMLFilename = providerService.getSiteXMLFilename();
@@ -529,8 +525,11 @@ public class HoyaAppMaster extends CompositeService
 
     providerService.validateApplicationConfiguration(clusterSpec, confDir, securityEnabled);
 
+    //determine the location for the role history data
+    Path historyDir = new Path(clusterDirPath, HISTORY_DIR_NAME);
+    
     //build the instance
-    appState.buildInstance(clusterSpec, siteConf, providerRoles);
+    appState.buildInstance(clusterSpec, siteConf, providerRoles, fs, historyDir);
 
     //before bothering to start the containers, bring up the master.
     //This ensures that if the master doesn't come up, less
@@ -713,11 +712,7 @@ public class HoyaAppMaster extends CompositeService
    * Get diagnostics info about containers
    */
   private String getContainerDiagnosticInfo() {
-    StringBuilder builder = new StringBuilder();
-    for (RoleStatus roleStatus : getRoleStatusMap().values()) {
-      builder.append(roleStatus).append('\n');
-    }
-    return builder.toString();
+   return appState.getContainerDiagnosticInfo();
   }
 
   public Object getProxy(Class protocol, InetSocketAddress addr) {
@@ -767,7 +762,7 @@ public class HoyaAppMaster extends CompositeService
     for (ContainerAssignment assignment : assignments) {
       RoleStatus role = assignment.role;
       Container container = assignment.container;
-      launchService.launchRole(container,role, getClusterSpec());
+      launchService.launchRole(container, role, getClusterSpec());
     }
     
     //for all the operations, exec them
@@ -1180,16 +1175,10 @@ public class HoyaAppMaster extends CompositeService
     LOG_YARN.error("Failed to query the status of Container {}", containerId);
   }
 
-
   @Override //  NMClientAsync.CallbackHandler 
   public void onStopContainerError(ContainerId containerId, Throwable t) {
     LOG_YARN.warn("Failed to stop Container {}", containerId);
   }
-
-  public Map<Integer, RoleStatus> getRoleStatusMap() {
-    return appState.getRoleStatusMap();
-  }
-
 
   /**
    The cluster description published to callers

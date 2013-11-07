@@ -25,7 +25,6 @@ import org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys
 import org.apache.hadoop.hoya.yarn.providers.accumulo.AccumuloTestBase
 import org.junit.Test
 
-@CompileStatic
 @Slf4j
 class TestAccFlexTablets133Mgr113 extends AccumuloTestBase {
 

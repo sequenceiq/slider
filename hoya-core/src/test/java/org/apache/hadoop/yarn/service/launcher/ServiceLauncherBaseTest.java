@@ -19,15 +19,14 @@
 package org.apache.hadoop.yarn.service.launcher;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.yarn.service.launcher.ServiceLauncher;
-import org.junit.Assert;
+import org.apache.hadoop.hoya.yarn.HoyaTestBase;
 
 import java.util.List;
 
 /**
  * Base class for tests that use the service launcher
  */
-public class ServiceLauncherBaseTest extends Assert {
+public class ServiceLauncherBaseTest extends HoyaTestBase {
 
   /**
    * Launch a service
@@ -48,14 +47,6 @@ public class ServiceLauncherBaseTest extends Assert {
                                   toArray(args),
                                   false);
     return serviceLauncher;
-  }
-
-  protected static String[] toArray(List<Object> args) {
-    String[] converted = new String[args.size()];
-    for (int i = 0; i < args.size(); i++) {
-      converted[i] = args.get(i).toString();
-    }
-    return converted;
   }
 
   /**

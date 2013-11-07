@@ -33,7 +33,6 @@ import org.junit.Test
  */
 @CompileStatic
 @Slf4j
-
 class TestHBaseMaster extends HBaseMiniClusterTestBase {
 
   @Test
@@ -42,7 +41,6 @@ class TestHBaseMaster extends HBaseMiniClusterTestBase {
     createMiniCluster(clustername, createConfiguration(), 1, true)
     //make sure that ZK is up and running at the binding string
     ZKIntegration zki = createZKIntegrationInstance(ZKBinding, clustername, false, false, 5000)
-    log.info("ZK up at $zki");
     //now launch the cluster with 1 region server
     int regionServerCount = 1
     ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount, [], true, true) 

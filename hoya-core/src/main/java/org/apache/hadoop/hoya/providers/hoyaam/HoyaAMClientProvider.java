@@ -30,6 +30,7 @@ import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.providers.ClientProvider;
+import org.apache.hadoop.hoya.providers.PlacementPolicy;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
@@ -82,7 +83,8 @@ public class HoyaAMClientProvider extends Configured implements
    * Initialize role list
    */
   static {
-    ROLES.add(new ProviderRole(ROLE_HOYA_AM, KEY_AM, true));
+    ROLES.add(new ProviderRole(ROLE_HOYA_AM, KEY_AM,
+                               PlacementPolicy.EXCLUDE_FROM_FLEXING));
   }
 
   @Override

@@ -36,6 +36,16 @@ import org.apache.hadoop.yarn.api.records.Resource
 @CompileStatic
 @Slf4j
 class MockFactory implements  MockRoles {
+
+  public static final ProviderRole PROVIDER_ROLE0 = new ProviderRole(
+      MockRoles.ROLE0,
+      0)
+  public static final ProviderRole PROVIDER_ROLE1 = new ProviderRole(
+      MockRoles.ROLE1,
+      1)
+  public static final ProviderRole PROVIDER_ROLE2 = new ProviderRole(
+      MockRoles.ROLE2,
+      2)
   int appIdCount;
   int attemptIdCount;
   int containerIdCount;
@@ -46,63 +56,44 @@ class MockFactory implements  MockRoles {
   /**
    * List of roles
    */
-  List<ProviderRole> ROLES = [
-      new ProviderRole(ROLE1, 1),
-      new ProviderRole(ROLE2, 2),
-      new ProviderRole(ROLE3, 3),
+  public static final List<ProviderRole> ROLES = [
+      PROVIDER_ROLE0,
+      PROVIDER_ROLE1,
+      PROVIDER_ROLE2,
   ]
-
   
-  int getAppIdCount() {
-    return appIdCount
-  }
+  public static final int ROLE_COUNT = ROLES.size();
 
-  int getAttemptIdCount() {
-    return attemptIdCount
-  }
-
-  int getContainerIdCount() {
-    return containerIdCount
-  }
-
-  ApplicationId getAppId() {
-    return appId
-  }
-
-  ApplicationAttemptId getAttemptId() {
-    return attemptId
-  }
-
-  ContainerId newContainerId() {
+  MockContainerId newContainerId() {
     newContainerId(attemptId)
   }
 
-  ContainerId newContainerId(ApplicationAttemptId attemptId) {
+  MockContainerId newContainerId(ApplicationAttemptId attemptId) {
     MockContainerId cid = new MockContainerId()
     cid.id = containerIdCount++
     cid.applicationAttemptId = attemptId;
     return cid;
   }
-  
-  ApplicationAttemptId newApplicationAttemptId(ApplicationId appId) {
+
+  MockApplicationAttemptId newApplicationAttemptId(ApplicationId appId) {
     MockApplicationAttemptId id = new MockApplicationAttemptId()
     id.attemptId = attemptIdCount++;
     id.applicationId = appId
     return id;
   }
-  
-  ApplicationId newAppId() {
+
+  MockApplicationId newAppId() {
     MockApplicationId id = new MockApplicationId()
-    id.id = appIdCount++;
+    id.setId(appIdCount++);
     return id;
   }
 
-  Container newContainer(ContainerId cid) {
+  MockContainer newContainer(ContainerId cid) {
     MockContainer c = new MockContainer()
     c.id = cid
     return c
   }
-  Container newContainer() {
+  MockContainer newContainer() {
     newContainer(newContainerId())
   }
   
@@ -116,9 +107,9 @@ class MockFactory implements  MockRoles {
   ClusterDescription newClusterSpec(int r1, int r2, int r3) {
     ClusterDescription cd = new ClusterDescription()
     cd.roles = [
-        (ROLE1):roleMap(r1),
-        (ROLE2):roleMap(r2),
-        (ROLE3):roleMap(r3),
+        (ROLE0):roleMap(r1),
+        (ROLE1):roleMap(r2),
+        (ROLE2):roleMap(r3),
     ]
 
     return cd
@@ -129,12 +120,12 @@ class MockFactory implements  MockRoles {
         (RoleKeys.ROLE_INSTANCES):count.toString()
     ]
   }
-  
-  Resource newResource() {
+
+  MockResource newResource() {
     return new MockResource()
   }
 
-  ContainerStatus newContainerStatus() {
+  MockContainerStatus newContainerStatus() {
     return new MockContainerStatus()
     
   }

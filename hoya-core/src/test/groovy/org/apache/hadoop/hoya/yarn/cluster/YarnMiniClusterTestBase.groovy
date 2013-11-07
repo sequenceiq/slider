@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.hoya.yarn.cluster
 
-import groovy.json.JsonOutput
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.commons.logging.Log
@@ -59,7 +58,6 @@ import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
 import org.junit.After
 import org.junit.Assume
-import org.junit.Before
 import org.junit.Rule
 import org.junit.rules.Timeout
 
@@ -110,14 +108,9 @@ implements KeysForTests, HoyaExitCodes {
 
 
   @Rule
-  public final Timeout testTimeout = new Timeout(10*60*1000); 
+  public final Timeout testTimeout = new Timeout(10*60*1000);
 
-  @Before
-  public void setup() {
-    //give our thread a name
-    Thread.currentThread().name = "JUnit"
-  }
-  
+
   @After
   public void teardown() {
     describe("teardown")
@@ -148,25 +141,8 @@ implements KeysForTests, HoyaExitCodes {
     microZKCluster?.close();
     hdfsCluster?.shutdown();
   }
-  
-  protected YarnConfiguration createConfiguration() {
-    return HoyaUtils.createConfiguration();
-  }
 
-  /**
-   * Print a description with some markers to
-   * indicate this is the test description
-   * @param s
-   */
-  protected void describe(String s) {
-    log.info("");
-    log.info("===============================");
-    log.info(s);
-    log.info("===============================");
-    log.info("");
-  }
 
-  
   public ZKIntegration createZKIntegrationInstance(String zkQuorum, String clusterName, boolean createClusterPath, boolean canBeReadOnly, int timeout) {
     
     BlockingZKWatcher watcher = new BlockingZKWatcher();
@@ -362,7 +338,7 @@ implements KeysForTests, HoyaExitCodes {
     return conf
   }
 
-  public void assumeConfOptionSet(YarnConfiguration conf, String key) {
+  public void assumeConfOptionSet(Configuration conf, String key) {
     Assume.assumeNotNull("npt defined " + key, conf.get(key))
   }
   
@@ -487,6 +463,7 @@ implements KeysForTests, HoyaExitCodes {
         Arguments.ARG_WAIT, WAIT_TIME_ARG,
         Arguments.ARG_FILESYSTEM, fsDefaultName,
         Arguments.ARG_OPTION, OptionKeys.OPTION_TEST, "true",
+        Arguments.ARG_DEBUG,
         Arguments.ARG_CONFDIR, confDir
     ]
     argsList += roleList;
@@ -525,15 +502,6 @@ implements KeysForTests, HoyaExitCodes {
   public List<String> getImageCommands() {
     fail("Not implemented");
     return [];
-  }
-
-  /**
-   * skip the test by throwing an assumption failed exception.
-   * This will be logged and not considered a test failure
-   * @param message message a test runner may support
-   */
-  public void skip(String message) {
-    Assume.assumeTrue(message, false);
   }
 
   /**
@@ -783,10 +751,7 @@ implements KeysForTests, HoyaExitCodes {
     return status
   }
 
-  String prettyPrint(String json) {
-    JsonOutput.prettyPrint(json)
-  }
-  
+
   void dumpClusterDescription(String text, ClusterDescription status) {
     describe(text)
     log.info(prettyPrint(status.toJsonString()))

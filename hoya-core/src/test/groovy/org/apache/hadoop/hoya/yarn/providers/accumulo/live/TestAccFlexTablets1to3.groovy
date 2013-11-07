@@ -35,9 +35,9 @@ import org.junit.Test
 class TestAccFlexTablets1to3 extends AccumuloTestBase {
 
   @Test
-  public void testAccFlex1to3() throws Throwable {
+  public void testAccFlexTablets1to3() throws Throwable {
     ClusterDescription cd = flexAccClusterTestRun(
-        "TestAccFlex1to3",
+        "TestAccFlexTablets1to3",
         [
             [
                 (AccumuloKeys.ROLE_MASTER): 1,

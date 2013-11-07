@@ -19,15 +19,16 @@
 package org.apache.hadoop.hoya;
 
 
-import org.apache.hadoop.hoya.api.OptionKeys;
-
 /**
  * Keys and various constants for Hoya
  */
 public interface HoyaKeys {
 
   String ROLE_HOYA_AM = "hoya";
-  int ROLE_HOYA_AM_PRIORITY_INDEX =1;
+  /**
+   * Hoya role is "special"
+   */
+  int ROLE_HOYA_AM_PRIORITY_INDEX = 0;
   
   
   /**
@@ -50,13 +51,19 @@ public interface HoyaKeys {
   /**
    * JVM arg to force IPv4  {@value}
    */
-  String JAVA_FORCE_IPV4 = "-Djava.net.preferIPv4Stack=true";
+  String JVM_ENABLE_ASSERTIONS = "-ea";
+  String JVM_ENABLE_SYSTEM_ASSERTIONS = "-esa";
+
+  /**
+   * JVM arg to force IPv4  {@value}
+   */
+  String JVM_FORCE_IPV4 = "-Djava.net.preferIPv4Stack=true";
 
   /**
    * JVM arg to go headless  {@value}
    */
 
-  String JAVA_HEADLESS = "-Djava.awt.headless=true";
+  String JVM_JAVA_HEADLESS = "-Djava.awt.headless=true";
   String FORMAT_D_CLUSTER_NAME = "-Dhoya.cluster.name=%s";
   String FORMAT_D_CLUSTER_TYPE = "-Dhoya.app.type=%s";
 
@@ -70,6 +77,28 @@ public interface HoyaKeys {
   String GENERATED_CONF_DIR_NAME = "generated";
   String ORIG_CONF_DIR_NAME = "original";
   String DATA_DIR_NAME = "database";
+  String HISTORY_DIR_NAME = "history";
+  String HISTORY_FILENAME_SUFFIX = "json";
+  String HISTORY_FILENAME_PREFIX = "rolehistory-";
+  
+  /**
+   * Filename pattern is required to save in strict temporal order.
+   * Important: older files must sort less-than newer files when using
+   * case-sensitive name sort.
+   */
+  String HISTORY_FILENAME_CREATION_PATTERN = HISTORY_FILENAME_PREFIX +"%016x."+
+                                    HISTORY_FILENAME_SUFFIX;
+  /**
+   * The posix regexp used to locate this 
+   */
+  String HISTORY_FILENAME_MATCH_PATTERN = HISTORY_FILENAME_PREFIX +"[0-9a-f]+\\."+
+                                    HISTORY_FILENAME_SUFFIX;
+    /**
+   * The posix regexp used to locate this 
+   */
+  String HISTORY_FILENAME_GLOB_PATTERN = HISTORY_FILENAME_PREFIX +"*."+
+                                    HISTORY_FILENAME_SUFFIX;
+  
   String CLUSTER_SPECIFICATION_FILE = "cluster.json";
 
   int MIN_HEAP_SIZE = 0;
@@ -99,7 +128,6 @@ public interface HoyaKeys {
    */
   String OPTION_HOYA_MASTER_COMMAND =
     "hoya.test.master.command";
-
 
   /**
    * delay for container startup
@@ -147,4 +175,5 @@ public interface HoyaKeys {
    * {@value}
    */
   String KEY_HOYA_ACL = "security.hoya.protocol.acl";
+
 }

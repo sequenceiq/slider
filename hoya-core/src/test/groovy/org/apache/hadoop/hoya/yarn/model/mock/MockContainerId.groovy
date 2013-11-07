@@ -21,10 +21,27 @@ package org.apache.hadoop.hoya.yarn.model.mock
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId
 import org.apache.hadoop.yarn.api.records.ContainerId
 
-class MockContainerId extends ContainerId {
+class MockContainerId extends ContainerId implements Cloneable {
 
   int id;
   ApplicationAttemptId applicationAttemptId;
+
+  MockContainerId() {
+  }
+  
+  MockContainerId(ContainerId that) {
+    id = that.id
+    applicationAttemptId = that.applicationAttemptId
+  }
+  
+
+  int getId() {
+    return id
+  }
+
+  void setId(int id) {
+    this.id = id
+  }
 
   ApplicationAttemptId getApplicationAttemptId() {
     return applicationAttemptId
@@ -35,19 +52,12 @@ class MockContainerId extends ContainerId {
   }
 
   @Override
-  int getId() {
-    return id;
-  }
-
-  @Override
-  public void setId(int id) {
-    this.id = id;
-  }
-
-  @Override
   public void build() {
 
   }
-  
-  
+
+  @Override
+  protected Object clone() throws CloneNotSupportedException {
+    return super.clone()
+  }
 }

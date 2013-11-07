@@ -16,33 +16,36 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.appmaster;
+package org.apache.hadoop.hoya.yarn.appmaster.state;
 
-import org.apache.hadoop.hoya.HoyaExitCodes;
+import org.apache.hadoop.hoya.exceptions.HoyaRuntimeException;
+import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.yarn.api.records.Container;
-import org.apache.hadoop.yarn.service.launcher.LauncherExitCodes;
+import org.apache.hadoop.yarn.api.records.NodeId;
 
-public class AMUtils {
-  /**
-   * Map an exit code from a process 
-   * @param exitCode
-   * @return an exit code
-   */
-  public static int mapProcessExitCodeToYarnExitCode(int exitCode) {
-    switch (exitCode) {
-      case LauncherExitCodes.EXIT_SUCCESS:
-        return LauncherExitCodes.EXIT_SUCCESS;
-      //remap from a planned shutdown to a failure
-      case LauncherExitCodes.EXIT_CLIENT_INITIATED_SHUTDOWN:
-        return HoyaExitCodes.EXIT_MASTER_PROCESS_FAILED;
-      default:
-        return exitCode;
+public class RoleHistoryUtils {
+
+  public static String hostnameOf(Container container) {
+    NodeId nodeId = container.getNodeId();
+    if (nodeId== null) {
+      throw new HoyaRuntimeException("Container has no node ID: %s",
+         HoyaUtils.containerToString(container));
     }
+    return nodeId.getHost();
   }
 
-  public static boolean isMappedExitAFailure(int mappedExitCode) {
-    return mappedExitCode!=LauncherExitCodes.EXIT_SUCCESS
-      && mappedExitCode!= LauncherExitCodes.EXIT_CLIENT_INITIATED_SHUTDOWN;
+  /**
+   * Decrement a value but hold it at zero. Usually a sanity check
+   * on counters tracking outstanding operations
+   * @param val value
+   * @return decremented value
+   */
+  public static int decToFloor(int val) {
+    int v = val-1;
+    if (v < 0) {
+      v = 0;
+    }
+    return v;
   }
-
+  
 }

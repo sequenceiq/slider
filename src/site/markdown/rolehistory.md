@@ -103,6 +103,12 @@ on YARN to locate a new node -ideally on the same rack.
 1. If two instances of the same role do get assigned to the same server, it
 is not a failure condition. (This may be problematic for some roles 
 -we may need a role-by-role policy here, so that master nodes can be anti-affine)
+[specifically, >1 HBase master mode will not come up on the same host]
+
+1. If a role instance fails on a specific node, asking for a container on
+that same node for the replacement instance is a valid recovery strategy.
+This contains assumptions about failure modes -some randomness here may
+be a valid tactic, especially for roles that do not care about locality.
 
 1. Tracking failure statistics of nodes may be a feature to add in future;
 designing the Role History datastructures to enable future collection
@@ -251,25 +257,25 @@ parts of the YARN cluster.
 
 ### RoleHistory
 
-    starTtime: long
+    startTime: long
     saveTime: long
     dirty: boolean
     nodemap: NodeMap
     roles: RoleStatus[]
     outstandingRequests: transient OutstandingRequestTracker
-    availableNodes: transient List<ClusterNode>[]
+    availableNodes: transient List<NodeInstance>[]
 
 This is the aggregate data structure that is persisted to/from file
 
 ### NodeMap
 
-    clusterNodes: Map: NodeId -> ClusterNode
-    clusterNodes(): Iterable<ClusterNode>
-    getOrCreate(NodeId): ClusterNode
+    clusterNodes: Map: NodeId -> NodeInstance
+    clusterNodes(): Iterable<NodeInstance>
+    getOrCreate(NodeId): NodeInstance
 
-  Maps a YARN NodeID record to a Hoya `ClusterNode` structure
+  Maps a YARN NodeID record to a Hoya `NodeInstance` structure
 
-### ClusterNode
+### NodeInstance
 
 Every node in the cluster is modeled as an ragged array of `NodeEntry` instances, indexed
 by role index -
@@ -304,7 +310,7 @@ it was restarted. The strategy will be to ignore unexpected allocation
 responses (which may come from pre-restart) requests, while treating
 unexpected container release responses as failures.
 
-The `active` counter is only updated after a container release response
+The `active` counter is only decremented after a container release response
 has been received.
 
 ### RoleStatus
@@ -314,7 +320,7 @@ This is the existing `org.apache.hadoop.hoya.yarn.appmaster.state.RoleStatus` cl
 ### RoleList
 
 A list mapping role to int enum is needed to index NodeEntry elements in
-the ClusterNode arrays. Although such an enum is already implemented in the Hoya
+the NodeInstance arrays. Although such an enum is already implemented in the Hoya
 Providers, explicitly serializing and deserializing it would make
 the persistent structure easier to parse in other tools, and resilient
 to changes in the number or position of roles.
@@ -323,7 +329,7 @@ This list could also retain information about recently used/released nodes,
 so that the selection of containers to request could shortcut a search
 
 
-### Container Priority
+### ContainerPriority
 
 The container priority field (a 32 bit integer) is used by Hoya (0.5.x)
 to index the specific role in a container so as to determine which role
@@ -343,7 +349,7 @@ rolling integer -Hoya will assume that after 2^24 requests per role, it can be r
 The main requirement  is: not have > 2^24 outstanding requests for instances of a specific role,
 which places an upper bound on the size of a Hoya cluster.
 
-The splitting and merging will be implemented in a PriorityHelper class,
+The splitting and merging will be implemented in a ContainerPriority class,
 for uniform access.
 
 ### OutstandingRequest ###
@@ -363,14 +369,15 @@ a specific target node
 
 ### OutstandingRequestTracker ###
 
-Contains a map from requestID to the specific `OutstandingRequest` made.
+Contains a map from requestID to the specific `OutstandingRequest` made,
+and generates the request ID
 
-    lastID: int
+    nextRequestId: int
     requestMap(RequestID) -> OutstandingRequest
 
 Operations
 
-    addRequest(ClusterNode, RoleId): OutstandingRequest
+    addRequest(NodeInstance, RoleId): OutstandingRequest
         (and an updated request Map with a new entry)
     lookup(RequestID): OutstandingRequest
     remove(RequestID): OutstandingRequest
@@ -381,7 +388,9 @@ to be important -if so a more complex structure will be needed.
 
 ### AvailableNodes
 
-    availableNodes: List<ClusterNode>[]
+This is a field in `RoleHistory`
+
+    availableNodes: List<NodeInstance>[]
 
 
 For each role, lists nodes that are available for data-local allocation,
@@ -682,7 +691,17 @@ in the total ordering of the list.
  
 The AM uses this as a signal to remove the container from the list
 of starting containers, moving it into the map of live nodes; the counters
-in the associated `RoleInstance` are updated accordingly
+in the associated `RoleInstance` are updated accordingly; the node entry
+adjusted to indicate it has one more live node and one less starting node.
+
+ 
+### NMClientAsync Callback:  onContainerStartFailed()
+
+
+The AM uses this as a signal to remove the container from the list
+of starting containers -the count of starting containers for the relevant
+NodeEntry is decremented. If the node is now available for instances of this
+container, it is returned to the queue of available nodes.
 
 
 ### Flex: Releasing a  role instance from the cluster
@@ -703,7 +722,8 @@ if such a node exists. If not, the scan time has increased to #(nodes).
 
 Once a node has been identified
 
-1. a container on it is located (via the existing container map)
+1. a container on it is located (via the existing container map). This container
+must: be of the target role, and not already be queued for release.
 1. A release operation is queued trigger a request for the RM.
 1. The (existing) `containersBeingReleased` Map has the container inserted into it
 
@@ -764,5 +784,114 @@ As a result, it is highly likely that a new container will be requested on
 the same node. (The only way a node the list would be newer is 
 be if other containers were completed in the same callback)
 
+
+
+### Implementation Notes ###
+
+Notes made while implementing the design.
+
+`OutstandingRequestTracker` should also track requests made with
+no target node; this makes seeing what is going on easier. `ARMClientImpl`
+is doing something similar, on a priority-by-priority basis -if many
+requests are made, each with their own priority, that base class's hash tables
+may get overloaded. (it assumes a limited set of priorities)
+
+Access to the role history datastructures was restricted to avoid
+synchronization problems. Protected access is permitted so that a
+test subclass can examine (and change?) the internals.
+
+`NodeEntries need to add a launching value separate from active so that
+when looking for nodes to release, no attempt is made to release
+a node that has been allocated but is not yet live.
+
+We can't reliably map from a request to a response. Does that matter?
+If we issue a request for a host and it comes in on a different port, do we
+care? Yes -but only because we are trying to track nodes which have requests
+outstanding so as not to issue new ones. But if we just pop the entry
+off the available list, that becomes moot.
+
+Proposal: don't track the requesting numbers in the node entries, just
+in the role status fields.
+
+but: this means that we never re-insert nodes onto the available list if a
+node on them was requested but not satisfied.
+
+Other issues: should we place nodes on the available list as soon as all the entries
+have been released?  I.e. Before YARN has replied
+
+RoleStats were removed -left in app state. Although the rolestats would
+belong here, leaving them where they were reduced the amount of change
+in the `AppState` class, so risk of something breaking.
+
+## MiniYARNCluster node IDs
+
+Mini YARN cluster NodeIDs all share the same hostname , at least when running
+against file://; so mini tests with >1 NM don't have a 1:1 mapping of
+`NodeId:NodeInstance`. What will happen is that 
+`NodeInstance getOrCreateNodeInstance(Container container) '
+will always return the same (now shared) `NodeInstance`.
+
+## Releasing Containers when shrinking a cluster
+
+When identifying instances to release in a bulk downscale operation, the full
+list of targets must be identified together. This is not just to eliminate
+multiple scans of the data structures, but because the containers are not
+released until the queued list of actions are executed -the nodes' release-in-progress
+counters will not be incremented until after all the targets have been identified.
+
+It also needs to handle the scenario where there are many role instances on a
+single server -it should prioritize those. 
+
+
+The NodeMap/NodeInstance/NodeEntry structure is adequate for identifying nodes,
+at least provided there is a 1:1 mapping of hostname to NodeInstance. But it
+is not enough to track containers in need of release: the AppState needs
+to be able to work backwards from a NodeEntry to container(s) stored there.
+
+The `AppState` class currently stores this data in a `ConcurrentMap<ContainerId, RoleInstance>`
+
+To map from NodeEntry/NodeInstance to containers to delete, means that either
+a new datastructure is created to identify containers in a role on a specific host
+(e.g a list of ContainerIds under each NodeEntry), or we add an index reference
+in a RoleInstance that identifies the node. We already effectively have that
+in the container
+
+### dropping any available nodes that are busy
+
+When scanning the available list, any nodes that are no longer idle for that
+role should be dropped from the list.
+
+This can happen when an instance was allocated on a different node from
+that requested.
+
+### Finding a node when a role has instances in the cluster but nothing
+known to be available
+
+One condition found during testing is the following: 
+
+1. A role has one or more instances running in the cluster
+1. A role has no entries in its available list: there is no history of the 
+role ever being on nodes other than which is currently in use.
+1. A new instance is requested.
+
+In this situation, the `findNodeForNewInstance` method returns null: there
+is no recommended location for placement. However, this is untrue: all
+nodes in the cluster `other` than those in use are the recommended nodes. 
+
+It would be possible to build up a list of all known nodes in the cluster that
+are not running this role and use that in the request, effectively telling the
+AM to pick one of the idle nodes. By not doing so, we increase the probability
+that another instance of the same role will be allocated on a node in use,
+a probability which (were there capacity on these nodes and placement random), be
+`1/(clustersize-roleinstances)`. The smaller the cluster and the bigger the
+application, the higher the risk.
+
+This could be revisited, if YARN does not support anti-affinity between new
+requests at a given priority and existing ones: the solution would be to
+issue a relaxed placement request listing all nodes that are in the NodeMap and
+which are not running an instance of the specific role. [To be even more rigorous,
+the request would have to omit those nodes for which an allocation has already been
+made off the available list and yet for which no container has yet been
+granted]. 
 
 

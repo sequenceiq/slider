@@ -16,44 +16,14 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.model.mock
+package org.apache.hadoop.hoya.providers;
 
-import org.apache.hadoop.yarn.api.records.NodeId
+public enum PlacementPolicyOptions {
 
-class MockNodeId extends NodeId {
-  String host
-  int port
+  EXCLUDE_FROM_FLEXING,
+  NO_DATA_LOCALITY,
+  ANTI_AFFINITY_REQUIRED,
 
-  MockNodeId() {
-  }
 
-  MockNodeId(String host) {
-    this.host = host
-  }
-
-  MockNodeId(String host, int port) {
-    this.host = host
-    this.port = port
-  }
-
-  String getHost() {
-    return host
-  }
-
-  void setHost(String host) {
-    this.host = host
-  }
-
-  int getPort() {
-    return port
-  }
-
-  void setPort(int port) {
-    this.port = port
-  }
-
-  @Override
-  protected void build() {
 
   }
-}

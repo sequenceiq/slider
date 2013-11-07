@@ -38,6 +38,7 @@ import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.ExitUtil;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
+import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
@@ -509,17 +510,17 @@ public final class HoyaUtils {
    * @return the list
    */
   public static String joinWithInnerSeparator(String separator,
-                                              String... collection) {
+                                              Object... collection) {
     StringBuilder b = new StringBuilder();
     boolean first = true;
 
-    for (String o : collection) {
+    for (Object o : collection) {
       if (first) {
         first = false;
       } else {
         b.append(separator);
       }
-      b.append(o);
+      b.append(o.toString());
       b.append(separator);
     }
     return b.toString();
@@ -731,6 +732,15 @@ public final class HoyaUtils {
     return report == null ||
            report.getYarnApplicationState().ordinal() >=
            YarnApplicationState.FINISHED.ordinal();
+  }
+
+  public static String containerToString(Container container) {
+    return String.format(Locale.ENGLISH,
+                         "ContainerID=%s nodeID=%s http=%s priority=%s",
+                         container.getId(),
+                         container.getNodeId(),
+                         container.getNodeHttpAddress(),
+                         container.getPriority());
   }
 
   public static String reportToString(ApplicationReport report) {
@@ -1043,4 +1053,14 @@ public final class HoyaUtils {
     return ConfigHelper.loadFromResource(HoyaKeys.HOYA_CLIENT_RESOURCE);
   }
 
+  /**
+   * Convert a char sequence to a string.
+   * This ensures that comparisions work
+   * @param charSequence source
+   * @return the string equivalent
+   */
+  public static String sequenceToString(CharSequence charSequence) {
+    StringBuilder stringBuilder = new StringBuilder(charSequence);
+    return stringBuilder.toString();
+  }
 }

@@ -26,9 +26,7 @@ import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
-import org.apache.hadoop.hoya.HostAndPort;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
@@ -836,8 +834,13 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     List<String> commands = new ArrayList<String>(20);
     commands.add(ApplicationConstants.Environment.JAVA_HOME.$() + "/bin/java");
     // insert any JVM options);
-    commands.add(HoyaKeys.JAVA_FORCE_IPV4);
-    commands.add(HoyaKeys.JAVA_HEADLESS);
+    commands.add(HoyaKeys.JVM_FORCE_IPV4);
+    commands.add(HoyaKeys.JVM_JAVA_HEADLESS);
+    // enable asserts if the text option is set
+    if (serviceArgs.debug) {
+      commands.add(HoyaKeys.JVM_ENABLE_ASSERTIONS);
+      commands.add(HoyaKeys.JVM_ENABLE_SYSTEM_ASSERTIONS);
+    }
     commands.add(String.format(HoyaKeys.FORMAT_D_CLUSTER_NAME, clustername));
     commands.add(String.format(HoyaKeys.FORMAT_D_CLUSTER_TYPE, provider.getName()));
     // add the generic sevice entry point
@@ -845,7 +848,9 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     // immeiately followed by the classname
     commands.add(HoyaMasterServiceArgs.CLASSNAME);
     // now the app specific args
-    commands.add(HoyaMasterServiceArgs.ARG_DEBUG);
+    if (serviceArgs.debug) {
+      commands.add(Arguments.ARG_DEBUG);
+    }
     commands.add(HoyaActions.ACTION_CREATE);
     commands.add(clustername);
 
