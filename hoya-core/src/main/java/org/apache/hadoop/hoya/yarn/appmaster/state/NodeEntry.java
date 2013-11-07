@@ -158,7 +158,7 @@ public class NodeEntry {
    * Release an instance -which is no longer marked as active
    */
   public synchronized void release() {
-    assert live > 0;
+    assert live > 0 : "no live nodes to release";
     releasing++;
   }
 

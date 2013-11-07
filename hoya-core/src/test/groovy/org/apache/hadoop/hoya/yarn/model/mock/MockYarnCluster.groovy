@@ -86,9 +86,9 @@ public class MockYarnCluster {
   /**
    * Release a container: return true if it was actually in use
    * @param cid container ID
-   * @return true if the container was released
+   * @return the container released
    */
-  boolean release(ContainerId cid) {
+  MockYarnClusterContainer release(ContainerId cid) {
     int host = extractHost(cid.id)
     return nodeAt(host).release(cid.id)
   }
@@ -223,13 +223,13 @@ public class MockYarnCluster {
     /**
      * Release a container
      * @param cid container ID
-     * @return true if the container was busy before the release
+     * @return the container if the container was busy before the release
      */
-    public boolean release(int cid) {
+    public MockYarnClusterContainer release(int cid) {
       MockYarnClusterContainer container = containers[extractContainer(cid)]
       boolean b = container.busy;
       container.busy = false;
-      return b;
+      return b? container: null;
     }
 
     public String httpAddress() {

@@ -498,11 +498,6 @@ public class AppState {
     Collection<RoleInstance> values = activeContainers.values();
     return new ArrayList<RoleInstance>(values);
   }
-
-  public List<RoleInstance> findActiveContainers(List<NodeInstance> nodeInstances) {
-    //TODO
-    return new ArrayList<RoleInstance>();
-  }
   
   /**
    * Get any active container with the given ID
@@ -1010,13 +1005,12 @@ public class AppState {
       int excess = -delta;
 
       // get the nodes to release
+      int roleId = role.getKey();
       List<NodeInstance> nodesForRelease =
-        roleHistory.findNodesForRelease(role.getKey(), excess);
-      List<RoleInstance> ContainersToRelease =
-        findActiveContainers(nodesForRelease);
+        roleHistory.findNodesForRelease(roleId, excess);
       
       for (NodeInstance node : nodesForRelease) {
-        Container possible = findContainerOnHost(node);
+        Container possible = findContainerOnHost(node, roleId);
         if (possible == null) {
           throw new HoyaInternalStateException(
             "Failed to find a container to release on node %s", node.hostname);
@@ -1035,14 +1029,19 @@ public class AppState {
   /**
    * Find a container running on a specific host -looking
    * into the node ID to determine this.
+   *
    * @param node node
+   * @param roleId role the container must be in
    * @return a container or null if there are no containers on this host
+   * that can be released.
    */
-  private Container findContainerOnHost(NodeInstance node) {
+  private Container findContainerOnHost(NodeInstance node, int roleId) {
     Collection<RoleInstance> targets = cloneActiveContainerList();
     String hostname = node.hostname;
     for (RoleInstance ri : targets) {
-      if (hostname.equals(RoleHistoryUtils.hostnameOf(ri.container))) {
+      if (hostname.equals(RoleHistoryUtils.hostnameOf(ri.container))
+                         && ri.roleId == roleId
+        && containersBeingReleased.get(ri.getContainerId()) == null) {
         return ri.container;
       }
     }

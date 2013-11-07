@@ -23,12 +23,14 @@ import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.yarn.HoyaTestBase
+import org.apache.hadoop.hoya.yarn.appmaster.state.AbstractRMOperation
 import org.apache.hadoop.hoya.yarn.appmaster.state.AppState
 import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerAssignment
 import org.apache.hadoop.hoya.yarn.appmaster.state.NodeInstance
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleInstance
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleStatus
 import org.apache.hadoop.yarn.api.records.Container
+import org.apache.hadoop.yarn.api.records.ContainerId
 import org.apache.hadoop.yarn.api.records.ContainerState
 import org.apache.hadoop.yarn.api.records.ContainerStatus
 import org.apache.hadoop.yarn.conf.YarnConfiguration
@@ -134,11 +136,52 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
    * @return a status
    */
   ContainerStatus containerStatus(Container c) {
+    return containerStatus(c.id)
+  }
+
+  public ContainerStatus containerStatus(ContainerId cid) {
     ContainerStatus status = ContainerStatus.newInstance(
-        c.id,
+        cid,
         ContainerState.COMPLETE,
         "",
         LauncherExitCodes.EXIT_CLIENT_INITIATED_SHUTDOWN)
     return status
   }
+
+  /**
+   * Create nodes and bring them to the started state
+   * @return
+   */
+  protected List<RoleInstance> createAndStartNodes() {
+    List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
+    List<Container> allocatedContainers = engine.execute(ops)
+    List<ContainerAssignment> assignments = [];
+    List<AbstractRMOperation> operations = []
+    appState.onContainersAllocated(allocatedContainers, assignments, operations)
+    List<RoleInstance> instances = []
+    for (ContainerAssignment assigned : assignments) {
+      Container container = assigned.container
+
+      int roleId = assigned.role.priority
+      RoleInstance ri = roleInstance(assigned)
+      instances << ri
+      //tell the app it arrived
+      appState.containerStartSubmitted(container, ri);
+      assert appState.onNodeManagerContainerStarted(container.id)
+    }
+    return instances
+  }
+
+  List<ContainerId> extractContainerIds(
+      List<RoleInstance> instances,
+      int role) {
+    List<ContainerId> cids = []
+    instances.each { RoleInstance instance ->
+      if (instance.roleId == role) {
+        cids << instance.id
+      }
+    }
+    return cids
+  }
+
 }

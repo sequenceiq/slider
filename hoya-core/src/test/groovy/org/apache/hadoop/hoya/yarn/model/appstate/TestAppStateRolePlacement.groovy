@@ -100,5 +100,4 @@ class TestAppStateRolePlacement extends BaseMockAppStateTest
 
   }
 
-
 }

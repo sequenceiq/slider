@@ -75,8 +75,8 @@ class MockYarnEngine {
     return allocated
   }
 
-  boolean releaseContainer(ContainerId containerId) {
-    cluster.release(containerId)
+  MockYarnCluster.MockYarnClusterContainer releaseContainer(ContainerId containerId) {
+    return cluster.release(containerId)
   }
 
   /**
@@ -86,8 +86,10 @@ class MockYarnEngine {
    * @param ops
    * @return
    */
-  List<Container> execute(List<AbstractRMOperation> ops) {
-    return processQueue(ops)
+  List<Container> execute(
+      List<AbstractRMOperation> ops
+      ) {
+    return execute(ops, [])
   }
 
   /**
@@ -97,12 +99,15 @@ class MockYarnEngine {
    * @param ops operations
    * @return the list of all satisfied operations
    */
-  List<Container> processQueue(List<AbstractRMOperation> ops) {
+  List<Container> execute(List<AbstractRMOperation> ops,
+                               List<ContainerId> released) {
     List<Container> allocation = [];
     ops.each { AbstractRMOperation op ->
       if (op instanceof ContainerReleaseOperation) {
         ContainerReleaseOperation cro = (ContainerReleaseOperation) op
-        releaseContainer(cro.containerId);
+        ContainerId cid = cro.containerId
+        releaseContainer(cid);
+        released.add(cid)
       } else {
         ContainerRequestOperation req = (ContainerRequestOperation) op
         Container container = allocateContainer(req.request)
