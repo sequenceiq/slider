@@ -722,7 +722,8 @@ if such a node exists. If not, the scan time has increased to #(nodes).
 
 Once a node has been identified
 
-1. a container on it is located (via the existing container map)
+1. a container on it is located (via the existing container map). This container
+must: be of the target role, and not already be queued for release.
 1. A release operation is queued trigger a request for the RM.
 1. The (existing) `containersBeingReleased` Map has the container inserted into it
 
@@ -855,6 +856,13 @@ a new datastructure is created to identify containers in a role on a specific ho
 in a RoleInstance that identifies the node. We already effectively have that
 in the container
 
+### dropping any available nodes that are busy
+
+When scanning the available list, any nodes that are no longer idle for that
+role should be dropped from the list.
+
+This can happen when an instance was allocated on a different node from
+that requested.
 
 ### Finding a node when a role has instances in the cluster but nothing
 known to be available
@@ -885,4 +893,5 @@ which are not running an instance of the specific role. [To be even more rigorou
 the request would have to omit those nodes for which an allocation has already been
 made off the available list and yet for which no container has yet been
 granted]. 
+
 

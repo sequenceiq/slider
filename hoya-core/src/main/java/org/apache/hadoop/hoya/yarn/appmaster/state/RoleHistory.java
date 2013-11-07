@@ -415,13 +415,16 @@ public class RoleHistory {
   @VisibleForTesting
   public synchronized NodeInstance findNodeForNewInstance(int role) {
     assert role < roleSize;
-    NodeInstance nodeInstance;
+    NodeInstance nodeInstance = null;
+    
     List<NodeInstance> targets = availableNodes[role];
-    if (targets.isEmpty()) {
-      nodeInstance = null;
-    } else {
-      nodeInstance = targets.remove(0);
-    } 
+    while (!targets.isEmpty() && nodeInstance == null) {
+      NodeInstance head = targets.remove(0);
+      ;
+      if (head.getActiveRoleInstances(role) == 0) {
+        nodeInstance = head;
+      }
+    }
     return nodeInstance;
   }
 

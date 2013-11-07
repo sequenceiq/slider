@@ -76,7 +76,7 @@ public class NodeInstance {
    */
   public int getActiveRoleInstances(int role) {
     NodeEntry nodeEntry = get(role);
-    return (nodeEntry !=null)?nodeEntry.getActive():0;
+    return (nodeEntry != null ) ? nodeEntry.getActive() : 0;
   }
   
   /**

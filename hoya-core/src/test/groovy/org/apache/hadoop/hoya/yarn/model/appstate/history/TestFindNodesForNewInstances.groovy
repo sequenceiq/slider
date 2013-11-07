@@ -76,7 +76,7 @@ class TestFindNodesForNewInstances extends BaseMockAppStateTest {
   public void testFind1NodeR0() throws Throwable {
     NodeInstance found = roleHistory.findNodeForNewInstance(0)
     log.info("found: $found")
-    assert [age2Active0, age3Active0].contains(found)
+    assert [age3Active0].contains(found)
   }
 
   @Test
@@ -109,4 +109,15 @@ class TestFindNodesForNewInstances extends BaseMockAppStateTest {
     assert 0 == findNodes(3, 2).size()
   }
 
+  @Test
+  public void testFindNodesFallsBackWhenUsed() throws Throwable {
+    // mark age2 and active 0 as busy, expect a null back
+    age2Active0.get(0).onStartCompleted()
+    assert age2Active0.getActiveRoleInstances(0) != 0
+    age3Active0.get(0).onStartCompleted()
+    assert age3Active0.getActiveRoleInstances(0) != 0
+    NodeInstance found = roleHistory.findNodeForNewInstance(0)
+    log.info(found ?.toFullString())
+    assert found == null
+  }
 }
