@@ -370,7 +370,7 @@ public class RoleHistoryWriter {
   public static class ComparePathByName implements Comparator<Path> {
     @Override
     public int compare(Path o1, Path o2) {
-      return -(o1.getName().compareTo(o2.getName()));
+      return o2.getName().compareTo(o1.getName());
     }
   }
 }

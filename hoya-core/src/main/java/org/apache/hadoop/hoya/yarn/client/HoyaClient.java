@@ -1196,11 +1196,14 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     } else {
       classPathEnv.append(ApplicationConstants.Environment.CLASSPATH.$())
           .append(File.pathSeparatorChar).append("./*");
-      for (String c : getConfig().getStrings(
+      String[] strs = getConfig().getStrings(
         YarnConfiguration.YARN_APPLICATION_CLASSPATH,
-        YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH)) {
-        classPathEnv.append(File.pathSeparatorChar);
-        classPathEnv.append(c.trim());
+        YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH);
+      if (strs != null) {
+        for (String c : strs) {
+          classPathEnv.append(File.pathSeparatorChar);
+          classPathEnv.append(c.trim());
+        }
       }
       if (hoyaConfDir != null) {
         classPathEnv.append(File.pathSeparatorChar).append(hoyaConfDir);

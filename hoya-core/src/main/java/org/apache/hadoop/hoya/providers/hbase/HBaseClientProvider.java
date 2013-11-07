@@ -78,7 +78,7 @@ public class HBaseClientProvider extends Configured implements
                                                           ClientProvider,
                                                           HBaseConfigFileOptions {
 
-  private class ClientProviderAbortable implements Abortable {
+  private static class ClientProviderAbortable implements Abortable {
     @Override
     public void abort(String why, Throwable e) {
     }

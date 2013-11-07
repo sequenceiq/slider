@@ -138,7 +138,7 @@ public class NodeInstance {
       new StringBuilder(toString());
     for (int i = 0; i < nodeEntries.length; i++) {
       NodeEntry entry = nodeEntries[i];
-      sb.append(String.format("\n  [%02d]  ", i));
+      sb.append(String.format("%n  [%02d]  ", i));
       if (entry != null) {
         sb.append(entry.toString());
       }

@@ -515,6 +515,7 @@ public class HoyaAppMaster extends CompositeService
     String siteXMLFilename = providerService.getSiteXMLFilename();
     File siteXML = new File(confDir, siteXMLFilename);
     if (!siteXML.exists()) {
+      dob.close();
       throw new BadCommandArgumentsException(
         "Configuration directory %s doesn't contain %s - listing is %s",
         confDir, siteXMLFilename, HoyaUtils.listDir(confDir));
