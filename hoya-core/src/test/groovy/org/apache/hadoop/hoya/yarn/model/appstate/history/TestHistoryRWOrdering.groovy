@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.hoya.yarn.model.appstate.history
 
-import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.HoyaKeys
@@ -34,8 +33,26 @@ import java.util.regex.Matcher
 import java.util.regex.Pattern
 
 @Slf4j
-@CompileStatic
 class TestHistoryRWOrdering extends BaseMockAppStateTest {
+
+  def paths = pathlist(
+      [
+          "hdfs://localhost/history-0406c.json",
+          "hdfs://localhost/history-5fffa.json",
+          "hdfs://localhost/history-0001a.json",
+          "hdfs://localhost/history-0001f.json",
+      ]
+  )
+  Path h_0406c = paths[0]
+  Path h_5fffa = paths[1]
+  Path h_0001a = paths[3]
+
+
+  List<Path> pathlist(List<String> pathnames) {
+    def result = []
+    pathnames.each { result << new Path(new URI(it as String)) }
+    result
+  }
 
   @Override
   String getTestName() {
@@ -86,5 +103,38 @@ class TestHistoryRWOrdering extends BaseMockAppStateTest {
     assert entries[1] == history2
     assert entries[2] == history1
   }
+
+  @Test
+  public void testPathStructure() throws Throwable {
+    assert h_5fffa.getName() == "history-5fffa.json"
+  }
   
+  @Test
+  public void testPathnameComparator() throws Throwable {
+
+    def newerName = new RoleHistoryWriter.ComparePathByName()
+    
+    log.info("$h_5fffa name is ${h_5fffa.getName()}")
+    log.info("$h_0406c name is ${h_0406c.getName()}")
+    assert  newerName.compare(h_5fffa, h_5fffa) == 0
+    assert  newerName.compare(h_5fffa, h_0406c) < 0
+    assert  newerName.compare(h_5fffa, h_0001a) < 0
+    assert  newerName.compare(h_0001a, h_5fffa) > 0
+    
+  }
+  
+  @Test
+  public void testPathSort() throws Throwable {
+    def paths2 = new ArrayList(paths) 
+    RoleHistoryWriter.sortHistoryPaths(paths2)
+    assertListEquals(paths2,
+                     [
+                         paths[1],
+                         paths[0],
+                         paths[3],
+                         paths[2]
+                     ]
+                     )
+    
+  }
 }

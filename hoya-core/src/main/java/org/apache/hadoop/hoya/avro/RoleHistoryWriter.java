@@ -368,9 +368,18 @@ public class RoleHistoryWriter {
    * Compare two filenames by name; the more recent one comes first
    */
   public static class ComparePathByName implements Comparator<Path> {
+
+    /**
+     * Takes the ordering of path names from the normal string comparison
+     * and negates it, so that names that come after other names in 
+     * the string sort come before here
+     * @param o1 leftmost 
+     * @param o2 rightmost
+     * @return positive if o1 &gt; o2 
+     */
     @Override
     public int compare(Path o1, Path o2) {
-      return o2.getName().compareTo(o1.getName());
+      return -(o1.getName().compareTo(o2.getName()));
     }
   }
 }
