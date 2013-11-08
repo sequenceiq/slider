@@ -661,7 +661,7 @@ to the node originally requested.
     
         // work back from request ID to node where the 
         // request was outstanding
-        requestID = outstanding.nodeId
+        requestID = outstanding != null? outstanding.nodeId : null
         if requestID != null:
           reqNode = nodeMap.get(requestID)
           reqNodeEntry = reqNode.get(roleId)
@@ -895,3 +895,32 @@ made off the available list and yet for which no container has yet been
 granted]. 
 
 
+## Reworked Outstanding Request Tracker
+
+The reworked request tracker behaves as follows
+
+1. outstanding requests with specific placements are tracked by `(role, hostname)`
+1. container assigments are attempted to be resolved against the same parameters.
+1. If found: that request is considered satisfied *irrespective of whether or not
+the request that satisfied the allocation was the one that requested that location.
+1. When all instances of a specific role have been allocated, the hostnames of
+all outstanding requests are returned to the available node list on the basis
+that they have been satisifed elswhere in the YARN cluster. This list is
+then sorted.
+
+This strategy will return unused hosts to the stack of possible hosts. 
+
+Weaknesses
+
+if one or more container requests cannot be satisifed, then all the hosts in
+the set of outstanding requests will be retained, so all these hosts in the
+will be considered unavailable for new location-specific requests.
+This may imply that new requests that could be explicity placed will now only
+be randomly placed -however, it is moot on the basis that if there are outstanding
+container requests it means the RM cannot grant resources: new requests at the
+same priority (i.e. same Hoya Role ID) will not be granted either.
+
+The only scenario where this would be different is if the resource requirements
+of instances of the target role were decreated during a cluster flex such that
+the placement could now be satisfied on the target host. This is not considered
+a significant problem.

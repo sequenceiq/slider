@@ -26,56 +26,34 @@ import org.apache.hadoop.yarn.util.Records;
  * Class containing the logic to build/split container priorities into the
  * different fields used by Hoya
  *
- The container priority field (a 32 bit integer) is used by Hoya
- to index the specific role in a container so as to determine which role
- has been offered in a container allocation message, and which role has
- been released on a release event.
-
- The Role History needs to track outstanding requests, so that
- when an allocation comes in, it can be mapped back to the original request.
- Simply looking up the nodes on the provided container and decrementing
- its request counter is not going to work -the container may be allocated
- on a different node from that requested.
-
- The priority field of a request is divided by Hoya into 8 bits for
- `roleID` and 24 bits for `requestID`. The request ID will be a simple
- rolling integer -Hoya will assume that after 2^24 requests per role, it can be rolled,
- -though as we will be retaining a list of outstanding requests, a clash should not occur.
- The main requirement  is: not have more than 2^24 outstanding requests for instances of a specific role,
- which places an upper bound on the size of a Hoya cluster.
-
+ * The original design here had a requestID merged with the role, to
+ * track outstanding requests. However, this isn't possible, so
+ * the request ID has been dropped. A "location specified" flag was
+ * added to indicate whether or not the request was for a specific location
+ * -though this is currently unused.
+ * 
+ * The methods are effectively surplus -but retained to preserve the
+ * option of changing behavior in future
  */
 public final class ContainerPriority {
 
   public static int buildPriority(int role,
-                                  int requestId,
                                   boolean locationSpecified) {
     return (role)  ;
   }
 
 
   public static Priority createPriority(int role,
-                                        int requestId,
                                         boolean locationSpecified) {
     Priority pri = Records.newRecord(Priority.class);
     pri.setPriority(ContainerPriority.buildPriority(role,
-                                                    requestId,
                                                     locationSpecified));
     return pri;
   }
   
   
   public static int extractRole(int priority) {
-    return priority & 0xff;
-  }
-
-  /**
-   * Get the request ID from the priority
-   * @param priority the priority field
-   * @return an extracted (rotating and masking)
-   */
-  public static int extractRequestId(int priority) {
-    return (priority >>> 24 ) & 0x07ff;
+    return priority ;
   }
 
   /**
@@ -88,6 +66,7 @@ public final class ContainerPriority {
     assert priority != null;
     return extractRole(priority.getPriority());
   }
+  
   /**
    * Map from a container to a role key by way of its priority
    * @param container container
@@ -97,14 +76,4 @@ public final class ContainerPriority {
     return extractRole(priorityRecord.getPriority());
   }
 
-  /**
-   * Map from a container to a role key by way of its priority
-   * @param container container
-   * @return the request ID
-   */
-  public static int extractRequestId(Container container) {
-    Priority priority = container.getPriority();
-    assert priority != null;
-    return extractRequestId(priority.getPriority());
-  }
 }
