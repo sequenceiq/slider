@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -400,7 +401,7 @@ public class RoleHistory {
 
   /**
    * Sort an available node list
-   * @param role 
+   * @param role role to sort
    */
   private void sortAvailableNodeList(int role) {
     Collections.sort(availableNodes[role], new NodeInstance.newerThan(role));
@@ -459,9 +460,10 @@ public class RoleHistory {
    * @param resource resource capabilities
    * @return a request ready to go
    */
-  public synchronized AMRMClient.ContainerRequest requestNode(int role, Resource resource) {
+  public synchronized AMRMClient.ContainerRequest requestNode(int role,
+                                                              Resource resource) {
     NodeInstance node = findNodeForNewInstance(role);
-     return requestInstanceOnNode(node, role,resource);
+    return requestInstanceOnNode(node, role, resource);
   }
 
 
@@ -664,5 +666,14 @@ public class RoleHistory {
   @VisibleForTesting
   public List<NodeInstance> cloneAvailableList(int role) {
     return new LinkedList<NodeInstance>(availableNodes[role]);
+  }
+
+  /**
+   * Get a snapshot of the outstanding request list
+   * @return a list of the requests outstanding at the time of requesting
+   */
+  @VisibleForTesting
+  public synchronized List<OutstandingRequest> getOutstandingRequestList() {
+    return outstandingRequests.listOutstandingRequests();
   }
 }

@@ -119,4 +119,8 @@ public class OutstandingRequestTracker {
     }
     return hosts;
   }
+  
+  public synchronized List<OutstandingRequest> listOutstandingRequests() {
+    return new ArrayList<OutstandingRequest>(requests.values());
+  }
 }
