@@ -99,7 +99,7 @@ prepared earlier.
 
 You will now be back on the `develop` branch.
 
-**Step #11:** Switch back to develop and update its version number past
+**Step #11:** Switch back to `develop` and update its version number past
 the release number
 
 
