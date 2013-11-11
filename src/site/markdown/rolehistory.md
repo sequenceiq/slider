@@ -908,7 +908,8 @@ all outstanding requests are returned to the available node list on the basis
 that they have been satisifed elswhere in the YARN cluster. This list is
 then sorted.
 
-This strategy will return unused hosts to the stack of possible hosts. 
+This strategy returns unused hosts to the list of possible hosts, while retaining
+the ordering of that list in most-recent-first.
 
 Weaknesses
 
