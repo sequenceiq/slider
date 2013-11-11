@@ -512,11 +512,13 @@ public class RoleHistory {
    * @param container container
    * @param desiredCount desired #of instances
    * @param actualCount current count of instances
+   * @return true if an entry was found and dropped
    */
-  public synchronized void onContainerAllocated(Container container, int desiredCount, int actualCount) {
+  public synchronized boolean  onContainerAllocated(Container container, int desiredCount, int actualCount) {
     int role = ContainerPriority.extractRole(container);
     String hostname = RoleHistoryUtils.hostnameOf(container);
-    outstandingRequests.onContainerAllocated(role, hostname);
+    boolean requestFound =
+      outstandingRequests.onContainerAllocated(role, hostname);
     if (desiredCount <= actualCount) {
       //cancel the nodes
       List<NodeInstance>
@@ -527,6 +529,7 @@ public class RoleHistory {
         sortAvailableNodeList(role);
       }
     }
+    return requestFound;
   }
 
   /**
@@ -676,4 +679,6 @@ public class RoleHistory {
   public synchronized List<OutstandingRequest> getOutstandingRequestList() {
     return outstandingRequests.listOutstandingRequests();
   }
+
+
 }

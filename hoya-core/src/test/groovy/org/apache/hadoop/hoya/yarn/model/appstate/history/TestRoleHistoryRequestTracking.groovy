@@ -22,6 +22,7 @@ import org.apache.hadoop.hoya.yarn.appmaster.state.NodeInstance
 import org.apache.hadoop.hoya.yarn.appmaster.state.OutstandingRequest
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleHistory
 import org.apache.hadoop.hoya.yarn.model.mock.BaseMockAppStateTest
+import org.apache.hadoop.hoya.yarn.model.mock.MockContainer
 import org.apache.hadoop.hoya.yarn.model.mock.MockFactory
 import org.apache.hadoop.yarn.api.records.Resource
 import org.apache.hadoop.yarn.client.api.AMRMClient
@@ -92,4 +93,79 @@ class TestRoleHistoryRequestTracking extends BaseMockAppStateTest {
     assert age3Active0.hostname == requests[0].hostname
   }
   
+  @Test
+  public void testCompletedRequestDropsNode() throws Throwable {
+    AMRMClient.ContainerRequest req = roleHistory.requestNode(0, resource)
+    List<OutstandingRequest> requests = roleHistory.outstandingRequestList
+    assert requests.size() == 1
+    String hostname = requests[0].hostname
+    assert age3Active0.hostname == hostname
+    assert hostname == req.nodes[0]
+    MockContainer container = factory.newContainer(req, hostname)
+    assert roleHistory.onContainerAllocated(container , 2, 1)
+    assert roleHistory.outstandingRequestList.empty
+  }
+  
+  @Test
+  public void testTwoRequests() throws Throwable {
+    AMRMClient.ContainerRequest req = roleHistory.requestNode(0, resource)
+    AMRMClient.ContainerRequest req2 = roleHistory.requestNode(0, resource)
+    List<OutstandingRequest> requests = roleHistory.outstandingRequestList
+    assert requests.size() == 2
+    MockContainer container = factory.newContainer(req, req.nodes[0])
+    assert roleHistory.onContainerAllocated(container , 2, 1)
+    assert roleHistory.outstandingRequestList.size() == 1
+    container = factory.newContainer(req2, req2.nodes[0])
+    assert roleHistory.onContainerAllocated(container, 2, 2)
+    assert roleHistory.outstandingRequestList.empty
+  }
+
+    
+  @Test
+  public void testThreeRequestsOneUnsatisified() throws Throwable {
+    AMRMClient.ContainerRequest req = roleHistory.requestNode(0, resource)
+    AMRMClient.ContainerRequest req2 = roleHistory.requestNode(0, resource)
+    AMRMClient.ContainerRequest req3 = roleHistory.requestNode(0, resource)
+    List<OutstandingRequest> requests = roleHistory.outstandingRequestList
+    assert requests.size() == 2
+    MockContainer container = factory.newContainer(req, req.nodes[0])
+    assert roleHistory.onContainerAllocated(container , 2, 1)
+    assert roleHistory.outstandingRequestList.size() == 1
+    
+    container = factory.newContainer(req3, "three")
+    assert !roleHistory.onContainerAllocated(container, 3, 2)
+    assert roleHistory.outstandingRequestList.size() == 1
+    
+    // the final allocation will trigger a cleanup
+    container = factory.newContainer(req2, "four")
+    // no node dropped
+    assert !roleHistory.onContainerAllocated(container, 3, 3)
+    // yet the list is now empty
+    assert roleHistory.outstandingRequestList.empty
+
+    // and the remainder goes onto the available list
+    List<NodeInstance> a2 = roleHistory.cloneAvailableList(0)
+    assertListEquals([age2Active0], a2)
+
+  }
+
+  
+  @Test
+  public void testThreeRequests() throws Throwable {
+    AMRMClient.ContainerRequest req = roleHistory.requestNode(0, resource)
+    AMRMClient.ContainerRequest req2 = roleHistory.requestNode(0, resource)
+    AMRMClient.ContainerRequest req3 = roleHistory.requestNode(0, resource)
+    assert roleHistory.outstandingRequestList.size() == 2
+    assert req3.nodes == null
+    MockContainer container = factory.newContainer(req, req.nodes[0])
+    assert roleHistory.onContainerAllocated(container , 3, 1)
+    assert roleHistory.outstandingRequestList.size() == 1
+    container = factory.newContainer(req2, req2.nodes[0])
+    assert roleHistory.onContainerAllocated(container, 3, 2)
+    assert roleHistory.outstandingRequestList.empty
+    container = factory.newContainer(req3, "three")
+    assert !roleHistory.onContainerAllocated(container, 3, 3)
+    assert roleHistory.outstandingRequestList.empty
+  }
+
 }
