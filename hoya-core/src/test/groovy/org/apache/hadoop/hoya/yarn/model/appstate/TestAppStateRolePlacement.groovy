@@ -58,7 +58,7 @@ class TestAppStateRolePlacement extends BaseMockAppStateTest
     Container allocated = engine.allocateContainer(request)
     List<ContainerAssignment> assignments = [];
     List<AbstractRMOperation> operations = []
-    appState.onContainersAllocated([allocated], assignments, operations)
+    appState.onContainersAllocated([(Container)allocated], assignments, operations)
     assert operations.size() == 0
     assert assignments.size() == 1
     ContainerAssignment assigned = assignments[0]
