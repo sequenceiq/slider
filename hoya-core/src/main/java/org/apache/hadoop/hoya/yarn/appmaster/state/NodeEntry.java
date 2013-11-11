@@ -139,11 +139,12 @@ public class NodeEntry {
    */
   public synchronized void request() {
     ++requested;
-    ++live;
   }
 
+  /**
+   * A request made explicitly to this node has completed
+   */
   public synchronized void requestCompleted() {
-    assert requested > 0;
     requested = RoleHistoryUtils.decToFloor(requested);
   }
 

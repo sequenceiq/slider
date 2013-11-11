@@ -367,8 +367,8 @@ public class AppState {
 
     //propagate info from cluster, which is role table
 
-    Map<String, Map<String, String>> roles = getClusterSpec().roles;
-    getClusterDescription().roles = HoyaUtils.deepClone(roles);
+    Map<String, Map<String, String>> newroles = getClusterSpec().roles;
+    getClusterDescription().roles = HoyaUtils.deepClone(newroles);
     getClusterDescription().updateTime = System.currentTimeMillis();
     buildRoleRequirementsFromClusterSpec();
   }
@@ -1106,6 +1106,9 @@ public class AppState {
 
       //look for (race condition) where we get more back than we asked
       desired = role.getDesired();
+
+      roleHistory.onContainerAllocated( container, desired, allocated );
+
       if (allocated > desired) {
         log.info("Discarding surplus container {} on {}", cid,
                  containerHostInfo);
@@ -1129,7 +1132,7 @@ public class AppState {
 
         assignments.add(new ContainerAssignment(container, role));
         //add to the history
-        roleHistory.onContainerAllocated(container);
+        roleHistory.onContainerAssigned(container);
       }
     }
   }

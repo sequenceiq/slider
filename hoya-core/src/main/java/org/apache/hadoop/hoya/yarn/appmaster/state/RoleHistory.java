@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -49,7 +50,11 @@ import java.util.Map;
  * Protected methods are in place for testing -no guarantees are made.
  * 
  * Inner classes have no synchronization guarantees; they should be manipulated 
- * in these classes and not externally
+ * in these classes and not externally.
+ * 
+ * Note that as well as some methods marked visible for testing, there
+ * is the option for the time generator method, {@link #now()} to
+ * be overridden so that a repeatable time series can be used.
  * 
  */
 public class RoleHistory {
@@ -98,7 +103,7 @@ public class RoleHistory {
    * Reset the variables -this does not adjust the fixed attributes
    * of the history
    */
-  protected void reset() {
+  protected synchronized void reset() {
 
     nodemap = new NodeMap(roleSize);
     availableNodes = new LinkedList[roleSize];
@@ -122,7 +127,6 @@ public class RoleHistory {
       }
       roleStats[index] = new RoleStatus(providerRole);
     }
-
   }
 
   /**
@@ -177,7 +181,7 @@ public class RoleHistory {
    * Get the total size of the cluster -the number of NodeInstances
    * @return a count
    */
-  public int getClusterSize() {
+  public synchronized int getClusterSize() {
     return nodemap.size();
   }
 
@@ -212,7 +216,7 @@ public class RoleHistory {
    * @param nodeAddr node address
    * @return the instance
    */
-  public NodeInstance getOrCreateNodeInstance(String hostname) {
+  public synchronized NodeInstance getOrCreateNodeInstance(String hostname) {
     //convert to a string
     return nodemap.getOrCreate(hostname);
   }
@@ -235,14 +239,6 @@ public class RoleHistory {
    */
   protected long now() {
     return System.currentTimeMillis();
-  }
-
-  /**
-   * size of cluster
-   * @return number of entries
-   */
-  public int size() {
-    return nodemap.size();
   }
 
   /**
@@ -399,10 +395,18 @@ public class RoleHistory {
     }
     // sort the resulting arrays
     for (int i = 0; i < roleSize; i++) {
-      Collections.sort(availableNodes[i], new NodeInstance.newerThan(i));
+      sortAvailableNodeList(i);
     }
   }
-  
+
+  /**
+   * Sort an available node list
+   * @param role role to sort
+   */
+  private void sortAvailableNodeList(int role) {
+    Collections.sort(availableNodes[role], new NodeInstance.newerThan(role));
+  }
+
   public synchronized void onAMRestart() {
     //TODO once AM restart is implemented and we know what to expect
   }
@@ -446,7 +450,7 @@ public class RoleHistory {
   public synchronized AMRMClient.ContainerRequest requestInstanceOnNode(
     NodeInstance node, int role, Resource resource) {
     OutstandingRequest outstanding = outstandingRequests.addRequest(node, role);
-    return outstanding.buildContainerRequest(resource);
+    return outstanding.buildContainerRequest(resource, now());
   }
 
   /**
@@ -456,9 +460,10 @@ public class RoleHistory {
    * @param resource resource capabilities
    * @return a request ready to go
    */
-  public synchronized AMRMClient.ContainerRequest requestNode(int role, Resource resource) {
+  public synchronized AMRMClient.ContainerRequest requestNode(int role,
+                                                              Resource resource) {
     NodeInstance node = findNodeForNewInstance(role);
-     return requestInstanceOnNode(node, role,resource);
+    return requestInstanceOnNode(node, role, resource);
   }
 
 
@@ -469,7 +474,7 @@ public class RoleHistory {
    * @param count number of nodes to release
    * @return a possibly empty list of nodes.
    */
-  public List<NodeInstance> findNodesForRelease(int role, int count) {
+  public synchronized List<NodeInstance> findNodesForRelease(int role, int count) {
     return nodemap.findNodesForRelease(role, count);
   }
  
@@ -488,7 +493,7 @@ public class RoleHistory {
    * @param container container to look up
    * @return a (possibly new) node instance
    */
-  public NodeInstance getOrCreateNodeInstance(Container container) {
+  public synchronized NodeInstance getOrCreateNodeInstance(Container container) {
     String hostname = RoleHistoryUtils.hostnameOf(container);
     return nodemap.getOrCreate(hostname);
   }
@@ -498,15 +503,40 @@ public class RoleHistory {
    * @param addr address
    * @return a node instance or null
    */
-  public NodeInstance getExistingNodeInstance(String hostname) {
+  public synchronized NodeInstance getExistingNodeInstance(String hostname) {
     return nodemap.get(hostname);
   }
 
   /**
    * A container has been allocated on a node -update the data structures
    * @param container container
+   * @param desiredCount desired #of instances
+   * @param actualCount current count of instances
+   * @return true if an entry was found and dropped
    */
-  public void onContainerAllocated(Container container) {
+  public synchronized boolean  onContainerAllocated(Container container, int desiredCount, int actualCount) {
+    int role = ContainerPriority.extractRole(container);
+    String hostname = RoleHistoryUtils.hostnameOf(container);
+    boolean requestFound =
+      outstandingRequests.onContainerAllocated(role, hostname);
+    if (desiredCount <= actualCount) {
+      //cancel the nodes
+      List<NodeInstance>
+        hosts = outstandingRequests.cancelOutstandingRequests(role);
+      if (!hosts.isEmpty()) {
+        //add the list
+        availableNodes[role].addAll(hosts);
+        sortAvailableNodeList(role);
+      }
+    }
+    return requestFound;
+  }
+
+  /**
+   * A container has been assigned to a role instance on a node -update the data structures
+   * @param container container
+   */
+  public void onContainerAssigned(Container container) {
     NodeEntry nodeEntry = getOrCreateNodeEntry(container);
     nodeEntry.onStarting();
   }
@@ -640,4 +670,15 @@ public class RoleHistory {
   public List<NodeInstance> cloneAvailableList(int role) {
     return new LinkedList<NodeInstance>(availableNodes[role]);
   }
+
+  /**
+   * Get a snapshot of the outstanding request list
+   * @return a list of the requests outstanding at the time of requesting
+   */
+  @VisibleForTesting
+  public synchronized List<OutstandingRequest> getOutstandingRequestList() {
+    return outstandingRequests.listOutstandingRequests();
+  }
+
+
 }

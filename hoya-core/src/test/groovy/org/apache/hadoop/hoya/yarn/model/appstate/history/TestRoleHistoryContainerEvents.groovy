@@ -86,7 +86,7 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
     MockContainer container = factory.newContainer()
     container.nodeId = new MockNodeId(hostname, 0)
     container.priority = request.getPriority()
-    roleHistory.onContainerAllocated(container);
+    roleHistory.onContainerAssigned(container);
 
     NodeMap nodemap = roleHistory.cloneNodemap();
     NodeInstance allocated = nodemap.get(hostname)
@@ -125,7 +125,7 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
     MockContainer container = factory.newContainer()
     container.nodeId = new MockNodeId(hostname, 0)
     container.priority = request.getPriority()
-    roleHistory.onContainerAllocated(container);
+    roleHistory.onContainerAssigned(container);
 
     NodeMap nodemap = roleHistory.cloneNodemap();
     NodeInstance allocated = nodemap.get(hostname)
@@ -185,7 +185,7 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
     //build a container
     MockContainer container = factory.newContainer()
     container.nodeId = new MockNodeId(hostname, 0)
-    container.priority = ContainerPriority.createPriority(0,1,false)
+    container.priority = ContainerPriority.createPriority(0, false)
     
     NodeMap nodemap = roleHistory.cloneNodemap();
     NodeInstance allocated = nodemap.get(hostname)
@@ -214,7 +214,7 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
     MockContainer container = factory.newContainer()
     container.nodeId = new MockNodeId(hostname, 0)
     container.priority = request.getPriority()
-    roleHistory.onContainerAllocated(container);
+    roleHistory.onContainerAssigned(container);
 
     NodeMap nodemap = roleHistory.cloneNodemap();
     NodeInstance allocated = nodemap.get(hostname)
@@ -271,7 +271,7 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
     MockContainer container = factory.newContainer()
     container.nodeId = new MockNodeId(hostname, 0)
     container.priority = request.getPriority()
-    roleHistory.onContainerAllocated(container);
+    roleHistory.onContainerAssigned(container);
 
     NodeMap nodemap = roleHistory.cloneNodemap();
     NodeInstance allocated = nodemap.get(hostname)

@@ -29,6 +29,7 @@ import org.apache.hadoop.yarn.api.records.Container
 import org.apache.hadoop.yarn.api.records.ContainerId
 import org.apache.hadoop.yarn.api.records.ContainerStatus
 import org.apache.hadoop.yarn.api.records.Resource
+import org.apache.hadoop.yarn.client.api.AMRMClient
 
 /**
  * Factory for creating things
@@ -88,15 +89,34 @@ class MockFactory implements  MockRoles {
     return id;
   }
 
+  MockNodeId newNodeId() {
+    MockNodeId nodeId = new MockNodeId()
+  }
+  
   MockContainer newContainer(ContainerId cid) {
     MockContainer c = new MockContainer()
     c.id = cid
     return c
   }
+
   MockContainer newContainer() {
     newContainer(newContainerId())
   }
-  
+
+  /**
+   * Build a new container  using the request to suppy priority and resource
+   * @param req request
+   * @param host hostname to assign to
+   * @return the container
+   */
+  MockContainer newContainer(AMRMClient.ContainerRequest req, String host) {
+    MockContainer container = newContainer(newContainerId())
+    container.resource = req.capability
+    container.priority = req.priority
+    container.nodeId = new MockNodeId(host)
+    return container
+  }
+
   /**
    * Create a cluster spec with the given desired role counts
    * @param r1
