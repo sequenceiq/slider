@@ -55,6 +55,8 @@ public interface ProviderService extends ProviderCore, Service,
 
   String getSiteXMLFilename();
 
+  ClientProvider getClientProvider();
+  
   List<String> buildProcessCommand(ClusterDescription cd,
                                    File confDir,
                                    Map<String, String> env,
@@ -68,7 +70,13 @@ public interface ProviderService extends ProviderCore, Service,
             EventCallback execInProgress) throws IOException,
                                                  HoyaException;
 
-  boolean buildStatusReport(ClusterNode masterNode);
+  /**
+   * Scan through the roles and see if it is supported.
+   * @param role role to look for
+   * @return true if the role is known about -and therefore
+   * that a launcher thread can be deployed to launch it
+   */
+  boolean isSupportedRole(String role);
 
   /**
    * This is a validation of the application configuration on the AM.

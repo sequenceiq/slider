@@ -142,6 +142,7 @@ public class ClusterDescription {
   public String zkHosts;
   public int zkPort;
   public String zkPath;
+  public String masterAddr;
   /**
    * This is where the data goes
    */
@@ -157,6 +158,12 @@ public class ClusterDescription {
    */
   public String imagePath;
 
+  /**
+   * cluster-specific options
+   */
+  public Map<String, String> info =
+    new HashMap<String, String>();
+  
   /**
    * cluster-specific options
    */

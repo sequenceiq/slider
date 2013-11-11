@@ -36,18 +36,18 @@ import org.junit.Test
 class TestLiveTwoNodeRegionService extends HBaseMiniClusterTestBase {
 
   @Test
-  public void testLiveRegionServiceSingleNode() throws Throwable {
+  public void testLiveTwoNodeRegionService() throws Throwable {
     
     String clustername = "TestLiveTwoNodeRegionService"
     int regionServerCount = 2
-    createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
+    createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, false)
 
     describe(" Create a two node region service cluster");
     //now launch the cluster
     ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount, [], true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
-    ClusterDescription status = hoyaClient.getClusterStatus(clustername)
+    ClusterDescription status = hoyaClient.getClusterDescription(clustername)
     log.info("${status.toJsonString()}")
     assert ZKHosts == status.zkHosts
     assert ZKPort == status.zkPort

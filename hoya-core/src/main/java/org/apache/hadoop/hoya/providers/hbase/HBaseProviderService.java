@@ -26,7 +26,9 @@ import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
+import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hadoop.hoya.providers.AbstractProviderService;
+import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
@@ -50,7 +52,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * This class implements both the client-side and server-side aspects
+ * This class implements the server-side aspects
  * of an HBase Cluster
  */
 public class HBaseProviderService extends AbstractProviderService implements
@@ -70,28 +72,9 @@ public class HBaseProviderService extends AbstractProviderService implements
     super("HBaseProviderService");
   }
 
-  /**
-   * List of roles
-   */
-  protected static final List<ProviderRole> ROLES =
-    new ArrayList<ProviderRole>();
-
-  public static final int KEY_WORKER = 1;
-
-  public static final int KEY_MASTER = 2;
-
-  /**
-   * Initialize role list
-   */
-  static {
-    ROLES.add(new ProviderRole(HBaseKeys.ROLE_WORKER, KEY_WORKER));
-    ROLES.add(new ProviderRole(HBaseKeys.ROLE_MASTER, KEY_MASTER, true));
-  }
-
-
   @Override
   public List<ProviderRole> getRoles() {
-    return ROLES;
+    return HBaseRoles.getRoles();
   }
 
   @Override
@@ -100,6 +83,11 @@ public class HBaseProviderService extends AbstractProviderService implements
     clientProvider = new HBaseClientProvider(conf);
   }
 
+  @Override
+  public ClientProvider getClientProvider() {
+    return clientProvider;
+  }
+  
   @Override
   public int getDefaultMasterInfoPort() {
     return HBaseConfigFileOptions.DEFAULT_MASTER_INFO_PORT;
@@ -122,7 +110,7 @@ public class HBaseProviderService extends AbstractProviderService implements
     clientProvider.validateClusterSpec(clusterSpec);
   }
 
-
+  
   @Override  // server
   public void buildContainerLaunchContext(ContainerLaunchContext ctx,
                                           FileSystem fs,
@@ -130,7 +118,9 @@ public class HBaseProviderService extends AbstractProviderService implements
                                           String role,
                                           ClusterDescription clusterSpec,
                                           Map<String, String> roleOptions
-                                         ) throws IOException {
+                                         ) throws
+                                           IOException,
+                                           HoyaException {
     // Set the environment
     Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
     env.put(HBASE_LOG_DIR, providerUtils.getLogdir());
@@ -162,18 +152,30 @@ public class HBaseProviderService extends AbstractProviderService implements
     command.add(clientProvider.buildHBaseBinPath(clusterSpec).toString());
 
     //config dir is relative to the generated file
-    command.add(HBaseKeys.ARG_CONFIG);
-    command.add(HoyaKeys.PROPAGATED_CONF_DIR_NAME);
-    //role is region server
-    command.add(HBaseKeys.REGION_SERVER);
-    command.add(HBaseKeys.ACTION_START);
+    command.add(ARG_CONFIG);
+    command.add(PROPAGATED_CONF_DIR_NAME);
+    
+    //now look at the role
+    if (ROLE_WORKER.equals(role)) {
+      //role is region server
+      command.add(REGION_SERVER);
+      command.add(ACTION_START);
+      //log details
+      command.add(
+        "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/region-server.txt");
+      command.add("2>&1");
+    } else if (ROLE_MASTER.equals(role)) {
+      command.add(MASTER);
+      command.add(ACTION_START);
+      //log details
+      command.add(
+        "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/master.txt");
+      command.add("2>&1");
+    } else {
+      throw new HoyaInternalStateException("Cannot start role %s", role);
+    }
 /*    command.add("-D httpfs.log.dir = "+
                 ApplicationConstants.LOG_DIR_EXPANSION_VAR);*/
-
-    //log details
-    command.add(
-      "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/region-server.txt");
-    command.add("2>&1");
 
     String cmdStr = HoyaUtils.join(command, " ");
 
@@ -247,24 +249,22 @@ public class HBaseProviderService extends AbstractProviderService implements
                                                  HoyaException {
 
     String masterCommand =
-      cd.getOption(HoyaKeys.OPTION_HOYA_MASTER_COMMAND, null);
+      cd.getOption(HoyaKeys.OPTION_HOYA_MASTER_COMMAND, COMMAND_VERSION);
 
     List<String> commands =
       buildProcessCommand(cd, confDir, env, masterCommand);
 
-    ForkedProcessService masterProcess = buildProcess(getName(), env, commands);
+    ForkedProcessService subprocess = buildProcess(getName(), env, commands);
     CompoundService composite = new CompoundService(getName());
-    composite.addService(masterProcess);
+    composite.addService(subprocess);
     composite.addService(new EventNotifyingService(execInProgress,
                            cd.getOptionInt(
                              OptionKeys.OPTION_CONTAINER_STARTUP_DELAY,
                                            CONTAINER_STARTUP_DELAY)));
     //register the service for lifecycle management; when this service
-    //is terminated, so is the master process
+    //is terminated, the master process is notified
     addService(composite);
     maybeStartCommandSequence();
-
-
   }
 
 

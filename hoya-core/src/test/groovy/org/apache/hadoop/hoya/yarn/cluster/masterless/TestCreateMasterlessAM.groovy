@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.cluster.masterless
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
@@ -59,24 +60,25 @@ class TestCreateMasterlessAM extends HBaseMiniClusterTestBase {
     
     //get some of its status
     dumpClusterStatus(hoyaClient,"masterless application status")
-    List<ClusterNode> clusterNodes = hoyaClient.listClusterNodesInRole("master")
+    List<ClusterNode> clusterNodes = hoyaClient.listClusterNodesInRole(
+        HoyaKeys.ROLE_HOYA_AM)
     assert clusterNodes.size() == 1
 
     ClusterNode masterNode = clusterNodes[0]
     log.info("Master node = ${masterNode}");
 
     List<ClusterNode> nodes
-    String[] uuids = hoyaClient.listNodeUUIDsByRole("master")
+    String[] uuids = hoyaClient.listNodeUUIDsByRole(HoyaKeys.ROLE_HOYA_AM)
     assert uuids.length == 1;
     nodes = hoyaClient.listClusterNodes(uuids);
     assert nodes.size() == 1;
 
-    nodes = listNodesInRole(hoyaClient, "master")
+    nodes = listNodesInRole(hoyaClient, HoyaKeys.ROLE_HOYA_AM)
     assert nodes.size() == 1;
     nodes = listNodesInRole(hoyaClient, "")
     assert nodes.size() == 1;
     ClusterNode master = nodes[0]
-    assert master.role == "master"
+    assert master.role == HoyaKeys.ROLE_HOYA_AM
 
 
 

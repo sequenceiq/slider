@@ -23,6 +23,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hoya.HostAndPort;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.RoleKeys;
@@ -40,12 +41,14 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -77,7 +80,7 @@ public class LoadGenProvider extends Configured implements
    * Initialize role list
    */
   static {
-    ROLES.add(new ProviderRole(ROLE_MASTER, 1, true));
+    ROLES.add(new ProviderRole(ROLE_MASTER, 1));
     ROLES.add(new ProviderRole(ROLE_CPULOAD, 2));
     ROLES.add(new ProviderRole(ROLE_FAILING, 3));
     ROLES.add(new ProviderRole(ROLE_GENERAL1, 4 ));
@@ -97,10 +100,24 @@ public class LoadGenProvider extends Configured implements
   }
 
   @Override
+  public Configuration create(Configuration conf) {
+    return conf;
+  }
+  
+  @Override
   public List<ProviderRole> getRoles() {
     return ROLES;
   }
 
+  @Override
+  public HostAndPort getMasterAddress() throws IOException, KeeperException {
+    return null;
+  }
+
+  @Override
+  public Collection<HostAndPort> listDeadServers(Configuration conf)  throws IOException {
+    return new ArrayList<HostAndPort>();
+  }
 
   /**
    * Get a map of all the default options for the cluster; values

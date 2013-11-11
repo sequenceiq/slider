@@ -23,7 +23,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
+import org.apache.hadoop.hoya.HostAndPort;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
@@ -37,20 +39,23 @@ import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderService;
+import org.apache.hadoop.hoya.providers.hoyaam.HoyaAMClientProvider;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
 import org.apache.hadoop.hoya.yarn.appmaster.rpc.HoyaAMPolicyProvider;
 import org.apache.hadoop.hoya.yarn.appmaster.rpc.HoyaClusterProtocolPBImpl;
 import org.apache.hadoop.hoya.yarn.appmaster.rpc.RpcBinder;
+import org.apache.hadoop.hoya.yarn.appmaster.state.AbstractRMOperation;
 import org.apache.hadoop.hoya.yarn.appmaster.state.AppState;
+import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerAssignment;
+import org.apache.hadoop.hoya.yarn.appmaster.state.RMOperationHandler;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleInstance;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleStatus;
 import org.apache.hadoop.hoya.yarn.service.EventCallback;
+import org.apache.hadoop.hoya.yarn.service.RpcService;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.ipc.ProtocolSignature;
-import org.apache.hadoop.ipc.Server;
-import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.SaslRpcServer;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -71,19 +76,16 @@ import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.hadoop.yarn.client.api.async.NMClientAsync;
 import org.apache.hadoop.yarn.client.api.async.impl.NMClientAsyncImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
-import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.hadoop.yarn.ipc.YarnRPC;
 import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenSecretManager;
 import org.apache.hadoop.yarn.service.launcher.RunService;
 import org.apache.hadoop.yarn.util.ConverterUtils;
-import org.apache.hadoop.yarn.util.Records;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,7 +95,6 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -114,7 +115,8 @@ public class HoyaAppMaster extends CompositeService
              HoyaClusterProtocol,
              ServiceStateChangeListener,
              RoleKeys,
-             EventCallback {
+             EventCallback,
+             ContainerStartOperation{
   protected static final Logger log =
     LoggerFactory.getLogger(HoyaAppMaster.class);
 
@@ -124,12 +126,6 @@ public class HoyaAppMaster extends CompositeService
   protected static final Logger LOG_YARN =
     LoggerFactory.getLogger(
       "org.apache.hadoop.hoya.yarn.appmaster.HoyaAppMaster.yarn");
-
-  /**
-   * How long to expect launcher threads to shut down on AM termination:
-   * {@value}
-   */
-  public static final int LAUNCHER_THREAD_SHUTDOWN_TIME = 10000;
 
   /**
    * time to wait from shutdown signal being rx'd to telling
@@ -145,6 +141,8 @@ public class HoyaAppMaster extends CompositeService
 
   /** Handle to communicate with the Resource Manager*/
   private AMRMClientAsync asyncRMClient;
+  
+  private RMOperationHandler rmOperationHandler;
 
   /** Handle to communicate with the Node Manager*/
   public NMClientAsync nmClientAsync;
@@ -153,9 +151,8 @@ public class HoyaAppMaster extends CompositeService
    * token blob
    */
   private ByteBuffer allTokens;
-  
-  /** RPC server*/
-  private Server server;
+
+  private RpcService rpcService;
 
   /**
    * Secret manager
@@ -186,27 +183,8 @@ public class HoyaAppMaster extends CompositeService
    * Ongoing state of the cluster: containers, nodes they
    * live on, etc.
    */
-  private final AppState appState = new AppState();
+  private final AppState appState = new AppState(new ProtobufRecordFactory());
 
-
-  /**
-   * Map of launched threads.
-   * These are retained so that at shutdown time the AM can signal
-   * all threads to stop.
-   * 
-   * However, we don't want to run out of memory even if many containers
-   * get launched over time, so the AM tries to purge this
-   * of the latest launched thread when the RoleLauncher signals
-   * the AM that it has finished
-   */
-  private final Map<RoleLauncher, Thread> launchThreads =
-    new HashMap<RoleLauncher, Thread>();
-
-  /**
-   * Thread group for the launchers; gives them all a useful name
-   * in stack dumps
-   */
-  private final ThreadGroup launcherThreadGroup = new ThreadGroup("launcher");
 
   /**
    * model the state using locks and conditions
@@ -243,9 +221,9 @@ public class HoyaAppMaster extends CompositeService
   private ContainerId appMasterContainerID;
 
   /**
-   * Provider of this cluster
+   * ProviderService of this cluster
    */
-  private ProviderService provider;
+  private ProviderService providerService;
 
   /**
    * Record of the max no. of cores allowed in this cluster
@@ -258,6 +236,14 @@ public class HoyaAppMaster extends CompositeService
    */
   private int containerMaxMemory;
   private String amCompletionReason;
+
+  private RoleLaunchService launchService;
+
+
+  /**
+   * Policy switch to decide whether any early exit of the process is a failure
+   */
+  public static final boolean IS_ANY_EARLY_EXIT_A_FAILURE = false;
 
   /**
    * Service Constructor
@@ -366,6 +352,18 @@ public class HoyaAppMaster extends CompositeService
     return exitCode;
   }
 
+  /**
+   * Run a child service -initing and starting it if this
+   * service has already passed those parts of its own lifecycle
+   * @param service
+   */
+  @SuppressWarnings("EnumSwitchStatementWhichMissesCases")
+  private void runChildService(Service service) {
+    service.init(getConfig());
+    service.start();
+    addService(service);
+  }
+
 /* =================================================================== */
 
   /**
@@ -382,7 +380,8 @@ public class HoyaAppMaster extends CompositeService
     Path clusterSpecPath =
       new Path(clusterDirPath, HoyaKeys.CLUSTER_SPECIFICATION_FILE);
     FileSystem fs = getClusterFS();
-    ClusterDescription.verifyClusterSpecExists(clustername, fs,
+    ClusterDescription.verifyClusterSpecExists(clustername,
+                                               fs,
                                                clusterSpecPath);
 
     ClusterDescription clusterSpec = ClusterDescription.load(fs, clusterSpecPath);
@@ -393,21 +392,20 @@ public class HoyaAppMaster extends CompositeService
         "Configuration directory %s doesn't exist", confDir);
     }
 
+    YarnConfiguration conf = new YarnConfiguration(getConfig());
     //get our provider
     String providerType = clusterSpec.type;
     log.info("Cluster provider type is {}", providerType);
     HoyaProviderFactory factory =
       HoyaProviderFactory.createHoyaProviderFactory(
         providerType);
-    provider = factory.createServerProvider();
-    provider.init(getConfig());
-    provider.start();
-    addService(provider);
+    providerService = factory.createServerProvider();
+    runChildService(providerService);
     //verify that the cluster specification is now valid
-    provider.validateClusterSpec(clusterSpec);
+    providerService.validateClusterSpec(clusterSpec);
 
+    HoyaAMClientProvider clientProvider = new HoyaAMClientProvider(conf);
 
-    YarnConfiguration conf = new YarnConfiguration(getConfig());
     InetSocketAddress address = HoyaUtils.getRmSchedulerAddress(conf);
     log.info("RM is at {}", address);
     yarmRPC = YarnRPC.create(conf);
@@ -424,6 +422,7 @@ public class HoyaAppMaster extends CompositeService
       UserGroupInformation.getCurrentUser().getCredentials();
     DataOutputBuffer dob = new DataOutputBuffer();
     credentials.writeTokenStorageToStream(dob);
+    dob.close();
     // Now remove the AM->RM token so that containers cannot access it.
     Iterator<Token<?>> iter = credentials.getAllTokens().iterator();
     while (iter.hasNext()) {
@@ -444,41 +443,42 @@ public class HoyaAppMaster extends CompositeService
     asyncRMClient = AMRMClientAsync.createAMRMClientAsync(HEARTBEAT_INTERVAL,
                                                           this);
     addService(asyncRMClient);
+    //wrap it for the app state model
+    rmOperationHandler = new AsyncRMOperationHandler(asyncRMClient);
     //now bring it up
-    asyncRMClient.init(conf);
-    asyncRMClient.start();
+    runChildService(asyncRMClient);
 
 
     //nmclient relays callbacks back to this class
     nmClientAsync = new NMClientAsyncImpl("hoya", this);
-    addService(nmClientAsync);
-    nmClientAsync.init(conf);
-    nmClientAsync.start();
+    runChildService(nmClientAsync);
 
     //bring up the Hoya RPC service
     startHoyaRPCServer();
 
-    String hostname = NetUtils.getConnectAddress(server).getHostName();
-    appMasterHostname = hostname;
-    appMasterRpcPort = server.getPort();
+    InetSocketAddress rpcServiceAddr = rpcService.getConnectAddress();
+    appMasterHostname = rpcServiceAddr.getHostName();
+    appMasterRpcPort = rpcServiceAddr.getPort();
     appMasterTrackingUrl = null;
     log.info("HoyaAM Server is listening at {}:{}", appMasterHostname,
              appMasterRpcPort);
 
     //build the role map
-    List<ProviderRole> providerRoles = provider.getRoles();
+    List<ProviderRole> providerRoles =
+      new ArrayList<ProviderRole>(providerService.getRoles());
+    providerRoles.addAll(clientProvider.getRoles());
 
 
     // work out a port for the AM
-    int infoport = clusterSpec.getRoleOptInt(ROLE_MASTER,
+    int infoport = clusterSpec.getRoleOptInt(ROLE_HOYA_AM,
                                                   RoleKeys.APP_INFOPORT,
                                                   0);
     if (0 == infoport) {
       infoport =
-        HoyaUtils.findFreePort(provider.getDefaultMasterInfoPort(), 128);
+        HoyaUtils.findFreePort(providerService.getDefaultMasterInfoPort(), 128);
       //need to get this to the app
 
-      clusterSpec.setRoleOpt(ROLE_MASTER,
+      clusterSpec.setRoleOpt(ROLE_HOYA_AM,
                                   RoleKeys.APP_INFOPORT,
                                   infoport);
     }
@@ -499,6 +499,8 @@ public class HoyaAppMaster extends CompositeService
       response.getMaximumResourceCapability();
     containerMaxMemory = maxResources.getMemory();
     containerMaxCores = maxResources.getVirtualCores();
+    appState.setContainerLimits(maxResources.getMemory(),
+                                maxResources.getVirtualCores());
     boolean securityEnabled = UserGroupInformation.isSecurityEnabled();
     if (securityEnabled) {
       secretManager.setMasterKey(
@@ -506,20 +508,12 @@ public class HoyaAppMaster extends CompositeService
       applicationACLs = response.getApplicationACLs();
 
       //tell the server what the ACLs are 
-      server.refreshServiceAcl(conf, new HoyaAMPolicyProvider());
+      rpcService.getServer().refreshServiceAcl(conf, new HoyaAMPolicyProvider());
     }
-
-
-
-
-    //before bothering to start the containers, bring up the
-    //master.
-    //This ensures that if the master doesn't come up, less
-    //cluster resources get wasted
 
     //now validate the dir by loading in a hadoop-site.xml file from it
     
-    String siteXMLFilename = provider.getSiteXMLFilename();
+    String siteXMLFilename = providerService.getSiteXMLFilename();
     File siteXML = new File(confDir, siteXMLFilename);
     if (!siteXML.exists()) {
       throw new BadCommandArgumentsException(
@@ -530,20 +524,32 @@ public class HoyaAppMaster extends CompositeService
     //now read it in
     Configuration siteConf = ConfigHelper.loadConfFromFile(siteXML);
 
-    provider.validateApplicationConfiguration(clusterSpec, confDir, securityEnabled);
+    providerService.validateApplicationConfiguration(clusterSpec, confDir, securityEnabled);
 
+    //determine the location for the role history data
+    Path historyDir = new Path(clusterDirPath, HISTORY_DIR_NAME);
+    
     //build the instance
-    appState.buildInstance(clusterSpec, siteConf, providerRoles);
+    appState.buildInstance(clusterSpec, siteConf, providerRoles, fs, historyDir);
 
-    appState.buildMasterNode(appMasterContainerID);
+    //before bothering to start the containers, bring up the master.
+    //This ensures that if the master doesn't come up, less
+    //cluster resources get wasted
 
+    appState.buildAppMasterNode(appMasterContainerID);
 
-    boolean noMaster = clusterSpec.getDesiredInstanceCount(ROLE_MASTER, 1) <= 0;
-    if (noMaster) {
-      log.info("skipping master launch");
+    //launcher service
+    launchService = new RoleLaunchService(this,
+                                          providerService, getClusterFS(),
+                                          new Path(getDFSConfDir()));
+    runChildService(launchService);
+
+    boolean noLocalProcess = clusterSpec.getDesiredInstanceCount(ROLE_HOYA_AM, 1) <= 0;
+    if (noLocalProcess) {
+      log.info("skipping AM process launch");
       eventCallbackEvent();
     } else {
-      appState.noteMasterNodeLaunched();
+      appState.noteAMLaunched();
       //launch the provider; this is expected to trigger a callback that
       //brings up the service
       launchProviderService(clusterSpec, confDir);
@@ -667,7 +673,9 @@ public class HoyaAppMaster extends CompositeService
       exitCode = stopForkedProcess();
       log.debug("Stopping forked process: exit code={}", exitCode);
     }
-    joinAllLaunchedThreads();
+
+    //stop any launches in progress
+    launchService.stop();
 
 
     //now release all containers
@@ -699,20 +707,13 @@ public class HoyaAppMaster extends CompositeService
     } catch (IOException e) {
       log.info("Failed to unregister application: " + e, e);
     }
-    if (server != null) {
-      server.stop();
-    }
   }
 
   /**
    * Get diagnostics info about containers
    */
   private String getContainerDiagnosticInfo() {
-    StringBuilder builder = new StringBuilder();
-    for (RoleStatus roleStatus : getRoleStatusMap().values()) {
-      builder.append(roleStatus).append('\n');
-    }
-    return builder.toString();
+   return appState.getContainerDiagnosticInfo();
   }
 
   public Object getProxy(Class protocol, InetSocketAddress addr) {
@@ -720,128 +721,25 @@ public class HoyaAppMaster extends CompositeService
   }
 
   /**
-   * Register self as a server
-   * @return the new server
+   * Start the hoya RPC server
    */
-  private Server startHoyaRPCServer() throws IOException {
+  private void startHoyaRPCServer() throws IOException {
     HoyaClusterProtocolPBImpl protobufRelay = new HoyaClusterProtocolPBImpl(this);
     BlockingService blockingService = HoyaClusterAPI.HoyaClusterProtocolPB
                                                     .newReflectiveBlockingService(
                                                       protobufRelay);
 
-    server = RpcBinder.createProtobufServer(
+    rpcService = new RpcService(RpcBinder.createProtobufServer(
       new InetSocketAddress("0.0.0.0", 0),
       getConfig(),
       secretManager,
       NUM_RPC_HANDLERS,
       blockingService,
-      null);
-    server.start();
-    return server;
-  }
-
-  /**
-   * Setup the request that will be sent to the RM for the container ask.
-   *
-   * much of the container ask will be built up in AppState
-   * @param role @return the setup ResourceRequest to be sent to RM
-   */
-  private AMRMClient.ContainerRequest buildContainerRequest(RoleStatus role) {
-
-    // Set up resource type requirements
-    Resource capability = buildResourceRequirementsForRole(role);
-    AMRMClient.ContainerRequest request =
-      appState.createContainerRequest(role, capability);
-
-    return request;
+      null));
+    runChildService(rpcService);
   }
 
 
-  /**
-   * Create the resource requirements for an instance of this role 
-   * -done by looking up the cluster spec
-   * @param role
-   * @return
-   */
-  private Resource buildResourceRequirementsForRole(RoleStatus role) {
-    Resource capability;
-    capability = Records.newRecord(Resource.class);
-    // Set up resource requirements from role valuesx
-    String name = role.getName();
-    capability.setVirtualCores(getClusterSpec().getRoleOptInt(name,
-                                                              YARN_CORES,
-                                                              DEF_YARN_CORES));
-    capability.setMemory(getClusterSpec().getRoleOptInt(name,
-                                                        YARN_MEMORY,
-                                                        DEF_YARN_MEMORY));
-    return capability;
-  }
-
-
-  private void launchThread(RoleLauncher launcher, String name) {
-    Thread launchThread = new Thread(launcherThreadGroup,
-                                     launcher,
-                                     name);
-
-    // launch and start the container on a separate thread to keep
-    // the main thread unblocked
-    // as all containers may not be allocated at one go.
-    synchronized (launchThreads) {
-      launchThreads.put(launcher, launchThread);
-    }
-    launchThread.start();
-  }
-
-  /**
-   * Method called by a launcher thread when it has completed; 
-   * this removes the launcher of the map of active
-   * launching threads.
-   * @param launcher
-   */
-  public void launchedThreadCompleted(RoleLauncher launcher) {
-    synchronized (launchThreads) {
-      launchThreads.remove(launcher);
-    }
-  }
-
-  /**
-   Join all launched threads
-   needed for when we time out
-   and we need to release containers
-   */
-  private void joinAllLaunchedThreads() {
-
-
-    //first: take a snapshot of the thread list
-    List<Thread> liveThreads;
-    synchronized (launchThreads) {
-      liveThreads = new ArrayList<Thread>(launchThreads.values());
-    }
-    int size = liveThreads.size();
-    if (size > 0) {
-      log.info("Waiting for the completion of {} threads", size);
-      for (Thread launchThread : liveThreads) {
-        try {
-          launchThread.join(LAUNCHER_THREAD_SHUTDOWN_TIME);
-        } catch (InterruptedException e) {
-          log.info("Exception thrown in thread join: " + e, e);
-        }
-      }
-    }
-  }
-
-
-  /**
-   * Look up a role from its key -or fail 
-   *
-   * @param c container in a role
-   * @return the status
-   * @throws YarnRuntimeException on no match
-   */
-  public RoleStatus lookupRoleStatus(Container c) {
-    return appState.lookupRoleStatus(c);
-  }
-  
 /* =================================================================== */
 /* AMRMClientAsync callbacks */
 /* =================================================================== */
@@ -855,71 +753,21 @@ public class HoyaAppMaster extends CompositeService
   @Override //AMRMClientAsync
   public void onContainersAllocated(List<Container> allocatedContainers) {
     LOG_YARN.info("onContainersAllocated({})", allocatedContainers.size());
-    List<Container> surplus = new ArrayList<Container>();
-    for (Container container : allocatedContainers) {
-      String containerHostInfo = container.getNodeId().getHost()
-                                 + ":" +
-                                 container.getNodeId().getPort();
-      int allocated;
-      int desired;
-      //get the role
-      RoleStatus role;
-      role = lookupRoleStatus(container);
-      synchronized (role) {
-        //sync on all container details. Even though these are atomic,
-        //we don't really want multiple updates happening simultaneously
-        log.info(getContainerDiagnosticInfo());
-        //dec requested count
-        role.decRequested();
-        //inc allocated count
-        allocated = role.incActual();
+    List<ContainerAssignment> assignments = new ArrayList<ContainerAssignment>();
+    List<AbstractRMOperation> operations = new ArrayList<AbstractRMOperation>();
+    
+    //app state makes all the decisions
+    appState.onContainersAllocated(allocatedContainers,assignments, operations);
 
-        //look for (race condition) where we get more back than we asked
-        desired = role.getDesired();
-      }
-      if (allocated > desired) {
-        log.info("Discarding surplus container {} on {}", container.getId(),
-                 containerHostInfo);
-        surplus.add(container);
-      } else {
-
-        log.info("Launching shell command on a new container.," +
-                 " containerId={}," +
-                 " containerNode={}:{}," +
-                 " containerNodeURI={}," +
-                 " containerResource={}",
-                 container.getId(),
-                 container.getNodeId().getHost(),
-                 container.getNodeId().getPort(),
-                 container.getNodeHttpAddress(),
-                 container.getResource());
-
-        String roleName = role.getName();
-        RoleLauncher launcher =
-          new RoleLauncher(this,
-                           container,
-                           role.getProviderRole(),
-                           provider,
-                           getClusterSpec(),
-                           getClusterSpec().getOrAddRole(
-                             roleName));
-        launchThread(launcher, "container-" +
-                               containerHostInfo);
-      }
+    //for each assignment: launch a thread to instantiate that role
+    for (ContainerAssignment assignment : assignments) {
+      RoleStatus role = assignment.role;
+      Container container = assignment.container;
+      launchService.launchRole(container, role, getClusterSpec());
     }
-    //now discard those surplus containers
-    for (Container container : surplus) {
-      ContainerId id = container.getId();
-      log.info("Releasing surplus container {} on {}:{}",
-               id.getApplicationAttemptId(),
-               container.getNodeId().getHost(),
-               container.getNodeId().getPort());
-      RoleStatus role = lookupRoleStatus(container);
-      synchronized (role) {
-        role.incReleasing();
-      }
-      asyncRMClient.releaseAssignedContainer(id);
-    }
+    
+    //for all the operations, exec them
+    rmOperationHandler.execute(operations);
     log.info("Diagnostics: " + getContainerDiagnosticInfo());
   }
 
@@ -954,7 +802,6 @@ public class HoyaAppMaster extends CompositeService
     } catch (HoyaInternalStateException e) {
       log.warn("Exception while flexing nodes", e);
     }
-
   }
 
   /**
@@ -968,14 +815,12 @@ public class HoyaAppMaster extends CompositeService
    * @return true if the number of workers changed
    * @throws IOException
    */
-  private boolean flexCluster(ClusterDescription updated) throws
-                                                               IOException,
-                                                               HoyaInternalStateException {
+  private boolean flexCluster(ClusterDescription updated)
+      throws IOException, HoyaInternalStateException {
 
-    
     //validation
     try {
-      provider.validateClusterSpec(updated);
+      providerService.validateClusterSpec(updated);
     } catch (HoyaException e) {
       throw new IOException("Invalid cluster specification " + e, e);
     }
@@ -988,116 +833,25 @@ public class HoyaAppMaster extends CompositeService
   /**
    * Look at where the current node state is -and whether it should be changed
    */
-  private synchronized boolean reviewRequestAndReleaseNodes() throws
-                                                              HoyaInternalStateException {
+  private synchronized boolean reviewRequestAndReleaseNodes()
+      throws HoyaInternalStateException {
     log.debug("in reviewRequestAndReleaseNodes()");
     if (amCompletionFlag.get()) {
       log.info("Ignoring node review operation: shutdown in progress");
       return false;
     }
-
-    boolean updatedNodeCount = false;
-
-    for (RoleStatus roleStatus : getRoleStatusMap().values()) {
-      if (!roleStatus.getExcludeFromFlexing()) {
-        updatedNodeCount |= reviewOneRole(roleStatus);
-      }
-    }
-    return updatedNodeCount;
-  }
-
-  
-  private boolean reviewOneRole(RoleStatus role) throws
-                                                 HoyaInternalStateException {
-    int delta;
-    String details;
-    int expected;
-    synchronized (role) {
-      delta = role.getDelta();
-      details = role.toString();
-      expected = role.getDesired();
-    }
-
-    log.info(details);
-    boolean updated = false;
-    if (delta > 0) {
-      log.info("Asking for {} more worker(s) for a total of {} ",
-               delta, expected);
-      //more workers needed than we have -ask for more
-      for (int i = 0; i < delta; i++) {
-        AMRMClient.ContainerRequest containerAsk =
-          buildContainerRequest(role);
-        log.info("Container ask is {}", containerAsk);
-        if (containerAsk.getCapability().getMemory() > this.containerMaxMemory) {
-          log.warn("Memory requested: " + containerAsk.getCapability().getMemory() + " > " +
-              this.containerMaxMemory);
-        } else {
-          asyncRMClient.addContainerRequest(containerAsk);
-          updated = true;
-        }
-      }
-    } else if (delta < 0) {
-
-      //special case: there are no more containers
-/*
-      if (total == 0 && !noMaster) {
-        //just exit the entire application here, rather than a node at a time.
-        signalAMComplete("#of workers is set to zero: exiting");
-        return;
-      }
-*/
-
-      log.info("Asking for {} fewer worker(s) for a total of {}", -delta,
-               expected);
-      //reduce the number expected (i.e. subtract the delta)
-
-      //then pick some containers to kill
-      int excess = -delta;
-      List<RoleInstance> targets = appState.cloneActiveContainerList();
-      for (RoleInstance instance : targets) {
-        if (excess > 0) {
-          Container possible = instance.container;
-          if (!instance.released) {
-            ContainerId id = possible.getId();
-            log.info("Requesting release of container {}", id);
-            appState.containerReleaseSubmitted(id);
-            asyncRMClient.releaseAssignedContainer(id);
-            excess--;
-          }
-        }
-      }
-      //here everything should be freed up, though there may be an excess due 
-      //to race conditions with requests coming in
-      if (excess > 0) {
-        log.warn(
-          "After releasing all worker nodes that could be free, there was an excess of {} nodes",
-          excess);
-      }
-      updated = true;
-
-    }
-    return updated;
+    List<AbstractRMOperation> allOperations = appState.reviewRequestAndReleaseNodes();
+    //now apply the operations
+    rmOperationHandler.execute(allOperations);
+    return !allOperations.isEmpty();
   }
 
   /**
    * Shutdown operation: release all containers
    */
   private void releaseAllContainers() {
-    Collection<RoleInstance> targets = appState.cloneActiveContainerList();
-    log.info("Releasing {} containers", targets.size());
-    for (RoleInstance instance : targets) {
-      Container possible = instance.container;
-      ContainerId id = possible.getId();
-      if (!instance.released) {
-        try {
-          appState.containerReleaseSubmitted(id);
-        } catch (HoyaInternalStateException e) {
-          log.warn("when releasing container {} :", possible, e);
-        }
-        log.debug("Releasing container {}", id);
-        asyncRMClient.releaseAssignedContainer(id);
-      }
-    }
+    //now apply the operations
+    rmOperationHandler.execute(appState.releaseAllContainers());
   }
 
   /**
@@ -1180,9 +934,6 @@ public class HoyaAppMaster extends CompositeService
 
     ClusterDescription updated =
       ClusterDescription.fromJson(request.getClusterSpec());
-    //verify that the cluster specification is now valid
-    provider.validateClusterSpec(updated);
-
     boolean flexed = flexCluster(updated);
     return Messages.FlexClusterResponseProto.newBuilder().setResponse(flexed).build();
   }
@@ -1198,7 +949,7 @@ public class HoyaAppMaster extends CompositeService
     //query and json-ify
     synchronized (this) {
       updateClusterStatus();
-      result = getClusterStatus().toJsonString();
+      result = getClusterDescription().toJsonString();
     }
     String stat = result;
     return Messages.GetJSONClusterStatusResponseProto.newBuilder()
@@ -1258,13 +1009,16 @@ public class HoyaAppMaster extends CompositeService
    * Update the cluster description with anything interesting
    */
   private void updateClusterStatus() {
-
-    long t = System.currentTimeMillis();
-    RoleInstance masterNode = appState.getMasterNode();
-    if (masterNode != null) {
-      provider.buildStatusReport(masterNode.toClusterNodeFormat());
+    String addr = "";
+    try {
+      HostAndPort host = providerService.getClientProvider().getMasterAddress();
+      if (host != null) {
+        addr = host.toString();
+      }
+    } catch (Exception e) {
+      log.warn("Getting exception when retrieving master address", e);
     }
-    appState.refreshClusterStatus();
+    appState.refreshClusterStatus(addr);
   }
 
   /**
@@ -1279,10 +1033,10 @@ public class HoyaAppMaster extends CompositeService
                                                     File confDir)
     throws IOException, HoyaException {
     Map<String, String> env = new HashMap<String, String>();
-    provider.exec(cd, confDir, env, this);
+    providerService.exec(cd, confDir, env, this);
 
-    provider.registerServiceListener(this);
-    provider.start();
+    providerService.registerServiceListener(this);
+    providerService.start();
   }
 
   /* =================================================================== */
@@ -1292,7 +1046,7 @@ public class HoyaAppMaster extends CompositeService
   @Override // EventCallback
   public void eventCallbackEvent() {
     //signalled that the child process is up.
-    appState.noteMasterNodeLive();
+    appState.noteAMLive();
     //now ask for the cluster nodes
     try {
       flexCluster(getClusterSpec());
@@ -1314,13 +1068,19 @@ public class HoyaAppMaster extends CompositeService
    */
   @Override //ServiceStateChangeListener
   public void stateChanged(Service service) {
-    if (service == provider) {
+    if (service == providerService) {
       //its the current master process in play
-      int exitCode = provider.getExitCode();
+      int exitCode = providerService.getExitCode();
       spawnedProcessExitCode = exitCode;
       mappedProcessExitCode =
         AMUtils.mapProcessExitCodeToYarnExitCode(exitCode);
-      if (!amCompletionFlag.get()) {
+      boolean shouldTriggerFailure = !amCompletionFlag.get()
+         && (IS_ANY_EARLY_EXIT_A_FAILURE || AMUtils.isMappedExitAFailure(
+          mappedProcessExitCode));
+                                     
+     
+      
+      if (shouldTriggerFailure) {
         //this wasn't expected: the process finished early
         spawnedProcessExitedBeforeShutdownTriggered = true;
         log.info(
@@ -1335,7 +1095,7 @@ public class HoyaAppMaster extends CompositeService
       } else {
         //we don't care
         log.info(
-          "Process has exited with exit code {} mapped to {} -ignoring as app has finished",
+          "Process has exited with exit code {} mapped to {} -ignoring",
           exitCode,
           mappedProcessExitCode);
       }
@@ -1347,19 +1107,18 @@ public class HoyaAppMaster extends CompositeService
    * @return the process exit code
    */
   protected synchronized Integer stopForkedProcess() {
-    provider.stop();
-    return provider.getExitCode();
+    providerService.stop();
+    return providerService.getExitCode();
   }
 
   /**
-   * Package scoped operation to add a node to the list of starting
-   * nodes then trigger the NM start operation with the given
-   * launch context
+   *  Async start container request
    * @param container container
    * @param ctx context
    * @param instance node details
    */
-  void startContainer(Container container,
+  @Override // ContainerStartOperation
+  public void startContainer(Container container,
                              ContainerLaunchContext ctx,
                              RoleInstance instance) {
     // Set up tokens for the container too. Today, for normal shell commands,
@@ -1417,16 +1176,10 @@ public class HoyaAppMaster extends CompositeService
     LOG_YARN.error("Failed to query the status of Container {}", containerId);
   }
 
-
   @Override //  NMClientAsync.CallbackHandler 
   public void onStopContainerError(ContainerId containerId, Throwable t) {
     LOG_YARN.warn("Failed to stop Container {}", containerId);
   }
-
-  public Map<Integer, RoleStatus> getRoleStatusMap() {
-    return appState.getRoleStatusMap();
-  }
-
 
   /**
    The cluster description published to callers
@@ -1441,8 +1194,8 @@ public class HoyaAppMaster extends CompositeService
   /**
    * This is the status, the live model
    */
-  public ClusterDescription getClusterStatus() {
-    return appState.getClusterStatus();
+  public ClusterDescription getClusterDescription() {
+    return appState.getClusterDescription();
   }
 
 }

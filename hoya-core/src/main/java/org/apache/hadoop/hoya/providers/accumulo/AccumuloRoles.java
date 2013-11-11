@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.providers.accumulo;
 
+import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,15 +37,18 @@ public class AccumuloRoles  {
   public static final List<ProviderRole> ROLES =
     new ArrayList<ProviderRole>();
 
+  private static int BASE;
+
   /**
    * Initialize role list
    */
   static {
-    AccumuloRoles.ROLES.add(new ProviderRole(ROLE_MASTER, 1, true));
-    AccumuloRoles.ROLES.add(new ProviderRole(ROLE_TABLET, 2));
-    AccumuloRoles.ROLES.add(new ProviderRole(ROLE_GARBAGE_COLLECTOR, 3));
-    AccumuloRoles.ROLES.add(new ProviderRole(ROLE_MONITOR, 4));
-    AccumuloRoles.ROLES.add(new ProviderRole(ROLE_TRACER, 5));
+    BASE = HoyaKeys.ROLE_HOYA_AM_PRIORITY_INDEX;
+    AccumuloRoles.ROLES.add(new ProviderRole(ROLE_MASTER, BASE + 1));
+    AccumuloRoles.ROLES.add(new ProviderRole(ROLE_TABLET, BASE + 2));
+    AccumuloRoles.ROLES.add(new ProviderRole(ROLE_GARBAGE_COLLECTOR, BASE + 3));
+    AccumuloRoles.ROLES.add(new ProviderRole(ROLE_MONITOR, BASE + 4));
+    AccumuloRoles.ROLES.add(new ProviderRole(ROLE_TRACER, BASE + 5));
   }
 
 

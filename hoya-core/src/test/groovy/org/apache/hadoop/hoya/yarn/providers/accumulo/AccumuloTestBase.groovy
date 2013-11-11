@@ -28,6 +28,7 @@ import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.RoleKeys
 import org.apache.hadoop.hoya.providers.accumulo.AccumuloConfigFileOptions
 import org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys
+import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
@@ -52,6 +53,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
    * expect meaningful results.
    */
   public static final int ACCUMULO_CLUSTER_STARTUP_TO_LIVE_TIME = ACCUMULO_CLUSTER_STARTUP_TIME
+  public static final int ACCUMULO_GO_LIVE_TIME = 60000
 
 
   @Override
@@ -89,7 +91,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
    * @return the site config
    */
   public Configuration fetchClientSiteConfig(HoyaClient hoyaClient) {
-    ClusterDescription status = hoyaClient.clusterStatus;
+    ClusterDescription status = hoyaClient.clusterDescription;
     Configuration siteConf = new Configuration(false)
     status.clientProperties.each { String key, String val ->
       siteConf.set(key, val, "hoya cluster");
@@ -222,4 +224,58 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
     String response = fetchWebPage(url)
     
   }
+
+
+  public ClusterDescription flexAccClusterTestRun(
+      String clustername,
+      List<Map<String,Integer>> plan,
+      boolean persist) {
+    int planCount = plan.size()
+    assert planCount > 0
+    createMiniCluster(clustername, createConfiguration(),
+                      1,
+                      true);
+    //now launch the cluster
+    HoyaClient hoyaClient = null;
+    ServiceLauncher launcher = createAccCluster(clustername,
+                                                 plan[0],
+                                                 [],
+                                                 true,
+                                                 true);
+    hoyaClient = (HoyaClient) launcher.service;
+    try {
+
+      //verify the #of roles is as expected
+      //get the hbase status
+      waitForRoleCount(hoyaClient, plan[0],
+                       ACCUMULO_CLUSTER_STARTUP_TO_LIVE_TIME);
+      sleep(ACCUMULO_GO_LIVE_TIME);
+
+      plan.remove(0)
+
+      ClusterDescription cd = null
+      while (!plan.empty) {
+
+        Map<String, Integer> flexTarget = plan.remove(0)
+        //now flex
+        describe(
+            "Flexing " + roleMapToString(flexTarget));
+        boolean flexed = 0 == hoyaClient.flex(clustername,
+                                      flexTarget,
+                                      persist);
+        cd = waitForRoleCount(hoyaClient, flexTarget,
+                              ACCUMULO_CLUSTER_STARTUP_TO_LIVE_TIME);
+
+        sleep(ACCUMULO_GO_LIVE_TIME);
+
+      }
+      
+      return cd;
+
+    } finally {
+      maybeStopCluster(hoyaClient, null, "end of flex test run");
+    }
+
+  }
+  
 }

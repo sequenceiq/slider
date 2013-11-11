@@ -104,30 +104,6 @@ public class RoleInstance {
   public ContainerId getContainerId() {
     return container!=null? container.getId(): null;
   }
-  /**
-   * Build the wire representation for status messages
-   * @return an instance to send back over the network
-   */
-  public ClusterNode toClusterNodeFormat() {
-    ClusterNode node;
-    if (container != null) {
-      node = new ClusterNode(container.getId());
-    } else {
-      node = new ClusterNode();
-      node.name = "unallocated instance";
-    }
-    node.command = command;
-    node.environment = environment;
-    node.diagnostics = diagnostics;
-    node.exitCode = exitCode;
-
-    node.output = output;
-    node.role = role;
-    node.roleId = roleId;
-    node.state = state;
-    node.uuid = uuid;
-    return node;
-  }
 
   /**
    * Generate the protobuf format of a request

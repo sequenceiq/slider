@@ -24,6 +24,7 @@ import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hoya.HostAndPort;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.OptionKeys;
@@ -39,6 +40,7 @@ import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import static org.apache.hadoop.hoya.providers.accumulo.AccumuloConfigFileOptions.*;
@@ -48,14 +50,14 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 /**
- * This class implements both the client-side and server-side aspects
- * of an HBase Cluster
+ * Client-side accumulo provider
  */
 public class AccumuloClientProvider extends Configured implements
                                                        ProviderCore,
@@ -70,16 +72,28 @@ public class AccumuloClientProvider extends Configured implements
     super(conf);
   }
 
-
-
   public static List<ProviderRole> getProviderRoles() {
     return AccumuloRoles.ROLES;
-
   }
 
   @Override
   public String getName() {
     return PROVIDER_ACCUMULO;
+  }
+
+  @Override
+  public Configuration create(Configuration conf) {
+    return conf;
+  }
+  
+  @Override
+  public HostAndPort getMasterAddress() throws IOException, KeeperException {
+    return null;
+  }
+  
+  @Override
+  public Collection<HostAndPort> listDeadServers(Configuration conf)  throws IOException {
+    return new ArrayList<HostAndPort>();
   }
 
   @Override
@@ -374,7 +388,7 @@ public class AccumuloClientProvider extends Configured implements
     providerUtils.validateNodeCount(AccumuloKeys.ROLE_MASTER,
                                     clusterSpec.getDesiredInstanceCount(
                                       AccumuloKeys.ROLE_MASTER,
-                                      1), 1, 1);
+                                      1), 1, -1);
 
     providerUtils.validateNodeCount(AccumuloKeys.ROLE_GARBAGE_COLLECTOR,
                                     clusterSpec.getDesiredInstanceCount(

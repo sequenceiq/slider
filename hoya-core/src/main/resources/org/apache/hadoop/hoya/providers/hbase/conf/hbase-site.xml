@@ -37,6 +37,10 @@
    <value>true</value>
  </property>
  <property>
+   <name>hbase.regionserver.info.port.auto</name>
+   <value>true</value>
+ </property>
+ <property>
    <name>hbase.tmp.dir</name>
    <value>./hbase-tmp</value>
  </property>

@@ -16,12 +16,11 @@
 
 
 Hoya is a YARN an application that can deploy HBase cluster on YARN, 
-monitor them and make them larger or smaller as desired. Clusters
-can be stopped and restarted later.
+monitor them and make them larger or smaller as desired -even while 
+the cluster is running.
+Clusters can be stopped, "frozen" and restarted, "thawed" later.
 
-It is designed to work on Apache Hadoop 2.1, which, until released
-with a compatible HBase version, needs some manual intervention
-to build locally.
+It works on an Apache Hadoop 2.2 YARN cluster with Hbase 0.96.0 or later.
 
 It also has some initial support for Apache Accumulo, though that
 code has not been tested at any scale. 
@@ -29,19 +28,19 @@ code has not been tested at any scale.
 
 ## Using Hoya
 
-* [Announcement](announcement.html)
-* [Installing](installing.html)
-* [Man Page](manpage.html)
-* [Examples](examples.html)
-* [exitcodes](exitcodes.html)
-* [hoya_cluster_description](hoya_cluster_descriptions.html)
+* [Announcement](src/site/markdown/announcement.md)
+* [Installing](src/site/markdown/installing.md)
+* [Man Page](src/site/markdown/manpage.md)
+* [Examples](src/site/markdown/examples.md)
+* [exitcodes](src/site/markdown/exitcodes.md)
+* [hoya_cluster_description](src/site/markdown/hoya_cluster_descriptions.md)
 
 ## Developing Hoya
 
-* [Architecture](architecture.html)
-* [Application Needs](app_needs.html)
-* [Building](building.html)
-* [Role history](rolehistory.html) (under development)
+* [Architecture](src/site/markdown/architecture.md)
+* [Application Needs](src/site/markdown/app_needs.md)
+* [Building](src/site/markdown/building.md)
+* [Role history](src/site/markdown/rolehistory.md)
 
 # License
 

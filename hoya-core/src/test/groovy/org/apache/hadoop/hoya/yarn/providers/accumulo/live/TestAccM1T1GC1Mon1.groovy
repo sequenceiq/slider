@@ -63,13 +63,14 @@ class TestAccM1T1GC1Mon1 extends AccumuloTestBase {
     waitForRoleCount(hoyaClient, roles, ACCUMULO_CLUSTER_STARTUP_TO_LIVE_TIME)
     describe("Cluster status")
     ClusterDescription status
-    status = hoyaClient.getClusterStatus(clustername)
+    status = hoyaClient.getClusterDescription(clustername)
     log.info(prettyPrint(status.toJsonString()))
 
     //now give the cluster a bit of time to actually start work
 
     log.info("Sleeping for a while")
-    sleep(60000);
+    sleep(ACCUMULO_GO_LIVE_TIME);
+
     //verify that all is still there
     waitForRoleCount(hoyaClient, roles, 0)
 
@@ -78,7 +79,7 @@ class TestAccM1T1GC1Mon1 extends AccumuloTestBase {
     log.info(page);
 
     log.info("Finishing")
-    status = hoyaClient.getClusterStatus(clustername)
+    status = hoyaClient.getClusterDescription(clustername)
     log.info(prettyPrint(status.toJsonString()))
     maybeStopCluster(hoyaClient, clustername, "shut down $clustername")
 

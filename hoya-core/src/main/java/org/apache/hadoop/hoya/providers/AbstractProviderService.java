@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -74,6 +75,11 @@ public abstract class AbstractProviderService
     return getConfig();
   }
 
+  @Override
+  public ClientProvider getClientProvider() {
+    return null;
+  }
+  
   /**
    * No-op implementation of this method.
    * 
@@ -88,6 +94,23 @@ public abstract class AbstractProviderService
     
   }
 
+  /**
+   * Scan through the roles and see if it is supported.
+   * @param role role to look for
+   * @return true if the role is known about -and therefore
+   * that a launcher thread can be deployed to launch it
+   */
+  @Override
+  public boolean isSupportedRole(String role) {
+    Collection<ProviderRole> roles = getRoles();
+    for (ProviderRole providedRole : roles) {
+      if (providedRole.name.equals(role)) {
+        return true;
+      }
+    }
+    return false;
+  }
+  
   @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
   @Override // ExitCodeProvider
   public int getExitCode() {
@@ -142,34 +165,6 @@ public abstract class AbstractProviderService
       }
     }
     return null;
-  }
-
-  /**
-   * Build a status report 
-   * @param masterNode node to fill in
-   * @return true iff there was a process to build a status
-   * report from
-   */
-  @Override
-  public boolean buildStatusReport(ClusterNode masterNode) {
-    ForkedProcessService masterProcess = latestProcess();
-    if (masterProcess != null) {
-      masterNode.command = masterProcess.getCommandLine();
-      masterNode.state = masterProcess.isProcessStarted() ?
-                         ClusterDescription.STATE_LIVE :
-                         ClusterDescription.STATE_STOPPED;
-
-      masterNode.diagnostics = "Exit code = " + masterProcess.getExitCode();
-      //pull in recent lines of output
-      List<String> output = masterProcess.getRecentOutput();
-      masterNode.output = output.toArray(new String[output.size()]);
-      return true;
-    } else {
-      masterNode.state = ClusterDescription.STATE_CREATED;
-      masterNode.output = new String[] {"Master process not running"};
-      return false;
-    }
-
   }
 
   /**

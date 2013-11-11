@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.cluster.live
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.tools.ZKIntegration
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
@@ -32,7 +33,6 @@ import org.junit.Test
  */
 @CompileStatic
 @Slf4j
-
 class TestHBaseMaster extends HBaseMiniClusterTestBase {
 
   @Test
@@ -41,13 +41,12 @@ class TestHBaseMaster extends HBaseMiniClusterTestBase {
     createMiniCluster(clustername, createConfiguration(), 1, true)
     //make sure that ZK is up and running at the binding string
     ZKIntegration zki = createZKIntegrationInstance(ZKBinding, clustername, false, false, 5000)
-    log.info("ZK up at $zki");
     //now launch the cluster with 1 region server
     int regionServerCount = 1
     ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount, [], true, true) 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
-    ClusterDescription status = hoyaClient.getClusterStatus(clustername)
+    ClusterDescription status = hoyaClient.getClusterDescription(clustername)
     assert ZKHosts == status.zkHosts
     assert ZKPort == status.zkPort
     
@@ -61,9 +60,8 @@ class TestHBaseMaster extends HBaseMiniClusterTestBase {
     //get the hbase status
     waitForHBaseRegionServerCount(hoyaClient, clustername, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     waitForHoyaWorkerCount(hoyaClient, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-
-
-
+    waitForRoleCount(hoyaClient, HBaseKeys.ROLE_MASTER, 1,
+                     HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
   }
 
 }

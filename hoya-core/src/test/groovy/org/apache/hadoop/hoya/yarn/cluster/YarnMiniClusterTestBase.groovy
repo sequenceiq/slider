@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.hoya.yarn.cluster
 
-import groovy.json.JsonOutput
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.commons.logging.Log
@@ -41,12 +40,10 @@ import org.apache.hadoop.hoya.tools.BlockingZKWatcher
 import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.Arguments
-import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.MicroZKCluster
 import org.apache.hadoop.hoya.tools.ZKIntegration
-import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.service.ServiceOperations
 import org.apache.hadoop.yarn.api.records.ApplicationReport
@@ -61,7 +58,6 @@ import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
 import org.junit.After
 import org.junit.Assume
-import org.junit.Before
 import org.junit.Rule
 import org.junit.rules.Timeout
 
@@ -94,8 +90,9 @@ implements KeysForTests, HoyaExitCodes {
   public static final int HBASE_CLUSTER_STARTUP_TO_LIVE_TIME = HBASE_CLUSTER_STARTUP_TIME
   
   public static final String HREGION = "HRegion"
+  public static final String HMASTER = "HMaster"
   public static final List<String> HBASE_VERSION_COMMAND_SEQUENCE = [
-      Arguments.ARG_OPTION, HoyaKeys.OPTION_HOYA_MASTER_COMMAND, "version",
+      Arguments.ARG_OPTION, HoyaKeys.OPTION_HOYA_MASTER_COMMAND, HBaseKeys.COMMAND_VERSION,
   ]
   public static final int SIGTERM = -15
   public static final int SIGKILL = -9
@@ -111,14 +108,9 @@ implements KeysForTests, HoyaExitCodes {
 
 
   @Rule
-  public final Timeout testTimeout = new Timeout(10*60*1000); 
+  public final Timeout testTimeout = new Timeout(10*60*1000);
 
-  @Before
-  public void setup() {
-    //give our thread a name
-    Thread.currentThread().name = "JUnit"
-  }
-  
+
   @After
   public void teardown() {
     describe("teardown")
@@ -149,25 +141,8 @@ implements KeysForTests, HoyaExitCodes {
     microZKCluster?.close();
     hdfsCluster?.shutdown();
   }
-  
-  protected YarnConfiguration createConfiguration() {
-    return HoyaUtils.createConfiguration();
-  }
 
-  /**
-   * Print a description with some markers to
-   * indicate this is the test description
-   * @param s
-   */
-  protected void describe(String s) {
-    log.info("");
-    log.info("===============================");
-    log.info(s);
-    log.info("===============================");
-    log.info("");
-  }
 
-  
   public ZKIntegration createZKIntegrationInstance(String zkQuorum, String clusterName, boolean createClusterPath, boolean canBeReadOnly, int timeout) {
     
     BlockingZKWatcher watcher = new BlockingZKWatcher();
@@ -363,7 +338,7 @@ implements KeysForTests, HoyaExitCodes {
     return conf
   }
 
-  public void assumeConfOptionSet(YarnConfiguration conf, String key) {
+  public void assumeConfOptionSet(Configuration conf, String key) {
     Assume.assumeNotNull("npt defined " + key, conf.get(key))
   }
   
@@ -488,6 +463,7 @@ implements KeysForTests, HoyaExitCodes {
         Arguments.ARG_WAIT, WAIT_TIME_ARG,
         Arguments.ARG_FILESYSTEM, fsDefaultName,
         Arguments.ARG_OPTION, OptionKeys.OPTION_TEST, "true",
+        Arguments.ARG_DEBUG,
         Arguments.ARG_CONFDIR, confDir
     ]
     argsList += roleList;
@@ -526,15 +502,6 @@ implements KeysForTests, HoyaExitCodes {
   public List<String> getImageCommands() {
     fail("Not implemented");
     return [];
-  }
-
-  /**
-   * skip the test by throwing an assumption failed exception.
-   * This will be logged and not considered a test failure
-   * @param message message a test runner may support
-   */
-  public void skip(String message) {
-    Assume.assumeTrue(message, false);
   }
 
   /**
@@ -643,7 +610,7 @@ implements KeysForTests, HoyaExitCodes {
   }
 
   public void dumpClusterStatus(HoyaClient hoyaClient, String text) {
-    ClusterDescription status = hoyaClient.getClusterStatus();
+    ClusterDescription status = hoyaClient.getClusterDescription();
     dumpClusterDescription(text, status)
   }
 
@@ -730,7 +697,7 @@ implements KeysForTests, HoyaExitCodes {
    * @param timeout timeout
    */
   public ClusterDescription waitForRoleCount(HoyaClient hoyaClient, String role, int desiredCount, int timeout) {
-    return waitForRoleCount(hoyaClient, [(role):desiredCount], timeout)
+    return waitForRoleCount(hoyaClient, [(role): desiredCount], timeout)
   }
   
   /**
@@ -740,7 +707,11 @@ implements KeysForTests, HoyaExitCodes {
    * @param desiredCount RS count
    * @param timeout timeout
    */
-  public ClusterDescription waitForRoleCount(HoyaClient hoyaClient, Map<String, Integer> roles, int timeout) {
+  public ClusterDescription waitForRoleCount(
+      HoyaClient hoyaClient,
+      Map<String, Integer> roles,
+      int timeout,
+      String operation = "startup") {
     String clustername = hoyaClient.deployedClusterName;
     ClusterDescription status = null
     Duration duration = new Duration(timeout);
@@ -749,7 +720,7 @@ implements KeysForTests, HoyaExitCodes {
     while (!roleCountFound) {
       StringBuilder details = new StringBuilder()
       roleCountFound = true;
-      status = hoyaClient.getClusterStatus(clustername)
+      status = hoyaClient.getClusterDescription(clustername)
 
       for (Map.Entry<String, Integer> entry : roles.entrySet()) {
         String role = entry.key
@@ -757,24 +728,22 @@ implements KeysForTests, HoyaExitCodes {
         Integer instances = status.instances[role];
         int instanceCount = instances != null ? instances.intValue() : 0;
         if (instanceCount != desiredCount) {
-          
           roleCountFound = false;
-          details.append("[$role]: $instanceCount of $desiredCount ")
-        } else {
-          details.append("[$role]: $desiredCount ")
         }
+        details.append("[$role]: $instanceCount of $desiredCount; ")
       }
       if (roleCountFound) {
         //successful
-        log.info("Role count as desired: " + details)
+        log.info("$operation: role count as desired: $details")
 
         break;
       }
 
       if (duration.limitExceeded) {
-        describe("Role count not met : "+ details)
+        duration.finish();
+        describe("$operation: role count not met after $duration: $details")
         log.info(prettyPrint(status.toJsonString()))
-        fail("Role counts not met $timeout millis: $details in \n$status ")
+        fail("$operation: role counts not met  after $duration: $details in \n$status ")
       }
       log.info("Waiting: " + details)
       Thread.sleep(1000)
@@ -782,10 +751,7 @@ implements KeysForTests, HoyaExitCodes {
     return status
   }
 
-  String prettyPrint(String json) {
-    JsonOutput.prettyPrint(json)
-  }
-  
+
   void dumpClusterDescription(String text, ClusterDescription status) {
     describe(text)
     log.info(prettyPrint(status.toJsonString()))
@@ -799,5 +765,11 @@ implements KeysForTests, HoyaExitCodes {
   }
 
 
-
+  String roleMapToString(Map<String,Integer> roles) {
+    StringBuilder builder = new StringBuilder()
+    roles.each { String name, int value ->
+      builder.append("$name->$value ")
+    }
+    return builder.toString()
+  }
 }

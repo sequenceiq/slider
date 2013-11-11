@@ -32,17 +32,25 @@ You will need a version of Maven 3.0, set up with enough memory
 ## Building a compatible Hadoop version
 
 
-Hoya is built against Hadoop release 2.2.0; 
+Hoya is built against Hadoop release 2.2.0 -you can download and install
+a copy from the [Apache Hadoop Web Site](http://hadoop.apache.org).
+
+
 
 During development, its convenient (but not mandatory)
 to have a local version of Hadoop -so that we can find and fix bugs/add features in
 Hadoop as well in Hoya.
 
 
-To build and install locally, check out apache svn/github, branch `release-2.2.0`
- 
-This is a tag; git will encourage you to create a branch from the tagged
-commit, which is recommended.
+To build and install locally, check out apache svn/github, branch `release-2.2.0`,
+and create a branch off that tag
+
+    git clone git://git.apache.org/hadoop-common.git 
+    cd hadoop-common
+    git remote rename origin apache
+    git fetch --tags apache
+    git checkout release-2.2.0 -- 
+    git checkout -b release-2.2.0
 
 
 For the scripts below, set the `HADOOP_VERSION` variable to the version
@@ -61,7 +69,7 @@ To make a tarball for use in test runs:
     mvn clean install package -Pdist -Dtar -DskipTests -Dmaven.javadoc.skip=true 
     
     # on linux
-    mvn package -Pdist -Pnative -Dtar -DskipTests -Dmaven.javadoc.skip=true 
+    mvn clean package -Pdist -Pnative -Dtar -DskipTests -Dmaven.javadoc.skip=true 
 
 Then expand this
 
@@ -129,6 +137,8 @@ For building just the JAR files:
 
 Clone accumulo from apache; check out trunk
 
+    git clone http://git-wip-us.apache.org/repos/asf/accumulo.git
+
 If needed, patch the POM file to depend on the version of Hadoop you are building
 locally, by changing the `hadoop.version` property
 
@@ -169,39 +179,39 @@ is ignored by git), declaring where HBase, accumulo, Hadoop and zookeeper are:
     
       <property>
         <name>hoya.test.hbase.home</name>
-        <value>/Users/hoya/hbase/hbase-assembly/target/hbase-0.96.0</value>
+        <value>/home/hoya/hbase/hbase-assembly/target/hbase-0.96.0</value>
         <description>HBASE Home</description>
       </property>
     
       <property>
         <name>hoya.test.hbase.tar</name>
-        <value>/Users/hoya/hbase/hbase-assembly/target/hbase-0.96.0-bin.tar.gz</value>
+        <value>/home/hoya/hbase/hbase-assembly/target/hbase-0.96.0-bin.tar.gz</value>
         <description>HBASE archive URI</description>
       </property> 
          
       <property>
         <name>hoya.test.accumulo_home</name>
-        <value>/Users/hoya/accumulo/assemble/target/accumulo-1.6.0-SNAPSHOT/</value>
+        <value>/home/hoya/accumulo/assemble/target/accumulo-1.6.0-SNAPSHOT/</value>
         <description>Accumulo Home</description>
       </property>
     
       <property>
         <name>hoya.test.accumulo_tar</name>
-        <value>/Users/hoya/accumulo/assemble/target/accumulo-1.6.0-SNAPSHOT-bin.tar.gz</value>
+        <value>/home/hoya/accumulo/assemble/target/accumulo-1.6.0-SNAPSHOT-bin.tar.gz</value>
         <description>Accumulo archive URI</description>
       </property>
       
       <property>
         <name>zk.home</name>
         <value>
-          /Users/hoya/Apps/zookeeper</value>
+          /home/hoya/Apps/zookeeper</value>
         <description>Zookeeper home dir on target systems</description>
       </property>
     
       <property>
         <name>hadoop.home</name>
         <value>
-          /Users/hoya/hadoop-trunk/hadoop-dist/target/hadoop-2.2.0</value>
+          /home/hoya/hadoop-common/hadoop-dist/target/hadoop-2.2.0</value>
         <description>Hadoop home dir on target systems</description>
       </property>
       
@@ -245,143 +255,6 @@ time, which is straightforward
 You can create the JAR file and set up its directories with
 
      mvn package -DskipTests
-
-
-
-
-## Releasing
-
-We do not use maven release plug in. Why not?
-Use the release plugin and then come back and ask that question.
-
-Here then is our release process.
-
-### Before you begin
-
-Check out the code, run the tests. This should be done on a checked out
-version of the code that is not the one you are developing on
-(ideally, a clean VM), to ensure that you aren't releasing a slightly
-modified version of your own, and that you haven't accidentally
-included passwords or other test run details into the build resource
-tree.
-
-
-**Step #1:** Create a JIRA for the release, estimate  2h
-(so you don't try to skip the tests)
-
-**Step #2:** Check everything in. Git flow won't let you progress without this.
-
-**Step #3:** Git flow: create a release branch
-
-    export HOYA_RELEASE=0.5.2
-    
-    git flow release start hoya-$HOYA_RELEASE
-
-**Step #4:** in the new branch, increment those version numbers using (the maven
-versions plugin)[http://mojo.codehaus.org/versions-maven-plugin/]
-
-    mvn versions:set -DnewVersion=$HOYA_RELEASE
-
-
-**Step #5:** commit the changed POM files
-  
-        git add <changed files>
-        git commit -m "BUG-XYZ updating release POMs for $HOYA_RELEASE"
-
-
-  
-**Step #6:** Do a final test run to make sure nothing is broken
-
-
-    mvn clean test
-    
-    
-**Step #7:** Build the release package
-    
-    mvn clean site:site site:stage package -DskipTests
-
-
-**Step #:8** Look in `hoya-assembly/target` to find the `.tar.gz` file, and the
-expanded version of it. Inspect that expanded version to make sure that
-everything looks good -and that the versions of all the dependent artifacts
-look good too: there must be no `-SNAPSHOT` dependencies.
-
-
-**Step #:9** Create a a one-line plain text release note for commits and tags
-And a multi-line markdown release note, which will be used for artifacts.
-
-
-    Release of Hoya against hadoop 2.2.0 and hbase 0.96.0-hadoop2
-
-    This release of Hoya:
-    
-    1. Is built against the (ASF staged) hadoop 2.2.0 and hbase 0.96.0-hadoop2 artifacts. 
-    1. Supports Apache HBase cluster creation, flexing, freezing and thawing.
-    1. Contains the initial support of Apache Accumulo: all accumulo roles
-    can be created, though its testing is currently very minimal.
-    1. Has moved `log4j.properties` out of the JAR file and into the directory
-    `conf/`, where it will be picked up both client-side and server-side.
-    Enjoy!
-
-
-**Step #10:** Finish the git flow release, either in the SourceTree GUI or
-the command line:
-
-    
-    git flow release finish hoya-$HOYA_RELEASE
-    
-
-On the command line you have to enter the one-line release description
-prepared earlier.
-
-You will now be back on the `develop` branch.
-
-**Step #11:** Switch back to develop and update its version number past
-the release number
-
-
-    export HOYA_RELEASE=0.6.0-SNAPSHOT
-    mvn versions:set -DnewVersion=HOYA_RELEASE
-    git commit -a -m "BUG-XYZ updating development POMs to HOYA_RELEASE"
-
-**Step #12:** Push the release and develop branches to github 
-(We recommend naming the hortonworks github repository 'hortonworks' to avoid
- confusion with apache, personal and others):
-
-    git push hortonworks master develop 
-
-(if you are planning on any release work of more than a single test run,
- consider having your local release branch track the master)
-
-The `git-flow` program automatically pushes up the `release/hoya-X.Y` branch,
-before deleting it locally.
-
-
-**Step #13:** ### For releasing small artifacts
-
-(This only works for files under 5GB)
-Browse to https://github.com/hortonworks/hoya/releases/new
-
-Create a new release on the site by following the instructions
-
-
-**Step #14:**  For releasing via an external CDN (e.g. Rackspace Cloud)
-
-Using the web GUI for your particular distribution network, upload the
-`.tar.gz` artifact
-
-
-**Step #15:** Announce the release 
-
-**Step #16:** Get back to developing!
-
-Check out the develop branch and purge all release artifacts
-
-    git checkout develop
-    git pull hortonworks
-    mvn clean
-    
-
 
 # Development Notes
 
