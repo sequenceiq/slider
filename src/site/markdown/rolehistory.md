@@ -911,7 +911,7 @@ then sorted.
 This strategy returns unused hosts to the list of possible hosts, while retaining
 the ordering of that list in most-recent-first.
 
-Weaknesses
+### Weaknesses
 
 if one or more container requests cannot be satisifed, then all the hosts in
 the set of outstanding requests will be retained, so all these hosts in the
@@ -925,3 +925,58 @@ The only scenario where this would be different is if the resource requirements
 of instances of the target role were decreated during a cluster flex such that
 the placement could now be satisfied on the target host. This is not considered
 a significant problem.
+
+# Persistence
+
+The initial implementation uses the JSON-formatted Avro format; while significantly
+less efficient than a binary format, it is human-readable
+
+Here are sequence of entries from a test run on a single node cluster; running 1 HBase Master
+and two region servers.
+
+Initial save; the instance of Role 1 (HBase master) is live, Role 2 (RS) is not.
+
+    {"entry":{"org.apache.hadoop.hoya.avro.RoleHistoryHeader":{"version":1,"saved":1384183475949,"savedx":"14247c3aeed","roles":3}}}
+    {"entry":{"org.apache.hadoop.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":1,"active":true,"last_used":0}}}
+    {"entry":{"org.apache.hadoop.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":2,"active":false,"last_used":0}}}
+  
+At least one RS is live: 
+  
+    {"entry":{"org.apache.hadoop.hoya.avro.RoleHistoryFooter":{"count":2}}}{"entry":{"org.apache.hadoop.hoya.avro.RoleHistoryHeader":{"version":1,"saved":1384183476010,"savedx":"14247c3af2a","roles":3}}}
+    {"entry":{"org.apache.hadoop.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":1,"active":true,"last_used":0}}}
+    {"entry":{"org.apache.hadoop.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":2,"active":true,"last_used":0}}}
+
+Another entry is saved -presumably the second RS is now live, which triggered another write
+  
+    {"entry":{"org.apache.hadoop.hoya.avro.RoleHistoryFooter":{"count":2}}}{"entry":{"org.apache.hadoop.hoya.avro.RoleHistoryHeader":{"version":1,"saved":1384183476028,"savedx":"14247c3af3c","roles":3}}}
+    {"entry":{"org.apache.hadoop.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":1,"active":true,"last_used":0}}}
+    {"entry":{"org.apache.hadoop.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":2,"active":true,"last_used":0}}}
+
+At this point the cluster was frozen and thawed. Hoya does not save the cluster state
+at freeze time, but does as it is rebuilt.
+
+When the cluster is restarted, every node that was active for a role at the time the file was saved `1384183476028`
+is given a last_used timestamp of that time. 
+
+When the history is next saved, the master has come back onto the (single) node,
+it is active while its `last_used` timestamp is the previous file's timestamp.
+No region servers are yet live.
+
+    {"entry":{"org.apache.hadoop.hoya.avro.RoleHistoryFooter":{"count":2}}}{"entry":{"org.apache.hadoop.hoya.avro.RoleHistoryHeader":{"version":1,"saved":1384183512173,"savedx":"14247c43c6d","roles":3}}}
+    {"entry":{"org.apache.hadoop.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":1,"active":true,"last_used":1384183476028}}}
+    {"entry":{"org.apache.hadoop.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":2,"active":false,"last_used":1384183476028}}}
+
+Here a region server is live
+
+    {"entry":{"org.apache.hadoop.hoya.avro.RoleHistoryFooter":{"count":2}}}{"entry":{"org.apache.hadoop.hoya.avro.RoleHistoryHeader":{"version":1,"saved":1384183512199,"savedx":"14247c43c87","roles":3}}}
+    {"entry":{"org.apache.hadoop.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":1,"active":true,"last_used":1384183476028}}}
+    {"entry":{"org.apache.hadoop.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":2,"active":true,"last_used":1384183476028}}}
+
+And here, another region server has started. This does not actually change the contents of the file
+
+    {"entry":{"org.apache.hadoop.hoya.avro.RoleHistoryFooter":{"count":2}}}{"entry":{"org.apache.hadoop.hoya.avro.RoleHistoryHeader":{"version":1,"saved":1384183512217,"savedx":"14247c43c99","roles":3}}}
+    {"entry":{"org.apache.hadoop.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":1,"active":true,"last_used":1384183476028}}}
+    {"entry":{"org.apache.hadoop.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":2,"active":true,"last_used":1384183476028}}}
+
+The `last_used` timestamps will not be changed until the cluster is shrunk or thawed, as the `active` flag being set
+implies that the server is running both roles at the save time of `1384183512217`.

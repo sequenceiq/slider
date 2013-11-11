@@ -61,18 +61,6 @@ public interface RoleKeys {
   /** {@value} */
   int DEF_YARN_CORES = 1;
 
-
-
-  /**
-   *  Priority in YARN requests
-   *  {@value}
-   */
-  String YARN_PRIORITY = "yarn.priority";
-
-  /** {@value} */
-  //int DEF_YARN_PRIORITY = 0;
-
-
   /**
    * For applications that support a web port that can be externally configured,
    * this is the value
