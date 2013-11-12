@@ -64,6 +64,7 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.yarn.api.ApplicationClientProtocol;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.protocolrecords.KillApplicationRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.KillApplicationResponse;
@@ -113,7 +114,7 @@ import java.util.Set;
  * Client service for Hoya
  */
 
-public class HoyaClient extends YarnClientImpl implements RunService,
+public class HoyaClient extends HoyaYarnClientImpl implements RunService,
                                                           ProbeReportHandler,
                                                           HoyaExitCodes,
                                                           HoyaKeys {
@@ -145,6 +146,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   private Thread loopThread;
   private String deployedClusterName;
   private ClientProvider provider;
+  private HoyaYarnClientImpl yarnClient;
 
   /**
    * Entry point from the service launcher
@@ -199,6 +201,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       HoyaUtils.verifyPrincipalSet(conf, DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY);
     }
     super.serviceInit(conf);
+    yarnClient = this;
   }
 
   /**
@@ -1418,7 +1421,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     KillApplicationRequest request =
       Records.newRecord(KillApplicationRequest.class);
     request.setApplicationId(applicationId);
-    return rmClient.forceKillApplication(request);
+    return getRmClient().forceKillApplication(request);
   }
 
   /**
@@ -1431,7 +1434,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     throws YarnException, IOException {
     Set<String> types = new HashSet<String>(1);
     types.add(HoyaKeys.APP_TYPE);
-    List<ApplicationReport> allApps = getApplications(types);
+    List<ApplicationReport> allApps = yarnClient.getApplications(types);
     List<ApplicationReport> results = new ArrayList<ApplicationReport>();
     for (ApplicationReport report : allApps) {
       if (user == null || user.equals(report.getUser())) {
@@ -1598,8 +1601,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
    */
   private boolean isApplicationLive(ApplicationReport app) {
     return app.getYarnApplicationState().ordinal() <=
-       YarnApplicationState.RUNNING
-                           .ordinal();
+       YarnApplicationState.RUNNING.ordinal();
   }
 
   public ApplicationReport findClusterInInstanceList(List<ApplicationReport> instances,
@@ -1625,7 +1627,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                                               IOException {
 
     try {
-      return RpcBinder.getProxy(getConfig(),rmClient,app,10000,15000);
+      return RpcBinder.getProxy(getConfig(), getRmClient(), app, 10000, 15000);
     } catch (InterruptedException e) {
       throw new HoyaException(HoyaExitCodes.EXIT_TIMED_OUT,
                               e,
@@ -2145,4 +2147,5 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   private static boolean isSet(String s) {
     return !isUnset(s);
   }
+
 }
