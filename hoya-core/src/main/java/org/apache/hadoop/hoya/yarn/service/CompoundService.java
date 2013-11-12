@@ -29,7 +29,9 @@ import java.util.List;
 /**
  * An extended composite service which not only makes the 
  * addService method public, it auto-registers
- * itself as a listener for state change events
+ * itself as a listener for state change events.
+ * 
+ * When all child services has stopped, this service stops itself.
  */
 public class CompoundService extends CompositeService implements Parent,
                                                                  ServiceStateChangeListener {
@@ -59,7 +61,9 @@ public class CompoundService extends CompositeService implements Parent,
 
   /**
    * Add a service, and register it
-   * @param service the {@link Service} to be added
+   * @param service the {@link Service} to be added.
+   * Important: do not add a service to a parent during your own serviceInit/start,
+   * in Hadoop 2.2; you will trigger a ConcurrentModificationException.
    */
   @Override
   public void addService(Service service) {
