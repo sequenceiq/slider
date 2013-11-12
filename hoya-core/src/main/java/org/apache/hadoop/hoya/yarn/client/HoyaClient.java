@@ -82,7 +82,6 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.service.launcher.RunService;
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher;
 import org.apache.hadoop.yarn.util.Records;
-import org.codehaus.jackson.JsonParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1518,8 +1517,12 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    */
   public Configuration getSiteConf(ClusterDescription desc, String clustername)
       throws YarnException, IOException {
-    if (desc == null) desc = getClusterDescription();
-    if (clustername == null) clustername = getDeployedClusterName();
+    if (desc == null) {
+      desc = getClusterDescription();
+    }
+    if (clustername == null) {
+      clustername = getDeployedClusterName();
+    }
     String description = "Hoya cluster " + clustername;
     
     Configuration siteConf = new Configuration(false);
@@ -1679,13 +1682,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     if (instance != null) {
       log.info("Flexing running cluster");
       HoyaClusterProtocol appMaster = connect(instance);
-      Messages.FlexClusterRequestProto request =
-        Messages.FlexClusterRequestProto.newBuilder()
-                .setClusterSpec(clusterSpec.toJsonString())
-                .build();
-      Messages.FlexClusterResponseProto response =
-        appMaster.flexCluster(request);
-      if (response.getResponse()) {
+      HoyaClusterOperations clusterOps = new HoyaClusterOperations(appMaster);
+      if (clusterOps.flex(clusterSpec)) {
         log.info("Cluster size updated");
         exitCode = EXIT_SUCCESS;
       } else {
@@ -1706,20 +1704,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   public ClusterDescription getClusterDescription(String clustername) throws
                                                                  YarnException,
                                                                  IOException {
-    HoyaClusterProtocol appMaster = bondToCluster(clustername);
-    Messages.GetJSONClusterStatusRequestProto req =
-      Messages.GetJSONClusterStatusRequestProto.newBuilder().build();
-    Messages.GetJSONClusterStatusResponseProto resp =
-      appMaster.getJSONClusterStatus(req);
-    String statusJson = resp.getClusterSpec();
-    try {
-      return ClusterDescription.fromJson(statusJson);
-    } catch (JsonParseException e) {
-      log.error(
-        "Exception " + e + " parsing:\n" + statusJson,
-        e);
-      throw e;
-    }
+    return createClusterOperations(clustername)
+              .getClusterDescription(clustername);
   }
 
   /**
@@ -1744,24 +1730,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   public String[] listNodeUUIDsByRole(String role) throws
                                                IOException,
                                                YarnException {
-    HoyaClusterProtocol appMaster = bondToCluster(getDeployedClusterName());
-    Collection<String> uuidList = innerListNodeUUIDSByRole(appMaster, role);
-    String[] uuids = new String[uuidList.size()];
-    return uuidList.toArray(uuids);
-  }
-
-  private List<String> innerListNodeUUIDSByRole(HoyaClusterProtocol appMaster,
-                                            String role) throws
-                                                                           IOException,
-                                                                           YarnException {
-    Messages.ListNodeUUIDsByRoleRequestProto req =
-      Messages.ListNodeUUIDsByRoleRequestProto
-              .newBuilder()
-              .setRole(role)
-              .build();
-    Messages.ListNodeUUIDsByRoleResponseProto resp =
-      appMaster.listNodeUUIDsByRole(req);
-    return resp.getUuidList();
+    return createClusterOperations()
+              .listNodeUUIDsByRole(role);
   }
 
   /**
@@ -1776,16 +1746,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   public List<ClusterNode> listClusterNodesInRole(String role) throws
                                                IOException,
                                                YarnException {
-    HoyaClusterProtocol appMaster = bondToCluster(getDeployedClusterName());
-
-    Collection<String> uuidList = innerListNodeUUIDSByRole(appMaster, role);
-    Messages.GetClusterNodesRequestProto req =
-      Messages.GetClusterNodesRequestProto
-              .newBuilder()
-              .addAllUuid(uuidList)
-              .build();
-    Messages.GetClusterNodesResponseProto resp = appMaster.getClusterNodes(req);
-    return convertNodeWireToClusterNodes(resp.getClusterNodeList());
+    return createClusterOperations().listClusterNodesInRole(role);
   }
 
   /**
@@ -1804,32 +1765,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       // short cut on an empty list
       return new LinkedList<ClusterNode>();
     }
-    HoyaClusterProtocol appMaster = bondToCluster(getDeployedClusterName());
-    Messages.GetClusterNodesRequestProto req =
-      Messages.GetClusterNodesRequestProto
-              .newBuilder()
-              .addAllUuid(Arrays.asList(uuids))
-              .build();
-    Messages.GetClusterNodesResponseProto resp = appMaster.getClusterNodes(req);
-    return convertNodeWireToClusterNodes(resp.getClusterNodeList());
-  }
-
-  private List<ClusterNode> convertNodeJsonToClusterNodes(String[] nodes) throws
-                                                                          IOException {
-    List<ClusterNode> nodeList = new ArrayList<ClusterNode>(nodes.length);
-    for (String node : nodes) {
-      nodeList.add(ClusterNode.fromJson(node));
-    }
-    return nodeList;
-  }
-
-  private List<ClusterNode> convertNodeWireToClusterNodes(List<Messages.RoleInstanceState> nodes)
-      throws IOException {
-    List<ClusterNode> nodeList = new ArrayList<ClusterNode>(nodes.size());
-    for (Messages.RoleInstanceState node : nodes) {
-      nodeList.add(ClusterNode.fromProtobuf(node));
-    }
-    return nodeList;
+    return createClusterOperations().listClusterNodes(uuids);
   }
 
   /**
@@ -1841,24 +1777,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    */
   @VisibleForTesting
   public ClusterNode getNode(String uuid) throws IOException, YarnException {
-    HoyaClusterProtocol appMaster = bondToCluster(getDeployedClusterName());
-    return getNode(appMaster, uuid);
-  }
-
-  /**
-   * Get a node from the AM
-   * @param appMaster AM
-   * @param uuid uuid of node
-   * @return deserialized node
-   * @throws IOException IO problems
-   * @throws NoSuchNodeException if the node isn't found
-   */
-  private ClusterNode getNode(HoyaClusterProtocol appMaster, String uuid)
-    throws IOException, NoSuchNodeException, YarnException {
-    Messages.GetNodeRequestProto req =
-      Messages.GetNodeRequestProto.newBuilder().setUuid(uuid).build();
-    Messages.GetNodeResponseProto node = appMaster.getNode(req);
-    return ClusterNode.fromProtobuf(node.getClusterNode());
+    return createClusterOperations().getNode(uuid);
   }
 
   /**
@@ -1871,11 +1790,40 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                                   YarnException,
                                                                   IOException {
     verifyManagerSet();
+    if (clustername == null) {
+      throw unknownClusterException("");
+    }
     ApplicationReport instance = findInstance(getUsername(), clustername);
     if (null == instance) {
       throw unknownClusterException(clustername);
     }
     return connect(instance);
+  }
+
+  /**
+   * Create a cluster operations instance against a given cluster
+   * @param clustername cluster name
+   * @return a bonded cluster operations instance
+   * @throws YarnException YARN issues
+   * @throws IOException IO problems
+   */
+  private HoyaClusterOperations createClusterOperations(String clustername) throws
+                                                                            YarnException,
+                                                                            IOException {
+    HoyaClusterProtocol hoyaAM = bondToCluster(clustername);
+    return new HoyaClusterOperations(hoyaAM);
+  }
+
+  /**
+   * Create a cluster operations instance against the active cluster
+   * @return a bonded cluster operations instance
+   * @throws YarnException YARN issues
+   * @throws IOException IO problems
+   */
+  public HoyaClusterOperations createClusterOperations() throws
+                                                         YarnException,
+                                                         IOException {
+    return createClusterOperations(getDeployedClusterName());
   }
 
   /**
@@ -1892,48 +1840,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   @VisibleForTesting
   public int waitForRoleInstanceLive(String role, long timeout)
     throws WaitTimeoutException, IOException, YarnException {
-    Duration duration = new Duration(timeout).start();
-    boolean live = false;
-    int state = ClusterDescription.STATE_CREATED;
-    HoyaClusterProtocol appMaster = bondToCluster(getDeployedClusterName());
-
-    log.info("Waiting {} millis for a live node in role {}", timeout, role);
-    while (!live) {
-      // see if there is a node in that role yet
-      List<String> uuids = innerListNodeUUIDSByRole(appMaster, role);
-      String[] containers = uuids.toArray(new String[uuids.size()]);
-      int roleCount = containers.length;
-      ClusterNode roleInstance = null;
-      if (roleCount != 0) {
-
-        // if there is, get the node
-        roleInstance = getNode(appMaster, containers[0]);
-        if (roleInstance != null) {
-          state = roleInstance.state;
-          live = state >= ClusterDescription.STATE_LIVE;
-        }
-      }
-      if (!live) {
-        if (duration.getLimitExceeded()) {
-          throw new WaitTimeoutException(
-            String.format("Timeout after %d millis" +
-                          " waiting for a live instance of type %s; " +
-                          "instances found %d %s",
-                          timeout, role, roleCount,
-                          (roleInstance != null
-                           ? (" instance -\n" + roleInstance.toString())
-                           : "")
-                         ));
-        } else {
-          try {
-            Thread.sleep(1000);
-          } catch (InterruptedException ignored) {
-            // ignored
-          }
-        }
-      }
-    }
-    return state;
+    return createClusterOperations().waitForRoleInstanceLive(role, timeout);
   }
 
   public HoyaException unknownClusterException(String clustername) {
