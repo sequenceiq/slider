@@ -94,7 +94,6 @@ import java.io.Writer;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -131,18 +130,26 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   // Queue for App master
   private String amQueue = "default";
 
-  private String[] argv;
   private ClientArgs serviceArgs;
   public ApplicationId applicationId;
   
   private ReportingLoop masterReportingLoop;
   private Thread loopThread;
   private String deployedClusterName;
+  /**
+   * Cluster opaerations against the deployed cluster -will be null
+   * if no bonding has yet taken place
+   */
+  private HoyaClusterOperations hoyaClusterOperations;
   private ClientProvider provider;
+
+  /**
+   * Yarn client service
+   */
   private HoyaYarnClientImpl yarnClient;
 
   /**
-   * Entry point from the service launcher
+   * Constructor
    */
   public HoyaClient() {
     // make sure all the yarn configs get loaded
@@ -158,8 +165,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
   @Override
   public Configuration bindArgs(Configuration config, String... args) throws Exception {
+    config = super.bindArgs(config, args);
     log.debug("Binding Arguments");
-    this.argv = args;
     serviceArgs = new ClientArgs(args);
     serviceArgs.parse();
     serviceArgs.postProcess();
@@ -1170,10 +1177,13 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                   false);
   }
 
+  /**
+   * Get the application name used in the zookeeper root paths
+   * @return an application-specific path in ZK
+   */
   private String getAppName() {
     return "hoya";
   }
-
 
   /**
    * Wait for the app to start running (or go past that state)
@@ -1290,7 +1300,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   public boolean forceKillApplication(String reason)
     throws YarnException, IOException {
     if (applicationId != null) {
-
       yarnClient.killRunningApplication(applicationId, reason);
       return true;
     }
@@ -1431,6 +1440,13 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     return yarnClient.findClusterInInstanceList(instances, appname);
   }
 
+  /**
+   * Connect to a Hoya AM
+   * @param app application report providing the details on the application
+   * @return an instance
+   * @throws YarnException
+   * @throws IOException
+   */
   private HoyaClusterProtocol connect(ApplicationReport app) throws
                                                               YarnException,
                                                               IOException {
@@ -1446,8 +1462,11 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   }
 
   /**
-   * Status operation; 'name' arg defines cluster name.
-   * @return
+   * Status operation
+   * @param clustername cluster name
+   * @return 0 -for success, else an exception is thrown
+   * @throws YarnException
+   * @throws IOException
    */
   @VisibleForTesting
   public int actionStatus(String clustername) throws
@@ -1816,6 +1835,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
   /**
    * Create a cluster operations instance against the active cluster
+   * -returning any previous created one if held.
    * @return a bonded cluster operations instance
    * @throws YarnException YARN issues
    * @throws IOException IO problems
@@ -1823,12 +1843,15 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   public HoyaClusterOperations createClusterOperations() throws
                                                          YarnException,
                                                          IOException {
-    return createClusterOperations(getDeployedClusterName());
+    if (hoyaClusterOperations == null) {
+      hoyaClusterOperations =
+        createClusterOperations(getDeployedClusterName());
+    }
+    return hoyaClusterOperations;
   }
 
   /**
    * Wait for an instance of a named role to be live (or past it in the lifecycle)
-   * @param clustername cluster
    * @param role role to look for
    * @param timeout time to wait
    * @return the state. If still in CREATED, the cluster didn't come up
@@ -1843,6 +1866,11 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     return createClusterOperations().waitForRoleInstanceLive(role, timeout);
   }
 
+  /**
+   * Generate an exception for an unknown cluster
+   * @param clustername cluster name
+   * @return an exception with text and a relevant exit code
+   */
   public HoyaException unknownClusterException(String clustername) {
     return new HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER,
                              "Hoya cluster not found: '" + clustername + "' ");
