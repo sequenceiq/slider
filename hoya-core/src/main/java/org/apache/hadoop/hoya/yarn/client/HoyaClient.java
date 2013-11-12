@@ -58,15 +58,14 @@ import org.apache.hadoop.hoya.yarn.Arguments;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
 import org.apache.hadoop.hoya.yarn.appmaster.HoyaMasterServiceArgs;
 import org.apache.hadoop.hoya.yarn.appmaster.rpc.RpcBinder;
+import org.apache.hadoop.hoya.yarn.service.CompoundLaunchedService;
+import org.apache.hadoop.hoya.yarn.service.SecurityCheckerService;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
-import org.apache.hadoop.yarn.api.protocolrecords.KillApplicationRequest;
-import org.apache.hadoop.yarn.api.protocolrecords.KillApplicationResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
@@ -78,14 +77,11 @@ import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClientApplication;
-import org.apache.hadoop.yarn.client.api.impl.YarnClientImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.service.launcher.RunService;
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher;
-import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
-import org.codehaus.jackson.JsonParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,22 +94,19 @@ import java.io.Writer;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 
 /**
  * Client service for Hoya
  */
 
-public class HoyaClient extends YarnClientImpl implements RunService,
+public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                           ProbeReportHandler,
                                                           HoyaExitCodes,
                                                           HoyaKeys {
@@ -137,17 +130,26 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   // Queue for App master
   private String amQueue = "default";
 
-  private String[] argv;
   private ClientArgs serviceArgs;
   public ApplicationId applicationId;
   
   private ReportingLoop masterReportingLoop;
   private Thread loopThread;
   private String deployedClusterName;
+  /**
+   * Cluster opaerations against the deployed cluster -will be null
+   * if no bonding has yet taken place
+   */
+  private HoyaClusterOperations hoyaClusterOperations;
   private ClientProvider provider;
 
   /**
-   * Entry point from the service launcher
+   * Yarn client service
+   */
+  private HoyaYarnClientImpl yarnClient;
+
+  /**
+   * Constructor
    */
   public HoyaClient() {
     // make sure all the yarn configs get loaded
@@ -163,8 +165,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
   @Override
   public Configuration bindArgs(Configuration config, String... args) throws Exception {
+    config = super.bindArgs(config, args);
     log.debug("Binding Arguments");
-    this.argv = args;
     serviceArgs = new ClientArgs(args);
     serviceArgs.parse();
     serviceArgs.postProcess();
@@ -181,23 +183,11 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     serviceArgs.applyFileSystemURL(conf);
     // init security with our conf
     if (serviceArgs.secure) {
-      log.info("Secure mode with kerberos realm {}",
-               HoyaUtils.getKerberosRealm());
-      //this gets UGI to reset its previous world view (i.e simple auth)
-      SecurityUtil.setAuthenticationMethod(
-        UserGroupInformation.AuthenticationMethod.KERBEROS, conf);
-      UserGroupInformation.setConfiguration(conf);
-      UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
-      log.debug("Authenticating as " + ugi.toString());
-      log.debug("Login user is {}", UserGroupInformation.getLoginUser());
-      if (!UserGroupInformation.isSecurityEnabled()) {
-        throw new BadConfigException("Although secure mode is enabled," +
-             "the application has already set up its user as an insecure entity %s",
-             ugi);
-      }
-      HoyaUtils.verifyPrincipalSet(conf, YarnConfiguration.RM_PRINCIPAL);
-      HoyaUtils.verifyPrincipalSet(conf, DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY);
+      addService(new SecurityCheckerService());
     }
+    //create the YARN client
+    yarnClient = new HoyaYarnClientImpl();
+    addService(yarnClient);
     super.serviceInit(conf);
   }
 
@@ -307,25 +297,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   public int actionEmergencyForceKill(String applicationId) throws YarnException,
                                                       IOException {
     verifyManagerSet();
-
-    if ("all".equals(applicationId)) {
-      // user wants all hoya applications killed
-      String user = getUsername();
-      log.info("Killing all applications belonging to {}", user);
-      Collection<ApplicationReport> instances = listHoyaInstances(user);
-      for (ApplicationReport instance : instances) {
-        if (isApplicationLive(instance)) {
-          ApplicationId appId = instance.getApplicationId();
-          log.info("Killing Application {}", appId);
-          killRunningApplication(appId, "forced kill");
-        }
-      }
-    } else {
-      ApplicationId appId = ConverterUtils.toApplicationId(applicationId);
-
-      log.info("Killing Application {}", applicationId);
-      killRunningApplication(appId, "forced kill");
-    }
+    yarnClient.emergencyForceKill(applicationId);
     return EXIT_SUCCESS;
 
   }
@@ -579,23 +551,6 @@ public class HoyaClient extends YarnClientImpl implements RunService,
 
   }
 
-  private void requireArgumentSet(String argname, String argfield)
-      throws BadCommandArgumentsException {
-    if (isUnset(argfield)) {
-      throw new BadCommandArgumentsException("Required argument "
-                                             + argname
-                                             + " missing");
-    }
-  }
- private void requireArgumentSet(String argname, Object argfield) throws
-                                               BadCommandArgumentsException {
-    if (argfield == null) {
-      throw new BadCommandArgumentsException("Required argument "
-                                             + argname
-                                             + " missing");
-    }
-  }
-
   public void verifyFileSystemArgSet() throws BadCommandArgumentsException {
     requireArgumentSet(Arguments.ARG_FILESYSTEM, serviceArgs.filesystemURL);
   }
@@ -662,7 +617,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       log.debug(clusterSpec.toString());
     }
 
-    YarnClientApplication application = createApplication();
+    YarnClientApplication application = yarnClient.createApplication();
     ApplicationSubmissionContext appContext =
       application.getApplicationSubmissionContext();
     ApplicationId appId = appContext.getApplicationId();
@@ -937,7 +892,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     log.info("Submitting application to ASM");
 
     // submit the application
-    applicationId = submitApplication(appContext);
+    applicationId = yarnClient.submitApplication(appContext);
 
     int exitCode;
     // wait for the submit state to be reached
@@ -976,7 +931,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
             report.getYarnApplicationState() == YarnApplicationState.RUNNING) {
           exitCode = EXIT_SUCCESS;
         } else {
-          killRunningApplication(appId, "");
+
+          yarnClient.killRunningApplication(appId, "");
           exitCode = buildExitCode(appId, report);
         }
       }
@@ -1221,27 +1177,12 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                   false);
   }
 
+  /**
+   * Get the application name used in the zookeeper root paths
+   * @return an application-specific path in ZK
+   */
   private String getAppName() {
     return "hoya";
-  }
-
-  /**
-   * Monitor the submitted application for reaching the requested state.
-   * Will also report if the app reaches a later state (failed, killed, etc)
-   * Kill application if duration!= null & time expires. 
-   * @param appId Application Id of application to be monitored
-   * @param duration how long to wait
-   * @param desiredState desired state.
-   * @return true if application completed successfully
-   * @throws YarnException YARN or app issues
-   * @throws IOException IO problems
-   */
-  public int monitorAppToCompletion(Duration duration)
-    throws YarnException, IOException {
-
-    ApplicationReport report = monitorAppToState(duration,
-                                                 YarnApplicationState.FINISHED);
-    return buildExitCode(applicationId, report);
   }
 
   /**
@@ -1330,7 +1271,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   public ApplicationReport getApplicationReport() throws
                                                   IOException,
                                                   YarnException {
-    return getApplicationReport(applicationId);
+    return yarnClient.getApplicationReport(applicationId);
   }
 
   /**
@@ -1348,44 +1289,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   public ApplicationReport monitorAppToState(
     ApplicationId appId, YarnApplicationState desiredState, Duration duration)
     throws YarnException, IOException {
-
-    if (duration.limit <= 0) {
-      throw new HoyaException("Invalid monitoring duration");
-    }
-    log.debug("Waiting {} millis for app to reach state {} ",
-              duration.limit,
-              desiredState);
-    duration.start();
-    while (true) {
-
-      // Get application report for the appId we are interested in
-
-      ApplicationReport r = getApplicationReport(appId);
-
-      log.debug("queried status is\n{}",
-                new HoyaUtils.OnDemandReportStringifier(r));
-
-      YarnApplicationState state = r.getYarnApplicationState();
-      if (state.ordinal() >= desiredState.ordinal()) {
-        log.debug("App in desired state (or higher) :{}", state);
-        return r;
-      }
-      if (duration.getLimitExceeded()) {
-        log.debug(
-          "Wait limit of {} millis to get to state {}, exceeded; app status\n {}",
-          duration.limit,
-          desiredState,
-          new HoyaUtils.OnDemandReportStringifier(r));
-        return null;
-      }
-
-      // sleep 1s.
-      try {
-        Thread.sleep(1000);
-      } catch (InterruptedException ignored) {
-        log.debug("Thread sleep in monitoring loop interrupted");
-      }
-    }
+    return yarnClient.monitorAppToState(appId, desiredState, duration);
   }
 
   /**
@@ -1396,29 +1300,10 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   public boolean forceKillApplication(String reason)
     throws YarnException, IOException {
     if (applicationId != null) {
-      killRunningApplication(applicationId, reason);
+      yarnClient.killRunningApplication(applicationId, reason);
       return true;
     }
     return false;
-  }
-
-  /**
-   * Kill a running application
-   * @param applicationId
-   * @return the response
-   * @throws YarnException YARN problems
-   * @throws IOException IO problems
-   */
-  private KillApplicationResponse killRunningApplication(ApplicationId applicationId,
-                                                         String reason) throws
-                                                                        YarnException,
-                                                                        IOException {
-    log.info("Killing application {} - {}", applicationId.getClusterTimestamp(),
-             reason);
-    KillApplicationRequest request =
-      Records.newRecord(KillApplicationRequest.class);
-    request.setApplicationId(applicationId);
-    return rmClient.forceKillApplication(request);
   }
 
   /**
@@ -1429,16 +1314,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   @VisibleForTesting
   public List<ApplicationReport> listHoyaInstances(String user)
     throws YarnException, IOException {
-    Set<String> types = new HashSet<String>(1);
-    types.add(HoyaKeys.APP_TYPE);
-    List<ApplicationReport> allApps = getApplications(types);
-    List<ApplicationReport> results = new ArrayList<ApplicationReport>();
-    for (ApplicationReport report : allApps) {
-      if (user == null || user.equals(report.getUser())) {
-        results.add(report);
-      }
-    }
-    return results;
+    return yarnClient.listHoyaInstances(user);
   }
 
   /**
@@ -1542,28 +1418,6 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     return findClusterInInstanceList(instances, appname);
   }
 
-  /**
-   * find all instances of a specific app -if there is >1 in the cluster,
-   * this returns them all
-   * @param user user
-   * @param appname application name
-   * @return the list of all matching application instances
-   */
-  @VisibleForTesting
-  public List<ApplicationReport> findAllInstances(String user,
-                                                  String appname) throws
-                                                                  IOException,
-                                                                  YarnException {
-    List<ApplicationReport> instances = listHoyaInstances(user);
-    List<ApplicationReport> results =
-      new ArrayList<ApplicationReport>(instances.size());
-    for (ApplicationReport report : instances) {
-      if (report.getName().equals(appname)) {
-        results.add(report);
-      }
-    }
-    return results;
-  }
 
   /**
    * find all live instances of a specific app -if there is >1 in the cluster,
@@ -1574,58 +1428,32 @@ public class HoyaClient extends YarnClientImpl implements RunService,
    */
   @VisibleForTesting
   public List<ApplicationReport> findAllLiveInstances(String user,
-                                                      String appname) throws
-                                                                      YarnException,
-                                                                      IOException {
-    List<ApplicationReport> instances = listHoyaInstances(user);
-    List<ApplicationReport> results =
-      new ArrayList<ApplicationReport>(instances.size());
-    for (ApplicationReport app : instances) {
-      if (app.getName().equals(appname)
-          && isApplicationLive(app)) {
-        results.add(app);
-      }
-    }
-    return results;
-
+                                                      String appname)
+    throws YarnException, IOException {
+    
+    return yarnClient.findAllLiveInstances(user, appname);
   }
 
-  /**
-   * Helper method to determine if a cluster application is running -or
-   * is earlier in the lifecycle
-   * @param app application report
-   * @return true if the application is considered live
-   */
-  private boolean isApplicationLive(ApplicationReport app) {
-    return app.getYarnApplicationState().ordinal() <=
-       YarnApplicationState.RUNNING
-                           .ordinal();
-  }
 
   public ApplicationReport findClusterInInstanceList(List<ApplicationReport> instances,
                                                      String appname) {
-    ApplicationReport found = null;
-    ApplicationReport foundAndLive = null;
-    for (ApplicationReport app : instances) {
-      if (app.getName().equals(appname)) {
-        found = app;
-        if (isApplicationLive(app)) {
-          foundAndLive = app;
-        }
-      }
-    }
-    if (foundAndLive != null) {
-      found = foundAndLive;
-    }
-    return found;
+    return yarnClient.findClusterInInstanceList(instances, appname);
   }
 
+  /**
+   * Connect to a Hoya AM
+   * @param app application report providing the details on the application
+   * @return an instance
+   * @throws YarnException
+   * @throws IOException
+   */
   private HoyaClusterProtocol connect(ApplicationReport app) throws
                                                               YarnException,
                                                               IOException {
 
     try {
-      return RpcBinder.getProxy(getConfig(),rmClient,app,10000,15000);
+      return RpcBinder.getProxy(getConfig(), yarnClient.getRmClient(), app,
+                                10000, 15000);
     } catch (InterruptedException e) {
       throw new HoyaException(HoyaExitCodes.EXIT_TIMED_OUT,
                               e,
@@ -1634,8 +1462,11 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   }
 
   /**
-   * Status operation; 'name' arg defines cluster name.
-   * @return
+   * Status operation
+   * @param clustername cluster name
+   * @return 0 -for success, else an exception is thrown
+   * @throws YarnException
+   * @throws IOException
    */
   @VisibleForTesting
   public int actionStatus(String clustername) throws
@@ -1705,8 +1536,12 @@ public class HoyaClient extends YarnClientImpl implements RunService,
    */
   public Configuration getSiteConf(ClusterDescription desc, String clustername)
       throws YarnException, IOException {
-    if (desc == null) desc = getClusterDescription();
-    if (clustername == null) clustername = getDeployedClusterName();
+    if (desc == null) {
+      desc = getClusterDescription();
+    }
+    if (clustername == null) {
+      clustername = getDeployedClusterName();
+    }
     String description = "Hoya cluster " + clustername;
     
     Configuration siteConf = new Configuration(false);
@@ -1866,13 +1701,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
     if (instance != null) {
       log.info("Flexing running cluster");
       HoyaClusterProtocol appMaster = connect(instance);
-      Messages.FlexClusterRequestProto request =
-        Messages.FlexClusterRequestProto.newBuilder()
-                .setClusterSpec(clusterSpec.toJsonString())
-                .build();
-      Messages.FlexClusterResponseProto response =
-        appMaster.flexCluster(request);
-      if (response.getResponse()) {
+      HoyaClusterOperations clusterOps = new HoyaClusterOperations(appMaster);
+      if (clusterOps.flex(clusterSpec)) {
         log.info("Cluster size updated");
         exitCode = EXIT_SUCCESS;
       } else {
@@ -1893,20 +1723,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   public ClusterDescription getClusterDescription(String clustername) throws
                                                                  YarnException,
                                                                  IOException {
-    HoyaClusterProtocol appMaster = bondToCluster(clustername);
-    Messages.GetJSONClusterStatusRequestProto req =
-      Messages.GetJSONClusterStatusRequestProto.newBuilder().build();
-    Messages.GetJSONClusterStatusResponseProto resp =
-      appMaster.getJSONClusterStatus(req);
-    String statusJson = resp.getClusterSpec();
-    try {
-      return ClusterDescription.fromJson(statusJson);
-    } catch (JsonParseException e) {
-      log.error(
-        "Exception " + e + " parsing:\n" + statusJson,
-        e);
-      throw e;
-    }
+    return createClusterOperations(clustername)
+              .getClusterDescription(clustername);
   }
 
   /**
@@ -1931,24 +1749,8 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   public String[] listNodeUUIDsByRole(String role) throws
                                                IOException,
                                                YarnException {
-    HoyaClusterProtocol appMaster = bondToCluster(getDeployedClusterName());
-    Collection<String> uuidList = innerListNodeUUIDSByRole(appMaster, role);
-    String[] uuids = new String[uuidList.size()];
-    return uuidList.toArray(uuids);
-  }
-
-  private List<String> innerListNodeUUIDSByRole(HoyaClusterProtocol appMaster,
-                                            String role) throws
-                                                                           IOException,
-                                                                           YarnException {
-    Messages.ListNodeUUIDsByRoleRequestProto req =
-      Messages.ListNodeUUIDsByRoleRequestProto
-              .newBuilder()
-              .setRole(role)
-              .build();
-    Messages.ListNodeUUIDsByRoleResponseProto resp =
-      appMaster.listNodeUUIDsByRole(req);
-    return resp.getUuidList();
+    return createClusterOperations()
+              .listNodeUUIDsByRole(role);
   }
 
   /**
@@ -1963,16 +1765,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   public List<ClusterNode> listClusterNodesInRole(String role) throws
                                                IOException,
                                                YarnException {
-    HoyaClusterProtocol appMaster = bondToCluster(getDeployedClusterName());
-
-    Collection<String> uuidList = innerListNodeUUIDSByRole(appMaster, role);
-    Messages.GetClusterNodesRequestProto req =
-      Messages.GetClusterNodesRequestProto
-              .newBuilder()
-              .addAllUuid(uuidList)
-              .build();
-    Messages.GetClusterNodesResponseProto resp = appMaster.getClusterNodes(req);
-    return convertNodeWireToClusterNodes(resp.getClusterNodeList());
+    return createClusterOperations().listClusterNodesInRole(role);
   }
 
   /**
@@ -1991,32 +1784,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
       // short cut on an empty list
       return new LinkedList<ClusterNode>();
     }
-    HoyaClusterProtocol appMaster = bondToCluster(getDeployedClusterName());
-    Messages.GetClusterNodesRequestProto req =
-      Messages.GetClusterNodesRequestProto
-              .newBuilder()
-              .addAllUuid(Arrays.asList(uuids))
-              .build();
-    Messages.GetClusterNodesResponseProto resp = appMaster.getClusterNodes(req);
-    return convertNodeWireToClusterNodes(resp.getClusterNodeList());
-  }
-
-  private List<ClusterNode> convertNodeJsonToClusterNodes(String[] nodes) throws
-                                                                          IOException {
-    List<ClusterNode> nodeList = new ArrayList<ClusterNode>(nodes.length);
-    for (String node : nodes) {
-      nodeList.add(ClusterNode.fromJson(node));
-    }
-    return nodeList;
-  }
-
-  private List<ClusterNode> convertNodeWireToClusterNodes(List<Messages.RoleInstanceState> nodes)
-      throws IOException {
-    List<ClusterNode> nodeList = new ArrayList<ClusterNode>(nodes.size());
-    for (Messages.RoleInstanceState node : nodes) {
-      nodeList.add(ClusterNode.fromProtobuf(node));
-    }
-    return nodeList;
+    return createClusterOperations().listClusterNodes(uuids);
   }
 
   /**
@@ -2028,24 +1796,7 @@ public class HoyaClient extends YarnClientImpl implements RunService,
    */
   @VisibleForTesting
   public ClusterNode getNode(String uuid) throws IOException, YarnException {
-    HoyaClusterProtocol appMaster = bondToCluster(getDeployedClusterName());
-    return getNode(appMaster, uuid);
-  }
-
-  /**
-   * Get a node from the AM
-   * @param appMaster AM
-   * @param uuid uuid of node
-   * @return deserialized node
-   * @throws IOException IO problems
-   * @throws NoSuchNodeException if the node isn't found
-   */
-  private ClusterNode getNode(HoyaClusterProtocol appMaster, String uuid)
-    throws IOException, NoSuchNodeException, YarnException {
-    Messages.GetNodeRequestProto req =
-      Messages.GetNodeRequestProto.newBuilder().setUuid(uuid).build();
-    Messages.GetNodeResponseProto node = appMaster.getNode(req);
-    return ClusterNode.fromProtobuf(node.getClusterNode());
+    return createClusterOperations().getNode(uuid);
   }
 
   /**
@@ -2058,6 +1809,9 @@ public class HoyaClient extends YarnClientImpl implements RunService,
                                                                   YarnException,
                                                                   IOException {
     verifyManagerSet();
+    if (clustername == null) {
+      throw unknownClusterException("");
+    }
     ApplicationReport instance = findInstance(getUsername(), clustername);
     if (null == instance) {
       throw unknownClusterException(clustername);
@@ -2066,8 +1820,38 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   }
 
   /**
+   * Create a cluster operations instance against a given cluster
+   * @param clustername cluster name
+   * @return a bonded cluster operations instance
+   * @throws YarnException YARN issues
+   * @throws IOException IO problems
+   */
+  private HoyaClusterOperations createClusterOperations(String clustername) throws
+                                                                            YarnException,
+                                                                            IOException {
+    HoyaClusterProtocol hoyaAM = bondToCluster(clustername);
+    return new HoyaClusterOperations(hoyaAM);
+  }
+
+  /**
+   * Create a cluster operations instance against the active cluster
+   * -returning any previous created one if held.
+   * @return a bonded cluster operations instance
+   * @throws YarnException YARN issues
+   * @throws IOException IO problems
+   */
+  public HoyaClusterOperations createClusterOperations() throws
+                                                         YarnException,
+                                                         IOException {
+    if (hoyaClusterOperations == null) {
+      hoyaClusterOperations =
+        createClusterOperations(getDeployedClusterName());
+    }
+    return hoyaClusterOperations;
+  }
+
+  /**
    * Wait for an instance of a named role to be live (or past it in the lifecycle)
-   * @param clustername cluster
    * @param role role to look for
    * @param timeout time to wait
    * @return the state. If still in CREATED, the cluster didn't come up
@@ -2079,50 +1863,14 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   @VisibleForTesting
   public int waitForRoleInstanceLive(String role, long timeout)
     throws WaitTimeoutException, IOException, YarnException {
-    Duration duration = new Duration(timeout).start();
-    boolean live = false;
-    int state = ClusterDescription.STATE_CREATED;
-    HoyaClusterProtocol appMaster = bondToCluster(getDeployedClusterName());
-
-    log.info("Waiting {} millis for a live node in role {}", timeout, role);
-    while (!live) {
-      // see if there is a node in that role yet
-      List<String> uuids = innerListNodeUUIDSByRole(appMaster, role);
-      String[] containers = uuids.toArray(new String[uuids.size()]);
-      int roleCount = containers.length;
-      ClusterNode roleInstance = null;
-      if (roleCount != 0) {
-
-        // if there is, get the node
-        roleInstance = getNode(appMaster, containers[0]);
-        if (roleInstance != null) {
-          state = roleInstance.state;
-          live = state >= ClusterDescription.STATE_LIVE;
-        }
-      }
-      if (!live) {
-        if (duration.getLimitExceeded()) {
-          throw new WaitTimeoutException(
-            String.format("Timeout after %d millis" +
-                          " waiting for a live instance of type %s; " +
-                          "instances found %d %s",
-                          timeout, role, roleCount,
-                          (roleInstance != null
-                           ? (" instance -\n" + roleInstance.toString())
-                           : "")
-                         ));
-        } else {
-          try {
-            Thread.sleep(1000);
-          } catch (InterruptedException ignored) {
-            // ignored
-          }
-        }
-      }
-    }
-    return state;
+    return createClusterOperations().waitForRoleInstanceLive(role, timeout);
   }
 
+  /**
+   * Generate an exception for an unknown cluster
+   * @param clustername cluster name
+   * @return an exception with text and a relevant exit code
+   */
   public HoyaException unknownClusterException(String clustername) {
     return new HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER,
                              "Hoya cluster not found: '" + clustername + "' ");
@@ -2134,15 +1882,19 @@ public class HoyaClient extends YarnClientImpl implements RunService,
   }
 
   /**
-   * Implementation of set-ness, groovy definition of true/false for a string
-   * @param s
-   * @return
+   * Get all YARN applications
+   * @return a possibly empty list
+   * @throws YarnException
+   * @throws IOException
    */
-  private static boolean isUnset(String s) {
-    return s == null || s.isEmpty();
+  @VisibleForTesting
+  public List<ApplicationReport> getApplications() throws YarnException, IOException {
+    return yarnClient.getApplications();
   }
 
-  private static boolean isSet(String s) {
-    return !isUnset(s);
+  @VisibleForTesting
+  public ApplicationReport getApplicationReport(ApplicationId appId)
+    throws YarnException, IOException {
+    return yarnClient.getApplicationReport(appId);
   }
 }

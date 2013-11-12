@@ -24,6 +24,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
@@ -35,6 +36,7 @@ import org.apache.hadoop.hoya.exceptions.MissingArgException;
 import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions;
 import org.apache.hadoop.hoya.yarn.client.HoyaClient;
 import org.apache.hadoop.net.NetUtils;
+import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.ExitUtil;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
@@ -1062,5 +1064,27 @@ public final class HoyaUtils {
   public static String sequenceToString(CharSequence charSequence) {
     StringBuilder stringBuilder = new StringBuilder(charSequence);
     return stringBuilder.toString();
+  }
+  
+  public static void initProcessSecurity(Configuration conf) throws
+                                                             IOException,
+                                                             BadConfigException {
+    log.info("Secure mode with kerberos realm {}",
+             HoyaUtils.getKerberosRealm());
+    //this gets UGI to reset its previous world view (i.e simple auth)
+    SecurityUtil.setAuthenticationMethod(
+      UserGroupInformation.AuthenticationMethod.KERBEROS, conf);
+    UserGroupInformation.setConfiguration(conf);
+    UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+    log.debug("Authenticating as " + ugi.toString());
+    log.debug("Login user is {}", UserGroupInformation.getLoginUser());
+    if (!UserGroupInformation.isSecurityEnabled()) {
+      throw new BadConfigException("Although secure mode is enabled," +
+                                   "the application has already set up its user as an insecure entity %s",
+                                   ugi);
+    }
+    HoyaUtils.verifyPrincipalSet(conf, YarnConfiguration.RM_PRINCIPAL);
+    HoyaUtils.verifyPrincipalSet(conf,
+                                 DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY);
   }
 }
