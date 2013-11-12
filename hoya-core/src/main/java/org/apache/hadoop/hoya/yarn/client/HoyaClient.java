@@ -58,13 +58,13 @@ import org.apache.hadoop.hoya.yarn.Arguments;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
 import org.apache.hadoop.hoya.yarn.appmaster.HoyaMasterServiceArgs;
 import org.apache.hadoop.hoya.yarn.appmaster.rpc.RpcBinder;
+import org.apache.hadoop.hoya.yarn.service.CompoundLaunchedService;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
-import org.apache.hadoop.yarn.api.ApplicationClientProtocol;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.protocolrecords.KillApplicationRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.KillApplicationResponse;
@@ -79,7 +79,6 @@ import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClientApplication;
-import org.apache.hadoop.yarn.client.api.impl.YarnClientImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.service.launcher.RunService;
@@ -114,7 +113,7 @@ import java.util.Set;
  * Client service for Hoya
  */
 
-public class HoyaClient extends HoyaYarnClientImpl implements RunService,
+public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                           ProbeReportHandler,
                                                           HoyaExitCodes,
                                                           HoyaKeys {
@@ -200,8 +199,10 @@ public class HoyaClient extends HoyaYarnClientImpl implements RunService,
       HoyaUtils.verifyPrincipalSet(conf, YarnConfiguration.RM_PRINCIPAL);
       HoyaUtils.verifyPrincipalSet(conf, DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY);
     }
+    //create the YARN client
+    yarnClient = new HoyaYarnClientImpl();
+    addService(yarnClient);
     super.serviceInit(conf);
-    yarnClient = this;
   }
 
   /**
@@ -665,7 +666,7 @@ public class HoyaClient extends HoyaYarnClientImpl implements RunService,
       log.debug(clusterSpec.toString());
     }
 
-    YarnClientApplication application = createApplication();
+    YarnClientApplication application = yarnClient.createApplication();
     ApplicationSubmissionContext appContext =
       application.getApplicationSubmissionContext();
     ApplicationId appId = appContext.getApplicationId();
@@ -940,7 +941,7 @@ public class HoyaClient extends HoyaYarnClientImpl implements RunService,
     log.info("Submitting application to ASM");
 
     // submit the application
-    applicationId = submitApplication(appContext);
+    applicationId = yarnClient.submitApplication(appContext);
 
     int exitCode;
     // wait for the submit state to be reached
@@ -1333,7 +1334,7 @@ public class HoyaClient extends HoyaYarnClientImpl implements RunService,
   public ApplicationReport getApplicationReport() throws
                                                   IOException,
                                                   YarnException {
-    return getApplicationReport(applicationId);
+    return yarnClient.getApplicationReport(applicationId);
   }
 
   /**
@@ -1363,7 +1364,7 @@ public class HoyaClient extends HoyaYarnClientImpl implements RunService,
 
       // Get application report for the appId we are interested in
 
-      ApplicationReport r = getApplicationReport(appId);
+      ApplicationReport r = yarnClient.getApplicationReport(appId);
 
       log.debug("queried status is\n{}",
                 new HoyaUtils.OnDemandReportStringifier(r));
@@ -1421,7 +1422,7 @@ public class HoyaClient extends HoyaYarnClientImpl implements RunService,
     KillApplicationRequest request =
       Records.newRecord(KillApplicationRequest.class);
     request.setApplicationId(applicationId);
-    return getRmClient().forceKillApplication(request);
+    return yarnClient.getRmClient().forceKillApplication(request);
   }
 
   /**
@@ -1627,7 +1628,8 @@ public class HoyaClient extends HoyaYarnClientImpl implements RunService,
                                                               IOException {
 
     try {
-      return RpcBinder.getProxy(getConfig(), getRmClient(), app, 10000, 15000);
+      return RpcBinder.getProxy(getConfig(), yarnClient.getRmClient(), app,
+                                10000, 15000);
     } catch (InterruptedException e) {
       throw new HoyaException(HoyaExitCodes.EXIT_TIMED_OUT,
                               e,
@@ -2148,4 +2150,20 @@ public class HoyaClient extends HoyaYarnClientImpl implements RunService,
     return !isUnset(s);
   }
 
+  /**
+   * Get all YARN applications
+   * @return a possibly empty list
+   * @throws YarnException
+   * @throws IOException
+   */
+  @VisibleForTesting
+  public List<ApplicationReport> getApplications() throws YarnException, IOException {
+    return yarnClient.getApplications();
+  }
+
+  @VisibleForTesting
+  public ApplicationReport getApplicationReport(ApplicationId appId)
+    throws YarnException, IOException {
+    return yarnClient.getApplicationReport(appId);
+  }
 }
