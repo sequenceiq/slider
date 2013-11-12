@@ -19,6 +19,8 @@
 package org.apache.hadoop.hoya.yarn.service;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
+import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.yarn.service.launcher.LauncherExitCodes;
 import org.apache.hadoop.yarn.service.launcher.RunService;
@@ -38,6 +40,19 @@ public class CompoundLaunchedService extends CompoundService
 
   public CompoundLaunchedService(Service... children) {
     super(children);
+  }
+
+  /**
+   * Implementation of set-ness, groovy definition of true/false for a string
+   * @param s
+   * @return
+   */
+  protected static boolean isUnset(String s) {
+    return HoyaUtils.isUnset(s);
+  }
+
+  protected static boolean isSet(String s) {
+    return HoyaUtils.isSet(s);
   }
 
   protected String[] getArgv() {
@@ -76,5 +91,23 @@ public class CompoundLaunchedService extends CompoundService
       service.start();
     }
     addService(service);
+  }
+
+  protected void requireArgumentSet(String argname, String argfield)
+      throws BadCommandArgumentsException {
+    if (isUnset(argfield)) {
+      throw new BadCommandArgumentsException("Required argument "
+                                             + argname
+                                             + " missing");
+    }
+  }
+
+  protected void requireArgumentSet(String argname, Object argfield) throws
+                                               BadCommandArgumentsException {
+    if (argfield == null) {
+      throw new BadCommandArgumentsException("Required argument "
+                                             + argname
+                                             + " missing");
+    }
   }
 }
