@@ -115,7 +115,7 @@ public class ClusterDescription {
    * When was the cluster created?
    */
   public long createTime;
-  
+
   /**
    * When was the cluster last started?
    */
@@ -125,7 +125,7 @@ public class ClusterDescription {
    * When was the cluster last updated
    */
   public long updateTime;
-  
+
   /**
    * when was this status document created
    */
@@ -163,7 +163,7 @@ public class ClusterDescription {
    */
   public Map<String, String> info =
     new HashMap<String, String>();
-  
+
   /**
    * cluster-specific options
    */
@@ -171,7 +171,7 @@ public class ClusterDescription {
     new HashMap<String, String>();
 
   /**
-   * Statistics
+   * Statistics. This is only relevant when querying the cluster status
    */
   public Map<String, Map<String, Integer>> stats =
     new HashMap<String, Map<String, Integer>>();
@@ -181,7 +181,6 @@ public class ClusterDescription {
    */
   public Map<String, Integer> instances =
     new HashMap<String, Integer>();
-
 
   /**
    * Role options, 
@@ -198,9 +197,12 @@ public class ClusterDescription {
     new HashMap<String, String>();
 
 
+  /**
+   * Creator.
+   */
   public ClusterDescription() {
   }
-  
+
 
   /**
    * Verify that a cluster specification exists
@@ -208,7 +210,7 @@ public class ClusterDescription {
    * @param fs filesystem
    * @param clusterSpecPath cluster specification path
    * @throws IOException IO problems
-   * @throws HoyaException if the cluster is not present
+   * @throws HoyaException if the cluster specification is not present
    */
   public static void verifyClusterSpecExists(String clustername,
                                              FileSystem fs,
@@ -229,7 +231,7 @@ public class ClusterDescription {
     try {
       return toJsonString();
     } catch (Exception e) {
-      log.debug("Failed to convert CD to JSON ",e);
+      log.debug("Failed to convert CD to JSON ", e);
       return super.toString();
     }
   }
@@ -255,8 +257,8 @@ public class ClusterDescription {
       throw new RuntimeException(e);
     }
   }
-  
-  
+
+
   /**
    * Save a cluster description to a hadoop filesystem
    * @param fs filesystem
@@ -313,9 +315,9 @@ public class ClusterDescription {
    * @return a JSON string description
    * @throws IOException Problems mapping/writing the object
    */
-  public String  toJsonString() throws IOException,
-                                       JsonGenerationException,
-                                       JsonMappingException {
+  public String toJsonString() throws IOException,
+                                      JsonGenerationException,
+                                      JsonMappingException {
     ObjectMapper mapper = new ObjectMapper();
     mapper.configure(SerializationConfig.Feature.INDENT_OUTPUT, true);
     return mapper.writeValueAsString(this);
@@ -340,17 +342,17 @@ public class ClusterDescription {
   }
 
   /**
-   * Set a cluster option
-   * @param key key
-   * @param val value
+   * Set a cluster option: a key val pair in the options {} section
+   * @param key key option name
+   * @param val value option value
    */
   public void setOption(String key, String val) {
     options.put(key, val);
   }
 
   /**
-   * Set a cluster option if it is unset. If it is set,
-   * it is left alone
+   * Set a cluster option if it is unset. If it is already set,
+   * in the Cluster Description, it is left alone
    * @param key key key to query/set
    * @param val value value
    */
@@ -361,17 +363,27 @@ public class ClusterDescription {
     }
   }
 
+  /**
+   * Set an integer option -it's converted to a string before saving
+   * @param option option name
+   * @param val integer value
+   */
   public void setOption(String option, int val) {
     setOption(option, Integer.toString(val));
   }
 
+  /**
+   * Set a boolean option
+   * @param option option name
+   * @param val bool value
+   */
   public void setOption(String option, boolean val) {
     setOption(option, Boolean.toString(val));
   }
-  
+
   /**
    * Get a cluster option or value
-   * 
+   *
    * @param key
    * @param defVal
    * @return
@@ -380,24 +392,24 @@ public class ClusterDescription {
     String val = options.get(key);
     return val != null ? val : defVal;
   }
-  
+
   /**
    * Get a cluster option or value
-   * 
+   *
    * @param key
-   * @return
+   * @return the value
+   * @throws BadConfigException if the option is missing
    */
   public String getMandatoryOption(String key) throws BadConfigException {
     String val = options.get(key);
     if (val == null) {
       throw new BadConfigException("Missing option " + key);
     }
-    return val ;
+    return val;
   }
 
-
   /**
-   * Get a role opt; use {@link Integer#decode(String)} so as to take hex
+   * Get an integer option; use {@link Integer#decode(String)} so as to take hex
    * oct and bin values too.
    *
    * @param option option name
@@ -410,12 +422,16 @@ public class ClusterDescription {
     return Integer.decode(val);
   }
 
+  /**
+   * Verify that an option is set: that is defined AND non-empty
+   * @param key
+   * @throws BadConfigException
+   */
   public void verifyOptionSet(String key) throws BadConfigException {
     if (HoyaUtils.isUnset(getOption(key, null))) {
       throw new BadConfigException("Unset cluster option %s", key);
     }
   }
-
 
   /**
    * Get an option as a boolean. Note that {@link Boolean#valueOf(String)}
@@ -425,7 +441,7 @@ public class ClusterDescription {
    * @return the option.
    */
   public boolean getOptionBool(String option, boolean defVal) {
-    return Boolean.valueOf(getOption(option,Boolean.toString(defVal)));
+    return Boolean.valueOf(getOption(option, Boolean.toString(defVal)));
   }
 
   /**
@@ -436,16 +452,16 @@ public class ClusterDescription {
    * @return resolved value
    */
   public String getRoleOpt(String role, String option, String defVal) {
-    Map<String, String> options = getRole(role);
-    if (options == null) {
+    Map<String, String> roleopts = getRole(role);
+    if (roleopts == null) {
       return defVal;
     }
-    String val = options.get(option);
+    String val = roleopts.get(option);
     return val != null ? val : defVal;
   }
 
   /**
-   * look up a role
+   * look up a role and return its options
    * @param role role
    * @return role mapping or null
    */
@@ -460,19 +476,25 @@ public class ClusterDescription {
    * @return role mapping
    */
   public Map<String, String> getOrAddRole(String role) {
-    Map<String, String> map = roles.get(role);
-    if (map==null) {
+    Map<String, String> map = getRole(role);
+    if (map == null) {
       map = new HashMap<String, String>();
     }
     roles.put(role, map);
     return map;
   }
 
+  /**
+   * Get a role whose presence is mandatory
+   * @param role role name
+   * @return the mapping
+   * @throws BadConfigException if the role is not there
+   */
   public Map<String, String> getMandatoryRole(String role) throws
                                                            BadConfigException {
-    Map<String, String> roleOptions = roles.get(role);
+    Map<String, String> roleOptions = getRole(role);
     if (roleOptions == null) {
-      throw new BadConfigException("Missing options for role " + role);
+      throw new BadConfigException("Missing role " + role);
     }
     return roleOptions;
   }
@@ -492,22 +514,34 @@ public class ClusterDescription {
     return Integer.decode(val);
   }
 
+  /**
+   * Set a role option, creating the role if necessary
+   * @param role role name
+   * @param option option name
+   * @param val value
+   */
   public void setRoleOpt(String role, String option, String val) {
-    Map<String, String> options = getOrAddRole(role);
-    options.put(option, val);
+    Map<String, String> roleopts = getOrAddRole(role);
+    roleopts.put(option, val);
   }
 
+  /**
+   * Set an integer role option, creating the role if necessary
+   * @param role role name
+   * @param option option name
+   * @param val integer value
+   */
   public void setRoleOpt(String role, String option, int val) {
     setRoleOpt(role, option, Integer.toString(val));
   }
 
   /**
-   * Set the desired instance count
+   * Set the desired instance count for a role
    * @param role role
-   * @param val value
+   * @param count number of instances of a role desired
    */
-  public void setDesiredInstanceCount(String role, int val) {
-    setRoleOpt(role, RoleKeys.ROLE_INSTANCES, val);
+  public void setDesiredInstanceCount(String role, int count) {
+    setRoleOpt(role, RoleKeys.ROLE_INSTANCES, count);
   }
 
   /**
@@ -518,7 +552,7 @@ public class ClusterDescription {
   public int getDesiredInstanceCount(String role, int defVal) {
     return getRoleOptInt(role, RoleKeys.ROLE_INSTANCES, defVal);
   }
-  
+
   /**
    * Set the actual instance count
    * @param role role
