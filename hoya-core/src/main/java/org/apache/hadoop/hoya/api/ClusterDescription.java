@@ -31,6 +31,7 @@ import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.client.HoyaClient;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonParseException;
+import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -130,7 +131,7 @@ public class ClusterDescription {
   public long updateTime;
 
   /**
-   * The path to the original configuration
+   * URL path to the original configuration
    * files; these are re-read when 
    * restoring a cluster
    */
@@ -138,7 +139,7 @@ public class ClusterDescription {
   public String originConfigurationPath;
 
   /**
-   * Relative path to the generated configuration
+   * URL path to the generated configuration
    */
   public String generatedConfigurationPath;
 
@@ -149,6 +150,9 @@ public class ClusterDescription {
 
   private String applicationHome;
 
+  /**
+   * URL to the image
+   */
   private String imagePath;
 
   /**
@@ -592,6 +596,7 @@ public class ClusterDescription {
   }
 
 
+  @JsonIgnore
   public String getZkHosts() throws BadConfigException {
     return getMandatoryOption(OptionKeys.ZOOKEEPER_HOSTS);
   }
@@ -600,23 +605,28 @@ public class ClusterDescription {
    * Set the hosts for the ZK quorum
    * @param zkHosts a comma separated list of hosts
    */
+  @JsonIgnore
   public void setZkHosts(String zkHosts) {
     setOption(OptionKeys.ZOOKEEPER_HOSTS, zkHosts);
   }
 
+  @JsonIgnore
   public int getZkPort() throws BadConfigException {
     getMandatoryOption(OptionKeys.ZOOKEEPER_PORT);
     return getOptionInt(OptionKeys.ZOOKEEPER_PORT, 0);
   }
 
+  @JsonIgnore
   public void setZkPort(int zkPort) {
     setOption(OptionKeys.ZOOKEEPER_PORT, zkPort);
   }
 
+  @JsonIgnore
   public String getZkPath() throws BadConfigException {
     return getMandatoryOption(OptionKeys.ZOOKEEPER_PATH);
   }
 
+  @JsonIgnore
   public void setZkPath(String zkPath) {
     setOption(OptionKeys.ZOOKEEPER_PATH, zkPath);
   }
