@@ -130,11 +130,6 @@ public interface HoyaKeys {
     "hoya.test.master.command";
 
   /**
-   * delay for container startup
-   */
-  int CONTAINER_STARTUP_DELAY = 5000;
-
-  /**
    * Original name for the default FS. This is still 
    * expected by applications deployed
    */

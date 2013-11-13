@@ -39,12 +39,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Represents a cluster specification; designed to be sendable over the wire
  * and persisted in JSON by way of Jackson.
+ * 
+ * When used in cluster status operations the <code>info</code>
+ * and <code>statistics</code> maps contain information about the cluster.
+ * 
  * As a wire format it is less efficient in both xfer and ser/deser than 
  * a binary format, but by having one unified format for wire and persistence,
  * the code paths are simplified.
@@ -111,25 +116,18 @@ public class ClusterDescription {
    * destroyed
    */
   public static final int STATE_DESTROYED = 5;
+  
   /**
-   * When was the cluster created?
+   * When was the cluster specification created?
+   * This is not the time a cluster was thawed; that will
+   * be in the <code>info</code> section.
    */
   public long createTime;
 
   /**
-   * When was the cluster last started?
-   */
-  public long startTime;
-
-  /**
-   * When was the cluster last updated
+   * When was the cluster specification last updated
    */
   public long updateTime;
-
-  /**
-   * when was this status document created
-   */
-  public long statusTime;
 
   /**
    * The path to the original configuration
@@ -138,42 +136,42 @@ public class ClusterDescription {
    */
 
   public String originConfigurationPath;
+
+  /**
+   * Relative path to the generated configuration
+   */
   public String generatedConfigurationPath;
-  public String zkHosts;
-  public int zkPort;
-  public String zkPath;
-  public String masterAddr;
+
   /**
    * This is where the data goes
    */
   public String dataPath;
 
-  /**
-   * HBase home: if non-empty defines where a copy of HBase is preinstalled
-   */
-  public String applicationHome;
+  private String applicationHome;
+
+  private String imagePath;
 
   /**
-   * The path in HDFS where the HBase image must go
-   */
-  public String imagePath;
-
-  /**
-   * cluster-specific options
-   */
-  public Map<String, String> info =
-    new HashMap<String, String>();
-
-  /**
-   * cluster-specific options
+   * cluster-specific options -to control both
+   * the Hoya AM and the application that it deploys
    */
   public Map<String, String> options =
     new HashMap<String, String>();
 
   /**
+   * cluster information
+   * This is only valid when querying the cluster status.
+   */
+  public Map<String, String> info =
+    new HashMap<String, String>();
+
+  /**
    * Statistics. This is only relevant when querying the cluster status
    */
-  public Map<String, Map<String, Integer>> stats =
+  public Map<String, Map<String, Integer>> statistics =
+    new HashMap<String, Map<String, Integer>>();
+
+  public Map<String, Map<String, Integer>> status =
     new HashMap<String, Map<String, Integer>>();
 
   /**
@@ -195,7 +193,6 @@ public class ClusterDescription {
    */
   public Map<String, String> clientProperties =
     new HashMap<String, String>();
-
 
   /**
    * Creator.
@@ -569,5 +566,80 @@ public class ClusterDescription {
    */
   public int getActualInstanceCount(String role) {
     return getRoleOptInt(role, RoleKeys.ROLE_ACTUAL_INSTANCES, 0);
+  }
+
+  /**
+   * Set the time for an information (human, machine) timestamp pair of fields.
+   * The human time is the time in millis converted via the {@link Date} class.
+   * @param keyHumanTime name of human time key
+   * @param keyMachineTime name of machine time
+   * @param time timestamp
+   */
+  @SuppressWarnings("CallToDateToString")
+  public void setInfoTime(String keyHumanTime, String keyMachineTime, long time) {
+    setInfo(keyHumanTime, new Date(time).toString());
+    setInfo(keyMachineTime, Long.toString(time));
+  }
+
+  /**
+   * Set an information string. This is content that is only valid in status
+   * reports.
+   * @param key key key to set
+   * @param value string value
+   */
+  public void setInfo(String key, String value) {
+    info.put(key, value);
+  }
+
+
+  public String getZkHosts() throws BadConfigException {
+    return getMandatoryOption(OptionKeys.ZOOKEEPER_HOSTS);
+  }
+
+  /**
+   * Set the hosts for the ZK quorum
+   * @param zkHosts a comma separated list of hosts
+   */
+  public void setZkHosts(String zkHosts) {
+    setOption(OptionKeys.ZOOKEEPER_HOSTS, zkHosts);
+  }
+
+  public int getZkPort() throws BadConfigException {
+    getMandatoryOption(OptionKeys.ZOOKEEPER_PORT);
+    return getOptionInt(OptionKeys.ZOOKEEPER_PORT, 0);
+  }
+
+  public void setZkPort(int zkPort) {
+    setOption(OptionKeys.ZOOKEEPER_PORT, zkPort);
+  }
+
+  public String getZkPath() throws BadConfigException {
+    return getMandatoryOption(OptionKeys.ZOOKEEPER_PATH);
+  }
+
+  public void setZkPath(String zkPath) {
+    setOption(OptionKeys.ZOOKEEPER_PATH, zkPath);
+  }
+
+  /**
+   * HBase home: if non-empty defines where a copy of HBase is preinstalled
+   */
+  public String getApplicationHome() {
+    return applicationHome;
+  }
+
+  public void setApplicationHome(String applicationHome) {
+    this.applicationHome = applicationHome;
+  }
+
+  /**
+   * The path in HDFS where the HBase image must go
+   */
+  public String getImagePath() {
+    return imagePath;
+  }
+
+  public void setImagePath(String imagePath) {
+    this.imagePath = imagePath;
   }
 }

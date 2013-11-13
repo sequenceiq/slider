@@ -109,7 +109,7 @@ public class AccumuloClientProvider extends Configured implements
 
   private void putSiteOpt(Map<String, String> options, String key, String val) {
     options.put(
-      OptionKeys.OPTION_SITE_PREFIX + key, val);
+      OptionKeys.SITE_XML_PREFIX + key, val);
   }
 
   /**
@@ -193,13 +193,13 @@ public class AccumuloClientProvider extends Configured implements
 
   private void assignIfSet(Map<String, String> sitexml,
                            String prop,
-                             ClusterDescription cd,
+                           ClusterDescription cd,
                            String role,
                            String key) throws BadConfigException {
     Map<String, String> map = cd.getMandatoryRole(role);
 
     String value = map.get(key);
-    if (value!=null) {
+    if (value != null) {
       sitexml.put(prop, value);
     }
   }
@@ -258,8 +258,8 @@ public class AccumuloClientProvider extends Configured implements
                 APP_INFOPORT);
 
     //fix up ZK
-    int zkPort = clusterSpec.zkPort;
-    String zkHosts = clusterSpec.zkHosts;
+    int zkPort = clusterSpec.getZkPort();
+    String zkHosts = clusterSpec.getZkHosts();
 
     //parse the hosts
     String[] hostlist = zkHosts.split(",", 0);
