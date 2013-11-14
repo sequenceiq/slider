@@ -198,7 +198,6 @@ public class ClusterDescription {
   public ClusterDescription() {
   }
 
-
   /**
    * Verify that a cluster specification exists
    * @param clustername name of the cluster (For errors only)
