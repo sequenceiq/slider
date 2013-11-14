@@ -171,4 +171,5 @@ public interface HoyaKeys {
    */
   String KEY_HOYA_ACL = "security.hoya.protocol.acl";
 
+  String HOYA_TMP_LOGDIR_PREFIX = "/tmp/hoya-";
 }

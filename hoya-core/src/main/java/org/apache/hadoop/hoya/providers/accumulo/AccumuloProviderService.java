@@ -125,11 +125,11 @@ public class AccumuloProviderService extends AbstractProviderService implements
     
     //buildup accumulo home env variable to be absolute or relative
     String accumulo_home;
-    if (clusterSpec.getApplicationHome() != null ) {
+    if (HoyaUtils.isSet(clusterSpec.getApplicationHome())) {
       accumulo_home = clusterSpec.getApplicationHome();
     } else {
-    accumulo_home = ProviderUtils.convertToAppRelativePath(
-      AccumuloClientProvider.buildImageDir(clusterSpec));
+      accumulo_home = ProviderUtils.convertToAppRelativePath(
+        AccumuloClientProvider.buildImageDir(clusterSpec));
     }
     env.put(ACCUMULO_HOME,
             accumulo_home);
@@ -154,7 +154,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
 
     //Add binaries
     //now add the image if it was set
-    if (clusterSpec.getImagePath() != null) {
+    if (clusterSpec.isImagePathSet()) {
       Path imagePath = new Path(clusterSpec.getImagePath());
       log.info("using image path {}", imagePath);
       HoyaUtils.maybeAddImagePath(fs, localResources, imagePath);

@@ -27,8 +27,21 @@ public interface OptionKeys {
   /**
    * Version of the app: {@value}
    */
-  String APP_VERSION = "cluster.app.version";
+  String APPLICATION_VERSION = "cluster.application.version";
 
+  
+  /**
+   * Home dir of the app: {@value}
+   * If set, implies there is a home dir to use
+   */
+  String APPLICATION_HOME = "cluster.application.home";
+  
+  /**
+   * Path to an image file containing the app: {@value}
+   */
+  String APPLICATION_IMAGE_PATH = "cluster.application.image.path";
+
+  
   /**
    * Option for the permissions for the cluster directory itself: {@value}
    */

@@ -408,10 +408,10 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     HoyaUtils.mergeMap(clusterSpec.options, serviceArgs.getOptionsMap());
     // hbasever arg also sets an option
     if (isSet(serviceArgs.version)) {
-      clusterSpec.setOption(OptionKeys.APP_VERSION, serviceArgs.version);
+      clusterSpec.setOption(OptionKeys.APPLICATION_VERSION, serviceArgs.version);
     }
     log.debug("Application version is {}",
-              clusterSpec.getOption(OptionKeys.APP_VERSION, "undefined"));
+              clusterSpec.getOption(OptionKeys.APPLICATION_VERSION, "undefined"));
 
 
     
@@ -605,7 +605,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       imagePath = null;
       if (isUnset(clusterSpec.getApplicationHome())) {
         throw new HoyaException(EXIT_BAD_CLUSTER_STATE,
-            "Neither an image path or binary home dir were specified");
+            "Neither an image path nor binary home dir were specified");
       }
     }
 

@@ -23,6 +23,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import static org.apache.hadoop.hoya.api.OptionKeys.*;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
@@ -147,13 +148,6 @@ public class ClusterDescription {
    * This is where the data goes
    */
   public String dataPath;
-
-  private String applicationHome;
-
-  /**
-   * URL to the image
-   */
-  private String imagePath;
 
   /**
    * cluster-specific options -to control both
@@ -598,7 +592,7 @@ public class ClusterDescription {
 
   @JsonIgnore
   public String getZkHosts() throws BadConfigException {
-    return getMandatoryOption(OptionKeys.ZOOKEEPER_HOSTS);
+    return getMandatoryOption(ZOOKEEPER_HOSTS);
   }
 
   /**
@@ -607,49 +601,65 @@ public class ClusterDescription {
    */
   @JsonIgnore
   public void setZkHosts(String zkHosts) {
-    setOption(OptionKeys.ZOOKEEPER_HOSTS, zkHosts);
+    setOption(ZOOKEEPER_HOSTS, zkHosts);
   }
 
   @JsonIgnore
   public int getZkPort() throws BadConfigException {
-    getMandatoryOption(OptionKeys.ZOOKEEPER_PORT);
-    return getOptionInt(OptionKeys.ZOOKEEPER_PORT, 0);
+    getMandatoryOption(ZOOKEEPER_PORT);
+    return getOptionInt(ZOOKEEPER_PORT, 0);
   }
 
   @JsonIgnore
   public void setZkPort(int zkPort) {
-    setOption(OptionKeys.ZOOKEEPER_PORT, zkPort);
+    setOption(ZOOKEEPER_PORT, zkPort);
   }
 
   @JsonIgnore
   public String getZkPath() throws BadConfigException {
-    return getMandatoryOption(OptionKeys.ZOOKEEPER_PATH);
+    return getMandatoryOption(ZOOKEEPER_PATH);
   }
 
   @JsonIgnore
   public void setZkPath(String zkPath) {
-    setOption(OptionKeys.ZOOKEEPER_PATH, zkPath);
+    setOption(ZOOKEEPER_PATH, zkPath);
   }
 
   /**
    * HBase home: if non-empty defines where a copy of HBase is preinstalled
    */
+  @JsonIgnore
   public String getApplicationHome() {
-    return applicationHome;
+    return getOption(APPLICATION_HOME, "");
   }
 
+  @JsonIgnore
   public void setApplicationHome(String applicationHome) {
-    this.applicationHome = applicationHome;
+    setOption(APPLICATION_HOME, applicationHome);
   }
 
   /**
-   * The path in HDFS where the HBase image must go
+   * The path in HDFS where the HBase image is
    */
+  @JsonIgnore
   public String getImagePath() {
-    return imagePath;
+    return getOption(APPLICATION_IMAGE_PATH, "");
   }
 
+  /**
+   * Set the path in HDFS where the HBase image is
+   */
+  @JsonIgnore
   public void setImagePath(String imagePath) {
-    this.imagePath = imagePath;
+    setOption(APPLICATION_IMAGE_PATH, imagePath);
+  }
+
+  /**
+   * Query for the image path being set (non null/non empty)
+   * @return true if there is a path in the image path option
+   */
+  @JsonIgnore
+  public boolean isImagePathSet() {
+    return HoyaUtils.isSet(getImagePath());
   }
 }
