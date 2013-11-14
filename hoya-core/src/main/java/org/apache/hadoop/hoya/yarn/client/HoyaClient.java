@@ -95,7 +95,6 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -378,9 +377,11 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     clusterSpec.type = provider.getName();
     clusterSpec.name = clustername;
     clusterSpec.state = ClusterDescription.STATE_INCOMPLETE;
-    clusterSpec.createTime = System.currentTimeMillis();
-    clusterSpec.info.put(StatusKeys.STAT_CREATE_TIME,
-                         new Date(clusterSpec.createTime).toString());
+    long now = System.currentTimeMillis();
+    clusterSpec.createTime = now;
+    clusterSpec.setInfoTime(StatusKeys.INFO_CREATE_TIME_HUMAN,
+                            StatusKeys.INFO_CREATE_TIME_MILLIS,
+                            now);
     
     // build up the options map
     // first the defaults provided by the provider
@@ -390,11 +391,11 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     //propagate the filename into the 1.x and 2.x value
     String fsDefaultName = conf.get(
       CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY);
-    clusterSpec.setOptionifUnset(OptionKeys.OPTION_SITE_PREFIX +
+    clusterSpec.setOptionifUnset(OptionKeys.SITE_XML_PREFIX +
                                  CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY,
                                  fsDefaultName);
 
-    clusterSpec.setOptionifUnset(OptionKeys.OPTION_SITE_PREFIX +
+    clusterSpec.setOptionifUnset(OptionKeys.SITE_XML_PREFIX +
                                  HoyaKeys.FS_DEFAULT_NAME_CLASSIC,
                                  fsDefaultName);
 
@@ -407,10 +408,10 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     HoyaUtils.mergeMap(clusterSpec.options, serviceArgs.getOptionsMap());
     // hbasever arg also sets an option
     if (isSet(serviceArgs.version)) {
-      clusterSpec.setOption(OptionKeys.OPTION_APP_VERSION, serviceArgs.version);
+      clusterSpec.setOption(OptionKeys.APPLICATION_VERSION, serviceArgs.version);
     }
     log.debug("Application version is {}",
-              clusterSpec.getOption(OptionKeys.OPTION_APP_VERSION, "undefined"));
+              clusterSpec.getOption(OptionKeys.APPLICATION_VERSION, "undefined"));
 
 
     
@@ -470,7 +471,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                Arguments.ARG_APP_HOME +
                                                " can be provided");
       }
-      clusterSpec.imagePath = serviceArgs.image.toUri().toString();
+      clusterSpec.setImagePath(serviceArgs.image.toUri().toString());
     } else {
       // the alternative is app home, which now MUST be set
       if (isUnset(serviceArgs.appHomeDir)) {
@@ -480,7 +481,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                Arguments.ARG_APP_HOME +
                                                " must be provided");
       }
-      clusterSpec.applicationHome = serviceArgs.appHomeDir;
+      clusterSpec.setApplicationHome(serviceArgs.appHomeDir);
     }
 
     // set up the ZK binding
@@ -489,9 +490,9 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       zookeeperRoot =
         "/yarnapps_" + getAppName() + "_" + getUsername() + "_" + clustername;
     }
-    clusterSpec.zkPath = zookeeperRoot;
-    clusterSpec.zkPort = serviceArgs.zkport;
-    clusterSpec.zkHosts = serviceArgs.zkhosts;
+    clusterSpec.setZkPath(zookeeperRoot);
+    clusterSpec.setZkPort(serviceArgs.zkport);
+    clusterSpec.setZkHosts(serviceArgs.zkhosts);
 
 
     // another sanity check before the cluster dir is created: the config
@@ -597,14 +598,14 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // now build up the image path
     // TODO: consider supporting apps that don't have an image path
     Path imagePath;
-    String csip = clusterSpec.imagePath;
+    String csip = clusterSpec.getImagePath();
     if (!isUnset(csip)) {
       imagePath = createPathThatMustExist(csip);
     } else {
       imagePath = null;
-      if (isUnset(clusterSpec.applicationHome)) {
+      if (isUnset(clusterSpec.getApplicationHome())) {
         throw new HoyaException(EXIT_BAD_CLUSTER_STATE,
-            "Neither an image path or binary home dir were specified");
+            "Neither an image path nor binary home dir were specified");
       }
     }
 
@@ -626,7 +627,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // app type used in service enum;
     appContext.setApplicationType(HoyaKeys.APP_TYPE);
 
-    if (clusterSpec.getOptionBool(OptionKeys.OPTION_TEST, false)) {
+    if (clusterSpec.getOptionBool(OptionKeys.HOYA_TEST_FLAG, false)) {
       // test flag set
       appContext.setMaxAppAttempts(1);
     }
@@ -1005,7 +1006,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                    Configuration config) {
     String dfsPrincipal = config.get(DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY);
     if (dfsPrincipal != null) {
-      String siteDfsPrincipal = OptionKeys.OPTION_SITE_PREFIX +
+      String siteDfsPrincipal = OptionKeys.SITE_XML_PREFIX +
                                 DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY;
       clusterSpec.setOptionifUnset(siteDfsPrincipal, dfsPrincipal);
     }

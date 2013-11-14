@@ -19,46 +19,98 @@
 package org.apache.hadoop.hoya.api;
 
 /**
- *  Keys for map entries in roles
+ *  Keys for entries in the <code>options</code> section
+ *  of a cluster description.
  */
 public interface OptionKeys {
 
   /**
-   * option used on command line to set the test flag
+   * Version of the app: {@value}
+   */
+  String APPLICATION_VERSION = "cluster.application.version";
+
+  
+  /**
+   * Home dir of the app: {@value}
+   * If set, implies there is a home dir to use
+   */
+  String APPLICATION_HOME = "cluster.application.home";
+  
+  /**
+   * Path to an image file containing the app: {@value}
+   */
+  String APPLICATION_IMAGE_PATH = "cluster.application.image.path";
+
+  
+  /**
+   * Option for the permissions for the cluster directory itself: {@value}
+   */
+  String HOYA_CLUSTER_DIRECTORY_PERMISSIONS =
+    "hoya.cluster.directory.permissions";
+
+  /**
+   * Default value for the permissions :{@value}
+   */
+  String DEFAULT_HOYA_CLUSTER_DIRECTORY_PERMISSIONS =
+    "0750";
+
+  /**
+   * Time in milliseconds to wait after forking any in-AM 
+   * process before attempting to start up the containers: {@value}
+   * 
+   * A shorter value brings the cluster up faster, but means that if the
+   * in AM process fails (due to a bad configuration), then time
+   * is wasted starting containers on a cluster that isn't going to come
+   * up
+   */
+  String CONTAINER_STARTUP_DELAY = "hoya.container.startup.delay";
+
+  /**
+   * delay for container startup:{@value}
+   */
+  int DEFAULT_CONTAINER_STARTUP_DELAY = 5000;
+  
+  
+  /**: {@value}
+   * Option for the permissions for the data directory itself
+   */
+  String HOYA_DATA_DIRECTORY_PERMISSIONS = "hoya.data.directory.permissions";
+
+
+  /**
+   * Default value for the data directory permissions: {@value}
+   */
+  String DEFAULT_HOYA_DATA_DIRECTORY_PERMISSIONS = "0750";
+  
+  /**
+   * option used to set the test flag
    * {@value}
    */
-  String OPTION_TEST = "hoya.test";
+  String HOYA_TEST_FLAG = "hoya.test";
+  /**
+   * Version of the app: {@value}
+   */
+  String KEYTAB_LOCATION = "cluster.keytab.location";
 
   /**
    * Prefix for site.xml options: {@value}
    */
-  String OPTION_SITE_PREFIX = "site.";
+  String SITE_XML_PREFIX = "site.";
+
 
   /**
-   * Version of the app: {@value}
+   * Zookeeper quorum host list: {@value}
    */
-  String OPTION_APP_VERSION = "cluster.app.version";
-
+  String ZOOKEEPER_HOSTS = "zookeeper.hosts";
+  
   /**
-   * Time in milliseconds to wait after forking the in-AM master
-   * process before attempting to start up the containers. 
-   * A shorter value brings the cluster up faster, but means that if the
-   * master process fails (due to a bad configuration), then time
-   * is wasted starting containers on a cluster that isn't going to come
-   * up
+   * Zookeeper port value (int): {@value}
    */
-  String OPTION_CONTAINER_STARTUP_DELAY = "hoya.container.startup.delay";
-
+  String ZOOKEEPER_PORT = "zookeeper.port";
+  
   /**
-   * Version of the app: {@value}
+   * Zookeeper port value (int): {@value}
    */
-  String OPTION_KEYTAB_LOCATION = "cluster.keytab.location";
+  String ZOOKEEPER_PATH = "zookeeper.path";
 
-
-  String HOYA_CLUSTER_DIRECTORY_PERMISSIONS =
-    "hoya.cluster.directory.permissions";
-  String DEFAULT_HOYA_CLUSTER_DIRECTORY_PERMISSIONS =
-    "0750";
-  String HOYA_DATA_DIRECTORY_PERMISSIONS = "hoya.data.directory.permissions";
-  String DEFAULT_HOYA_DATA_DIRECTORY_PERMISSIONS = "0750";
 }

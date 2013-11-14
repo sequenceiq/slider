@@ -227,14 +227,14 @@ public final class RoleStatus implements Cloneable {
    */
   public Map<String, Integer> buildStatistics() {
     Map<String, Integer> stats = new HashMap<String, Integer>();
-    stats.put(StatusKeys.STAT_CONTAINERS_ACTIVE_REQUESTS, getRequested());
-    stats.put(StatusKeys.STAT_CONTAINERS_COMPLETED, getCompleted());
-    stats.put(StatusKeys.STAT_CONTAINERS_DESIRED, getDesired());
-    stats.put(StatusKeys.STAT_CONTAINERS_FAILED, getFailed());
-    stats.put(StatusKeys.STAT_CONTAINERS_LIVE, getActual());
-    stats.put(StatusKeys.STAT_CONTAINERS_REQUESTED, getTotalRequested());
-    stats.put(StatusKeys.STAT_CONTAINERS_STARTED, getStarted());
-    stats.put(StatusKeys.STAT_CONTAINERS_START_FAILED, getStartFailed());
+    stats.put(StatusKeys.STATISTICS_CONTAINERS_ACTIVE_REQUESTS, getRequested());
+    stats.put(StatusKeys.STATISTICS_CONTAINERS_COMPLETED, getCompleted());
+    stats.put(StatusKeys.STATISTICS_CONTAINERS_DESIRED, getDesired());
+    stats.put(StatusKeys.STATISTICS_CONTAINERS_FAILED, getFailed());
+    stats.put(StatusKeys.STATISTICS_CONTAINERS_LIVE, getActual());
+    stats.put(StatusKeys.STATISTICS_CONTAINERS_REQUESTED, getTotalRequested());
+    stats.put(StatusKeys.STATISTICS_CONTAINERS_STARTED, getStarted());
+    stats.put(StatusKeys.STATISTICS_CONTAINERS_START_FAILED, getStartFailed());
     return stats;
   }
 }

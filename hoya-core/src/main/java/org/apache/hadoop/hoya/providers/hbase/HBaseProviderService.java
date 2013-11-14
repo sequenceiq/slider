@@ -139,8 +139,8 @@ public class HBaseProviderService extends AbstractProviderService implements
     localResources.putAll(confResources);
     //Add binaries
     //now add the image if it was set
-    if (clusterSpec.imagePath != null) {
-      Path imagePath = new Path(clusterSpec.imagePath);
+    if (clusterSpec.isImagePathSet()) {
+      Path imagePath = new Path(clusterSpec.getImagePath());
       log.info("using image path {}", imagePath);
       HoyaUtils.maybeAddImagePath(fs, localResources, imagePath);
     }
@@ -259,8 +259,8 @@ public class HBaseProviderService extends AbstractProviderService implements
     composite.addService(subprocess);
     composite.addService(new EventNotifyingService(execInProgress,
                            cd.getOptionInt(
-                             OptionKeys.OPTION_CONTAINER_STARTUP_DELAY,
-                                           CONTAINER_STARTUP_DELAY)));
+                             OptionKeys.CONTAINER_STARTUP_DELAY,
+                             OptionKeys.DEFAULT_CONTAINER_STARTUP_DELAY)));
     //register the service for lifecycle management; when this service
     //is terminated, the master process is notified
     addService(composite);

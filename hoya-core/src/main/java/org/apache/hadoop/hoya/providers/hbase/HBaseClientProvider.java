@@ -203,7 +203,7 @@ public class HBaseClientProvider extends Configured implements
   @Override
   public Map<String, String> getDefaultClusterOptions() {
     HashMap<String, String> site = new HashMap<String, String>();
-    site.put(OptionKeys.OPTION_APP_VERSION, HBaseKeys.VERSION);
+    site.put(OptionKeys.APPLICATION_VERSION, HBaseKeys.VERSION);
     return site;
   }
   
@@ -271,11 +271,13 @@ public class HBaseClientProvider extends Configured implements
     sitexml.put(KEY_REGIONSERVER_INFO_PORT,
                 worker.get(RoleKeys.APP_INFOPORT));
     sitexml.put(KEY_REGIONSERVER_PORT, "0");
-    sitexml.put(KEY_ZNODE_PARENT, clusterSpec.zkPath);
-    sitexml.put(KEY_ZOOKEEPER_PORT,
-                Integer.toString(clusterSpec.zkPort));
-    sitexml.put(KEY_ZOOKEEPER_QUORUM,
-                clusterSpec.zkHosts);
+    providerUtils.propagateOption(clusterSpec, OptionKeys.ZOOKEEPER_PATH,
+                                  sitexml, KEY_ZNODE_PARENT);
+    providerUtils.propagateOption(clusterSpec, OptionKeys.ZOOKEEPER_PORT,
+                                  sitexml, KEY_ZOOKEEPER_PORT);
+    providerUtils.propagateOption(clusterSpec, OptionKeys.ZOOKEEPER_HOSTS,
+                                  sitexml, KEY_ZOOKEEPER_QUORUM);
+
     return sitexml;
   }
 
@@ -496,7 +498,7 @@ public class HBaseClientProvider extends Configured implements
   }
 
   public String getHBaseVersion(ClusterDescription cd) {
-    return cd.getOption(OptionKeys.OPTION_APP_VERSION,
+    return cd.getOption(OptionKeys.APPLICATION_VERSION,
                                         HBaseKeys.VERSION);
   }
 

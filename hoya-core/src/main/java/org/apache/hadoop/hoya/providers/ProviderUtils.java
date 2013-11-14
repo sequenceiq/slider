@@ -45,6 +45,11 @@ public class ProviderUtils implements RoleKeys {
 
   protected final Logger log;
 
+  /**
+   * Create an instace
+   * @param log log directory to use -usually the provider
+   */
+  
   public ProviderUtils(Logger log) {
     this.log = log;
   }
@@ -77,7 +82,7 @@ public class ProviderUtils implements RoleKeys {
     String logdir = System.getenv("LOGDIR");
     if (logdir == null) {
       logdir =
-        "/tmp/hoya-" + UserGroupInformation.getCurrentUser().getShortUserName();
+        HoyaKeys.HOYA_TMP_LOGDIR_PREFIX + UserGroupInformation.getCurrentUser().getShortUserName();
     }
     return logdir;
   }
@@ -110,16 +115,16 @@ public class ProviderUtils implements RoleKeys {
 
   /**
    * copy all options beginning site. into the site.xml
-   * @param clusterSpec cluster specificatin
-   * @param sitexml XML file to build up
+   * @param clusterSpec cluster specification
+   * @param sitexml map for XML file to build up
    */
   public void propagateSiteOptions(ClusterDescription clusterSpec,
                                     Map<String, String> sitexml) {
     Map<String, String> options = clusterSpec.options;
     for (Map.Entry<String, String> entry : options.entrySet()) {
       String key = entry.getKey();
-      if (key.startsWith(OptionKeys.OPTION_SITE_PREFIX)) {
-        String envName = key.substring(OptionKeys.OPTION_SITE_PREFIX.length());
+      if (key.startsWith(OptionKeys.SITE_XML_PREFIX)) {
+        String envName = key.substring(OptionKeys.SITE_XML_PREFIX.length());
         if (!envName.isEmpty()) {
           sitexml.put(envName, entry.getValue());
         }
@@ -128,19 +133,35 @@ public class ProviderUtils implements RoleKeys {
   }
 
   /**
+   * Propagate an option from the cluster specification option map
+   * to the site XML map, using the site key for the name
+   * @param clusterSpec cluster specification
+   * @param optionKey key in the option map
+   * @param sitexml  map for XML file to build up
+   * @param siteKey key to assign the value to in the site XML
+   * @throws BadConfigException if the option is missing from the cluster spec
+   */
+  public void propagateOption(ClusterDescription clusterSpec,
+                              String optionKey,
+                              Map<String, String> sitexml,
+                              String siteKey) throws BadConfigException {
+    sitexml.put(siteKey, clusterSpec.getMandatoryOption(optionKey));
+  }
+  
+  /**
    * Build the image dir. This path is relative and only valid at the far end
-   * @param cd cluster spec
+   * @param clusterSpec cluster spec
    * @param archiveSubdir subdir
    * @return a relative path to the tar
    */
-  public File buildImageDir(ClusterDescription cd,
+  public File buildImageDir(ClusterDescription clusterSpec,
                                    String archiveSubdir) {
     File basedir;
-    if (cd.imagePath != null) {
+    if (clusterSpec.isImagePathSet()) {
       basedir = new File(new File(HoyaKeys.LOCAL_TARBALL_INSTALL_SUBDIR),
                          archiveSubdir);
     } else {
-      basedir = new File(cd.applicationHome);
+      basedir = new File(clusterSpec.getApplicationHome());
     }
     return basedir;
   }
@@ -154,8 +175,8 @@ public class ProviderUtils implements RoleKeys {
   }
 
 
-  public static void validatePathReferencesLocalDir(String meaning, String path) throws
-                                                                                 BadConfigException {
+  public static void validatePathReferencesLocalDir(String meaning, String path)
+      throws BadConfigException {
     File file = new File(path);
     if (!file.exists()) {
       throw new BadConfigException("%s directory %s not found", meaning, file);
