@@ -319,7 +319,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
     } else {
       // otherwise, just run accumulo version. That way, detect problems fast
       String accumuloAction =
-        cd.getOption(HoyaKeys.OPTION_HOYA_MASTER_COMMAND,
+        cd.getOption(OptionKeys.OPTION_HOYA_MASTER_COMMAND,
                      ACCUMULO_VERSION_COMMAND);
       commands =
         buildProcessCommand(cd, confDir, env, accumuloAction);

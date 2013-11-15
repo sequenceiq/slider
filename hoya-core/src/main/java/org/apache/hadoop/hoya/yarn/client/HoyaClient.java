@@ -29,6 +29,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
+import org.apache.hadoop.hoya.HoyaXmlConfKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.ClusterNode;
 import org.apache.hadoop.hoya.api.HoyaClusterProtocol;
@@ -396,7 +397,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                  fsDefaultName);
 
     clusterSpec.setOptionifUnset(OptionKeys.SITE_XML_PREFIX +
-                                 HoyaKeys.FS_DEFAULT_NAME_CLASSIC,
+                                 HoyaXmlConfKeys.FS_DEFAULT_NAME_CLASSIC,
                                  fsDefaultName);
 
     // patch in the properties related to the principals extracted from

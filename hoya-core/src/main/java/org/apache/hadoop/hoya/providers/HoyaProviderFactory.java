@@ -22,6 +22,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
+import org.apache.hadoop.hoya.HoyaXmlConfKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys;
@@ -77,7 +78,7 @@ public abstract class HoyaProviderFactory extends Configured {
     if (application == null) {
       application = DEFAULT_CLUSTER_TYPE;
     }
-    String providerKey = String.format(HoyaKeys.HOYA_PROVIDER_KEY, application);
+    String providerKey = String.format(HoyaXmlConfKeys.KEY_HOYA_PROVIDER, application);
     String classname = conf.getTrimmed(providerKey);
     if (classname == null) {
       throw new HoyaException(HoyaExitCodes.EXIT_BAD_CONFIGURATION,

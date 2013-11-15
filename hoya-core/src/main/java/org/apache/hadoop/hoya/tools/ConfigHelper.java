@@ -24,6 +24,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaKeys;
+import org.apache.hadoop.hoya.HoyaXmlConfKeys;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.io.IOUtils;
 import org.slf4j.Logger;
@@ -338,8 +339,8 @@ public class ConfigHelper {
       origin = "Resource " + fallbackResource;
     }
     //force a get
-    conf.get(HoyaKeys.KEY_HOYA_TEMPLATE_ORIGIN);
-    conf.set(HoyaKeys.KEY_HOYA_TEMPLATE_ORIGIN, origin);
+    conf.get(HoyaXmlConfKeys.KEY_HOYA_TEMPLATE_ORIGIN);
+    conf.set(HoyaXmlConfKeys.KEY_HOYA_TEMPLATE_ORIGIN, origin);
     //now set the origin
     return conf;
   }

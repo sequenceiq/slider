@@ -34,7 +34,6 @@ package org.apache.hadoop.hoya.yarn.utils
 
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.yarn.conf.YarnConfiguration
@@ -43,6 +42,12 @@ import org.junit.Test
 @Slf4j
 class TestClientResourceRegistration {
 
+  /**
+   * Origin of a hoya resource -again, internal tracking 
+   * rather than something to set by hand.
+   */
+  private final static String KEY_HOYA_RESOURCE_ORIGIN = "hoya.client.resource.origin";
+  
   @Test
   public void testRegistration() throws Throwable {
     assert HoyaUtils.registerHoyaClientResource();
@@ -52,7 +57,7 @@ class TestClientResourceRegistration {
   public void testLoad() throws Throwable {
     assert HoyaUtils.registerHoyaClientResource();
     Configuration conf = new Configuration(true);
-    assert conf.get(HoyaKeys.PROPERTY_HOYA_RESOURCE_ORIGIN) == "test/resources"
+    assert conf.get(KEY_HOYA_RESOURCE_ORIGIN) == "test/resources"
   }
 
   @Test
@@ -80,7 +85,7 @@ class TestClientResourceRegistration {
   @Test
   public void testLoadRes() throws Throwable {
     Configuration conf = HoyaUtils.loadHoyaClientConfigurationResource()
-    assert conf.get(HoyaKeys.PROPERTY_HOYA_RESOURCE_ORIGIN) == "test/resources"
+    assert conf.get(KEY_HOYA_RESOURCE_ORIGIN) == "test/resources"
     String hostname = "nosuchhost:0"
     conf.set(YarnConfiguration.RM_ADDRESS, hostname)
     YarnConfiguration yc = new YarnConfiguration()

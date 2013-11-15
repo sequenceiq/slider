@@ -249,7 +249,7 @@ public class HBaseProviderService extends AbstractProviderService implements
                                                  HoyaException {
 
     String masterCommand =
-      cd.getOption(HoyaKeys.OPTION_HOYA_MASTER_COMMAND, COMMAND_VERSION);
+      cd.getOption(OptionKeys.OPTION_HOYA_MASTER_COMMAND, COMMAND_VERSION);
 
     List<String> commands =
       buildProcessCommand(cd, confDir, env, masterCommand);

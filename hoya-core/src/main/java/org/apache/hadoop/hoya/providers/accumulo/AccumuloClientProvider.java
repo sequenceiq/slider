@@ -26,6 +26,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HostAndPort;
 import org.apache.hadoop.hoya.HoyaKeys;
+import org.apache.hadoop.hoya.HoyaXmlConfKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.api.RoleKeys;
@@ -236,7 +237,7 @@ public class AccumuloClientProvider extends Configured implements
                                    CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY);
     }
     sitexml.put(CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY, fsDefaultName);
-    sitexml.put(HoyaKeys.FS_DEFAULT_NAME_CLASSIC, fsDefaultName);
+    sitexml.put(HoyaXmlConfKeys.FS_DEFAULT_NAME_CLASSIC, fsDefaultName);
 
     String dataPath = clusterSpec.dataPath;
     Path path = new Path(dataPath);

@@ -34,6 +34,7 @@ import org.apache.hadoop.hbase.zookeeper.MasterAddressTracker;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.hadoop.hoya.HostAndPort;
 import org.apache.hadoop.hoya.HoyaKeys;
+import org.apache.hadoop.hoya.HoyaXmlConfKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.api.RoleKeys;
@@ -400,7 +401,7 @@ public class HBaseClientProvider extends Configured implements
     
     if (log.isDebugEnabled()) {
       log.debug("Configuration came from {}", siteConf.get(
-        HoyaKeys.KEY_HOYA_TEMPLATE_ORIGIN));
+        HoyaXmlConfKeys.KEY_HOYA_TEMPLATE_ORIGIN));
       ConfigHelper.dumpConf(siteConf);
     }
     //construct the cluster configuration values
