@@ -50,6 +50,7 @@ import org.apache.hadoop.hoya.servicemonitor.Probe;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.zookeeper.KeeperException;
@@ -58,16 +59,24 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 /**
  * This class implements  the client-side aspects
@@ -381,6 +390,192 @@ public class HBaseClientProvider extends Configured implements
                                     -1);
   }
   
+  /**
+   * Find a jar that contains a class of the same name, if any. It will return
+   * a jar file, even if that is not the first thing on the class path that
+   * has a class with the same name. Looks first on the classpath and then in
+   * the <code>packagedClasses</code> map.
+   * @param my_class the class to find.
+   * @return a jar file that contains the class, or null.
+   * @throws IOException
+   */
+  private static String findContainingJar(Class<?> my_class, Map<String, String> packagedClasses)
+      throws IOException {
+    ClassLoader loader = my_class.getClassLoader();
+    String class_file = my_class.getName().replaceAll("\\.", "/") + ".class";
+
+    // first search the classpath
+    for (Enumeration<URL> itr = loader.getResources(class_file); itr.hasMoreElements();) {
+      URL url = itr.nextElement();
+      if ("jar".equals(url.getProtocol())) {
+        String toReturn = url.getPath();
+        if (toReturn.startsWith("file:")) {
+          toReturn = toReturn.substring("file:".length());
+        }
+        // URLDecoder is a misnamed class, since it actually decodes
+        // x-www-form-urlencoded MIME type rather than actual
+        // URL encoding (which the file path has). Therefore it would
+        // decode +s to ' 's which is incorrect (spaces are actually
+        // either unencoded or encoded as "%20"). Replace +s first, so
+        // that they are kept sacred during the decoding process.
+        toReturn = toReturn.replaceAll("\\+", "%2B");
+        toReturn = URLDecoder.decode(toReturn, "UTF-8");
+        return toReturn.replaceAll("!.*$", "");
+      }
+    }
+
+    // now look in any jars we've packaged using JarFinder. Returns null when
+    // no jar is found.
+    return packagedClasses.get(class_file);
+  }
+
+  /**
+   * Invoke 'getJar' on a JarFinder implementation. Useful for some job
+   * configuration contexts (HBASE-8140) and also for testing on MRv2. First
+   * check if we have HADOOP-9426. Lacking that, fall back to the backport.
+   * @param my_class the class to find.
+   * @return a jar file that contains the class, or null.
+   */
+  private static String getJar(Class<?> my_class) {
+    String ret = null;
+    String hadoopJarFinder = "org.apache.hadoop.util.JarFinder";
+    Class<?> jarFinder = null;
+    try {
+      log.debug("Looking for " + hadoopJarFinder + ".");
+      jarFinder = Class.forName(hadoopJarFinder);
+      log.debug(hadoopJarFinder + " found.");
+      Method getJar = jarFinder.getMethod("getJar", Class.class);
+      ret = (String) getJar.invoke(null, my_class);
+    } catch (ClassNotFoundException e) {
+      throw new RuntimeException("getJar invocation failed.", e);
+    } catch (InvocationTargetException e) {
+      // function was properly called, but threw it's own exception. Unwrap it
+      // and pass it on.
+      throw new RuntimeException(e.getCause());
+    } catch (Exception e) {
+      // toss all other exceptions, related to reflection failure
+      throw new RuntimeException("getJar invocation failed.", e);
+    }
+
+    return ret;
+  }
+
+  /**
+   * Add entries to <code>packagedClasses</code> corresponding to class files
+   * contained in <code>jar</code>.
+   * @param jar The jar who's content to list.
+   * @param packagedClasses map[class -> jar]
+   */
+  private static void updateMap(String jar, Map<String, String> packagedClasses) throws IOException {
+    ZipFile zip = null;
+    try {
+      zip = new ZipFile(jar);
+      for (Enumeration<? extends ZipEntry> iter = zip.entries(); iter.hasMoreElements();) {
+        ZipEntry entry = iter.nextElement();
+        if (entry.getName().endsWith("class")) {
+          packagedClasses.put(entry.getName(), jar);
+        }
+      }
+    } finally {
+      if (null != zip) zip.close();
+    }
+  }
+
+  /**
+   * If org.apache.hadoop.util.JarFinder is available (0.23+ hadoop), finds
+   * the Jar for a class or creates it if it doesn't exist. If the class is in
+   * a directory in the classpath, it creates a Jar on the fly with the
+   * contents of the directory and returns the path to that Jar. If a Jar is
+   * created, it is created in the system temporary directory. Otherwise,
+   * returns an existing jar that contains a class of the same name. Maintains
+   * a mapping from jar contents to the tmp jar created.
+   * @param my_class the class to find.
+   * @param fs the FileSystem with which to qualify the returned path.
+   * @param packagedClasses a map of class name to path.
+   * @return a jar file that contains the class.
+   * @throws IOException
+   */
+  private static Path findOrCreateJar(Class<?> my_class, FileSystem fs,
+      Map<String, String> packagedClasses)
+  throws IOException {
+    // attempt to locate an existing jar for the class.
+    String jar = findContainingJar(my_class, packagedClasses);
+    if (null == jar || jar.isEmpty()) {
+      jar = getJar(my_class);
+      updateMap(jar, packagedClasses);
+    }
+
+    if (null == jar || jar.isEmpty()) {
+      throw new IOException("Cannot locate resource for class " + my_class.getName());
+    }
+
+    log.debug(String.format("For class %s, using jar %s", my_class.getName(), jar));
+    return new Path(jar).makeQualified(fs);
+  }
+  
+  /**
+   * Add the jars containing the given classes to the job's configuration
+   * such that JobClient will ship them to the cluster and add them to
+   * the DistributedCache.
+   */
+  static void addDependencyJars(Configuration conf,
+      Class<?>... classes) throws IOException {
+
+    FileSystem localFs = FileSystem.getLocal(conf);
+    Set<String> jars = new HashSet<String>();
+    // Add jars that are already in the tmpjars variable
+    jars.addAll(conf.getStringCollection("tmpjars"));
+
+    // add jars as we find them to a map of contents jar name so that we can avoid
+    // creating new jars for classes that have already been packaged.
+    Map<String, String> packagedClasses = new HashMap<String, String>();
+
+    // Add jars containing the specified classes
+    for (Class<?> clazz : classes) {
+      if (clazz == null) continue;
+
+      Path path = findOrCreateJar(clazz, localFs, packagedClasses);
+      if (path == null) {
+        log.warn("Could not find jar for class " + clazz +
+                 " in order to ship it to the cluster.");
+        continue;
+      }
+      if (!localFs.exists(path)) {
+        log.warn("Could not validate jar file " + path + " for class "
+                 + clazz);
+        continue;
+      }
+      jars.add(path.toString());
+    }
+    if (jars.isEmpty()) return;
+
+    conf.set("tmpjars",
+             StringUtils.arrayToString(jars.toArray(new String[0])));
+  }
+
+  /**
+   * Add HBase and its dependencies (only) to the job configuration.
+   * <p>
+   * This is intended as a low-level API, facilitating code reuse between this
+   * class and its mapred counterpart. It also of use to extenral tools that
+   * need to build a MapReduce job that interacts with HBase but want
+   * fine-grained control over the jars shipped to the cluster.
+   * </p>
+   * @param conf The Configuration object to extend with dependencies.
+   * @see org.apache.hadoop.hbase.mapred.TableMapReduceUtil
+   * @see <a href="https://issues.apache.org/jira/browse/PIG-3285">PIG-3285</a>
+   */
+  public static void addHBaseDependencyJars(Configuration conf) throws IOException {
+    addDependencyJars(conf,
+      // explicitly pull a class from each module
+      org.apache.hadoop.hbase.HConstants.class,                      // hbase-common
+      org.apache.hadoop.hbase.protobuf.generated.ClientProtos.class, // hbase-protocol
+      org.apache.hadoop.hbase.client.Put.class,                      // hbase-client
+      // pull necessary dependencies
+      org.apache.zookeeper.ZooKeeper.class,
+      com.google.protobuf.Message.class,
+      com.google.common.collect.Lists.class);
+  }
 
   @Override
   public Map<String, LocalResource> prepareAMAndConfigForLaunch(FileSystem clusterFS,
@@ -415,6 +610,7 @@ public class HBaseClientProvider extends Configured implements
       ConfigHelper.mergeConfigurations(siteConf, clientConfExtras,
                                        "Hoya Client");
     }
+    addHBaseDependencyJars(siteConf);
     
     if (log.isDebugEnabled()) {
       log.debug("Merged Configuration");
