@@ -179,12 +179,6 @@ public class ClientArgs extends CommonArgs {
       LOG.debug("Setting RM to {}", manager);
       conf.set(YarnConfiguration.RM_ADDRESS, manager);
     }
-    //security
-    if (secure) {
-      LOG.debug("secure mode: requiring Kerberos authentication");
-      SecurityUtil.setAuthenticationMethod(
-        UserGroupInformation.AuthenticationMethod.KERBEROS, conf);
-    }
   }
 
   /**

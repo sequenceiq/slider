@@ -49,7 +49,7 @@ public class HoyaRPCSecurityInfo extends SecurityInfo {
 
       @Override
       public String serverPrincipal() {
-        return HoyaXmlConfKeys.KEY_HOYA_PRINCIPAL;
+        return HoyaXmlConfKeys.KEY_HOYA_KERBEROS_PRINCIPAL;
       }
 
       @Override

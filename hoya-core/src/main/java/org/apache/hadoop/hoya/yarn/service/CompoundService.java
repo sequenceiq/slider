@@ -36,7 +36,7 @@ import java.util.List;
 public class CompoundService extends CompositeService implements Parent,
                                                                  ServiceStateChangeListener {
 
-  protected static final Logger log =
+  private static final Logger log =
     LoggerFactory.getLogger(CompoundService.class);
 
   public CompoundService(String name) {

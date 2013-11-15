@@ -400,8 +400,8 @@ public class HBaseClientProvider extends Configured implements
       HBaseKeys.HBASE_TEMPLATE_RESOURCE);
     
     if (log.isDebugEnabled()) {
-      log.debug("Configuration came from {}", siteConf.get(
-        HoyaXmlConfKeys.KEY_HOYA_TEMPLATE_ORIGIN));
+      log.debug("Configuration came from {}",
+                siteConf.get(HoyaXmlConfKeys.KEY_HOYA_TEMPLATE_ORIGIN));
       ConfigHelper.dumpConf(siteConf);
     }
     //construct the cluster configuration values

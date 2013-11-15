@@ -406,11 +406,15 @@ public class ServiceLauncher
       exitException = ee;
     } catch (Throwable thrown) {
       int exitCode;
-      LOG.error("While running " + getServiceName() + ":" + thrown); ;
+      String message = thrown.getMessage();
+      if (message == null) {
+        message = thrown.toString();
+      }
+      LOG.error(message) ;
       if (thrown instanceof ExitCodeProvider) {
         exitCode = ((ExitCodeProvider) thrown).getExitCode();
         if (LOG.isDebugEnabled()) {
-          LOG.debug("While running " + getServiceName() + ":" + thrown, thrown);
+          LOG.debug("While running " + getServiceName() + ": " + message, thrown);
         }
       } else {
         //not any of the service launcher exceptions -assume something worse

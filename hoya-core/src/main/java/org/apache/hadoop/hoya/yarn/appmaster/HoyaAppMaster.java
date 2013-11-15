@@ -269,7 +269,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
     serviceArgs.applyDefinitions(conf);
     serviceArgs.applyFileSystemURL(conf);
     //init security with our conf
-    if (serviceArgs.secure) {
+    if (HoyaUtils.isClusterSecure(conf)) {
       log.info("Secure mode with kerberos realm {}",
                HoyaUtils.getKerberosRealm());
       UserGroupInformation.setConfiguration(conf);

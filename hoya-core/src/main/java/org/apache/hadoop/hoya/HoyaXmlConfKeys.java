@@ -57,12 +57,18 @@ public interface HoyaXmlConfKeys {
   /**
    * Hoya principal
    */
-  String KEY_HOYA_PRINCIPAL = "hoya.kerberos.principal";
+  String KEY_HOYA_KERBEROS_PRINCIPAL = "hoya.kerberos.principal";
   
   /**
    * Name of the property for ACLs for Hoya AM.
    * {@value}
    */
-  String KEY_HOYA_ACL = "security.hoya.protocol.acl";
+  String KEY_HOYA_PROTOCOL_ACL = "security.hoya.protocol.acl";
 
+
+  /**
+   * Flag which is set to indicate that security should be enabled
+   * when talking to this cluster.
+   */
+  String KEY_HOYA_SECURITY_ENABLED = "hoya.security.enabled";
 }

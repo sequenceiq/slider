@@ -29,7 +29,7 @@ public class HoyaAMPolicyProvider extends PolicyProvider {
   
   private static final Service[] services = 
       new Service[] {
-    new Service(HoyaXmlConfKeys.KEY_HOYA_ACL, HoyaClusterProtocolPB.class)
+    new Service(HoyaXmlConfKeys.KEY_HOYA_PROTOCOL_ACL, HoyaClusterProtocolPB.class)
   };
 
   @SuppressWarnings("ReturnOfCollectionOrArrayField")

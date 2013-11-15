@@ -45,7 +45,7 @@ import java.io.IOException;
  * endpoint or be relayed via protobuf
  */
 @KerberosInfo(
-  serverPrincipal = HoyaXmlConfKeys.KEY_HOYA_PRINCIPAL)
+  serverPrincipal = HoyaXmlConfKeys.KEY_HOYA_KERBEROS_PRINCIPAL)
 public interface HoyaClusterProtocol extends VersionedProtocol {
   public static final long versionID = 0x01;
 

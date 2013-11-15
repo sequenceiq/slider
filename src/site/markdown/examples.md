@@ -38,13 +38,20 @@ hosts the HDFS NameNode and the YARN Resource Manager
 
 # start all the services
 
+    hdfs --config $HADOOP_CONF_DIR namenode & 
+    hdfs --config $HADOOP_CONF_DIR datanode &
+    
+    
+    yarn --config $HADOOP_CONF_DIR resourcemanager
+    yarn --config $HADOOP_CONF_DIR nodemanager
+    
+    
     hadoop-daemon.sh --config $HADOOP_CONF_DIR --script hdfs start namenode
     hadoop-daemon.sh --config $HADOOP_CONF_DIR --script hdfs start datanode
-    
     yarn-daemon.sh --config $HADOOP_CONF_DIR start resourcemanager
     yarn-daemon.sh --config $HADOOP_CONF_DIR start nodemanager
     
-    ~/zookeeper-3.4.5/bin/zkServer.sh start
+    ~/zookeeper/bin/zkServer.sh start
     
     
 # stop them
@@ -60,11 +67,11 @@ hosts the HDFS NameNode and the YARN Resource Manager
 NN up on [http://master:50070/dfshealth.jsp](http://master:50070/dfshealth.jsp)
 RM yarn-daemon.sh --config $HADOOP_CONF_DIR start nodemanager
 
-    zookeeper-3.4.5/bin/zkServer.sh start
+    zookeeper/bin/zkServer.sh start
 
 
     # shutdown
-    ./zookeeper-3.4.5/bin/zkServer.sh stop
+    ./zookeeper/bin/zkServer.sh stop
 
 
 Tip: after a successful run on a local cluster, do a quick `rm -rf $HADOOP_HOME/logs`
@@ -86,7 +93,11 @@ or
     hdfs dfs -ls hdfs://master:9090/
     
 
-## Clean up any existing hoya cluster details
+### Optional: point bin/hoya at your chosen cluster configuration
+
+export HOYA_CONF_DIR=~/Projects/hoya/hoya-core/src/test/configs/ubuntu-secure/hoya
+
+## Optional: Clean up any existing hoya cluster details
 
 This is for demos only, otherwise you lose the clusters and their databases.
 

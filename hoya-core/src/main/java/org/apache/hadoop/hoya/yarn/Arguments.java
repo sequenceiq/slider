@@ -64,7 +64,6 @@ public interface Arguments {
   String ARG_RESOURCE_MANAGER = "--rm";
   String ARG_ROLE = "--role";
   String ARG_SECURE = "--secure";
-  String ARG_SECURE_SHORT = "-s";
   String ARG_SYSPROP = "-S";
   String ARG_ROLEOPT = "--roleopt";
   String ARG_USER = "--user";

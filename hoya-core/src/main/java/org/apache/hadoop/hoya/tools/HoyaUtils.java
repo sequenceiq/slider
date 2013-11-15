@@ -27,6 +27,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
+import org.apache.hadoop.hoya.HoyaXmlConfKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
@@ -954,6 +955,15 @@ public final class HoyaUtils {
   }
 
   /**
+   * Flag to indicate whether the cluster is in secure mode
+   * @param conf configuration to look at
+   * @return true if the hoya client/service should be in secure mode
+   */
+  public static boolean isClusterSecure(Configuration conf) {
+    return conf.getBoolean(HoyaXmlConfKeys.KEY_HOYA_SECURITY_ENABLED, false);
+  }
+
+  /**
    * This wrapps ApplicationReports and generates a string version
    * iff the toString() operator is invoked
    */
@@ -1072,6 +1082,7 @@ public final class HoyaUtils {
     log.info("Secure mode with kerberos realm {}",
              HoyaUtils.getKerberosRealm());
     //this gets UGI to reset its previous world view (i.e simple auth)
+    //security
     SecurityUtil.setAuthenticationMethod(
       UserGroupInformation.AuthenticationMethod.KERBEROS, conf);
     UserGroupInformation.setConfiguration(conf);

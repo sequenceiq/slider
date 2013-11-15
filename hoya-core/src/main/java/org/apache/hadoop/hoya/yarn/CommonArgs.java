@@ -159,9 +159,6 @@ public class CommonArgs implements HoyaActions , Arguments {
   //action arguments; 
   public List<String> actionArgs;
   public final String[] args;
-  @Parameter(names = {ARG_SECURE , ARG_SECURE_SHORT},
-             description = "enable secure communications and hoya clusters")
-  public boolean secure = false;
 
   /**
    * create a 3-tuple

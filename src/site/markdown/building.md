@@ -57,11 +57,9 @@ For the scripts below, set the `HADOOP_VERSION` variable to the version
 
     export HADOOP_VERSION=2.2.0
 
-Build and install it locally, skipping the tests:
+To build and install it locally, skipping the tests:
 
     mvn install -DskipTests
-
-You have to do this every morning to avoid the ASF nightly artifacts being picked up/
 
 To make a tarball for use in test runs:
 
@@ -98,8 +96,6 @@ The maven command for building hbase artifacts against this hadoop version is
 
     mvn clean install assembly:single -DskipTests -Dmaven.javadoc.skip=true -Dhadoop.profile=2.0 -Dhadoop-two.version=$HADOOP_VERSION
 
-
-    
 This will create `hbase-0.96.0.tar.gz` in the directory `hbase-assembly/target/` in
 the hbase source tree. 
 

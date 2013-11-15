@@ -110,11 +110,12 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                           ProbeReportHandler,
                                                           HoyaExitCodes,
                                                           HoyaKeys {
-  protected static final Logger log = LoggerFactory.getLogger(HoyaClient.class);
+  private static final Logger log = LoggerFactory.getLogger(HoyaClient.class);
 
   public static final int ACCEPT_TIME = 60000;
   public static final String E_CLUSTER_RUNNING = "cluster already running";
   public static final String E_ALREADY_EXISTS = "already exists";
+  public static final String PRINTF_E_ALREADY_EXISTS = "Hoya Cluster \"%s\" already exists and is defined in %s";
   public static final String E_MISSING_PATH = "Missing path ";
   public static final String E_INCOMPLETE_CLUSTER_SPEC =
     "Cluster specification is marked as incomplete: ";
@@ -182,7 +183,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     serviceArgs.applyDefinitions(conf);
     serviceArgs.applyFileSystemURL(conf);
     // init security with our conf
-    if (serviceArgs.secure) {
+    if (HoyaUtils.isClusterSecure(conf)) {
       addService(new SecurityCheckerService());
     }
     //create the YARN client
@@ -521,12 +522,12 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       clusterSpec.save(fs, clusterSpecPath, false);
     } catch (FileAlreadyExistsException fae) {
       throw new HoyaException(EXIT_BAD_CLUSTER_STATE,
-                              clustername + ": " + E_ALREADY_EXISTS + " :" +
+                              PRINTF_E_ALREADY_EXISTS, clustername,
                               clusterSpecPath);
     } catch (IOException e) {
       // this is probably a file exists exception too, but include it in the trace just in case
       throw new HoyaException(EXIT_BAD_CLUSTER_STATE, e,
-                              clustername + ": " + E_ALREADY_EXISTS + " :" +
+                              PRINTF_E_ALREADY_EXISTS, clustername,
                               clusterSpecPath);
     }
 
@@ -584,6 +585,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     HoyaUtils.validateClusterName(clustername);
     verifyNoLiveClusters(clustername);
     Configuration config = getConfig();
+    boolean clusterSecure = HoyaUtils.isClusterSecure(config);
     
     //create the Hoya AM provider -this helps set up the AM
     HoyaAMClientProvider hoyaAM = new HoyaAMClientProvider(config);
@@ -731,10 +733,11 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // now that the site config is fully generated, the provider gets
     // to do a quick review of them.
     log.debug("Preflight validation of cluster configuration");
+
     provider.preflightValidateClusterConfiguration(clusterSpec,
-                                                   fs,
-                                                   generatedConfDirPath,
-                                                   serviceArgs.secure);
+                             fs,
+                             generatedConfDirPath,
+                             clusterSecure);
 
 
     // now add the image if it was set
@@ -825,18 +828,22 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       commands.add(serviceArgs.filesystemURL.toString());
     }
 
-    if (serviceArgs.secure) {
+    if (clusterSecure) {
       // if the cluster is secure, make sure that
       // the relevant security settings go over
-      commands.add(Arguments.ARG_SECURE);
+      propagateConfOption(commands,
+                          config,
+                          HoyaXmlConfKeys.KEY_HOYA_SECURITY_ENABLED);
       propagateConfOption(commands,
                           config,
                           DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY);
       Credentials credentials = new Credentials();
       String tokenRenewer = config.get(YarnConfiguration.RM_PRINCIPAL);
       if (isUnset(tokenRenewer)) {
-        throw new IOException(
-          "Can't get Master Kerberos principal for the RM to use as renewer");
+        throw new BadConfigException(
+          "Can't get Master Kerberos principal %s for the RM to use as renewer",
+          YarnConfiguration.RM_PRINCIPAL
+        );
       }
 
       // For now, only getting tokens for the default file-system.
