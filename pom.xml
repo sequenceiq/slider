@@ -3,7 +3,7 @@
   <groupId>org.apache.hoya</groupId>
   <artifactId>hoya</artifactId>
   <name>Hoya: HBase on YARN</name>
-  <version>0.6.4</version>
+  <version>0.6.5-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <description>

@@ -110,7 +110,7 @@ the release number
 
     export HOYA_RELEASE=0.6.0-SNAPSHOT
     mvn versions:set -DnewVersion=$HOYA_RELEASE
-    git commit -a -m "BUG-XYZ updating development POMs to HOYA_RELEASE"
+    git commit -a -m "BUG-XYZ updating development POMs to $HOYA_RELEASE"
 
 **Step #13:** Push the release and develop branches to github 
 (We recommend naming the hortonworks github repository 'hortonworks' to avoid
