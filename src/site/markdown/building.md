@@ -115,9 +115,6 @@ and downloading then expanding the file.
 (and if you set `HBASE_VERSION` to something else, you can pick up that version
 -making sure that hoya is in sync)
 
-    
-
-
 For more information (including recommended Maven memory configuration options),
 see [HBase building](http://hbase.apache.org/book/build.html)
 
@@ -161,7 +158,7 @@ this, to create a .tar file and an expanded directory
     
 Note that the final location of the accumulo files is needed for the configuration,
 it may be directly under target/ or it may be in a subdirectory, with 
-a patch such as `target/accumulo-ACCUMULO_VERSION-dev/accumulo-ACCUMULO_VERSION/`
+a path such as `target/accumulo-$ACCUMULO_VERSION-dev/accumulo-$ACCUMULO_VERSION/`
 
 
 ## Testing
