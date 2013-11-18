@@ -49,7 +49,6 @@ versions plugin)[http://mojo.codehaus.org/versions-maven-plugin/]
         git add <changed files>
         git commit -m "BUG-XYZ updating release POMs for $HOYA_RELEASE"
 
-
   
 **Step #6:** Do a final test run to make sure nothing is broken
 
@@ -70,7 +69,13 @@ everything looks good -and that the versions of all the dependent artifacts
 look good too: there must be no `-SNAPSHOT` dependencies.
 
 
-**Step #9:** Create a a one-line plain text release note for commits and tags
+**Step #9: deploy Hoya against a live cluster
+
+1. Expand the .tar.gz file
+1. Use it to create, flex, freeze then thaw a Hoya applicatin on a remote YARN cluster
+1. Do this for both HBase and Accumulo
+
+**Step #10:** Create a a one-line plain text release note for commits and tags
 And a multi-line markdown release note, which will be used for artifacts.
 
 
@@ -87,7 +92,7 @@ can be created, though its testing is currently very minimal.
 Enjoy!
 
 
-**Step #10:** Finish the git flow release, either in the SourceTree GUI or
+**Step #11:** Finish the git flow release, either in the SourceTree GUI or
 the command line:
 
     
@@ -99,7 +104,7 @@ prepared earlier.
 
 You will now be back on the `develop` branch.
 
-**Step #11:** Switch back to `develop` and update its version number past
+**Step #12:** Switch back to `develop` and update its version number past
 the release number
 
 
@@ -107,7 +112,7 @@ the release number
     mvn versions:set -DnewVersion=$HOYA_RELEASE
     git commit -a -m "BUG-XYZ updating development POMs to HOYA_RELEASE"
 
-**Step #12:** Push the release and develop branches to github 
+**Step #13:** Push the release and develop branches to github 
 (We recommend naming the hortonworks github repository 'hortonworks' to avoid
  confusion with apache, personal and others):
 
@@ -120,7 +125,7 @@ The `git-flow` program automatically pushes up the `release/hoya-X.Y` branch,
 before deleting it locally.
 
 
-**Step #13:** ### For releasing small artifacts
+**Step #14:** ### For releasing small artifacts
 
 (This only works for files under 5GB)
 Browse to https://github.com/hortonworks/hoya/releases/new
@@ -128,15 +133,15 @@ Browse to https://github.com/hortonworks/hoya/releases/new
 Create a new release on the site by following the instructions
 
 
-**Step #14:**  For releasing via an external CDN (e.g. Rackspace Cloud)
+**Step #15:**  For releasing via an external CDN (e.g. Rackspace Cloud)
 
 Using the web GUI for your particular distribution network, upload the
 `.tar.gz` artifact
 
 
-**Step #15:** Announce the release 
+**Step #16:** Announce the release 
 
-**Step #16:** Get back to developing!
+**Step #17:** Get back to developing!
 
 Check out the develop branch and purge all release artifacts
 

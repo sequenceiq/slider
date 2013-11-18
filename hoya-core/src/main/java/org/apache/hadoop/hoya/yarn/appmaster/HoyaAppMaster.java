@@ -23,7 +23,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hoya.HostAndPort;
 import org.apache.hadoop.hoya.HoyaExitCodes;
@@ -52,6 +51,7 @@ import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerAssignment;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RMOperationHandler;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleInstance;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleStatus;
+import org.apache.hadoop.hoya.yarn.service.CompoundLaunchedService;
 import org.apache.hadoop.hoya.yarn.service.EventCallback;
 import org.apache.hadoop.hoya.yarn.service.RpcService;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -60,7 +60,6 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.SaslRpcServer;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
-import org.apache.hadoop.service.CompositeService;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.service.ServiceStateChangeListener;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -106,7 +105,7 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * This is the AM, which directly implements the callbacks from the AM and NM
  */
-public class HoyaAppMaster extends CompositeService
+public class HoyaAppMaster extends CompoundLaunchedService
   implements AMRMClientAsync.CallbackHandler,
              NMClientAsync.CallbackHandler,
              RunService,
@@ -116,7 +115,7 @@ public class HoyaAppMaster extends CompositeService
              ServiceStateChangeListener,
              RoleKeys,
              EventCallback,
-             ContainerStartOperation{
+             ContainerStartOperation {
   protected static final Logger log =
     LoggerFactory.getLogger(HoyaAppMaster.class);
 
@@ -212,9 +211,6 @@ public class HoyaAppMaster extends CompositeService
   /** Arguments passed in : raw*/
   private HoyaMasterServiceArgs serviceArgs;
 
-  /** Arguments passed in : parsed*/
-  private String[] argv;
-
   /**
    * ID of the AM container
    */
@@ -241,25 +237,13 @@ public class HoyaAppMaster extends CompositeService
 
 
   /**
-   * Policy switch to decide whether any early exit of the process is a failure
-   */
-  public static final boolean IS_ANY_EARLY_EXIT_A_FAILURE = false;
-
-  /**
    * Service Constructor
    */
   public HoyaAppMaster() {
     super("HoyaMasterService");
   }
 
-/* =================================================================== */
-/* Object methods */
-/* =================================================================== */
 
-  @Override
-  public String toString() {
-    return super.toString();
-  }
 
   /* =================================================================== */
 /* service lifecycle methods */
@@ -285,7 +269,7 @@ public class HoyaAppMaster extends CompositeService
     serviceArgs.applyDefinitions(conf);
     serviceArgs.applyFileSystemURL(conf);
     //init security with our conf
-    if (serviceArgs.secure) {
+    if (HoyaUtils.isClusterSecure(conf)) {
       log.info("Secure mode with kerberos realm {}",
                HoyaUtils.getKerberosRealm());
       UserGroupInformation.setConfiguration(conf);
@@ -318,8 +302,8 @@ public class HoyaAppMaster extends CompositeService
   @Override // RunService
   public Configuration bindArgs(Configuration config, String... args) throws
                                                                       Exception {
-    this.argv = args;
-    serviceArgs = new HoyaMasterServiceArgs(argv);
+    config = super.bindArgs(config, args);
+    serviceArgs = new HoyaMasterServiceArgs(args);
     serviceArgs.parse();
     serviceArgs.postProcess();
     //yarn-ify
@@ -352,19 +336,7 @@ public class HoyaAppMaster extends CompositeService
     return exitCode;
   }
 
-  /**
-   * Run a child service -initing and starting it if this
-   * service has already passed those parts of its own lifecycle
-   * @param service
-   */
-  @SuppressWarnings("EnumSwitchStatementWhichMissesCases")
-  private void runChildService(Service service) {
-    service.init(getConfig());
-    service.start();
-    addService(service);
-  }
-
-/* =================================================================== */
+  /* =================================================================== */
 
   /**
    * Create and run the cluster.
@@ -566,6 +538,15 @@ public class HoyaAppMaster extends CompositeService
     return buildExitCode();
   }
 
+  /**
+   * looks for a specific case where a token file is provided as an environment
+   * variable, yet the file is not there.
+   * 
+   * This surfaced (once) in HBase, where its HDFS library was looking for this,
+   * and somehow the token was missing. This is a check in the AM so that
+   * if the problem re-occurs, the AM can fail with a more meaningful message.
+   * 
+   */
   private void checkAndWarnForAuthTokenProblems() {
     String fileLocation =
       System.getenv(UserGroupInformation.HADOOP_TOKEN_FILE_LOCATION);
@@ -600,6 +581,10 @@ public class HoyaAppMaster extends CompositeService
     return confdir;
   }
 
+  /**
+   * Get the path to the DFS configuration that is defined in the cluster specification 
+   * @return
+   */
   public String getDFSConfDir() {
     return getClusterSpec().generatedConfigurationPath;
   }
@@ -1075,8 +1060,7 @@ public class HoyaAppMaster extends CompositeService
       mappedProcessExitCode =
         AMUtils.mapProcessExitCodeToYarnExitCode(exitCode);
       boolean shouldTriggerFailure = !amCompletionFlag.get()
-         && (IS_ANY_EARLY_EXIT_A_FAILURE || AMUtils.isMappedExitAFailure(
-          mappedProcessExitCode));
+         && (AMUtils.isMappedExitAFailure(mappedProcessExitCode));
                                      
      
       

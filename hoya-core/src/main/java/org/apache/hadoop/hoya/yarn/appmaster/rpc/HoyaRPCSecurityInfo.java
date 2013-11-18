@@ -19,14 +19,13 @@
 package org.apache.hadoop.hoya.yarn.appmaster.rpc;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hoya.HoyaKeys;
+import org.apache.hadoop.hoya.HoyaXmlConfKeys;
 import org.apache.hadoop.security.KerberosInfo;
 import org.apache.hadoop.security.SecurityInfo;
 import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.hadoop.security.token.TokenInfo;
 import org.apache.hadoop.security.token.TokenSelector;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenSelector;
-import org.apache.hadoop.yarn.security.client.RMDelegationTokenSelector;
 
 import java.lang.annotation.Annotation;
 
@@ -50,7 +49,7 @@ public class HoyaRPCSecurityInfo extends SecurityInfo {
 
       @Override
       public String serverPrincipal() {
-        return HoyaKeys.KEY_HOYA_PRINCIPAL;
+        return HoyaXmlConfKeys.KEY_HOYA_KERBEROS_PRINCIPAL;
       }
 
       @Override

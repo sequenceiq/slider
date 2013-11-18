@@ -25,9 +25,9 @@ The Hoya client application can be configured
  in the configuration directory`conf/` dir
 2. Or, if the environment variable `HOYA_CONF_DIR` is set, in the
  file `$HOYA_CONF_DIR/hoya-client.xml`
-3. with JVM options defined in `HOYA_JVM_OPTS`
-4. Logging is defined in the `log4j.properties` file in the same configuration
+1. Logging is defined in the `log4j.properties` file in the same configuration
 directory.
+1. VM options can be defined in `HOYA_JVM_OPTS`
 
 The options defined in a Hoya cluster configuration are only used by the client
 when creating a cluster -not for the actual client itself.
@@ -152,7 +152,8 @@ Here is an example file:
       <name>ipc.client.fallback-to-simple-auth-allowed</name>
       <value>false</value>
     </property>
-    
+
+
 This defines both the filesystem and the YARN RM, and so obviates the need
 to declare either on the command line.
 
@@ -164,7 +165,7 @@ definition. (this holds even if the value is declared with `<final>true</final>`
 
 The environment variable `HOYA_CONF_DIR` can be used to declare an alternate
 configuration directory. If set, the directory it identifies will be used
-as the source of the Log4j and `hoya-client.xml` files.
+as the source of the `log4j.properties` and `hoya-client.xml` files.
 
 
 ## Debugging configuration issues
@@ -180,7 +181,6 @@ not passed down to the XML site specification of the created cluster.
 
 The sole options passed down are the HDFS bindings: `fs.defaultFS`,
 which is passed down both as that property and as `fs.default.name`,
-and, in a secure cluster, the HDFS Kerberos principal.
+and, in a secure cluster, the security flag (`hoya.security.enabled`)
+and the HDFS Kerberos principal.
 
-
- 

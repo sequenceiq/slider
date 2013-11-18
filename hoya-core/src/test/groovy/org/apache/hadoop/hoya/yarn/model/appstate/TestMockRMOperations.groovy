@@ -47,7 +47,6 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
     return "TestMockRMOperations"
   }
 
-
   @Test
   public void testPriorityOnly() throws Throwable {
     assert 5 == buildPriority(5, false)
@@ -80,7 +79,6 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
     assert op instanceof ContainerRequestOperation
   }
 
-
   @Test
   public void testAllocateReleaseOp() throws Throwable {
     role0Status.desired = 1
@@ -89,9 +87,10 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
     ContainerRequestOperation operation = (ContainerRequestOperation) ops[0]
     AMRMClient.ContainerRequest request = operation.request
     Container cont = engine.allocateContainer(request)
+    List<Container> allocated = [cont]
     List<ContainerAssignment> assignments = [];
     List<AbstractRMOperation> operations = []
-    appState.onContainersAllocated([cont], assignments, operations)
+    appState.onContainersAllocated(allocated, assignments, operations)
     assert operations.size() == 0
     assert assignments.size() == 1
     ContainerAssignment assigned = assignments[0]
@@ -218,6 +217,5 @@ class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
     List<AbstractRMOperation> ops2 = appState.reviewRequestAndReleaseNodes()
     assert ops2.empty
   }
-
 
 }

@@ -3,7 +3,7 @@
   <groupId>org.apache.hoya</groupId>
   <artifactId>hoya</artifactId>
   <name>Hoya: HBase on YARN</name>
-  <version>0.6.2</version>
+  <version>0.6.4</version>
   <packaging>pom</packaging>
 
   <description>
@@ -94,7 +94,7 @@
     -->
     <hadoop.version>2.2.0</hadoop.version>
     <hbase.version>0.96.0-hadoop2</hbase.version>
-    <accumulo.version>1.6.0-SNAPSHOT</accumulo.version>
+    <accumulo.version>1.5.0</accumulo.version>
     
     <!--
      artifact versions

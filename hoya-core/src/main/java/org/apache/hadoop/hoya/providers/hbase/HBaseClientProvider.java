@@ -34,11 +34,13 @@ import org.apache.hadoop.hbase.zookeeper.MasterAddressTracker;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.hadoop.hoya.HostAndPort;
 import org.apache.hadoop.hoya.HoyaKeys;
+import org.apache.hadoop.hoya.HoyaXmlConfKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
+import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
@@ -48,7 +50,9 @@ import org.apache.hadoop.hoya.servicemonitor.MonitorKeys;
 import org.apache.hadoop.hoya.servicemonitor.Probe;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
+import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.zookeeper.KeeperException;
@@ -57,16 +61,24 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 /**
  * This class implements  the client-side aspects
@@ -203,7 +215,7 @@ public class HBaseClientProvider extends Configured implements
   @Override
   public Map<String, String> getDefaultClusterOptions() {
     HashMap<String, String> site = new HashMap<String, String>();
-    site.put(OptionKeys.OPTION_APP_VERSION, HBaseKeys.VERSION);
+    site.put(OptionKeys.APPLICATION_VERSION, HBaseKeys.VERSION);
     return site;
   }
   
@@ -271,11 +283,13 @@ public class HBaseClientProvider extends Configured implements
     sitexml.put(KEY_REGIONSERVER_INFO_PORT,
                 worker.get(RoleKeys.APP_INFOPORT));
     sitexml.put(KEY_REGIONSERVER_PORT, "0");
-    sitexml.put(KEY_ZNODE_PARENT, clusterSpec.zkPath);
-    sitexml.put(KEY_ZOOKEEPER_PORT,
-                Integer.toString(clusterSpec.zkPort));
-    sitexml.put(KEY_ZOOKEEPER_QUORUM,
-                clusterSpec.zkHosts);
+    providerUtils.propagateOption(clusterSpec, OptionKeys.ZOOKEEPER_PATH,
+                                  sitexml, KEY_ZNODE_PARENT);
+    providerUtils.propagateOption(clusterSpec, OptionKeys.ZOOKEEPER_PORT,
+                                  sitexml, KEY_ZOOKEEPER_PORT);
+    providerUtils.propagateOption(clusterSpec, OptionKeys.ZOOKEEPER_HOSTS,
+                                  sitexml, KEY_ZOOKEEPER_QUORUM);
+
     return sitexml;
   }
 
@@ -377,7 +391,75 @@ public class HBaseClientProvider extends Configured implements
                                     0,
                                     -1);
   }
+
+  public static void addDependencyJars(Map<String, LocalResource> providerResources,
+                                       FileSystem clusterFS,
+                                       
+                                       Path tempPath,
+                                       String libdir,
+                                       String[] resources,
+                                       Class[] classes
+                                      ) throws
+                                        IOException,
+                                        HoyaException {
+    if (resources.length != classes.length) {
+      throw new HoyaInternalStateException(
+        "mismatch in Jar names [%d] and classes [%d]",
+        resources.length,
+        classes.length);
+    }
+    int size = resources.length;
+    for (int i = 0; i < size; i++) {
+      String jarName = resources[i];
+      Class clazz = classes[i];
+      HoyaUtils.putJar(providerResources,
+                       clusterFS,
+                       clazz,
+                       tempPath,
+                       libdir,
+                       jarName);
+    }
+    
+  }
   
+  /**
+   * Add HBase and its dependencies (only) to the job configuration.
+   * <p>
+   * This is intended as a low-level API, facilitating code reuse between this
+   * class and its mapred counterpart. It also of use to extenral tools that
+   * need to build a MapReduce job that interacts with HBase but want
+   * fine-grained control over the jars shipped to the cluster.
+   * </p>
+   *
+   * @see org.apache.hadoop.hbase.mapred.TableMapReduceUtil
+   * @see <a href="https://issues.apache.org/;jira/browse/PIG-3285">PIG-3285</a>
+   *
+   * @param providerResources provider resources to add resource to
+   * @param clusterFS filesystem
+   * @param libdir relative directory to place resources
+   * @param tempPath path in the cluster FS for temp files
+   * @throws IOException IO problems
+   * @throws HoyaException Hoya-specific issues
+   */
+  public static void addHBaseDependencyJars(Map<String, LocalResource> providerResources,
+                                            FileSystem clusterFS,
+                                            String libdir,
+                                            Path tempPath) throws
+                                                           IOException,
+                                                           HoyaException {
+    String[] jars=
+      {
+        "hbase-common.jar",
+        "hbase-protocol.jar",
+        "hbase-client.jar",
+      };
+    Class[] classes = {
+      org.apache.hadoop.hbase.HConstants.class, // hbase-common
+      org.apache.hadoop.hbase.protobuf.generated.ClientProtos.class, // hbase-protocol
+      org.apache.hadoop.hbase.client.Put.class, // hbase-client
+    };
+    addDependencyJars(providerResources,clusterFS,tempPath,libdir,jars,classes);
+  }
 
   @Override
   public Map<String, LocalResource> prepareAMAndConfigForLaunch(FileSystem clusterFS,
@@ -385,9 +467,11 @@ public class HBaseClientProvider extends Configured implements
                                                                 ClusterDescription clusterSpec,
                                                                 Path originConfDirPath,
                                                                 Path generatedConfDirPath,
-                                                                Configuration clientConfExtras) throws
-                                                                                           IOException,
-                                                                                           BadConfigException {
+                                                                Configuration clientConfExtras,
+                                                                String libdir,
+                                                                Path tempPath) throws
+                                                                               IOException,
+                                                                               HoyaException {
     //load in the template site config
     log.debug("Loading template configuration from {}", originConfDirPath);
     Configuration siteConf = ConfigHelper.loadTemplateConfiguration(
@@ -397,8 +481,8 @@ public class HBaseClientProvider extends Configured implements
       HBaseKeys.HBASE_TEMPLATE_RESOURCE);
     
     if (log.isDebugEnabled()) {
-      log.debug("Configuration came from {}", siteConf.get(
-        HoyaKeys.KEY_HOYA_TEMPLATE_ORIGIN));
+      log.debug("Configuration came from {}",
+                siteConf.get(HoyaXmlConfKeys.KEY_HOYA_TEMPLATE_ORIGIN));
       ConfigHelper.dumpConf(siteConf);
     }
     //construct the cluster configuration values
@@ -424,11 +508,13 @@ public class HBaseClientProvider extends Configured implements
                                             HBaseKeys.SITE_XML);
 
     log.debug("Saving the config to {}", sitePath);
-    Map<String, LocalResource> confResources;
-    confResources = HoyaUtils.submitDirectory(clusterFS,
+    Map<String, LocalResource> providerResources;
+    providerResources = HoyaUtils.submitDirectory(clusterFS,
                                               generatedConfDirPath,
                                               HoyaKeys.PROPAGATED_CONF_DIR_NAME);
-    
+
+    addHBaseDependencyJars(providerResources, clusterFS,libdir, tempPath);
+
     //now set up the directory for writing by the user
     providerUtils.createDataDirectory(clusterSpec, getConf());
 /* TODO: anything else to set up node security
@@ -450,7 +536,7 @@ public class HBaseClientProvider extends Configured implements
       clusterFS.setPermission(hbaseData, permission);
     }*/
     
-    return confResources;
+    return providerResources;
   }
 
   /**
@@ -496,7 +582,7 @@ public class HBaseClientProvider extends Configured implements
   }
 
   public String getHBaseVersion(ClusterDescription cd) {
-    return cd.getOption(OptionKeys.OPTION_APP_VERSION,
+    return cd.getOption(OptionKeys.APPLICATION_VERSION,
                                         HBaseKeys.VERSION);
   }
 

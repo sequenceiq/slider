@@ -22,7 +22,7 @@ package org.apache.hadoop.hoya;
 /**
  * Keys and various constants for Hoya
  */
-public interface HoyaKeys {
+public interface HoyaKeys extends HoyaXmlConfKeys {
 
   String ROLE_HOYA_AM = "hoya";
   /**
@@ -109,36 +109,7 @@ public interface HoyaKeys {
    */
   String HOYA_XML ="org/apache/hadoop/hoya/hoya.xml";
 
-  /**
-   * pattern to identify a hoya provider
-   * {@value}
-   */
-  String HOYA_PROVIDER_KEY = "hoya.provider.%s";
-
-  /**
-   * conf option set to point to where the config came from
-   * {@value}
-   */
-  String KEY_HOYA_TEMPLATE_ORIGIN = "hoya.template.origin";
-
   String CLUSTER_DIRECTORY = "cluster";
-  /**
-   * Command to issue to override any specific role in the in-AM master
-   * script. Used for things like issuing a version command in testing
-   */
-  String OPTION_HOYA_MASTER_COMMAND =
-    "hoya.test.master.command";
-
-  /**
-   * delay for container startup
-   */
-  int CONTAINER_STARTUP_DELAY = 5000;
-
-  /**
-   * Original name for the default FS. This is still 
-   * expected by applications deployed
-   */
-  String FS_DEFAULT_NAME_CLASSIC = "fs.default.name";
 
   /**
    * JVM property to define the hoya configuration directory;
@@ -163,17 +134,10 @@ public interface HoyaKeys {
    */
   String HOYA_SERVER_RESOURCE = "hoya-server.xml";
 
-  String PROPERTY_HOYA_RESOURCE_ORIGIN = "hoya.client.resource.origin";
-
-  /**
-   * Hoya principal
-   */
-  String KEY_HOYA_PRINCIPAL = "hoya.kerberos.principal";
-
-  /**
-   * Name of the property for ACLs for Hoya AM.
-   * {@value}
-   */
-  String KEY_HOYA_ACL = "security.hoya.protocol.acl";
-
+  String HOYA_TMP_LOGDIR_PREFIX = "/tmp/hoya-";
+  String HOYA_JAR = "hoya.jar";
+  String JCOMMANDER_JAR = "jcommander.jar";
+  String SLF4J_JAR = "slf4j.jar";
+  String SLF4J_LOG4J_JAR = "slf4j-log4j.jar";
+  String ZOOKEEPER_JAR = "zookeeper.jar";
 }

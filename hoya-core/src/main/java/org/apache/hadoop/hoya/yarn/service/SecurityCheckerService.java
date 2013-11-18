@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -15,27 +15,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.hoya.yarn.appmaster.rpc;
 
-import org.apache.hadoop.hoya.HoyaXmlConfKeys;
-import org.apache.hadoop.security.authorize.PolicyProvider;
-import org.apache.hadoop.security.authorize.Service;
+package org.apache.hadoop.hoya.yarn.service;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hoya.tools.HoyaUtils;
+import org.apache.hadoop.service.AbstractService;
 
 /**
- * {@link PolicyProvider} for Hoya protocols.
+ * A security checker service, which validates that the service
+ * is running with security in its init() operation.
  */
+public class SecurityCheckerService extends AbstractService {
 
-public class HoyaAMPolicyProvider extends PolicyProvider {
-  
-  private static final Service[] services = 
-      new Service[] {
-    new Service(HoyaXmlConfKeys.KEY_HOYA_PROTOCOL_ACL, HoyaClusterProtocolPB.class)
-  };
-
-  @SuppressWarnings("ReturnOfCollectionOrArrayField")
-  @Override
-  public Service[] getServices() {
-    return services;
+  public SecurityCheckerService() {
+    super("Security Checker");
   }
 
+  @Override
+  protected void serviceInit(Configuration conf) throws Exception {
+    HoyaUtils.initProcessSecurity(conf);
+  }
 }

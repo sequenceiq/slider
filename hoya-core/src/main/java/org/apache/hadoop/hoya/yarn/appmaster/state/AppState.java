@@ -135,7 +135,10 @@ public class AppState {
    * # of containers that failed to start 
    */
   private final AtomicInteger startFailedContainers = new AtomicInteger();
-  private final AtomicInteger requestedContainers = new AtomicInteger();
+
+  /**
+   * Track the number of surplus containers received and discarded
+   */
   private final AtomicInteger surplusContainers = new AtomicInteger();
 
 
@@ -343,11 +346,16 @@ public class AppState {
     }
 
     clusterStatus.state = ClusterDescription.STATE_CREATED;
-    clusterStatus.startTime = System.currentTimeMillis();
+    long now = System.currentTimeMillis();
+    clusterStatus.setInfoTime(StatusKeys.INFO_LIVE_TIME_HUMAN,
+                              StatusKeys.INFO_LIVE_TIME_MILLIS,
+                              now);
     if (0 == clusterStatus.createTime) {
-      clusterStatus.createTime = clusterStatus.startTime;
+      clusterStatus.createTime = now;
+      clusterStatus.setInfoTime(StatusKeys.INFO_CREATE_TIME_HUMAN,
+                                StatusKeys.INFO_CREATE_TIME_MILLIS,
+                                now);
     }
-    clusterStatus.statusTime = System.currentTimeMillis();
     clusterStatus.state = ClusterDescription.STATE_LIVE;
 
     //set the app state to this status
@@ -902,9 +910,12 @@ public class AppState {
    */
   public void refreshClusterStatus(String masterAddr) {
     ClusterDescription cd = getClusterDescription();
-    cd.statusTime = System.currentTimeMillis();
-    cd.masterAddr = masterAddr;
-    cd.stats = new HashMap<String, Map<String, Integer>>();
+    long now = System.currentTimeMillis();
+    cd.setInfoTime(StatusKeys.INFO_STATUS_TIME_HUMAN,
+                   StatusKeys.INFO_STATUS_TIME_MILLIS,
+                   now);
+    cd.setInfo(StatusKeys.INFO_MASTER_ADDRESS, masterAddr);
+    cd.statistics = new HashMap<String, Map<String, Integer>>();
     Map<String, Integer> instanceMap = createRoleToInstanceMap();
     if (log.isDebugEnabled()) {
       for (Map.Entry<String, Integer> entry : instanceMap.entrySet()) {
@@ -923,18 +934,19 @@ public class AppState {
       cd.setDesiredInstanceCount(rolename,role.getDesired());
       cd.setActualInstanceCount(rolename, nodeCount);
       Map<String, Integer> stats = role.buildStatistics();
-      cd.stats.put(rolename, stats);
+      cd.statistics.put(rolename, stats);
     }
+
     Map<String, Integer> hoyastats = new HashMap<String, Integer>();
-    hoyastats.put(StatusKeys.STAT_CONTAINERS_COMPLETED, completedContainerCount.get());
-    hoyastats.put(StatusKeys.STAT_CONTAINERS_FAILED, failedContainerCount.get());
-    hoyastats.put(StatusKeys.STAT_CONTAINERS_LIVE, liveNodes.size());
-    hoyastats.put(StatusKeys.STAT_CONTAINERS_STARTED,startedContainers.get());
-    hoyastats.put(StatusKeys.STAT_CONTAINERS_START_FAILED, startFailedContainers.get());
-    hoyastats.put(StatusKeys.STAT_CONTAINERS_SURPLUS, surplusContainers.get());
-    hoyastats.put(StatusKeys.STAT_CONTAINERS_UNKNOWN_COMPLETED,
+    hoyastats.put(StatusKeys.STATISTICS_CONTAINERS_COMPLETED, completedContainerCount.get());
+    hoyastats.put(StatusKeys.STATISTICS_CONTAINERS_FAILED, failedContainerCount.get());
+    hoyastats.put(StatusKeys.STATISTICS_CONTAINERS_LIVE, liveNodes.size());
+    hoyastats.put(StatusKeys.STATISTICS_CONTAINERS_STARTED,startedContainers.get());
+    hoyastats.put(StatusKeys.STATISTICS_CONTAINERS_START_FAILED, startFailedContainers.get());
+    hoyastats.put(StatusKeys.STATISTICS_CONTAINERS_SURPLUS, surplusContainers.get());
+    hoyastats.put(StatusKeys.STATISTICS_CONTAINERS_UNKNOWN_COMPLETED,
                   completionOfUnknownContainerEvent.get());
-    cd.stats.put(HoyaKeys.ROLE_HOYA_AM,hoyastats);
+    cd.statistics.put(HoyaKeys.ROLE_HOYA_AM, hoyastats);
     
   }
 

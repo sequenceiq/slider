@@ -32,22 +32,39 @@
 
 package org.apache.hadoop.hoya.api;
 
+/**
+ * Contains status and statistics keys
+ */
 public interface StatusKeys {
-  String STAT_CONTAINERS_ACTIVE_REQUESTS = "containers.active.requests";
-  String STAT_CONTAINERS_COMPLETED = "containers.completed";
-  String STAT_CONTAINERS_DESIRED = "containers.desired";
-  String STAT_CONTAINERS_FAILED = "containers.failed";
-  String STAT_CONTAINERS_LIVE =
-    "containers.live";
-  String STAT_CONTAINERS_REQUESTED = "containers.requested";
-  String STAT_CONTAINERS_STARTED =
-    "containers.start.started";
-  String STAT_CONTAINERS_START_FAILED =
+
+  String STATISTICS_CONTAINERS_ACTIVE_REQUESTS = "containers.active.requests";
+  String STATISTICS_CONTAINERS_COMPLETED = "containers.completed";
+  String STATISTICS_CONTAINERS_DESIRED = "containers.desired";
+  String STATISTICS_CONTAINERS_FAILED = "containers.failed";
+  String STATISTICS_CONTAINERS_LIVE = "containers.live";
+  String STATISTICS_CONTAINERS_REQUESTED = "containers.requested";
+  String STATISTICS_CONTAINERS_STARTED = "containers.start.started";
+  String STATISTICS_CONTAINERS_START_FAILED =
       "containers.start.failed";
-  String STAT_CONTAINERS_SURPLUS =
+  String STATISTICS_CONTAINERS_SURPLUS =
       "containers.surplus";
-  String STAT_CONTAINERS_UNKNOWN_COMPLETED =
+  String STATISTICS_CONTAINERS_UNKNOWN_COMPLETED =
       "containers.unknown.completed";
 
-  String STAT_CREATE_TIME = "create.time";
+  String INFO_CREATE_TIME_MILLIS = "create.time";
+  String INFO_CREATE_TIME_HUMAN = "create.time";
+  String INFO_LIVE_TIME_MILLIS = "live.time.millis";
+  String INFO_LIVE_TIME_HUMAN = "live.time";
+
+  /**
+   * System time in millis when the status report was generated
+   */
+  String INFO_STATUS_TIME_MILLIS = "status.time.millis";
+
+  /**
+   * System time in human form when the status report was generated
+   */
+  String INFO_STATUS_TIME_HUMAN = "status.time";
+
+  String INFO_MASTER_ADDRESS = "master.address";
 }

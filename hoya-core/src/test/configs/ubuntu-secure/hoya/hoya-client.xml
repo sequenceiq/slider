@@ -21,10 +21,10 @@
 <configuration>
   <property>
     <name>hoya.client.resource.origin</name>
-    <value>conf/hoya-client.xml</value>
+    <value>ubuntu-secure/conf/hoya-client.xml</value>
     <description>This is just for diagnostics</description>
   </property>
-  
+
   <property>
     <name>yarn.resourcemanager.address</name>
     <value>ubuntu:8032</value>
@@ -32,10 +32,15 @@
   
   <property>
     <name>fs.defaultFS</name>
-    <value>hdfs://ubuntu:9090</value>
+    <value>hdfs://ubuntu:9090/</value>
   </property>
-  
-   <property>
+
+  <property>
+    <name>hoya.security.enabled</name>
+    <value>true</value>
+  </property>
+
+  <property>
     <name>yarn.resourcemanager.principal</name>
     <value>yarn/ubuntu@COTHAM</value>
   </property>

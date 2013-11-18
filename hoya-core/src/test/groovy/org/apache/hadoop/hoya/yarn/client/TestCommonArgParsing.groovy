@@ -101,7 +101,6 @@ class TestCommonArgParsing implements HoyaActions {
 
   }
 
-  
   @Test
   public void testActionComesAfterParseSingleArg() throws Throwable {
     ClientArgs ca = createClientArgs([

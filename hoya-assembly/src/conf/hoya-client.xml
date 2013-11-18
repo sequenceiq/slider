@@ -44,6 +44,11 @@
   </property>
 
   <property>
+    <name>hoya.security.enabled</name>
+    <value>true</value>
+  </property>
+
+  <property>
     <name>dfs.namenode.kerberos.principal</name>
     <value>hdfs/master@MINICLUSTER</value>
   </property>

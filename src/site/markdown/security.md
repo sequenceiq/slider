@@ -135,13 +135,28 @@ wishes to talk with the HoyaAM -a token which is only provided after
 the caller authenticates itself as the user that has access rights
 to the cluster
 
-
 To allow the client to freeze a Hoya cluster while they are unable to acquire
 a token to authenticate with the AM, the `emergency-force-kill <applicationId>` command
 requests YARN to trigger cluster shutdown, bypassing the AM. The
 `applicationId` can be retrieved from the YARN web UI or the `hoya list` command.
 The special application ID `all` will kill all Hoya clusters belonging to that user
 -so should only be used for testing or other emergencies.
+
+### How to enable a secure Hoya client
+
+Hoya can be placed into secure mode by setting the property `hoya.security.enabled` to
+true. 
+
+This can be done in `hoya-client.xml`:
+
+      <property>
+        <name>hoya.security.enabled</name>
+        <value>true</value>
+      </property>
+
+Or it can be done on the command line
+
+    -D hoya.security.enabled=true
 
 ### Adding Kerberos binding properties to the Hoya Client JVM
 
@@ -161,6 +176,14 @@ documentation.
 They can also be set on the Hoya command line itself, using the `-S` parameter.
 
     -S java.security.krb5.realm=MINICLUSTER  -S java.security.krb5.kdc=hadoop-kdc
+
+### Java Cryptography Exceptions 
+
+
+When trying to talk to a secure, cluster you may see the message:
+
+    No valid credentials provided (Mechanism level: Illegal key size)]
+
 
 ## Putting it all together: examples
 
@@ -182,7 +205,7 @@ via a `kinit` call.
       --manager master:8032 --filesystem hdfs://master:9090 \
          --role workers 4\
           --zkhosts master \
-          --secure -S java.security.krb5.realm=MINICLUSTER \
+          -D hoya.security.enabled=true -S java.security.krb5.realm=MINICLUSTER \
           -S java.security.krb5.kdc=master \
           --image hdfs://master:9090/hbase.tar \
           --appconf file:////Users/hoya/Hadoop/configs/master/hbase \
@@ -223,7 +246,7 @@ properties can be omitted from the command line.
         
     bin/hoya status cluster1 \
     --manager master:8032 --filesystem hdfs://master:9090 \
-    --secure \
+     -D hoya.security.enabled=true \
      -D yarn.resourcemanager.principal=yarn/master@MINICLUSTER \
      -D dfs.namenode.kerberos.principal=hdfs/master@MINICLUSTER 
 
@@ -241,7 +264,7 @@ to define the realm and kerberos server to use.
         
     bin/hoya freeze cluster1 \
     --manager master:8032 --filesystem hdfs://master:9090 \
-    --secure \
+     -D hoya.security.enabled=true \
      -D yarn.resourcemanager.principal=yarn/master@MINICLUSTER \
      -D dfs.namenode.kerberos.principal=hdfs/master@MINICLUSTER 
 
@@ -254,7 +277,7 @@ Listing the clusters is a direct conversation with the YARN RM
 
     bin/hoya list \
     --manager master:8032 \
-    --secure \
+     -D hoya.security.enabled=true \
      -D yarn.resourcemanager.principal=yarn/master@MINICLUSTER \
      -D dfs.namenode.kerberos.principal=hdfs/master@MINICLUSTER
 
@@ -263,12 +286,11 @@ code in the client still tries to verify that this principal is set
 -a check done to ensure that operations fail early with a meaningful message,
 rather than later with a more obscure one. 
 
-
 ### Example: setting  hoya-client.xml up
 
 
-The 'conf/hoya-client.xml' file can be set up with the details of the filesystem,
-YARN RM and the relevant principals, allowing them to be dropped from the
+The file 'conf/hoya-client.xml' can be set up with the details of the filesystem,
+YARN RM and the relevant security options, allowing them to be dropped from the
 command line
 
     <property>
@@ -281,7 +303,12 @@ command line
       <value>hdfs://master:9090</value>
     </property>
     
-     <property>
+    <property>
+      <name>hoya.security.enabled</name>
+      <value>true</value>
+    </property>
+    
+    <property>
       <name>yarn.resourcemanager.principal</name>
       <value>yarn/master@MINICLUSTER</value>
     </property>
@@ -297,7 +324,7 @@ command line
 
 With the `hoya-client.xml' file set up, configuration is much simpler:
 
-    bin/hoya  status cluster1 --secure -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=master 
+    bin/hoya  status cluster1 -D hoya.security.enabled=true -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=master 
 
 ### Example: setting up the JVM options
 
@@ -307,11 +334,11 @@ With the `hoya-client.xml' file set up, configuration is much simpler:
 
 ### Example: listing the cluster with hoya-client.xml and the JVM options set up
 
-    bin/hoya  status cluster1 --secure
+    bin/hoya  status cluster1 -D hoya.security.enabled=true
 
 ### Example: destroying the cluster with hoya-client.xml and the JVM options set up
 
-    bin/hoya  destroy cluster1 --secure
+    bin/hoya  destroy cluster1 -D hoya.security.enabled=true
 
 ## Useful Links
 

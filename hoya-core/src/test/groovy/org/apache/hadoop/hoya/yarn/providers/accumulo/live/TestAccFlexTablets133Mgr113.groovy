@@ -58,7 +58,4 @@ class TestAccFlexTablets133Mgr113 extends AccumuloTestBase {
     log.info("Final CD \n{}", cd)
   }
 
-
-
-
 }

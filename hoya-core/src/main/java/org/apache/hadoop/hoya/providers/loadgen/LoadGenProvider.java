@@ -209,12 +209,16 @@ public class LoadGenProvider extends Configured implements
    * AM can pick it up themselves. 
    *
    *
+   *
+   *
    * @param clusterFS filesystem
    * @param serviceConf conf used by the service
    * @param clusterSpec cluster specification
    * @param originConfDirPath the original config dir -treat as read only
    * @param generatedConfDirPath path to place generated artifacts
    * @param clientConfExtras
+   * @param libdir
+   * @param tempPath
    * @return a map of name to local resource to add to the AM launcher
    */
   @Override
@@ -223,7 +227,9 @@ public class LoadGenProvider extends Configured implements
                                                                 ClusterDescription clusterSpec,
                                                                 Path originConfDirPath,
                                                                 Path generatedConfDirPath,
-                                                                Configuration clientConfExtras) throws
+                                                                Configuration clientConfExtras,
+                                                                String libdir,
+                                                                Path tempPath) throws
                                                                                            IOException,
                                                                                            BadConfigException {
     Configuration siteConf = ConfigHelper.loadTemplateConfiguration(
@@ -307,8 +313,8 @@ public class LoadGenProvider extends Configured implements
     localResources.putAll(confResources);
     //Add binaries
     //now add the image if it was set
-    if (clusterSpec.imagePath != null) {
-      Path imagePath = new Path(clusterSpec.imagePath);
+    if (clusterSpec.isImagePathSet()) {
+      Path imagePath = new Path(clusterSpec.getImagePath());
       log.info("using image path {}", imagePath);
       HoyaUtils.maybeAddImagePath(fs, localResources, imagePath);
     }

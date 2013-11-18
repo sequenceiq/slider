@@ -26,6 +26,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HostAndPort;
 import org.apache.hadoop.hoya.HoyaKeys;
+import org.apache.hadoop.hoya.HoyaXmlConfKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.api.RoleKeys;
@@ -109,7 +110,7 @@ public class AccumuloClientProvider extends Configured implements
 
   private void putSiteOpt(Map<String, String> options, String key, String val) {
     options.put(
-      OptionKeys.OPTION_SITE_PREFIX + key, val);
+      OptionKeys.SITE_XML_PREFIX + key, val);
   }
 
   /**
@@ -193,13 +194,13 @@ public class AccumuloClientProvider extends Configured implements
 
   private void assignIfSet(Map<String, String> sitexml,
                            String prop,
-                             ClusterDescription cd,
+                           ClusterDescription cd,
                            String role,
                            String key) throws BadConfigException {
     Map<String, String> map = cd.getMandatoryRole(role);
 
     String value = map.get(key);
-    if (value!=null) {
+    if (value != null) {
       sitexml.put(prop, value);
     }
   }
@@ -236,7 +237,7 @@ public class AccumuloClientProvider extends Configured implements
                                    CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY);
     }
     sitexml.put(CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY, fsDefaultName);
-    sitexml.put(HoyaKeys.FS_DEFAULT_NAME_CLASSIC, fsDefaultName);
+    sitexml.put(HoyaXmlConfKeys.FS_DEFAULT_NAME_CLASSIC, fsDefaultName);
 
     String dataPath = clusterSpec.dataPath;
     Path path = new Path(dataPath);
@@ -258,8 +259,8 @@ public class AccumuloClientProvider extends Configured implements
                 APP_INFOPORT);
 
     //fix up ZK
-    int zkPort = clusterSpec.zkPort;
-    String zkHosts = clusterSpec.zkHosts;
+    int zkPort = clusterSpec.getZkPort();
+    String zkHosts = clusterSpec.getZkHosts();
 
     //parse the hosts
     String[] hostlist = zkHosts.split(",", 0);
@@ -299,12 +300,16 @@ public class AccumuloClientProvider extends Configured implements
    * AM can pick it up themselves. 
    *
    *
+   *
+   *
    * @param clusterFS filesystem
    * @param serviceConf conf used by the service
    * @param clusterSpec cluster specification
    * @param originConfDirPath the original config dir -treat as read only
    * @param generatedConfDirPath path to place generated artifacts
    * @param clientConfExtras
+   * @param libdir
+   * @param tempPath
    * @return a map of name to local resource to add to the AM launcher
    */
   @Override //client
@@ -313,7 +318,9 @@ public class AccumuloClientProvider extends Configured implements
                                                                 ClusterDescription clusterSpec,
                                                                 Path originConfDirPath,
                                                                 Path generatedConfDirPath,
-                                                                Configuration clientConfExtras) throws
+                                                                Configuration clientConfExtras,
+                                                                String libdir,
+                                                                Path tempPath) throws
                                                                                            IOException,
                                                                                            BadConfigException {
     Configuration siteConf = ConfigHelper.loadTemplateConfiguration(

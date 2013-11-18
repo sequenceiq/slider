@@ -57,11 +57,9 @@ For the scripts below, set the `HADOOP_VERSION` variable to the version
 
     export HADOOP_VERSION=2.2.0
 
-Build and install it locally, skipping the tests:
+To build and install it locally, skipping the tests:
 
     mvn install -DskipTests
-
-You have to do this every morning to avoid the ASF nightly artifacts being picked up/
 
 To make a tarball for use in test runs:
 
@@ -98,8 +96,6 @@ The maven command for building hbase artifacts against this hadoop version is
 
     mvn clean install assembly:single -DskipTests -Dmaven.javadoc.skip=true -Dhadoop.profile=2.0 -Dhadoop-two.version=$HADOOP_VERSION
 
-
-    
 This will create `hbase-0.96.0.tar.gz` in the directory `hbase-assembly/target/` in
 the hbase source tree. 
 
@@ -118,9 +114,6 @@ and downloading then expanding the file.
 
 (and if you set `HBASE_VERSION` to something else, you can pick up that version
 -making sure that hoya is in sync)
-
-    
-
 
 For more information (including recommended Maven memory configuration options),
 see [HBase building](http://hbase.apache.org/book/build.html)
@@ -165,7 +158,7 @@ this, to create a .tar file and an expanded directory
     
 Note that the final location of the accumulo files is needed for the configuration,
 it may be directly under target/ or it may be in a subdirectory, with 
-a patch such as `target/accumulo-ACCUMULO_VERSION-dev/accumulo-ACCUMULO_VERSION/`
+a path such as `target/accumulo-$ACCUMULO_VERSION-dev/accumulo-$ACCUMULO_VERSION/`
 
 
 ## Testing

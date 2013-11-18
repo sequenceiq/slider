@@ -2,14 +2,14 @@
   <modelVersion>4.0.0</modelVersion>
   <artifactId>hoya-core</artifactId>
   <name>Hoya Core</name>
-  <version>0.6.2</version>
+  <version>0.6.4</version>
   <packaging>jar</packaging>
   <description>Core Hoya Module and minicluster tests
   </description>
   <parent>
     <groupId>org.apache.hoya</groupId>
     <artifactId>hoya</artifactId>
-    <version>0.6.2</version>
+    <version>0.6.4</version>
   </parent>
 
   <build>

@@ -28,7 +28,6 @@ import org.apache.hadoop.fs.FileUtil
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hdfs.MiniDFSCluster
 import org.apache.hadoop.hoya.HoyaExitCodes
-import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.api.OptionKeys
@@ -92,7 +91,7 @@ implements KeysForTests, HoyaExitCodes {
   public static final String HREGION = "HRegion"
   public static final String HMASTER = "HMaster"
   public static final List<String> HBASE_VERSION_COMMAND_SEQUENCE = [
-      Arguments.ARG_OPTION, HoyaKeys.OPTION_HOYA_MASTER_COMMAND, HBaseKeys.COMMAND_VERSION,
+      Arguments.ARG_OPTION, OptionKeys.OPTION_HOYA_MASTER_COMMAND, HBaseKeys.COMMAND_VERSION,
   ]
   public static final int SIGTERM = -15
   public static final int SIGKILL = -9
@@ -462,7 +461,7 @@ implements KeysForTests, HoyaExitCodes {
         Arguments.ARG_ZKPORT, ZKPort.toString(),
         Arguments.ARG_WAIT, WAIT_TIME_ARG,
         Arguments.ARG_FILESYSTEM, fsDefaultName,
-        Arguments.ARG_OPTION, OptionKeys.OPTION_TEST, "true",
+        Arguments.ARG_OPTION, OptionKeys.HOYA_TEST_FLAG, "true",
         Arguments.ARG_DEBUG,
         Arguments.ARG_CONFDIR, confDir
     ]
