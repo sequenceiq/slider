@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.hoya.yarn.client;
 
-import com.beust.jcommander.JCommander;
 import com.google.common.annotations.VisibleForTesting;
 
 import org.apache.hadoop.conf.Configuration;
@@ -91,6 +90,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.net.InetSocketAddress;
+import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -136,11 +136,13 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    */
   private HoyaClusterOperations hoyaClusterOperations;
   private ClientProvider provider;
+  private FileSystem clusterFS;
 
   /**
    * Yarn client service
    */
   private HoyaYarnClientImpl yarnClient;
+  private URI filesystemURL;
 
   /**
    * Constructor
@@ -182,7 +184,14 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     //create the YARN client
     yarnClient = new HoyaYarnClientImpl();
     addService(yarnClient);
+    
+    
     super.serviceInit(conf);
+    
+    //here the superclass is inited; getConfig returns a non-null value
+    filesystemURL = FileSystem.getDefaultUri(conf);
+    clusterFS = FileSystem.get(conf);
+
   }
 
   /**
@@ -548,7 +557,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   }
 
   public void verifyFileSystemArgSet() throws BadCommandArgumentsException {
-    requireArgumentSet(Arguments.ARG_FILESYSTEM, serviceArgs.filesystemURL);
+    //no=op, it is now mandatory. 
   }
 
   public void verifyManagerSet() throws BadCommandArgumentsException {
@@ -1082,7 +1091,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * @return the FS of the config
    */
   private FileSystem getClusterFS() throws IOException {
-    return FileSystem.get(serviceArgs.filesystemURL, getConfig());
+    return clusterFS;
   }
 
   /**

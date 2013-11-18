@@ -1,3 +1,8 @@
+apache
+
+  export HOYA_JVM_OPTS="-Djava.security.krb5.realm=COTHAM -Djava.security.krb5.kdc=ubuntu -Djava.net.preferIPv4Stack=true"
+
+
 ## Local manual tests
 
 
@@ -189,4 +194,9 @@
      -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
      -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM 
      
-  export HOYA_JVM_OPTS="-Djava.security.krb5.realm=COTHAM -Djava.security.krb5.kdc=ubuntu -Djava.net.preferIPv4Stack=true"
+  
+  # flex the cluster
+  
+   hoya flex cl1 \
+      --manager master:8032 --filesystem hdfs://master:9090 \
+      --role worker 5
