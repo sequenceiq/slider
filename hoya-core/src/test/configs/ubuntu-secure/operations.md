@@ -1,4 +1,18 @@
-apache
+<!---
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+  
+   http://www.apache.org/licenses/LICENSE-2.0
+  
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License. See accompanying LICENSE file.
+-->
+
+# Just some operations for manual runs against steve's secure VM
 
   export HOYA_JVM_OPTS="-Djava.security.krb5.realm=COTHAM -Djava.security.krb5.kdc=ubuntu -Djava.net.preferIPv4Stack=true"
 
@@ -74,10 +88,9 @@ apache
       -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM
                
                
--D dfs.datanode.kerberos.principal=hdfs/ubuntu@COTHAM \
 
                
-     # single master & workre
+# single master & workre
      
     bin/hoya create cluster3 \
     --zkhosts ubuntu \
@@ -93,7 +106,7 @@ apache
      --version hbase-0.97.0-SNAPSHOT
     
     
-     # one master
+# one master
      
     bin/hoya create cl1 \
     --zkhosts ubuntu \
@@ -106,7 +119,7 @@ apache
     --role master 1  \
      --version hbase-0.97.0-SNAPSHOT
 
-      # one master env set up
+# one master env set up
       
      bin/hoya create cl1 \
      --zkhosts ubuntu \
@@ -117,7 +130,7 @@ apache
      --version hbase-0.97.0-SNAPSHOT   
     
     
-     # build but don't deploy single master
+# build but don't deploy single master
      
     bin/hoya build cl1 \
     --zkhosts ubuntu \
@@ -195,8 +208,8 @@ apache
      -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM 
      
   
-  # flex the cluster
+# flex the cluster
   
-   hoya flex cl1 \
-      --manager master:8032 --filesystem hdfs://master:9090 \
-      --role worker 5
+   bin/hoya flex cl1 \
+    --role master 1 \
+    --role worker 2 
