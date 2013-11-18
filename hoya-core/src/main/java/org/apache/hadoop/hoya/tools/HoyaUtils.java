@@ -20,6 +20,7 @@ package org.apache.hadoop.hoya.tools;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
@@ -63,6 +64,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -1016,6 +1018,19 @@ public final class HoyaUtils {
     return new Path(file.toURI());
   }
 
+  protected void touch(FileSystem fs, Path path) throws IOException {
+    FSDataOutputStream out = fs.create(path);
+    out.close();
+  }
+  
+  public static void cat(FileSystem fs, Path path, String data) throws
+                                                                IOException {
+    FSDataOutputStream out = fs.create(path);
+    byte[] bytes = data.getBytes(Charset.forName("UTF-8"));
+    out.write(bytes);  
+    out.close();
+  }
+  
   /**
    * Get the current user -relays to
    * {@link UserGroupInformation#getCurrentUser()}

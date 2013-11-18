@@ -307,7 +307,7 @@ public class RoleHistoryWriter {
     }
     
     PathFilter filter = new GlobFilter(HoyaKeys.HISTORY_FILENAME_GLOB_PATTERN);
-    FileStatus[] stats = fs.listStatus(dir);
+    FileStatus[] stats = fs.listStatus(dir, filter);
     List<Path> paths = new ArrayList<Path>(stats.length);
     for (FileStatus stat : stats) {
       log.debug("Possible entry: {}", stat.toString());

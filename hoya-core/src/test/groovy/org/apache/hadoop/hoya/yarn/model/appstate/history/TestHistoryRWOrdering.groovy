@@ -22,6 +22,7 @@ import groovy.util.logging.Slf4j
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.avro.RoleHistoryWriter
+import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.appmaster.state.NodeEntry
 import org.apache.hadoop.hoya.yarn.appmaster.state.NodeInstance
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleHistory
@@ -94,6 +95,10 @@ class TestHistoryRWOrdering extends BaseMockAppStateTest {
     Path history1 = roleHistory.saveHistory(time++)
     Path history2 = roleHistory.saveHistory(time++)
     Path history3 = roleHistory.saveHistory(time++)
+    
+    //inject a later file with a different name
+    HoyaUtils.cat(fs, new Path(historyPath, "file.json"), "hello, world")
+    
     
     RoleHistoryWriter historyWriter = new RoleHistoryWriter();
     
