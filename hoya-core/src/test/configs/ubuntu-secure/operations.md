@@ -1,3 +1,22 @@
+<!---
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+  
+   http://www.apache.org/licenses/LICENSE-2.0
+  
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License. See accompanying LICENSE file.
+-->
+
+# Just some operations for manual runs against steve's secure VM
+
+  export HOYA_JVM_OPTS="-Djava.security.krb5.realm=COTHAM -Djava.security.krb5.kdc=ubuntu -Djava.net.preferIPv4Stack=true"
+
+
 ## Local manual tests
 
 
@@ -69,10 +88,9 @@
       -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM
                
                
--D dfs.datanode.kerberos.principal=hdfs/ubuntu@COTHAM \
 
                
-     # single master & workre
+# single master & workre
      
     bin/hoya create cluster3 \
     --zkhosts ubuntu \
@@ -88,7 +106,7 @@
      --version hbase-0.97.0-SNAPSHOT
     
     
-     # no master
+# one master
      
     bin/hoya create cl1 \
     --zkhosts ubuntu \
@@ -100,8 +118,19 @@
     --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/ubuntu-secure/hbase \
     --role master 1  \
      --version hbase-0.97.0-SNAPSHOT
+
+# one master env set up
+      
+     bin/hoya create cl1 \
+     --zkhosts ubuntu \
+     -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
+     --image hdfs://ubuntu:9090/hbase.tar \
+     --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/ubuntu-secure/hbase \
+     --role master 1  \
+     --version hbase-0.97.0-SNAPSHOT   
     
-     # build but don't deploy single master
+    
+# build but don't deploy single master
      
     bin/hoya build cl1 \
     --zkhosts ubuntu \
@@ -178,4 +207,9 @@
      -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
      -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM 
      
-  export HOYA_JVM_OPTS="-Djava.security.krb5.realm=COTHAM -Djava.security.krb5.kdc=ubuntu -Djava.net.preferIPv4Stack=true"
+  
+# flex the cluster
+  
+   bin/hoya flex cl1 \
+    --role master 1 \
+    --role worker 2 

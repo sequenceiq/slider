@@ -59,22 +59,30 @@ public interface ClientProvider extends ProviderCore {
    * AM can pick it up themselves. 
    *
    *
+   *
+   *
    * @param clusterFS filesystem
    * @param serviceConf conf used by the service
    * @param clusterSpec cluster specification
    * @param originConfDirPath the original config dir -treat as read only
    * @param generatedConfDirPath path to place generated artifacts
    * @param clientConfExtras optional extra configs to patch in last
+   * @param libdir relative directory to place resources
+   * @param tempPath path in the cluster FS for temp files
    * @return a map of name to local resource to add to the AM launcher
+   * @throws IOException IO problems
+   * @throws HoyaException Hoya-specific issues
    */
   Map<String, LocalResource> prepareAMAndConfigForLaunch(FileSystem clusterFS,
                                                          Configuration serviceConf,
                                                          ClusterDescription clusterSpec,
                                                          Path originConfDirPath,
                                                          Path generatedConfDirPath,
-                                                         Configuration clientConfExtras) throws
-                                                                                    IOException,
-                                                                                    BadConfigException;
+                                                         Configuration clientConfExtras,
+                                                         String libdir,
+                                                         Path tempPath) throws
+                                                                        IOException,
+                                                                        HoyaException;
 
   /**
    * Get a map of all the default options for the cluster; values
