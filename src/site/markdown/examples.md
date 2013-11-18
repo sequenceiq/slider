@@ -38,13 +38,14 @@ hosts the HDFS NameNode and the YARN Resource Manager
 
 # start all the services
 
-    hdfs --config $HADOOP_CONF_DIR namenode & 
-    hdfs --config $HADOOP_CONF_DIR datanode &
+    nohup hdfs --config $HADOOP_CONF_DIR namenode & 
+    nohup hdfs --config $HADOOP_CONF_DIR datanode &
     
     
-    yarn --config $HADOOP_CONF_DIR resourcemanager
-    yarn --config $HADOOP_CONF_DIR nodemanager
+    nohup yarn --config $HADOOP_CONF_DIR resourcemanager &
+    nohup yarn --config $HADOOP_CONF_DIR nodemanager &
     
+# using hadoop/sbin service launchers
     
     hadoop-daemon.sh --config $HADOOP_CONF_DIR --script hdfs start namenode
     hadoop-daemon.sh --config $HADOOP_CONF_DIR --script hdfs start datanode

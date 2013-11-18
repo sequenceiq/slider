@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.providers.hoyaam;
 
+import com.beust.jcommander.JCommander;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
@@ -35,6 +36,7 @@ import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
 import org.apache.hadoop.hoya.servicemonitor.Probe;
+import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.zookeeper.KeeperException;
@@ -194,18 +196,31 @@ public class HoyaAMClientProvider extends Configured implements
 
   }
 
+
+  /**
+   * The Hoya AM sets up all the dependency JARs above hoya.jar itself
+   * {@inheritDoc}
+   */
   @Override
   public Map<String, LocalResource> prepareAMAndConfigForLaunch(FileSystem clusterFS,
                                                                 Configuration serviceConf,
                                                                 ClusterDescription clusterSpec,
                                                                 Path originConfDirPath,
                                                                 Path generatedConfDirPath,
-                                                                Configuration clientConfExtras)
-    throws IOException, BadConfigException {
+                                                                Configuration clientConfExtras,
+                                                                String libdir,
+                                                                Path tempPath)
+    throws IOException, HoyaException {
     
-    Map<String, LocalResource> confResources =
+    Map<String, LocalResource> providerResources =
       new HashMap<String, LocalResource>();
-    return confResources;
+    HoyaUtils.putJar(providerResources,
+                     clusterFS,
+                     JCommander.class,
+                     tempPath,
+                     libdir,
+                     JCOMMANDER_JAR);
+    return providerResources;
   }
 
   /**

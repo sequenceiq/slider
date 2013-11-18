@@ -88,7 +88,7 @@
      --version hbase-0.97.0-SNAPSHOT
     
     
-     # no master
+     # one master
      
     bin/hoya create cl1 \
     --zkhosts ubuntu \
@@ -100,6 +100,17 @@
     --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/ubuntu-secure/hbase \
     --role master 1  \
      --version hbase-0.97.0-SNAPSHOT
+
+      # one master env set up
+      
+     bin/hoya create cl1 \
+     --zkhosts ubuntu \
+     -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
+     --image hdfs://ubuntu:9090/hbase.tar \
+     --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/ubuntu-secure/hbase \
+     --role master 1  \
+     --version hbase-0.97.0-SNAPSHOT   
+    
     
      # build but don't deploy single master
      

@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.tools;
 
+import com.beust.jcommander.JCommander;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -41,6 +42,7 @@ import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.ExitUtil;
+import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -787,9 +789,19 @@ public final class HoyaUtils {
     return localResources;
   }
 
+  /**
+   * Convert a YARN URL into a string value of a normal URL
+   * @param url URL
+   * @return string representatin
+   */
   public static String stringify(org.apache.hadoop.yarn.api.records.URL url) {
-    return url.getScheme() + ":/" +
-           (url.getHost() != null ? url.getHost() : "") + "/" + url.getFile();
+    StringBuilder builder = new StringBuilder();
+    builder.append(url.getScheme()).append("://");
+    if (url.getHost() != null) {
+      builder.append(url.getHost()).append(":").append(url.getPort());
+    }
+    builder.append(url.getFile());
+    return builder.toString();
   }
 
   public static int findFreePort(int start, int limit) {
@@ -966,20 +978,89 @@ public final class HoyaUtils {
   }
 
   /**
-   * This wrapps ApplicationReports and generates a string version
-   * iff the toString() operator is invoked
+   * Submit a JAR containing a specific class, returning
+   * the resource to be mapped in
+   *
+   * @param clusterFS remote fs
+   * @param clazz class to look for
+   * @param subdir subdirectory (expected to end in a "/")
+   * @param jarName <i>At the destination</i>
+   * @return the local resource ref
+   * @throws IOException trouble copying to HDFS
    */
-  public static class OnDemandReportStringifier {
-    private final ApplicationReport report;
-
-    public OnDemandReportStringifier(ApplicationReport report) {
-      this.report = report;
+  public static LocalResource submitJarWithClass(FileSystem clusterFS,
+                                                 Class clazz,
+                                                 Path tempPath,
+                                                 String subdir,
+                                                 String jarName)
+      throws IOException, HoyaException {
+    File localFile = findContainingJar(clazz);
+    if (null == localFile) {
+      throw new FileNotFoundException("Could not find JAR containing " + clazz);
     }
+    
+    LocalResource resource = submitFile(clusterFS, localFile, tempPath, subdir,
+                                        jarName);
+    return resource;
+  }
 
-    @Override
-    public String toString() {
-      return appReportToString(report, "\n");
-    }
+  /**
+   * Submit a JAR containing a specific class and map it
+   * @param providerResources provider map to build up
+   * @param clusterFS remote fs
+   * @param clazz class to look for
+   * @param libdir lib directory
+   * @param jarName <i>At the destination</i>
+   * @return the local resource ref
+   * @throws IOException trouble copying to HDFS
+   */
+  public static LocalResource putJar(Map<String, LocalResource> providerResources,
+                              FileSystem clusterFS,
+                              Class clazz,
+                              Path tempPath,
+                              String libdir,
+                              String jarName
+                             )
+    throws IOException, HoyaException {
+    LocalResource res = HoyaUtils.submitJarWithClass(
+      clusterFS,
+      clazz,
+      tempPath,
+      libdir,
+      jarName);
+    providerResources.put(libdir + "/"+ jarName, res);
+    return res;
+  }
+
+  /**
+   * Submit a local file to the filesystem references by the instance's cluster
+   * filesystem
+   *
+   * @param clusterFS remote fs
+   * @param localFile filename
+   * @param subdir subdirectory (expected to end in a "/")
+   * @param destFileName destination filename
+   * @return the local resource ref
+   * @throws IOException trouble copying to HDFS
+   */
+  private static LocalResource submitFile(FileSystem clusterFS,
+                                          File localFile,
+                                          Path tempPath,
+                                          String subdir,
+                                          String destFileName) throws IOException {
+    Path src = new Path(localFile.toString());
+    Path subdirPath = new Path(tempPath, subdir);
+    clusterFS.mkdirs(subdirPath);
+    Path destPath = new Path(subdirPath, destFileName);
+
+    clusterFS.copyFromLocalFile(false, true, src, destPath);
+
+    // Set the type of resource - file or archive
+    // archives are untarred at destination
+    // we don't need the jar file to be untarred for now
+    return createAmResource(clusterFS,
+                                      destPath,
+                                      LocalResourceType.FILE);
   }
 
   public static Map<String, Map<String, String>> deepClone(Map<String, Map<String, String>> src) {
@@ -998,13 +1079,39 @@ public final class HoyaUtils {
     }
     return dest;
   }
-  
+
+  /**
+   * List a directory in the local filesystem
+   * @param dir directory
+   * @return a listing, one to a line
+   */
   public static String listDir(File dir) {
-    if (dir == null) return "";
+    if (dir == null) {
+      return "";
+    }
     StringBuilder builder = new StringBuilder();
     String[] confDirEntries = dir.list();
     for (String entry : confDirEntries) {
       builder.append(entry).append("\n");
+    }
+    return builder.toString();
+  }
+  
+  /**
+   * list entries in a filesystem directory
+   * @param fs FS
+   * @param path directory
+   * @return a listing, one to a line
+   * @throws IOException
+   */
+  public static String listFSDir(FileSystem fs, Path path) throws IOException {
+    FileStatus[] stats = fs.listStatus(path);
+    StringBuilder builder = new StringBuilder();
+    for (FileStatus stat : stats) {
+      builder.append(stat.getPath().toString())
+             .append("\t")
+             .append(stat.getLen())
+             .append("\n");
     }
     return builder.toString();
   }
@@ -1018,7 +1125,7 @@ public final class HoyaUtils {
     return new Path(file.toURI());
   }
 
-  protected void touch(FileSystem fs, Path path) throws IOException {
+  public static void touch(FileSystem fs, Path path) throws IOException {
     FSDataOutputStream out = fs.create(path);
     out.close();
   }
@@ -1113,4 +1220,72 @@ public final class HoyaUtils {
     HoyaUtils.verifyPrincipalSet(conf,
                                  DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY);
   }
+
+  /**
+   * Build up the classpath for execution 
+   * -behaves very differently on a mini test cluster vs a production
+   * production one.
+   *
+   * @param hoyaConfDir relative path to the dir containing hoya config options to put on the
+   *          classpath -or null
+   * @param libdir directory containing the JAR files
+   * @param config the configuration
+   * @param usingMiniMRCluster flag to indicate the MiniMR cluster is in use
+   * (and hence the current classpath should be used, not anything built up)
+   * @return a classpath
+   */
+  public static String buildClasspath(String hoyaConfDir,
+                                      String libdir,
+                                      Configuration config,
+                                      boolean usingMiniMRCluster) {
+    // Add AppMaster.jar location to classpath
+    // At some point we should not be required to add
+    // the hadoop specific classpaths to the env.
+    // It should be provided out of the box.
+    // For now setting all required classpaths including
+    // the classpath to "." for the application jar
+    StringBuilder classPathEnv = new StringBuilder();
+    // add the runtime classpath needed for tests to work
+    if (usingMiniMRCluster) {
+      // for mini cluster we pass down the java CP properties
+      // and nothing else
+      classPathEnv.append(System.getProperty("java.class.path"));
+    } else {
+      char col = File.pathSeparatorChar;
+      classPathEnv.append(ApplicationConstants.Environment.CLASSPATH.$());
+      String[] strs = config.getStrings(
+        YarnConfiguration.YARN_APPLICATION_CLASSPATH,
+        YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH);
+      if (strs != null) {
+        for (String c : strs) {
+          classPathEnv.append(col);
+          classPathEnv.append(c.trim());
+        }
+      }
+      classPathEnv.append(col).append("./").append(libdir).append("/*");
+      if (hoyaConfDir != null) {
+        classPathEnv.append(col).append(hoyaConfDir);
+      }
+    }
+    return classPathEnv.toString();
+  }
+
+
+  /**
+   * This wrapps ApplicationReports and generates a string version
+   * iff the toString() operator is invoked
+   */
+  public static class OnDemandReportStringifier {
+    private final ApplicationReport report;
+
+    public OnDemandReportStringifier(ApplicationReport report) {
+      this.report = report;
+    }
+
+    @Override
+    public String toString() {
+      return appReportToString(report, "\n");
+    }
+  }
+
 }

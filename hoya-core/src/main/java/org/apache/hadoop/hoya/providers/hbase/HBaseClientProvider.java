@@ -49,6 +49,7 @@ import org.apache.hadoop.hoya.servicemonitor.MonitorKeys;
 import org.apache.hadoop.hoya.servicemonitor.Probe;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
+import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -477,7 +478,7 @@ public class HBaseClientProvider extends Configured implements
         }
       }
     } finally {
-      if (null != zip) zip.close();
+      IOUtils.closeStream(zip);
     }
   }
 
@@ -524,7 +525,8 @@ public class HBaseClientProvider extends Configured implements
     FileSystem localFs = FileSystem.getLocal(conf);
     Set<String> jars = new HashSet<String>();
     // Add jars that are already in the tmpjars variable
-    jars.addAll(conf.getStringCollection("tmpjars"));
+    Collection<String> tmpjars = conf.getStringCollection("tmpjars");
+    jars.addAll(tmpjars);
 
     // add jars as we find them to a map of contents jar name so that we can avoid
     // creating new jars for classes that have already been packaged.
@@ -532,7 +534,9 @@ public class HBaseClientProvider extends Configured implements
 
     // Add jars containing the specified classes
     for (Class<?> clazz : classes) {
-      if (clazz == null) continue;
+      if (clazz == null) {
+        continue;
+      }
 
       Path path = findOrCreateJar(clazz, localFs, packagedClasses);
       if (path == null) {
@@ -547,10 +551,11 @@ public class HBaseClientProvider extends Configured implements
       }
       jars.add(path.toString());
     }
-    if (jars.isEmpty()) return;
+    if (!jars.isEmpty()) {
+      conf.set("tmpjars",
+               StringUtils.arrayToString(jars.toArray(new String[jars.size()])));
+    }
 
-    conf.set("tmpjars",
-             StringUtils.arrayToString(jars.toArray(new String[0])));
   }
 
   /**
@@ -583,7 +588,9 @@ public class HBaseClientProvider extends Configured implements
                                                                 ClusterDescription clusterSpec,
                                                                 Path originConfDirPath,
                                                                 Path generatedConfDirPath,
-                                                                Configuration clientConfExtras) throws
+                                                                Configuration clientConfExtras,
+                                                                String libdir,
+                                                                Path tempPath) throws
                                                                                            IOException,
                                                                                            BadConfigException {
     //load in the template site config

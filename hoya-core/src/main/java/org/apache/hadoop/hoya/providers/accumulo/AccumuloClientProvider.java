@@ -300,12 +300,16 @@ public class AccumuloClientProvider extends Configured implements
    * AM can pick it up themselves. 
    *
    *
+   *
+   *
    * @param clusterFS filesystem
    * @param serviceConf conf used by the service
    * @param clusterSpec cluster specification
    * @param originConfDirPath the original config dir -treat as read only
    * @param generatedConfDirPath path to place generated artifacts
    * @param clientConfExtras
+   * @param libdir
+   * @param tempPath
    * @return a map of name to local resource to add to the AM launcher
    */
   @Override //client
@@ -314,7 +318,9 @@ public class AccumuloClientProvider extends Configured implements
                                                                 ClusterDescription clusterSpec,
                                                                 Path originConfDirPath,
                                                                 Path generatedConfDirPath,
-                                                                Configuration clientConfExtras) throws
+                                                                Configuration clientConfExtras,
+                                                                String libdir,
+                                                                Path tempPath) throws
                                                                                            IOException,
                                                                                            BadConfigException {
     Configuration siteConf = ConfigHelper.loadTemplateConfiguration(
