@@ -57,8 +57,6 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -558,20 +556,6 @@ public class HBaseClientProvider extends Configured implements
   }
 
 
-  /**
-   * Get the path to hbase home
-   * @return the hbase home path
-   */
-  public  File buildHBaseBinPath(ClusterDescription cd) throws
-                                                        FileNotFoundException {
-    return providerUtils.buildPathToScript(cd,"bin",
-                                HBaseKeys.HBASE_SCRIPT);
-  }
-
-  public  File buildHBaseDir(ClusterDescription cd) {
-    String archiveSubdir = getHBaseVersion(cd);
-    return providerUtils.buildImageDir(cd, archiveSubdir);
-  }
 
   public String getHBaseVersion(ClusterDescription cd) {
     return cd.getOption(OptionKeys.APPLICATION_VERSION,

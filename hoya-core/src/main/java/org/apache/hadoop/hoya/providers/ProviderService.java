@@ -57,10 +57,10 @@ public interface ProviderService extends ProviderCore, Service,
 
   ClientProvider getClientProvider();
   
-  List<String> buildProcessCommand(ClusterDescription cd,
-                                   File confDir,
-                                   Map<String, String> env,
-                                   String masterCommand) throws
+  List<String> buildInContainerProcessCommand(ClusterDescription cd,
+                                              File confDir,
+                                              Map<String, String> env,
+                                              String masterCommand) throws
                                                          IOException,
                                                          HoyaException;
 

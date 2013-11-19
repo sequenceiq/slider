@@ -46,7 +46,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import static org.apache.hadoop.hoya.providers.accumulo.AccumuloConfigFileOptions.*;
 import static org.apache.hadoop.hoya.api.RoleKeys.*;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
@@ -422,21 +421,11 @@ public class AccumuloClientProvider extends Configured implements
    * Get the path to the script
    * @return the script
    */
-  public static File buildScriptBinPath(ClusterDescription cd)
+  public static String buildScriptBinPath(ClusterDescription cd)
     throws FileNotFoundException {
     return providerUtils.buildPathToScript(
         cd, "bin", "accumulo");
   }
 
-
-  /**
-   * Build the image dir. This path is relative and only valid at the far end
-   * @param cd cluster spec
-   * @return a relative path to accumulo home
-   */
-  public static File buildImageDir(ClusterDescription cd) throws
-                                                          FileNotFoundException {
-    return buildScriptBinPath(cd).getParentFile().getParentFile();
-  }
 
 }

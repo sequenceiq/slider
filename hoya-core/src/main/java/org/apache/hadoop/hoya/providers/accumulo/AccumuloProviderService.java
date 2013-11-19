@@ -25,7 +25,6 @@ import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.exceptions.BadClusterStateException;
-import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.providers.AbstractProviderService;
@@ -124,11 +123,8 @@ public class AccumuloProviderService extends AbstractProviderService implements
     env.put(HADOOP_PREFIX, hadoop_home);
     
     //buildup accumulo home env variable to be absolute or relative
-    String accumulo_home;
-    File accumuloScript = providerUtils.buildPathToScript(
+    String accumulo_home = providerUtils.buildPathToHomeDir(
       clusterSpec, "bin", "accumulo");
-    File accumuloHomeDir = accumuloScript.getParentFile().getParentFile();
-    accumulo_home = accumuloHomeDir.getAbsolutePath();
     
     env.put(ACCUMULO_HOME,
             accumulo_home);
@@ -197,10 +193,10 @@ public class AccumuloProviderService extends AbstractProviderService implements
    * @throws HoyaException
    */
   @Override //server
-  public List<String> buildProcessCommand(ClusterDescription clusterSpec,
-                                          File confDir,
-                                          Map<String, String> env,
-                                          String masterCommand) throws
+  public List<String> buildInContainerProcessCommand(ClusterDescription clusterSpec,
+                                                     File confDir,
+                                                     Map<String, String> env,
+                                                     String masterCommand) throws
                                                                 IOException,
                                                                 HoyaException {
     //set the service to run if unset
@@ -226,27 +222,24 @@ public class AccumuloProviderService extends AbstractProviderService implements
     ProviderUtils.validatePathReferencesLocalDir("HADOOP_HOME",hadoop_home);
     env.put(HADOOP_HOME, hadoop_home);
     env.put(HADOOP_PREFIX, hadoop_home);
-    File image = AccumuloClientProvider.buildImageDir(clusterSpec);
-    File dot = new File(".");
+    //buildup accumulo home env variable to be absolute or relative
+    String accumulo_home = providerUtils.buildPathToHomeDir(
+      clusterSpec, "bin", "accumulo");
+    File image = new File(accumulo_home);
     String accumuloPath = image.getAbsolutePath();
     env.put(ACCUMULO_HOME, accumuloPath);
     ProviderUtils.validatePathReferencesLocalDir("ACCUMULO_HOME", accumuloPath);
     env.put(ACCUMULO_CONF_DIR, 
-            new File(dot, HoyaKeys.PROPAGATED_CONF_DIR_NAME).getAbsolutePath());
+            new File(HoyaKeys.PROPAGATED_CONF_DIR_NAME).getAbsolutePath());
     String zkHome = clusterSpec.getMandatoryOption(OPTION_ZK_HOME);
     ProviderUtils.validatePathReferencesLocalDir("ZOOKEEPER_HOME", zkHome);
 
     env.put(ZOOKEEPER_HOME, zkHome);
 
 
-    //prepend the hbase command itself
-    File binScriptSh = AccumuloClientProvider.buildScriptBinPath(clusterSpec);
-    String scriptPath = binScriptSh.getAbsolutePath();
-    if (!binScriptSh.exists()) {
-      throw new BadCommandArgumentsException("Missing script " + scriptPath);
-    }
+    String accumuloScript = AccumuloClientProvider.buildScriptBinPath(clusterSpec);
     List<String> launchSequence = new ArrayList<String>(8);
-    launchSequence.add(0, scriptPath);
+    launchSequence.add(0, accumuloScript);
     Collections.addAll(launchSequence, commands);
     return launchSequence;
   }
@@ -321,7 +314,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
         cd.getOption(OptionKeys.OPTION_HOYA_MASTER_COMMAND,
                      ACCUMULO_VERSION_COMMAND);
       commands =
-        buildProcessCommand(cd, confDir, env, accumuloAction);
+        buildInContainerProcessCommand(cd, confDir, env, accumuloAction);
 
     }
     ForkedProcessService accumulo =

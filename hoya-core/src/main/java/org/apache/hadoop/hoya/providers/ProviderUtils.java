@@ -168,7 +168,8 @@ public class ProviderUtils implements RoleKeys {
     }
     return basedir;
   }
-    
+
+
   /**
    * Build the image dir. This path is relative and only valid at the far end
    * @param clusterSpec cluster spec
@@ -177,23 +178,58 @@ public class ProviderUtils implements RoleKeys {
    * @return the path to the script
    * @throws FileNotFoundException if a file is not found, or it is not a directory* 
    */
-  public File buildPathToScript(ClusterDescription clusterSpec,
-                                String bindir,
-                                String script) throws FileNotFoundException {
+  public String buildPathToHomeDir(ClusterDescription clusterSpec,
+                                  String bindir,
+                                  String script) throws FileNotFoundException {
+    String path;
     File scriptFile;
     if (clusterSpec.isImagePathSet()) {
       File tarball = new File(HoyaKeys.LOCAL_TARBALL_INSTALL_SUBDIR);
       scriptFile = findBinScriptInExpandedArchive(tarball, bindir, script);
+      // now work back from the script to build the relative path
+      // to the binary which will be valid remote or local
+      StringBuilder builder = new StringBuilder();
+      builder.append(HoyaKeys.LOCAL_TARBALL_INSTALL_SUBDIR);
+      builder.append("/");
+      //for the script, we want the name of ../..
+      File archive = scriptFile.getParentFile().getParentFile();
+      builder.append(archive.getName());
+      path = builder.toString();
+
     } else {
-      File homedir;
-      homedir = new File(clusterSpec.getApplicationHome());
-      HoyaUtils.verifyIsDir(homedir,log);
+      // using a home directory which is required to be present on 
+      // the local system -so will be absolute and resolvable
+      File homedir = new File(clusterSpec.getApplicationHome());
+      path = homedir.getAbsolutePath();
+
+      //this is absolute, resolve its entire path
+      HoyaUtils.verifyIsDir(homedir, log);
       File bin = new File(homedir, bindir);
-      HoyaUtils.verifyIsDir(bin,log);
+      HoyaUtils.verifyIsDir(bin, log);
       scriptFile = new File(bin, script);
       HoyaUtils.verifyFileExists(scriptFile, log);
     }
-    return scriptFile;
+    return path;
+  }
+
+  /**
+   * Build the image dir. This path is relative and only valid at the far end
+   * @param clusterSpec cluster spec
+   * @param bindir bin subdir
+   * @param script script in bin subdir
+   * @return the path to the script
+   * @throws FileNotFoundException if a file is not found, or it is not a directory* 
+   */
+  public String buildPathToScript(ClusterDescription clusterSpec,
+                                String bindir,
+                                String script) throws FileNotFoundException {
+    String homedir = buildPathToHomeDir(clusterSpec, bindir, script);
+    StringBuilder builder = new StringBuilder(homedir);
+    builder.append("/");
+    builder.append(bindir);
+    builder.append("/");
+    builder.append(script);
+    return builder.toString();
   }
   
   

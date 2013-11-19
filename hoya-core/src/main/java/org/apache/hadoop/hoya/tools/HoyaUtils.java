@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.hoya.tools;
 
-import com.beust.jcommander.JCommander;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -1278,7 +1277,11 @@ public final class HoyaUtils {
    * @throws FileNotFoundException if it is not a directory
    */
   public static void verifyIsDir(File dir, Logger errorlog) throws FileNotFoundException {
-    verifyFileExists(dir, errorlog);
+    if (!dir.exists()) {
+      errorlog.warn("contents of {}: {}", dir,
+                    listDir(dir.getParentFile()));
+      throw new FileNotFoundException(dir.toString());
+    }
     if (!dir.isDirectory()) {
       errorlog.info("contents of {}: {}", dir,
                     listDir(dir.getParentFile()));
