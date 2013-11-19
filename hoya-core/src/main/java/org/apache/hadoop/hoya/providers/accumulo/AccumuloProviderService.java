@@ -125,12 +125,11 @@ public class AccumuloProviderService extends AbstractProviderService implements
     
     //buildup accumulo home env variable to be absolute or relative
     String accumulo_home;
-    if (HoyaUtils.isSet(clusterSpec.getApplicationHome())) {
-      accumulo_home = clusterSpec.getApplicationHome();
-    } else {
-      accumulo_home = ProviderUtils.convertToAppRelativePath(
-        AccumuloClientProvider.buildImageDir(clusterSpec));
-    }
+    File accumuloScript = providerUtils.buildPathToScript(
+      clusterSpec, "bin", "accumulo");
+    File accumuloHomeDir = accumuloScript.getParentFile().getParentFile();
+    accumulo_home = accumuloHomeDir.getAbsolutePath();
+    
     env.put(ACCUMULO_HOME,
             accumulo_home);
     env.put(ACCUMULO_CONF_DIR,

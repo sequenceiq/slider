@@ -58,6 +58,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -561,8 +562,9 @@ public class HBaseClientProvider extends Configured implements
    * Get the path to hbase home
    * @return the hbase home path
    */
-  public  File buildHBaseBinPath(ClusterDescription cd) {
-    return new File(buildHBaseDir(cd),
+  public  File buildHBaseBinPath(ClusterDescription cd) throws
+                                                        FileNotFoundException {
+    return providerUtils.buildPathToScript(cd,"bin",
                                 HBaseKeys.HBASE_SCRIPT);
   }
 

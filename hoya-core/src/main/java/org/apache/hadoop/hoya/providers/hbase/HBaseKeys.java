@@ -77,7 +77,7 @@ public interface HBaseKeys {
   /**
    *  name of the hbase script relative to the hbase root dir:  {@value}
    */
-  String HBASE_SCRIPT = "bin/hbase";
+  String HBASE_SCRIPT = "hbase";
   
   /**
    *  name of the site conf to generate :  {@value}

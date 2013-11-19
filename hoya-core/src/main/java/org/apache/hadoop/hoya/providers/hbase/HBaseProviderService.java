@@ -198,31 +198,11 @@ public class HBaseProviderService extends AbstractProviderService implements
     if (masterCommand == null) {
       masterCommand = MASTER;
     }
-    //prepend the hbase command itself
-    File untarDir = clientProvider.buildHBaseDir(cd).getAbsoluteFile();
-    if (!untarDir.exists()) {
-      //likely cause here is the version is wrong
 
-      String message =
-        String.format(
-          "Expanded HBase archive not found -is the version %s wrong? (parent dir=%s, contents=%s)",
-          clientProvider.getHBaseVersion(cd),
-          untarDir.getParentFile(),
-          HoyaUtils.listDir(untarDir.getParentFile())
-                     );
-      log.error(message);
-      throw new BadCommandArgumentsException(message);
-    }
+    //locate the script
     File binHbaseSh = clientProvider.buildHBaseBinPath(cd);
-    String scriptPath = binHbaseSh.getAbsolutePath();
-    if (!binHbaseSh.exists()) {
-      String text = "Missing hbase script " + scriptPath;
-      log.error(text);
-      log.error(HoyaUtils.listDir(binHbaseSh.getParentFile()));
-      throw new BadCommandArgumentsException(text);
-    }
     List<String> launchSequence = new ArrayList<String>(8);
-    launchSequence.add(0, scriptPath);
+    launchSequence.add(0, binHbaseSh.getAbsolutePath());
     launchSequence.add(ARG_CONFIG);
     launchSequence.add(confDir.getAbsolutePath());
     launchSequence.add(masterCommand);

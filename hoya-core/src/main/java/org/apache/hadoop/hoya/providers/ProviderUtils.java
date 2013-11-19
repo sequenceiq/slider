@@ -168,6 +168,35 @@ public class ProviderUtils implements RoleKeys {
     }
     return basedir;
   }
+    
+  /**
+   * Build the image dir. This path is relative and only valid at the far end
+   * @param clusterSpec cluster spec
+   * @param bindir bin subdir
+   * @param script script in bin subdir
+   * @return the path to the script
+   * @throws FileNotFoundException if a file is not found, or it is not a directory* 
+   */
+  public File buildPathToScript(ClusterDescription clusterSpec,
+                                String bindir,
+                                String script) throws FileNotFoundException {
+    File scriptFile;
+    if (clusterSpec.isImagePathSet()) {
+      File tarball = new File(HoyaKeys.LOCAL_TARBALL_INSTALL_SUBDIR);
+      scriptFile = findBinScriptInExpandedArchive(tarball, bindir, script);
+    } else {
+      File homedir;
+      homedir = new File(clusterSpec.getApplicationHome());
+      HoyaUtils.verifyIsDir(homedir,log);
+      File bin = new File(homedir, bindir);
+      HoyaUtils.verifyIsDir(bin,log);
+      scriptFile = new File(bin, script);
+      HoyaUtils.verifyFileExists(scriptFile, log);
+    }
+    return scriptFile;
+  }
+  
+  
 
   public static String convertToAppRelativePath(File file) {
     return convertToAppRelativePath(file.getPath());
