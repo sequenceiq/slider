@@ -1270,6 +1270,91 @@ public final class HoyaUtils {
     return classPathEnv.toString();
   }
 
+  /**
+   * Verify that a path refers to a directory. If not
+   * logs the parent dir then throws an exception
+   * @param dir the directory
+   * @param errorlog log for output on an error
+   * @throws FileNotFoundException if it is not a directory
+   */
+  public static void verifyIsDir(File dir, Logger errorlog) throws FileNotFoundException {
+    verifyFileExists(dir, errorlog);
+    if (!dir.isDirectory()) {
+      errorlog.info("contents of {}: {}", dir,
+                    listDir(dir.getParentFile()));
+      throw new FileNotFoundException(
+        "Not a directory: " + dir);
+    }
+  }
+
+  /**
+   * Verify that a file exists
+   * @param file file
+   * @param errorlog log for output on an error
+   * @throws FileNotFoundException
+   */
+  public static void verifyFileExists(File file, Logger errorlog) throws FileNotFoundException {
+    if (!file.exists()) {
+      errorlog.warn("contents of {}: {}", file,
+                    listDir(file.getParentFile()));
+      throw new FileNotFoundException(file.toString());
+    }
+    if (!file.isFile()) {
+      throw new FileNotFoundException("Not a file: " + file.toString());
+    }
+  }
+
+  /**
+   * verify that a config option is set
+   * @param configuration config
+   * @param key key
+   * @return the value, in case it needs to be verified too
+   * @throws BadConfigException if the key is missing
+   */
+  public static String verifyOptionSet(Configuration configuration, String key,
+                                       boolean allowEmpty) throws BadConfigException {
+    String val = configuration.get(key);
+    if (val == null) {
+      throw new BadConfigException(
+        "Required configuration option \"%s\" not defined ", key);
+    }
+    if (!allowEmpty && val.isEmpty()) {
+      throw new BadConfigException(
+        "Configuration option \"%s\" must not be empty", key);
+    }
+    return val;
+  }
+
+  /**
+   * Verify that a keytab property is defined and refers to a non-empty file
+   *
+   * @param siteConf configuration
+   * @param prop property to look for
+   * @return the file referenced
+   * @throws BadConfigException on a failure
+   */
+  public static File verifyKeytabExists(Configuration siteConf, String prop) throws
+                                                                      BadConfigException {
+    String keytab = siteConf.get(prop);
+    if (keytab == null) {
+      throw new BadConfigException("Missing keytab property %s",
+                                   prop);
+
+    }
+    File keytabFile = new File(keytab);
+    if (!keytabFile.exists()) {
+      throw new BadConfigException("Missing keytab file %s defined in %s",
+                                   keytabFile,
+                                   prop);
+    }
+    if (keytabFile.length() == 0 || !keytabFile.isFile()) {
+      throw new BadConfigException("Invalid keytab file %s defined in %s",
+                                   keytabFile,
+                                   prop);
+    }
+    return keytabFile;
+  }
+
 
   /**
    * This wrapps ApplicationReports and generates a string version

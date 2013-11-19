@@ -50,9 +50,7 @@ import org.apache.hadoop.hoya.servicemonitor.MonitorKeys;
 import org.apache.hadoop.hoya.servicemonitor.Probe;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
-import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.zookeeper.KeeperException;
@@ -61,24 +59,16 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLDecoder;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 
 /**
  * This class implements  the client-side aspects
@@ -334,12 +324,12 @@ public class HBaseClientProvider extends Configured implements
                                     boolean secure,
                                     String origin) throws BadConfigException {
     try {
-      providerUtils.verifyOptionSet(siteConf, KEY_HBASE_CLUSTER_DISTRIBUTED,
-                                    false);
-      providerUtils.verifyOptionSet(siteConf, KEY_HBASE_ROOTDIR, false);
-      providerUtils.verifyOptionSet(siteConf, KEY_ZNODE_PARENT, false);
-      providerUtils.verifyOptionSet(siteConf, KEY_ZOOKEEPER_QUORUM, false);
-      providerUtils.verifyOptionSet(siteConf, KEY_ZOOKEEPER_PORT, false);
+      HoyaUtils.verifyOptionSet(siteConf, KEY_HBASE_CLUSTER_DISTRIBUTED,
+                                false);
+      HoyaUtils.verifyOptionSet(siteConf, KEY_HBASE_ROOTDIR, false);
+      HoyaUtils.verifyOptionSet(siteConf, KEY_ZNODE_PARENT, false);
+      HoyaUtils.verifyOptionSet(siteConf, KEY_ZOOKEEPER_QUORUM, false);
+      HoyaUtils.verifyOptionSet(siteConf, KEY_ZOOKEEPER_PORT, false);
       int zkPort =
         siteConf.getInt(HBaseConfigFileOptions.KEY_ZOOKEEPER_PORT, 0);
       if (zkPort == 0) {
@@ -351,15 +341,15 @@ public class HBaseClientProvider extends Configured implements
 
       if (secure) {
         //better have the secure cluster definition up and running
-        providerUtils.verifyOptionSet(siteConf, KEY_MASTER_KERBEROS_PRINCIPAL,
-                                      false);
-        providerUtils.verifyOptionSet(siteConf, KEY_MASTER_KERBEROS_KEYTAB,
-                                      false);
-        providerUtils.verifyOptionSet(siteConf,
-                                      KEY_REGIONSERVER_KERBEROS_PRINCIPAL,
-                                      false);
-        providerUtils.verifyOptionSet(siteConf,
-                                      KEY_REGIONSERVER_KERBEROS_KEYTAB, false);
+        HoyaUtils.verifyOptionSet(siteConf, KEY_MASTER_KERBEROS_PRINCIPAL,
+                                  false);
+        HoyaUtils.verifyOptionSet(siteConf, KEY_MASTER_KERBEROS_KEYTAB,
+                                  false);
+        HoyaUtils.verifyOptionSet(siteConf,
+                                  KEY_REGIONSERVER_KERBEROS_PRINCIPAL,
+                                  false);
+        HoyaUtils.verifyOptionSet(siteConf,
+                                  KEY_REGIONSERVER_KERBEROS_KEYTAB, false);
       }
     } catch (BadConfigException e) {
       //bad configuration, dump it

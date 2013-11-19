@@ -299,10 +299,10 @@ public class HBaseProviderService extends AbstractProviderService implements
     
     if (secure) {
       //secure mode: take a look at the keytab of master and RS
-      providerUtils.verifyKeytabExists(siteConf,
-                                       HBaseConfigFileOptions.KEY_MASTER_KERBEROS_KEYTAB);
-      providerUtils.verifyKeytabExists(siteConf,
-                                       HBaseConfigFileOptions.KEY_REGIONSERVER_KERBEROS_KEYTAB);
+      HoyaUtils.verifyKeytabExists(siteConf,
+                                   HBaseConfigFileOptions.KEY_MASTER_KERBEROS_KEYTAB);
+      HoyaUtils.verifyKeytabExists(siteConf,
+                                   HBaseConfigFileOptions.KEY_REGIONSERVER_KERBEROS_KEYTAB);
 
     }
   }
