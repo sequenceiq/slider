@@ -51,7 +51,6 @@ public interface Arguments {
   String ARG_FILESYSTEM = "--fs";
   String ARG_FILESYSTEM_LONG = "--filesystem";
   String ARG_FORMAT = "--format";
-  String ARG_VERSION = "--version";
   String ARG_HELP = "--help";
   String ARG_IMAGE = "--image";
   String ARG_MANAGER = "--manager";

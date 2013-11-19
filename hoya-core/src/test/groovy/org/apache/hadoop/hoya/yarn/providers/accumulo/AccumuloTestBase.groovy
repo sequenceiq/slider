@@ -65,7 +65,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
   void setup() {
     super.setup()
     assumeArchiveDefined();
-    assumeServiceHome();
+    assumeApplicationHome();
     YarnConfiguration conf = testConfiguration
     assumeOtherSettings(conf)
   }
@@ -99,21 +99,18 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
     return siteConf;
   }
 
-  public String getServiceHome() {
-    YarnConfiguration conf = testConfiguration
-    String hbaseHome = conf.getTrimmed(KeysForTests.HOYA_TEST_ACCUMULO_HOME)
-    return hbaseHome
-  }
-
+  @Override
   public String getArchiveKey() {
-    YarnConfiguration conf = testConfiguration
-    return conf.getTrimmed(KeysForTests.HOYA_TEST_ACCUMULO_TAR)
+    return KeysForTests.HOYA_TEST_ACCUMULO_TAR
   }
 
-  public void assumeArchiveDefined() {
-    String archive = archiveKey
-    Assume.assumeTrue("Archive conf option not set " + KeysForTests.HOYA_TEST_ACCUMULO_TAR,
-                      archive != null && archive != "")
+  /**
+   * Get the key for the application
+   * @return
+   */
+  @Override
+  public String getApplicationHomeKey() {
+    return KeysForTests.HOYA_TEST_ACCUMULO_HOME
   }
 
   /**
@@ -121,30 +118,9 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
    * path is valid -that is expected to be a failure on tests that require
    * HBase home to be set.
    */
-  public void assumeServiceHome() {
-    Assume.assumeTrue("Service home conf option not set " + KeysForTests.HOYA_TEST_ACCUMULO_HOME,
-                      serviceHome != null && serviceHome != "")
-  }
+  
   public void assumeOtherSettings(YarnConfiguration conf) {
     assumeConfOptionSet(conf, AccumuloKeys.OPTION_ZK_HOME)
-  }
-
-
-  /**
-   * Get the arguments needed to point to HBase for these tests
-   * @return
-   */
-  public List<String> getImageCommands() {
-    if (switchToImageDeploy) {
-      assert archiveKey
-      File f = new File(archiveKey)
-      assert f.exists()
-      return [Arguments.ARG_IMAGE, f.toURI().toString()]
-    } else {
-      assert serviceHome
-      assert new File(serviceHome).exists();
-      return [Arguments.ARG_APP_HOME, serviceHome]
-    }
   }
 
   /**
@@ -204,7 +180,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
 
   def getAccClusterStatus() {
     ZooKeeperInstance instance = new ZooKeeperInstance("", "localhost:4");
-    instance.getConnector("user", "pass").instanceOperations().getTabletServers();
+    instance.getConnector("user", "pass").instanceOperations().tabletServers;
   }
 
   public def fetchWebPage(String url) {

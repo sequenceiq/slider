@@ -102,8 +102,7 @@
     --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/ubuntu-secure/hbase \
     --roleopt master app.infoport 8080  \
     --role master 1 \
-    --role worker 1 \
-     --version hbase-0.97.0-SNAPSHOT
+    --role worker 1 
     
     
 # one master
@@ -116,8 +115,7 @@
     -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM \
     --image hdfs://ubuntu:9090/hbase.tar \
     --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/ubuntu-secure/hbase \
-    --role master 1  \
-     --version hbase-0.97.0-SNAPSHOT
+    --role master 1 
 
 # one master env set up
       
@@ -126,9 +124,7 @@
      -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
      --image hdfs://ubuntu:9090/hbase.tar \
      --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/ubuntu-secure/hbase \
-     --role master 1  \
-     --version hbase-0.97.0-SNAPSHOT   
-    
+     --role master 1  
     
 # build but don't deploy single master
      
@@ -141,8 +137,7 @@
     --image hdfs://ubuntu:9090/hbase.tar \
     --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/ubuntu-secure/hbase \
     --roleopt master app.infoport 8080  \
-    --role master 1 \
-     --hbasever hbase-0.97.0-SNAPSHOT
+    --role master 1 
          
                
     bin/hoya  status cl1 \

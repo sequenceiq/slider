@@ -42,21 +42,6 @@ a site XML configuration file)
 
 Standard keys are defined in the class `org.apache.hadoop.hoya.api.OptionKeys`.
 
-####  `cluster.app.version`
-
-The version of the application. This is used to determine the paths
-of binary files inside the .tar or `.tar.gz` file containing the
-application to deploy. It *must* match the path inside that file
-exactly, else the application will not run.
-
-It can be specified on the command line in two ways:
-
-    -O cluster.app.version=hbase-0.97.0-SNAPSHOT
-    
-or
-
-    --version hbase-0.97.0-SNAPSHOT
-
 ####  `hoya.test`
 
 A boolean value to indicate this is a test run, not a production run. In this

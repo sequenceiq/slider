@@ -25,12 +25,6 @@ package org.apache.hadoop.hoya.api;
 public interface OptionKeys {
 
   /**
-   * Version of the app: {@value}
-   */
-  String APPLICATION_VERSION = "cluster.application.version";
-
-  
-  /**
    * Home dir of the app: {@value}
    * If set, implies there is a home dir to use
    */

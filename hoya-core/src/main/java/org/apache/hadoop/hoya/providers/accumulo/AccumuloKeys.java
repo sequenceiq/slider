@@ -65,10 +65,7 @@ public interface AccumuloKeys {
    *  name of the hbase script relative to the hbase root dir:  {@value}
    */
   String START_SCRIPT = "bin/accumulo";
-  /**
-   *  name of the hbase subdir in the archive:  {@value}
-   */
-  String ARCHIVE_SUBDIR = "accumulo-1.6.0-SNAPSHOT";
+
   /**
    *  name of the site conf to generate :  {@value}
    */

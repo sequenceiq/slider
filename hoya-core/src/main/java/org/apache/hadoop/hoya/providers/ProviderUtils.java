@@ -34,7 +34,10 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.slf4j.Logger;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -166,6 +169,71 @@ public class ProviderUtils implements RoleKeys {
     return basedir;
   }
 
+
+  /**
+   * Build the image dir. This path is relative and only valid at the far end
+   * @param clusterSpec cluster spec
+   * @param bindir bin subdir
+   * @param script script in bin subdir
+   * @return the path to the script
+   * @throws FileNotFoundException if a file is not found, or it is not a directory* 
+   */
+  public String buildPathToHomeDir(ClusterDescription clusterSpec,
+                                  String bindir,
+                                  String script) throws FileNotFoundException {
+    String path;
+    File scriptFile;
+    if (clusterSpec.isImagePathSet()) {
+      File tarball = new File(HoyaKeys.LOCAL_TARBALL_INSTALL_SUBDIR);
+      scriptFile = findBinScriptInExpandedArchive(tarball, bindir, script);
+      // now work back from the script to build the relative path
+      // to the binary which will be valid remote or local
+      StringBuilder builder = new StringBuilder();
+      builder.append(HoyaKeys.LOCAL_TARBALL_INSTALL_SUBDIR);
+      builder.append("/");
+      //for the script, we want the name of ../..
+      File archive = scriptFile.getParentFile().getParentFile();
+      builder.append(archive.getName());
+      path = builder.toString();
+
+    } else {
+      // using a home directory which is required to be present on 
+      // the local system -so will be absolute and resolvable
+      File homedir = new File(clusterSpec.getApplicationHome());
+      path = homedir.getAbsolutePath();
+
+      //this is absolute, resolve its entire path
+      HoyaUtils.verifyIsDir(homedir, log);
+      File bin = new File(homedir, bindir);
+      HoyaUtils.verifyIsDir(bin, log);
+      scriptFile = new File(bin, script);
+      HoyaUtils.verifyFileExists(scriptFile, log);
+    }
+    return path;
+  }
+
+  /**
+   * Build the image dir. This path is relative and only valid at the far end
+   * @param clusterSpec cluster spec
+   * @param bindir bin subdir
+   * @param script script in bin subdir
+   * @return the path to the script
+   * @throws FileNotFoundException if a file is not found, or it is not a directory* 
+   */
+  public String buildPathToScript(ClusterDescription clusterSpec,
+                                String bindir,
+                                String script) throws FileNotFoundException {
+    String homedir = buildPathToHomeDir(clusterSpec, bindir, script);
+    StringBuilder builder = new StringBuilder(homedir);
+    builder.append("/");
+    builder.append(bindir);
+    builder.append("/");
+    builder.append(script);
+    return builder.toString();
+  }
+  
+  
+
   public static String convertToAppRelativePath(File file) {
     return convertToAppRelativePath(file.getPath());
   }
@@ -185,58 +253,6 @@ public class ProviderUtils implements RoleKeys {
       throw new BadConfigException("%s is not a directory: %s", meaning, file);
     }
   }
-
-  /**
-   * verify that a config option is set
-   * @param configuration config
-   * @param key key
-   * @return the value, in case it needs to be verified too
-   * @throws BadConfigException if the key is missing
-   */
-  public String verifyOptionSet(Configuration configuration, String key,
-                                       boolean allowEmpty) throws BadConfigException {
-    String val = configuration.get(key);
-    if (val == null) {
-      throw new BadConfigException(
-        "Required configuration option \"%s\" not defined ", key);
-    }
-    if (!allowEmpty && val.isEmpty()) {
-      throw new BadConfigException(
-        "Configuration option \"%s\" must not be empty", key);
-    }
-    return val;
-  }
-
-  /**
-   * Verify that a keytab property is defined and refers to a non-empty file
-   *
-   * @param siteConf configuration
-   * @param prop property to look for
-   * @return the file referenced
-   * @throws BadConfigException on a failure
-   */
-  public File verifyKeytabExists(Configuration siteConf, String prop) throws
-                                                                      BadConfigException {
-    String keytab = siteConf.get(prop);
-    if (keytab == null) {
-      throw new BadConfigException("Missing keytab property %s",
-                                   prop);
-
-    }
-    File keytabFile = new File(keytab);
-    if (!keytabFile.exists()) {
-      throw new BadConfigException("Missing keytab file %s defined in %s",
-                                   keytabFile,
-                                   prop);
-    }
-    if (keytabFile.length() == 0 || !keytabFile.isFile()) {
-      throw new BadConfigException("Invalid keytab file %s defined in %s",
-                                   keytabFile,
-                                   prop);
-    }
-    return keytabFile;
-  }
-
 
   /**
    * Create a data directory, using the path and any options related to
@@ -271,4 +287,51 @@ public class ProviderUtils implements RoleKeys {
   public String getUserName() throws IOException {
     return UserGroupInformation.getCurrentUser().getShortUserName();
   }
+
+  /**
+   * Find a script in an expanded archive
+   * @param base base directory
+   * @param bindir bin subdir
+   * @param script script in bin subdir
+   * @return the path to the script
+   * @throws FileNotFoundException if a file is not found, or it is not a directory
+   */
+  public File findBinScriptInExpandedArchive(File base,
+                                             String bindir,
+                                             String script)
+      throws FileNotFoundException {
+    
+    HoyaUtils.verifyIsDir(base, log);
+    File[] ls = base.listFiles();
+    if (ls == null) {
+      //here for the IDE to be happy, as the previous check will pick this case
+      throw new FileNotFoundException("Failed to list directory " + base);
+    }
+
+    log.debug("Found {} entries in {}", ls.length, base);
+    List<File> directories = new LinkedList<File>();
+    StringBuilder dirs = new StringBuilder();
+    for (File file : ls) {
+      log.debug("{}", false);
+      if (file.isDirectory()) {
+        directories.add(file);
+        dirs.append(file.getPath()).append(" ");
+      }
+    }
+    if (directories.size() > 1) {
+      throw new FileNotFoundException(
+        "Too many directories in archive to identify binary: " + dirs);
+    }
+    if (directories.isEmpty()) {
+      throw new FileNotFoundException(
+        "No directory found in archive " + base);
+    }
+    File archive = directories.get(0);
+    File bin = new File(archive, bindir);
+    HoyaUtils.verifyIsDir(bin, log);
+    File scriptFile = new File(bin, script);
+    HoyaUtils.verifyFileExists(scriptFile, log);
+    return scriptFile;
+  }
+
 }

@@ -97,11 +97,15 @@ implements KeysForTests, HoyaExitCodes {
   public static final int SIGKILL = -9
   public static final int SIGSTOP = -19
   public static final String SERVICE_LAUNCHER = "ServiceLauncher"
+  public static
+  final String NO_ARCHIVE_DEFINED = "Archive configuration option not set: "
 
   protected MiniDFSCluster hdfsCluster
   protected MiniYARNCluster miniCluster;
   protected MicroZKCluster microZKCluster
   protected boolean switchToImageDeploy = false
+  protected boolean imageIsRemote = false
+  protected URI remoteImageURI
 
   protected List<HoyaClient> clustersToTeardown = [];
 
@@ -457,7 +461,6 @@ implements KeysForTests, HoyaExitCodes {
         HoyaActions.ACTION_CREATE, clustername,
         Arguments.ARG_MANAGER, RMAddr,
         Arguments.ARG_ZKHOSTS, ZKHosts,
-        Arguments.ARG_VERSION, HBaseKeys.VERSION,
         Arguments.ARG_ZKPORT, ZKPort.toString(),
         Arguments.ARG_WAIT, WAIT_TIME_ARG,
         Arguments.ARG_FILESYSTEM, fsDefaultName,
@@ -495,12 +498,81 @@ implements KeysForTests, HoyaExitCodes {
   }
 
   /**
-   * Get the list of commands needed to bind to this image
+   * Get the key for the application
    * @return
    */
+  public String getApplicationHomeKey() {
+    return KeysForTests.HOYA_TEST_HBASE_HOME
+  }
+  /**
+   * Get the archive path -which defaults to the local one
+   * @return
+   */
+  public String getArchivePath() {
+    return localArchive
+  }
+  /**
+   * Get the local archive -the one defined in the test configuration
+   * @return a possibly null/empty string
+   */
+  public final String getLocalArchive() {
+    return testConfiguration.getTrimmed(archiveKey)
+  }
+  /**
+   * Get the key for archives in tests
+   * @return
+   */
+  public String getArchiveKey() {
+    return KeysForTests.HOYA_TEST_HBASE_TAR
+  }
+
+  public void assumeArchiveDefined() {
+    String archive = archivePath
+    boolean defined = archive != null && archive != ""
+    if (!defined) {
+      log.warn(YarnMiniClusterTestBase.NO_ARCHIVE_DEFINED + archiveKey);
+    }
+    Assume.assumeTrue(NO_ARCHIVE_DEFINED + archiveKey, defined)
+  }
+  /**
+   * Assume that HBase home is defined. This does not check that the
+   * path is valid -that is expected to be a failure on tests that require
+   * HBase home to be set.
+   */
+  public void assumeApplicationHome() {
+    Assume.assumeTrue("Application home dir option not set " + applicationHomeKey,
+                      applicationHome != null && applicationHome != "")
+  }
+
+
+  public String getApplicationHome() {
+    return testConfiguration.getTrimmed(applicationHomeKey)
+  }
+
   public List<String> getImageCommands() {
-    fail("Not implemented");
-    return [];
+    if (switchToImageDeploy) {
+      // its an image that had better be defined
+      assert archivePath
+      if (!imageIsRemote) {
+        // its not remote, so assert it exists
+        File f = new File(archivePath)
+        assert f.exists()
+        return [Arguments.ARG_IMAGE, f.toURI().toString()]
+      } else {
+        assert remoteImageURI
+
+        // if it is remote, then its whatever the archivePath property refers to
+        return [Arguments.ARG_IMAGE, remoteImageURI.toString()];
+      }
+    } else {
+      assert applicationHome
+      assert new File(applicationHome).exists();
+      return [Arguments.ARG_APP_HOME, applicationHome]
+    }
+  }
+
+  public void not_implemented() {
+    fail("Not implemented")
   }
 
   /**
@@ -771,4 +843,49 @@ implements KeysForTests, HoyaExitCodes {
     }
     return builder.toString()
   }
+
+  /**
+   * Turn on test runs against a copy of the archive that is
+   * uploaded to HDFS -this method copies up the
+   * archive then switches the tests into archive mode
+   */
+  public void enableTestRunAgainstUploadedArchive() {
+    Path remotePath = copyLocalArchiveToHDFS(localArchive)
+    // image mode
+    switchToRemoteImageDeploy(remotePath);
+  }
+
+  /**
+   * Switch to deploying a remote image
+   * @param remotePath the remote path to use
+   */
+  public void switchToRemoteImageDeploy(Path remotePath) {
+    switchToImageDeploy = true
+    imageIsRemote = true
+    remoteImageURI = remotePath.toUri()
+  }
+
+  /**
+   * Copy a local archive to HDFS
+   * @param localArchive local archive
+   * @return the path of the uploaded image
+   */
+  public Path copyLocalArchiveToHDFS(String localArchive) {
+    assert localArchive
+    File localArchiveFile = new File(localArchive)
+    assert localArchiveFile.exists()
+    assert hdfsCluster
+    Path remoteUnresolvedArchive = new Path(localArchiveFile.name)
+    assert FileUtil.copy(
+        localArchiveFile,
+        hdfsCluster.fileSystem,
+        remoteUnresolvedArchive,
+        false,
+        testConfiguration)
+    Path remotePath = hdfsCluster.fileSystem.resolvePath(
+        remoteUnresolvedArchive)
+    return remotePath
+  }
+  
+  
 }

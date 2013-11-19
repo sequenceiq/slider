@@ -112,10 +112,6 @@ public class CommonArgs implements HoyaActions , Arguments {
   @Parameter(names = ARG_ZKHOSTS,
              description = "comma separated list of the Zookeeper hosts")
   public String zkhosts;
-
-  @Parameter(names = ARG_VERSION,
-      description = "HBase/Accumulo version string which is also the name of archive dir")
-  public String version;
   
   @Parameter(names = ARG_ZKPORT,
              description = "Zookeeper port")
