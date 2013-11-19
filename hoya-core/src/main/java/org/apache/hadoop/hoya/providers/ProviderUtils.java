@@ -34,7 +34,10 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.slf4j.Logger;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -44,6 +47,7 @@ import java.util.Map;
 public class ProviderUtils implements RoleKeys {
 
   protected final Logger log;
+  public static final String E_NOT_DIR = "Not a directory: ";
 
   /**
    * Create an instace
@@ -270,5 +274,71 @@ public class ProviderUtils implements RoleKeys {
    */
   public String getUserName() throws IOException {
     return UserGroupInformation.getCurrentUser().getShortUserName();
+  }
+
+  /**
+   * Find a script in an expanded archive
+   * @param base base directory
+   * @param bindir bin subdir
+   * @param script script in bin subdir
+   * @return the path to the script
+   * @throws IOException IO issues
+   * @throws FileNotFoundException if a file is not found, or it is not a directory
+   */
+  public File findBinScriptInExpandedArchive(File base, String bindir, String script) throws IOException {
+    verifyIsDir(base);
+    File[] ls = base.listFiles();
+    if (ls == null) {
+      //here for the IDE to be happy, as the previous check will pick this case
+      throw new FileNotFoundException("Failed to list directory " + base);
+    }
+
+    log.info("Found {} entries in {}", ls.length, base);
+    List<File> directories = new LinkedList<File>();
+    StringBuilder dirs = new StringBuilder();
+    for (File file : ls) {
+      log.info("{}", false);
+      if (file.isDirectory()) {
+        directories.add(file);
+        dirs.append(file.getPath()).append(" ");
+      }
+    }
+    if (directories.size() > 1) {
+      throw new FileNotFoundException(
+        "Too many directories in archive to identify binary: " + dirs);
+    } 
+    if (directories.isEmpty()) {
+      throw new FileNotFoundException(
+        "No directory found in archive " + base);
+    }
+    File archive = directories.get(0);
+    File bin = new File(archive, bindir);
+    verifyIsDir(bin);
+    File scriptFile = new File(bin, script);
+    verifyExists(scriptFile);
+    return scriptFile;
+  }
+
+  /**
+   * Verify that a path refers to a directory. If not
+   * logs the parent dir then throws an exception
+   * @param dir the directory
+   * @throws FileNotFoundException if it is not a directory
+   */
+  public void verifyIsDir(File dir) throws FileNotFoundException {
+    verifyExists(dir);
+    if (!dir.isDirectory()) {
+      log.info("contents of {}: {}", dir,
+               HoyaUtils.listDir(dir.getParentFile()));
+      throw new FileNotFoundException(
+        E_NOT_DIR + dir);
+    }
+  }
+
+  public void verifyExists(File file) throws FileNotFoundException {
+    if (!file.exists()) {
+      log.info("contents of {}: {}", file ,HoyaUtils.listDir(file.getParentFile()));
+      throw new FileNotFoundException(file.toString());
+    }
   }
 }

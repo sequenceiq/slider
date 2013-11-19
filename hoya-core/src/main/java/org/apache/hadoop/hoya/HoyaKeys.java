@@ -38,9 +38,11 @@ public interface HoyaKeys extends HoyaXmlConfKeys {
   String HOYA_BASE_DIRECTORY = ".hoya";
 
   /**
-   *  name of the relative path to install hBase into:  {@value}
+   *  name of the relative path to expaned an image into:  {@value}.
+   *  The title of this path is to help people understand it when
+   *  they see it in their error messages
    */
-  String LOCAL_TARBALL_INSTALL_SUBDIR = "local";
+  String LOCAL_TARBALL_INSTALL_SUBDIR = "expandedarchive";
 
 
   /**
@@ -52,6 +54,10 @@ public interface HoyaKeys extends HoyaXmlConfKeys {
    * JVM arg to force IPv4  {@value}
    */
   String JVM_ENABLE_ASSERTIONS = "-ea";
+  
+  /**
+   * JVM arg enable JVM system/runtime {@value}
+   */
   String JVM_ENABLE_SYSTEM_ASSERTIONS = "-esa";
 
   /**
