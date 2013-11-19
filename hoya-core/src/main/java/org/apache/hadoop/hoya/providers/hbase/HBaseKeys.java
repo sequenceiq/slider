@@ -58,11 +58,6 @@ public interface HBaseKeys {
   String REGION_SERVER = "regionserver";
 
   /**
-   *  name of the hbase subdir in the archive:  {@value}
-   */
-  String VERSION = "hbase-0.96.0";
-
-  /**
    * What is the command for hbase to print a version: {@value}
    */
   String COMMAND_VERSION = "version";

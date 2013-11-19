@@ -204,7 +204,6 @@ public class HBaseClientProvider extends Configured implements
   @Override
   public Map<String, String> getDefaultClusterOptions() {
     HashMap<String, String> site = new HashMap<String, String>();
-    site.put(OptionKeys.APPLICATION_VERSION, HBaseKeys.VERSION);
     return site;
   }
   
@@ -436,18 +435,22 @@ public class HBaseClientProvider extends Configured implements
                                             Path tempPath) throws
                                                            IOException,
                                                            HoyaException {
-    String[] jars=
+    String[] jars =
       {
         "hbase-common.jar",
         "hbase-protocol.jar",
         "hbase-client.jar",
       };
     Class[] classes = {
-      org.apache.hadoop.hbase.HConstants.class, // hbase-common
-      org.apache.hadoop.hbase.protobuf.generated.ClientProtos.class, // hbase-protocol
-      org.apache.hadoop.hbase.client.Put.class, // hbase-client
+      org.apache.hadoop.hbase.HConstants.class,
+      // hbase-common
+      org.apache.hadoop.hbase.protobuf.generated.ClientProtos.class,
+      // hbase-protocol
+      org.apache.hadoop.hbase.client.Put.class,
+      // hbase-client
     };
-    addDependencyJars(providerResources,clusterFS,tempPath,libdir,jars,classes);
+    addDependencyJars(providerResources, clusterFS, tempPath, libdir, jars,
+                      classes);
   }
 
   @Override
@@ -556,10 +559,5 @@ public class HBaseClientProvider extends Configured implements
   }
 
 
-
-  public String getHBaseVersion(ClusterDescription cd) {
-    return cd.getOption(OptionKeys.APPLICATION_VERSION,
-                                        HBaseKeys.VERSION);
-  }
 
 }

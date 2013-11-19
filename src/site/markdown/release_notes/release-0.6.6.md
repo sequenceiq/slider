@@ -14,7 +14,7 @@
   
 # Hoya Release 0.6.6
 
-N
+November 2013
 
 This release is built against the Apache Hadoop 2.2.0 and hbase 0.96.0-hadoop2
 artifacts. 
@@ -24,18 +24,17 @@ Key changes
 
 ## Automatic archive path fixup: --version command dropped
 
+In previous versions of hoya, unless the name of the directory 
+in the `hbase.tar` or `accumulo.tar` file matched that of the
+version Hoya was set to expect at compile time,
+the path to the expanded subdirectory had to be set when creating a cluster,
+using the `--version` keyword.
 
+This is no longer the case and the argument has been dropped. Instead the
+application master will look inside the expanded archive and determine for itself
+what the path is -and fail if it cannot locate `bin/hbase` or `bin/accumulo` under
+the single directory permitted in the archive.
 
+This also means that when an HBase or accumulo archive is updated to a later version,
+that new version will be picked up automatically.
 
-## Changing security setup
-
-The `--secure` option has been removed; security is now enabled by configuring
-the client with the option `hoya.security.enabled` set to true. This can be
-done inside `hoya-client.xml` -turning security on for a target cluster without
-any need to declare this on the command line.
-
-## Reworked cluster.json file
-
-There's been some reworking of the `cluster.json` file, with the goal of
-"be stable". This isn't something we can guarantee yet, so you have to 
-assume that there may still be changes in future.

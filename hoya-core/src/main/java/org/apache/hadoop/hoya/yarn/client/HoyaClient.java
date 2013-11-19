@@ -368,7 +368,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     ClusterDescription clusterSpec = new ClusterDescription();
 
     requireArgumentSet(Arguments.ARG_ZKHOSTS, serviceArgs.zkhosts);
-    requireArgumentSet(Arguments.ARG_VERSION, serviceArgs.version);
     Path appconfdir = serviceArgs.confdir;
     requireArgumentSet(Arguments.ARG_CONFDIR, appconfdir);
     // Provider
@@ -410,15 +409,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     // next the options provided on the command line
     HoyaUtils.mergeMap(clusterSpec.options, serviceArgs.getOptionsMap());
-    // hbasever arg also sets an option
-    if (isSet(serviceArgs.version)) {
-      clusterSpec.setOption(OptionKeys.APPLICATION_VERSION, serviceArgs.version);
-    }
-    log.debug("Application version is {}",
-              clusterSpec.getOption(OptionKeys.APPLICATION_VERSION, "undefined"));
 
-
-    
     // build the list of supported roles
     List<ProviderRole> supportedRoles = new ArrayList<ProviderRole>();
     // provider roles
