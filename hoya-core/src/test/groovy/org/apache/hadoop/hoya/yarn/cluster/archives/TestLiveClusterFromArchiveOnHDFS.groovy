@@ -33,36 +33,35 @@ import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
-
 /**
  * Test of RM creation. This is so the later test's prereq's can be met
  */
 //@CompileStatic
 @Slf4j
-class TestVersionFromArchiveOnHDFS extends HBaseMiniClusterTestBase {
+class TestLiveClusterFromArchiveOnHDFS extends HBaseMiniClusterTestBase {
 
 
   @Test
   public void testVersionFromArchiveOnHDFS() throws Throwable {
     describe "create a cluster from a tar on HFD, exec the version command"
     assumeArchiveDefined();
-    String localArchive = super.getArchivePath()
     String clustername = "TestVersionFromArchiveOnHDFS"
     createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
 
     enableTestRunAgainstUploadedArchive();
-    
+
     ServiceLauncher launcher = createHBaseCluster(clustername,
-                                                 0,
+                                                 2,
                                                  HBASE_VERSION_COMMAND_SEQUENCE,
                                                  true,
                                                  false)
     assert launcher.serviceExitCode == 0
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     hoyaClient.monitorAppToRunning(new Duration(10 * 60000))
-    ClusterDescription status = hoyaClient.getClusterStatus(clustername)
+    ClusterDescription status = hoyaClient.clusterDescription
     log.info("Status $status")
     waitForAppToFinish(hoyaClient)
   }
+
 
 }

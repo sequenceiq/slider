@@ -38,7 +38,7 @@ class TestVersionFromArchive extends HBaseMiniClusterTestBase {
   @Test
   public void testVersionFromArchive() throws Throwable {
     describe "create a cluster, exec the version command"
-    assumeHBaseArchive();
+    assumeArchiveDefined();
     String clustername = "TestVersionFromArchive"
     createMiniCluster(clustername, createConfiguration(), 1, true)
     switchToImageDeploy = true
