@@ -242,10 +242,13 @@ public class RoleLaunchService extends AbstractService {
         final InetSocketAddress cmAddress =
           NetUtils.createSocketAddr(cmIpPortStr);
 
-        Token<ContainerTokenIdentifier> token =
-          ConverterUtils.convertFromYarn(container.getContainerToken(),
-                                         cmAddress);
-        user.addToken(token);
+        org.apache.hadoop.yarn.api.records.Token containerToken = container.getContainerToken();
+        if (containerToken != null) {
+          Token<ContainerTokenIdentifier> token =
+              ConverterUtils.convertFromYarn(containerToken,
+                cmAddress);
+          user.addToken(token);
+        }
 
         log.debug("Launching container {} into role {}",
                   container.getId(),
