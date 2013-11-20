@@ -114,40 +114,45 @@ public class HBaseClientProvider extends Configured implements
   }
 
   @Override
-  public List<Probe> createProbes(String urlStr, Configuration config, int timeout) 
+  public List<Probe> createProbes(ClusterDescription clusterSpec, String urlStr,
+                                  Configuration config,
+                                  int timeout) 
       throws IOException {
     List<Probe> probes = new ArrayList<Probe>();
-    String prefix = "";
-    URL url = null;
-    if (urlStr != null && !urlStr.startsWith("http") && urlStr.contains("/proxy/")) {
-      if (!UserGroupInformation.isSecurityEnabled()) {
-        prefix = "http://proxy/relay/";
-      } else {
-        prefix = "https://proxy/relay/";
+    if (urlStr!=null) {
+      // set up HTTP probe if a path is provided
+      String prefix = "";
+      URL url = null;
+      if (!urlStr.startsWith("http") && urlStr.contains("/proxy/")) {
+        if (!UserGroupInformation.isSecurityEnabled()) {
+          prefix = "http://proxy/relay/";
+        } else {
+          prefix = "https://proxy/relay/";
+        }
       }
-    }
-    try {
-      url = new URL(prefix + urlStr);
-    } catch (MalformedURLException mue) {
-      log.error("tracking url: " + prefix + urlStr + " is malformed");
-    }
-    if (url != null) {
-      log.info("tracking url: " + url);
-      HttpURLConnection connection = null;
       try {
-        connection = HttpProbe.getConnection(url, timeout);
-        // see if the host is reachable
-        connection.getResponseCode();
-
-        HttpProbe probe = new HttpProbe(url, timeout,
-          MonitorKeys.WEB_PROBE_DEFAULT_CODE, MonitorKeys.WEB_PROBE_DEFAULT_CODE, config);
-        probes.add(probe);
-      } catch (UnknownHostException uhe) {
-        log.error("host unknown: " + url);
-      } finally {
-        if (connection != null) {
-          connection.disconnect();
-          connection = null;
+        url = new URL(prefix + urlStr);
+      } catch (MalformedURLException mue) {
+        log.error("tracking url: " + prefix + urlStr + " is malformed");
+      }
+      if (url != null) {
+        log.info("tracking url: " + url);
+        HttpURLConnection connection = null;
+        try {
+          connection = HttpProbe.getConnection(url, timeout);
+          // see if the host is reachable
+          connection.getResponseCode();
+  
+          HttpProbe probe = new HttpProbe(url, timeout,
+            MonitorKeys.WEB_PROBE_DEFAULT_CODE, MonitorKeys.WEB_PROBE_DEFAULT_CODE, config);
+          probes.add(probe);
+        } catch (UnknownHostException uhe) {
+          log.error("host unknown: " + url);
+        } finally {
+          if (connection != null) {
+            connection.disconnect();
+            connection = null;
+          }
         }
       }
     }

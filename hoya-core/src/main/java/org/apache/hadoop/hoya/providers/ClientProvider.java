@@ -150,13 +150,16 @@ public interface ClientProvider extends ProviderCore {
                                                              HoyaException,
                                                              IOException;
 
-  /*
+  /**
+   * @param clusterSpec cluster specification
    * @param url the tracking URL
    * @param config the Configuration
    * @param timeout
    * @return List of applicable Probe's
    */
-  List<Probe> createProbes(String url, Configuration config, int timeout) throws IOException;
+  List<Probe> createProbes(ClusterDescription clusterSpec, String url,
+                           Configuration config,
+                           int timeout) throws IOException;
   
   /*
    * @param conf

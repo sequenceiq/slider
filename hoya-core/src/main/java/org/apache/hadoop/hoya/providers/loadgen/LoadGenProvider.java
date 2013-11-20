@@ -94,7 +94,9 @@ public class LoadGenProvider extends Configured implements
   }
 
   @Override
-  public List<Probe> createProbes(String urlStr, Configuration config, int timeout) 
+  public List<Probe> createProbes(ClusterDescription clusterSpec, String urlStr,
+                                  Configuration config,
+                                  int timeout) 
       throws IOException {
     return new ArrayList<Probe>();
   }

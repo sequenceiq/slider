@@ -43,23 +43,6 @@ public class HttpProbe extends Probe {
     this.max = max;
   }
 
-  public static HttpProbe createHttpProbe(Configuration conf) throws
-                                                              IOException {
-    String path = conf.get(
-      WEB_PROBE_URL, WEB_PROBE_DEFAULT_URL);
-    int min = conf.getInt(
-      WEB_PROBE_MIN, WEB_PROBE_DEFAULT_CODE);
-    int max = conf.getInt(
-      WEB_PROBE_MAX, WEB_PROBE_DEFAULT_CODE);
-    return new HttpProbe(new URL(path),
-                         conf.getInt(
-                           PORT_PROBE_CONNECT_TIMEOUT,
-                           PORT_PROBE_CONNECT_TIMEOUT_DEFAULT),
-                         min,
-                         max,
-                         conf);
-  }
-
   public static HttpURLConnection getConnection(URL url, int timeout) throws IOException {
     HttpURLConnection connection = (HttpURLConnection) url.openConnection();
     connection.setInstanceFollowRedirects(true);

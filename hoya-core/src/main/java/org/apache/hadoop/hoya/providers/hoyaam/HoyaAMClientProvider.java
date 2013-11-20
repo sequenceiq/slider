@@ -95,7 +95,7 @@ public class HoyaAMClientProvider extends Configured implements
   }
 
   @Override
-  public List<Probe> createProbes(String urlStr,
+  public List<Probe> createProbes(ClusterDescription clusterSpec, String urlStr,
                                   Configuration config,
                                   int timeout)
     throws IOException {

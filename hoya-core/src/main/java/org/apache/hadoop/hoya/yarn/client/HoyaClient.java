@@ -1401,7 +1401,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     int waittime = serviceArgs.waittime;
     ClientProvider provider = createClientProvider(clusterSpec);
     List<Probe> probes =
-      provider.createProbes(report.getTrackingUrl(), getConfig(), timeout);
+      provider.createProbes(clusterSpec, report.getTrackingUrl(), getConfig(), timeout);
     probes.add(
       new YarnApplicationProbe(clustername, yarnClient, "Yarn application probe",
                                getConfig(), getUsername()));
