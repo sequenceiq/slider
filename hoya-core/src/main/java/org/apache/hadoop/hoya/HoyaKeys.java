@@ -79,7 +79,7 @@ public interface HoyaKeys extends HoyaXmlConfKeys {
    * the hbase conf that is propagated via YARN
    *  {@value}
    */
-  String PROPAGATED_CONF_DIR_NAME = "conf";
+  String PROPAGATED_CONF_DIR_NAME = "propagatedconf";
   String GENERATED_CONF_DIR_NAME = "generated";
   String ORIG_CONF_DIR_NAME = "original";
   String DATA_DIR_NAME = "database";

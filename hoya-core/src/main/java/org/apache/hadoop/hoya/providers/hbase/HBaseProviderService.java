@@ -134,8 +134,11 @@ public class HBaseProviderService extends AbstractProviderService implements
                                            HoyaException {
     // Set the environment
     Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
+
     env.put(HBASE_LOG_DIR, providerUtils.getLogdir());
 
+    env.put("PROPAGATED_CONFDIR", ApplicationConstants.Environment.PWD.$()+"/"+
+                                  HoyaKeys.PROPAGATED_CONF_DIR_NAME);
     ctx.setEnvironment(env);
 
     //local resources
@@ -156,6 +159,7 @@ public class HBaseProviderService extends AbstractProviderService implements
       HoyaUtils.maybeAddImagePath(fs, localResources, imagePath);
     }
     ctx.setLocalResources(localResources);
+    List<String> commands = new ArrayList<String>();
 
 
     List<String> command = new ArrayList<String>();
@@ -164,7 +168,7 @@ public class HBaseProviderService extends AbstractProviderService implements
 
     //config dir is relative to the generated file
     command.add(ARG_CONFIG);
-    command.add(PROPAGATED_CONF_DIR_NAME);
+    command.add("$PROPAGATED_CONFDIR");
     
     //now look at the role
     if (ROLE_WORKER.equals(role)) {
@@ -190,7 +194,7 @@ public class HBaseProviderService extends AbstractProviderService implements
 
     String cmdStr = HoyaUtils.join(command, " ");
 
-    List<String> commands = new ArrayList<String>();
+
     commands.add(cmdStr);
     ctx.setCommands(commands);
 
