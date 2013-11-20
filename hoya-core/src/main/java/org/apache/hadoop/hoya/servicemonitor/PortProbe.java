@@ -21,6 +21,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IOUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -31,11 +33,10 @@ import java.net.Socket;
  * Probe for a port being open
  */
 public class PortProbe extends Probe {
-  private static final Log LOG = LogFactory.getLog(PortProbe.class);
-
-  private String host;
-  private int port;
-  private int timeout;
+  protected static final Logger log = LoggerFactory.getLogger(PortProbe.class);
+  private final String host;
+  private final int port;
+  private final int timeout;
 
   public PortProbe(String host, int port, int timeout, String name, Configuration conf)
       throws IOException {
@@ -67,13 +68,13 @@ public class PortProbe extends Probe {
     }
     InetAddress target;
     if (host != null) {
-      LOG.debug("looking up host " + host);
+      log.debug("looking up host " + host);
       target = InetAddress.getByName(host);
     } else {
-      LOG.debug("Host is null, retrieving localhost address");
+      log.debug("Host is null, retrieving localhost address");
       target = InetAddress.getLocalHost();
     }
-    LOG.info("Checking " + target + ":" + port);
+    log.info("Checking " + target + ":" + port);
   }
 
   /**
@@ -88,15 +89,15 @@ public class PortProbe extends Probe {
     InetSocketAddress sockAddr = new InetSocketAddress(host, port);
     Socket socket = new Socket();
     try {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Connecting to " + sockAddr.toString() + " connection-timeout=" +
+      if (log.isDebugEnabled()) {
+        log.debug("Connecting to " + sockAddr.toString() + " connection-timeout=" +
                   MonitorUtils.millisToHumanTime(timeout));
       }
       socket.connect(sockAddr, timeout);
       status.succeed(this);
     } catch (IOException e) {
       String error = "Probe " + sockAddr + " failed: " + e;
-      LOG.debug(error, e);
+      log.debug(error, e);
       status.fail(this,
                   new IOException(error, e));
     } finally {

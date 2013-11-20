@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.cluster.live
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hbase.ClusterStatus
+import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
@@ -43,6 +44,10 @@ class TestLiveTwoNodeRegionService extends HBaseMiniClusterTestBase {
     createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, false)
 
     describe(" Create a two node region service cluster");
+    
+    //exec monitor quickly just to expect it to fail
+    assert actionMonitor(clustername, 10) == HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER
+
     //now launch the cluster
     ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount, [], true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
@@ -54,6 +59,7 @@ class TestLiveTwoNodeRegionService extends HBaseMiniClusterTestBase {
 
     ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient)
 
+    assert actionMonitor(clustername, 10) == 0
 
 
     status = waitForHoyaWorkerCount(hoyaClient, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)

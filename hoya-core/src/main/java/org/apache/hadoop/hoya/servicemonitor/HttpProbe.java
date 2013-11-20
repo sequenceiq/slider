@@ -20,13 +20,15 @@ package org.apache.hadoop.hoya.servicemonitor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
 public class HttpProbe extends Probe {
-  private static final Log LOG = LogFactory.getLog(HttpProbe.class);
+  protected static final Logger log = LoggerFactory.getLogger(HttpProbe.class);
 
   private final URL url;
   private final int timeout;
@@ -70,14 +72,14 @@ public class HttpProbe extends Probe {
     ProbeStatus status = new ProbeStatus();
     HttpURLConnection connection = null;
     try {
-      if (LOG.isDebugEnabled()) {
+      if (log.isDebugEnabled()) {
         // LOG.debug("Fetching " + url + " with timeout " + timeout);
       }
       connection = getConnection(url, this.timeout);
       int rc = connection.getResponseCode();
       if (rc < min || rc > max) {
         String error = "Probe " + url + " error code: " + rc;
-        LOG.info(error);
+        log.info(error);
         status.fail(this,
                     new IOException(error));
       } else {
@@ -85,7 +87,7 @@ public class HttpProbe extends Probe {
       }
     } catch (IOException e) {
       String error = "Probe " + url + " failed: " + e;
-      LOG.info(error, e);
+      log.info(error, e);
       status.fail(this,
                   new IOException(error, e));
     } finally {

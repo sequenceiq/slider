@@ -147,6 +147,7 @@ public class ClientArgs extends CommonArgs {
 //    ACTIONS.put(ACTION_GETSIZE, t("Get the size of a cluster", 1));
     ACTIONS.put(ACTION_HELP, t("Print help information", 0));
     ACTIONS.put(ACTION_LIST, t("List running Hoya clusters", 0, 1));
+    ACTIONS.put(ACTION_MONITOR, t("Monitor a running cluster", 1));
 //    ACTIONS.put(ACTION_MIGRATE, t("Migrate a Hoya cluster to a new HBase version", 1));
 //    ACTIONS.put(ACTION_PREFLIGHT, t("Perform preflight checks", 0));
     ACTIONS.put(ACTION_RECONFIGURE,

@@ -19,6 +19,8 @@ package org.apache.hadoop.hoya.servicemonitor;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -28,7 +30,7 @@ import java.util.List;
  * This is the monitor service
  */
 public final class ReportingLoop implements Runnable, ProbeReportHandler, MonitorKeys, Closeable {
-  private static final Log LOG = LogFactory.getLog(ReportingLoop.class);
+  protected static final Logger log = LoggerFactory.getLogger(ReportingLoop.class);
   private final ProbeWorker worker;
   private final Thread workerThread;
   private final int reportInterval;
@@ -101,7 +103,7 @@ public final class ReportingLoop implements Runnable, ProbeReportHandler, Monito
                          + ", report-interval=" + MonitorUtils.millisToHumanTime(reportInterval)
                          + ", probe-timeout=" + timeoutToStr(probeTimeout)
                          + ", bootstrap-timeout=" + timeoutToStr(bootstrapTimeout);
-    LOG.info("Starting reporting"
+    log.info("Starting reporting"
              + " to " + reporter
              + description);
     return reporter.commence(name, description);
@@ -112,7 +114,7 @@ public final class ReportingLoop implements Runnable, ProbeReportHandler, Monito
   }
 
   private void startWorker() {
-    LOG.info("Starting reporting worker thread ");
+    log.info("Starting reporting worker thread ");
     workerThread.setDaemon(true);
     workerThread.start();
   }
@@ -123,7 +125,7 @@ public final class ReportingLoop implements Runnable, ProbeReportHandler, Monito
    */
   @Override
   public void close() {
-    LOG.info("Stopping reporting");
+    log.info("Stopping reporting");
     mustExit = true;
     if (worker != null) {
       worker.setMustExit();
@@ -257,7 +259,7 @@ public final class ReportingLoop implements Runnable, ProbeReportHandler, Monito
       startWorker();
       reportingLoop();
     } catch (RuntimeException e) {
-      LOG.warn("Failure in the reporting loop: " + e, e);
+      log.warn("Failure in the reporting loop: " + e, e);
       //rethrow so that inline code can pick it up (e.g. test runs)
       throw e;
     }

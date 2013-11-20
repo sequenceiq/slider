@@ -23,6 +23,8 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This is the entry point to do work. A list of probes is taken in, in order of
@@ -40,7 +42,8 @@ import org.apache.commons.logging.LogFactory;
  */
 
 public class ProbeWorker implements Runnable {
-  private static final Log LOG = LogFactory.getLog(ProbeWorker.class);
+  protected static final Logger log = LoggerFactory.getLogger(ProbeWorker.class);
+
   public static final String FAILED_TO_BOOT = "Monitored service failed to bootstrap after ";
   public static final String FAILURE_OF_A_LIVE_PROBE_DURING_BOOTSTRAPPING = "Failure of a live probe during bootstrapping";
   private final List<Probe> monitorProbes;
@@ -141,8 +144,8 @@ public class ProbeWorker implements Runnable {
    * @throws ProbeInterruptedException if the probe has been told to exit
    */
   private ProbeStatus ping(Probe probe, boolean live) throws ProbeInterruptedException {
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Executing " + probe);
+    if (log.isDebugEnabled()) {
+      log.debug("Executing " + probe);
     }
     checkForExitRequest();
     currentProbe = probe;
@@ -247,8 +250,8 @@ public class ProbeWorker implements Runnable {
         probeFailed = true;
         lastFailingBootstrapProbe = status;
         probe.failureCount++;
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Booting probe failed: " + status);
+        if (log.isDebugEnabled()) {
+          log.debug("Booting probe failed: " + status);
         }
         //at this point check to see if the timeout has occurred -and if so, force in the last probe status.
 
@@ -270,8 +273,8 @@ public class ProbeWorker implements Runnable {
         //this probe is working
         if (!probe.isBooted()) {
           //if it is new, mark it as live
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("Booting probe is now live: " + probe);
+          if (log.isDebugEnabled()) {
+            log.debug("Booting probe is now live: " + probe);
           }
           probe.endBootstrap();
           //tell the report handler that another probe has booted
@@ -349,8 +352,8 @@ public class ProbeWorker implements Runnable {
   protected void checkAndReportLiveProbes() throws ProbeFailedException, ProbeInterruptedException {
     ProbeStatus status = null;
     //go through the live list
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Checking live probes");
+    if (log.isDebugEnabled()) {
+      log.debug("Checking live probes");
     }
     for (Probe probe : monitorProbes) {
       status = ping(probe, true);
@@ -406,17 +409,17 @@ public class ProbeWorker implements Runnable {
    */
   private ProbeFailedException raiseProbeFailure(ProbeStatus status, String text) {
     status.setProbePhase(probePhase);
-    LOG.info("Probe failed: " + status);
+    log.info("Probe failed: " + status);
     return new ProbeFailedException(text, status);
   }
 
   @Override
   public void run() {
     int size = monitorProbes.size();
-    LOG.info("Probe Worker Starting; " + size + " probe" + MonitorUtils.toPlural(size) + ":");
+    log.info("Probe Worker Starting; " + size + " probe" + MonitorUtils.toPlural(size) + ":");
     enterProbePhase(ProbePhase.DEPENDENCY_CHECKING);
     for (Probe probe : monitorProbes) {
-      LOG.info(probe.getName());
+      log.info(probe.getName());
     }
     while (!mustExit) {
       try {
@@ -433,7 +436,7 @@ public class ProbeWorker implements Runnable {
         break;
       }
     }
-    LOG.info("Probe Worker Exiting");
+    log.info("Probe Worker Exiting");
     enterProbePhase(ProbePhase.TERMINATING);
   }
 

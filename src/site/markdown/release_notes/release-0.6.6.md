@@ -38,3 +38,16 @@ the single directory permitted in the archive.
 This also means that when an HBase or accumulo archive is updated to a later version,
 that new version will be picked up automatically.
 
+### Monitor command
+
+The `monitor \<clustername>` command monitors a cluster to verify that
+
+1. it is running at startup
+2. it stays running
+
+The monitor operations are a basic "is the YARN application running"
+alongside any service specific ones, such as HTTP and RPC port scanning,
+other liveness operations. These are the same operations that will be used
+in the AM itself to monitor cluster health.
+
+Consult the man page document for usage instructions
