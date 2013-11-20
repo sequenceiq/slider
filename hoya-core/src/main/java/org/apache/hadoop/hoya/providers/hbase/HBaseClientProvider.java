@@ -162,6 +162,9 @@ public class HBaseClientProvider extends Configured implements
   @Override
   public HostAndPort getMasterAddress() throws IOException, KeeperException {
     // masterTracker receives notification from zookeeper on current master
+    if (masterTracker == null) {
+      return null;
+    }
     ServerName sn = masterTracker.getMasterAddress();
     log.debug("getMasterAddress " + sn + ", quorum=" + this.conf.get(HConstants.ZOOKEEPER_QUORUM));
     if (sn == null) return null;
