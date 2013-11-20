@@ -441,7 +441,9 @@ public class HoyaAppMaster extends CompoundLaunchedService
     providerRoles.addAll(clientProvider.getRoles());
 
 
+/*  DISABLED 
     // work out a port for the AM
+
     int infoport = clusterSpec.getRoleOptInt(ROLE_HOYA_AM,
                                                   RoleKeys.APP_INFOPORT,
                                                   0);
@@ -454,8 +456,10 @@ public class HoyaAppMaster extends CompoundLaunchedService
                                   RoleKeys.APP_INFOPORT,
                                   infoport);
     }
-    appMasterTrackingUrl =
-      "http://" + appMasterHostname + ":" + infoport;
+    appMasterTrackingUrl = "http://" + appMasterHostname + ":" + infoport;
+
+    */
+    appMasterTrackingUrl = null;
 
 
     // Register self with ResourceManager
