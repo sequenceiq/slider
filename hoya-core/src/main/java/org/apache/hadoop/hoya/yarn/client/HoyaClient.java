@@ -275,7 +275,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // delete the directory;
     boolean exists = fs.exists(clusterDirectory);
     if (exists) {
-      log.info("Cluster exists -destroying");
+      log.info("Cluster found -destroying");
     } else {
       log.info("Cluster already destroyed");
     }
@@ -1474,11 +1474,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       log.info("Cluster {} is a terminated state {}", clustername,
                app.getYarnApplicationState());
       return EXIT_SUCCESS;
-    }
-    if (log.isDebugEnabled()) {
-      ClusterDescription clusterSpec = getClusterDescription(clustername);
-
-      log.debug(clusterSpec.toString());
     }
     HoyaClusterProtocol appMaster = connect(app);
     Messages.StopClusterRequestProto r =
