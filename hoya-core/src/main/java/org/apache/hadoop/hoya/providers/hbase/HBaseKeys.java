@@ -18,8 +18,6 @@
 
 package org.apache.hadoop.hoya.providers.hbase;
 
-import org.apache.hadoop.hoya.HoyaKeys;
-
 /*
 Usage: hbase <command>
 where <command> an option from one of these categories:

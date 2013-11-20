@@ -21,7 +21,6 @@ package org.apache.hadoop.hoya.providers;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.api.ClusterDescription;
-import org.apache.hadoop.hoya.api.ClusterNode;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.yarn.service.EventCallback;
 import org.apache.hadoop.service.Service;
@@ -30,7 +29,6 @@ import org.apache.hadoop.yarn.service.launcher.ExitCodeProvider;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 
 public interface ProviderService extends ProviderCore, Service,
@@ -56,18 +54,21 @@ public interface ProviderService extends ProviderCore, Service,
   String getSiteXMLFilename();
 
   ClientProvider getClientProvider();
-  
-  List<String> buildInContainerProcessCommand(ClusterDescription cd,
-                                              File confDir,
-                                              Map<String, String> env,
-                                              String masterCommand) throws
-                                                         IOException,
-                                                         HoyaException;
 
-  void exec(ClusterDescription cd,
-            File confDir,
-            Map<String, String> env,
-            EventCallback execInProgress) throws IOException,
+  /**
+   * Execute a process in the AM
+   * @param cd cluster description
+   * @param confDir configuration directory
+   * @param env environment
+   * @param execInProgress the callback for the exec events
+   * @return true if a process was actually started
+   * @throws IOException
+   * @throws HoyaException
+   */
+  boolean exec(ClusterDescription cd,
+               File confDir,
+               Map<String, String> env,
+               EventCallback execInProgress) throws IOException,
                                                  HoyaException;
 
   /**

@@ -520,16 +520,13 @@ public class HoyaAppMaster extends CompoundLaunchedService
                                           new Path(getDFSConfDir()));
     runChildService(launchService);
 
-    boolean noLocalProcess = clusterSpec.getDesiredInstanceCount(ROLE_HOYA_AM, 1) <= 0;
-    if (noLocalProcess) {
-      log.info("skipping AM process launch");
-      eventCallbackEvent();
-    } else {
-      appState.noteAMLaunched();
-      //launch the provider; this is expected to trigger a callback that
-      //brings up the service
-      launchProviderService(clusterSpec, confDir);
-    }
+    appState.noteAMLaunched();
+
+
+    // launch the provider; this is expected to trigger a callback that
+    // brings up the service
+    launchProviderService(clusterSpec, confDir);
+
 
     try {
       //now block waiting to be told to exit the process
@@ -1022,25 +1019,31 @@ public class HoyaAppMaster extends CompoundLaunchedService
                                                     File confDir)
     throws IOException, HoyaException {
     Map<String, String> env = new HashMap<String, String>();
-    providerService.exec(cd, confDir, env, this);
-
-    providerService.registerServiceListener(this);
-    providerService.start();
+    boolean execStarted = providerService.exec(cd, confDir, env, this);
+    if (execStarted) {
+      providerService.registerServiceListener(this);
+      providerService.start();
+    } else {
+      // didn't start, so don't register
+      providerService.start();
+      // and send the started event ourselves
+      eventCallbackEvent();
+    }
   }
 
   /* =================================================================== */
-  /* EventCallback  from the child */
+  /* EventCallback  from the child or ourselves directly */
   /* =================================================================== */
 
   @Override // EventCallback
   public void eventCallbackEvent() {
-    //signalled that the child process is up.
+    // signalled that the child process is up.
     appState.noteAMLive();
-    //now ask for the cluster nodes
+    // now ask for the cluster nodes
     try {
       flexCluster(getClusterSpec());
     } catch (Exception e) {
-      //this happens in a separate thread, so the ability to act is limited
+      //this may happen in a separate thread, so the ability to act is limited
       log.error("Failed to flex cluster nodes", e);
       //declare a failure
       finish();
