@@ -123,3 +123,11 @@ no. 72.
     int EXIT_MASTER_PROCESS_FAILED = 72;
 
   
+## Other exit codes
+
+YARN itself can fail containers, here are some of the causes we've seen
+
+
+    143: Appears to be triggered by the container exceeding its cgroup memory
+    limits
+ 
