@@ -23,7 +23,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
-import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
@@ -34,10 +33,7 @@ import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
-import org.apache.hadoop.hoya.yarn.service.CompoundService;
 import org.apache.hadoop.hoya.yarn.service.EventCallback;
-import org.apache.hadoop.hoya.yarn.service.EventNotifyingService;
-import org.apache.hadoop.hoya.yarn.service.ForkedProcessService;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -200,36 +196,9 @@ public class HBaseProviderService extends AbstractProviderService implements
 
   }
 
-  @Override
-  public List<String> buildInContainerProcessCommand(ClusterDescription cd,
-                                                     File confDir,
-                                                     Map<String, String> env,
-                                                     String masterCommand) throws
-                                                                IOException,
-                                                                HoyaException {
-    env.put(HBASE_LOG_DIR, new ProviderUtils(log).getLogdir());
-    //pull out the command line argument if set
-    //set the service to run if unset
-    if (masterCommand == null) {
-      masterCommand = MASTER;
-    }
-
-    //locate the script
-    String scriptPath = buildHBaseScriptBinPath(cd);
-    //this is in-VM, so resolve it and verify it is there
-    File binHbaseSh = new File(scriptPath);
-    HoyaUtils.verifyFileExists(binHbaseSh, log);
-    List<String> launchSequence = new ArrayList<String>(8);
-    launchSequence.add(0, scriptPath);
-    launchSequence.add(ARG_CONFIG);
-    launchSequence.add(confDir.getAbsolutePath());
-    launchSequence.add(masterCommand);
-    launchSequence.add(ACTION_START);
-    return launchSequence;
-  }
-
   /**
    * Run this service
+   *
    *
    * @param cd component description
    * @param confDir local dir with the config
@@ -239,30 +208,14 @@ public class HBaseProviderService extends AbstractProviderService implements
    * @throws HoyaException anything internal
    */
   @Override
-  public void exec(ClusterDescription cd,
-                   File confDir,
-                   Map<String, String> env,
-                   EventCallback execInProgress) throws
+  public boolean exec(ClusterDescription cd,
+                      File confDir,
+                      Map<String, String> env,
+                      EventCallback execInProgress) throws
                                                  IOException,
                                                  HoyaException {
 
-    String masterCommand =
-      cd.getOption(OptionKeys.OPTION_HOYA_MASTER_COMMAND, COMMAND_VERSION);
-
-    List<String> commands =
-      buildInContainerProcessCommand(cd, confDir, env, masterCommand);
-
-    ForkedProcessService subprocess = buildProcess(getName(), env, commands);
-    CompoundService composite = new CompoundService(getName());
-    composite.addService(subprocess);
-    composite.addService(new EventNotifyingService(execInProgress,
-                           cd.getOptionInt(
-                             OptionKeys.CONTAINER_STARTUP_DELAY,
-                             OptionKeys.DEFAULT_CONTAINER_STARTUP_DELAY)));
-    //register the service for lifecycle management; when this service
-    //is terminated, the master process is notified
-    addService(composite);
-    maybeStartCommandSequence();
+    return false;
   }
 
 

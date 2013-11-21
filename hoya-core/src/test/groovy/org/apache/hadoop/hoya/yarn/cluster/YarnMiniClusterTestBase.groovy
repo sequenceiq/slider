@@ -90,9 +90,7 @@ implements KeysForTests, HoyaExitCodes {
   
   public static final String HREGION = "HRegion"
   public static final String HMASTER = "HMaster"
-  public static final List<String> HBASE_VERSION_COMMAND_SEQUENCE = [
-      Arguments.ARG_OPTION, OptionKeys.OPTION_HOYA_MASTER_COMMAND, HBaseKeys.COMMAND_VERSION,
-  ]
+
   public static final int SIGTERM = -15
   public static final int SIGKILL = -9
   public static final int SIGSTOP = -19

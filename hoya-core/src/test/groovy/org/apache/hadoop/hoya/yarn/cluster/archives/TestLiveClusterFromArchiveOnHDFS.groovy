@@ -17,51 +17,29 @@
  *  limitations under the License.
  */
 
-
-
-
-
 package org.apache.hadoop.hoya.yarn.cluster.archives
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import org.apache.hadoop.fs.FileUtil
-import org.apache.hadoop.fs.Path
-import org.apache.hadoop.hoya.api.ClusterDescription
-import org.apache.hadoop.hoya.tools.Duration
-import org.apache.hadoop.hoya.yarn.Arguments
-import org.apache.hadoop.hoya.yarn.client.HoyaClient
-import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
-import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
-import org.junit.Test
 /**
  * Test of RM creation. This is so the later test's prereq's can be met
  */
-//@CompileStatic
+@CompileStatic
 @Slf4j
-class TestLiveClusterFromArchiveOnHDFS extends HBaseMiniClusterTestBase {
+class TestLiveClusterFromArchiveOnHDFS extends TestLiveClusterFromArchive {
 
-
-  @Test
-  public void testVersionFromArchiveOnHDFS() throws Throwable {
-    describe "create a cluster from a tar on HFD, exec the version command"
-    assumeArchiveDefined();
-    String clustername = "TestVersionFromArchiveOnHDFS"
-    createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
-
-    enableTestRunAgainstUploadedArchive();
-
-    ServiceLauncher launcher = createHBaseCluster(clustername,
-                                                 2,
-                                                 HBASE_VERSION_COMMAND_SEQUENCE,
-                                                 true,
-                                                 false)
-    assert launcher.serviceExitCode == 0
-    HoyaClient hoyaClient = (HoyaClient) launcher.service
-    hoyaClient.monitorAppToRunning(new Duration(10 * 60000))
-    ClusterDescription status = hoyaClient.clusterDescription
-    log.info("Status $status")
-    waitForAppToFinish(hoyaClient)
+  @Override
+  String getTestClusterName() {
+    "TestLiveClusterFromArchiveOnHDFS"
   }
 
+  @Override
+  boolean startHDFS() {
+    true
+  }
 
+  @Override
+  void setupImageToDeploy() {
+    enableTestRunAgainstUploadedArchive();
+  }
 }
