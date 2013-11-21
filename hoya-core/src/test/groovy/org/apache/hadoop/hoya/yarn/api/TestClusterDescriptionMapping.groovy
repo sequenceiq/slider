@@ -47,9 +47,9 @@ class TestClusterDescriptionMapping extends YarnMiniClusterTestBase {
     cd.state = ClusterDescription.STATE_LIVE;
     cd.roles = [
         (HBaseKeys.ROLE_MASTER): [
-            (RoleKeys.ROLE_INSTANCES):"1"
-          ]
+            (RoleKeys.ROLE_INSTANCES): "1"
         ]
+    ]
     ClusterNode node = new ClusterNode()
     node.name = "masternode"
     cd.createTime = System.currentTimeMillis()
@@ -116,13 +116,52 @@ class TestClusterDescriptionMapping extends YarnMiniClusterTestBase {
     try {
       cd.getMandatoryOption("none")
       assert false;
-    } catch (BadConfigException e) {}
+    } catch (BadConfigException expected) {
+      // expected
+
+    }
     try {
       cd.getMandatoryRole(HBaseKeys.ROLE_WORKER)
       assert false;
-    } catch (BadConfigException e) {}
+    } catch (BadConfigException expected) {
+      // expected
+    }
 
     cd.getMandatoryOption("opt")
     cd.getMandatoryRole(HBaseKeys.ROLE_MASTER)
   }
+
+  @Test
+  public void testRoleLimitMax() throws Throwable {
+    ClusterDescription cd = createCD()
+    cd.setRoleOpt(HBaseKeys.ROLE_MASTER,
+                  RoleKeys.YARN_MEMORY,
+                  RoleKeys.YARN_RESOURCE_MAX)
+    int limit = cd.getRoleResourceRequirement(HBaseKeys.ROLE_MASTER,
+                                              RoleKeys.YARN_MEMORY,
+                                              256, 512)
+    assert limit == 512
+  }
+
+  @Test
+  public void testRoleLimitNormal() throws Throwable {
+    ClusterDescription cd = createCD()
+    cd.setRoleOpt(HBaseKeys.ROLE_MASTER,
+                  RoleKeys.YARN_MEMORY,
+                  128)
+    int limit = cd.getRoleResourceRequirement(HBaseKeys.ROLE_MASTER,
+                                              RoleKeys.YARN_MEMORY,
+                                              256, 512)
+    assert limit == 128
+  }
+
+  @Test
+  public void testRoleLimitDefval() throws Throwable {
+    ClusterDescription cd = createCD()
+    int limit = cd.getRoleResourceRequirement(HBaseKeys.ROLE_MASTER,
+                                              RoleKeys.YARN_MEMORY,
+                                              256, 512)
+    assert limit == 256
+  }
+
 }

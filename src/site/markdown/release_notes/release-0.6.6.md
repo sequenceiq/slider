@@ -51,3 +51,37 @@ other liveness operations. These are the same operations that will be used
 in the AM itself to monitor cluster health.
 
 Consult the man page document for usage instructions
+
+### 'max' option for container RAM or cores.
+
+As well as being able to specify the numeric values of memory and cores
+in role, via the `--roleopt` argument, you can now ask for the maximum
+allowed value by using the parameter `max`
+
+Here are an example options to set the maximum cores and RAM for a master
+node
+
+    --roleopt master yarn.vcores max
+    --roleopt master yarn.memory max
+
+This option can not be used for the `hoya` role, as the container limits
+are not known until the AM itself starts up and can retrieve them.
+
+The limits are, however, not provided in the `info` section of a cluster
+status file returned by querying the HoyaAM for is current status -which
+can be done via the `hoya status \<clustername>` command.
+
+Here is an example of an `info` section from a test cluster:
+
+    "info" : {
+       "live.time" : "Thu Nov 21 16:15:25 GMT 2013",
+       "live.time.millis" : "1385050525110",
+       "create.time" : "1385050525110",
+       "status.time" : "Thu Nov 21 16:15:28 GMT 2013",
+       "status.time.millis" : "1385050525127",
+       "master.address" : "rack4node5:4096",
+       "yarn.vcores" : "16",
+       "yarn.memory" : "4096"
+     }
+
+These values can be used to set the limits on future AM requirements.

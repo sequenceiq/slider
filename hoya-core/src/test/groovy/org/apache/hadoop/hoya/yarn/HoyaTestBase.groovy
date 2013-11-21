@@ -71,4 +71,11 @@ public class HoyaTestBase extends Assert {
     //give our thread a name
     Thread.currentThread().name = "JUnit"
   }
+
+  public void assertListEquals(List left, List right) {
+    assert left.size() == right.size();
+    for (int i = 0; i < left.size(); i++) {
+      assert left[0] == right[0]
+    }
+  }
 }

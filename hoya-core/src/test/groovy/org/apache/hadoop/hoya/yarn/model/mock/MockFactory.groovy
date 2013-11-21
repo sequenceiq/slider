@@ -127,9 +127,9 @@ class MockFactory implements  MockRoles {
   ClusterDescription newClusterSpec(int r1, int r2, int r3) {
     ClusterDescription cd = new ClusterDescription()
     cd.roles = [
-        (ROLE0):roleMap(r1),
-        (ROLE1):roleMap(r2),
-        (ROLE2):roleMap(r3),
+        (ROLE0): roleMap(r1),
+        (ROLE1): roleMap(r2),
+        (ROLE2): roleMap(r3),
     ]
 
     return cd

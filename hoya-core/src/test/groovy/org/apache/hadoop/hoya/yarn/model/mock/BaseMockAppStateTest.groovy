@@ -41,6 +41,8 @@ import org.apache.hadoop.fs.FileSystem as HadoopFS
 @CompileStatic
 @Slf4j
 abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
+  public static final int RM_MAX_RAM = 4096
+  public static final int RM_MAX_CORES = 64
   MockFactory factory = new MockFactory()
   AppState appState
   MockYarnEngine engine
@@ -70,7 +72,7 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
 
     String historyDirName = testName;
     appState = new AppState(new MockRecordFactory())
-    appState.setContainerLimits(4096,64)
+    appState.setContainerLimits(RM_MAX_RAM, RM_MAX_CORES)
     
     YarnConfiguration conf = createConfiguration()
     fs = HadoopFS.get(new URI("file:///"), conf)
@@ -109,12 +111,6 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
     return ri
   }
 
-  public void assertListEquals(List left, List right) {
-    assert left.size() == right.size();
-    for (int i = 0; i < left.size(); i++) {
-      assert left[0] == right[0]
-    }
-  }
 
   public NodeInstance nodeInstance(long age, int live0, int live1=0, int live2=0) {
     NodeInstance ni = new NodeInstance("age${age}live[${live0},${live1},$live2]",
@@ -139,6 +135,12 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
     return containerStatus(c.id)
   }
 
+  /**
+   * Create a container status instance for the given ID, declaring
+   * that it was shut down by the application itself
+   * @param cid container Id
+   * @return the instance
+   */
   public ContainerStatus containerStatus(ContainerId cid) {
     ContainerStatus status = ContainerStatus.newInstance(
         cid,
@@ -150,7 +152,7 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
 
   /**
    * Create nodes and bring them to the started state
-   * @return
+   * @return a list of roles
    */
   protected List<RoleInstance> createAndStartNodes() {
     List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
@@ -172,6 +174,12 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
     return instances
   }
 
+  /**
+   * Extract the list of container IDs from the list of role instances
+   * @param instances instance list
+   * @param role role to look up
+   * @return the list of CIDs
+   */
   List<ContainerId> extractContainerIds(
       List<RoleInstance> instances,
       int role) {

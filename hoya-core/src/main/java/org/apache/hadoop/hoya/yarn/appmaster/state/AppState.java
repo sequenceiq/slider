@@ -24,6 +24,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.api.StatusKeys;
 import static org.apache.hadoop.hoya.api.RoleKeys.*;
 import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
@@ -302,7 +303,13 @@ public class AppState {
   public Path getHistoryPath() {
     return roleHistory.getHistoryPath();
   }
-  
+
+  /**
+   * Set the container limits -the max that can be asked for,
+   * which are used when the "max" values are requested
+   * @param maxMemory maximum memory
+   * @param maxCores maximum cores
+   */
   public void setContainerLimits(int maxMemory, int maxCores) {
     containerMaxCores = maxCores;
     containerMaxMemory = maxMemory;
@@ -373,7 +380,7 @@ public class AppState {
   public synchronized void updateClusterSpec(ClusterDescription cd) {
     setClusterSpec(cd);
 
-    //propagate info from cluster, which is role table
+    //propagate info from cluster, specifically the role table
 
     Map<String, Map<String, String>> newroles = getClusterSpec().roles;
     getClusterDescription().roles = HoyaUtils.deepClone(newroles);
@@ -700,19 +707,24 @@ public class AppState {
 
   /**
    * Build up the resource requirements for this role from the
-   * cluster specification 
+   * cluster specification, including substituing max allowed values
+   * if the specification asked for it.
    * @param role role
    * @param capability capability to set up
    */
   public void buildResourceRequirements(RoleStatus role, Resource capability) {
     // Set up resource requirements from role values
     String name = role.getName();
-    capability.setVirtualCores(getClusterSpec().getRoleOptInt(name,
-                                                              YARN_CORES,
-                                                              DEF_YARN_CORES));
-    capability.setMemory(getClusterSpec().getRoleOptInt(name,
-                                                        YARN_MEMORY,
-                                                        DEF_YARN_MEMORY));
+    int cores = getClusterSpec().getRoleResourceRequirement(name,
+                                               YARN_CORES,
+                                               DEF_YARN_CORES,
+                                               containerMaxCores);
+    capability.setVirtualCores(cores);
+    int ram = getClusterSpec().getRoleResourceRequirement(name,
+                                             YARN_MEMORY,
+                                             DEF_YARN_MEMORY,
+                                             containerMaxMemory);
+    capability.setMemory(ram);
   }
 
   /**
@@ -915,6 +927,9 @@ public class AppState {
                    StatusKeys.INFO_STATUS_TIME_MILLIS,
                    now);
     cd.setInfo(StatusKeys.INFO_MASTER_ADDRESS, masterAddr);
+    // set the RM-defined maximum cluster values
+    cd.setInfo(RoleKeys.YARN_CORES, Integer.toString(containerMaxCores));
+    cd.setInfo(RoleKeys.YARN_MEMORY, Integer.toString(containerMaxMemory));
     cd.statistics = new HashMap<String, Map<String, Integer>>();
     Map<String, Integer> instanceMap = createRoleToInstanceMap();
     if (log.isDebugEnabled()) {

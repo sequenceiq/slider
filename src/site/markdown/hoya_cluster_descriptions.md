@@ -77,11 +77,36 @@ of the roles.
 
 #### YARN container memory `yarn.memory`
 
-The amount of memory in MB for the YARN container. Default "256".
+The amount of memory in MB for the YARN container hosting
+that role. Default "256".
+
+The special value `max` indicates that Hoya should request the
+maximum value that YARN allows containers to have -a value
+determined dynamically after the cluster starts.
+
+Examples:
+
+    --roleopt master yarn.memory 2048
+    --roleopt worker yarn.memory max
+
 
 #### YARN vCores `yarn.vcores`
 
-Number of "Cores" for the container. Default, "1"
+Number of "Cores" for the container hosting
+a role. Default value: "1"
+
+The special value `max` indicates that Hoya should request the
+maximum value that YARN allows containers to have -a value
+determined dynamically after the cluster starts.
+
+As well as being able to specify the numeric values of memory and cores
+in role, via the `--roleopt` argument, you can now ask for the maximum
+allowed value by using the parameter `max`
+
+Examples:
+
+    --roleopt master yarn.vcores 2
+    --roleopt master yarn.vcores max
 
 ####  Master node web port `app.infoport`
 
@@ -97,36 +122,36 @@ the same TCP port.
 
 Heapsize as a JVM option string, such as `"256M"` or `"2G"`
 
+--roleopt worker jvm.heapsize 8G
+
 This is not correlated with the YARN memory -changes in the YARN memory allocation
-are not reflected in the JVM heapsize.
+are not reflected in the JVM heapsize -and vice versa.
 
-
-
-
-
-### Env variables
+### Environment variables
  
  
 All role options beginning with `env.` are automatically converted to
-environment variables set for that container
+environment variables which will be set for all instances of that role.
 
     --roleopt worker env.MALLOC_ARENA 4
 
-## Accumulo Options
+## Accumulo-Specfic Options
 
 ### Accumulo cluster options
 
-####  Zookeeper Home: `zk.home`
+Here are options specific to Accumulo clusters.
+
+####  Mandatory: Zookeeper Home: `zk.home`
 
 Location of Zookeeper on the target machine. This is needed by the 
 Accumulo startup scripts.
 
-#### Hadoop Home `hadoop.home`
+#### Mandatory: Hadoop Home `hadoop.home`
 
 Location of Hadoop on the target machine. This is needed by the 
 Accumulo startup scripts.
 
-#### Accumulo database password  `accumulo.password`
+#### Mandatory: Accumulo database password  `accumulo.password`
 
 This is the password used to control access to the accumulo data.
 A random password (from a UUID, hence very low-entropy) is chosen when

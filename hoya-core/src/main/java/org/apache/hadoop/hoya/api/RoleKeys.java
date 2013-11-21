@@ -39,7 +39,6 @@ public interface RoleKeys {
    */
   String ROLE_ACTUAL_INSTANCES = "role.actual.instances";
 
-
   /**
    *  Amount of memory to ask YARN for in MB.
    *  <i>Important:</i> this may be a hard limit on the
@@ -61,6 +60,12 @@ public interface RoleKeys {
   /** {@value} */
   int DEF_YARN_CORES = 1;
 
+  /**
+   * Constant to indicate that the requirements of a YARN resource limit
+   * (cores, memory, ...) should be set to the maximum allowed by
+   * the queue into which the YARN container requests are placed.
+   */
+  String YARN_RESOURCE_MAX = "max";
   /**
    * For applications that support a web port that can be externally configured,
    * this is the value
