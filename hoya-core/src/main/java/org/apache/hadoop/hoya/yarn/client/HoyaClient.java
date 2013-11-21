@@ -744,24 +744,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
         log.debug("{}={}", key, HoyaUtils.stringify(val.getResource()));
       }
     }
-
-    // Set the log4j properties if needed 
-/*
-    if (!log4jPropFile.isEmpty()) {
-      Path log4jSrc = new Path(log4jPropFile);
-      Path log4jDst = new Path(fs.getHomeDirectory(), "log4j.props");
-      fs.copyFromLocalFile(false, true, log4jSrc, log4jDst);
-      FileStatus log4jFileStatus = fs.getFileStatus(log4jDst);
-      LocalResource log4jRsrc = Records.newRecord(LocalResource.class);
-      log4jRsrc.setType(LocalResourceType.FILE);
-      log4jRsrc.setVisibility(LocalResourceVisibility.APPLICATION);
-      log4jRsrc.setResource(ConverterUtils.getYarnUrlFromURI(log4jDst.toUri()));
-      log4jRsrc.setTimestamp(log4jFileStatus.getModificationTime());
-      log4jRsrc.setSize(log4jFileStatus.getLen());
-      localResources.put("log4j.properties", log4jRsrc);
-    }
-
-*/
     
     // Set local resource info into app master container launch context
     amContainer.setLocalResources(localResources);
