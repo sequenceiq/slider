@@ -56,6 +56,24 @@ validate that the installed application tar file (or specified home directory)
 is valid. It may be changed to another verb which the application supports
 on the command line -though other parameters cannot be appended.
 
+#### `hoya.container.failure.shortlife`
+
+An integer stating the time in seconds before which a failed container is
+considered 'short lived'.
+
+A failure of a short-lived container is treated as a sign of a problem with
+the role configuration and/or another aspect of the Hoya cluster -or
+a problem with the specific node on which the attempt to run
+the container was made.
+
+
+
+#### `hoya.container.failure.threshold`
+
+An integer stating the number of failures tolerated in a single role before
+the cluster is considered to have failed.
+
+
 ## Roles
 
 A Hoya application consists of the Hoya Application Master, "the AM", which
@@ -119,6 +137,9 @@ running a master node on that server, or if another application is using
 the same TCP port.
 
 #### JVM Heapsize `jvm.heapsize`
+
+* Not yet implemented * 
+
 
 Heapsize as a JVM option string, such as `"256M"` or `"2G"`
 

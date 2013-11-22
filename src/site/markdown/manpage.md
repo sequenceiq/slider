@@ -273,7 +273,7 @@ The same zookeeper bindings as before will be used.
 
 If a cluster is already running, this is a no-op
 
-### emergency_force_kill \<applicationID>
+### emergency-force-kill \<applicationID>
 
 This attempts to force kill any YARN application referenced by application ID.
 There is no attempt to notify the running AM. 

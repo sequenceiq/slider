@@ -741,6 +741,9 @@ public final class HoyaUtils {
   }
 
   public static String containerToString(Container container) {
+    if (container == null) {
+      return "null container";
+    }
     return String.format(Locale.ENGLISH,
                          "ContainerID=%s nodeID=%s http=%s priority=%s",
                          container.getId(),

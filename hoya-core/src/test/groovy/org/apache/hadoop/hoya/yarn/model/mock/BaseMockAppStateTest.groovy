@@ -108,6 +108,7 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
     RoleInstance ri = new RoleInstance(target)
     ri.buildUUID();
     ri.roleId = assigned.role.priority
+    ri.role = assigned.role
     return ri
   }
 
@@ -142,11 +143,17 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
    * @return the instance
    */
   public ContainerStatus containerStatus(ContainerId cid) {
+    ContainerStatus status = containerStatus(cid,
+                                             LauncherExitCodes.EXIT_CLIENT_INITIATED_SHUTDOWN)
+    return status
+  }
+
+  public ContainerStatus containerStatus(ContainerId cid, int exitCode) {
     ContainerStatus status = ContainerStatus.newInstance(
         cid,
         ContainerState.COMPLETE,
         "",
-        LauncherExitCodes.EXIT_CLIENT_INITIATED_SHUTDOWN)
+        exitCode)
     return status
   }
 
@@ -155,6 +162,18 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
    * @return a list of roles
    */
   protected List<RoleInstance> createAndStartNodes() {
+    List<RoleInstance> instances = createAndSubmitNodes()
+    for (RoleInstance instance : instances) {
+      assert appState.onNodeManagerContainerStarted(instance.containerId)
+    }
+    return instances
+  }
+
+  /**
+   * Create nodes and submit them
+   * @return a list of roles
+   */
+  public List<RoleInstance> createAndSubmitNodes() {
     List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
     List<Container> allocatedContainers = engine.execute(ops)
     List<ContainerAssignment> assignments = [];
@@ -163,13 +182,10 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
     List<RoleInstance> instances = []
     for (ContainerAssignment assigned : assignments) {
       Container container = assigned.container
-
-      int roleId = assigned.role.priority
       RoleInstance ri = roleInstance(assigned)
       instances << ri
       //tell the app it arrived
       appState.containerStartSubmitted(container, ri);
-      assert appState.onNodeManagerContainerStarted(container.id)
     }
     return instances
   }

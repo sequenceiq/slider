@@ -34,7 +34,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -570,11 +569,7 @@ public class RoleHistory {
    * @return true if the node was queued
    */
   public boolean onNodeManagerContainerStartFailed(Container container) {
-    NodeEntry nodeEntry = getOrCreateNodeEntry(container);
-    boolean available = nodeEntry.onStartFailed();
-    maybeQueueNodeForWork(container, nodeEntry, available);
-    touch();
-    return available;
+    return markContainerFinished(container, false, true);
   }
 
   /**
@@ -592,33 +587,43 @@ public class RoleHistory {
    * @return true if the node was queued
    */
   public boolean onReleaseCompleted(Container container) {
-    return markContainerFinished(container, true);
+    return markContainerFinished(container, true, false);
   }
 
   /**
    * App state notified of a container completed -but as
    * it wasn't being released it is marked as failed
+   *
    * @param container completed container
-   * @return true if the node was queued
+   * @param shortLived was the container short lived?
+   * @return true if the node is considered available for work
    */
-  public boolean onFailedContainer(Container container) {
-    return markContainerFinished(container, false);
+  public boolean onFailedContainer(Container container, boolean shortLived) {
+    return markContainerFinished(container, false, shortLived);
   }
 
   /**
    * Mark a container finished; if it was released then that is treated
    * differently. history is touch()ed
    *
+   *
    * @param container completed container
    * @param wasReleased was the container released?
+   * @param shortLived was the container short lived?
    * @return true if the node was queued
-
    */
   protected synchronized boolean markContainerFinished(Container container,
-                                                       boolean wasReleased) {
+                                                       boolean wasReleased,
+                                                       boolean shortLived) {
     NodeEntry nodeEntry = getOrCreateNodeEntry(container);
-    boolean available = nodeEntry.containerCompleted(wasReleased);
-    maybeQueueNodeForWork(container, nodeEntry, available);
+    boolean available;
+    if (shortLived) {
+      nodeEntry.onStartFailed();
+      available = false;
+    } else {
+      available = nodeEntry.containerCompleted(wasReleased);
+      maybeQueueNodeForWork(container, nodeEntry, available);
+    }
     touch();
     return available;
   }

@@ -26,6 +26,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HostAndPort;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
@@ -116,8 +117,12 @@ public class HoyaAMClientProvider extends Configured implements
    */
   @Override
   public Map<String, String> getDefaultClusterOptions() {
-    HashMap<String, String> site = new HashMap<String, String>();
-    return site;
+    HashMap<String, String> options = new HashMap<String, String>();
+    options.put(OptionKeys.CONTAINER_FAILURE_SHORTLIFE, 
+                Integer.toString(OptionKeys.DEFAULT_CONTAINER_FAILURE_SHORTLIFE));
+    options.put(OptionKeys.CONTAINER_FAILURE_THRESHOLD, 
+                Integer.toString(OptionKeys.DEFAULT_CONTAINER_FAILURE_THRESHOLD));
+    return options;
   }
 
   /**
