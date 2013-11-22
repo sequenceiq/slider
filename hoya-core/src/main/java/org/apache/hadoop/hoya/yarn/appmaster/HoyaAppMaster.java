@@ -356,6 +356,8 @@ public class HoyaAppMaster extends CompoundLaunchedService
 
     ClusterDescription clusterSpec = ClusterDescription.load(fs, clusterSpecPath);
 
+    log.info("Deploying cluster from {}:",clusterSpecPath);
+    log.info(clusterSpec.toString());
     File confDir = getLocalConfDir();
     if (!confDir.exists() || !confDir.isDirectory()) {
       throw new BadCommandArgumentsException(
