@@ -1215,7 +1215,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     List<ApplicationReport> instances = listHoyaInstances(user);
 
     if (clustername == null || clustername.isEmpty()) {
-      log.info("Hoya instances for {}:{}",
+      log.info("Hoya instances for {}: {}",
                (user != null ? user : "all users"),
                instances.size());
       for (ApplicationReport report : instances) {
