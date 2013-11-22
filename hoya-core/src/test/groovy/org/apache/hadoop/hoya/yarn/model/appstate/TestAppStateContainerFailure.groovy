@@ -22,6 +22,7 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.yarn.appmaster.state.AbstractRMOperation
 import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerAssignment
+import org.apache.hadoop.hoya.yarn.appmaster.state.NodeInstance
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleInstance
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleStatus
 import org.apache.hadoop.hoya.yarn.model.mock.BaseMockAppStateTest
@@ -78,7 +79,9 @@ class TestAppStateContainerFailure extends BaseMockAppStateTest
 
     //view the world
     appState.getRoleHistory().dump();
-    
+    List<NodeInstance> queue = appState.roleHistory.cloneAvailableList(0)
+    assert queue.size() == 0
+
   }
 
   @Test
@@ -101,7 +104,9 @@ class TestAppStateContainerFailure extends BaseMockAppStateTest
 
     //view the world
     appState.getRoleHistory().dump();
-    
+    List<NodeInstance> queue = appState.roleHistory.cloneAvailableList(0)
+    assert queue.size() == 1
+
   }
 
 }
