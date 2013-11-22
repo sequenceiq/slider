@@ -108,6 +108,7 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
     RoleInstance ri = new RoleInstance(target)
     ri.buildUUID();
     ri.roleId = assigned.role.priority
+    ri.role = assigned.role
     return ri
   }
 
@@ -142,11 +143,17 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
    * @return the instance
    */
   public ContainerStatus containerStatus(ContainerId cid) {
+    ContainerStatus status = containerStatus(cid,
+                                             LauncherExitCodes.EXIT_CLIENT_INITIATED_SHUTDOWN)
+    return status
+  }
+
+  public ContainerStatus containerStatus(ContainerId cid, int exitCode) {
     ContainerStatus status = ContainerStatus.newInstance(
         cid,
         ContainerState.COMPLETE,
         "",
-        LauncherExitCodes.EXIT_CLIENT_INITIATED_SHUTDOWN)
+        exitCode)
     return status
   }
 

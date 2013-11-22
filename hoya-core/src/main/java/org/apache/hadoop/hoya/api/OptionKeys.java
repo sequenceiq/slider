@@ -58,6 +58,21 @@ public interface OptionKeys {
    * up
    */
   String CONTAINER_STARTUP_DELAY = "hoya.container.startup.delay";
+  
+
+  /**
+   * Time in milliseconds before a container is considered long-lived.
+   * Shortlived containers are interpreted as a problem with the role
+   * and/or the host: {@value}
+   */
+  String CONTAINER_FAILURE_SHORTLIFE = "hoya.container.failure.shortlife";
+
+  /**
+   * Default short life threshold: {@value}
+   */
+  int DEFAULT_CONTAINER_FAILURE_SHORTLIFE = 60;
+  
+  
 
   /**
    * delay for container startup:{@value}

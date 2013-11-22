@@ -24,6 +24,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.api.StatusKeys;
 import static org.apache.hadoop.hoya.api.RoleKeys.*;
@@ -195,7 +196,8 @@ public class AppState {
   private int containerMaxMemory;
   
   private RoleHistory roleHistory;
-  
+  private long startTimeThreshold;
+
   public AppState(AbstractRecordFactory recordFactory) {
     this.recordFactory = recordFactory;
   }
@@ -320,8 +322,8 @@ public class AppState {
    * @param clusterSpec cluster specification
    * @param siteConf site configuration
    * @param providerRoles roles offered by a provider
-   * @param fs
-   * @param historyDir
+   * @param fs filesystem
+   * @param historyDir directory containing history files
    */
   public void buildInstance(ClusterDescription clusterSpec,
                             Configuration siteConf,
@@ -345,15 +347,19 @@ public class AppState {
     ClusterDescription clusterStatus = ClusterDescription.copy(clusterSpec);
     Set<String> confKeys = ConfigHelper.sortedConfigKeys(siteConf);
 
-//     Add the client properties
+//     Add the -site configuration properties
     for (String key : confKeys) {
       String val = siteConf.get(key);
-      log.debug("{}={}", key, val);
       clusterStatus.clientProperties.put(key, val);
     }
 
+    //set the livespan
+    startTimeThreshold = 1000 * clusterSpec.getOptionInt(
+      OptionKeys.CONTAINER_FAILURE_SHORTLIFE,
+      OptionKeys.DEFAULT_CONTAINER_FAILURE_SHORTLIFE);
+    
     clusterStatus.state = ClusterDescription.STATE_CREATED;
-    long now = System.currentTimeMillis();
+    long now = now();
     clusterStatus.setInfoTime(StatusKeys.INFO_LIVE_TIME_HUMAN,
                               StatusKeys.INFO_LIVE_TIME_MILLIS,
                               now);
@@ -384,7 +390,7 @@ public class AppState {
 
     Map<String, Map<String, String>> newroles = getClusterSpec().roles;
     getClusterDescription().roles = HoyaUtils.deepClone(newroles);
-    getClusterDescription().updateTime = System.currentTimeMillis();
+    getClusterDescription().updateTime = now();
     buildRoleRequirementsFromClusterSpec();
   }
 
@@ -632,7 +638,7 @@ public class AppState {
                                       RoleInstance instance) {
     instance.state = ClusterDescription.STATE_SUBMITTED;
     instance.container = container;
-    instance.createTime = System.currentTimeMillis();
+    instance.createTime = now();
     getStartingNodes().put(container.getId(), instance);
     activeContainers.put(container.getId(), instance);
     roleHistory.onContainerStartSubmitted(container, instance);
@@ -769,24 +775,28 @@ public class AppState {
   public RoleInstance innerOnNodeManagerContainerStarted(ContainerId containerId)
       throws HoyaRuntimeException {
     incStartedCountainerCount();
-    RoleInstance active = activeContainers.get(containerId);
-    if (active == null) {
+    RoleInstance instance = activeContainers.get(containerId);
+    if (instance == null) {
       //serious problem
       throw new HoyaRuntimeException("Container not in active containers start %s",
                 containerId);
     }
-    active.startTime = System.currentTimeMillis();
+    if (instance.role == null) {
+      throw new HoyaRuntimeException("Role instance has no role name %s",
+                                     instance);
+    }
+    instance.startTime = now();
     RoleInstance starting = getStartingNodes().remove(containerId);
     if (null == starting) {
       throw new HoyaRuntimeException(
         "Container %s is already started", containerId);
     }
-    active.state = ClusterDescription.STATE_LIVE;
-    RoleStatus roleStatus = lookupRoleStatus(active.roleId);
+    instance.state = ClusterDescription.STATE_LIVE;
+    RoleStatus roleStatus = lookupRoleStatus(instance.roleId);
     roleStatus.incStarted();
-    Container container = active.container;
-    addLaunchedContainer(container, active);
-    return active;
+    Container container = instance.container;
+    addLaunchedContainer(container, instance);
+    return instance;
   }
 
   /**
@@ -813,6 +823,35 @@ public class AppState {
       getFailedNodes().put(containerId, instance);
       roleHistory.onNodeManagerContainerStartFailed(instance.container);
     }
+  }
+
+  /**
+   * Is a role short lived by the threshold set for this application
+   * @param instance instance
+   * @return true if the instance is considered short live
+   */
+  @VisibleForTesting
+  public boolean isShortLived(RoleInstance instance) {
+    long time = now();
+    long started = instance.startTime;
+    boolean shortlived;
+    if (started > 0) {
+      long duration = time - started;
+      shortlived = duration < startTimeThreshold;
+    } else {
+      // never even saw a start event
+      shortlived = true;
+    }
+    return shortlived;
+  }
+
+  /**
+   * Current time in milliseconds. Made protected for
+   * the option to override it in tests.
+   * @return the current time.
+   */
+  protected long now() {
+    return System.currentTimeMillis();
   }
 
   /**
@@ -859,8 +898,13 @@ public class AppState {
           RoleStatus roleStatus = lookupRoleStatus(roleId);
           roleStatus.decActual();
           roleStatus.incFailed();
+          //have a look to see if it short lived
+          boolean shortLived = isShortLived(roleInstance);
+          if (shortLived) {
+            roleStatus.incStartFailed();
+          }
           
-          roleHistory.onFailedContainer(roleInstance.container);
+          roleHistory.onFailedContainer(roleInstance.container, shortLived);
           
         } catch (YarnRuntimeException e1) {
           log.error("Failed container of unknown role {}", roleId);
@@ -922,7 +966,7 @@ public class AppState {
    */
   public void refreshClusterStatus(String masterAddr) {
     ClusterDescription cd = getClusterDescription();
-    long now = System.currentTimeMillis();
+    long now = now();
     cd.setInfoTime(StatusKeys.INFO_STATUS_TIME_HUMAN,
                    StatusKeys.INFO_STATUS_TIME_MILLIS,
                    now);

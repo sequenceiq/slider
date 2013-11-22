@@ -43,6 +43,8 @@ public class NodeEntry {
    */
   private int requested;
   private int starting;
+  private int startFailed;
+  private int failed;
   /**
    * Number of live nodes. 
    */
@@ -59,7 +61,6 @@ public class NodeEntry {
   public synchronized boolean isAvailable() {
     return getActive() == 0 && (requested == 0) && starting == 0;
   }
-
 
   /**
    * return no of active instances -those that could be released as they
@@ -110,7 +111,7 @@ public class NodeEntry {
 
   private void decStarting() {
     starting = RoleHistoryUtils.decToFloor(starting);
-    }
+  }
 
   public synchronized void onStartCompleted() {
     decStarting();
@@ -123,6 +124,8 @@ public class NodeEntry {
    */
   public synchronized boolean onStartFailed() {
     decStarting();
+    ++startFailed;
+    ++failed;
     return isAvailable();
   }
   
@@ -174,6 +177,7 @@ public class NodeEntry {
     if (wasReleased) {
       releasing = RoleHistoryUtils.decToFloor(releasing);
     } else {
+      ++failed;
     }
     decLive();
     return isAvailable();
@@ -190,12 +194,22 @@ public class NodeEntry {
     this.lastUsed = lastUsed;
   }
 
+  public int getStartFailed() {
+    return startFailed;
+  }
+
+  public int getFailed() {
+    return failed;
+  }
+
   @Override
   public String toString() {
     final StringBuilder sb = new StringBuilder("NodeEntry{");
     sb.append("requested=").append(requested);
     sb.append(", starting=").append(starting);
     sb.append(", live=").append(live);
+    sb.append(", failed=").append(failed);
+    sb.append(", startFailed=").append(startFailed);
     sb.append(", releasing=").append(releasing);
     sb.append(", lastUsed=").append(lastUsed);
     sb.append('}');

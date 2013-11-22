@@ -488,17 +488,25 @@ public class HoyaAppMaster extends CompoundLaunchedService
     }
 
     //now validate the dir by loading in a hadoop-site.xml file from it
-    
-    String siteXMLFilename = providerService.getSiteXMLFilename();
-    File siteXML = new File(confDir, siteXMLFilename);
-    if (!siteXML.exists()) {
-      throw new BadCommandArgumentsException(
-        "Configuration directory %s doesn't contain %s - listing is %s",
-        confDir, siteXMLFilename, HoyaUtils.listDir(confDir));
-    }
 
-    //now read it in
-    Configuration siteConf = ConfigHelper.loadConfFromFile(siteXML);
+    Configuration siteConf;
+    String siteXMLFilename = providerService.getSiteXMLFilename();
+    if (siteXMLFilename != null) {
+      File siteXML = new File(confDir, siteXMLFilename);
+      if (!siteXML.exists()) {
+        throw new BadCommandArgumentsException(
+          "Configuration directory %s doesn't contain %s - listing is %s",
+          confDir, siteXMLFilename, HoyaUtils.listDir(confDir));
+      }
+
+      //now read it in
+      siteConf = ConfigHelper.loadConfFromFile(siteXML);
+      log.info("{} file is at {}", siteXMLFilename, siteXML);
+      log.info(ConfigHelper.dumpConfigToString(siteConf));
+    } else {
+      //no site configuration: have an empty one
+      siteConf = new Configuration(false);
+    }
 
     providerService.validateApplicationConfiguration(clusterSpec, confDir, securityEnabled);
 
