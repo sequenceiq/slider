@@ -36,6 +36,7 @@ import org.apache.hadoop.hoya.exceptions.TriggerClusterTeardownException;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
+import org.apache.hadoop.hoya.exceptions.ErrorStrings;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
@@ -1067,8 +1068,9 @@ public class AppState {
     if (failures > failureThreshold) {
       throw new TriggerClusterTeardownException(
         HoyaExitCodes.EXIT_CLUSTER_FAILED,
-        "Cluster failed with role %s failing %d times (%d in startup)",
-        role.getName(), role.getFailed(), role.getStartFailed());
+        ErrorStrings.E_UNSTABLE_CLUSTER +
+        " - failed with role %s failing %d times (%d in startup); threshold is %d",
+        role.getName(), role.getFailed(), role.getStartFailed(), failureThreshold);
     }
   }
   

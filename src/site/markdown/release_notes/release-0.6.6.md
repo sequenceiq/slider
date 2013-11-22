@@ -85,3 +85,18 @@ Here is an example of an `info` section from a test cluster:
      }
 
 These values can be used to set the limits on future AM requirements.
+
+
+### Failure limits on container restarts
+
+There is an inital implementation of failure tracking, in which the Hoya cluster
+terminates itself if it concludes that the cluster cannot start or work reliably.
+
+1. The cluster option `"hoya.container.failure.threshold` takes an integer
+value declaring the maximum number of failures tolerated for any specific role.
+
+1. When the number of failed roles exceeds this threshold *for any reason*.
+the cluster terminates itself, with error code "73" appearing in the
+diagnostics message.
+
+This is just the initial failure resilience code -expect more.
