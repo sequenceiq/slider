@@ -70,4 +70,10 @@ public interface HoyaExitCodes extends LauncherExitCodes {
    */
   int EXIT_MASTER_PROCESS_FAILED = 72;
 
+  /**
+   * The cluster failed -too many containers were
+   * failing or some other threshold was reached
+   */
+  int EXIT_CLUSTER_FAILED = 73;
+
 }

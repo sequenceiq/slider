@@ -120,6 +120,8 @@ public class HoyaAMClientProvider extends Configured implements
     HashMap<String, String> options = new HashMap<String, String>();
     options.put(OptionKeys.CONTAINER_FAILURE_SHORTLIFE, 
                 Integer.toString(OptionKeys.DEFAULT_CONTAINER_FAILURE_SHORTLIFE));
+    options.put(OptionKeys.CONTAINER_FAILURE_THRESHOLD, 
+                Integer.toString(OptionKeys.DEFAULT_CONTAINER_FAILURE_THRESHOLD));
     return options;
   }
 

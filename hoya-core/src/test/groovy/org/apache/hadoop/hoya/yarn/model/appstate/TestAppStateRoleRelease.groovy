@@ -69,7 +69,7 @@ class TestAppStateRoleRelease extends BaseMockAppStateTest
     engine.execute(ops, released)
     List<ContainerId> ids = extractContainerIds(instances, 0)
     released.each { ContainerId cid ->
-      assert appState.onCompletedNode(containerStatus(cid))
+      assert appState.onCompletedNode(containerStatus(cid)).roleInstance
       assert ids.contains(cid)
     }
 

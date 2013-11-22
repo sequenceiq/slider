@@ -71,8 +71,17 @@ public interface OptionKeys {
    * Default short life threshold: {@value}
    */
   int DEFAULT_CONTAINER_FAILURE_SHORTLIFE = 60;
-  
-  
+
+  /**
+   * maximum number of failed containers (in a single role)
+   * before the cluster is deemed to have failed {@value}
+   */
+  String CONTAINER_FAILURE_THRESHOLD = "hoya.container.failure.threshold";
+
+  /**
+   * Default failure threshold: {@value}
+   */
+  int DEFAULT_CONTAINER_FAILURE_THRESHOLD = 5;
 
   /**
    * delay for container startup:{@value}

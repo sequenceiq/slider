@@ -162,6 +162,18 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
    * @return a list of roles
    */
   protected List<RoleInstance> createAndStartNodes() {
+    List<RoleInstance> instances = createAndSubmitNodes()
+    for (RoleInstance instance : instances) {
+      assert appState.onNodeManagerContainerStarted(instance.containerId)
+    }
+    return instances
+  }
+
+  /**
+   * Create nodes and submit them
+   * @return a list of roles
+   */
+  public List<RoleInstance> createAndSubmitNodes() {
     List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
     List<Container> allocatedContainers = engine.execute(ops)
     List<ContainerAssignment> assignments = [];
@@ -170,13 +182,10 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
     List<RoleInstance> instances = []
     for (ContainerAssignment assigned : assignments) {
       Container container = assigned.container
-
-      int roleId = assigned.role.priority
       RoleInstance ri = roleInstance(assigned)
       instances << ri
       //tell the app it arrived
       appState.containerStartSubmitted(container, ri);
-      assert appState.onNodeManagerContainerStarted(container.id)
     }
     return instances
   }

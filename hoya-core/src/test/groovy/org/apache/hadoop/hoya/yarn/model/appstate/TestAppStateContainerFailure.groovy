@@ -20,19 +20,20 @@ package org.apache.hadoop.hoya.yarn.model.appstate
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import org.apache.hadoop.hoya.yarn.appmaster.state.AbstractRMOperation
-import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerAssignment
+import org.apache.hadoop.hoya.exceptions.HoyaException
+import org.apache.hadoop.hoya.exceptions.TriggerClusterTeardownException
+import org.apache.hadoop.hoya.yarn.appmaster.state.AppState
+import org.apache.hadoop.hoya.yarn.appmaster.state.NodeEntry
 import org.apache.hadoop.hoya.yarn.appmaster.state.NodeInstance
+import org.apache.hadoop.hoya.yarn.appmaster.state.RoleHistory
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleInstance
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleStatus
 import org.apache.hadoop.hoya.yarn.model.mock.BaseMockAppStateTest
 import org.apache.hadoop.hoya.yarn.model.mock.MockRoles
 import org.apache.hadoop.hoya.yarn.model.mock.MockYarnEngine
-import org.apache.hadoop.yarn.api.records.Container
 import org.apache.hadoop.yarn.api.records.ContainerId
 import org.junit.Test
 
-import static org.apache.hadoop.hoya.yarn.appmaster.state.ContainerPriority.extractRole
 /**
  * Test that if you have >1 role, the right roles are chosen for release.
  */
@@ -53,7 +54,7 @@ class TestAppStateContainerFailure extends BaseMockAppStateTest
    */
   @Override
   MockYarnEngine createYarnEngine() {
-    return new MockYarnEngine(4, 4)
+    return new MockYarnEngine(8000, 4)
   }
 
   @Test
@@ -72,7 +73,9 @@ class TestAppStateContainerFailure extends BaseMockAppStateTest
 
     ContainerId cid = ids[0]
     assert appState.isShortLived(instance)
-    assert appState.onCompletedNode(containerStatus(cid, 1))
+    AppState.NodeCompletionResult result = appState.onCompletedNode(containerStatus(cid, 1))
+    assert result.roleInstance != null
+    assert result.containerFailed 
     RoleStatus status = role0Status
     assert status.failed == 1
     assert status.startFailed == 1
@@ -97,7 +100,10 @@ class TestAppStateContainerFailure extends BaseMockAppStateTest
     List<ContainerId> ids = extractContainerIds(instances, 0)
 
     ContainerId cid = ids[0]
-    assert appState.onCompletedNode(containerStatus(cid, 1))
+    AppState.NodeCompletionResult result = appState.onCompletedNode(
+        containerStatus(cid, 1))
+    assert result.roleInstance != null
+    assert result.containerFailed
     RoleStatus status = role0Status
     assert status.failed == 1
     assert status.startFailed == 0
@@ -107,6 +113,59 @@ class TestAppStateContainerFailure extends BaseMockAppStateTest
     List<NodeInstance> queue = appState.roleHistory.cloneAvailableList(0)
     assert queue.size() == 1
 
+  }
+  
+  @Test
+  public void testNodeStartFailure() throws Throwable {
+
+    role0Status.desired = 1
+    List<RoleInstance> instances = createAndSubmitNodes()
+    assert instances.size() == 1
+
+    RoleInstance instance = instances[0]
+
+    List<ContainerId> ids = extractContainerIds(instances, 0)
+
+    ContainerId cid = ids[0]
+    appState.onNodeManagerContainerStartFailed(cid, new HoyaException("oops"))
+    RoleStatus status = role0Status
+    assert status.failed == 1
+    assert status.startFailed == 1
+
+    
+    RoleHistory history = appState.roleHistory
+    history.dump();
+    List<NodeInstance> queue = history.cloneAvailableList(0)
+    assert queue.size() == 0
+
+    NodeInstance ni = history.getOrCreateNodeInstance(instance.container)
+    NodeEntry re = ni.get(0)
+    assert re.failed == 1
+    assert re.startFailed == 1
+  }
+  
+  @Test
+  public void testRecurrentStartupFailure() throws Throwable {
+
+    role0Status.desired = 1
+    try {
+      for (int i = 0; i< 100; i++) {
+        List<RoleInstance> instances = createAndSubmitNodes()
+        assert instances.size() == 1
+
+        List<ContainerId> ids = extractContainerIds(instances, 0)
+
+        ContainerId cid = ids[0]
+        log.info("$i instance $instances[0] $cid")
+        assert cid 
+        appState.onNodeManagerContainerStartFailed(cid, new HoyaException("oops"))
+        AppState.NodeCompletionResult result = appState.onCompletedNode(containerStatus(cid))
+        assert result.containerFailed
+      }
+      fail("Cluster did not fail from too many startup failures")
+    } catch (TriggerClusterTeardownException teardown) {
+      log.info("Exception $teardown.exitCode : $teardown")
+    }
   }
 
 }
