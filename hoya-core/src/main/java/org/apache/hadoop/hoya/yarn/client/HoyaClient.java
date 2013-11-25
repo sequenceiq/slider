@@ -389,9 +389,11 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     
     // build up the options map
     // first the defaults provided by the provider
-    Map<String, String> hoyaOptions = hoyaAM.getDefaultClusterOptions();
-    Map<String, String> providerOptions = provider.getDefaultClusterOptions();
-    clusterSpec.options = HoyaUtils.mergeMap(hoyaOptions,  providerOptions);
+    HashMap<String, String> options = new HashMap<String, String>();
+    HoyaUtils.mergeEntries(options, hoyaAM.getDefaultClusterConfiguration());
+    HoyaUtils.mergeEntries(options, provider.getDefaultClusterConfiguration());
+
+    clusterSpec.options = options;
     
     
     //propagate the filename into the 1.x and 2.x value

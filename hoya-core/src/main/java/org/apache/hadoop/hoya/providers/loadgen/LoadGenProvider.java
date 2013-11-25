@@ -127,8 +127,8 @@ public class LoadGenProvider extends Configured implements
    * @return a possibly emtpy map of default cluster options.
    */
   @Override
-  public Map<String, String> getDefaultClusterOptions() {
-    return new HashMap<String, String>();
+  public Configuration getDefaultClusterConfiguration() {
+    return new Configuration(false);
   }
   
   /**
@@ -244,7 +244,7 @@ public class LoadGenProvider extends Configured implements
     Map<String, String> clusterConfMap = buildSiteConfFromSpec(
       clusterSpec);
     //merge them
-    ConfigHelper.addConfigMap(siteConf, clusterConfMap, "LoadGen provider");
+    ConfigHelper.addConfigMap(siteConf, clusterConfMap.entrySet(), "LoadGen provider");
 
     if (log.isDebugEnabled()) {
       ConfigHelper.dumpConf(siteConf);

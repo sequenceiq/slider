@@ -121,21 +121,21 @@ public class AccumuloClientProvider extends Configured implements
    * @return a possibly emtpy map of default cluster options.
    */
   @Override
-  public Map<String, String> getDefaultClusterOptions() {
-    Map<String, String> options = new HashMap<String, String>();
-    //create an instance ID
-    putSiteOpt(options, AccumuloConfigFileOptions.INSTANCE_SECRET,
-      UUID.randomUUID().toString());
+  public Configuration getDefaultClusterConfiguration() throws
+                                                        FileNotFoundException {
+
+    Configuration conf = ConfigHelper.loadMandatoryResource(
+      "org/apache/hadoop/hoya/providers/accumulo/accumulo.xml");
+
     //make up a password
-    options.put(OPTION_ACCUMULO_PASSWORD, UUID.randomUUID().toString());
+    conf.set(OPTION_ACCUMULO_PASSWORD, UUID.randomUUID().toString());
 
+    //create an instance ID
+    conf.set(
+      OptionKeys.SITE_XML_PREFIX + INSTANCE_SECRET,
+      UUID.randomUUID().toString());
+    return conf;
 
-    putSiteOpt(options, MASTER_PORT_CLIENT , "0");
-    putSiteOpt(options, MONITOR_PORT_CLIENT , "0");
-    putSiteOpt(options, TRACE_PORT_CLIENT , "0");
-    putSiteOpt(options, TSERV_PORT_CLIENT , "0");
-
-    return options;
   }
 
   /**

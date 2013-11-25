@@ -243,14 +243,14 @@ public class HoyaAppMaster extends CompoundLaunchedService
 
 
 
-  /* =================================================================== */
+ /* =================================================================== */
 /* service lifecycle methods */
 /* =================================================================== */
 
   @Override //AbstractService
   public synchronized void serviceInit(Configuration conf) throws Exception {
 
-    //Load in the server configuration
+    // Load in the server configuration - if it is actually on the Classpath
     Configuration serverConf =
       ConfigHelper.loadFromResource(HOYA_SERVER_RESOURCE);
     ConfigHelper.mergeConfigurations(conf, serverConf, HOYA_SERVER_RESOURCE);

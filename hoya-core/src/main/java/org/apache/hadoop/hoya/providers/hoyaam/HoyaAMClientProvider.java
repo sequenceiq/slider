@@ -26,17 +26,18 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HostAndPort;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
-import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
+import org.apache.hadoop.hoya.exceptions.HoyaRuntimeException;
 import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.PlacementPolicy;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
 import org.apache.hadoop.hoya.servicemonitor.Probe;
+import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -44,6 +45,7 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -116,13 +118,10 @@ public class HoyaAMClientProvider extends Configured implements
    * @return a possibly empty map of default cluster options.
    */
   @Override
-  public Map<String, String> getDefaultClusterOptions() {
-    HashMap<String, String> options = new HashMap<String, String>();
-    options.put(OptionKeys.CONTAINER_FAILURE_SHORTLIFE, 
-                Integer.toString(OptionKeys.DEFAULT_CONTAINER_FAILURE_SHORTLIFE));
-    options.put(OptionKeys.CONTAINER_FAILURE_THRESHOLD, 
-                Integer.toString(OptionKeys.DEFAULT_CONTAINER_FAILURE_THRESHOLD));
-    return options;
+  public Configuration getDefaultClusterConfiguration() throws
+                                                        FileNotFoundException {
+    return ConfigHelper.loadMandatoryResource(
+      "org/apache/hadoop/hoya/providers/hoyaam/cluster.xml");
   }
 
   /**
@@ -134,16 +133,13 @@ public class HoyaAMClientProvider extends Configured implements
    */
   @Override
   public Map<String, String> createDefaultClusterRole(String rolename) throws
-                                                                       HoyaException {
+                                                                       HoyaException,
+                                                                       FileNotFoundException {
     Map<String, String> rolemap = new HashMap<String, String>();
     if (rolename.equals(ROLE_HOYA_AM)) {
-      rolemap.put(RoleKeys.ROLE_NAME, rolename);
-      rolemap.put(RoleKeys.YARN_MEMORY,
-                  Integer.toString(RoleKeys.DEFAULT_AM_MEMORY));
-      rolemap.put(RoleKeys.YARN_CORES,
-                  Integer.toString(RoleKeys.DEFAULT_AM_V_CORES));
-      rolemap.put(RoleKeys.JVM_HEAP, RoleKeys.DEFAULT_AM_HEAP);
-      rolemap.put(RoleKeys.ROLE_INSTANCES, "1");
+      Configuration conf = ConfigHelper.loadMandatoryResource(
+        "org/apache/hadoop/hoya/providers/hoyaam/role-am.xml");
+      HoyaUtils.mergeEntries(rolemap, conf);
     }
     return rolemap;
   }
@@ -155,12 +151,7 @@ public class HoyaAMClientProvider extends Configured implements
    */
   public Map<String, String> buildSiteConfFromSpec(ClusterDescription clusterSpec)
     throws BadConfigException {
-
-    Map<String, String> sitexml = new HashMap<String, String>();
-
-    //map all cluster-wide site. options
-    providerUtils.propagateSiteOptions(clusterSpec, sitexml);
-    return sitexml;
+    throw new HoyaRuntimeException("Not implemented");
   }
 
   /**
