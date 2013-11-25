@@ -280,19 +280,6 @@ public class RoleHistory {
   }
 
   /**
-   * Create the filename for the history
-   * @param time time value
-   * @return a filename such that later filenames sort later in the directory
-   */
-  private Path createHistoryFilename(long time) {
-    String filename = String.format(Locale.ENGLISH,
-                                    HoyaKeys.HISTORY_FILENAME_CREATION_PATTERN,
-                                    time);
-    Path path = new Path(historyPath, filename);
-    return path;
-  }
-
-  /**
    * Save the history to its location using the timestamp as part of
    * the filename. The saveTime and dirty fields are updated
    * @param time timestamp timestamp to use as the save time
@@ -301,7 +288,7 @@ public class RoleHistory {
    */
   @VisibleForTesting
   public synchronized Path saveHistory(long time) throws IOException {
-    Path filename = createHistoryFilename(time);
+    Path filename = historyWriter.createHistoryFilename(historyPath, time);
     historyWriter.write(filesystem, filename, true, this, time);
     saved(time);
     return filename;
@@ -354,17 +341,24 @@ public class RoleHistory {
     assert historyPath != null;
     boolean thawSuccessful = false;
     //load in files from data dir
+    Path loaded = null;
     try {
-      Path loaded =
-        historyWriter.loadFromHistoryDir(filesystem, historyPath, this);
-      if (loaded != null) {
-        thawSuccessful = true;
-        log.info("loaded history from {}", loaded);
-      }
+      loaded = historyWriter.loadFromHistoryDir(filesystem, historyPath, this);
     } catch (IOException e) {
-      log.warn("Failed to load history from {}", historyPath, e);
+      log.warn("Exception trying to load history from {}", historyPath, e);
     }
-    if (thawSuccessful) {
+    if (loaded != null) {
+      thawSuccessful = true;
+      log.info("loaded history from {}", loaded);
+      // delete any old entries
+      try {
+        int count = historyWriter.purgeOlderHistoryEntries(filesystem, loaded);
+        log.debug("Deleted {} old history entries", count);
+      } catch (IOException e) {
+        log.info("Ignoring exception raised while trying to delete old entries",
+                 e);
+      }
+
       //thaw is then completed
       buildAvailableNodeLists();
     } else {

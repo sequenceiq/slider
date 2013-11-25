@@ -20,6 +20,7 @@ package org.apache.hadoop.hoya.yarn.model.history
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.apache.hadoop.fs.FSDataOutputStream
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.avro.RoleHistoryWriter
 import org.apache.hadoop.hoya.yarn.appmaster.state.NodeEntry
@@ -156,4 +157,36 @@ class TestHistoryRW extends BaseMockAppStateTest {
   }
 
 
+  @Test
+  public void testPurgeOlderEntries() throws Throwable {
+    RoleHistoryWriter historyWriter = new RoleHistoryWriter();
+    time = 1;
+    Path file1 = touch(historyWriter, time++)
+    Path file2 = touch(historyWriter, time++)
+    Path file3 = touch(historyWriter, time++)
+    Path file4 = touch(historyWriter, time++)
+    Path file5 = touch(historyWriter, time++)
+    Path file6 = touch(historyWriter, time++)
+    
+    assert historyWriter.purgeOlderHistoryEntries(fs, file1) == 0
+    assert historyWriter.purgeOlderHistoryEntries(fs, file2) == 1
+    assert historyWriter.purgeOlderHistoryEntries(fs, file2) == 0
+    assert historyWriter.purgeOlderHistoryEntries(fs, file5) == 3
+    assert historyWriter.purgeOlderHistoryEntries(fs, file6) == 1
+    try {
+      // make an impossible assertion that will fail if the method
+      // actually completes
+      assert -1 == historyWriter.purgeOlderHistoryEntries(fs, file1) 
+    } catch (FileNotFoundException ignored) {
+      //  expected
+    }
+    
+  }
+  
+  public Path touch(RoleHistoryWriter historyWriter, long time){
+    Path path = historyWriter.createHistoryFilename(historyPath, time);
+    FSDataOutputStream out = fs.create(path);
+    out.close()
+    return path
+  }
 }
