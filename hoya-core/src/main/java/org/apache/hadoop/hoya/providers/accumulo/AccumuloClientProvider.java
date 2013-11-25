@@ -36,6 +36,7 @@ import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
+import org.apache.hadoop.hoya.providers.hbase.HBaseKeys;
 import org.apache.hadoop.hoya.servicemonitor.Probe;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
@@ -147,36 +148,30 @@ public class AccumuloClientProvider extends Configured implements
    */
   @Override
   public Map<String, String> createDefaultClusterRole(String rolename) throws
-                                                                       HoyaException {
+                                                                       HoyaException,
+                                                                       IOException {
     Map<String, String> rolemap = new HashMap<String, String>();
-    rolemap.put(RoleKeys.ROLE_NAME, rolename);
-
-    rolemap.put(RoleKeys.JVM_HEAP, DEFAULT_ROLE_HEAP);
-    rolemap.put(RoleKeys.YARN_CORES, DEFAULT_ROLE_YARN_VCORES);
-    rolemap.put(RoleKeys.YARN_MEMORY, DEFAULT_ROLE_YARN_RAM);
-
-    if (rolename.equals(ROLE_MASTER)) {
-      rolemap.put(RoleKeys.ROLE_INSTANCES, "1");
-      rolemap.put(RoleKeys.JVM_HEAP, DEFAULT_MASTER_HEAP);
-      rolemap.put(RoleKeys.YARN_CORES, DEFAULT_MASTER_YARN_VCORES);
-      rolemap.put(RoleKeys.YARN_MEMORY, DEFAULT_MASTER_YARN_RAM);
-
-    } else if (rolename.equals(ROLE_TABLET)) {
-      rolemap.put(RoleKeys.ROLE_INSTANCES, "1");
-    } else if (rolename.equals(ROLE_TRACER)) {
-    } else if (rolename.equals(ROLE_GARBAGE_COLLECTOR)) {
-    } else if (rolename.equals(ROLE_MONITOR)) {
+    if (rolename.equals(AccumuloKeys.ROLE_MASTER)) {
+      // master role
+      Configuration conf = ConfigHelper.loadMandatoryResource(
+        "org/apache/hadoop/hoya/providers/accumulo/role-accumulo-master.xml");
+      HoyaUtils.mergeEntries(rolemap, conf);
+    } else if (rolename.equals(AccumuloKeys.ROLE_TABLET)) {
+      // worker settings
+      Configuration conf = ConfigHelper.loadMandatoryResource(
+        "org/apache/hadoop/hoya/providers/accumulo/role-accumulo-tablet.xml");
+      HoyaUtils.mergeEntries(rolemap, conf);
+    } else {
+      
+      //everything else
+      Configuration conf = ConfigHelper.loadMandatoryResource(
+        "org/apache/hadoop/hoya/providers/accumulo/role-accumulo-other.xml");
+      HoyaUtils.mergeEntries(rolemap, conf);   
     }
     return rolemap;
   }
 
-  void propagateKeys(Map<String, String> sitexml,
-                     Configuration conf,
-                     String... keys) {
-    for (String key : keys) {
-      propagate(sitexml, conf, key, key);
-    }
-  }
+
 
   /**
    * Propagate a key's value from the conf to the site, ca

@@ -163,6 +163,12 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
 
     extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_MASTER << RoleKeys.APP_INFOPORT << AccumuloConfigFileOptions.MASTER_PORT_CLIENT_DEFAULT
     extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_MONITOR << RoleKeys.APP_INFOPORT << AccumuloConfigFileOptions.MONITOR_PORT_CLIENT_DEFAULT
+    
+    String ram = "256"
+    extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_MASTER << RoleKeys.YARN_MEMORY << ram
+    extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_TABLET << RoleKeys.YARN_MEMORY << ram
+    extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_MONITOR << RoleKeys.YARN_MEMORY << ram
+    extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_GARBAGE_COLLECTOR << RoleKeys.YARN_MEMORY << ram
 
     return createHoyaCluster(clustername,
                              roles,

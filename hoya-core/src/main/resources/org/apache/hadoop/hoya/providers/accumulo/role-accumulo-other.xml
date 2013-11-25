@@ -19,17 +19,18 @@
   -->
 
   <!--
-  These are the default cluster options for a Hoya cluster
+  Accumulo options for any role that doesn't
+  have an explicit configuration
   -->
 <configuration>
   <property>
     <name>role.name</name>
-    <value>worker</value>
+    <value>other</value>
   </property>
   
   <property>
     <name>role.instances</name>
-    <value>2</value>
+    <value>1</value>
   </property>
 
   <property>
@@ -46,10 +47,5 @@
     <name>jvm.heapsize</name>
     <value>512M</value>
   </property>
-    
-  <property>
-    <name>app.infoport</name>
-    <value>0</value>
-  </property>
-  
+
 </configuration>
