@@ -19,17 +19,17 @@
   -->
 
   <!--
-  These are the default cluster options for a Hoya cluster
+  Garbage collector
   -->
 <configuration>
   <property>
     <name>role.name</name>
-    <value>tablet</value>
+    <value>gc</value>
   </property>
   
   <property>
     <name>role.instances</name>
-    <value>2</value>
+    <value>1</value>
   </property>
 
   <property>
@@ -39,17 +39,12 @@
 
   <property>
     <name>yarn.memory</name>
-    <value>768</value>
+    <value>1024</value>
   </property>
   
   <property>
     <name>jvm.heapsize</name>
     <value>512M</value>
   </property>
-    
-  <property>
-    <name>app.infoport</name>
-    <value>0</value>
-  </property>
-  
+
 </configuration>

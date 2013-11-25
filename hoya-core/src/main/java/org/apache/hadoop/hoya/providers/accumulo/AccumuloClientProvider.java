@@ -161,12 +161,18 @@ public class AccumuloClientProvider extends Configured implements
       Configuration conf = ConfigHelper.loadMandatoryResource(
         "org/apache/hadoop/hoya/providers/accumulo/role-accumulo-tablet.xml");
       HoyaUtils.mergeEntries(rolemap, conf);
-    } else {
-      
-      //everything else
+    } else if (rolename.equals(AccumuloKeys.ROLE_GARBAGE_COLLECTOR)) {
       Configuration conf = ConfigHelper.loadMandatoryResource(
-        "org/apache/hadoop/hoya/providers/accumulo/role-accumulo-other.xml");
-      HoyaUtils.mergeEntries(rolemap, conf);   
+        "org/apache/hadoop/hoya/providers/accumulo/role-accumulo-gc.xml");
+      HoyaUtils.mergeEntries(rolemap, conf);
+    } else if (rolename.equals(AccumuloKeys.ROLE_TRACER)) {
+      Configuration conf = ConfigHelper.loadMandatoryResource(
+        "org/apache/hadoop/hoya/providers/accumulo/role-accumulo-tracer.xml");
+      HoyaUtils.mergeEntries(rolemap, conf);
+    } else if (rolename.equals(AccumuloKeys.ROLE_MONITOR)) {
+      Configuration conf = ConfigHelper.loadMandatoryResource(
+        "org/apache/hadoop/hoya/providers/accumulo/role-accumulo-monitor.xml");
+      HoyaUtils.mergeEntries(rolemap, conf);
     }
     return rolemap;
   }
