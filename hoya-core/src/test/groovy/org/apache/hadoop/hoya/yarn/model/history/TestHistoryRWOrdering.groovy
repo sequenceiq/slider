@@ -102,7 +102,10 @@ class TestHistoryRWOrdering extends BaseMockAppStateTest {
     
     RoleHistoryWriter historyWriter = new RoleHistoryWriter();
     
-    List<Path> entries = historyWriter.findAllHistoryEntries(  fs, historyPath)
+    List<Path> entries = historyWriter.findAllHistoryEntries(
+        fs,
+        historyPath,
+        false)
     assert entries.size() == 3
     assert entries[0] == history3
     assert entries[1] == history2
@@ -117,7 +120,7 @@ class TestHistoryRWOrdering extends BaseMockAppStateTest {
   @Test
   public void testPathnameComparator() throws Throwable {
 
-    def newerName = new RoleHistoryWriter.ComparePathByName()
+    def newerName = new RoleHistoryWriter.NewerFilesFirst()
     
     log.info("$h_5fffa name is ${h_5fffa.getName()}")
     log.info("$h_0406c name is ${h_0406c.getName()}")
@@ -138,8 +141,6 @@ class TestHistoryRWOrdering extends BaseMockAppStateTest {
                          paths[0],
                          paths[3],
                          paths[2]
-                     ]
-                     )
-    
+                     ])
   }
 }

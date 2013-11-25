@@ -81,7 +81,9 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
     fs.delete(historyPath, true)
     appState.buildInstance(factory.newClusterSpec(0, 0, 0),
                            new Configuration(false),
-                           factory.ROLES, fs, historyPath)
+                           factory.ROLES,
+                           fs,
+                           historyPath)
   }
 
   abstract String getTestName();

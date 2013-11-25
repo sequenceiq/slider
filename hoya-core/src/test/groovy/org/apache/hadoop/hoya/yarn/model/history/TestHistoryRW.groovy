@@ -20,6 +20,7 @@ package org.apache.hadoop.hoya.yarn.model.history
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.apache.hadoop.fs.FSDataOutputStream
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.avro.RoleHistoryWriter
 import org.apache.hadoop.hoya.yarn.appmaster.state.NodeEntry
@@ -155,5 +156,103 @@ class TestHistoryRW extends BaseMockAppStateTest {
     assert rh2.thawedDataTime == savetime
   }
 
+
+  @Test
+  public void testPurgeOlderEntries() throws Throwable {
+    RoleHistoryWriter historyWriter = new RoleHistoryWriter();
+    time = 1;
+    Path file1 = touch(historyWriter, time++)
+    Path file2 = touch(historyWriter, time++)
+    Path file3 = touch(historyWriter, time++)
+    Path file4 = touch(historyWriter, time++)
+    Path file5 = touch(historyWriter, time++)
+    Path file6 = touch(historyWriter, time++)
+    
+    assert historyWriter.purgeOlderHistoryEntries(fs, file1) == 0
+    assert historyWriter.purgeOlderHistoryEntries(fs, file2) == 1
+    assert historyWriter.purgeOlderHistoryEntries(fs, file2) == 0
+    assert historyWriter.purgeOlderHistoryEntries(fs, file5) == 3
+    assert historyWriter.purgeOlderHistoryEntries(fs, file6) == 1
+    try {
+      // make an impossible assertion that will fail if the method
+      // actually completes
+      assert -1 == historyWriter.purgeOlderHistoryEntries(fs, file1) 
+    } catch (FileNotFoundException ignored) {
+      //  expected
+    }
+    
+  }
+  
+  public Path touch(RoleHistoryWriter historyWriter, long time){
+    Path path = historyWriter.createHistoryFilename(historyPath, time);
+    FSDataOutputStream out = fs.create(path);
+    out.close()
+    return path
+  }
+
+  @Test
+  public void testSkipEmptyFileOnRead() throws Throwable {
+    describe "verify that empty histories are skipped on read; old histories purged"
+    RoleHistory roleHistory = new RoleHistory(MockFactory.ROLES)
+    roleHistory.onStart(fs, historyPath)
+    time = 0
+    Path oldhistory = roleHistory.saveHistory(time++)
+
+    String addr = "localhost"
+    NodeInstance instance = roleHistory.getOrCreateNodeInstance(addr)
+    NodeEntry ne1 = instance.getOrCreate(0)
+    ne1.lastUsed = 0xf00d
+
+    Path goodhistory = roleHistory.saveHistory(time++)
+
+    RoleHistoryWriter historyWriter = new RoleHistoryWriter();
+    Path touched = touch(historyWriter, time++)
+
+    RoleHistory rh2 = new RoleHistory(MockFactory.ROLES)
+    assert rh2.onStart(fs, historyPath)
+    NodeInstance ni2 = rh2.getExistingNodeInstance(addr)
+    assert ni2 != null
+
+    //and assert the older file got purged
+    assert !fs.exists(oldhistory)
+    assert fs.exists(goodhistory)
+    assert fs.exists(touched )
+  }
+
+  @Test
+  public void testSkipBrokenFileOnRead() throws Throwable {
+    describe "verify that empty histories are skipped on read; old histories purged"
+    RoleHistory roleHistory = new RoleHistory(MockFactory.ROLES)
+    roleHistory.onStart(fs, historyPath)
+    time = 0
+    Path oldhistory = roleHistory.saveHistory(time++)
+
+    String addr = "localhost"
+    NodeInstance instance = roleHistory.getOrCreateNodeInstance(addr)
+    NodeEntry ne1 = instance.getOrCreate(0)
+    ne1.lastUsed = 0xf00d
+
+    Path goodhistory = roleHistory.saveHistory(time++)
+
+    RoleHistoryWriter historyWriter = new RoleHistoryWriter();
+    Path badfile = historyWriter.createHistoryFilename(historyPath, time++)
+    FSDataOutputStream out = fs.create(badfile)
+    out.writeBytes("{broken:true}")
+    out.close()
+
+    RoleHistory rh2 = new RoleHistory(MockFactory.ROLES)
+    describe("IGNORE STACK TRACE BELOW")
+
+    assert rh2.onStart(fs, historyPath)
+    
+    describe( "IGNORE STACK TRACE ABOVE")
+    NodeInstance ni2 = rh2.getExistingNodeInstance(addr)
+    assert ni2 != null
+
+    //and assert the older file got purged
+    assert !fs.exists(oldhistory)
+    assert fs.exists(goodhistory)
+    assert fs.exists(badfile )
+  }
 
 }
