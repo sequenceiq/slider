@@ -272,11 +272,7 @@ public class LoadGenProvider extends Configured implements
   @Override
   public void prepareAMResourceRequirements(ClusterDescription clusterSpec,
                                             Resource capability) {
-    //no-op unless you want to add more memory
-    capability.setMemory(clusterSpec.getRoleOptInt(ROLE_MASTER,
-                                                   RoleKeys.YARN_MEMORY,
-                                                   capability.getMemory()));
-    capability.setVirtualCores(1);
+
   }
 
 
