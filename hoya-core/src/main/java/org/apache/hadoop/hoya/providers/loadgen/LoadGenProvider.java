@@ -58,9 +58,9 @@ import java.util.Map;
  * of an HBase Cluster
  */
 public class LoadGenProvider extends Configured implements
-                                                          ProviderCore,
-                                                          LoadGenKeys,
-                                                          ClientProvider {
+                                                ProviderCore,
+                                                LoadGenKeys,
+                                                ClientProvider {
 
   protected static final Logger log =
     LoggerFactory.getLogger(LoadGenProvider.class);
@@ -83,7 +83,7 @@ public class LoadGenProvider extends Configured implements
     ROLES.add(new ProviderRole(ROLE_MASTER, 1));
     ROLES.add(new ProviderRole(ROLE_CPULOAD, 2));
     ROLES.add(new ProviderRole(ROLE_FAILING, 3));
-    ROLES.add(new ProviderRole(ROLE_GENERAL1, 4 ));
+    ROLES.add(new ProviderRole(ROLE_GENERAL1, 4));
     ROLES.add(new ProviderRole(ROLE_GENERAL2, 5));
     ROLES.add(new ProviderRole(ROLE_IOLOAD, 6));
   }
@@ -96,8 +96,8 @@ public class LoadGenProvider extends Configured implements
   @Override
   public List<Probe> createProbes(ClusterDescription clusterSpec, String urlStr,
                                   Configuration config,
-                                  int timeout) 
-      throws IOException {
+                                  int timeout)
+    throws IOException {
     return new ArrayList<Probe>();
   }
 
@@ -105,7 +105,7 @@ public class LoadGenProvider extends Configured implements
   public Configuration create(Configuration conf) {
     return conf;
   }
-  
+
   @Override
   public List<ProviderRole> getRoles() {
     return ROLES;
@@ -117,7 +117,8 @@ public class LoadGenProvider extends Configured implements
   }
 
   @Override
-  public Collection<HostAndPort> listDeadServers(Configuration conf)  throws IOException {
+  public Collection<HostAndPort> listDeadServers(Configuration conf) throws
+                                                                     IOException {
     return new ArrayList<HostAndPort>();
   }
 
@@ -130,7 +131,7 @@ public class LoadGenProvider extends Configured implements
   public Configuration getDefaultClusterConfiguration() {
     return new Configuration(false);
   }
-  
+
   /**
    * Create the default cluster role instance for a named
    * cluster role; 
@@ -143,10 +144,10 @@ public class LoadGenProvider extends Configured implements
                                                                        HoyaException {
     Map<String, String> rolemap = new HashMap<String, String>();
     rolemap.put(RoleKeys.ROLE_NAME, rolename);
-    rolemap.put(KEY_WORKTIME,DEFAULT_WORKTIME);
-    rolemap.put(KEY_SLEEPTIME,DEFAULT_SLEEPTIME);
-    rolemap.put(KEY_EXITCODE,DEFAULT_EXITCODE);
-    rolemap.put(KEY_P_EXIT,DEFAULT_P_EXIT);
+    rolemap.put(KEY_WORKTIME, DEFAULT_WORKTIME);
+    rolemap.put(KEY_SLEEPTIME, DEFAULT_SLEEPTIME);
+    rolemap.put(KEY_EXITCODE, DEFAULT_EXITCODE);
+    rolemap.put(KEY_P_EXIT, DEFAULT_P_EXIT);
     rolemap.put(RoleKeys.JVM_HEAP, DEFAULT_ROLE_HEAP);
     rolemap.put(RoleKeys.YARN_CORES, DEFAULT_ROLE_YARN_VCORES);
     rolemap.put(RoleKeys.YARN_MEMORY, DEFAULT_ROLE_YARN_RAM);
@@ -232,8 +233,8 @@ public class LoadGenProvider extends Configured implements
                                                                 Configuration clientConfExtras,
                                                                 String libdir,
                                                                 Path tempPath) throws
-                                                                                           IOException,
-                                                                                           BadConfigException {
+                                                                               IOException,
+                                                                               BadConfigException {
     Configuration siteConf = ConfigHelper.loadTemplateConfiguration(
       serviceConf,
       originConfDirPath,
@@ -244,7 +245,8 @@ public class LoadGenProvider extends Configured implements
     Map<String, String> clusterConfMap = buildSiteConfFromSpec(
       clusterSpec);
     //merge them
-    ConfigHelper.addConfigMap(siteConf, clusterConfMap.entrySet(), "LoadGen provider");
+    ConfigHelper.addConfigMap(siteConf, clusterConfMap.entrySet(),
+                              "LoadGen provider");
 
     if (log.isDebugEnabled()) {
       ConfigHelper.dumpConf(siteConf);
@@ -286,20 +288,20 @@ public class LoadGenProvider extends Configured implements
   @Override
   public void prepareAMServiceData(ClusterDescription clusterSpec,
                                    Map<String, ByteBuffer> serviceData) {
-    
+
   }
-  
-//  @Override
+
+  //  @Override
   public void buildContainerLaunchContext(ContainerLaunchContext ctx,
                                           FileSystem fs,
                                           Path generatedConfPath,
                                           String role,
                                           ClusterDescription clusterSpec,
                                           Map<String, String> roleOptions
-                                          ) throws IOException {
+                                         ) throws IOException {
     // Set the environment
     Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
-    env.put(HBaseKeys.HBASE_LOG_DIR,providerUtils.getLogdir());
+    env.put(HBaseKeys.HBASE_LOG_DIR, providerUtils.getLogdir());
 
     ctx.setEnvironment(env);
 
