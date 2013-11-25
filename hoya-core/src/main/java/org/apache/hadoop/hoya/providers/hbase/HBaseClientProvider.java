@@ -57,6 +57,7 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -93,14 +94,12 @@ public class HBaseClientProvider extends Configured implements
   protected static final String NAME = "hbase";
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
   private MasterAddressTracker masterTracker = null;
-  private Configuration conf;
 
   protected HBaseClientProvider(Configuration conf) {
     super(conf);
-    this.conf = create(conf);
     try {
       Abortable abortable = new ClientProviderAbortable();
-      ZooKeeperWatcher zkw = new ZooKeeperWatcher(this.conf, "HBaseClient", abortable);
+      ZooKeeperWatcher zkw = new ZooKeeperWatcher(getConf(), "HBaseClient", abortable);
       masterTracker = new MasterAddressTracker(zkw, abortable);
     } catch (IOException ioe) {
       log.error("Couldn't instantiate ZooKeeperWatcher", ioe);
@@ -166,8 +165,11 @@ public class HBaseClientProvider extends Configured implements
       return null;
     }
     ServerName sn = masterTracker.getMasterAddress();
-    log.debug("getMasterAddress " + sn + ", quorum=" + this.conf.get(HConstants.ZOOKEEPER_QUORUM));
-    if (sn == null) return null;
+    log.debug("getMasterAddress " + sn + ", quorum=" 
+              + getConf().get(HConstants.ZOOKEEPER_QUORUM));
+    if (sn == null) {
+      return null;
+    }
     return new HostAndPort(sn.getHostname(), sn.getPort());
   }
   
@@ -210,9 +212,10 @@ public class HBaseClientProvider extends Configured implements
    * @return a possibly empty map of default cluster options.
    */
   @Override
-  public Map<String, String> getDefaultClusterOptions() {
-    HashMap<String, String> site = new HashMap<String, String>();
-    return site;
+  public Configuration getDefaultClusterConfiguration() throws
+                                                        FileNotFoundException {
+    return ConfigHelper.loadMandatoryResource(
+      "org/apache/hadoop/hoya/providers/hbase/hbase.xml");
   }
   
   /**
@@ -224,18 +227,18 @@ public class HBaseClientProvider extends Configured implements
    */
   @Override
   public Map<String, String> createDefaultClusterRole(String rolename) throws
-                                                                       HoyaException {
+                                                                       HoyaException, IOException {
     Map<String, String> rolemap = new HashMap<String, String>();
-    rolemap.put(RoleKeys.ROLE_NAME, rolename);
-    rolemap.put(RoleKeys.YARN_CORES, Integer.toString(RoleKeys.DEF_YARN_CORES));
-    rolemap.put(RoleKeys.YARN_MEMORY, Integer.toString(RoleKeys.DEF_YARN_MEMORY));
-    if (rolename.equals(HBaseKeys.ROLE_WORKER)) {
-      rolemap.put(RoleKeys.APP_INFOPORT, DEFAULT_HBASE_WORKER_INFOPORT);
-      rolemap.put(RoleKeys.JVM_HEAP, DEFAULT_HBASE_WORKER_HEAP);
-    } else if (rolename.equals(HBaseKeys.ROLE_MASTER)) {
-      rolemap.put(RoleKeys.ROLE_INSTANCES, "1");
-      rolemap.put(RoleKeys.APP_INFOPORT, DEFAULT_HBASE_MASTER_INFOPORT);
-      rolemap.put(RoleKeys.JVM_HEAP, DEFAULT_HBASE_MASTER_HEAP);
+    if (rolename.equals(HBaseKeys.ROLE_MASTER)) {
+      // master role
+      Configuration conf = ConfigHelper.loadMandatoryResource(
+        "org/apache/hadoop/hoya/providers/hbase/role-hbase-master.xml");
+      HoyaUtils.mergeEntries(rolemap, conf);
+    } else if (rolename.equals(HBaseKeys.ROLE_WORKER)) {
+      // worker settings
+      Configuration conf = ConfigHelper.loadMandatoryResource(
+        "org/apache/hadoop/hoya/providers/hbase/role-hbase-worker.xml");
+      HoyaUtils.mergeEntries(rolemap, conf);
     }
     return rolemap;
   }
@@ -448,14 +451,17 @@ public class HBaseClientProvider extends Configured implements
         "hbase-common.jar",
         "hbase-protocol.jar",
         "hbase-client.jar",
+        "zookeeper.jar",
       };
     Class[] classes = {
-      org.apache.hadoop.hbase.HConstants.class,
       // hbase-common
-      org.apache.hadoop.hbase.protobuf.generated.ClientProtos.class,
+      org.apache.hadoop.hbase.HConstants.class,
       // hbase-protocol
-      org.apache.hadoop.hbase.client.Put.class,
+      org.apache.hadoop.hbase.protobuf.generated.ClientProtos.class,
       // hbase-client
+      org.apache.hadoop.hbase.client.Put.class,
+      //zk
+      org.apache.zookeeper.ClientCnxn.class
     };
     addDependencyJars(providerResources, clusterFS, tempPath, libdir, jars,
                       classes);
@@ -489,7 +495,9 @@ public class HBaseClientProvider extends Configured implements
     Map<String, String> clusterConfMap = buildSiteConfFromSpec(clusterSpec);
     
     //merge them
-    ConfigHelper.addConfigMap(siteConf, clusterConfMap, "HBase Provider");
+    ConfigHelper.addConfigMap(siteConf,
+                              clusterConfMap.entrySet(),
+                              "HBase Provider");
 
     //now, if there is an extra client conf, merge it in too
     if (clientConfExtras != null) {
@@ -546,12 +554,7 @@ public class HBaseClientProvider extends Configured implements
   @Override
   public void prepareAMResourceRequirements(ClusterDescription clusterSpec,
                                             Resource capability) {
-    //no-op unless you want to add more memory
-    capability.setMemory(clusterSpec.getRoleOptInt(
-      HBaseKeys.ROLE_MASTER,
-      RoleKeys.YARN_MEMORY,
-      capability.getMemory()));
-    capability.setVirtualCores(1);
+
   }
 
 

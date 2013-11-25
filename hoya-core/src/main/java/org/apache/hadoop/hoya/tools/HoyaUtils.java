@@ -74,6 +74,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * These are hoya-specific Util methods
@@ -570,12 +571,33 @@ public final class HoyaUtils {
    */
   public static Map<String, String>  mergeMap(Map<String, String> first,
            Map<String, String> second) {
-    for (Map.Entry<String, String> entry: second.entrySet()) {
-      first.put(entry.getKey(), entry.getValue());
-    }
-    return first;
+    Set<Map.Entry<String,String>> entries = second.entrySet();
+    return mergeEntries(first, entries);
   }
-  
+
+  /**
+   * Merge a set of entries into a map. This will take the entryset of
+   * a map, or a Hadoop collection itself
+   * @param dest destination
+   * @param entries entries
+   * @return dest -with the entries merged in
+   */
+  public static Map<String, String> mergeEntries(Map<String, String> dest,
+                                                 Iterable<Map.Entry<String, String>> entries) {
+    for (Map.Entry<String, String> entry: entries) {
+      dest.put(entry.getKey(), entry.getValue());
+    }
+    return dest;
+  }
+
+  /**
+   * Generic map merge logic
+   * @param first first map
+   * @param second second map
+   * @param <T1> key type
+   * @param <T2> value type
+   * @return 'first' merged with the second
+   */
   public static <T1, T2> Map<T1, T2>  mergeMaps(Map<T1, T2> first,
            Map<T1, T2> second) {
     for (Map.Entry<T1, T2> entry: second.entrySet()) {
@@ -752,6 +774,11 @@ public final class HoyaUtils {
                          container.getPriority());
   }
 
+  /**
+   * convert an AM report to a string for diagnostics
+   * @param report the report
+   * @return the string value
+   */
   public static String reportToString(ApplicationReport report) {
     if (report == null) {
       return "Null application report";
@@ -1076,10 +1103,7 @@ public final class HoyaUtils {
 
   public static Map<String, String> stringMapClone(Map<String, String> src) {
     Map<String, String> dest =  new HashMap<String, String>();
-    for (Map.Entry<String, String> entry : src.entrySet()) {
-      dest.put(entry.getKey(), entry.getValue());
-    }
-    return dest;
+    return mergeEntries(dest, src.entrySet());
   }
 
   /**

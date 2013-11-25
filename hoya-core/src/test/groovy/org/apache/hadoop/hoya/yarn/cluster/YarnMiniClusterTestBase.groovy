@@ -31,6 +31,7 @@ import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.api.OptionKeys
+import org.apache.hadoop.hoya.api.RoleKeys
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.exceptions.WaitTimeoutException
 import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions
@@ -97,6 +98,7 @@ implements KeysForTests, HoyaExitCodes {
   public static final String SERVICE_LAUNCHER = "ServiceLauncher"
   public static
   final String NO_ARCHIVE_DEFINED = "Archive configuration option not set: "
+  public static final String YRAM = "256"
 
   protected MiniDFSCluster hdfsCluster
   protected MiniYARNCluster miniCluster;
@@ -313,7 +315,7 @@ implements KeysForTests, HoyaExitCodes {
     
   }
 
-    /**
+  /**
    * List any java process with the given grep pattern
    * @param grepString string to grep for
    */
@@ -429,6 +431,9 @@ implements KeysForTests, HoyaExitCodes {
         (HBaseKeys.ROLE_MASTER): 1,
         (HBaseKeys.ROLE_WORKER): size,
     ];
+    extraArgs << Arguments.ARG_ROLEOPT << HBaseKeys.ROLE_MASTER << RoleKeys.YARN_MEMORY << YRAM
+    extraArgs << Arguments.ARG_ROLEOPT << HBaseKeys.ROLE_WORKER << RoleKeys.YARN_MEMORY << YRAM
+
     return createHoyaCluster(clustername,
                              roles,
                              extraArgs,
@@ -436,6 +441,7 @@ implements KeysForTests, HoyaExitCodes {
                              blockUntilRunning, [:])
 
   }
+  
   public ServiceLauncher createHoyaCluster(String clustername, Map<String, Integer> roles, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning, Map<String, String> clusterOps) {
     assert clustername != null
     assert miniCluster != null
