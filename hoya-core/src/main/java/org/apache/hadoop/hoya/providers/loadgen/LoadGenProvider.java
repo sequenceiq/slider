@@ -45,6 +45,7 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -122,14 +123,12 @@ public class LoadGenProvider extends Configured implements
     return new ArrayList<HostAndPort>();
   }
 
-  /**
-   * Get a map of all the default options for the cluster; values
-   * that can be overridden by user defaults after
-   * @return a possibly emtpy map of default cluster options.
-   */
+
   @Override
-  public Configuration getDefaultClusterConfiguration() {
-    return new Configuration(false);
+  public Configuration getDefaultClusterConfiguration() throws
+                                                        FileNotFoundException {
+    return ConfigHelper.loadMandatoryResource(
+      "org/apache/hadoop/hoya/providers/loadgen/loadgen.xml");
   }
 
   /**
@@ -141,31 +140,13 @@ public class LoadGenProvider extends Configured implements
    */
   @Override
   public Map<String, String> createDefaultClusterRole(String rolename) throws
-                                                                       HoyaException {
+                                                                       HoyaException,
+                                                                       FileNotFoundException {
     Map<String, String> rolemap = new HashMap<String, String>();
+      Configuration conf = ConfigHelper.loadMandatoryResource(
+        "org/apache/hadoop/hoya/providers/loadgen/role-loadgen.xml");
+      HoyaUtils.mergeEntries(rolemap, conf);
     rolemap.put(RoleKeys.ROLE_NAME, rolename);
-    rolemap.put(KEY_WORKTIME, DEFAULT_WORKTIME);
-    rolemap.put(KEY_SLEEPTIME, DEFAULT_SLEEPTIME);
-    rolemap.put(KEY_EXITCODE, DEFAULT_EXITCODE);
-    rolemap.put(KEY_P_EXIT, DEFAULT_P_EXIT);
-    rolemap.put(RoleKeys.JVM_HEAP, DEFAULT_ROLE_HEAP);
-    rolemap.put(RoleKeys.YARN_CORES, DEFAULT_ROLE_YARN_VCORES);
-    rolemap.put(RoleKeys.YARN_MEMORY, DEFAULT_ROLE_YARN_RAM);
-
-    if (rolename.equals(ROLE_MASTER)) {
-      rolemap.put(RoleKeys.JVM_HEAP, DEFAULT_MASTER_HEAP);
-      rolemap.put(RoleKeys.YARN_CORES, DEFAULT_MASTER_YARN_VCORES);
-      rolemap.put(RoleKeys.YARN_MEMORY, DEFAULT_MASTER_YARN_RAM);
-
-    } else if (rolename.equals(ROLE_CPULOAD)) {
-      rolemap.put(KEY_CPUHEAVY, "true");
-    } else if (rolename.equals(ROLE_IOLOAD)) {
-      rolemap.put(KEY_READHEAVY, "true");
-      rolemap.put(KEY_WRITEHEAVY, "true");
-    } else if (rolename.equals(ROLE_FAILING)) {
-      rolemap.put(KEY_EXITCODE, "32");
-      rolemap.put(KEY_LIFETIME, "60");
-    }
     return rolemap;
   }
 

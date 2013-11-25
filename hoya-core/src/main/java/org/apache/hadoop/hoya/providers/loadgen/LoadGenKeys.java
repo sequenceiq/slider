@@ -49,7 +49,7 @@ public interface LoadGenKeys {
   String KEY_EXITCODE = "load.exitcode";
   String DEFAULT_EXITCODE = "0";
 
-  String KEY_READHEAVY = "load.readheavy";
+  String KEY_READHEAVY = "load.writeheavy";
   String KEY_WRITEHEAVY = "load.writeheavy";
   String KEY_SEEKHEAVY = "load.seekheavy";
   String KEY_CPUHEAVY = "load.cpuheavy";
