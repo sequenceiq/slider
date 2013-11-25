@@ -189,4 +189,70 @@ class TestHistoryRW extends BaseMockAppStateTest {
     out.close()
     return path
   }
+
+  @Test
+  public void testSkipEmptyFileOnRead() throws Throwable {
+    describe "verify that empty histories are skipped on read; old histories purged"
+    RoleHistory roleHistory = new RoleHistory(MockFactory.ROLES)
+    roleHistory.onStart(fs, historyPath)
+    time = 0
+    Path oldhistory = roleHistory.saveHistory(time++)
+
+    String addr = "localhost"
+    NodeInstance instance = roleHistory.getOrCreateNodeInstance(addr)
+    NodeEntry ne1 = instance.getOrCreate(0)
+    ne1.lastUsed = 0xf00d
+
+    Path goodhistory = roleHistory.saveHistory(time++)
+
+    RoleHistoryWriter historyWriter = new RoleHistoryWriter();
+    Path touched = touch(historyWriter, time++)
+
+    RoleHistory rh2 = new RoleHistory(MockFactory.ROLES)
+    assert rh2.onStart(fs, historyPath)
+    NodeInstance ni2 = rh2.getExistingNodeInstance(addr)
+    assert ni2 != null
+
+    //and assert the older file got purged
+    assert !fs.exists(oldhistory)
+    assert fs.exists(goodhistory)
+    assert fs.exists(touched )
+  }
+
+  @Test
+  public void testSkipBrokenFileOnRead() throws Throwable {
+    describe "verify that empty histories are skipped on read; old histories purged"
+    RoleHistory roleHistory = new RoleHistory(MockFactory.ROLES)
+    roleHistory.onStart(fs, historyPath)
+    time = 0
+    Path oldhistory = roleHistory.saveHistory(time++)
+
+    String addr = "localhost"
+    NodeInstance instance = roleHistory.getOrCreateNodeInstance(addr)
+    NodeEntry ne1 = instance.getOrCreate(0)
+    ne1.lastUsed = 0xf00d
+
+    Path goodhistory = roleHistory.saveHistory(time++)
+
+    RoleHistoryWriter historyWriter = new RoleHistoryWriter();
+    Path badfile = historyWriter.createHistoryFilename(historyPath, time++)
+    FSDataOutputStream out = fs.create(badfile)
+    out.writeBytes("{broken:true}")
+    out.close()
+
+    RoleHistory rh2 = new RoleHistory(MockFactory.ROLES)
+    describe("IGNORE STACK TRACE BELOW")
+
+    assert rh2.onStart(fs, historyPath)
+    
+    describe( "IGNORE STACK TRACE ABOVE")
+    NodeInstance ni2 = rh2.getExistingNodeInstance(addr)
+    assert ni2 != null
+
+    //and assert the older file got purged
+    assert !fs.exists(oldhistory)
+    assert fs.exists(goodhistory)
+    assert fs.exists(badfile )
+  }
+
 }
