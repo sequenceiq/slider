@@ -31,6 +31,7 @@ import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.api.OptionKeys
+import org.apache.hadoop.hoya.api.RoleKeys
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.exceptions.WaitTimeoutException
 import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions
@@ -429,6 +430,10 @@ implements KeysForTests, HoyaExitCodes {
         (HBaseKeys.ROLE_MASTER): 1,
         (HBaseKeys.ROLE_WORKER): size,
     ];
+    String ram = "256"
+    extraArgs << Arguments.ARG_ROLEOPT << HBaseKeys.ROLE_MASTER << RoleKeys.YARN_MEMORY << ram
+    extraArgs << Arguments.ARG_ROLEOPT << HBaseKeys.ROLE_WORKER << RoleKeys.YARN_MEMORY << ram
+
     return createHoyaCluster(clustername,
                              roles,
                              extraArgs,
@@ -436,6 +441,7 @@ implements KeysForTests, HoyaExitCodes {
                              blockUntilRunning, [:])
 
   }
+  
   public ServiceLauncher createHoyaCluster(String clustername, Map<String, Integer> roles, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning, Map<String, String> clusterOps) {
     assert clustername != null
     assert miniCluster != null
