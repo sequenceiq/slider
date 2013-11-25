@@ -28,14 +28,12 @@ import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.RoleKeys
 import org.apache.hadoop.hoya.providers.accumulo.AccumuloConfigFileOptions
 import org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys
-import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
-import org.junit.Assume
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 
 /**
@@ -161,14 +159,21 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
         (AccumuloKeys.OPTION_HADOOP_HOME): conf.getTrimmed(AccumuloKeys.OPTION_HADOOP_HOME),
     ]
 
-    extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_MASTER << RoleKeys.APP_INFOPORT << AccumuloConfigFileOptions.MASTER_PORT_CLIENT_DEFAULT
-    extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_MONITOR << RoleKeys.APP_INFOPORT << AccumuloConfigFileOptions.MONITOR_PORT_CLIENT_DEFAULT
-    
-    String ram = "256"
-    extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_MASTER << RoleKeys.YARN_MEMORY << ram
-    extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_TABLET << RoleKeys.YARN_MEMORY << ram
-    extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_MONITOR << RoleKeys.YARN_MEMORY << ram
-    extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_GARBAGE_COLLECTOR << RoleKeys.YARN_MEMORY << ram
+    extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_MASTER <<
+      RoleKeys.APP_INFOPORT <<
+      AccumuloConfigFileOptions.MASTER_PORT_CLIENT_DEFAULT
+    extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_MONITOR <<
+      RoleKeys.APP_INFOPORT <<
+      AccumuloConfigFileOptions.MONITOR_PORT_CLIENT_DEFAULT
+
+    extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_MASTER <<
+      RoleKeys.YARN_MEMORY << YRAM
+    extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_TABLET <<
+      RoleKeys.YARN_MEMORY << YRAM
+    extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_MONITOR <<
+      RoleKeys.YARN_MEMORY << YRAM
+    extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_GARBAGE_COLLECTOR <<
+     RoleKeys.YARN_MEMORY << YRAM
 
     return createHoyaCluster(clustername,
                              roles,

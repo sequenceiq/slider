@@ -98,6 +98,7 @@ implements KeysForTests, HoyaExitCodes {
   public static final String SERVICE_LAUNCHER = "ServiceLauncher"
   public static
   final String NO_ARCHIVE_DEFINED = "Archive configuration option not set: "
+  public static final String YRAM = "256"
 
   protected MiniDFSCluster hdfsCluster
   protected MiniYARNCluster miniCluster;
@@ -430,9 +431,8 @@ implements KeysForTests, HoyaExitCodes {
         (HBaseKeys.ROLE_MASTER): 1,
         (HBaseKeys.ROLE_WORKER): size,
     ];
-    String ram = "256"
-    extraArgs << Arguments.ARG_ROLEOPT << HBaseKeys.ROLE_MASTER << RoleKeys.YARN_MEMORY << ram
-    extraArgs << Arguments.ARG_ROLEOPT << HBaseKeys.ROLE_WORKER << RoleKeys.YARN_MEMORY << ram
+    extraArgs << Arguments.ARG_ROLEOPT << HBaseKeys.ROLE_MASTER << RoleKeys.YARN_MEMORY << YRAM
+    extraArgs << Arguments.ARG_ROLEOPT << HBaseKeys.ROLE_WORKER << RoleKeys.YARN_MEMORY << YRAM
 
     return createHoyaCluster(clustername,
                              roles,

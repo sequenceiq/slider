@@ -31,6 +31,7 @@ import org.apache.hadoop.hbase.client.RetriesExhaustedException
 import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.ClusterNode
+import org.apache.hadoop.hoya.api.RoleKeys
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.hoya.tools.Duration
@@ -289,7 +290,17 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
                              (HBaseKeys.ROLE_MASTER): masters,
                              (HBaseKeys.ROLE_WORKER): workers,
                          ],
-                         [],
+                         [
+                             Arguments.ARG_ROLEOPT ,
+                             HBaseKeys.ROLE_MASTER ,
+                             RoleKeys.YARN_MEMORY ,
+                             YRAM,
+                             Arguments.ARG_ROLEOPT ,
+                             HBaseKeys.ROLE_WORKER ,
+                             RoleKeys.YARN_MEMORY ,
+                             YRAM
+                             
+                         ],
                          true,
                          true, [:]);
     hoyaClient = (HoyaClient) launcher.service;
