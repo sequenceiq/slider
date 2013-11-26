@@ -115,7 +115,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
                                            BadConfigException {
     // Set the environment
     Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
-    env.put(ACCUMULO_LOG_DIR, providerUtils.getLogdir() + "/" + clusterSpec.name);
+    env.put(ACCUMULO_LOG_DIR, ApplicationConstants.LOG_DIR_EXPANSION_VAR);
     String hadoop_home =
       ApplicationConstants.Environment.HADOOP_COMMON_HOME.$();
     hadoop_home = clusterSpec.getOption(OPTION_HADOOP_HOME, hadoop_home);
@@ -212,7 +212,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
                                           String... commands) throws
                                                                 IOException,
                                                                 HoyaException {
-    env.put(ACCUMULO_LOG_DIR, providerUtils.getLogdir() + "/" + clusterSpec.name);
+    env.put(ACCUMULO_LOG_DIR, ApplicationConstants.LOG_DIR_EXPANSION_VAR);
     String hadoop_home = System.getenv(HADOOP_HOME);
     hadoop_home = clusterSpec.getOption(OPTION_HADOOP_HOME, hadoop_home);
     if (hadoop_home == null) {
