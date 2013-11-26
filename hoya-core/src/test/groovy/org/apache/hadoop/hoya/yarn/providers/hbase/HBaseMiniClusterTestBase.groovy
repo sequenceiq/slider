@@ -31,6 +31,7 @@ import org.apache.hadoop.hbase.client.RetriesExhaustedException
 import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.ClusterNode
+import org.apache.hadoop.hoya.api.RoleKeys
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.tools.ConfigHelper
 import org.apache.hadoop.hoya.tools.Duration
@@ -49,9 +50,6 @@ import org.junit.Assume
 @Slf4j
 public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
 
-  public static
-  final String NO_HBASE_TAR_DEFINED = "Hbase Archive conf option not set " +
-                                      KeysForTests.HOYA_TEST_HBASE_TAR
 
   @Override
   public String getTestConfigurationPath() {
@@ -61,8 +59,8 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
   @Override
   void setup() {
     super.setup()
-    assumeHBaseArchive();
-    assumeHBaseHome();
+    assumeArchiveDefined();
+    assumeApplicationHome();
   }
 
   /**
@@ -292,7 +290,17 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
                              (HBaseKeys.ROLE_MASTER): masters,
                              (HBaseKeys.ROLE_WORKER): workers,
                          ],
-                         [],
+                         [
+                             Arguments.ARG_ROLEOPT ,
+                             HBaseKeys.ROLE_MASTER ,
+                             RoleKeys.YARN_MEMORY ,
+                             YRAM,
+                             Arguments.ARG_ROLEOPT ,
+                             HBaseKeys.ROLE_WORKER ,
+                             RoleKeys.YARN_MEMORY ,
+                             YRAM
+                             
+                         ],
                          true,
                          true, [:]);
     hoyaClient = (HoyaClient) launcher.service;
@@ -348,54 +356,7 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
                                                    int timeout) {
     return waitForRoleCount(hoyaClient, HBaseKeys.ROLE_MASTER, desiredCount, timeout)
   }
-  
-  public String getHBaseHome() {
-    YarnConfiguration conf = getTestConfiguration()
-    String hbaseHome = conf.getTrimmed(KeysForTests.HOYA_TEST_HBASE_HOME)
-    return hbaseHome
-  }
 
-  public String getHBaseArchive() {
-    YarnConfiguration conf = getTestConfiguration()
-    return conf.getTrimmed(KeysForTests.HOYA_TEST_HBASE_TAR)
-  }
-
-  public void assumeHBaseArchive() {
-    String hbaseArchive = HBaseArchive
-    boolean defined = hbaseArchive != null && hbaseArchive != ""
-    if (!defined) {
-      log.warn(NO_HBASE_TAR_DEFINED);
-    }
-    Assume.assumeTrue(NO_HBASE_TAR_DEFINED, defined)
-  }
-
-  /**
-   * Assume that HBase home is defined. This does not check that the
-   * path is valid -that is expected to be a failure on tests that require
-   * HBase home to be set.
-   */
-  public void assumeHBaseHome() {
-    Assume.assumeTrue("Hbase Archive conf option not set " + KeysForTests.HOYA_TEST_HBASE_HOME,
-                      HBaseHome != null && HBaseHome != "")
-  }
-
-  
-  /**
-   * Get the arguments needed to point to HBase for these tests
-   * @return
-   */
-  public List<String> getImageCommands() {
-    if (switchToImageDeploy) {
-      assert HBaseArchive
-      File f = new File(HBaseArchive)
-      assert f.exists()
-      return [Arguments.ARG_IMAGE, f.toURI().toString()]
-    } else {
-      assert HBaseHome
-      assert new File(HBaseHome).exists();
-      return [Arguments.ARG_APP_HOME, HBaseHome]
-    }
-  }
 
   /**
    * attempt to talk to the hbase master; expect a failure

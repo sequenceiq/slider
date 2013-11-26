@@ -30,12 +30,14 @@ import java.util.TreeSet;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Various utils to work with the monitor
  */
 public final class MonitorUtils {
-  private static final Log LOG = LogFactory.getLog(MonitorUtils.class);
+  protected static final Logger log = LoggerFactory.getLogger(MonitorUtils.class);
 
   private MonitorUtils() {
   }
@@ -59,7 +61,7 @@ public final class MonitorUtils {
       }
     }
     argsStr.append(']');
-    LOG.debug(argsStr);
+    log.debug(argsStr.toString());
     return argsList;
   }
 

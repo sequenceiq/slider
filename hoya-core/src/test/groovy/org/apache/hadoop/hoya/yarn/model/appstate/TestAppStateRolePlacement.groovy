@@ -83,7 +83,7 @@ class TestAppStateRolePlacement extends BaseMockAppStateTest
     
     assert release.containerId == container.id
     engine.execute(ops)
-    assert appState.onCompletedNode(containerStatus(container))
+    assert appState.onCompletedNode(containerStatus(container)).roleInstance 
 
     //view the world
     appState.getRoleHistory().dump();

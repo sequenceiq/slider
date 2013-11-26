@@ -72,7 +72,7 @@ look good too: there must be no `-SNAPSHOT` dependencies.
 **Step #9: deploy Hoya against a live cluster
 
 1. Expand the .tar.gz file
-1. Use it to create, flex, freeze then thaw a Hoya applicatin on a remote YARN cluster
+1. Use it to create, flex, freeze then thaw a Hoya application on a remote YARN cluster
 1. Do this for both HBase and Accumulo
 
 **Step #10:** Create a a one-line plain text release note for commits and tags
@@ -110,7 +110,7 @@ the release number
 
     export HOYA_RELEASE=0.6.0-SNAPSHOT
     mvn versions:set -DnewVersion=$HOYA_RELEASE
-    git commit -a -m "BUG-XYZ updating development POMs to HOYA_RELEASE"
+    git commit -a -m "BUG-XYZ updating development POMs to $HOYA_RELEASE"
 
 **Step #13:** Push the release and develop branches to github 
 (We recommend naming the hortonworks github repository 'hortonworks' to avoid

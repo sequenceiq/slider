@@ -22,16 +22,21 @@ import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.api.OptionKeys;
+import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.api.StatusKeys;
 import static org.apache.hadoop.hoya.api.RoleKeys.*;
 import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hadoop.hoya.exceptions.HoyaRuntimeException;
 import org.apache.hadoop.hoya.exceptions.NoSuchNodeException;
+import org.apache.hadoop.hoya.exceptions.TriggerClusterTeardownException;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
+import org.apache.hadoop.hoya.exceptions.ErrorStrings;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
@@ -194,7 +199,10 @@ public class AppState {
   private int containerMaxMemory;
   
   private RoleHistory roleHistory;
+  private long startTimeThreshold;
   
+  private int failureThreshold = 10;
+
   public AppState(AbstractRecordFactory recordFactory) {
     this.recordFactory = recordFactory;
   }
@@ -302,7 +310,13 @@ public class AppState {
   public Path getHistoryPath() {
     return roleHistory.getHistoryPath();
   }
-  
+
+  /**
+   * Set the container limits -the max that can be asked for,
+   * which are used when the "max" values are requested
+   * @param maxMemory maximum memory
+   * @param maxCores maximum cores
+   */
   public void setContainerLimits(int maxMemory, int maxCores) {
     containerMaxCores = maxCores;
     containerMaxMemory = maxMemory;
@@ -313,8 +327,8 @@ public class AppState {
    * @param clusterSpec cluster specification
    * @param siteConf site configuration
    * @param providerRoles roles offered by a provider
-   * @param fs
-   * @param historyDir
+   * @param fs filesystem
+   * @param historyDir directory containing history files
    */
   public void buildInstance(ClusterDescription clusterSpec,
                             Configuration siteConf,
@@ -338,15 +352,23 @@ public class AppState {
     ClusterDescription clusterStatus = ClusterDescription.copy(clusterSpec);
     Set<String> confKeys = ConfigHelper.sortedConfigKeys(siteConf);
 
-//     Add the client properties
+//     Add the -site configuration properties
     for (String key : confKeys) {
       String val = siteConf.get(key);
-      log.debug("{}={}", key, val);
       clusterStatus.clientProperties.put(key, val);
     }
 
+    //set the livespan
+    startTimeThreshold = 1000 * clusterSpec.getOptionInt(
+      OptionKeys.CONTAINER_FAILURE_SHORTLIFE,
+      OptionKeys.DEFAULT_CONTAINER_FAILURE_SHORTLIFE);
+    
+    failureThreshold = clusterSpec.getOptionInt(
+      OptionKeys.CONTAINER_FAILURE_THRESHOLD,
+      OptionKeys.DEFAULT_CONTAINER_FAILURE_THRESHOLD);
+    
     clusterStatus.state = ClusterDescription.STATE_CREATED;
-    long now = System.currentTimeMillis();
+    long now = now();
     clusterStatus.setInfoTime(StatusKeys.INFO_LIVE_TIME_HUMAN,
                               StatusKeys.INFO_LIVE_TIME_MILLIS,
                               now);
@@ -373,11 +395,11 @@ public class AppState {
   public synchronized void updateClusterSpec(ClusterDescription cd) {
     setClusterSpec(cd);
 
-    //propagate info from cluster, which is role table
+    //propagate info from cluster, specifically the role table
 
     Map<String, Map<String, String>> newroles = getClusterSpec().roles;
     getClusterDescription().roles = HoyaUtils.deepClone(newroles);
-    getClusterDescription().updateTime = System.currentTimeMillis();
+    getClusterDescription().updateTime = now();
     buildRoleRequirementsFromClusterSpec();
   }
 
@@ -625,7 +647,7 @@ public class AppState {
                                       RoleInstance instance) {
     instance.state = ClusterDescription.STATE_SUBMITTED;
     instance.container = container;
-    instance.createTime = System.currentTimeMillis();
+    instance.createTime = now();
     getStartingNodes().put(container.getId(), instance);
     activeContainers.put(container.getId(), instance);
     roleHistory.onContainerStartSubmitted(container, instance);
@@ -700,19 +722,24 @@ public class AppState {
 
   /**
    * Build up the resource requirements for this role from the
-   * cluster specification 
+   * cluster specification, including substituing max allowed values
+   * if the specification asked for it.
    * @param role role
    * @param capability capability to set up
    */
   public void buildResourceRequirements(RoleStatus role, Resource capability) {
     // Set up resource requirements from role values
     String name = role.getName();
-    capability.setVirtualCores(getClusterSpec().getRoleOptInt(name,
-                                                              YARN_CORES,
-                                                              DEF_YARN_CORES));
-    capability.setMemory(getClusterSpec().getRoleOptInt(name,
-                                                        YARN_MEMORY,
-                                                        DEF_YARN_MEMORY));
+    int cores = getClusterSpec().getRoleResourceRequirement(name,
+                                               YARN_CORES,
+                                               DEF_YARN_CORES,
+                                               containerMaxCores);
+    capability.setVirtualCores(cores);
+    int ram = getClusterSpec().getRoleResourceRequirement(name,
+                                             YARN_MEMORY,
+                                             DEF_YARN_MEMORY,
+                                             containerMaxMemory);
+    capability.setMemory(ram);
   }
 
   /**
@@ -757,24 +784,28 @@ public class AppState {
   public RoleInstance innerOnNodeManagerContainerStarted(ContainerId containerId)
       throws HoyaRuntimeException {
     incStartedCountainerCount();
-    RoleInstance active = activeContainers.get(containerId);
-    if (active == null) {
+    RoleInstance instance = activeContainers.get(containerId);
+    if (instance == null) {
       //serious problem
       throw new HoyaRuntimeException("Container not in active containers start %s",
                 containerId);
     }
-    active.startTime = System.currentTimeMillis();
+    if (instance.role == null) {
+      throw new HoyaRuntimeException("Role instance has no role name %s",
+                                     instance);
+    }
+    instance.startTime = now();
     RoleInstance starting = getStartingNodes().remove(containerId);
     if (null == starting) {
       throw new HoyaRuntimeException(
         "Container %s is already started", containerId);
     }
-    active.state = ClusterDescription.STATE_LIVE;
-    RoleStatus roleStatus = lookupRoleStatus(active.roleId);
+    instance.state = ClusterDescription.STATE_LIVE;
+    RoleStatus roleStatus = lookupRoleStatus(instance.roleId);
     roleStatus.incStarted();
-    Container container = active.container;
-    addLaunchedContainer(container, active);
-    return active;
+    Container container = instance.container;
+    addLaunchedContainer(container, instance);
+    return instance;
   }
 
   /**
@@ -794,7 +825,9 @@ public class AppState {
     incStartFailedCountainerCount();
     RoleInstance instance = getStartingNodes().remove(containerId);
     if (null != instance) {
-      lookupRoleStatus(instance.roleId).incStarted();
+      RoleStatus roleStatus = lookupRoleStatus(instance.roleId);
+      roleStatus.incFailed();
+      roleStatus.incStartFailed();
       if (null != thrown) {
         instance.diagnostics = HoyaUtils.stringify(thrown);
       }
@@ -804,16 +837,65 @@ public class AppState {
   }
 
   /**
+   * Is a role short lived by the threshold set for this application
+   * @param instance instance
+   * @return true if the instance is considered short live
+   */
+  @VisibleForTesting
+  public boolean isShortLived(RoleInstance instance) {
+    long time = now();
+    long started = instance.startTime;
+    boolean shortlived;
+    if (started > 0) {
+      long duration = time - started;
+      shortlived = duration < startTimeThreshold;
+    } else {
+      // never even saw a start event
+      shortlived = true;
+    }
+    return shortlived;
+  }
+
+  /**
+   * Current time in milliseconds. Made protected for
+   * the option to override it in tests.
+   * @return the current time.
+   */
+  protected long now() {
+    return System.currentTimeMillis();
+  }
+
+  /**
+   * This is a very small class to send a triple result back from 
+   * the completion operation
+   */
+  public static class NodeCompletionResult {
+    public boolean surplusNode = false;
+    public RoleInstance roleInstance;
+    public boolean containerFailed;
+
+    @Override
+    public String toString() {
+      final StringBuilder sb =
+        new StringBuilder("NodeCompletionResult{");
+      sb.append("surplusNode=").append(surplusNode);
+      sb.append(", roleInstance=").append(roleInstance);
+      sb.append(", containerFailed=").append(containerFailed);
+      sb.append('}');
+      return sb.toString();
+    }
+  }
+  
+  /**
    * handle completed node in the CD -move something from the live
    * server list to the completed server list
    * @param status the node that has just completed
-   * @return true if the node was pulled from the running to completed.
-   * False means unknown/surplus
+   * @return NodeCompletionResult
    */
-  public synchronized boolean onCompletedNode(ContainerStatus status) {
-
+  public synchronized NodeCompletionResult onCompletedNode(ContainerStatus status) {
     ContainerId containerId = status.getContainerId();
-    boolean surplusNode = false;
+    NodeCompletionResult result = new NodeCompletionResult();
+    RoleInstance roleInstance;
 
     if (containersBeingReleased.containsKey(containerId)) {
       log.info("Container was queued for release");
@@ -827,10 +909,11 @@ public class AppState {
 
     } else if (surplusNodes.remove(containerId)) {
       //its a surplus one being purged
-      surplusNode = true;
+      result.surplusNode = true;
     } else {
-      //a container has failed and its role needs to be decremented
-      RoleInstance roleInstance = activeContainers.remove(containerId);
+      //a container has failed 
+      result.containerFailed = true;
+      roleInstance = activeContainers.remove(containerId);
       if (roleInstance != null) {
         //it was active, move it to failed 
         incFailedCountainerCount();
@@ -847,8 +930,13 @@ public class AppState {
           RoleStatus roleStatus = lookupRoleStatus(roleId);
           roleStatus.decActual();
           roleStatus.incFailed();
+          //have a look to see if it short lived
+          boolean shortLived = isShortLived(roleInstance);
+          if (shortLived) {
+            roleStatus.incStartFailed();
+          }
           
-          roleHistory.onFailedContainer(roleInstance.container);
+          roleHistory.onFailedContainer(roleInstance.container, shortLived);
           
         } catch (YarnRuntimeException e1) {
           log.error("Failed container of unknown role {}", roleId);
@@ -862,10 +950,11 @@ public class AppState {
       }
     }
     
-    if (surplusNode) {
+    if (result.surplusNode) {
       //a surplus node
-      return false;
+      return result;
     }
+    
     //record the complete node's details; this pulls it from the livenode set 
     //remove the node
     ContainerId id = status.getContainerId();
@@ -873,13 +962,15 @@ public class AppState {
     if (node == null) {
       log.warn("Received notification of completion of unknown node");
       completionOfNodeNotInLiveListEvent.incrementAndGet();
-      return false;
+
+    } else {
+      node.state = ClusterDescription.STATE_DESTROYED;
+      node.exitCode = status.getExitStatus();
+      node.diagnostics = status.getDiagnostics();
+      getCompletedNodes().put(id, node);
+      result.roleInstance = node;
     }
-    node.state = ClusterDescription.STATE_DESTROYED;
-    node.exitCode = status.getExitStatus();
-    node.diagnostics = status.getDiagnostics();
-    getCompletedNodes().put(id, node);
-    return true;
+    return result;
   }
 
 
@@ -910,11 +1001,14 @@ public class AppState {
    */
   public void refreshClusterStatus(String masterAddr) {
     ClusterDescription cd = getClusterDescription();
-    long now = System.currentTimeMillis();
+    long now = now();
     cd.setInfoTime(StatusKeys.INFO_STATUS_TIME_HUMAN,
                    StatusKeys.INFO_STATUS_TIME_MILLIS,
                    now);
     cd.setInfo(StatusKeys.INFO_MASTER_ADDRESS, masterAddr);
+    // set the RM-defined maximum cluster values
+    cd.setInfo(RoleKeys.YARN_CORES, Integer.toString(containerMaxCores));
+    cd.setInfo(RoleKeys.YARN_MEMORY, Integer.toString(containerMaxMemory));
     cd.statistics = new HashMap<String, Map<String, Integer>>();
     Map<String, Integer> instanceMap = createRoleToInstanceMap();
     if (log.isDebugEnabled()) {
@@ -953,8 +1047,8 @@ public class AppState {
   /**
    * Look at where the current node state is -and whether it should be changed
    */
-  public synchronized List<AbstractRMOperation> reviewRequestAndReleaseNodes() throws
-                                                              HoyaInternalStateException {
+  public synchronized List<AbstractRMOperation> reviewRequestAndReleaseNodes()
+      throws HoyaInternalStateException, TriggerClusterTeardownException {
     log.debug("in reviewRequestAndReleaseNodes()");
     List<AbstractRMOperation> allOperations =
       new ArrayList<AbstractRMOperation>();
@@ -967,6 +1061,19 @@ public class AppState {
     return allOperations;
   }
   
+  public void checkFailureThreshold(RoleStatus role) throws
+                                                        TriggerClusterTeardownException {
+    int failures = role.getFailed();
+
+    if (failures > failureThreshold) {
+      throw new TriggerClusterTeardownException(
+        HoyaExitCodes.EXIT_CLUSTER_FAILED,
+        ErrorStrings.E_UNSTABLE_CLUSTER +
+        " - failed with role %s failing %d times (%d in startup); threshold is %d",
+        role.getName(), role.getFailed(), role.getStartFailed(), failureThreshold);
+    }
+  }
+  
   /**
    * Look at the allocation status of one role, and trigger add/release
    * actions if the number of desired role instances doesnt equal 
@@ -976,8 +1083,8 @@ public class AppState {
    * @throws HoyaInternalStateException if the operation reveals that
    * the internal state of the application is inconsistent.
    */
-  public List<AbstractRMOperation> reviewOneRole(RoleStatus role) throws
-                                                                   HoyaInternalStateException {
+  public List<AbstractRMOperation> reviewOneRole(RoleStatus role)
+      throws HoyaInternalStateException, TriggerClusterTeardownException {
     List<AbstractRMOperation> operations = new ArrayList<AbstractRMOperation>();
     int delta;
     String details;
@@ -990,6 +1097,8 @@ public class AppState {
     }
 
     log.info(details);
+    checkFailureThreshold(role);
+    
     if (delta > 0) {
       log.info("{}: Asking for {} more nodes(s) for a total of {} ", name,
                delta, expected);

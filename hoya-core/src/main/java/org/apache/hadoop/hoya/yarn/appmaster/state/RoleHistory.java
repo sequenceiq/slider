@@ -34,7 +34,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -281,19 +280,6 @@ public class RoleHistory {
   }
 
   /**
-   * Create the filename for the history
-   * @param time time value
-   * @return a filename such that later filenames sort later in the directory
-   */
-  private Path createHistoryFilename(long time) {
-    String filename = String.format(Locale.ENGLISH,
-                                    HoyaKeys.HISTORY_FILENAME_CREATION_PATTERN,
-                                    time);
-    Path path = new Path(historyPath, filename);
-    return path;
-  }
-
-  /**
    * Save the history to its location using the timestamp as part of
    * the filename. The saveTime and dirty fields are updated
    * @param time timestamp timestamp to use as the save time
@@ -302,7 +288,7 @@ public class RoleHistory {
    */
   @VisibleForTesting
   public synchronized Path saveHistory(long time) throws IOException {
-    Path filename = createHistoryFilename(time);
+    Path filename = historyWriter.createHistoryFilename(historyPath, time);
     historyWriter.write(filesystem, filename, true, this, time);
     saved(time);
     return filename;
@@ -355,17 +341,24 @@ public class RoleHistory {
     assert historyPath != null;
     boolean thawSuccessful = false;
     //load in files from data dir
+    Path loaded = null;
     try {
-      Path loaded =
-        historyWriter.loadFromHistoryDir(filesystem, historyPath, this);
-      if (loaded != null) {
-        thawSuccessful = true;
-        log.info("loaded history from {}", loaded);
-      }
+      loaded = historyWriter.loadFromHistoryDir(filesystem, historyPath, this);
     } catch (IOException e) {
-      log.warn("Failed to load history from {}", historyPath, e);
+      log.warn("Exception trying to load history from {}", historyPath, e);
     }
-    if (thawSuccessful) {
+    if (loaded != null) {
+      thawSuccessful = true;
+      log.info("loaded history from {}", loaded);
+      // delete any old entries
+      try {
+        int count = historyWriter.purgeOlderHistoryEntries(filesystem, loaded);
+        log.debug("Deleted {} old history entries", count);
+      } catch (IOException e) {
+        log.info("Ignoring exception raised while trying to delete old entries",
+                 e);
+      }
+
       //thaw is then completed
       buildAvailableNodeLists();
     } else {
@@ -570,11 +563,7 @@ public class RoleHistory {
    * @return true if the node was queued
    */
   public boolean onNodeManagerContainerStartFailed(Container container) {
-    NodeEntry nodeEntry = getOrCreateNodeEntry(container);
-    boolean available = nodeEntry.onStartFailed();
-    maybeQueueNodeForWork(container, nodeEntry, available);
-    touch();
-    return available;
+    return markContainerFinished(container, false, true);
   }
 
   /**
@@ -592,33 +581,43 @@ public class RoleHistory {
    * @return true if the node was queued
    */
   public boolean onReleaseCompleted(Container container) {
-    return markContainerFinished(container, true);
+    return markContainerFinished(container, true, false);
   }
 
   /**
    * App state notified of a container completed -but as
    * it wasn't being released it is marked as failed
+   *
    * @param container completed container
-   * @return true if the node was queued
+   * @param shortLived was the container short lived?
+   * @return true if the node is considered available for work
    */
-  public boolean onFailedContainer(Container container) {
-    return markContainerFinished(container, false);
+  public boolean onFailedContainer(Container container, boolean shortLived) {
+    return markContainerFinished(container, false, shortLived);
   }
 
   /**
    * Mark a container finished; if it was released then that is treated
    * differently. history is touch()ed
    *
+   *
    * @param container completed container
    * @param wasReleased was the container released?
+   * @param shortLived was the container short lived?
    * @return true if the node was queued
-
    */
   protected synchronized boolean markContainerFinished(Container container,
-                                                       boolean wasReleased) {
+                                                       boolean wasReleased,
+                                                       boolean shortLived) {
     NodeEntry nodeEntry = getOrCreateNodeEntry(container);
-    boolean available = nodeEntry.containerCompleted(wasReleased);
-    maybeQueueNodeForWork(container, nodeEntry, available);
+    boolean available;
+    if (shortLived) {
+      nodeEntry.onStartFailed();
+      available = false;
+    } else {
+      available = nodeEntry.containerCompleted(wasReleased);
+      maybeQueueNodeForWork(container, nodeEntry, available);
+    }
     touch();
     return available;
   }

@@ -50,35 +50,25 @@ import org.apache.hadoop.hoya.servicemonitor.MonitorKeys;
 import org.apache.hadoop.hoya.servicemonitor.Probe;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
-import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLDecoder;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 
 /**
  * This class implements  the client-side aspects
@@ -104,14 +94,12 @@ public class HBaseClientProvider extends Configured implements
   protected static final String NAME = "hbase";
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
   private MasterAddressTracker masterTracker = null;
-  private Configuration conf;
 
   protected HBaseClientProvider(Configuration conf) {
     super(conf);
-    this.conf = create(conf);
     try {
       Abortable abortable = new ClientProviderAbortable();
-      ZooKeeperWatcher zkw = new ZooKeeperWatcher(this.conf, "HBaseClient", abortable);
+      ZooKeeperWatcher zkw = new ZooKeeperWatcher(getConf(), "HBaseClient", abortable);
       masterTracker = new MasterAddressTracker(zkw, abortable);
     } catch (IOException ioe) {
       log.error("Couldn't instantiate ZooKeeperWatcher", ioe);
@@ -125,40 +113,45 @@ public class HBaseClientProvider extends Configured implements
   }
 
   @Override
-  public List<Probe> createProbes(String urlStr, Configuration config, int timeout) 
+  public List<Probe> createProbes(ClusterDescription clusterSpec, String urlStr,
+                                  Configuration config,
+                                  int timeout) 
       throws IOException {
     List<Probe> probes = new ArrayList<Probe>();
-    String prefix = "";
-    URL url = null;
-    if (urlStr != null && !urlStr.startsWith("http") && urlStr.contains("/proxy/")) {
-      if (!UserGroupInformation.isSecurityEnabled()) {
-        prefix = "http://proxy/relay/";
-      } else {
-        prefix = "https://proxy/relay/";
+    if (urlStr!=null) {
+      // set up HTTP probe if a path is provided
+      String prefix = "";
+      URL url = null;
+      if (!urlStr.startsWith("http") && urlStr.contains("/proxy/")) {
+        if (!UserGroupInformation.isSecurityEnabled()) {
+          prefix = "http://proxy/relay/";
+        } else {
+          prefix = "https://proxy/relay/";
+        }
       }
-    }
-    try {
-      url = new URL(prefix + urlStr);
-    } catch (MalformedURLException mue) {
-      log.error("tracking url: " + prefix + urlStr + " is malformed");
-    }
-    if (url != null) {
-      log.info("tracking url: " + url);
-      HttpURLConnection connection = null;
       try {
-        connection = HttpProbe.getConnection(url, timeout);
-        // see if the host is reachable
-        connection.getResponseCode();
-
-        HttpProbe probe = new HttpProbe(url, timeout,
-          MonitorKeys.WEB_PROBE_DEFAULT_CODE, MonitorKeys.WEB_PROBE_DEFAULT_CODE, config);
-        probes.add(probe);
-      } catch (UnknownHostException uhe) {
-        log.error("host unknown: " + url);
-      } finally {
-        if (connection != null) {
-          connection.disconnect();
-          connection = null;
+        url = new URL(prefix + urlStr);
+      } catch (MalformedURLException mue) {
+        log.error("tracking url: " + prefix + urlStr + " is malformed");
+      }
+      if (url != null) {
+        log.info("tracking url: " + url);
+        HttpURLConnection connection = null;
+        try {
+          connection = HttpProbe.getConnection(url, timeout);
+          // see if the host is reachable
+          connection.getResponseCode();
+  
+          HttpProbe probe = new HttpProbe(url, timeout,
+            MonitorKeys.WEB_PROBE_DEFAULT_CODE, MonitorKeys.WEB_PROBE_DEFAULT_CODE, config);
+          probes.add(probe);
+        } catch (UnknownHostException uhe) {
+          log.error("host unknown: " + url);
+        } finally {
+          if (connection != null) {
+            connection.disconnect();
+            connection = null;
+          }
         }
       }
     }
@@ -168,9 +161,15 @@ public class HBaseClientProvider extends Configured implements
   @Override
   public HostAndPort getMasterAddress() throws IOException, KeeperException {
     // masterTracker receives notification from zookeeper on current master
+    if (masterTracker == null) {
+      return null;
+    }
     ServerName sn = masterTracker.getMasterAddress();
-    log.debug("getMasterAddress " + sn + ", quorum=" + this.conf.get(HConstants.ZOOKEEPER_QUORUM));
-    if (sn == null) return null;
+    log.debug("getMasterAddress " + sn + ", quorum=" 
+              + getConf().get(HConstants.ZOOKEEPER_QUORUM));
+    if (sn == null) {
+      return null;
+    }
     return new HostAndPort(sn.getHostname(), sn.getPort());
   }
   
@@ -213,10 +212,10 @@ public class HBaseClientProvider extends Configured implements
    * @return a possibly empty map of default cluster options.
    */
   @Override
-  public Map<String, String> getDefaultClusterOptions() {
-    HashMap<String, String> site = new HashMap<String, String>();
-    site.put(OptionKeys.APPLICATION_VERSION, HBaseKeys.VERSION);
-    return site;
+  public Configuration getDefaultClusterConfiguration() throws
+                                                        FileNotFoundException {
+    return ConfigHelper.loadMandatoryResource(
+      "org/apache/hadoop/hoya/providers/hbase/hbase.xml");
   }
   
   /**
@@ -228,18 +227,18 @@ public class HBaseClientProvider extends Configured implements
    */
   @Override
   public Map<String, String> createDefaultClusterRole(String rolename) throws
-                                                                       HoyaException {
+                                                                       HoyaException, IOException {
     Map<String, String> rolemap = new HashMap<String, String>();
-    rolemap.put(RoleKeys.ROLE_NAME, rolename);
-    rolemap.put(RoleKeys.YARN_CORES, Integer.toString(RoleKeys.DEF_YARN_CORES));
-    rolemap.put(RoleKeys.YARN_MEMORY, Integer.toString(RoleKeys.DEF_YARN_MEMORY));
-    if (rolename.equals(HBaseKeys.ROLE_WORKER)) {
-      rolemap.put(RoleKeys.APP_INFOPORT, DEFAULT_HBASE_WORKER_INFOPORT);
-      rolemap.put(RoleKeys.JVM_HEAP, DEFAULT_HBASE_WORKER_HEAP);
-    } else if (rolename.equals(HBaseKeys.ROLE_MASTER)) {
-      rolemap.put(RoleKeys.ROLE_INSTANCES, "1");
-      rolemap.put(RoleKeys.APP_INFOPORT, DEFAULT_HBASE_MASTER_INFOPORT);
-      rolemap.put(RoleKeys.JVM_HEAP, DEFAULT_HBASE_MASTER_HEAP);
+    if (rolename.equals(HBaseKeys.ROLE_MASTER)) {
+      // master role
+      Configuration conf = ConfigHelper.loadMandatoryResource(
+        "org/apache/hadoop/hoya/providers/hbase/role-hbase-master.xml");
+      HoyaUtils.mergeEntries(rolemap, conf);
+    } else if (rolename.equals(HBaseKeys.ROLE_WORKER)) {
+      // worker settings
+      Configuration conf = ConfigHelper.loadMandatoryResource(
+        "org/apache/hadoop/hoya/providers/hbase/role-hbase-worker.xml");
+      HoyaUtils.mergeEntries(rolemap, conf);
     }
     return rolemap;
   }
@@ -334,12 +333,12 @@ public class HBaseClientProvider extends Configured implements
                                     boolean secure,
                                     String origin) throws BadConfigException {
     try {
-      providerUtils.verifyOptionSet(siteConf, KEY_HBASE_CLUSTER_DISTRIBUTED,
-                                    false);
-      providerUtils.verifyOptionSet(siteConf, KEY_HBASE_ROOTDIR, false);
-      providerUtils.verifyOptionSet(siteConf, KEY_ZNODE_PARENT, false);
-      providerUtils.verifyOptionSet(siteConf, KEY_ZOOKEEPER_QUORUM, false);
-      providerUtils.verifyOptionSet(siteConf, KEY_ZOOKEEPER_PORT, false);
+      HoyaUtils.verifyOptionSet(siteConf, KEY_HBASE_CLUSTER_DISTRIBUTED,
+                                false);
+      HoyaUtils.verifyOptionSet(siteConf, KEY_HBASE_ROOTDIR, false);
+      HoyaUtils.verifyOptionSet(siteConf, KEY_ZNODE_PARENT, false);
+      HoyaUtils.verifyOptionSet(siteConf, KEY_ZOOKEEPER_QUORUM, false);
+      HoyaUtils.verifyOptionSet(siteConf, KEY_ZOOKEEPER_PORT, false);
       int zkPort =
         siteConf.getInt(HBaseConfigFileOptions.KEY_ZOOKEEPER_PORT, 0);
       if (zkPort == 0) {
@@ -351,15 +350,15 @@ public class HBaseClientProvider extends Configured implements
 
       if (secure) {
         //better have the secure cluster definition up and running
-        providerUtils.verifyOptionSet(siteConf, KEY_MASTER_KERBEROS_PRINCIPAL,
-                                      false);
-        providerUtils.verifyOptionSet(siteConf, KEY_MASTER_KERBEROS_KEYTAB,
-                                      false);
-        providerUtils.verifyOptionSet(siteConf,
-                                      KEY_REGIONSERVER_KERBEROS_PRINCIPAL,
-                                      false);
-        providerUtils.verifyOptionSet(siteConf,
-                                      KEY_REGIONSERVER_KERBEROS_KEYTAB, false);
+        HoyaUtils.verifyOptionSet(siteConf, KEY_MASTER_KERBEROS_PRINCIPAL,
+                                  false);
+        HoyaUtils.verifyOptionSet(siteConf, KEY_MASTER_KERBEROS_KEYTAB,
+                                  false);
+        HoyaUtils.verifyOptionSet(siteConf,
+                                  KEY_REGIONSERVER_KERBEROS_PRINCIPAL,
+                                  false);
+        HoyaUtils.verifyOptionSet(siteConf,
+                                  KEY_REGIONSERVER_KERBEROS_KEYTAB, false);
       }
     } catch (BadConfigException e) {
       //bad configuration, dump it
@@ -447,18 +446,25 @@ public class HBaseClientProvider extends Configured implements
                                             Path tempPath) throws
                                                            IOException,
                                                            HoyaException {
-    String[] jars=
+    String[] jars =
       {
         "hbase-common.jar",
         "hbase-protocol.jar",
         "hbase-client.jar",
+        "zookeeper.jar",
       };
     Class[] classes = {
-      org.apache.hadoop.hbase.HConstants.class, // hbase-common
-      org.apache.hadoop.hbase.protobuf.generated.ClientProtos.class, // hbase-protocol
-      org.apache.hadoop.hbase.client.Put.class, // hbase-client
+      // hbase-common
+      org.apache.hadoop.hbase.HConstants.class,
+      // hbase-protocol
+      org.apache.hadoop.hbase.protobuf.generated.ClientProtos.class,
+      // hbase-client
+      org.apache.hadoop.hbase.client.Put.class,
+      //zk
+      org.apache.zookeeper.ClientCnxn.class
     };
-    addDependencyJars(providerResources,clusterFS,tempPath,libdir,jars,classes);
+    addDependencyJars(providerResources, clusterFS, tempPath, libdir, jars,
+                      classes);
   }
 
   @Override
@@ -489,7 +495,9 @@ public class HBaseClientProvider extends Configured implements
     Map<String, String> clusterConfMap = buildSiteConfFromSpec(clusterSpec);
     
     //merge them
-    ConfigHelper.addConfigMap(siteConf, clusterConfMap, "HBase Provider");
+    ConfigHelper.addConfigMap(siteConf,
+                              clusterConfMap.entrySet(),
+                              "HBase Provider");
 
     //now, if there is an extra client conf, merge it in too
     if (clientConfExtras != null) {
@@ -546,12 +554,7 @@ public class HBaseClientProvider extends Configured implements
   @Override
   public void prepareAMResourceRequirements(ClusterDescription clusterSpec,
                                             Resource capability) {
-    //no-op unless you want to add more memory
-    capability.setMemory(clusterSpec.getRoleOptInt(
-      HBaseKeys.ROLE_MASTER,
-      RoleKeys.YARN_MEMORY,
-      capability.getMemory()));
-    capability.setVirtualCores(1);
+
   }
 
 
@@ -567,23 +570,5 @@ public class HBaseClientProvider extends Configured implements
   }
 
 
-  /**
-   * Get the path to hbase home
-   * @return the hbase home path
-   */
-  public  File buildHBaseBinPath(ClusterDescription cd) {
-    return new File(buildHBaseDir(cd),
-                                HBaseKeys.HBASE_SCRIPT);
-  }
-
-  public  File buildHBaseDir(ClusterDescription cd) {
-    String archiveSubdir = getHBaseVersion(cd);
-    return providerUtils.buildImageDir(cd, archiveSubdir);
-  }
-
-  public String getHBaseVersion(ClusterDescription cd) {
-    return cd.getOption(OptionKeys.APPLICATION_VERSION,
-                                        HBaseKeys.VERSION);
-  }
 
 }

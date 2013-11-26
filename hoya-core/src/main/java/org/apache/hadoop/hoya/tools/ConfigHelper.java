@@ -44,12 +44,16 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeSet;
 
 /**
  * Methods to aid in config, both in the Configuration class and
- * with other parts of setting up Hoya-initated processes
+ * with other parts of setting up Hoya-initated processes.
+ * 
+ * Some of the methods take an argument of a map iterable for their sources; this allows
+ * the same method
  */
 public class ConfigHelper {
   private static final Logger log = LoggerFactory.getLogger(HoyaUtils.class);
@@ -67,7 +71,13 @@ public class ConfigHelper {
     return keys;
   }
 
-  public static TreeSet<String> sortedConfigKeys(Configuration conf) {
+
+  /**
+   * Take a configuration and return a sorted set
+   * @param conf config
+   * @return
+   */
+  public static TreeSet<String> sortedConfigKeys(Iterable<Map.Entry<String, String>> conf) {
     TreeSet<String> sorted = new TreeSet<String>();
     for (Map.Entry<String, String> entry : conf) {
       sorted.add(entry.getKey());
@@ -75,19 +85,30 @@ public class ConfigHelper {
     return sorted;
   }
 
-
   /**
    * Set an entire map full of values
    *
    * @param config config to patch
    * @param map map of data
    * @param origin origin data
-   * @return nothing
    */
   public static void addConfigMap(Configuration config,
-                                  Map<String, String> map, String origin) throws
-                                                           BadConfigException {
-    for (Map.Entry<String, String> mapEntry : map.entrySet()) {
+                                  Map<String, String> map,
+                                  String origin) throws BadConfigException {
+    addConfigMap(config, map.entrySet(), origin);
+  }
+  
+  /**
+   * Set an entire map full of values
+   *
+   * @param config config to patch
+   * @param map map of data
+   * @param origin origin data
+   */
+  public static void addConfigMap(Configuration config,
+                                  Iterable<Map.Entry<String, String>> map,
+                                  String origin) throws BadConfigException {
+    for (Map.Entry<String, String> mapEntry : map) {
       String key = mapEntry.getKey();
       String value = mapEntry.getValue();
       if (value == null) {
@@ -373,7 +394,8 @@ public class ConfigHelper {
    * @param origin description of the origin for the put operation
    * @return the base with the merged values
    */
-  public static Configuration mergeConfigurations(Configuration base, Configuration merge,
+  public static Configuration mergeConfigurations(Configuration base,
+                                                  Iterable<Map.Entry<String, String>> merge,
                                                   String origin) {
     for (Map.Entry<String, String> entry : merge) {
       base.set(entry.getKey(), entry.getValue(), origin);
@@ -416,6 +438,27 @@ public class ConfigHelper {
       log.debug("failed to find {} on the classpath", resource);
     }
     return conf;
+    
+  }
+
+  /**
+   * Load a resource that must be there
+   * @param resource the resource name
+   * @return the loaded configuration
+   * @throws FileNotFoundException if the resource is missing
+   */
+  public static Configuration loadMandatoryResource(String resource) throws
+                                                                     FileNotFoundException {
+    Configuration conf = new Configuration(false);
+    URL resURL = ConfigHelper.class.getClassLoader()
+                                .getResource(resource);
+    if (resURL != null) {
+      log.debug("loaded resources from {}", resURL);
+      conf.addResource(resource);
+    } else {
+      throw new FileNotFoundException(resource);
+    }
+    return conf;
   }
 
   /**
@@ -442,5 +485,15 @@ public class ConfigHelper {
     }
     return false;
   }
-  
+
+
+  /**
+   * Take a configuration, return a hash map
+   * @param conf conf
+   * @return hash map
+   */
+  public static Map<String, String> buildMapFromConfiguration(Configuration conf) {
+    Map<String, String> map = new HashMap<String, String>();
+    return HoyaUtils.mergeEntries(map, conf);
+  }
 }

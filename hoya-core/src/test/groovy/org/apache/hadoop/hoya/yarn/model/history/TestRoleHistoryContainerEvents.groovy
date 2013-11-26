@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.model.appstate.history
+package org.apache.hadoop.hoya.yarn.model.history
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
@@ -225,9 +225,11 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
     ri.buildUUID();
     //start it
     roleHistory.onContainerStartSubmitted(container, ri)
-    //later, declare that it started
-    roleHistory.onNodeManagerContainerStartFailed(container)
+    //later, declare that it failed on startup
+    assert !roleHistory.onNodeManagerContainerStartFailed(container)
     assert roleEntry.starting == 0
+    assert roleEntry.startFailed == 1
+    assert roleEntry.failed == 1
     assert roleEntry.available
     assert roleEntry.active == 0
     assert roleEntry.live == 0
@@ -251,8 +253,10 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
     NodeInstance allocated = nodemap.get(hostname)
     NodeEntry roleEntry = allocated.get(role)
 
-    roleHistory.onNodeManagerContainerStartFailed(container)
+    assert !roleHistory.onNodeManagerContainerStartFailed(container)
     assert roleEntry.starting == 0
+    assert roleEntry.startFailed == 1
+    assert roleEntry.failed == 1
     assert roleEntry.available
     assert roleEntry.active == 0
     assert roleEntry.live == 0
@@ -260,6 +264,8 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
   
   @Test
   public void testContainerFailed() throws Throwable {
+    describe("fail a container without declaring it as starting")
+
     int role = 0
     AMRMClient.ContainerRequest request =
         roleHistory.requestNode(role, resource);
@@ -284,8 +290,8 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
     roleHistory.onContainerStartSubmitted(container, ri)
     roleHistory.onContainerStarted(container)
 
-    //later, declare that it started
-    roleHistory.onFailedContainer(container)
+    //later, declare that it failed
+    roleHistory.onFailedContainer(container, false)
     assert roleEntry.starting == 0
     assert roleEntry.available
     assert roleEntry.active == 0
@@ -294,6 +300,7 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
   
   @Test
   public void testContainerFailedWithoutWarning() throws Throwable {
+    describe( "fail a container without declaring it as starting")
     int role = 0
     AMRMClient.ContainerRequest request =
         roleHistory.requestNode(role, resource);
@@ -311,8 +318,9 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
     NodeInstance allocated = nodemap.get(hostname)
     NodeEntry roleEntry = allocated.get(role)
     assert roleEntry.available
-    roleHistory.onFailedContainer(container)
+    roleHistory.onFailedContainer(container, false)
     assert roleEntry.starting == 0
+    assert roleEntry.failed == 1
     assert roleEntry.available
     assert roleEntry.active == 0
     assert roleEntry.live == 0

@@ -34,7 +34,7 @@ class TestCreateMiniClusterCreation extends HBaseMiniClusterTestBase {
   @Test
   public void testHoyaTestConfigFound() throws Throwable {
     describe("verify that hbase home points to a cluster configuration dir")
-    String hbaseHome = getHBaseHome()
+    String hbaseHome = getApplicationHome()
 
     assert hbaseHome != null && !hbaseHome.isEmpty()
     File hbaseHomeDir = new File(hbaseHome)

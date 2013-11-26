@@ -23,7 +23,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
-import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
@@ -34,10 +33,7 @@ import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
-import org.apache.hadoop.hoya.yarn.service.CompoundService;
 import org.apache.hadoop.hoya.yarn.service.EventCallback;
-import org.apache.hadoop.hoya.yarn.service.EventNotifyingService;
-import org.apache.hadoop.hoya.yarn.service.ForkedProcessService;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -45,6 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -110,6 +107,16 @@ public class HBaseProviderService extends AbstractProviderService implements
     clientProvider.validateClusterSpec(clusterSpec);
   }
 
+
+  /**
+   * Get the path to hbase home
+   * @return the hbase home path
+   */
+  public String buildHBaseScriptBinPath(ClusterDescription cd) throws
+                                                               FileNotFoundException {
+    return providerUtils.buildPathToScript(cd, "bin",
+                                           HBaseKeys.HBASE_SCRIPT);
+  }
   
   @Override  // server
   public void buildContainerLaunchContext(ContainerLaunchContext ctx,
@@ -123,8 +130,11 @@ public class HBaseProviderService extends AbstractProviderService implements
                                            HoyaException {
     // Set the environment
     Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
+
     env.put(HBASE_LOG_DIR, providerUtils.getLogdir());
 
+    env.put("PROPAGATED_CONFDIR", ApplicationConstants.Environment.PWD.$()+"/"+
+                                  HoyaKeys.PROPAGATED_CONF_DIR_NAME);
     ctx.setEnvironment(env);
 
     //local resources
@@ -145,15 +155,16 @@ public class HBaseProviderService extends AbstractProviderService implements
       HoyaUtils.maybeAddImagePath(fs, localResources, imagePath);
     }
     ctx.setLocalResources(localResources);
+    List<String> commands = new ArrayList<String>();
 
 
     List<String> command = new ArrayList<String>();
     //this must stay relative if it is an image
-    command.add(clientProvider.buildHBaseBinPath(clusterSpec).toString());
+    command.add(buildHBaseScriptBinPath(clusterSpec));
 
     //config dir is relative to the generated file
     command.add(ARG_CONFIG);
-    command.add(PROPAGATED_CONF_DIR_NAME);
+    command.add("$PROPAGATED_CONFDIR");
     
     //now look at the role
     if (ROLE_WORKER.equals(role)) {
@@ -179,59 +190,15 @@ public class HBaseProviderService extends AbstractProviderService implements
 
     String cmdStr = HoyaUtils.join(command, " ");
 
-    List<String> commands = new ArrayList<String>();
+
     commands.add(cmdStr);
     ctx.setCommands(commands);
 
   }
 
-  @Override
-  public List<String> buildProcessCommand(ClusterDescription cd,
-                                          File confDir,
-                                          Map<String, String> env,
-                                          String masterCommand) throws
-                                                                IOException,
-                                                                HoyaException {
-    env.put(HBASE_LOG_DIR, new ProviderUtils(log).getLogdir());
-    //pull out the command line argument if set
-    //set the service to run if unset
-    if (masterCommand == null) {
-      masterCommand = MASTER;
-    }
-    //prepend the hbase command itself
-    File untarDir = clientProvider.buildHBaseDir(cd).getAbsoluteFile();
-    if (!untarDir.exists()) {
-      //likely cause here is the version is wrong
-
-      String message =
-        String.format(
-          "Expanded HBase archive not found -is the version %s wrong? (parent dir=%s, contents=%s)",
-          clientProvider.getHBaseVersion(cd),
-          untarDir.getParentFile(),
-          HoyaUtils.listDir(untarDir.getParentFile())
-                     );
-      log.error(message);
-      throw new BadCommandArgumentsException(message);
-    }
-    File binHbaseSh = clientProvider.buildHBaseBinPath(cd);
-    String scriptPath = binHbaseSh.getAbsolutePath();
-    if (!binHbaseSh.exists()) {
-      String text = "Missing hbase script " + scriptPath;
-      log.error(text);
-      log.error(HoyaUtils.listDir(binHbaseSh.getParentFile()));
-      throw new BadCommandArgumentsException(text);
-    }
-    List<String> launchSequence = new ArrayList<String>(8);
-    launchSequence.add(0, scriptPath);
-    launchSequence.add(ARG_CONFIG);
-    launchSequence.add(confDir.getAbsolutePath());
-    launchSequence.add(masterCommand);
-    launchSequence.add(ACTION_START);
-    return launchSequence;
-  }
-
   /**
    * Run this service
+   *
    *
    * @param cd component description
    * @param confDir local dir with the config
@@ -241,30 +208,14 @@ public class HBaseProviderService extends AbstractProviderService implements
    * @throws HoyaException anything internal
    */
   @Override
-  public void exec(ClusterDescription cd,
-                   File confDir,
-                   Map<String, String> env,
-                   EventCallback execInProgress) throws
+  public boolean exec(ClusterDescription cd,
+                      File confDir,
+                      Map<String, String> env,
+                      EventCallback execInProgress) throws
                                                  IOException,
                                                  HoyaException {
 
-    String masterCommand =
-      cd.getOption(OptionKeys.OPTION_HOYA_MASTER_COMMAND, COMMAND_VERSION);
-
-    List<String> commands =
-      buildProcessCommand(cd, confDir, env, masterCommand);
-
-    ForkedProcessService subprocess = buildProcess(getName(), env, commands);
-    CompoundService composite = new CompoundService(getName());
-    composite.addService(subprocess);
-    composite.addService(new EventNotifyingService(execInProgress,
-                           cd.getOptionInt(
-                             OptionKeys.CONTAINER_STARTUP_DELAY,
-                             OptionKeys.DEFAULT_CONTAINER_STARTUP_DELAY)));
-    //register the service for lifecycle management; when this service
-    //is terminated, the master process is notified
-    addService(composite);
-    maybeStartCommandSequence();
+    return false;
   }
 
 
@@ -299,10 +250,10 @@ public class HBaseProviderService extends AbstractProviderService implements
     
     if (secure) {
       //secure mode: take a look at the keytab of master and RS
-      providerUtils.verifyKeytabExists(siteConf,
-                                       HBaseConfigFileOptions.KEY_MASTER_KERBEROS_KEYTAB);
-      providerUtils.verifyKeytabExists(siteConf,
-                                       HBaseConfigFileOptions.KEY_REGIONSERVER_KERBEROS_KEYTAB);
+      HoyaUtils.verifyKeytabExists(siteConf,
+                                   HBaseConfigFileOptions.KEY_MASTER_KERBEROS_KEYTAB);
+      HoyaUtils.verifyKeytabExists(siteConf,
+                                   HBaseConfigFileOptions.KEY_REGIONSERVER_KERBEROS_KEYTAB);
 
     }
   }

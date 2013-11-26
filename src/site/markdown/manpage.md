@@ -249,6 +249,17 @@ List running Hoya clusters visible to the user.
 
 If a cluster name is given and there is no running cluster with that name, an error is returned. 
 
+### monitor \<cluster> \[--wait time]
+
+Monitor a given cluster by deploying any application-provider specific monitors
+(HTTP probes, zookeeper probes).  The `--waittime` parameter specified in 
+seconds how long the cluster must be monitored.
+
+1. If there is no running cluster with the given name, an error is returned. 
+1. If, after the given wait time, the cluster is still running, the operation 
+is considered a succed.
+1. If during the wait time the probes fail, an error code is reported
+
 ### status \<cluster>
 
 Get the status of the named Hoya cluster
@@ -262,7 +273,7 @@ The same zookeeper bindings as before will be used.
 
 If a cluster is already running, this is a no-op
 
-### emergency_force_kill \<applicationID>
+### emergency-force-kill \<applicationID>
 
 This attempts to force kill any YARN application referenced by application ID.
 There is no attempt to notify the running AM. 

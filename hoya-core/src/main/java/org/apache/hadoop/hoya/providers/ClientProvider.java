@@ -21,8 +21,8 @@ package org.apache.hadoop.hoya.providers;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.HostAndPort;
+import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.servicemonitor.Probe;
@@ -30,6 +30,7 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.zookeeper.KeeperException;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collection;
@@ -51,7 +52,8 @@ public interface ClientProvider extends ProviderCore {
    * @param rolename role name
    * @return a node that can be added to the JSON
    */
-  Map<String, String> createDefaultClusterRole(String rolename) throws HoyaException;
+  Map<String, String> createDefaultClusterRole(String rolename) throws HoyaException,
+                                                                       IOException;
 
   /**
    * This builds up the site configuration for the AM and downstream services;
@@ -89,7 +91,7 @@ public interface ClientProvider extends ProviderCore {
    * that can be overridden by user defaults after
    * @return a possibly empyy map of default cluster options.
    */
-  Map<String, String> getDefaultClusterOptions();
+  Configuration getDefaultClusterConfiguration() throws FileNotFoundException;
 
   /**
    * Build the conf dir from the service arguments
@@ -150,13 +152,16 @@ public interface ClientProvider extends ProviderCore {
                                                              HoyaException,
                                                              IOException;
 
-  /*
+  /**
+   * @param clusterSpec cluster specification
    * @param url the tracking URL
    * @param config the Configuration
    * @param timeout
    * @return List of applicable Probe's
    */
-  List<Probe> createProbes(String url, Configuration config, int timeout) throws IOException;
+  List<Probe> createProbes(ClusterDescription clusterSpec, String url,
+                           Configuration config,
+                           int timeout) throws IOException;
   
   /*
    * @param conf

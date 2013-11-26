@@ -37,12 +37,13 @@ class TestLiveClusterFromArchive extends HBaseMiniClusterTestBase {
 
   @Test
   public void testLiveClusterFromArchive() throws Throwable {
-    String clustername = "TestLiveClusterFromArchive"
+    String clustername = getTestClusterName()
     int regionServerCount = 1
-    createMiniCluster(clustername, createConfiguration(), regionServerCount + 1, 1, 1, true, false)
+    createMiniCluster(clustername, createConfiguration(), regionServerCount + 1, 1, 1, true,
+                      startHDFS())
 
     //now launch the cluster
-    switchToImageDeploy = true
+    setupImageToDeploy()
     ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount, [], true, true)
 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
@@ -53,6 +54,18 @@ class TestLiveClusterFromArchive extends HBaseMiniClusterTestBase {
     waitForHoyaWorkerCount(hoyaClient, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
     clusterActionFreeze(hoyaClient, clustername,"end of run")
+  }
+
+  public void setupImageToDeploy() {
+    switchToImageDeploy = true
+  }
+
+  public String getTestClusterName() {
+    return "TestLiveClusterFromArchive"
+  }
+
+  public boolean startHDFS() {
+    return false
   }
 
 }

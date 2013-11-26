@@ -51,6 +51,7 @@ import org.apache.hadoop.hoya.servicemonitor.ProbePhase;
 import org.apache.hadoop.hoya.servicemonitor.ProbeReportHandler;
 import org.apache.hadoop.hoya.servicemonitor.ProbeStatus;
 import org.apache.hadoop.hoya.servicemonitor.ReportingLoop;
+import org.apache.hadoop.hoya.servicemonitor.YarnApplicationProbe;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.Duration;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
@@ -127,15 +128,14 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   private ClientArgs serviceArgs;
   public ApplicationId applicationId;
   
-  private ReportingLoop masterReportingLoop;
-  private Thread loopThread;
+
   private String deployedClusterName;
   /**
    * Cluster opaerations against the deployed cluster -will be null
    * if no bonding has yet taken place
    */
   private HoyaClusterOperations hoyaClusterOperations;
-  private ClientProvider provider;
+  
   private FileSystem clusterFS;
 
   /**
@@ -244,8 +244,9 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
         HoyaUtils.validateClusterName(clusterName);
       }
       exitCode = actionList(clusterName);
+    } else if (HoyaActions.ACTION_MONITOR.equals(action)) {
+      exitCode = actionMonitor(clusterName);
     } else if (HoyaActions.ACTION_STATUS.equals(action)) {
-      HoyaUtils.validateClusterName(clusterName);
       exitCode = actionStatus(clusterName);
     } else {
       throw new HoyaException(EXIT_UNIMPLEMENTED,
@@ -274,7 +275,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // delete the directory;
     boolean exists = fs.exists(clusterDirectory);
     if (exists) {
-      log.info("Cluster exists -destroying");
+      log.info("Cluster found -destroying");
     } else {
       log.info("Cluster already destroyed");
     }
@@ -368,13 +369,12 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     ClusterDescription clusterSpec = new ClusterDescription();
 
     requireArgumentSet(Arguments.ARG_ZKHOSTS, serviceArgs.zkhosts);
-    requireArgumentSet(Arguments.ARG_VERSION, serviceArgs.version);
     Path appconfdir = serviceArgs.confdir;
     requireArgumentSet(Arguments.ARG_CONFDIR, appconfdir);
     // Provider
     requireArgumentSet(Arguments.ARG_PROVIDER, serviceArgs.provider);
     HoyaAMClientProvider hoyaAM = new HoyaAMClientProvider(conf);
-
+    ClientProvider provider;
     provider = createClientProvider(serviceArgs.provider);
 
     // remember this
@@ -389,7 +389,11 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     
     // build up the options map
     // first the defaults provided by the provider
-    clusterSpec.options = provider.getDefaultClusterOptions();
+    HashMap<String, String> options = new HashMap<String, String>();
+    HoyaUtils.mergeEntries(options, hoyaAM.getDefaultClusterConfiguration());
+    HoyaUtils.mergeEntries(options, provider.getDefaultClusterConfiguration());
+
+    clusterSpec.options = options;
     
     
     //propagate the filename into the 1.x and 2.x value
@@ -410,15 +414,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     // next the options provided on the command line
     HoyaUtils.mergeMap(clusterSpec.options, serviceArgs.getOptionsMap());
-    // hbasever arg also sets an option
-    if (isSet(serviceArgs.version)) {
-      clusterSpec.setOption(OptionKeys.APPLICATION_VERSION, serviceArgs.version);
-    }
-    log.debug("Application version is {}",
-              clusterSpec.getOption(OptionKeys.APPLICATION_VERSION, "undefined"));
 
-
-    
     // build the list of supported roles
     List<ProviderRole> supportedRoles = new ArrayList<ProviderRole>();
     // provider roles
@@ -752,24 +748,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
         log.debug("{}={}", key, HoyaUtils.stringify(val.getResource()));
       }
     }
-
-    // Set the log4j properties if needed 
-/*
-    if (!log4jPropFile.isEmpty()) {
-      Path log4jSrc = new Path(log4jPropFile);
-      Path log4jDst = new Path(fs.getHomeDirectory(), "log4j.props");
-      fs.copyFromLocalFile(false, true, log4jSrc, log4jDst);
-      FileStatus log4jFileStatus = fs.getFileStatus(log4jDst);
-      LocalResource log4jRsrc = Records.newRecord(LocalResource.class);
-      log4jRsrc.setType(LocalResourceType.FILE);
-      log4jRsrc.setVisibility(LocalResourceVisibility.APPLICATION);
-      log4jRsrc.setResource(ConverterUtils.getYarnUrlFromURI(log4jDst.toUri()));
-      log4jRsrc.setTimestamp(log4jFileStatus.getModificationTime());
-      log4jRsrc.setSize(log4jFileStatus.getLen());
-      localResources.put("log4j.properties", log4jRsrc);
-    }
-
-*/
     
     // Set local resource info into app master container launch context
     amContainer.setLocalResources(localResources);
@@ -914,20 +892,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     ApplicationReport report = monitorAppToState(new Duration(ACCEPT_TIME),
       YarnApplicationState.ACCEPTED);
 
-    // build the probes
-    int timeout = 60000;
-    List<Probe> probes = provider.createProbes(report.getTrackingUrl(), config, timeout);
-    // start ReportingLoop only when there're probes
-    if (!probes.isEmpty()) {
-      masterReportingLoop = new ReportingLoop("MasterStatusCheck", this, probes, null, 1000, 1000,
-        timeout, -1);
-      if (!masterReportingLoop.startReporting()) {
-        throw new HoyaException(EXIT_INTERNAL_ERROR, "failed to start monitoring");
-      }
-      loopThread = new Thread(masterReportingLoop, "MasterStatusCheck");
-      loopThread.setDaemon(true);
-      loopThread.start();
-    }
 
     // may have failed, so check that
     if (HoyaUtils.hasAppFinished(report)) {
@@ -1255,7 +1219,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     List<ApplicationReport> instances = listHoyaInstances(user);
 
     if (clustername == null || clustername.isEmpty()) {
-      log.info("Hoya instances for {}:{}",
+      log.info("Hoya instances for {}: {}",
                (user != null ? user : "all users"),
                instances.size());
       for (ApplicationReport report : instances) {
@@ -1388,6 +1352,71 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   }
 
   /**
+   * Monitor operation
+   * @param clustername cluster name
+   * @return 0 if the monitoring finished after timeout with no problems
+   * @throws YarnException
+   * @throws IOException
+   */
+  @VisibleForTesting
+  public int actionMonitor(String clustername) throws
+                                              YarnException,
+                                              IOException {
+    verifyManagerSet();
+    HoyaUtils.validateClusterName(clustername);
+
+    if (clustername == null) {
+      throw unknownClusterException("");
+    }
+    Path clusterSpecPath = locateClusterSpecification(clustername);
+
+    ClusterDescription clusterSpec =
+      HoyaUtils.loadAndValidateClusterSpec(getClusterFS(), clusterSpecPath);
+    
+    ApplicationReport report = findInstance(getUsername(), clustername);
+    if (null == report) {
+      throw unknownClusterException(clustername);
+    }
+    ReportingLoop masterReportingLoop;
+    Thread loopThread;
+    
+    // build the probes
+    int exitCode = EXIT_FALSE;
+    
+    int timeout = 60000;
+    int waittime = serviceArgs.waittime;
+    ClientProvider provider = createClientProvider(clusterSpec);
+    List<Probe> probes =
+      provider.createProbes(clusterSpec, report.getTrackingUrl(), getConfig(), timeout);
+    probes.add(
+      new YarnApplicationProbe(clustername, yarnClient, "Yarn application probe",
+                               getConfig(), getUsername()));
+    // start ReportingLoop only when there're probes
+    if (!probes.isEmpty()) {
+      masterReportingLoop =
+        new ReportingLoop("MasterStatusCheck", this, probes, null, 1000, 1000,
+                          timeout, -1);
+      if (!masterReportingLoop.startReporting()) {
+        throw new HoyaException(EXIT_INTERNAL_ERROR,
+                                "failed to start monitoring");
+      }
+      loopThread = new Thread(masterReportingLoop, "MasterStatusCheck");
+      loopThread.setDaemon(true);
+      loopThread.start();
+      // now wait until finished
+      try {
+        loopThread.join(waittime * 1000L);
+        //getting here implies timeout with no interruptions
+        exitCode = EXIT_SUCCESS;
+      } catch (InterruptedException e) {
+        //interrupted
+      }
+      masterReportingLoop.close();
+    }
+    return exitCode;
+  }
+  
+  /**
    * Status operation
    * @param clustername cluster name
    * @return 0 -for success, else an exception is thrown
@@ -1432,19 +1461,11 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                app.getYarnApplicationState());
       return EXIT_SUCCESS;
     }
-    if (log.isDebugEnabled()) {
-      ClusterDescription clusterSpec = getClusterDescription(clustername);
-
-      log.debug(clusterSpec.toString());
-    }
     HoyaClusterProtocol appMaster = connect(app);
     Messages.StopClusterRequestProto r =
       Messages.StopClusterRequestProto.newBuilder().setMessage(text).build();
     appMaster.stopCluster(r);
-    if (masterReportingLoop != null) {
-      masterReportingLoop.close();
-      masterReportingLoop = null;
-    }
+
     log.debug("Cluster stop command issued");
     if (waittime > 0) {
       monitorAppToState(app.getApplicationId(),
@@ -1799,7 +1820,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    */
   public HoyaException unknownClusterException(String clustername) {
     return new HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER,
-                             "Hoya cluster not found: '" + clustername + "' ");
+                             "Hoya cluster not found: \"%s\"", clustername);
   }
 
   @Override

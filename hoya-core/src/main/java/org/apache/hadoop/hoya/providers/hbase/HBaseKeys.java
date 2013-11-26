@@ -18,8 +18,6 @@
 
 package org.apache.hadoop.hoya.providers.hbase;
 
-import org.apache.hadoop.hoya.HoyaKeys;
-
 /*
 Usage: hbase <command>
 where <command> an option from one of these categories:
@@ -58,11 +56,6 @@ public interface HBaseKeys {
   String REGION_SERVER = "regionserver";
 
   /**
-   *  name of the hbase subdir in the archive:  {@value}
-   */
-  String VERSION = "hbase-0.96.0";
-
-  /**
    * What is the command for hbase to print a version: {@value}
    */
   String COMMAND_VERSION = "version";
@@ -77,7 +70,7 @@ public interface HBaseKeys {
   /**
    *  name of the hbase script relative to the hbase root dir:  {@value}
    */
-  String HBASE_SCRIPT = "bin/hbase";
+  String HBASE_SCRIPT = "hbase";
   
   /**
    *  name of the site conf to generate :  {@value}
@@ -92,8 +85,8 @@ public interface HBaseKeys {
   String HBASE_TEMPLATE_RESOURCE = HBASE_CONF_RESOURCE + SITE_XML;
 
 
-  String DEFAULT_HBASE_WORKER_HEAP = "256M";
-  String DEFAULT_HBASE_MASTER_HEAP = "256M";
+  String DEFAULT_HBASE_WORKER_HEAP = "512M";
+  String DEFAULT_HBASE_MASTER_HEAP = "512M";
   String DEFAULT_HBASE_WORKER_INFOPORT = "0";
   String DEFAULT_HBASE_MASTER_INFOPORT = "0";
   String PROVIDER_HBASE = "hbase";

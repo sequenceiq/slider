@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.appmaster.state;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.ClusterNode;
 import org.apache.hadoop.hoya.api.proto.Messages;
+import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
@@ -89,13 +90,26 @@ public class RoleInstance {
   public NodeId getNodeId() {
     return container.getNodeId();
   }
-  
+
   @Override
   public String toString() {
-    return "ContainerInfo{" +
-           "container=" + container +
-           ", role='" + role + '\'' +
-           '}';
+    final StringBuilder sb =
+      new StringBuilder("RoleInstance{");
+    sb.append("container=").append(HoyaUtils.containerToString(container));
+    sb.append(", uuid='").append(uuid).append('\'');
+    sb.append(", createTime=").append(createTime);
+    sb.append(", startTime=").append(startTime);
+    sb.append(", released=").append(released);
+    sb.append(", role='").append(role).append('\'');
+    sb.append(", roleId=").append(roleId);
+    sb.append(", state=").append(state);
+    sb.append(", exitCode=").append(exitCode);
+    sb.append(", command='").append(command).append('\'');
+    sb.append(", diagnostics='").append(diagnostics).append('\'');
+    sb.append(", output=").append(Arrays.toString(output));
+    sb.append(", environment=").append(Arrays.toString(environment));
+    sb.append('}');
+    return sb.toString();
   }
 
   public void buildUUID() {

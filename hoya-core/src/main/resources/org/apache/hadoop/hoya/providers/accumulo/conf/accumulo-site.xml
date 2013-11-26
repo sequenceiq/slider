@@ -15,6 +15,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
 
 <configuration>
   <!-- Put your site-specific accumulo configurations here. The available configuration values along with their defaults are documented in docs/config.html Unless 

@@ -36,6 +36,7 @@ public interface HoyaActions {
   String ACTION_HELP = "help";
   String ACTION_LIST = "list";
   String ACTION_MIGRATE = "migrate";
+  String ACTION_MONITOR = "monitor";
   String ACTION_PREFLIGHT = "preflight";
   String ACTION_RECONFIGURE = "reconfigure";
   String ACTION_REIMAGE = "reimage";

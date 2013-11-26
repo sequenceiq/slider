@@ -42,21 +42,6 @@ a site XML configuration file)
 
 Standard keys are defined in the class `org.apache.hadoop.hoya.api.OptionKeys`.
 
-####  `cluster.app.version`
-
-The version of the application. This is used to determine the paths
-of binary files inside the .tar or `.tar.gz` file containing the
-application to deploy. It *must* match the path inside that file
-exactly, else the application will not run.
-
-It can be specified on the command line in two ways:
-
-    -O cluster.app.version=hbase-0.97.0-SNAPSHOT
-    
-or
-
-    --version hbase-0.97.0-SNAPSHOT
-
 ####  `hoya.test`
 
 A boolean value to indicate this is a test run, not a production run. In this
@@ -70,6 +55,24 @@ For HBase and Accumulo, the command is `version` -which is sufficient to
 validate that the installed application tar file (or specified home directory)
 is valid. It may be changed to another verb which the application supports
 on the command line -though other parameters cannot be appended.
+
+#### `hoya.container.failure.shortlife`
+
+An integer stating the time in seconds before which a failed container is
+considered 'short lived'.
+
+A failure of a short-lived container is treated as a sign of a problem with
+the role configuration and/or another aspect of the Hoya cluster -or
+a problem with the specific node on which the attempt to run
+the container was made.
+
+
+
+#### `hoya.container.failure.threshold`
+
+An integer stating the number of failures tolerated in a single role before
+the cluster is considered to have failed.
+
 
 ## Roles
 
@@ -92,11 +95,36 @@ of the roles.
 
 #### YARN container memory `yarn.memory`
 
-The amount of memory in MB for the YARN container. Default "256".
+The amount of memory in MB for the YARN container hosting
+that role. Default "256".
+
+The special value `max` indicates that Hoya should request the
+maximum value that YARN allows containers to have -a value
+determined dynamically after the cluster starts.
+
+Examples:
+
+    --roleopt master yarn.memory 2048
+    --roleopt worker yarn.memory max
+
 
 #### YARN vCores `yarn.vcores`
 
-Number of "Cores" for the container. Default, "1"
+Number of "Cores" for the container hosting
+a role. Default value: "1"
+
+The special value `max` indicates that Hoya should request the
+maximum value that YARN allows containers to have -a value
+determined dynamically after the cluster starts.
+
+As well as being able to specify the numeric values of memory and cores
+in role, via the `--roleopt` argument, you can now ask for the maximum
+allowed value by using the parameter `max`
+
+Examples:
+
+    --roleopt master yarn.vcores 2
+    --roleopt master yarn.vcores max
 
 ####  Master node web port `app.infoport`
 
@@ -110,38 +138,41 @@ the same TCP port.
 
 #### JVM Heapsize `jvm.heapsize`
 
+* Not yet implemented * 
+
+
 Heapsize as a JVM option string, such as `"256M"` or `"2G"`
 
+--roleopt worker jvm.heapsize 8G
+
 This is not correlated with the YARN memory -changes in the YARN memory allocation
-are not reflected in the JVM heapsize.
+are not reflected in the JVM heapsize -and vice versa.
 
-
-
-
-
-### Env variables
+### Environment variables
  
  
 All role options beginning with `env.` are automatically converted to
-environment variables set for that container
+environment variables which will be set for all instances of that role.
 
     --roleopt worker env.MALLOC_ARENA 4
 
-## Accumulo Options
+## Accumulo-Specfic Options
 
 ### Accumulo cluster options
 
-####  Zookeeper Home: `zk.home`
+Here are options specific to Accumulo clusters.
+
+####  Mandatory: Zookeeper Home: `zk.home`
 
 Location of Zookeeper on the target machine. This is needed by the 
 Accumulo startup scripts.
 
-#### Hadoop Home `hadoop.home`
+#### Mandatory: Hadoop Home `hadoop.home`
 
 Location of Hadoop on the target machine. This is needed by the 
 Accumulo startup scripts.
 
-#### Accumulo database password  `accumulo.password`
+#### Mandatory: Accumulo database password  `accumulo.password`
 
 This is the password used to control access to the accumulo data.
 A random password (from a UUID, hence very low-entropy) is chosen when

@@ -34,6 +34,7 @@ public class SecurityCheckerService extends AbstractService {
 
   @Override
   protected void serviceInit(Configuration conf) throws Exception {
+    super.serviceInit(conf);
     HoyaUtils.initProcessSecurity(conf);
   }
 }

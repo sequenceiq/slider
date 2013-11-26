@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.hoya.tools;
 
-import com.beust.jcommander.JCommander;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -75,6 +74,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * These are hoya-specific Util methods
@@ -571,12 +571,33 @@ public final class HoyaUtils {
    */
   public static Map<String, String>  mergeMap(Map<String, String> first,
            Map<String, String> second) {
-    for (Map.Entry<String, String> entry: second.entrySet()) {
-      first.put(entry.getKey(), entry.getValue());
-    }
-    return first;
+    Set<Map.Entry<String,String>> entries = second.entrySet();
+    return mergeEntries(first, entries);
   }
-  
+
+  /**
+   * Merge a set of entries into a map. This will take the entryset of
+   * a map, or a Hadoop collection itself
+   * @param dest destination
+   * @param entries entries
+   * @return dest -with the entries merged in
+   */
+  public static Map<String, String> mergeEntries(Map<String, String> dest,
+                                                 Iterable<Map.Entry<String, String>> entries) {
+    for (Map.Entry<String, String> entry: entries) {
+      dest.put(entry.getKey(), entry.getValue());
+    }
+    return dest;
+  }
+
+  /**
+   * Generic map merge logic
+   * @param first first map
+   * @param second second map
+   * @param <T1> key type
+   * @param <T2> value type
+   * @return 'first' merged with the second
+   */
   public static <T1, T2> Map<T1, T2>  mergeMaps(Map<T1, T2> first,
            Map<T1, T2> second) {
     for (Map.Entry<T1, T2> entry: second.entrySet()) {
@@ -742,6 +763,9 @@ public final class HoyaUtils {
   }
 
   public static String containerToString(Container container) {
+    if (container == null) {
+      return "null container";
+    }
     return String.format(Locale.ENGLISH,
                          "ContainerID=%s nodeID=%s http=%s priority=%s",
                          container.getId(),
@@ -750,6 +774,11 @@ public final class HoyaUtils {
                          container.getPriority());
   }
 
+  /**
+   * convert an AM report to a string for diagnostics
+   * @param report the report
+   * @return the string value
+   */
   public static String reportToString(ApplicationReport report) {
     if (report == null) {
       return "Null application report";
@@ -1074,10 +1103,7 @@ public final class HoyaUtils {
 
   public static Map<String, String> stringMapClone(Map<String, String> src) {
     Map<String, String> dest =  new HashMap<String, String>();
-    for (Map.Entry<String, String> entry : src.entrySet()) {
-      dest.put(entry.getKey(), entry.getValue());
-    }
-    return dest;
+    return mergeEntries(dest, src.entrySet());
   }
 
   /**
@@ -1268,6 +1294,95 @@ public final class HoyaUtils {
       }
     }
     return classPathEnv.toString();
+  }
+
+  /**
+   * Verify that a path refers to a directory. If not
+   * logs the parent dir then throws an exception
+   * @param dir the directory
+   * @param errorlog log for output on an error
+   * @throws FileNotFoundException if it is not a directory
+   */
+  public static void verifyIsDir(File dir, Logger errorlog) throws FileNotFoundException {
+    if (!dir.exists()) {
+      errorlog.warn("contents of {}: {}", dir,
+                    listDir(dir.getParentFile()));
+      throw new FileNotFoundException(dir.toString());
+    }
+    if (!dir.isDirectory()) {
+      errorlog.info("contents of {}: {}", dir,
+                    listDir(dir.getParentFile()));
+      throw new FileNotFoundException(
+        "Not a directory: " + dir);
+    }
+  }
+
+  /**
+   * Verify that a file exists
+   * @param file file
+   * @param errorlog log for output on an error
+   * @throws FileNotFoundException
+   */
+  public static void verifyFileExists(File file, Logger errorlog) throws FileNotFoundException {
+    if (!file.exists()) {
+      errorlog.warn("contents of {}: {}", file,
+                    listDir(file.getParentFile()));
+      throw new FileNotFoundException(file.toString());
+    }
+    if (!file.isFile()) {
+      throw new FileNotFoundException("Not a file: " + file.toString());
+    }
+  }
+
+  /**
+   * verify that a config option is set
+   * @param configuration config
+   * @param key key
+   * @return the value, in case it needs to be verified too
+   * @throws BadConfigException if the key is missing
+   */
+  public static String verifyOptionSet(Configuration configuration, String key,
+                                       boolean allowEmpty) throws BadConfigException {
+    String val = configuration.get(key);
+    if (val == null) {
+      throw new BadConfigException(
+        "Required configuration option \"%s\" not defined ", key);
+    }
+    if (!allowEmpty && val.isEmpty()) {
+      throw new BadConfigException(
+        "Configuration option \"%s\" must not be empty", key);
+    }
+    return val;
+  }
+
+  /**
+   * Verify that a keytab property is defined and refers to a non-empty file
+   *
+   * @param siteConf configuration
+   * @param prop property to look for
+   * @return the file referenced
+   * @throws BadConfigException on a failure
+   */
+  public static File verifyKeytabExists(Configuration siteConf, String prop) throws
+                                                                      BadConfigException {
+    String keytab = siteConf.get(prop);
+    if (keytab == null) {
+      throw new BadConfigException("Missing keytab property %s",
+                                   prop);
+
+    }
+    File keytabFile = new File(keytab);
+    if (!keytabFile.exists()) {
+      throw new BadConfigException("Missing keytab file %s defined in %s",
+                                   keytabFile,
+                                   prop);
+    }
+    if (keytabFile.length() == 0 || !keytabFile.isFile()) {
+      throw new BadConfigException("Invalid keytab file %s defined in %s",
+                                   keytabFile,
+                                   prop);
+    }
+    return keytabFile;
   }
 
 

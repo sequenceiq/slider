@@ -1,0 +1,85 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one
+  ~  or more contributor license agreements.  See the NOTICE file
+  ~  distributed with this work for additional information
+  ~  regarding copyright ownership.  The ASF licenses this file
+  ~  to you under the Apache License, Version 2.0 (the
+  ~  "License"); you may not use this file except in compliance
+  ~  with the License.  You may obtain a copy of the License at
+  ~
+  ~       http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  -->
+
+  <!--
+  Garbage collector
+  -->
+<configuration>
+  <property>
+    <name>role.name</name>
+    <value>loadgen</value>
+  </property>
+ 
+  <property>
+    <name>yarn.vcores</name>
+    <value>1</value>
+  </property>
+
+  <property>
+    <name>yarn.memory</name>
+    <value>512</value>
+  </property>
+  
+  <property>
+    <name>jvm.heapsize</name>
+    <value>256M</value>
+  </property>
+
+  <property>
+    <name>load.worktime</name>
+    <value>1</value>
+  </property>
+
+  <property>
+    <name>load.lifetime</name>
+    <value>-1</value>
+  </property>
+
+  <property>
+    <name>load.pfail</name>
+    <value>0</value>
+  </property>
+
+  <property>
+    <name>load.exitcode</name>
+    <value>0</value>
+  </property>
+
+  <property>
+    <name>load.cpuheavy</name>
+    <value>false</value>
+  </property>
+
+  <property>
+    <name>load.writeheavy</name>
+    <value>false</value>
+  </property>
+
+  <property>
+    <name>load.writeheavy</name>
+    <value>false</value>
+  </property>
+
+  <property>
+    <name>load.seekheavy</name>
+    <value>false</value>
+  </property>
+
+</configuration>

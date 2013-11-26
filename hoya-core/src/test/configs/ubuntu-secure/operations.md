@@ -102,8 +102,7 @@
     --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/ubuntu-secure/hbase \
     --roleopt master app.infoport 8080  \
     --role master 1 \
-    --role worker 1 \
-     --version hbase-0.97.0-SNAPSHOT
+    --role worker 1 
     
     
 # one master
@@ -116,8 +115,7 @@
     -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM \
     --image hdfs://ubuntu:9090/hbase.tar \
     --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/ubuntu-secure/hbase \
-    --role master 1  \
-     --version hbase-0.97.0-SNAPSHOT
+    --role master 1 
 
 # one master env set up
       
@@ -126,9 +124,7 @@
      -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
      --image hdfs://ubuntu:9090/hbase.tar \
      --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/ubuntu-secure/hbase \
-     --role master 1  \
-     --version hbase-0.97.0-SNAPSHOT   
-    
+     --role master 1  
     
 # build but don't deploy single master
      
@@ -141,8 +137,7 @@
     --image hdfs://ubuntu:9090/hbase.tar \
     --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/ubuntu-secure/hbase \
     --roleopt master app.infoport 8080  \
-    --role master 1 \
-     --hbasever hbase-0.97.0-SNAPSHOT
+    --role master 1 
          
                
     bin/hoya  status cl1 \
@@ -207,9 +202,55 @@
      -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
      -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM 
      
+     
+## All configured 
+     
+     
+    bin/hoya create cl1 \
+      -S java.security.krb5.realm=COTHAM \
+      -S java.security.krb5.kdc=ubuntu \
+      --role worker 1\
+      --role master 1\
+      --zkhosts ubuntu \
+      --zkport 2121 \
+      --image hdfs://ubuntu:9090/hbase.tar \
+      --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/ubuntu-secure/hbase \
+      --roleopt master app.infoport 8080 \
+      --roleopt master jvm.heap 128 \
+      --roleopt master env.MALLOC_ARENA_MAX 4 \
+      --roleopt worker app.infoport 8081 \
+      --roleopt worker jvm.heap 128 
   
 # flex the cluster
   
    bin/hoya flex cl1 \
     --role master 1 \
     --role worker 2 
+    
+# freeze
+
+    bin/hoya  freeze cl1 
+    
+# thaw
+
+    bin/hoya  thaw cl1
+     
+# monitor
+
+    bin/hoya  monitor cl1      
+
+# list all
+
+    bin/hoya  list
+     
+# list
+
+    bin/hoya  list cl1 
+    
+# status
+
+    bin/hoya  status cl1 
+    
+# destroy
+
+    bin/hoya  destroy cl1 

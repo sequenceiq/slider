@@ -26,6 +26,13 @@
     <value>conf/hoya-client.xml</value>
     <description>This is just for diagnostics</description>
   </property>
+
+
+  <property>
+    <name>yarn.log-aggregation-enable</name>
+    <value>true</value>
+  </property>
+  
 <!--
 
   <property>

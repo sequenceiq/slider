@@ -36,6 +36,7 @@ import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
+import org.apache.hadoop.hoya.providers.hbase.HBaseKeys;
 import org.apache.hadoop.hoya.servicemonitor.Probe;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
@@ -46,7 +47,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import static org.apache.hadoop.hoya.providers.accumulo.AccumuloConfigFileOptions.*;
 import static org.apache.hadoop.hoya.api.RoleKeys.*;
-import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
@@ -98,7 +99,9 @@ public class AccumuloClientProvider extends Configured implements
   }
 
   @Override
-  public List<Probe> createProbes(String urlStr, Configuration config, int timeout) 
+  public List<Probe> createProbes(ClusterDescription clusterSpec, String urlStr,
+                                  Configuration config,
+                                  int timeout) 
       throws IOException {
     return new ArrayList<Probe>();
   }
@@ -119,21 +122,21 @@ public class AccumuloClientProvider extends Configured implements
    * @return a possibly emtpy map of default cluster options.
    */
   @Override
-  public Map<String, String> getDefaultClusterOptions() {
-    Map<String, String> options = new HashMap<String, String>();
-    //create an instance ID
-    putSiteOpt(options, AccumuloConfigFileOptions.INSTANCE_SECRET,
-      UUID.randomUUID().toString());
+  public Configuration getDefaultClusterConfiguration() throws
+                                                        FileNotFoundException {
+
+    Configuration conf = ConfigHelper.loadMandatoryResource(
+      "org/apache/hadoop/hoya/providers/accumulo/accumulo.xml");
+
     //make up a password
-    options.put(OPTION_ACCUMULO_PASSWORD, UUID.randomUUID().toString());
+    conf.set(OPTION_ACCUMULO_PASSWORD, UUID.randomUUID().toString());
 
+    //create an instance ID
+    conf.set(
+      OptionKeys.SITE_XML_PREFIX + INSTANCE_SECRET,
+      UUID.randomUUID().toString());
+    return conf;
 
-    putSiteOpt(options, MASTER_PORT_CLIENT , "0");
-    putSiteOpt(options, MONITOR_PORT_CLIENT , "0");
-    putSiteOpt(options, TRACE_PORT_CLIENT , "0");
-    putSiteOpt(options, TSERV_PORT_CLIENT , "0");
-
-    return options;
   }
 
   /**
@@ -145,36 +148,36 @@ public class AccumuloClientProvider extends Configured implements
    */
   @Override
   public Map<String, String> createDefaultClusterRole(String rolename) throws
-                                                                       HoyaException {
+                                                                       HoyaException,
+                                                                       IOException {
     Map<String, String> rolemap = new HashMap<String, String>();
-    rolemap.put(RoleKeys.ROLE_NAME, rolename);
-
-    rolemap.put(RoleKeys.JVM_HEAP, DEFAULT_ROLE_HEAP);
-    rolemap.put(RoleKeys.YARN_CORES, DEFAULT_ROLE_YARN_VCORES);
-    rolemap.put(RoleKeys.YARN_MEMORY, DEFAULT_ROLE_YARN_RAM);
-
-    if (rolename.equals(ROLE_MASTER)) {
-      rolemap.put(RoleKeys.ROLE_INSTANCES, "1");
-      rolemap.put(RoleKeys.JVM_HEAP, DEFAULT_MASTER_HEAP);
-      rolemap.put(RoleKeys.YARN_CORES, DEFAULT_MASTER_YARN_VCORES);
-      rolemap.put(RoleKeys.YARN_MEMORY, DEFAULT_MASTER_YARN_RAM);
-
-    } else if (rolename.equals(ROLE_TABLET)) {
-      rolemap.put(RoleKeys.ROLE_INSTANCES, "1");
-    } else if (rolename.equals(ROLE_TRACER)) {
-    } else if (rolename.equals(ROLE_GARBAGE_COLLECTOR)) {
-    } else if (rolename.equals(ROLE_MONITOR)) {
+    if (rolename.equals(AccumuloKeys.ROLE_MASTER)) {
+      // master role
+      Configuration conf = ConfigHelper.loadMandatoryResource(
+        "org/apache/hadoop/hoya/providers/accumulo/role-accumulo-master.xml");
+      HoyaUtils.mergeEntries(rolemap, conf);
+    } else if (rolename.equals(AccumuloKeys.ROLE_TABLET)) {
+      // worker settings
+      Configuration conf = ConfigHelper.loadMandatoryResource(
+        "org/apache/hadoop/hoya/providers/accumulo/role-accumulo-tablet.xml");
+      HoyaUtils.mergeEntries(rolemap, conf);
+    } else if (rolename.equals(AccumuloKeys.ROLE_GARBAGE_COLLECTOR)) {
+      Configuration conf = ConfigHelper.loadMandatoryResource(
+        "org/apache/hadoop/hoya/providers/accumulo/role-accumulo-gc.xml");
+      HoyaUtils.mergeEntries(rolemap, conf);
+    } else if (rolename.equals(AccumuloKeys.ROLE_TRACER)) {
+      Configuration conf = ConfigHelper.loadMandatoryResource(
+        "org/apache/hadoop/hoya/providers/accumulo/role-accumulo-tracer.xml");
+      HoyaUtils.mergeEntries(rolemap, conf);
+    } else if (rolename.equals(AccumuloKeys.ROLE_MONITOR)) {
+      Configuration conf = ConfigHelper.loadMandatoryResource(
+        "org/apache/hadoop/hoya/providers/accumulo/role-accumulo-monitor.xml");
+      HoyaUtils.mergeEntries(rolemap, conf);
     }
     return rolemap;
   }
 
-  void propagateKeys(Map<String, String> sitexml,
-                     Configuration conf,
-                     String... keys) {
-    for (String key : keys) {
-      propagate(sitexml, conf, key, key);
-    }
-  }
+
 
   /**
    * Propagate a key's value from the conf to the site, ca
@@ -358,11 +361,6 @@ public class AccumuloClientProvider extends Configured implements
   @Override //client
   public void prepareAMResourceRequirements(ClusterDescription clusterSpec,
                                             Resource capability) {
-    //no-op unless you want to add more memory
-    capability.setMemory(clusterSpec.getRoleOptInt(ROLE_MASTER,
-                                                   RoleKeys.YARN_MEMORY,
-                                                   capability.getMemory()));
-    capability.setVirtualCores(1);
   }
 
 
@@ -421,19 +419,11 @@ public class AccumuloClientProvider extends Configured implements
    * Get the path to the script
    * @return the script
    */
-  public static File buildScriptBinPath(ClusterDescription cd) {
-    String startScript = AccumuloKeys.START_SCRIPT;
-    return new File(buildImageDir(cd), startScript);
+  public static String buildScriptBinPath(ClusterDescription cd)
+    throws FileNotFoundException {
+    return providerUtils.buildPathToScript(
+        cd, "bin", "accumulo");
   }
 
-
-  /**
-   * Build the image dir. This path is relative and only valid at the far end
-   * @param cd cluster spec
-   * @return a relative path to accumulp home
-   */
-  public static File buildImageDir(ClusterDescription cd) {
-    return providerUtils.buildImageDir(cd, AccumuloKeys.ARCHIVE_SUBDIR);
-  }
 
 }

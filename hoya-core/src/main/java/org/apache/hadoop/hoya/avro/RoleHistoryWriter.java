@@ -51,12 +51,14 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Collection;
 import java.util.ListIterator;
+import java.util.Locale;
 
 /**
  * Write out the role history to an output stream
@@ -144,6 +146,20 @@ public class RoleHistoryWriter {
     return write(out, history, savetime);
   }
 
+
+  /**
+   * Create the filename for a history file
+   * @param time time value
+   * @return a filename such that later filenames sort later in the directory
+   */
+  public Path createHistoryFilename(Path historyPath, long time) {
+    String filename = String.format(Locale.ENGLISH,
+                                    HoyaKeys.HISTORY_FILENAME_CREATION_PATTERN,
+                                    time);
+    Path path = new Path(historyPath, filename);
+    return path;
+  }
+  
   private NodeEntryRecord build(NodeEntry entry, int role, String hostname) {
     NodeEntryRecord record = new NodeEntryRecord(
       hostname, role, entry.getLive() > 0, entry.getLastUsed()
@@ -291,13 +307,17 @@ public class RoleHistoryWriter {
    * relying on the filename of newer created files being later than the old ones.
    * 
    * 
-   * @param fs
-   * @param dir
+   *
+   * @param fs filesystem
+   * @param dir dir to scan
+   * @param includeEmptyFiles should empty files be included in the result?
    * @return a possibly empty list
    * @throws IOException IO problems
    * @throws FileNotFoundException if the target dir is actually a path
    */
-  public List<Path> findAllHistoryEntries(FileSystem fs, Path dir) throws IOException {
+  public List<Path> findAllHistoryEntries(FileSystem fs,
+                                          Path dir,
+                                          boolean includeEmptyFiles) throws IOException {
     assert fs != null;
     assert dir != null;
     if (!fs.exists(dir)) {
@@ -311,7 +331,7 @@ public class RoleHistoryWriter {
     List<Path> paths = new ArrayList<Path>(stats.length);
     for (FileStatus stat : stats) {
       log.debug("Possible entry: {}", stat.toString());
-      if (stat.isFile() && stat.getLen() > 0) {
+      if (stat.isFile() && (includeEmptyFiles || stat.getLen() > 0)) {
         paths.add(stat.getPath());
       }
     }
@@ -321,7 +341,7 @@ public class RoleHistoryWriter {
 
   @VisibleForTesting
   public static void sortHistoryPaths(List<Path> paths) {
-    Collections.sort(paths, new ComparePathByName());
+    Collections.sort(paths, new NewerFilesFirst());
   }
 
 
@@ -359,15 +379,49 @@ public class RoleHistoryWriter {
    */
   public Path loadFromHistoryDir(FileSystem fs, Path dir,
                                  RoleHistory roleHistory) throws IOException {
-    assert fs != null;
-    List<Path> entries = findAllHistoryEntries(fs, dir);
+    assert fs != null: "null filesystem";
+    List<Path> entries = findAllHistoryEntries(fs, dir, false);
     return attemptToReadHistory(roleHistory, fs, entries);
+  }
+
+  /**
+   * Delete all old history entries older than the one we want to keep. This
+   * uses the filename ordering to determine age, not timestamps
+   * @param fileSystem filesystem
+   * @param keep path to keep -used in thresholding the files
+   * @return the number of files deleted
+   * @throws FileNotFoundException if the path to keep is not present (safety
+   * check to stop the entire dir being purged)
+   * @throws IOException IO problems
+   */
+  public int purgeOlderHistoryEntries(FileSystem fileSystem, Path keep) throws
+                                                                 IOException {
+    assert fileSystem != null : "null filesystem";
+    if (!fileSystem.exists(keep)) {
+      throw new FileNotFoundException(keep.toString());
+    }
+    Path dir = keep.getParent();
+    log.debug("Purging entries in {} up to {}", dir, keep);
+    List<Path> paths = findAllHistoryEntries(fileSystem, dir, true);
+    Collections.sort(paths, new OlderFilesFirst());
+    int deleteCount = 0;
+    for (Path path : paths) {
+      if (path.equals(keep)) {
+        break;
+      } else {
+        log.debug("Deleting {}", path);
+        deleteCount++;
+        fileSystem.delete(path, false);
+      }
+    }
+    return deleteCount;
   }
   
   /**
    * Compare two filenames by name; the more recent one comes first
    */
-  public static class ComparePathByName implements Comparator<Path> {
+  public static class NewerFilesFirst implements Comparator<Path> ,
+                                                 Serializable {
 
     /**
      * Takes the ordering of path names from the normal string comparison
@@ -379,7 +433,27 @@ public class RoleHistoryWriter {
      */
     @Override
     public int compare(Path o1, Path o2) {
-      return -(o1.getName().compareTo(o2.getName()));
+      return (o2.getName().compareTo(o1.getName()));
     }
   }
+    /**
+   * Compare two filenames by name; the older ones comes first
+   */
+  public static class OlderFilesFirst implements Comparator<Path> ,
+                                                 Serializable {
+
+    /**
+     * Takes the ordering of path names from the normal string comparison
+     * and negates it, so that names that come after other names in 
+     * the string sort come before here
+     * @param o1 leftmost 
+     * @param o2 rightmost
+     * @return positive if o1 &gt; o2 
+     */
+    @Override
+    public int compare(Path o1, Path o2) {
+      return (o1.getName().compareTo(o2.getName()));
+    }
+  }
+  
 }

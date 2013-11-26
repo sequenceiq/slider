@@ -35,6 +35,7 @@ import org.apache.hadoop.hoya.api.proto.Messages;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
+import org.apache.hadoop.hoya.exceptions.TriggerClusterTeardownException;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderService;
@@ -191,17 +192,14 @@ public class HoyaAppMaster extends CompoundLaunchedService
   private final ReentrantLock AMExecutionStateLock = new ReentrantLock();
   private final Condition isAMCompleted = AMExecutionStateLock.newCondition();
 
+  private int amExitCode =  0;
   /**
    * Flag set if the AM is to be shutdown
    */
   private final AtomicBoolean amCompletionFlag = new AtomicBoolean(false);
+
   private volatile boolean success = true;
 
-  /**
-   * Exit code set when the spawned process exits
-   */
-  private volatile int spawnedProcessExitCode;
-  private volatile int mappedProcessExitCode;
   /**
    * Flag to set if the process exit code was set before shutdown started
    */
@@ -245,14 +243,14 @@ public class HoyaAppMaster extends CompoundLaunchedService
 
 
 
-  /* =================================================================== */
+ /* =================================================================== */
 /* service lifecycle methods */
 /* =================================================================== */
 
   @Override //AbstractService
   public synchronized void serviceInit(Configuration conf) throws Exception {
 
-    //Load in the server configuration
+    // Load in the server configuration - if it is actually on the Classpath
     Configuration serverConf =
       ConfigHelper.loadFromResource(HOYA_SERVER_RESOURCE);
     ConfigHelper.mergeConfigurations(conf, serverConf, HOYA_SERVER_RESOURCE);
@@ -358,6 +356,8 @@ public class HoyaAppMaster extends CompoundLaunchedService
 
     ClusterDescription clusterSpec = ClusterDescription.load(fs, clusterSpecPath);
 
+    log.info("Deploying cluster from {}:",clusterSpecPath);
+    log.info(clusterSpec.toString());
     File confDir = getLocalConfDir();
     if (!confDir.exists() || !confDir.isDirectory()) {
       throw new BadCommandArgumentsException(
@@ -441,7 +441,9 @@ public class HoyaAppMaster extends CompoundLaunchedService
     providerRoles.addAll(clientProvider.getRoles());
 
 
+/*  DISABLED 
     // work out a port for the AM
+
     int infoport = clusterSpec.getRoleOptInt(ROLE_HOYA_AM,
                                                   RoleKeys.APP_INFOPORT,
                                                   0);
@@ -454,8 +456,10 @@ public class HoyaAppMaster extends CompoundLaunchedService
                                   RoleKeys.APP_INFOPORT,
                                   infoport);
     }
-    appMasterTrackingUrl =
-      "http://" + appMasterHostname + ":" + infoport;
+    appMasterTrackingUrl = "http://" + appMasterHostname + ":" + infoport;
+
+    */
+    appMasterTrackingUrl = null;
 
 
     // Register self with ResourceManager
@@ -484,17 +488,25 @@ public class HoyaAppMaster extends CompoundLaunchedService
     }
 
     //now validate the dir by loading in a hadoop-site.xml file from it
-    
-    String siteXMLFilename = providerService.getSiteXMLFilename();
-    File siteXML = new File(confDir, siteXMLFilename);
-    if (!siteXML.exists()) {
-      throw new BadCommandArgumentsException(
-        "Configuration directory %s doesn't contain %s - listing is %s",
-        confDir, siteXMLFilename, HoyaUtils.listDir(confDir));
-    }
 
-    //now read it in
-    Configuration siteConf = ConfigHelper.loadConfFromFile(siteXML);
+    Configuration siteConf;
+    String siteXMLFilename = providerService.getSiteXMLFilename();
+    if (siteXMLFilename != null) {
+      File siteXML = new File(confDir, siteXMLFilename);
+      if (!siteXML.exists()) {
+        throw new BadCommandArgumentsException(
+          "Configuration directory %s doesn't contain %s - listing is %s",
+          confDir, siteXMLFilename, HoyaUtils.listDir(confDir));
+      }
+
+      //now read it in
+      siteConf = ConfigHelper.loadConfFromFile(siteXML);
+      log.info("{} file is at {}", siteXMLFilename, siteXML);
+      log.info(ConfigHelper.dumpConfigToString(siteConf));
+    } else {
+      //no site configuration: have an empty one
+      siteConf = new Configuration(false);
+    }
 
     providerService.validateApplicationConfiguration(clusterSpec, confDir, securityEnabled);
 
@@ -516,16 +528,13 @@ public class HoyaAppMaster extends CompoundLaunchedService
                                           new Path(getDFSConfDir()));
     runChildService(launchService);
 
-    boolean noLocalProcess = clusterSpec.getDesiredInstanceCount(ROLE_HOYA_AM, 1) <= 0;
-    if (noLocalProcess) {
-      log.info("skipping AM process launch");
-      eventCallbackEvent();
-    } else {
-      appState.noteAMLaunched();
-      //launch the provider; this is expected to trigger a callback that
-      //brings up the service
-      launchProviderService(clusterSpec, confDir);
-    }
+    appState.noteAMLaunched();
+
+
+    // launch the provider; this is expected to trigger a callback that
+    // brings up the service
+    launchProviderService(clusterSpec, confDir);
+
 
     try {
       //now block waiting to be told to exit the process
@@ -535,7 +544,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
       finish();
     }
 
-    return buildExitCode();
+    return amExitCode;
   }
 
   /**
@@ -557,18 +566,6 @@ public class HoyaAppMaster extends CompoundLaunchedService
                  UserGroupInformation.HADOOP_TOKEN_FILE_LOCATION);
       }
     }
-  }
-
-  /**
-   * Build a service exit code
-   * @return
-   */
-  private int buildExitCode() {
-    if (spawnedProcessExitedBeforeShutdownTriggered) {
-      return mappedProcessExitCode;
-    }
-    return success ? EXIT_SUCCESS
-                   : EXIT_TASK_LAUNCH_FAILURE;
   }
 
   /**
@@ -622,13 +619,15 @@ public class HoyaAppMaster extends CompoundLaunchedService
 
   /**
    * Declare that the AM is complete
+   * @param exitCode exit code for the aM
+   * @param reason reason for termination
    */
-  public void signalAMComplete(String reason) {
+  public void signalAMComplete(int exitCode, String reason) {
     amCompletionReason = reason;
-    log.info("Triggering shutdown of the AM: {}", amCompletionReason);
     AMExecutionStateLock.lock();
     try {
       amCompletionFlag.set(true);
+      amExitCode = exitCode;
       isAMCompleted.signal();
     } finally {
       AMExecutionStateLock.unlock();
@@ -640,23 +639,19 @@ public class HoyaAppMaster extends CompoundLaunchedService
    */
   private synchronized void finish() {
     FinalApplicationStatus appStatus;
-    String appMessage = "Completed";
-    appStatus = FinalApplicationStatus.SUCCEEDED;
-    //stop the daemon & grab its exit code
-    Integer exitCode = null;
-    if (spawnedProcessExitedBeforeShutdownTriggered) {
-      exitCode = mappedProcessExitCode;
-      success = false;
-      appStatus = FinalApplicationStatus.FAILED;
-      appMessage =
-        String.format("Forked process failed, mapped exit code=%s raw=%s",
-                      exitCode,
-                      spawnedProcessExitCode);
+    log.info("Triggering shutdown of the AM: {}", amCompletionReason);
 
-    } else {
+    String appMessage = amCompletionReason;
+    //stop the daemon & grab its exit code
+    int exitCode = amExitCode;
+    success = exitCode == 0;
+
+    appStatus = success? FinalApplicationStatus.SUCCEEDED:
+                FinalApplicationStatus.FAILED;
+    if (!spawnedProcessExitedBeforeShutdownTriggered) {
       //stopped the forked process but don't worry about its exit code
       exitCode = stopForkedProcess();
-      log.debug("Stopping forked process: exit code={}", exitCode);
+      log.debug("Stopped forked process: exit code={}", exitCode);
     }
 
     //stop any launches in progress
@@ -670,18 +665,14 @@ public class HoyaAppMaster extends CompoundLaunchedService
     // signal to the RM
     log.info("Application completed. Signalling finish to RM");
 
-    ;
 
-    String exitCodeString = exitCode != null ? exitCode.toString() : "n/a";
     //if there were failed containers and the app isn't already down as failing, it is now
     int failedContainerCount = appState.getFailedCountainerCount();
     if (failedContainerCount != 0 &&
         appStatus == FinalApplicationStatus.SUCCEEDED) {
       appStatus = FinalApplicationStatus.FAILED;
       appMessage =
-        "Completed with " + failedContainerCount + " failed containers: "
-        + " Local daemon exit code =  " +
-        exitCodeString + " - " + getContainerDiagnosticInfo();
+        "Completed with exit code =  " + exitCode + " - " + getContainerDiagnosticInfo();
       success = false;
     }
     try {
@@ -772,7 +763,11 @@ public class HoyaAppMaster extends CompoundLaunchedService
 
       // non complete containers should not be here
       assert (status.getState() == ContainerState.COMPLETE);
-      appState.onCompletedNode(status);
+      AppState.NodeCompletionResult result = appState.onCompletedNode(status);
+      if (result.containerFailed) {
+        RoleInstance ri = result.roleInstance;
+        log.error("Role instance {} failed ", ri);
+      }
     }
 
     // ask for more containers if any failed
@@ -825,12 +820,20 @@ public class HoyaAppMaster extends CompoundLaunchedService
       log.info("Ignoring node review operation: shutdown in progress");
       return false;
     }
-    List<AbstractRMOperation> allOperations = appState.reviewRequestAndReleaseNodes();
-    //now apply the operations
-    rmOperationHandler.execute(allOperations);
-    return !allOperations.isEmpty();
-  }
+    try {
+      List<AbstractRMOperation> allOperations = appState.reviewRequestAndReleaseNodes();
+      //now apply the operations
+      rmOperationHandler.execute(allOperations);
+      return !allOperations.isEmpty();
+    } catch (TriggerClusterTeardownException e) {
 
+      //App state has decided that it is time to exit
+      log.error("Cluster teardown triggered %s", e);
+      signalAMComplete(e.getExitCode(), e.toString());
+      return false;
+    }
+  }
+  
   /**
    * Shutdown operation: release all containers
    */
@@ -845,7 +848,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
   @Override //AMRMClientAsync
   public void onShutdownRequest() {
     LOG_YARN.info("Shutdown Request received");
-    signalAMComplete("Shutdown requested from RM");
+    signalAMComplete(EXIT_CLIENT_INITIATED_SHUTDOWN, "Shutdown requested from RM");
   }
 
   /**
@@ -871,7 +874,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
   public void onError(Throwable e) {
     //callback says it's time to finish
     LOG_YARN.error("AMRMClientAsync.onError() received " + e, e);
-    signalAMComplete("AMRMClientAsync.onError() received " + e);
+    signalAMComplete(EXIT_EXCEPTION_THROWN, "AMRMClientAsync.onError() received " + e);
   }
   
 /* =================================================================== */
@@ -907,7 +910,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
     HoyaUtils.getCurrentUser();
     String message = request.getMessage();
     log.info("HoyaAppMasterApi.stopCluster: {}",message);
-    signalAMComplete("stopCluster: " + message);
+    signalAMComplete(EXIT_CLIENT_INITIATED_SHUTDOWN, "stopCluster: " + message);
     return Messages.StopClusterResponseProto.getDefaultInstance();
   }
 
@@ -1018,25 +1021,31 @@ public class HoyaAppMaster extends CompoundLaunchedService
                                                     File confDir)
     throws IOException, HoyaException {
     Map<String, String> env = new HashMap<String, String>();
-    providerService.exec(cd, confDir, env, this);
-
-    providerService.registerServiceListener(this);
-    providerService.start();
+    boolean execStarted = providerService.exec(cd, confDir, env, this);
+    if (execStarted) {
+      providerService.registerServiceListener(this);
+      providerService.start();
+    } else {
+      // didn't start, so don't register
+      providerService.start();
+      // and send the started event ourselves
+      eventCallbackEvent();
+    }
   }
 
   /* =================================================================== */
-  /* EventCallback  from the child */
+  /* EventCallback  from the child or ourselves directly */
   /* =================================================================== */
 
   @Override // EventCallback
   public void eventCallbackEvent() {
-    //signalled that the child process is up.
+    // signalled that the child process is up.
     appState.noteAMLive();
-    //now ask for the cluster nodes
+    // now ask for the cluster nodes
     try {
       flexCluster(getClusterSpec());
     } catch (Exception e) {
-      //this happens in a separate thread, so the ability to act is limited
+      //this may happen in a separate thread, so the ability to act is limited
       log.error("Failed to flex cluster nodes", e);
       //declare a failure
       finish();
@@ -1056,8 +1065,8 @@ public class HoyaAppMaster extends CompoundLaunchedService
     if (service == providerService) {
       //its the current master process in play
       int exitCode = providerService.getExitCode();
-      spawnedProcessExitCode = exitCode;
-      mappedProcessExitCode =
+      int spawnedProcessExitCode = exitCode;
+      int mappedProcessExitCode =
         AMUtils.mapProcessExitCodeToYarnExitCode(exitCode);
       boolean shouldTriggerFailure = !amCompletionFlag.get()
          && (AMUtils.isMappedExitAFailure(mappedProcessExitCode));
@@ -1073,8 +1082,8 @@ public class HoyaAppMaster extends CompoundLaunchedService
           mappedProcessExitCode);
 
         //tell the AM the cluster is complete 
-        signalAMComplete(
-          "Spawned master exited with raw " + exitCode + " mapped to " +
+        signalAMComplete(mappedProcessExitCode,
+                         "Spawned master exited with raw " + exitCode + " mapped to " +
           mappedProcessExitCode);
       } else {
         //we don't care

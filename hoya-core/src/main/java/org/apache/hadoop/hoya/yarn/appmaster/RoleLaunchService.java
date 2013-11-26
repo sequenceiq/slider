@@ -242,10 +242,13 @@ public class RoleLaunchService extends AbstractService {
         final InetSocketAddress cmAddress =
           NetUtils.createSocketAddr(cmIpPortStr);
 
-        Token<ContainerTokenIdentifier> token =
-          ConverterUtils.convertFromYarn(container.getContainerToken(),
-                                         cmAddress);
-        user.addToken(token);
+        org.apache.hadoop.yarn.api.records.Token containerToken = container.getContainerToken();
+        if (containerToken != null) {
+          Token<ContainerTokenIdentifier> token =
+              ConverterUtils.convertFromYarn(containerToken,
+                cmAddress);
+          user.addToken(token);
+        }
 
         log.debug("Launching container {} into role {}",
                   container.getId(),
@@ -264,7 +267,8 @@ public class RoleLaunchService extends AbstractService {
         String commandLine = ctx.getCommands().get(0);
         RoleInstance instance = new RoleInstance(container);
         instance.buildUUID();
-        log.info("Starting container with command: {}", commandLine);
+        log.info("Starting container with command: {}", 
+                 HoyaUtils.join(ctx.getCommands(),"\n"));
         Map<String, LocalResource> lr = ctx.getLocalResources();
         List<String> nodeEnv = new ArrayList<String>();
         if (log.isDebugEnabled()) {
@@ -288,7 +292,7 @@ public class RoleLaunchService extends AbstractService {
           log.debug(envElt);
           nodeEnv.add(envElt);
         }
-        instance.command = commandLine;
+        instance.command = HoyaUtils.join(ctx.getCommands(), "; ");
         instance.role = containerRole;
         instance.roleId = role.id;
         instance.environment = nodeEnv.toArray(new String[nodeEnv.size()]);

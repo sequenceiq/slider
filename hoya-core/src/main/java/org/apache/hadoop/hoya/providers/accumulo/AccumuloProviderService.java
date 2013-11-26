@@ -25,7 +25,6 @@ import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.exceptions.BadClusterStateException;
-import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.providers.AbstractProviderService;
@@ -116,7 +115,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
                                            BadConfigException {
     // Set the environment
     Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
-    env.put(ACCUMULO_LOG_DIR, providerUtils.getLogdir());
+    env.put(ACCUMULO_LOG_DIR, providerUtils.getLogdir() + "/" + clusterSpec.name);
     String hadoop_home =
       ApplicationConstants.Environment.HADOOP_COMMON_HOME.$();
     hadoop_home = clusterSpec.getOption(OPTION_HADOOP_HOME, hadoop_home);
@@ -124,13 +123,9 @@ public class AccumuloProviderService extends AbstractProviderService implements
     env.put(HADOOP_PREFIX, hadoop_home);
     
     //buildup accumulo home env variable to be absolute or relative
-    String accumulo_home;
-    if (HoyaUtils.isSet(clusterSpec.getApplicationHome())) {
-      accumulo_home = clusterSpec.getApplicationHome();
-    } else {
-      accumulo_home = ProviderUtils.convertToAppRelativePath(
-        AccumuloClientProvider.buildImageDir(clusterSpec));
-    }
+    String accumulo_home = providerUtils.buildPathToHomeDir(
+      clusterSpec, "bin", "accumulo");
+    
     env.put(ACCUMULO_HOME,
             accumulo_home);
     env.put(ACCUMULO_CONF_DIR,
@@ -197,11 +192,11 @@ public class AccumuloProviderService extends AbstractProviderService implements
    * @throws IOException
    * @throws HoyaException
    */
-  @Override //server
-  public List<String> buildProcessCommand(ClusterDescription clusterSpec,
-                                          File confDir,
-                                          Map<String, String> env,
-                                          String masterCommand) throws
+  //server
+  public List<String> buildInContainerProcessCommand(ClusterDescription clusterSpec,
+                                                     File confDir,
+                                                     Map<String, String> env,
+                                                     String masterCommand) throws
                                                                 IOException,
                                                                 HoyaException {
     //set the service to run if unset
@@ -217,7 +212,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
                                           String... commands) throws
                                                                 IOException,
                                                                 HoyaException {
-    env.put(ACCUMULO_LOG_DIR, providerUtils.getLogdir());
+    env.put(ACCUMULO_LOG_DIR, providerUtils.getLogdir() + "/" + clusterSpec.name);
     String hadoop_home = System.getenv(HADOOP_HOME);
     hadoop_home = clusterSpec.getOption(OPTION_HADOOP_HOME, hadoop_home);
     if (hadoop_home == null) {
@@ -227,27 +222,24 @@ public class AccumuloProviderService extends AbstractProviderService implements
     ProviderUtils.validatePathReferencesLocalDir("HADOOP_HOME",hadoop_home);
     env.put(HADOOP_HOME, hadoop_home);
     env.put(HADOOP_PREFIX, hadoop_home);
-    File image = AccumuloClientProvider.buildImageDir(clusterSpec);
-    File dot = new File(".");
+    //buildup accumulo home env variable to be absolute or relative
+    String accumulo_home = providerUtils.buildPathToHomeDir(
+      clusterSpec, "bin", "accumulo");
+    File image = new File(accumulo_home);
     String accumuloPath = image.getAbsolutePath();
     env.put(ACCUMULO_HOME, accumuloPath);
     ProviderUtils.validatePathReferencesLocalDir("ACCUMULO_HOME", accumuloPath);
     env.put(ACCUMULO_CONF_DIR, 
-            new File(dot, HoyaKeys.PROPAGATED_CONF_DIR_NAME).getAbsolutePath());
+            new File(HoyaKeys.PROPAGATED_CONF_DIR_NAME).getAbsolutePath());
     String zkHome = clusterSpec.getMandatoryOption(OPTION_ZK_HOME);
     ProviderUtils.validatePathReferencesLocalDir("ZOOKEEPER_HOME", zkHome);
 
     env.put(ZOOKEEPER_HOME, zkHome);
 
 
-    //prepend the hbase command itself
-    File binScriptSh = AccumuloClientProvider.buildScriptBinPath(clusterSpec);
-    String scriptPath = binScriptSh.getAbsolutePath();
-    if (!binScriptSh.exists()) {
-      throw new BadCommandArgumentsException("Missing script " + scriptPath);
-    }
+    String accumuloScript = AccumuloClientProvider.buildScriptBinPath(clusterSpec);
     List<String> launchSequence = new ArrayList<String>(8);
-    launchSequence.add(0, scriptPath);
+    launchSequence.add(0, accumuloScript);
     Collections.addAll(launchSequence, commands);
     return launchSequence;
   }
@@ -262,6 +254,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
    * If the init succeeds, the next service in the queue is started -
    * a composite service that starts the Accumulo Master and, in parallel,
    * sends a delayed event to the AM
+   *
    * @param cd component description
    * @param confDir local dir with the config
    * @param env environment variables above those generated by
@@ -270,10 +263,10 @@ public class AccumuloProviderService extends AbstractProviderService implements
    * @throws HoyaException anything internal
    */
   @Override
-  public void exec(ClusterDescription cd,
-                   File confDir,
-                   Map<String, String> env,
-                   EventCallback execInProgress) throws
+  public boolean exec(ClusterDescription cd,
+                      File confDir,
+                      Map<String, String> env,
+                      EventCallback execInProgress) throws
                                                  IOException,
                                                  HoyaException {
 
@@ -305,26 +298,22 @@ public class AccumuloProviderService extends AbstractProviderService implements
         zkQuorum);
     }
     boolean inited = isInited(cd);
-    List<String> commands;
-    if (!inited) {
-      log.info("Initializing accumulo datastore {}", cd.dataPath);
-      commands = buildProcessCommandList(cd, confDir, env,
-                              "init",
-                              PARAM_INSTANCE_NAME,
-                              providerUtils.getUserName() + "-" + cd.name,
-                              PARAM_PASSWORD,
-                              cd.getMandatoryOption(OPTION_ACCUMULO_PASSWORD),
-                              "--clear-instance-name");
-
-    } else {
-      // otherwise, just run accumulo version. That way, detect problems fast
-      String accumuloAction =
-        cd.getOption(OptionKeys.OPTION_HOYA_MASTER_COMMAND,
-                     ACCUMULO_VERSION_COMMAND);
-      commands =
-        buildProcessCommand(cd, confDir, env, accumuloAction);
-
+    if (inited) {
+      // cluster is inited, so don't run anything
+      return false;
     }
+    List<String> commands;
+
+    log.info("Initializing accumulo datastore {}", cd.dataPath);
+    commands = buildProcessCommandList(cd, confDir, env,
+                            "init",
+                            PARAM_INSTANCE_NAME,
+                            providerUtils.getUserName() + "-" + cd.name,
+                            PARAM_PASSWORD,
+                            cd.getMandatoryOption(OPTION_ACCUMULO_PASSWORD),
+                            "--clear-instance-name");
+
+
     ForkedProcessService accumulo =
       queueCommand(getName(), env, commands);
     //add a timeout to this process
@@ -343,7 +332,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
 
     // now trigger the command sequence
     maybeStartCommandSequence();
-
+    return true;
   }
 
   /**

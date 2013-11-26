@@ -530,6 +530,29 @@ public class ClusterDescription {
   }
 
   /**
+   * Get the value of a role requirement (cores, RAM, etc).
+   * These are returned as integers, but there is special handling of the 
+   * string {@link RoleKeys#YARN_RESOURCE_MAX}, which triggers
+   * the return of the maximum value.
+   * @param role role to get from
+   * @param option option name
+   * @param defVal default value
+   * @param maxVal value to return if the max val is requested
+   * @return parsed value
+   * @throws NumberFormatException if the role could not be parsed.
+   */
+  public int getRoleResourceRequirement(String role, String option, int defVal, int maxVal) {
+    String val = getRoleOpt(role, option, Integer.toString(defVal));
+    Integer intVal;
+    if (RoleKeys.YARN_RESOURCE_MAX.equals(val)) {
+      intVal = maxVal;
+    } else {
+      intVal = Integer.decode(val);
+    }
+    return intVal;
+  }
+
+  /**
    * Set the desired instance count for a role
    * @param role role
    * @param count number of instances of a role desired
@@ -581,11 +604,23 @@ public class ClusterDescription {
   /**
    * Set an information string. This is content that is only valid in status
    * reports.
-   * @param key key key to set
+   * @param key key
    * @param value string value
    */
+  @JsonIgnore
   public void setInfo(String key, String value) {
     info.put(key, value);
+  }
+
+  /**
+   * Get an information string. This is content that is only valid in status
+   * reports.
+   * @param key key
+   * @return the value or null
+   */
+  @JsonIgnore
+  public String getInfo(String key) {
+    return info.get(key);
   }
 
 
