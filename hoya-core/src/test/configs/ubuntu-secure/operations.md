@@ -206,7 +206,7 @@
 ## All configured 
      
      
-    hoya create cl1 \
+    bin/hoya create cl1 \
       -S java.security.krb5.realm=COTHAM \
       -S java.security.krb5.kdc=ubuntu \
       --role worker 1\
@@ -223,7 +223,7 @@
   
 # flex the cluster
   
-   hoya flex cl1 \
+   bin/hoya flex cl1 \
     --role master 1 \
     --role worker 2 
     
@@ -239,6 +239,18 @@
 
     bin/hoya  monitor cl1      
 
+# list all
+
+    bin/hoya  list
+     
 # list
 
     bin/hoya  list cl1 
+    
+# status
+
+    bin/hoya  status cl1 
+    
+# destroy
+
+    bin/hoya  destroy cl1 
