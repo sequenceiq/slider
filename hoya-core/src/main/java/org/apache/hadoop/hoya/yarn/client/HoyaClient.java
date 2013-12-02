@@ -38,6 +38,7 @@ import org.apache.hadoop.hoya.api.StatusKeys;
 import org.apache.hadoop.hoya.api.proto.Messages;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
+import org.apache.hadoop.hoya.exceptions.ErrorStrings;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.exceptions.NoSuchNodeException;
 import org.apache.hadoop.hoya.exceptions.WaitTimeoutException;
@@ -108,19 +109,11 @@ import java.util.Properties;
 public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                           ProbeReportHandler,
                                                           HoyaExitCodes,
-                                                          HoyaKeys {
+                                                          HoyaKeys,
+                                                          ErrorStrings {
   private static final Logger log = LoggerFactory.getLogger(HoyaClient.class);
 
   public static final int ACCEPT_TIME = 60000;
-  public static final String E_CLUSTER_RUNNING = "cluster already running";
-  public static final String E_ALREADY_EXISTS = "already exists";
-  public static final String PRINTF_E_ALREADY_EXISTS = "Hoya Cluster \"%s\" already exists and is defined in %s";
-  public static final String E_MISSING_PATH = "Missing path ";
-  public static final String E_INCOMPLETE_CLUSTER_SPEC =
-    "Cluster specification is marked as incomplete: ";
-  public static final String E_UNKNOWN_CLUSTER = "Unknown cluster ";
-  public static final String E_DESTROY_CREATE_RACE_CONDITION =
-    "created while it was being destroyed";
   private int amPriority = 0;
   // Queue for App master
   private String amQueue = "default";

@@ -19,11 +19,10 @@
 package org.apache.hadoop.hoya.yarn.cluster.masterless
 
 import groovy.util.logging.Slf4j
-import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.hoya.exceptions.ErrorStrings
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.CommonArgs
-import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
@@ -60,7 +59,7 @@ class TestDestroyMasterlessAM extends HBaseMiniClusterTestBase {
     } catch (HoyaException e) {
       assertExceptionDetails(e,
                              EXIT_BAD_CLUSTER_STATE,
-                             HoyaClient.E_ALREADY_EXISTS)
+                             ErrorStrings.E_ALREADY_EXISTS)
     }
 
     //now: destroy it

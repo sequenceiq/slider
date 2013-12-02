@@ -32,6 +32,7 @@ import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.api.OptionKeys
 import org.apache.hadoop.hoya.api.RoleKeys
+import org.apache.hadoop.hoya.exceptions.ErrorStrings
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.exceptions.WaitTimeoutException
 import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions
@@ -920,7 +921,7 @@ implements KeysForTests, HoyaExitCodes {
   public void assertFailureClusterInUse(HoyaException e) {
     assertExceptionDetails(e,
                            HoyaExitCodes.EXIT_CLUSTER_IN_USE,
-                           HoyaClient.E_CLUSTER_RUNNING)
+                           ErrorStrings.E_CLUSTER_RUNNING)
   }
 
   /**
@@ -930,6 +931,6 @@ implements KeysForTests, HoyaExitCodes {
    */
   public void assertUnknownClusterException(HoyaException e) {
     assertExceptionDetails(e, HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER,
-                           HoyaClient.E_UNKNOWN_CLUSTER)
+                           ErrorStrings.E_UNKNOWN_CLUSTER)
   }
 }

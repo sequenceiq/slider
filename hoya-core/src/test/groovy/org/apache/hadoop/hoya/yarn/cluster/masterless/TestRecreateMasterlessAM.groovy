@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.cluster.masterless
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.hoya.exceptions.ErrorStrings
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
@@ -55,7 +56,7 @@ class TestRecreateMasterlessAM extends HBaseMiniClusterTestBase {
       fail("expected a failure")
     } catch (HoyaException e) {
       assert e.exitCode == HoyaExitCodes.EXIT_BAD_CLUSTER_STATE
-      assert e.toString().contains(HoyaClient.E_ALREADY_EXISTS)
+      assert e.toString().contains(ErrorStrings.E_ALREADY_EXISTS)
     }
 
   }
