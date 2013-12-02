@@ -268,6 +268,24 @@ implements KeysForTests, HoyaExitCodes {
    */
   protected ServiceLauncher launchHoyaClientAgainstMiniMR(Configuration conf,
                                                           List args) {
+    ServiceLauncher launcher = launchHoyaClientNoExitCodeCheck(conf, args)
+    int exited = launcher.serviceExitCode
+    if (exited != 0) {
+      throw new HoyaException(exited,"Launch failed with exit code $exited")
+    }
+    return launcher;
+  }
+
+  /**
+   * Launch the hoya client with the specific args against the MiniMR cluster
+   * without any checks for exit codes
+   * @param conf configuration
+   * @param args arg list
+   * @return the return code
+   */
+  public ServiceLauncher launchHoyaClientNoExitCodeCheck(
+      Configuration conf,
+      List args) {
     assert miniCluster != null
     ResourceManager rm = miniCluster.resourceManager
     log.info("Connecting to rm at ${rm}")
@@ -276,10 +294,9 @@ implements KeysForTests, HoyaExitCodes {
       args += [Arguments.ARG_MANAGER, RMAddr]
     }
     ServiceLauncher launcher = execHoyaCommand(conf, args)
-    assert launcher.serviceExitCode == 0
-    return launcher;
+    return launcher
   }
-  
+
   /**
    * Launch the hoya client with the specific args; no validation
    * of return code takes place
@@ -855,7 +872,7 @@ implements KeysForTests, HoyaExitCodes {
     log.info(prettyPrint(status.toJsonString()))
   }
   
-  void assertExceptionDetails(ServiceLaunchException ex, int exitCode, String text){
+  void assertExceptionDetails(ServiceLaunchException ex, int exitCode, String text = ""){
     assert exitCode == ex.exitCode
     if (text) {
       assert ex.toString().contains(text)

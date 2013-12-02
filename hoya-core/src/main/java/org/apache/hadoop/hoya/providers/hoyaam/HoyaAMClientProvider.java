@@ -66,11 +66,12 @@ public class HoyaAMClientProvider extends Configured implements
                                                      ClientProvider {
 
 
-  public static final String ERROR_UNKNOWN_ROLE = "Unknown role ";
   protected static final Logger log =
     LoggerFactory.getLogger(HoyaAMClientProvider.class);
   protected static final String NAME = "hoyaAM";
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
+  public static final String AM_ROLE_CONFIG_RESOURCE =
+    "org/apache/hadoop/hoya/providers/hoyaam/role-am.xml";
 
   public HoyaAMClientProvider(Configuration conf) {
     super(conf);
@@ -138,7 +139,7 @@ public class HoyaAMClientProvider extends Configured implements
     Map<String, String> rolemap = new HashMap<String, String>();
     if (rolename.equals(ROLE_HOYA_AM)) {
       Configuration conf = ConfigHelper.loadMandatoryResource(
-        "org/apache/hadoop/hoya/providers/hoyaam/role-am.xml");
+        AM_ROLE_CONFIG_RESOURCE);
       HoyaUtils.mergeEntries(rolemap, conf);
     }
     return rolemap;
@@ -234,6 +235,29 @@ public class HoyaAMClientProvider extends Configured implements
       HoyaKeys.ROLE_HOYA_AM, RoleKeys.YARN_CORES, capability.getVirtualCores()));
   }
 
+  /**
+   * Extract any JVM options from the cluster specification and
+   * add them to the command line
+   * @param clusterSpec spec
+   */
+  public void addJVMOptions(ClusterDescription clusterSpec,
+                            List<String> commands) {
+    commands.add(HoyaKeys.JVM_FORCE_IPV4);
+    commands.add(HoyaKeys.JVM_JAVA_HEADLESS);
+    String heap = clusterSpec.getRoleOpt(ROLE_HOYA_AM,
+                                         RoleKeys.JVM_HEAP,
+                                         DEFAULT_JVM_HEAP);
+    if (HoyaUtils.isSet(heap)) {
+      commands.add("-Xmx" + heap);
+    }
+
+    String jvmopts = clusterSpec.getRoleOpt(ROLE_HOYA_AM,
+                                            RoleKeys.JVM_OPTS, "");
+    if (HoyaUtils.isSet(jvmopts)) {
+      commands.add(jvmopts);
+    }
+
+  }
 
   /**
    * Any operations to the service data before launching the AM

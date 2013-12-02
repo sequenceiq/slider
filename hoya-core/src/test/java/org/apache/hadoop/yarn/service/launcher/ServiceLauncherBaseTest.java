@@ -60,12 +60,11 @@ public class ServiceLauncherBaseTest extends HoyaTestBase {
                                        String expectedText,
                                        List args) throws
                                                        Throwable {
-    ServiceLauncher serviceLauncher =
-      new ServiceLauncher(serviceClass.getName());
     try {
-      int result = serviceLauncher.launchService(conf, toArray(args), false);
+      ServiceLauncher launch = launch(serviceClass, conf, args);
       fail("Expected an exception with text containing " + expectedText
-           + " -but the service completed with exit code " + result);
+           + " -but the service completed with exit code "
+           + launch.getServiceExitCode());
     } catch (Throwable thrown) {
       if (!thrown.toString().contains(expectedText)) {
         //not the right exception -rethrow

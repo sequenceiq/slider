@@ -107,8 +107,6 @@ public interface HoyaKeys extends HoyaXmlConfKeys {
   
   String CLUSTER_SPECIFICATION_FILE = "cluster.json";
 
-  int MIN_HEAP_SIZE = 0;
-
   /**
    * XML resource listing the standard Hoya providers
    * {@value}
@@ -146,4 +144,7 @@ public interface HoyaKeys extends HoyaXmlConfKeys {
   String SLF4J_JAR = "slf4j.jar";
   String SLF4J_LOG4J_JAR = "slf4j-log4j.jar";
   String ZOOKEEPER_JAR = "zookeeper.jar";
+
+  String DEFAULT_JVM_HEAP = "256M";
+  int DEFAULT_YARN_MEMORY = 256;
 }

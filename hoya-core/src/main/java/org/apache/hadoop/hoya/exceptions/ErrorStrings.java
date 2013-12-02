@@ -29,4 +29,5 @@ public interface ErrorStrings {
   String E_UNKNOWN_CLUSTER = "Unknown cluster ";
   String E_DESTROY_CREATE_RACE_CONDITION =
       "created while it was being destroyed";
+  String E_UNKNOWN_ROLE = "Unknown role ";
 }
