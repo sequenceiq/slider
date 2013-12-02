@@ -55,8 +55,7 @@ class TestCreateDuplicateLiveCluster extends HBaseMiniClusterTestBase {
       createMasterlessAM(clustername, 0, false, true)
       fail("expected a failure")
     } catch (HoyaException e) {
-      assert e.exitCode == HoyaExitCodes.EXIT_BAD_CLUSTER_STATE
-      assert e.toString().contains(HoyaClient.E_CLUSTER_RUNNING)
+      assertFailureClusterInUse(e);
     }
 
 

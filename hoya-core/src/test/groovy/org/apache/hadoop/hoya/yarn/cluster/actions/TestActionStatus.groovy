@@ -62,7 +62,7 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
       )
       fail("expected an exception, got a status code " + launcher.serviceExitCode)
     } catch (HoyaException e) {
-      assert e.exitCode == EXIT_UNKNOWN_HOYA_CLUSTER
+      assertUnknownClusterException(e)
     }
   }
   

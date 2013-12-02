@@ -119,11 +119,10 @@ class TestCreateMasterlessAM extends HBaseMiniClusterTestBase {
     describe("Creating instance #3")
     //now try to create instance #3, and expect an in-use failure
     try {
-      createMasterlessAM(clustername, 0, true, true)
+      createMasterlessAM(clustername, 0, false, true)
       fail("expected a failure, got a masterless AM")
     } catch (HoyaException e) {
-      assert e.exitCode == HoyaExitCodes.EXIT_BAD_CLUSTER_STATE
-      assert e.toString().contains(HoyaClient.E_CLUSTER_RUNNING)
+      assertFailureClusterInUse(e);
     }
 
     describe("Stopping instance #2")

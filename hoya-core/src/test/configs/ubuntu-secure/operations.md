@@ -210,16 +210,14 @@
       -S java.security.krb5.realm=COTHAM \
       -S java.security.krb5.kdc=ubuntu \
       --role worker 1\
-      --role master 1\
+      --role master 2\
       --zkhosts ubuntu \
       --zkport 2121 \
       --image hdfs://ubuntu:9090/hbase.tar \
       --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/ubuntu-secure/hbase \
       --roleopt master app.infoport 8080 \
-      --roleopt master jvm.heap 128 \
       --roleopt master env.MALLOC_ARENA_MAX 4 \
-      --roleopt worker app.infoport 8081 \
-      --roleopt worker jvm.heap 128 
+      --roleopt worker app.infoport 0 \
   
 # flex the cluster
   

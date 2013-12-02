@@ -32,6 +32,7 @@ import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.api.OptionKeys
 import org.apache.hadoop.hoya.api.RoleKeys
+import org.apache.hadoop.hoya.exceptions.ErrorStrings
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.exceptions.WaitTimeoutException
 import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions
@@ -912,6 +913,24 @@ implements KeysForTests, HoyaExitCodes {
         remoteUnresolvedArchive)
     return remotePath
   }
-  
-  
+
+  /**
+   * Assert that an operation failed because a cluster is in use
+   * @param e exception
+   */
+  public void assertFailureClusterInUse(HoyaException e) {
+    assertExceptionDetails(e,
+                           HoyaExitCodes.EXIT_CLUSTER_IN_USE,
+                           ErrorStrings.E_CLUSTER_RUNNING)
+  }
+
+  /**
+   * Assert that a cluster is unknown by the exit code
+   * & the {@link HoyaClient#E_UNKNOWN_CLUSTER} text
+   * @param exception
+   */
+  public void assertUnknownClusterException(HoyaException e) {
+    assertExceptionDetails(e, HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER,
+                           ErrorStrings.E_UNKNOWN_CLUSTER)
+  }
 }

@@ -20,7 +20,10 @@ package org.apache.hadoop.hoya.yarn.cluster.masterless
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.HoyaActions
+import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
@@ -44,12 +47,16 @@ class TestFreezeUnknownCluster extends HBaseMiniClusterTestBase {
     describe "try to freeze a cluster that isn't defined"
 
     //we are secretly picking up the RM details from the configuration file
-    ServiceLauncher command = execHoyaCommand(conf,
-                                              [
-                                                  HoyaActions.ACTION_FREEZE,
-                                                  "no-such-cluster"
-                                              ]);
-    assert !command.serviceExitCode ;
+    try {
+      ServiceLauncher command = execHoyaCommand(conf,
+                                                [
+                                                    HoyaActions.ACTION_FREEZE,
+                                                    "no-such-cluster"
+                                                ]);
+      fail("Expected an error, got an exit code of ${command.serviceExitCode}")
+    } catch (HoyaException e) {
+      assertUnknownClusterException(e)
+    }
   }
 
 

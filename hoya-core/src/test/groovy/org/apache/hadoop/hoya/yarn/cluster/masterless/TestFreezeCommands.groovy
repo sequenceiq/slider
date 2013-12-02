@@ -41,7 +41,7 @@ import org.junit.Test
 class TestFreezeCommands extends HBaseMiniClusterTestBase {
 
   @Test
-  public void testCreateFreezeFreezeThawFreezeMasterlessAM() throws Throwable {
+  public void testFreezeCommands() throws Throwable {
     String clustername = "TestFreezeCommands"
     YarnConfiguration conf = createConfiguration()
     createMiniCluster(clustername, conf, 1, 1, 1, true, true)
@@ -81,7 +81,7 @@ class TestFreezeCommands extends HBaseMiniClusterTestBase {
           )
       assert 0 != exists1.serviceExitCode;
     } catch (HoyaException e) {
-      assert e.exitCode == HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER
+      assertUnknownClusterException(e)
     }
 
     log.info("First Thaw");
@@ -122,9 +122,7 @@ class TestFreezeCommands extends HBaseMiniClusterTestBase {
                                               ]);
       assert 0 != thaw3.serviceExitCode;
     } catch (HoyaException e) {
-      assertExceptionDetails(e,
-                             HoyaExitCodes.EXIT_BAD_CLUSTER_STATE,
-                             HoyaClient.E_CLUSTER_RUNNING);
+      assertFailureClusterInUse(e);
     }
 
     //destroy should fail
@@ -137,9 +135,7 @@ class TestFreezeCommands extends HBaseMiniClusterTestBase {
                                                      Arguments.ARG_FILESYSTEM, fsDefaultName]);
       fail("expected a failure from the destroy, got error code ${destroy1.serviceExitCode}");
     } catch (HoyaException e) {
-      assertExceptionDetails(e,
-                             HoyaExitCodes.EXIT_BAD_CLUSTER_STATE,
-                             HoyaClient.E_CLUSTER_RUNNING);
+      assertFailureClusterInUse(e);
     }
     log.info("freeze4");
 
@@ -160,5 +156,6 @@ class TestFreezeCommands extends HBaseMiniClusterTestBase {
     assert 0 == destroy2.serviceExitCode;
 
   }
+
 
 }

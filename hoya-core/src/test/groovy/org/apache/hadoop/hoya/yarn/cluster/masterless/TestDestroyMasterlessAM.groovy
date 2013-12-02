@@ -19,11 +19,10 @@
 package org.apache.hadoop.hoya.yarn.cluster.masterless
 
 import groovy.util.logging.Slf4j
-import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.hoya.exceptions.ErrorStrings
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.CommonArgs
-import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
@@ -60,7 +59,7 @@ class TestDestroyMasterlessAM extends HBaseMiniClusterTestBase {
     } catch (HoyaException e) {
       assertExceptionDetails(e,
                              EXIT_BAD_CLUSTER_STATE,
-                             HoyaClient.E_ALREADY_EXISTS)
+                             ErrorStrings.E_ALREADY_EXISTS)
     }
 
     //now: destroy it
@@ -78,11 +77,9 @@ class TestDestroyMasterlessAM extends HBaseMiniClusterTestBase {
                             Arguments.ARG_FILESYSTEM, fsDefaultName,
                             Arguments.ARG_MANAGER, RMAddr,
                         ])
-      assert launcher.serviceExitCode == HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER
+      fail("expected an exception")
     } catch (HoyaException e) {
-      assertExceptionDetails(e,
-                             HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER,
-                             HoyaClient.E_UNKNOWN_CLUSTER)
+      assertUnknownClusterException(e)
     }
 
       //and create a new cluster
@@ -94,9 +91,7 @@ class TestDestroyMasterlessAM extends HBaseMiniClusterTestBase {
       int ec = cluster2.actionDestroy(clustername)
       fail("expected a failure from the destroy, got error code $ec")
     } catch (HoyaException e) {
-      assertExceptionDetails(e,
-                             HoyaExitCodes.EXIT_BAD_CLUSTER_STATE,
-                             HoyaClient.E_CLUSTER_RUNNING)
+      assertFailureClusterInUse(e);
     }
     
     //and try to destroy a completely different cluster just for the fun of it

@@ -21,7 +21,9 @@ package org.apache.hadoop.hoya.yarn.cluster.live
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hbase.ClusterStatus
+import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
@@ -54,6 +56,16 @@ class TestFreezeThawLiveRegionService extends HBaseMiniClusterTestBase {
     log.info(hbaseStatusToString(clustat));
     
 
+    //verify you can't start a new cluster with that name
+    try {
+      ServiceLauncher launcher3 = createHBaseCluster(clustername, regionServerCount, [], false, false)
+      HoyaClient cluster3 = launcher3.service as HoyaClient
+      fail("expected a failure, got ${cluster3}")
+    } catch (HoyaException e) {
+      assert e.exitCode == HoyaExitCodes.EXIT_CLUSTER_IN_USE;
+    }
+    
+    
     clusterActionFreeze(hoyaClient, clustername)
     killAllRegionServers();
     //now let's start the cluster up again
@@ -64,7 +76,16 @@ class TestFreezeThawLiveRegionService extends HBaseMiniClusterTestBase {
     //get the hbase status
     waitForHBaseRegionServerCount(newCluster, clustername, regionServerCount,
                             HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-
+    
+    // finally, attempt to thaw it while it is running
+    //now let's start the cluster up again
+    try {
+      ServiceLauncher launcher3 = thawHoyaCluster(clustername, [], true);
+      HoyaClient cluster3 = launcher3.service as HoyaClient
+      fail("expected a failure, got ${cluster3}")
+    } catch (HoyaException e) {
+      assert e.exitCode == HoyaExitCodes.EXIT_CLUSTER_IN_USE
+    }
   }
 
 

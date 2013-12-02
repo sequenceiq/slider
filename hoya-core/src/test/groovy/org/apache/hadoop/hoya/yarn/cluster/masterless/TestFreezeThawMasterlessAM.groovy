@@ -39,7 +39,7 @@ import org.junit.Test
 class TestFreezeThawMasterlessAM extends HBaseMiniClusterTestBase {
 
   File getConfDirFile() {
-    return new File("target/TestStartMasterlessAMconf")
+    return new File("target/TestFreezeThawMasterlessAM/conf")
   }
 
   @Override
@@ -66,7 +66,8 @@ class TestFreezeThawMasterlessAM extends HBaseMiniClusterTestBase {
 
     clusterActionFreeze(hoyaClient, clustername)
 
-    //here we do something devious: delete our copy of the configuration
+    // here we do something devious: delete our copy of the configuration
+    // this makes sure the remote config gets picked up
     HadoopFS localFS = HadoopFS.get(tempConfPath.toUri(), conf)
     localFS.delete(tempConfPath,true)
     
