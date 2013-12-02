@@ -127,6 +127,12 @@ no. 72.
      * failing or some other threshold was reached
      */
     int EXIT_CLUSTER_FAILED = 73;
+    
+    /**
+     * The cluster is live -and the requested operation
+     * does not work if the cluster is running
+     */
+    int EXIT_CLUSTER_IN_USE = 74;
 
 ## Other exit codes
 

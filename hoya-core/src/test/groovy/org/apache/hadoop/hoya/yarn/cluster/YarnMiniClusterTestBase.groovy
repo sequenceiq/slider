@@ -912,6 +912,24 @@ implements KeysForTests, HoyaExitCodes {
         remoteUnresolvedArchive)
     return remotePath
   }
-  
-  
+
+  /**
+   * Assert that an operation failed because a cluster is in use
+   * @param e exception
+   */
+  public void assertFailureClusterInUse(HoyaException e) {
+    assertExceptionDetails(e,
+                           HoyaExitCodes.EXIT_CLUSTER_IN_USE,
+                           HoyaClient.E_CLUSTER_RUNNING)
+  }
+
+  /**
+   * Assert that a cluster is unknown by the exit code
+   * & the {@link HoyaClient#E_UNKNOWN_CLUSTER} text
+   * @param exception
+   */
+  public void assertUnknownClusterException(HoyaException e) {
+    assertExceptionDetails(e, HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER,
+                           HoyaClient.E_UNKNOWN_CLUSTER)
+  }
 }

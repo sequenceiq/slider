@@ -285,7 +285,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // detect any race leading to cluster creation during the check/destroy process
     // and report a problem.
     if (!instances.isEmpty()) {
-      throw new HoyaException(EXIT_BAD_CLUSTER_STATE,
+      throw new HoyaException(EXIT_CLUSTER_IN_USE,
                               clustername + ": "
                               + E_DESTROY_CREATE_RACE_CONDITION
                               + " :" +
@@ -303,7 +303,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     verifyManagerSet();
     yarnClient.emergencyForceKill(applicationId);
     return EXIT_SUCCESS;
-
   }
 
   /**
@@ -1023,8 +1022,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   /**
    * verify that a live cluster isn't there
    * @param clustername cluster name
-   * @throws HoyaException with exit code EXIT_BAD_CLUSTER_STATE if a cluster of that name is either
-   *           live or starting up.
+   * @throws HoyaException with exit code EXIT_CLUSTER_LIVE
+   * if a cluster of that name is either live or starting up.
    */
   public void verifyNoLiveClusters(String clustername) throws
                                                        IOException,
@@ -1032,7 +1031,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     List<ApplicationReport> existing = findAllLiveInstances(null, clustername);
 
     if (!existing.isEmpty()) {
-      throw new HoyaException(EXIT_BAD_CLUSTER_STATE,
+      throw new HoyaException(EXIT_CLUSTER_IN_USE,
                               clustername + ": " + E_CLUSTER_RUNNING + " :" +
                               existing.get(0));
     }
@@ -1446,6 +1445,10 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     verifyManagerSet();
     HoyaUtils.validateClusterName(clustername);
     log.debug("actionFreeze({}, {})", clustername, waittime);
+    
+    //is this actually a known cluster? 
+    locateClusterSpecification(clustername);
+    
     ApplicationReport app = findInstance(getUsername(), clustername);
     if (app == null) {
       // exit early
@@ -1819,8 +1822,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * @return an exception with text and a relevant exit code
    */
   public HoyaException unknownClusterException(String clustername) {
-    return new HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER,
-                             "Hoya cluster not found: \"%s\"", clustername);
+    return new HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER, E_UNKNOWN_CLUSTER 
+                             +": \""+ clustername+ "\"");
   }
 
   @Override

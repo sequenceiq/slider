@@ -20,6 +20,7 @@ package org.apache.hadoop.hoya.servicemonitor;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
+import org.apache.hadoop.hoya.yarn.client.HoyaClient;
 import org.apache.hadoop.hoya.yarn.client.HoyaYarnClientImpl;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
@@ -83,8 +84,8 @@ public class YarnApplicationProbe extends Probe {
         yarnClient.findClusterInInstanceList(instances, clustername);
       if (null == instance) {
         throw new HoyaException(HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER,
-                                       "Hoya cluster not found: \"%s\"",
-                                       clustername);
+                                HoyaClient.E_UNKNOWN_CLUSTER
+                                + ": \"" + clustername + "\"");
 
       }
 

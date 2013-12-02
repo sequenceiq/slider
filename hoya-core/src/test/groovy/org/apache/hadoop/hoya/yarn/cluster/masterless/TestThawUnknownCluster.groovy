@@ -45,10 +45,9 @@ class TestThawUnknownCluster extends YarnMiniClusterTestBase {
 
     try {
       ServiceLauncher launcher = thawHoyaCluster(clustername, [], true);
-      fail("expected a failure")
+      fail("expected a failure, got ${launcher.serviceExitCode}")
     } catch (HoyaException e) {
-      assert e.exitCode == HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER
-      assert e.toString().contains(HoyaClient.E_UNKNOWN_CLUSTER)
+      assertUnknownClusterException(e)
       assert e.toString().contains(clustername)
     }
   }
