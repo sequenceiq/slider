@@ -55,8 +55,9 @@ class TestRecreateMasterlessAM extends HBaseMiniClusterTestBase {
       createMasterlessAM(clustername, 0, false, false)
       fail("expected a failure")
     } catch (HoyaException e) {
-      assert e.exitCode == HoyaExitCodes.EXIT_BAD_CLUSTER_STATE
-      assert e.toString().contains(ErrorStrings.E_ALREADY_EXISTS)
+      assertExceptionDetails(e,
+                             HoyaExitCodes.EXIT_CLUSTER_IN_USE,
+                             ErrorStrings.E_ALREADY_EXISTS)
     }
 
   }

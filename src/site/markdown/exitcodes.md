@@ -130,9 +130,11 @@ no. 72.
     
     /**
      * The cluster is live -and the requested operation
-     * does not work if the cluster is running
+     * does not work if the cluster is running,
+     * or there already is a cluster of that name
+     * when attempt is made to create a new cluster
      */
-    int EXIT_CLUSTER_IN_USE = 74;
+     int EXIT_CLUSTER_IN_USE = 74;
 
 ## Other exit codes
 

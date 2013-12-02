@@ -511,12 +511,12 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     try {
       clusterSpec.save(fs, clusterSpecPath, false);
     } catch (FileAlreadyExistsException fae) {
-      throw new HoyaException(EXIT_BAD_CLUSTER_STATE,
+      throw new HoyaException(EXIT_CLUSTER_IN_USE,
                               PRINTF_E_ALREADY_EXISTS, clustername,
                               clusterSpecPath);
     } catch (IOException e) {
       // this is probably a file exists exception too, but include it in the trace just in case
-      throw new HoyaException(EXIT_BAD_CLUSTER_STATE, e,
+      throw new HoyaException(EXIT_CLUSTER_IN_USE, e,
                               PRINTF_E_ALREADY_EXISTS, clustername,
                               clusterSpecPath);
     }
