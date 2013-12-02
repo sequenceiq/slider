@@ -16,7 +16,7 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.cluster.masterless
+package org.apache.hadoop.hoya.yarn.cluster.freezethaw
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
