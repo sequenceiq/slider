@@ -66,7 +66,6 @@ public class HoyaAMClientProvider extends Configured implements
                                                      ClientProvider {
 
 
-  public static final String ERROR_UNKNOWN_ROLE = "Unknown role ";
   protected static final Logger log =
     LoggerFactory.getLogger(HoyaAMClientProvider.class);
   protected static final String NAME = "hoyaAM";
