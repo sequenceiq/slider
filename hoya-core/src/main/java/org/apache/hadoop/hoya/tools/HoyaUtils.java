@@ -671,16 +671,16 @@ public final class HoyaUtils {
       throw new BadConfigException("Failed to parse value of "
                                    + errorKey + ": \"" + trim + "\"");
     }
-    if (min>=0 && val<min) {
+    if (min >= 0 && val < min) {
       throw new BadConfigException("Value of "
-                                   + errorKey + ": " + val+ "" 
-      + "is less than the minimum of " + min);
+                                   + errorKey + ": " + val + ""
+                                   + "is less than the minimum of " + min);
 
     }
-    if (max>=0 && val>max) {
+    if (max >= 0 && val > max) {
       throw new BadConfigException("Value of "
-                                   + errorKey + ": " + val+ "" 
-      + "is more than the maximum of " + max);
+                                   + errorKey + ": " + val + ""
+                                   + "is more than the maximum of " + max);
 
     }
     return val;
