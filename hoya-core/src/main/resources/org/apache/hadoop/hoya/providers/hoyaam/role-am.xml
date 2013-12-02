@@ -46,7 +46,7 @@
   
   <property>
     <name>jvm.heapsize</name>
-    <value>512M</value>
+    <value>256M</value>
   </property>
   
  

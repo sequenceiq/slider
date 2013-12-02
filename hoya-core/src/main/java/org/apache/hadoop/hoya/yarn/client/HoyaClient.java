@@ -770,8 +770,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     List<String> commands = new ArrayList<String>(20);
     commands.add(ApplicationConstants.Environment.JAVA_HOME.$() + "/bin/java");
     // insert any JVM options);
-    commands.add(HoyaKeys.JVM_FORCE_IPV4);
-    commands.add(HoyaKeys.JVM_JAVA_HEADLESS);
+    hoyaAM.addJVMOptions(clusterSpec, commands);
     // enable asserts if the text option is set
     if (serviceArgs.debug) {
       commands.add(HoyaKeys.JVM_ENABLE_ASSERTIONS);
