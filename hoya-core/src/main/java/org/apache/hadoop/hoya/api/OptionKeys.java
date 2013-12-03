@@ -132,10 +132,4 @@ public interface OptionKeys {
    */
   String ZOOKEEPER_PATH = "zookeeper.path";
 
-  /**
-   * Command to issue to override any specific role in the in-AM master
-   * script. Used for things like issuing a version command in testing
-   */
-  String OPTION_HOYA_MASTER_COMMAND =
-    "hoya.test.master.command";
 }

@@ -232,14 +232,19 @@ public final class HoyaUtils {
     if (name == null || name.isEmpty()) {
       return false;
     }
-    name = normalizeClusterName(name);
     int first = name.charAt(0);
-    if (!Character.isLetter(first)) {
+    if (0 == (Character.getType(first)  & Character.LOWERCASE_LETTER)) {
       return false;
     }
 
     for (int i = 0; i < name.length(); i++) {
       int elt = (int) name.charAt(i);
+      int t = Character.getType(elt);
+      if (0 == (t & Character.LOWERCASE_LETTER) 
+          && 0 == (t & Character.DECIMAL_DIGIT_NUMBER) 
+          && elt != '-') {
+        return false;
+      }
       if (!Character.isLetterOrDigit(elt) && elt != '-') {
         return false;
       }

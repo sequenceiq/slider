@@ -258,7 +258,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                       IOException {
     // verify that a live cluster isn't there
     HoyaUtils.validateClusterName(clustername);
-    verifyFileSystemArgSet();
+    //no=op, it is now mandatory. 
     verifyManagerSet();
     verifyNoLiveClusters(clustername);
 
@@ -354,8 +354,25 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // verify that a live cluster isn't there
     HoyaUtils.validateClusterName(clustername);
     verifyManagerSet();
-    verifyFileSystemArgSet();
+    //no=op, it is now mandatory. 
     verifyNoLiveClusters(clustername);
+
+    // build up the paths in the DFS
+
+    FileSystem fs = getClusterFS();
+    Path clusterDirectory = HoyaUtils.buildHoyaClusterDirPath(fs, clustername); 
+    Path origConfPath = new Path(clusterDirectory, HoyaKeys.ORIG_CONF_DIR_NAME);
+    Path generatedConfPath =
+      new Path(clusterDirectory, HoyaKeys.GENERATED_CONF_DIR_NAME);
+    Path clusterSpecPath =
+      new Path(clusterDirectory, HoyaKeys.CLUSTER_SPECIFICATION_FILE);
+
+    if (fs.exists(clusterDirectory)) {
+      throw new HoyaException(EXIT_CLUSTER_IN_USE,
+                              PRINTF_E_ALREADY_EXISTS, clustername,
+                              clusterSpecPath);
+    }
+    
     Configuration conf = getConfig();
     // build up the initial cluster specification
     ClusterDescription clusterSpec = new ClusterDescription();
@@ -490,23 +507,16 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // another sanity check before the cluster dir is created: the config
     // dir
     FileSystem srcFS = FileSystem.get(appconfdir.toUri(), conf);
-    if (!srcFS.exists(appconfdir)) {
+    if (!srcFS.isDirectory(appconfdir)) {
       throw new BadCommandArgumentsException(
-        "Configuration directory specified in %s not found: %s",
+        "Configuration directory specified in %s not valid: %s",
        Arguments.ARG_CONFDIR, appconfdir.toString());
     }
-    // build up the paths in the DFS
-
-    FileSystem fs = getClusterFS();
-    Path clusterDirectory = HoyaUtils.createHoyaClusterDirPath(fs, clustername);
-    Path origConfPath = new Path(clusterDirectory, HoyaKeys.ORIG_CONF_DIR_NAME);
-    Path generatedConfPath =
-      new Path(clusterDirectory, HoyaKeys.GENERATED_CONF_DIR_NAME);
-    Path clusterSpecPath =
-      new Path(clusterDirectory, HoyaKeys.CLUSTER_SPECIFICATION_FILE);
     clusterSpec.originConfigurationPath = origConfPath.toUri().toASCIIString();
     clusterSpec.generatedConfigurationPath =
       generatedConfPath.toUri().toASCIIString();
+    HoyaUtils.createHoyaClusterDirPath(fs, clustername);
+
     // save the specification to get a lock on this cluster name
     try {
       clusterSpec.save(fs, clusterSpecPath, false);
@@ -542,10 +552,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     clusterSpec.state = ClusterDescription.STATE_CREATED;
     clusterSpec.save(fs, clusterSpecPath, true);
 
-  }
-
-  public void verifyFileSystemArgSet() throws BadCommandArgumentsException {
-    //no=op, it is now mandatory. 
   }
 
   public void verifyManagerSet() throws BadCommandArgumentsException {
@@ -1548,7 +1554,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     verifyNoLiveClusters(clustername);
 
     // load spec
-    verifyFileSystemArgSet();
+    //no=op, it is now mandatory. 
     return startCluster(clustername);
   }
 
