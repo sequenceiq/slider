@@ -24,38 +24,73 @@ can act as sources of data that is then copied into HDFS. These will be marked
 as `FS` or with the generic `FileSystem` type.
 
 
-There's ongoing work in [HADOOP-9361][https://issues.apache.org/jira/browse/HADOOP-9361]
+There's ongoing work in [HADOOP-9361](https://issues.apache.org/jira/browse/HADOOP-9361)
 to define the Hadoop Filesytem APIs using the same notation as here,
-the latest version being available on [github][https://github.com/steveloughran/hadoop-trunk/tree/stevel/HADOOP-9361-filesystem-contract/hadoop-common-project/hadoop-common/src/site/markdown/filesystem]
-
+the latest version being available on [github](https://github.com/steveloughran/hadoop-trunk/tree/stevel/HADOOP-9361-filesystem-contract/hadoop-common-project/hadoop-common/src/site/markdown/filesystem)
 Two key references are
 
- 1. [The notation reused in the Hoya specifications][https://github.com/steveloughran/hadoop-trunk/blob/stevel/HADOOP-9361-filesystem-contract/hadoop-common-project/hadoop-common/src/site/markdown/filesystem/notation.md]
- 1. [The model of the filesystem][https://github.com/steveloughran/hadoop-trunk/blob/stevel/HADOOP-9361-filesystem-contract/hadoop-common-project/hadoop-common/src/site/markdown/filesystem/model.md]
+ 1. [The notation reused in the Hoya specifications](https://github.com/steveloughran/hadoop-trunk/blob/stevel/HADOOP-9361-filesystem-contract/hadoop-common-project/hadoop-common/src/site/markdown/filesystem/notation.md]
+ 1. [The model of the filesystem](https://github.com/steveloughran/hadoop-trunk/blob/stevel/HADOOP-9361-filesystem-contract/hadoop-common-project/hadoop-common/src/site/markdown/filesystem/model.md)
  
  The model and its predicates and invariants will be used in these specifications.
  
 ## YARN
 
 From the perspective of YARN application, The YARN runtime is a state, `YARN`, 
-comprised of (Apps, Queues, Nodes)
+comprised of: ` (Apps, Queues, Nodes)`
 
-    Apps:    Map[AppId, ApplicationReport]
-        App: (Name, report: ApplicationReport, Requests:List[AmRequest])
-          ApplicationReport: AppId, Type, User, YarnApplicationState, AmContainer, AmRPC, AmWebURI,
-          YarnApplicationState : {NEW, NEW_SAVING, SUBMITTED, ACCEPTED, RUNNING, FINISHED, FAILED, KILLED }
-          AmRequest = { add-container(priority, requirements), release(containerId)}
-    Nodes:  Map[nodeID,(name, containers:List[ContainerID])] 
-    Queues: List[Queue]
+    Apps: Map[AppId, ApplicationReport]
+    
+An application has a name, an application report and a list of outstanding requests
+    
+    App: (Name, report: ApplicationReport, Requests:List[AmRequest])
+
+An application report contains a mixture of static and dynamic state of the application
+and the AM.
+
+    ApplicationReport: AppId, Type, User, YarnApplicationState, AmContainer, RpcPort, TrackingURL,
+
+YARN applications have a number of states. These are ordered such that if the
+`state.ordinal() > RUNNING.ordinal()  ` then the application has entered an exit state.
+ 
+    YarnApplicationState : [NEW, NEW_SAVING, SUBMITTED, ACCEPTED, RUNNING, FINISHED, FAILED, KILLED ]
+  
+AMs can request containers to be added or released    
+
+      AmRequest = { add-container(priority, requirements), release(containerId)}
+
+Job queues are named queues of job requests; there is always a queue called "default"
+
+    Queues: Map[String:Queue]
         Queue:  List[Requests]
         Request = {
           launch(app-name, app-type, requirements, context)
         }
         Context: (localisedresources, command)
 
+
 This is doesn't completely model the cluster from the AM perspective -there's no
 notion of node operations (launching code in a container) or events coming from YARN.
 
+The nodes models the nodes in a cluster
+
+    Nodes:  Map[nodeID,(name, containers:List[Container])] 
+
+A container contains some state
+
+    Container: (containerId, appId, context)
+
+The containers in a cluster are the aggregate set of all containers across
+all nodes
+
+    def containers(YARN) =
+        [c for n in keys(YARN.Nodes) for c in YARN.Nodes[n].Containers ]
+
+
+The containers of an application are all containers that are considered owned by it,
+
+    def app-containers(YARN, appId) =
+        [c in containers(YARN) where c.appId == appId ]
 
 ### Operations & predicates used the specifications
 
@@ -65,12 +100,12 @@ notion of node operations (launching code in a container) or events coming from 
     
     def user-applications(YARN, type, user)
         [a in applications(YARN, type) where: a.User == user]
+    
 
 ## UserGroupInformation
 
 Applications are launched and executed on hosts computers: either client machines
 or nodes in the cluster, these have their own state which may need modeling
-
 
     HostState: Map[String, String]
 
@@ -129,14 +164,35 @@ A cluster is considered `running` if there is a Hoya application type belonging 
     def final-yarn-states = {FINISHED, FAILED, KILLED }
 
 
-    def hoya-app-running-instances(YARN, clustername, user) =
+    def hoya-app-instances(YARN, clustername, user) =
         [a in user-applications(YARN, "hoya", user) where:
-             and a.Name == clustername
-             and not a.YarnApplicationState in final-yarn-state]
-
-
+             and a.Name == clustername]
+             
+    def hoya-app-running-instances(YARN, clustername, user) =
+        [a in hoya-app-instances(YARN, user, clustername) where:
+             not a.YarnApplicationState in final-yarn-state]
+    
     def hoya-app-running(YARN, clustername, user) =
         [] != hoya-app-running-instances(YARN, clustername, user) 
+        
+    def hoya-app-live-instances(YARN, clustername, user) =
+        [a in hoya-app-instances(YARN, user, clustername) where:
+             a.YarnApplicationState == RUNNING]
+             
+    def hoya-app-live(YARN, clustername, user) =
+       [] != hoya-app-live-instances(YARN, clustername, user) 
+     
+
+ An application is accepting RPC requests for a given protocol if there is a port binding
+ defined and it is possible to authenticate a connection using the specified protocol
+
+     def rpc-connection(appReport, protocol) =
+         appReport.host != null 
+         appReport.rpcPort != 0 
+         and RPC.getProtocolProxy(appReport.host, appReport.rpcPort, protocol)
+
+ Being able to open an RPC port is the strongest definition of liveness possible
+ to make: if the AM responds to RPC operations, it is doing useful work.
 
 ### Invariant: there must never be more than one running instance of a named Hoya cluster
 
@@ -175,8 +231,6 @@ This specification is very vague here to avoid duplication: the cluster descript
 Currently Hoya ignores unknown elements during parsing. This may be changed.
 
 The test for this state does not refer to the cluster filesystem
-
-
 
 #### deployable-cluster(FS, cluster-description)
 
