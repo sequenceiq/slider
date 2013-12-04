@@ -163,7 +163,6 @@ The cluster must not exist
 The cluster specification must exist, be valid and deployable
 
     if not is-file(HDFS, cluster-json-path(HDFS, clustername)) : HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER)
-
     if not well-defined-cluster(HDFS, cluster-path(HDFS, clustername)) : raise HoyaException(EXIT_BAD_CLUSTER_STATE)
     if not deployable-cluster(HDFS, cluster-path(HDFS, clustername)) : raise HoyaException(EXIT_BAD_CLUSTER_STATE)
 
@@ -200,8 +199,7 @@ an AM is launched afterwards
 The AM is deployed if there is some time `t` after the submission time `t0`
 where the application is listed 
 
-    exists t1 where t1 > t0 and
-      hoya-app-live(YARN(t1), user, clustername)
+    exists t1 where t1 > t0 and hoya-app-live(YARN(t1), user, clustername)
 
 At which time there is a container in the cluster hosting the AM -it's
 context is the launch context
@@ -249,7 +247,7 @@ and that port is servicing RPC requests.
     exists t2 where t2 > t1 and :
         hoya-app-live(YARN(t2), YARN, clustername, user)
         hoya-app-live-instances(YARN(t2))[0].rpcPort != 0
-        accepting-rpc-requests(hoya-app-live-instances(YARN(t2))[0].rpcPort, HoyaClusterProtocol)
+        rpc-connection(hoya-app-live-instances(YARN(t2))[0], HoyaClusterProtocol)
 
 A test for accepting cluster requests is querying the cluster status
 with `HoyaClusterProtocol.getJSONClusterStatus()`. If this returns
@@ -320,7 +318,7 @@ option: `"hoya.container.failure.threshold"` defining that threshold.
 
     let status = AM.getJSONClusterStatus() 
     forall r in in status.roles :
-            r["role.failed.instances"] < status.options["hoya.container.failure.threshold"]
+        r["role.failed.instances"] < status.options["hoya.container.failure.threshold"]
 
 
 #### Instance startup failure
@@ -369,8 +367,6 @@ The cluster name is valid and it matches a known cluster
     if not is-file(HDFS, cluster-path(HDFS, clustername)) :
         HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER)
 
-
-
 #### Postconditions
 
 If the cluster was running, an RPC call has been sent to it `stopCluster(message)`
@@ -383,7 +379,55 @@ The outcome should be the same:
     not hoya-app-running(YARN, clustername)
 
 
+## Action: flex
 
+Flex the cluster size: add or remove roles. Flexing can be
+marked as persistent or not; 
+
+1. if persistent, the JSON cluster specification is updated
+1. if the cluster is running, it is given the new cluster specification,
+which will change the desired steady-state of the application
+
+#### Preconditions
+
+    if not is-file(HDFS, cluster-json-path(HDFS, clustername)) : HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER)
+  
+
+#### Postconditions
+
+    let originalSpec = data(HDFS, cluster-json-path(HDFS, clustername))
+    let updatedSpec = originalspec + [ originalspec.roles[r]["role.instances"] = r.value  for r in roles]
+    if persist:
+        data(HDFS', cluster-json-path(HDFS', clustername)) == updatedSpec
+    rpc-connection(hoya-app-live-instances(YARN(t2))[0], HoyaClusterProtocol)
+    let flexed = rpc-connection(hoya-app-live-instances(YARN(t2))[0], HoyaClusterProtocol).flexClusterupdatedSpec)
+
+
+#### AM actions on flex
+
+    boolean HoyaAppMaster.flexCluster(ClusterDescription updatedSpec)
+  
+If the  cluster is in a state where flexing is possible (i.e. it is not in teardown),
+then `AppState` is updated with the new desired role counts. The operation will
+return once all requests to add or remove role instances have been queued,
+and be `True` iff the desired steady state of the cluster has been changed.
+
+#### Preconditions
+
+      well-defined-cluster(HDFS, updatedSpec)
+  
+
+#### Postconditions
+
+    forall role in AppState.Roles.keys:
+        AppState'.Roles'[role].desiredCount = updatedSpec[roles]["role.instances"]
+    result = AppState' != AppState
+
+
+The flexing may change the desired steady state of the cluster, in which
+case the relevant requests will have been queued by the completion of the
+action. It is not possible to state whether or when the requests will be
+satisfied.
 
 ## Action: destroy
 
@@ -406,30 +450,75 @@ The cluster directory and all its children do not exist
 
 ## Action: status
 
-BUG-11364 proposes adding a --outfile operation to output this to a named file,
+BUG-11364 proposes adding an `--outfile` operation to output this to a named file,
 this is to aid testing. Currently it goes to stdout.
+
 
 #### Preconditions
 
+    if not hoya-app-running(YARN, clustername) : raise HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER)
 
 
 
 #### Postconditions
 
+The status of the application has been successfully queried and printed out:
 
+    let status = hoya-app-live-instances(YARN).rpcPort.getJSONClusterStatus()
+    status.toString() in STDOUT'
 
 ## Action: exists
 
+This probes for a named cluster being in the running state; it is essentially the status
+operation with the exit code only returned.
 
 #### Preconditions
 
+    if not hoya-app-running(YARN, clustername) : raise HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER)
+
+#### Postconditions
+
+The operation succeeds if the cluster is running and the RPC call returns the cluster
+status.
+
+    let status = hoya-app-live-instances(YARN).rpcPort.getJSONClusterStatus()
+ 
+## Action: getConf
+
+This returns the live client configuration of the cluster -the
+site-xml file.
+
+    getconf --format (xml|properties) --outfile [filename]
+
+*We may want to think hard about whether this is needed*
+
+#### Preconditions
+
+    if not hoya-app-running(YARN, clustername) : raise HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER)
 
 
 #### Postconditions
 
+The operation succeeds if the cluster status can be retrieved and saved to 
+the named file/printed to stdout in the format chosen
+
+    let status = hoya-app-live-instances(YARN).rpcPort.getJSONClusterStatus()
+    let conf = status.clientProperties
+    if format == "xml" : 
+        let body = status.clientProperties.asXmlDocument();
+    else:
+        let body = status.clientProperties.asProperties();
+        
+    if outfile != "" :
+        data(LocalFS', outfile) == body
+    else
+        body in STDOUT'
 
 ## Action: monitor
 
+(This is still a work in progress. The goal is to be able to monitor the 
+health of a cluster by blocking while HDFS or accumulo is live).
+It may not be supported in Hoya 1.x
 
 #### Preconditions
 
@@ -438,15 +527,6 @@ this is to aid testing. Currently it goes to stdout.
 #### Postconditions
 
 
-
-## Action: flex
-
-
-#### Preconditions
-
-
-
-#### Postconditions
 
 
 ## Action: emergency-force-kill
