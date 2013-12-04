@@ -180,31 +180,6 @@ public class AccumuloProviderService extends AbstractProviderService implements
     ctx.setCommands(commands);
 
   }
-
-  /**
-   * build up the in-container master comand
-   *
-   * @param clusterSpec
-   * @param confDir
-   * @param env
-   * @param masterCommand
-   * @return
-   * @throws IOException
-   * @throws HoyaException
-   */
-  //server
-  public List<String> buildInContainerProcessCommand(ClusterDescription clusterSpec,
-                                                     File confDir,
-                                                     Map<String, String> env,
-                                                     String masterCommand) throws
-                                                                IOException,
-                                                                HoyaException {
-    //set the service to run if unset
-    if (masterCommand == null) {
-      masterCommand = AccumuloRoles.serviceForRole(HoyaKeys.ROLE_HOYA_AM);
-    }
-    return buildProcessCommandList(clusterSpec, confDir, env, masterCommand);
-  }
   
   public List<String> buildProcessCommandList(ClusterDescription clusterSpec,
                                           File confDir,
@@ -229,8 +204,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
     String accumuloPath = image.getAbsolutePath();
     env.put(ACCUMULO_HOME, accumuloPath);
     ProviderUtils.validatePathReferencesLocalDir("ACCUMULO_HOME", accumuloPath);
-    env.put(ACCUMULO_CONF_DIR, 
-            new File(HoyaKeys.PROPAGATED_CONF_DIR_NAME).getAbsolutePath());
+    env.put(ACCUMULO_CONF_DIR, confDir.getAbsolutePath());
     String zkHome = clusterSpec.getMandatoryOption(OPTION_ZK_HOME);
     ProviderUtils.validatePathReferencesLocalDir("ZOOKEEPER_HOME", zkHome);
 
