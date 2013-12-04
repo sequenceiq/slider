@@ -291,10 +291,10 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   /**
    * Force kill a yarn application by ID. No niceities here
    */
-  public int actionEmergencyForceKill(String applicationId) throws YarnException,
+  public int actionEmergencyForceKill(String appId) throws YarnException,
                                                       IOException {
     verifyManagerSet();
-    yarnClient.emergencyForceKill(applicationId);
+    yarnClient.emergencyForceKill(appId);
     return EXIT_SUCCESS;
   }
 
