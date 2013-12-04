@@ -145,11 +145,11 @@ There must never be more than one instance of the same Hoya cluster running:
 
     forall a in user-applications(YARN, "hoya", user):
         len(hoya-app-running(YARN, a.Name, user)) <= 1
-        
+
 There may be multiple instances in a finished state, and one running instance alongside multiple finished instances -the applications
 that work with Hoya MUST select a running cluster ahead of any terminated clusters.
 
-### Valid Cluster JSON Cluster Description
+### Valid Cluster Description
 
 The `cluster.json` file of a cluster configures Hoya to deploy the application. 
 
@@ -195,7 +195,16 @@ This defines how a cluster description is valid in the extends the valid configu
 1. `options/zookeeper.path` must be defined and refer to a path in the ZK cluster
 defined by (`options/zookeeper.hosts`, `zookeeper.port)` to which the user has write access (required by HBase and Accumulo)
 1. If `options/cluster.application.image.path` is defined, it must exist and be readable by the user.
-1. Providers may preform their own preflight validation.
+1. It must declare a type that maps to a provider entry in the hoya client's XML configuration:
+
+    len(clusterspec["type"]) > 0 
+    clientconfig["hoya.provider."+ clusterspec["type"]] != null
+
+1. That entry must map to a class on the classpath which can be instantiated
+and cast to `HoyaProviderFactory`.
+
+    (Class.forName(clientconfig["hoya.provider."+ clusterspec["type"]])
+      .newInstance()) instanceof HoyaProviderFactory 
 
 
 #### valid-for-provider(cluster-description, provider)
