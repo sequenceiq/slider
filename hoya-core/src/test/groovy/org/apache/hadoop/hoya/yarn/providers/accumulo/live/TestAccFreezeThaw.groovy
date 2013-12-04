@@ -34,7 +34,7 @@ class TestAccFreezeThaw extends AccumuloTestBase {
 
   @Test
   public void testAccFreezeThaw() throws Throwable {
-    String clustername = "TestAccFreezeThaw"
+    String clustername = "test_acc_freeze_thaw"
     int tablets = 1
     int monitor = 1
     int gc = 1

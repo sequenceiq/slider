@@ -28,6 +28,7 @@ import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
+import org.apache.hadoop.yarn.service.launcher.LauncherExitCodes
 import org.apache.hadoop.yarn.service.launcher.ServiceLaunchException
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
@@ -35,14 +36,14 @@ import org.junit.Test
 @CompileStatic
 @Slf4j
 
-class TestBadAMHeap extends HBaseMiniClusterTestBase {
+class TestBadClusterName extends HBaseMiniClusterTestBase {
 
   @Test
-  public void testBadAMHeap() throws Throwable {
-    String clustername = "test_bad_am_heap"
+  public void testBadClusterName() throws Throwable {
+    String clustername = "TestBadClusterName"
     createMiniCluster(clustername, createConfiguration(), 1, true)
 
-    describe "verify that bad Java heap options are picked up"
+    describe "verify that bad cluster are picked up"
 
     try {
       ServiceLauncher launcher = createHoyaCluster(clustername,
@@ -51,7 +52,7 @@ class TestBadAMHeap extends HBaseMiniClusterTestBase {
                (HBaseKeys.ROLE_WORKER): 0,
            ],
            [
-               Arguments.ARG_ROLEOPT, HoyaKeys.ROLE_HOYA_AM, RoleKeys.JVM_HEAP, "invalid",
+               
            ],
            true,
            true, [:])
@@ -60,7 +61,7 @@ class TestBadAMHeap extends HBaseMiniClusterTestBase {
       ClusterDescription status = hoyaClient.clusterDescription
       dumpClusterDescription("Remote CD", status)
     } catch (ServiceLaunchException e) {
-      assertExceptionDetails(e, HoyaExitCodes.EXIT_YARN_SERVICE_FAILED)
+      assertExceptionDetails(e, LauncherExitCodes.EXIT_COMMAND_ARGUMENT_ERROR)
     }
     
   }

@@ -36,7 +36,7 @@ class TestAccM2T2GC1Mon1 extends AccumuloTestBase {
 
   @Test
   public void testAccM1T1GC1Mon1() throws Throwable {
-    String clustername = "TestAccM2T2GC1Mon1"
+    String clustername = "test_acc_m2t2gc1mon1"
     int master = 2
     int tablets = 2
     int monitor = 1

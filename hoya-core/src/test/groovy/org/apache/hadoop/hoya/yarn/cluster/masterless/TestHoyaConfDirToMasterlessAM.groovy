@@ -59,7 +59,7 @@ class TestHoyaConfDirToMasterlessAM extends HBaseMiniClusterTestBase {
 
   @Test
   public void testHoyaConfDirToMasterlessAM() throws Throwable {
-    String clustername = "TestHoyaConfDirToMasterlessAM"
+    String clustername = "test_hoya_conf_dir_to_masterless_am"
     YarnConfiguration conf = createConfiguration()
     createMiniCluster(clustername, conf, 1, true)
 

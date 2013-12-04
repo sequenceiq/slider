@@ -48,7 +48,7 @@ class TestCreateMasterlessAM extends HBaseMiniClusterTestBase {
     describe "create a masterless AM then get the service and look it up via the AM"
 
     //launch fake master
-    String clustername = "TestCreateMasterlessAM"
+    String clustername = "test_create_masterless_am"
     ServiceLauncher launcher
     launcher = createMasterlessAM(clustername, 0, true, false)
     HoyaClient hoyaClient = (HoyaClient) launcher.service

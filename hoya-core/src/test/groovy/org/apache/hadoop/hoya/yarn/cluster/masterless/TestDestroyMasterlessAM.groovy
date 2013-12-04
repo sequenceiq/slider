@@ -39,12 +39,21 @@ class TestDestroyMasterlessAM extends HBaseMiniClusterTestBase {
 
   @Test
   public void testDestroyMasterlessAM() throws Throwable {
-    String clustername = "TestDestroyMasterlessAM"
+    String clustername = "test_destroy_masterless_am"
     createMiniCluster(clustername, createConfiguration(), 1, true)
 
     describe "create a masterless AM, stop it, try to create" +
              "a second cluster with the same name, destroy it, try a third time"
 
+    ServiceLauncher launcher1 = launchHoyaClientAgainstMiniMR(
+        createConfiguration(),
+        [
+            CommonArgs.ACTION_DESTROY,
+            "no-cluster-of-this-name",
+            Arguments.ARG_FILESYSTEM, fsDefaultName,
+        ])
+    assert launcher1.serviceExitCode == 0
+    
     ServiceLauncher launcher = createMasterlessAM(clustername, 0, true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
@@ -96,20 +105,6 @@ class TestDestroyMasterlessAM extends HBaseMiniClusterTestBase {
     
     //and try to destroy a completely different cluster just for the fun of it
     assert 0 == hoyaClient.actionDestroy("no-cluster-of-this-name")
-  }
-
-  @Test
-  public void testDestroyNonexistentCluster() throws Throwable {
-    String clustername = "TestDestroyMasterlessAM"
-    createMiniCluster(clustername, createConfiguration(), 1, true)
-    ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
-              createConfiguration(),
-              [
-                  CommonArgs.ACTION_DESTROY,
-                  "no-cluster-of-this-name",
-                  Arguments.ARG_FILESYSTEM, fsDefaultName,
-              ])
-    assert launcher.serviceExitCode == 0
   }
 
 

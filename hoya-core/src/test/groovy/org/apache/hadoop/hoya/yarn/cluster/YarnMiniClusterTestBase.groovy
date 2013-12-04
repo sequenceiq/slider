@@ -451,7 +451,6 @@ implements KeysForTests, HoyaExitCodes {
     ];
     extraArgs << Arguments.ARG_ROLEOPT << HBaseKeys.ROLE_MASTER << RoleKeys.YARN_MEMORY << YRAM
     extraArgs << Arguments.ARG_ROLEOPT << HBaseKeys.ROLE_WORKER << RoleKeys.YARN_MEMORY << YRAM
-
     return createHoyaCluster(clustername,
                              roles,
                              extraArgs,

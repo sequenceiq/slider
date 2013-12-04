@@ -35,7 +35,7 @@ class TestHBaseMasterOnHDFS extends HBaseMiniClusterTestBase {
 
   @Test
   public void testHBaseMasteOnHDFS() throws Throwable {
-    String clustername = "TestHBaseMasterOnHDFS"
+    String clustername = "test_hbase_master_on_hdfs"
     createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
     log.info("HDFS is at $fsDefaultName")
     assert fsDefaultName.startsWith("hdfs://")

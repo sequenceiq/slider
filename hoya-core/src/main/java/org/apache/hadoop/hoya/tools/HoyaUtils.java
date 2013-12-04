@@ -242,24 +242,15 @@ public final class HoyaUtils {
       int t = Character.getType(elt);
       if (0 == (t & Character.LOWERCASE_LETTER) 
           && 0 == (t & Character.DECIMAL_DIGIT_NUMBER) 
-          && elt != '-') {
+          && elt != '-'
+          && elt != '_') {
         return false;
       }
-      if (!Character.isLetterOrDigit(elt) && elt != '-') {
+      if (!Character.isLetterOrDigit(elt) && elt != '-' && elt != '_') {
         return false;
       }
     }
     return true;
-  }
-
-  /**
-   * Perform whatever operations are needed to make different
-   * case cluster names consistent
-   * @param name cluster name
-   * @return the normalized one (currently: the lower case name)
-   */
-  public static String normalizeClusterName(String name) {
-    return name.toLowerCase(Locale.ENGLISH);
   }
 
   /**

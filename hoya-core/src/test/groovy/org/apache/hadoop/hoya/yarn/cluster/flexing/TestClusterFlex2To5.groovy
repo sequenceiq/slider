@@ -33,7 +33,7 @@ class TestClusterFlex2To5 extends HBaseMiniClusterTestBase {
   @Test
   public void testClusterFlex() throws Throwable {
     assert flexHBaseClusterTestRun(
-        "TestClusterFlex2To5",
+        "test_cluster_flex_2to5",
         1,
         1,
         2,

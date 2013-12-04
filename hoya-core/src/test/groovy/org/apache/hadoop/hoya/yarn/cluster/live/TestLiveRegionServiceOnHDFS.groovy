@@ -37,7 +37,7 @@ class TestLiveRegionServiceOnHDFS extends HBaseMiniClusterTestBase {
 
   @Test
   public void testLiveRegionServiceOnHDFS() throws Throwable {
-    String clustername = "TestLiveRegionServiceOnHDFS"
+    String clustername = "test_live_region_service_on_hdfs"
     int regionServerCount = 1
     createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
     describe(" Create a single region service cluster");

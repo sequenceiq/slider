@@ -22,6 +22,8 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.api.RoleKeys
+import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
@@ -36,12 +38,12 @@ class TestFailedRegionService extends HBaseMiniClusterTestBase {
 
   @Test
   public void testFailedRegionService() throws Throwable {
-    testRegionService("TestFailedRegionService", true)
+    testRegionService("test_failed_region_service", true)
   }
   
   @Test
   public void testStoppedRegionService() throws Throwable {
-    testRegionService("TestStoppedRegionService", false)
+    testRegionService("test_stopped_region_service", false)
   }
   
   private void testRegionService(String testName, boolean toKill) {
@@ -78,10 +80,20 @@ class TestFailedRegionService extends HBaseMiniClusterTestBase {
 
     //and expect a recovery
     status = waitForHoyaWorkerCount(hoyaClient, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+  
+    //now we expect the failure count to be two
 
+    
     hbaseStat = waitForHBaseRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
+    status = hoyaClient.getClusterDescription()
+    assert status.roles[HBaseKeys.ROLE_WORKER]
+               [RoleKeys.ROLE_FAILED_INSTANCES] == "2"
+
     log.info("Updated cluster status : ${hbaseStatusToString(hbaseStat)}");
+    
+    
+    
   }
 
 
