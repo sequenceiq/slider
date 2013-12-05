@@ -47,7 +47,7 @@ import java.util.Map;
  * in the range allowed
  */
 
-public class CommonArgs implements HoyaActions , Arguments {
+public class CommonArgs implements HoyaActions, Arguments {
 
   /**
    * ERROR Strings
