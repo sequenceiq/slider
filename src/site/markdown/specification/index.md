@@ -34,3 +34,5 @@ to define the Hadoop Filesytem APIs --This specification uses [the same notation
 1. [Model: YARN And Hoya](hoya-model.html)
 1. [CLI actions](cli-actions.html)
 
+Exceptions and operations may specify exit codes -these are listed in
+[Client Exit Codes](../exitcodes.html)
