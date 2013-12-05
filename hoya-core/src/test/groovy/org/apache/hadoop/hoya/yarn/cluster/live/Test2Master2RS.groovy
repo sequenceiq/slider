@@ -39,7 +39,7 @@ class Test2Master2RS extends HBaseMiniClusterTestBase {
   @Test
   public void test2Master2RS() throws Throwable {
 
-    String clustername = "Test2Master2RS"
+    String clustername = "test2master2rs"
     int regionServerCount = 2
     createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, false)
 

@@ -1027,6 +1027,10 @@ public class AppState {
       int nodeCount = count;
       cd.setDesiredInstanceCount(rolename,role.getDesired());
       cd.setActualInstanceCount(rolename, nodeCount);
+      cd.setRoleOpt(rolename, ROLE_REQUESTED_INSTANCES, role.getRequested());
+      cd.setRoleOpt(rolename, ROLE_RELEASING_INSTANCES, role.getReleasing());
+      cd.setRoleOpt(rolename, ROLE_FAILED_INSTANCES, role.getFailed());
+      cd.setRoleOpt(rolename, ROLE_FAILED_STARTING_INSTANCES, role.getStartFailed());
       Map<String, Integer> stats = role.buildStatistics();
       cd.statistics.put(rolename, stats);
     }

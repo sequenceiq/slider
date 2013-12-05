@@ -63,6 +63,16 @@ class TestClusterNames {
   }
   
   @Test
+  public void testTitleLetters() throws Throwable {
+    assertInvalidName('Title')
+  }
+    
+  @Test
+  public void testCapitalLetters() throws Throwable {
+    assertInvalidName('UPPER-CASE-CLUSTER')
+  }
+    
+  @Test
   public void testInnerBraced() throws Throwable {
     assertInvalidName('a[a')
   }
@@ -96,7 +106,6 @@ class TestClusterNames {
     assertValid([
         'cluster',
         'cluster1',
-        'UPPER-CASE-CLUSTER',
         'very-very-very-long-cluster-name',
         'c1234567890'
     ])

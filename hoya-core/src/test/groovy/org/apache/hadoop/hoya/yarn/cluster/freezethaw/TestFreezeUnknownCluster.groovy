@@ -40,7 +40,7 @@ class TestFreezeUnknownCluster extends HBaseMiniClusterTestBase {
 
   @Test
   public void testFreezeUnknownCluster() throws Throwable {
-    String clustername = "TestStartUnknownCluster"
+    String clustername = "test_start_unknown_cluster"
     YarnConfiguration conf = createConfiguration()
     createMiniCluster(clustername, conf, 1, true)
 

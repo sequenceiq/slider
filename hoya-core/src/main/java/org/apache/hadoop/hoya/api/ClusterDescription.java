@@ -211,7 +211,7 @@ public class ClusterDescription {
                                              Path clusterSpecPath) throws
                                                                    IOException,
                                                                    HoyaException {
-    if (!fs.exists(clusterSpecPath)) {
+    if (!fs.isFile(clusterSpecPath)) {
       log.debug("Missing cluster specification file {}", clusterSpecPath);
       throw new HoyaException(HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER,
                               ErrorStrings.E_UNKNOWN_CLUSTER + clustername +

@@ -47,7 +47,7 @@ import java.util.Map;
  * in the range allowed
  */
 
-public class CommonArgs implements HoyaActions , Arguments {
+public class CommonArgs implements HoyaActions, Arguments {
 
   /**
    * ERROR Strings
@@ -104,10 +104,6 @@ public class CommonArgs implements HoyaActions , Arguments {
              description = "Resource manager hostname:port ",
              required = false)
   public String rmAddress;
-
-  @Parameter(names = ARG_USER,
-             description = "Username if not the current user")
-  public String user = System.getProperty("user.name");
 
   @Parameter(names = ARG_ZKHOSTS,
              description = "comma separated list of the Zookeeper hosts")

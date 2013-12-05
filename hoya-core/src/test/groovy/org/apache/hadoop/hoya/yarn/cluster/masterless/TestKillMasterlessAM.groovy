@@ -39,7 +39,7 @@ class TestKillMasterlessAM extends HBaseMiniClusterTestBase {
 
   @Test
   public void testKillMasterlessAM() throws Throwable {
-    String clustername = "TestKillMasterlessAM"
+    String clustername = "test_kill_masterless_am"
     createMiniCluster(clustername, createConfiguration(), 1, true)
 
     describe "kill a masterless AM and verify that it shuts down"

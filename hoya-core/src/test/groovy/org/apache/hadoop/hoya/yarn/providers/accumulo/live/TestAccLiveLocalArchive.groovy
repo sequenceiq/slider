@@ -36,7 +36,7 @@ class TestAccLiveLocalArchive extends AccumuloTestBase {
 
   @Test
   public void testAccLiveLocalArchive() throws Throwable {
-    String clustername = "TestAccLiveLocalArchive"
+    String clustername = "test_acc_live_local_archive"
     int tablets = 1
     int monitor = 1
     int gc = 1

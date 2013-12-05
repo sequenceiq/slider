@@ -70,7 +70,7 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
   public void testStatusLiveCluster() throws Throwable {
     describe("create a live cluster then exec the status command")
     //launch fake master
-    String clustername = "testStatusLiveCluster"
+    String clustername = "test_status_live_cluster"
     
     //launch the cluster
     ServiceLauncher launcher = createMasterlessAM(clustername, 0, true, false)

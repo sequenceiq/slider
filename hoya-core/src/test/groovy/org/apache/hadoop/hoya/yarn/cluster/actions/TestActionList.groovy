@@ -71,7 +71,6 @@ class TestActionList extends HBaseMiniClusterTestBase {
         [
             HoyaActions.ACTION_LIST,
             Arguments.ARG_MANAGER, RMAddr,
-            Arguments.ARG_USER,""
         ]
     )
     assert launcher.serviceExitCode == 0
@@ -80,7 +79,7 @@ class TestActionList extends HBaseMiniClusterTestBase {
   @Test
   public void testListLiveCluster() throws Throwable {
     //launch the cluster
-    String clustername = "testListLiveCluster"
+    String clustername = "test_list_live_cluster"
     ServiceLauncher launcher = createMasterlessAM(clustername, 0, true, false)
     ApplicationReport report = waitForClusterLive((HoyaClient) launcher.service)
 

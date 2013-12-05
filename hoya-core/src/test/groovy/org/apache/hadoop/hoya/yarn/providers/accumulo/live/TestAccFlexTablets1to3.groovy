@@ -37,7 +37,7 @@ class TestAccFlexTablets1to3 extends AccumuloTestBase {
   @Test
   public void testAccFlexTablets1to3() throws Throwable {
     ClusterDescription cd = flexAccClusterTestRun(
-        "TestAccFlexTablets1to3",
+        "test_acc_flex_tablets1to3",
         [
             [
                 (AccumuloKeys.ROLE_MASTER): 1,

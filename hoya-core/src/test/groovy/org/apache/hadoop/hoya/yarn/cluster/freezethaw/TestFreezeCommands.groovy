@@ -42,7 +42,7 @@ class TestFreezeCommands extends HBaseMiniClusterTestBase {
 
   @Test
   public void testFreezeCommands() throws Throwable {
-    String clustername = "TestFreezeCommands"
+    String clustername = "test_freeze_commands"
     YarnConfiguration conf = createConfiguration()
     createMiniCluster(clustername, conf, 1, 1, 1, true, true)
 

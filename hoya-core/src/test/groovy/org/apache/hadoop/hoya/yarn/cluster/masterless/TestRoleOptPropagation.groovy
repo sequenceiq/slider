@@ -37,7 +37,7 @@ class TestRoleOptPropagation extends HBaseMiniClusterTestBase {
 
   @Test
   public void testRoleOptPropagation() throws Throwable {
-    String clustername = "TestRoleOptPropagation"
+    String clustername = "test_role_opt_propagation"
     createMiniCluster(clustername, createConfiguration(), 1, true)
 
     describe "verify that role options propagate down to deployed roles"

@@ -24,6 +24,7 @@ import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.HoyaXmlConfKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.exceptions.BadClusterStateException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys;
 import org.slf4j.Logger;
@@ -81,9 +82,8 @@ public abstract class HoyaProviderFactory extends Configured {
     String providerKey = String.format(HoyaXmlConfKeys.KEY_HOYA_PROVIDER, application);
     String classname = conf.getTrimmed(providerKey);
     if (classname == null) {
-      throw new HoyaException(HoyaExitCodes.EXIT_BAD_CONFIGURATION,
-                              String.format(PROVIDER_NOT_FOUND, application,
-                                            providerKey));
+      throw new BadClusterStateException(PROVIDER_NOT_FOUND, application,
+                                            providerKey);
     }
     LOG.debug("Provider key {}: value {}", providerKey, classname);
     Class<?> providerClass;
@@ -95,11 +95,10 @@ public abstract class HoyaProviderFactory extends Configured {
       providerClass = null;
     }
     if (providerClass == null) {
-      throw new HoyaException(HoyaExitCodes.EXIT_BAD_CONFIGURATION,
-                              String.format(PROVIDER_NOT_LOADED,
+      throw new BadClusterStateException(PROVIDER_NOT_LOADED,
                                             application,
                                             providerKey,
-                                            classname));
+                                            classname);
     }
     Exception ex;
     try {
@@ -115,7 +114,7 @@ public abstract class HoyaProviderFactory extends Configured {
       ex = e;
     }
     //by here the operation failed and ex is set to the value 
-    throw new HoyaException(HoyaExitCodes.EXIT_INTERNAL_ERROR, ex,
+    throw new BadClusterStateException(ex,
                               "Failed to create an instance of %s : %s",
                               providerClass,
                               ex);

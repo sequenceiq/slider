@@ -232,29 +232,25 @@ public final class HoyaUtils {
     if (name == null || name.isEmpty()) {
       return false;
     }
-    name = normalizeClusterName(name);
     int first = name.charAt(0);
-    if (!Character.isLetter(first)) {
+    if (0 == (Character.getType(first)  & Character.LOWERCASE_LETTER)) {
       return false;
     }
 
     for (int i = 0; i < name.length(); i++) {
       int elt = (int) name.charAt(i);
-      if (!Character.isLetterOrDigit(elt) && elt != '-') {
+      int t = Character.getType(elt);
+      if (0 == (t & Character.LOWERCASE_LETTER) 
+          && 0 == (t & Character.DECIMAL_DIGIT_NUMBER) 
+          && elt != '-'
+          && elt != '_') {
+        return false;
+      }
+      if (!Character.isLetterOrDigit(elt) && elt != '-' && elt != '_') {
         return false;
       }
     }
     return true;
-  }
-
-  /**
-   * Perform whatever operations are needed to make different
-   * case cluster names consistent
-   * @param name cluster name
-   * @return the normalized one (currently: the lower case name)
-   */
-  public static String normalizeClusterName(String name) {
-    return name.toLowerCase(Locale.ENGLISH);
   }
 
   /**
@@ -549,10 +545,10 @@ public final class HoyaUtils {
     builder.append(separator).append(
       "state: ").append(r.getYarnApplicationState());
     builder.append(separator).append("URL: ").append(r.getTrackingUrl());
-    builder.append(separator).append("Started ").append(new Date(r.getStartTime()).toLocaleString());
+    builder.append(separator).append("Started ").append(new Date(r.getStartTime()).toGMTString());
     long finishTime = r.getFinishTime();
     if (finishTime>0) {
-      builder.append(separator).append("Finished ").append(new Date(finishTime).toLocaleString());
+      builder.append(separator).append("Finished ").append(new Date(finishTime).toGMTString());
     }
     builder.append(separator).append("RPC :").append(r.getHost()).append(':').append(r.getRpcPort());
     String diagnostics = r.getDiagnostics();

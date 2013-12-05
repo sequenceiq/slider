@@ -61,7 +61,7 @@ class TestLiveClusterFromArchive extends HBaseMiniClusterTestBase {
   }
 
   public String getTestClusterName() {
-    return "TestLiveClusterFromArchive"
+    return "test_live_cluster_from_archive"
   }
 
   public boolean startHDFS() {

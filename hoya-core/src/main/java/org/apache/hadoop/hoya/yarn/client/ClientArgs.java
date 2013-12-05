@@ -88,7 +88,6 @@ public class ClientArgs extends CommonArgs {
              arity = 1)
   public boolean persist;
 
-
   /**
    * This is a listing of the roles to create
    */
@@ -125,7 +124,6 @@ public class ClientArgs extends CommonArgs {
   }
   
   
-
   /**
    * map of actions -> (explanation, min #of entries [, max no.])
    * If the max no is not given it is assumed to be the same as the min no.
