@@ -80,7 +80,7 @@ started.
 ## Invoking Hoya
 
  
-    hoya <ACTION> <OPTIONS>
+    hoya <ACTION> <CLUSTER> <OPTIONS>
 
 
 <!--- ======================================================================= -->
@@ -149,7 +149,7 @@ The format for returned documents. xml is the Hadoop XML configuration format; p
 the number of instances of a role desired when creating or flexing a cluster.
 
 
-### --wait timeInSeconds
+### --wait time
 
 When creating or starting a cluster, wait the specified number of seconds
 for the Hoya Cluster itself to start running. It can still take time after this for HBase to be live.
@@ -167,17 +167,6 @@ Application Manager Queue Name. Applicable (and optional) in cluster create and 
 Application Manager Priority. Applicable (and optional) in cluster create and start operations. Default value: 0
 
 
-## Testing and debugging arguments
-
-These options are provided for internal testing of Hoya, and are documented for completeness. No guarantees as to the stability of the commands can be made, and they must be considered unsupported.
-
-### --Xtest
-
-This notifies the application that this is a test run, and that the application should behave in a way to aid testing. Currently all this does is
-
-1. Limit the number of attempts to start the AM to one.
-1. Enable verbose output in the client-AM RPC
-
 
 <!--- ======================================================================= -->
 
@@ -190,13 +179,13 @@ CLUSTER COMMANDS
 
 
 
-### build \<cluster> --fs filesystem --appconf dir --zkhosts zkhosts \[--image path] \[--apphome apphomedir] \[--zkport port] \[--zkpath zkpath]\[ \[--waittime time] \[--role \<name> \<count>]*  \[--roleopt \<name> \<value>]* \[--provider provider]
+### build \<cluster> --fs filesystem --appconf dir --zkhosts zkhosts \[--image path] \[--apphome apphomedir] \[--zkport port] \[--zkpath zkpath]  \[--role \<name> \<count>]*  \[--roleopt \<name> \<value>]* \[--provider provider]
 
 Build a cluster specification of the given name, with the specific options.
 
 The cluster is not started; this can be done later with a `thaw` command.
 
-### create \<cluster> --fs filesystem --appconf dir --zkhosts zkhosts \[--image path] \[--apphome apphomedir] \[--zkport port] \[--zkpath zkpath]\[ \[--waittime time] \[--role \<name> \<count>]*  \[--roleopt \<name> \<value>]* 
+### create \<cluster> --fs filesystem --appconf dir --zkhosts zkhosts \[--image path] \[--apphome apphomedir] \[--zkport port] \[--zkpath zkpath] \[--waittime time] \[--role \<name> \<count>]*  \[--roleopt \<name> \<value>]* 
 
 Build and run a cluster of the given name, using the specified image. If a configuration directory is specified, it's configuration files override those in the image. 
 
@@ -245,7 +234,7 @@ The output can be streamed to the console in `stdout`, or it can be saved to a f
 
 ### list \<cluster>
 
-List running Hoya clusters belonging to the user.
+List running Hoya clusters visible to the user.
 
 If a cluster name is given and there is no running cluster with that name, an error is returned. 
 
@@ -292,17 +281,17 @@ These are clearly abnormal operations; they are here primarily for testing
 Cluster names must:
 
 1. be at least one character long
-1. begin with a letter
-1. All other characters must be in the range \[a-z,0-9,-]
+1. begin with a lower case letter
+1. All other characters must be in the range \[a-z,0-9,-, -]
 1. All upper case characters are converted to lower case
  
 Example valid names:
 
     hoya1
     hbase-cluster
-    HBase-cluster
+    hbase_cluster
+    accumulo_m1_tserve4
 
-The latter two cluster names are considered equivalent
 
 <!--- ======================================================================= -->
 ## Cluster Options
