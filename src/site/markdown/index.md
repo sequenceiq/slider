@@ -79,4 +79,5 @@ running HBase on YARN:  Come work with us on Hoya!
 * [Application Needs](app_needs.html)
 * [Building](building.html)
 * [Releasing](releasing.html)
-* [Role history](rolehistory.html) (under development)
+* [Role history](rolehistory.html) 
+* [Specification](specification)
