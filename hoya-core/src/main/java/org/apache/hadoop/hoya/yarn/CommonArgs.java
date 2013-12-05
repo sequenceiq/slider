@@ -105,10 +105,6 @@ public class CommonArgs implements HoyaActions , Arguments {
              required = false)
   public String rmAddress;
 
-  @Parameter(names = ARG_USER,
-             description = "Username if not the current user")
-  public String user = System.getProperty("user.name");
-
   @Parameter(names = ARG_ZKHOSTS,
              description = "comma separated list of the Zookeeper hosts")
   public String zkhosts;

@@ -245,7 +245,7 @@ The output can be streamed to the console in `stdout`, or it can be saved to a f
 
 ### list \<cluster>
 
-List running Hoya clusters visible to the user.
+List running Hoya clusters belonging to the user.
 
 If a cluster name is given and there is no running cluster with that name, an error is returned. 
 

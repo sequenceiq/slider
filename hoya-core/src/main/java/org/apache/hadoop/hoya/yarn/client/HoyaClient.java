@@ -1212,7 +1212,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   public int actionList(String clustername) throws IOException, YarnException {
     verifyManagerSet();
 
-    String user = serviceArgs.user;
+    String user = UserGroupInformation.getCurrentUser().getUserName();
     List<ApplicationReport> instances = listHoyaInstances(user);
 
     if (clustername == null || clustername.isEmpty()) {

@@ -71,7 +71,6 @@ class TestActionList extends HBaseMiniClusterTestBase {
         [
             HoyaActions.ACTION_LIST,
             Arguments.ARG_MANAGER, RMAddr,
-            Arguments.ARG_USER,""
         ]
     )
     assert launcher.serviceExitCode == 0

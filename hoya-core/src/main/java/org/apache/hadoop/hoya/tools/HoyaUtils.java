@@ -545,10 +545,10 @@ public final class HoyaUtils {
     builder.append(separator).append(
       "state: ").append(r.getYarnApplicationState());
     builder.append(separator).append("URL: ").append(r.getTrackingUrl());
-    builder.append(separator).append("Started ").append(new Date(r.getStartTime()).toLocaleString());
+    builder.append(separator).append("Started ").append(new Date(r.getStartTime()).toGMTString());
     long finishTime = r.getFinishTime();
     if (finishTime>0) {
-      builder.append(separator).append("Finished ").append(new Date(finishTime).toLocaleString());
+      builder.append(separator).append("Finished ").append(new Date(finishTime).toGMTString());
     }
     builder.append(separator).append("RPC :").append(r.getHost()).append(':').append(r.getRpcPort());
     String diagnostics = r.getDiagnostics();

@@ -64,7 +64,6 @@ public interface Arguments {
   String ARG_ROLE = "--role";
   String ARG_SYSPROP = "-S";
   String ARG_ROLEOPT = "--roleopt";
-  String ARG_USER = "--user";
   String ARG_WAIT = "--wait";
   String ARG_ZKPORT = "--zkport";
   String ARG_ZKHOSTS = "--zkhosts";
