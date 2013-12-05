@@ -29,7 +29,7 @@ to define the Hadoop Filesytem APIs using the same notation as here,
 the latest version being available on [github](https://github.com/steveloughran/hadoop-trunk/tree/stevel/HADOOP-9361-filesystem-contract/hadoop-common-project/hadoop-common/src/site/markdown/filesystem)
 Two key references are
 
- 1. [The notation reused in the Hoya specifications](https://github.com/steveloughran/hadoop-trunk/blob/stevel/HADOOP-9361-filesystem-contract/hadoop-common-project/hadoop-common/src/site/markdown/filesystem/notation.md]
+ 1. [The notation reused in the Hoya specifications](https://github.com/steveloughran/hadoop-trunk/blob/stevel/HADOOP-9361-filesystem-contract/hadoop-common-project/hadoop-common/src/site/markdown/filesystem/notation.md)
  1. [The model of the filesystem](https://github.com/steveloughran/hadoop-trunk/blob/stevel/HADOOP-9361-filesystem-contract/hadoop-common-project/hadoop-common/src/site/markdown/filesystem/model.md)
  
  The model and its predicates and invariants will be used in these specifications.
@@ -57,16 +57,16 @@ YARN applications have a number of states. These are ordered such that if the
   
 AMs can request containers to be added or released    
 
-      AmRequest = { add-container(priority, requirements), release(containerId)}
+    AmRequest = { add-container(priority, requirements), release(containerId)}
 
-Job queues are named queues of job requests; there is always a queue called "default"
+Job queues are named queues of job requests; there is always a queue called `"default"`
 
     Queues: Map[String:Queue]
         Queue:  List[Requests]
         Request = {
           launch(app-name, app-type, requirements, context)
         }
-        Context: (localisedresources, command)
+        Context: (localized-resources: Map[String,URL], command)
 
 
 This is doesn't completely model the cluster from the AM perspective -there's no
@@ -119,13 +119,13 @@ access to the filesystem and to parts of YARN itself.
 This specification does not currently explicitly model the username and credentials.
 If it did they would be used throughout the specification to bind to a YARN or HDFS instance.
 
-### UserGroupInformation.getCurrentUser(): UserGroupInformation
+`UserGroupInformation.getCurrentUser(): UserGroupInformation`
 
 Returns the current user information. This information is immutable and fixed for the duration of the process.
 
 
 
-## Hoya
+## Hoya Model
 
 ### Cluster name
 
@@ -238,28 +238,27 @@ A  Cluster Description defines a deployable cluster if it is well-defined cluste
 
 This defines how a cluster description is valid in the extends the valid configuration with 
 
-1. The entry `name` must match a supported provider
-1. Any elements that name the cluster match the cluster name as defined by the path to the cluster:
-  
-    originConfigurationPath == original-conf-path(FS, clustername)
-    generatedConfigurationPath == generated-conf-path(FS, clustername)
-    dataPath == data-path(FS, clustername)
+* The entry `name` must match a supported provider
+* Any elements that name the cluster match the cluster name as defined by the path to the cluster:
 
-1. The paths defined in `originConfigurationPath` , `generatedConfigurationPath` and `dataPath` must all exist.
-1. `options/zookeeper.path` must be defined and refer to a path in the ZK cluster
+        originConfigurationPath == original-conf-path(FS, clustername)
+        generatedConfigurationPath == generated-conf-path(FS, clustername)
+        dataPath == data-path(FS, clustername)
+
+* The paths defined in `originConfigurationPath` , `generatedConfigurationPath` and `dataPath` must all exist.
+* `options/zookeeper.path` must be defined and refer to a path in the ZK cluster
 defined by (`options/zookeeper.hosts`, `zookeeper.port)` to which the user has write access (required by HBase and Accumulo)
-1. If `options/cluster.application.image.path` is defined, it must exist and be readable by the user.
-1. It must declare a type that maps to a provider entry in the hoya client's XML configuration:
+* If `options/cluster.application.image.path` is defined, it must exist and be readable by the user.
+* It must declare a type that maps to a provider entry in the Hoya client's XML configuration:
 
-    len(clusterspec["type"]) > 0 
-    clientconfig["hoya.provider."+ clusterspec["type"]] != null
+        len(clusterspec["type"]) > 0 
+        clientconfig["hoya.provider."+ clusterspec["type"]] != null
 
-1. That entry must map to a class on the classpath which can be instantiated
+* That entry must map to a class on the classpath which can be instantiated
 and cast to `HoyaProviderFactory`.
 
-    (Class.forName(clientconfig["hoya.provider."+ clusterspec["type"]])
-      .newInstance()) instanceof HoyaProviderFactory 
-
+        let classname = clientconfig["hoya.provider."+ clusterspec["type"]] 
+        (Class.forName(classname).newInstance()) instanceof HoyaProviderFactory 
 
 #### valid-for-provider(cluster-description, provider)
 

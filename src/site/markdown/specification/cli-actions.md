@@ -44,8 +44,8 @@ These can define client options that are not set in `conf/hoya-client.xml` - or 
  
 ### Cluster names
 
-All actions that must take a cluster name will fail with {{EXIT_UNKNOWN_HOYA_CLUSTER}}
-if one is not given
+All actions that must take a cluster name will fail with `EXIT_UNKNOWN_HOYA_CLUSTER`
+if one is not provided.
 
 ## Action: Build
 
@@ -53,18 +53,21 @@ Builds a cluster -creates all the on-filesystem datastructures, and generates a 
 that is both well-defined and deployable -*but does not actually start the cluster*
 
     build (clustername,
-       roleOptions:Map[String,Map[String:String]],
-       options:Map[String:String],
-       options:Map[String:String],
-       confdir: URI,
-      ZK-quorum,
+      roleSizes:List[(String,String)],
+      roleOptions:List[(String,String, String)],
+      options:List[(String,String)],
+      confdir: URI,
+      provider: String
+      zkhosts,
       zkport,
-      resource-manager?, 
-
+      image
+      apphome
+      appconfdir
+      
 
 #### Preconditions
 
-Note that the ordering of these preconditions is not guaranteed to remain constant.
+(Note that the ordering of these preconditions is not guaranteed to remain constant)
 
 The cluster name is valid
 
@@ -78,16 +81,16 @@ The cluster must not exist
 
     if is-dir(HDFS, cluster-path(FS, clustername)) : raise HoyaException(EXIT_CLUSTER_EXISTS)
 
-The configuration directory must exist in the referenced filesystem (which does not have to the cluster's HDFS instance),
-and must contain only files
+The configuration directory must exist it does not have to be the cluster's HDFS instance,
+as it will be copied there -and must contain only files
 
-    let FS = FileSystem.get(confdir)
-    if not isDir(FS, confdir) raise HoyaException(EXIT_COMMAND_ARGUMENT_ERROR)
-    forall f in children(FS, confdir) :
+    let FS = FileSystem.get(appconfdir)
+    if not isDir(FS, appconfdir) raise HoyaException(EXIT_COMMAND_ARGUMENT_ERROR)
+    forall f in children(FS, appconfdir) :
         if not isFile(f): raise IOException
 
 There's a race condition at build time where between the preconditions being met and the cluster specification being saved, the cluster
-is created by another process. The strategy to address this is 
+is created by another process. The strategy to address this is:
 
 1. Verify that the cluster directory does not exist.
 1. Perform any validation needed on the arguments and build up the Cluster Description instance
@@ -104,10 +107,9 @@ All the cluster directories exist
     is-dir(HDFS', original-conf-path(HDFS', clustername))
     is-dir(HDFS', generated-conf-path(HDFS', clustername))
 
-
 The cluster specification saved is well-defined and deployable
 
-    let cluster-description = parse(data(HDFS',cluster-json-path(HDFS', clustername)))
+    let cluster-description = parse(data(HDFS', cluster-json-path(HDFS', clustername)))
     well-defined-cluster(cluster-description)
     deployable-cluster(HDFS', cluster-description)
 
@@ -116,28 +118,57 @@ if the validation fails.
 
 Fields in the cluster description have been filled in
 
-    cluster-description["createTime"] > 0
-    cluster-description["createTime"] <= System.currentTimeMillis()
-    cluster-description["state"]  = ClusterDescription.STATE_CREATED;
-    cluster-description["options"]["zookeeper.port"]  = zkport
-    cluster-description["options"]["zookeeper.hosts"]  = zkhosts
+    clusterspec["type"] == provider
+    clusterspec["createTime"] > 0
+    clusterspec["createTime"] <= System.currentTimeMillis()
+    clusterspec["state"]  == ClusterDescription.STATE_CREATED;
+    clusterspec["options"]["zookeeper.port"]  == zkport
+    clusterspec["options"]["zookeeper.hosts"]  == zkhosts
+
+Any `apphome` and `image` properties have propagated
+
+    apphome == null or clusterspec.options["cluster.application.home"] == apphome
+    image == null or clusterspec.options["cluster.application.image.path"] == image
+
+(The `well-defined-cluster()` requirement above defines the valid states
+of this pair of options)
+
+
+All role sizes have been mapped to 'role.instances' fields
+    
+    forall (name, size) in roleSizes :
+        clusterspec.roles[name]["role.instances"] == size
+      
+
+All role option parameters have been added to the specific role's option map
+
+      forall (name, opt, val) in roleOptions :
+          clusterspec.roles[name][opt] == val
+
+All option parameters have been added to the `options` map in the specification
+
+      forall (opt, val) in options :
+          clusterspec.options[opt] == val
+
+There's no explicit rejection of duplicate options, the outcome of that
+state is 'undefined'. 
+
+What is defined is that if Hoya or its provider provided a default option value,
+the command-line supplied option will override it.
 
 All files that were in the configuration directory are now copied into the "original" configuration directory
 
-    let FS = FileSystem.get(confdir)
+    let FS = FileSystem.get(appconfdir)
     let dest = original-conf-path(HDFS', clustername)
-    if not isDir(FS, confdir) raise FileNotFoundException
     forall [c in children(FS, confdir) :
         data(HDFS', dest + [filename(c)]) == data(FS, c)
 
 All files that were in the configuration directory now have equivalents in the generated configuration directory
 
-    let FS = FileSystem.get(confdir)
-    let dest = original-conf-path(HDFS, clustername)
-    if not isDir(FS, confdir) raise FileNotFoundException
+    let FS = FileSystem.get(appconfdir)
+    let dest = generated-conf-path(HDFS', clustername)
     forall [c in children(FS, confdir) :
         isfile(HDFS', dest + [filename(c)])
-
 
 
 ## Action: Thaw
@@ -148,7 +179,6 @@ Thaw takes a cluster with configuration and (possibly) data on disk, and
 attempts to instantiate a Hoya cluster with the specified number of nodes
 
 #### Preconditions
-
 
     if not valid-cluster-name(clustername) : raise HoyaException(EXIT_COMMAND_ARGUMENT_ERROR)
 
@@ -172,26 +202,28 @@ The cluster specification must exist, be valid and deployable
 After the thaw has been performed, there is now a queued request in YARN
 for the chosen (how?) queue
 
-    YARN'.Queues'[amqueue] = YARN.Queues[amqueue] + launch("hoya", clustername, requirements, context)
+    YARN'.Queues'[amqueue] = YARN.Queues[amqueue] + [launch("hoya", clustername, requirements, context)]
 
 If a wait timeout was specified, the cli waits until the application is considered
 running by YARN (the AM is running), the wait timeout has been reached, or
 the application has failed
 
-    waittime < 0 or exists a in hoya-app-running-instances(hoya-app-instances(YARN', clustername, user))
-        where a.YarnApplicationState == RUNNING
+    waittime < 0 or (exists a in hoya-app-running-instances(hoya-app-instances(YARN', clustername, user))
+        where a.YarnApplicationState == RUNNING)
 
 
 ## Outcome: AM-launched state
 
-At some indeterminate point after the AM was queued, it will be deployed, if the relevant
-prerequisites of the launch request are met
+Some time after the AM was queued, if the relevant
+prerequisites of the launch request are met, the AM will be deployed
+
+#### Preconditions
 
 * The resources referenced in HDFS (still) are accessible by the user
 * The requested YARN memory and core requirements could be met on the cluster and queue.
 * There is sufficient capacity in the cluster to create a container for the AM.
 
-### Postconditions
+#### Postconditions
 
 Define a YARN state at a specific time `t` as `YARN(t)`; the fact that
 an AM is launched afterwards
@@ -235,19 +267,21 @@ will trigger a restart attempt -this may be on the same or a different node.
 
 The AM was launched at an earlier time, `t1`
 
-    exists t1 where t1 > t0, am-launched(YARN(t1)
+    exists t1 where t1 > t0 and am-launched(YARN(t1)
 
 
 #### Postconditions
 
 The application is actually started if it is listed in the YARN application list
-as being in the state `RUNNING`, an RPC port has been registered with the AM,
-and that port is servicing RPC requests.
+as being in the state `RUNNING`, an RPC port has been registered with YARN (visible as the `rpcPort`
+attribute in the YARN Application Report,and that port is servicing RPC requests
+from authenticated callers.
 
-    exists t2 where t2 > t1 and :
-        hoya-app-live(YARN(t2), YARN, clustername, user)
-        hoya-app-live-instances(YARN(t2))[0].rpcPort != 0
-        rpc-connection(hoya-app-live-instances(YARN(t2))[0], HoyaClusterProtocol)
+    exists t2 where:
+        t2 > t1 
+        and hoya-app-live(YARN(t2), YARN, clustername, user)
+        and hoya-app-live-instances(YARN(t2))[0].rpcPort != 0
+        and rpc-connection(hoya-app-live-instances(YARN(t2))[0], HoyaClusterProtocol)
 
 A test for accepting cluster requests is querying the cluster status
 with `HoyaClusterProtocol.getJSONClusterStatus()`. If this returns
@@ -274,7 +308,6 @@ The steady state of a Hoya cluster is that the number of live instances of a rol
 plus the number of requested instances , minus the number of instances for
 which release requests have been made must match that of the desired number.
 
-
 If the internal state of the Hoya AM is defined as `AppState`
 
     forall r in clusterspec.roles :
@@ -293,15 +326,14 @@ It is indirectly observable from the cluster state which an AM can be queried fo
 
 Hoya does not consider it an error if the number of actual instances remains below
 the desired value (i.e. outstanding requests are not being satisfied) -this is
-an operational state of the cluster that it cannot address.
+an operational state of the cluster that Hoya cannot address.
 
-#### Cluster startup
+### Cluster startup
 
 On a healthy dedicated test cluster, the time for the requests to be satisfied is
 a few tens of seconds at most: a failure to achieve this state is a sign of a problem.
 
-
-#### Node or process failure
+### Node or process failure
 
 After a container or node failure, a new container for a new instance of that role
 is requested.
@@ -309,7 +341,7 @@ is requested.
 The failure count is incremented -it can be accessed via the `"role.failed.instances"`
 attribute of a role in the status report.
 
-The number of failures of a role is tracked, and used by hoya as to when to
+The number of failures of a role is tracked, and used by Hoya as to when to
 conclude that the role is somehow failing consistently -and it should fail the
 entire application.
 
@@ -321,13 +353,13 @@ option: `"hoya.container.failure.threshold"` defining that threshold.
         r["role.failed.instances"] < status.options["hoya.container.failure.threshold"]
 
 
-#### Instance startup failure
+### Instance startup failure
 
 
-Startup failures are measured alongside general node failures, and counted differently.
+Startup failures are measured alongside general node failures.
 
 A container is deemed to have failed to start if either of the following conditions
-were met
+were met:
 
 1. The AM received an `onNodeManagerContainerStartFailed` event.
 
@@ -341,12 +373,10 @@ treated as a sign that the container is failing to launch the program reliably -
 either the generated command line is invalid, or the application is failing
 to run/exiting on or nearly immediately.
 
-
 ## Action: Create
 
-Create is simply Build + Thaw in sequence  - the postconditions from build
-are intended to match the preconditions of thaw
-
+Create is simply `build` + `thaw` in sequence  - the postconditions from the first
+action are intended to match the preconditions of the second.
 
 ## Action: freeze
 
@@ -365,7 +395,7 @@ The cluster name is valid and it matches a known cluster
     if not valid-cluster-name(clustername) : raise HoyaException(EXIT_COMMAND_ARGUMENT_ERROR)
     
     if not is-file(HDFS, cluster-path(HDFS, clustername)) :
-        HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER)
+        raise HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER)
 
 #### Postconditions
 
@@ -376,8 +406,7 @@ until the cluster has finished or the wait time was exceeded.
 
 The outcome should be the same:
 
-    not hoya-app-running(YARN, clustername)
-
+    not hoya-app-running(YARN', clustername)
 
 ## Action: flex
 
@@ -390,8 +419,8 @@ which will change the desired steady-state of the application
 
 #### Preconditions
 
-    if not is-file(HDFS, cluster-json-path(HDFS, clustername)) : HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER)
-  
+    if not is-file(HDFS, cluster-json-path(HDFS, clustername)) :
+        raise HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER)
 
 #### Postconditions
 
@@ -431,8 +460,9 @@ satisfied.
 
 ## Action: destroy
 
-Idempotent operation to destroy a frozen cluster -succeeds if the 
-cluster has already been destroyed/is unknown
+Idempotent operation to destroy a frozen cluster -it succeeds if the 
+cluster has already been destroyed/is unknown, but not if it is
+actually running.
 
 #### Preconditions
 
@@ -450,6 +480,8 @@ The cluster directory and all its children do not exist
 
 ## Action: status
 
+    status clustername
+    
 BUG-11364 proposes adding an `--outfile` operation to output this to a named file,
 this is to aid testing. Currently it goes to stdout.
 
@@ -457,8 +489,6 @@ this is to aid testing. Currently it goes to stdout.
 #### Preconditions
 
     if not hoya-app-running(YARN, clustername) : raise HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER)
-
-
 
 #### Postconditions
 
@@ -505,14 +535,43 @@ the named file/printed to stdout in the format chosen
     let status = hoya-app-live-instances(YARN).rpcPort.getJSONClusterStatus()
     let conf = status.clientProperties
     if format == "xml" : 
-        let body = status.clientProperties.asXmlDocument();
+        let body = status.clientProperties.asXmlDocument()
     else:
-        let body = status.clientProperties.asProperties();
+        let body = status.clientProperties.asProperties()
         
     if outfile != "" :
         data(LocalFS', outfile) == body
     else
         body in STDOUT'
+
+## Action: list
+
+    list [clustername]
+
+Lists all clusters of a user, or only the one given
+
+#### Preconditions
+
+If a clustername is specified it must be in YARNs list of active or completed applications
+of that user:
+
+    if clustername != "" and [] == hoya-app-instances(YARN, clustername, user) 
+        raise HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER)
+
+
+#### Postconditions
+
+If no clustername was given, all hoya applications of that user are listed,
+else only the one running (or one of the finished ones)
+  
+    if clustername == "" :
+        forall a in hoya-app-instances(YARN, user) :
+            a.toString() in STDOUT'
+    else
+       let e = hoya-app-instances(YARN, clustername, user) 
+       e.toString() in STDOUT'
+
+
 
 ## Action: monitor
 
@@ -525,7 +584,6 @@ It may not be supported in Hoya 1.x
 
 
 #### Postconditions
-
 
 
 
