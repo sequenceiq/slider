@@ -18,5 +18,5 @@
 
 package org.apache.hadoop.hoya.yarn.params;
 
-public class ActionStatus extends AbstractAction {
+public class ActionFreezeArgs extends AbstractActionArgs {
 }

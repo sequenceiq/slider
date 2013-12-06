@@ -33,7 +33,7 @@ import java.util.Map;
  * Abstract Action to build things; shares args across build and
  * list
  */
-public class AbstractClusterBuildingAction extends AbstractAction {
+public class AbstractClusterBuildingActionArgs extends AbstractActionArgs {
 
   /**
    *    Declare the image configuration directory to use when creating or reconfiguring a hoya cluster. The path must be on a filesystem visible to all nodes in the YARN cluster.
@@ -84,7 +84,7 @@ public class AbstractClusterBuildingAction extends AbstractAction {
 
 
   @ParametersDelegate 
-  public RoleDelegate roleDelegate; 
+  public RoleDelegateArgs roleDelegate; 
   
   /**
    * All the role option triples

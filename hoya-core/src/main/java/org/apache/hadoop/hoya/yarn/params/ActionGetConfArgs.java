@@ -19,28 +19,17 @@
 package org.apache.hadoop.hoya.yarn.params;
 
 import com.beust.jcommander.Parameter;
-import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+public class ActionGetConfArgs extends AbstractActionArgs {
 
-public class RoleDelegate extends AbstractDelegate {
-
-  /**
-   * This is a listing of the roles to create
-   */
-  @Parameter(names = {ARG_ROLE}, arity = 2,
-             description = "role <name> <count>")
-  public List<String> roleTuples = new ArrayList<String>(0);
+  //--format 
+  @Parameter(names = ARG_FORMAT,
+             description = "Format for a response: [text|xml|json|properties]")
+  public String format = FORMAT_XML;
 
 
-  /**
-   * Get the role mapping (may be empty, but never null)
-   * @return role mapping
-   * @throws BadCommandArgumentsException parse problem
-   */
-  public Map<String, String> getRoleMap() throws BadCommandArgumentsException {
-    return convertTupleListToMap("roles", roleTuples);
-  }
+  @Parameter(names = {ARG_OUTPUT, ARG_OUTPUT_SHORT},
+             description = "Output file for the configuration data")
+  private String output;
+
 }

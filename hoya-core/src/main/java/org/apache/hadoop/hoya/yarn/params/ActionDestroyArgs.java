@@ -18,5 +18,5 @@
 
 package org.apache.hadoop.hoya.yarn.params;
 
-public class ActionMonitor extends AbstractAction {
+public class ActionDestroyArgs extends AbstractActionArgs {
 }

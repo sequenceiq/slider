@@ -18,29 +18,5 @@
 
 package org.apache.hadoop.hoya.yarn.params;
 
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.ParametersDelegate;
-import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
-
-import java.util.Map;
-
-public class ActionFlex extends AbstractAction {
-
-
-  @ParametersDelegate
-  public RoleDelegate roleDelegate;
-
-  @Parameter(names = {ARG_PERSIST},
-             description = "flag to indicate whether a flex change should be persisted (default=true)",
-             arity = 1)
-  public boolean persist;
-
-  /**
-   * Get the role mapping (may be empty, but never null)
-   * @return role mapping
-   * @throws BadCommandArgumentsException parse problem
-   */
-  public Map<String, String> getRoleMap() throws BadCommandArgumentsException {
-    return roleDelegate.getRoleMap();
-  }
+public class ActionStatusArgs extends AbstractActionArgs {
 }

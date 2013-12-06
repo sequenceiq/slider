@@ -18,13 +18,14 @@
 
 package org.apache.hadoop.hoya.yarn.params;
 
-import com.beust.jcommander.ParametersDelegate;
+import com.beust.jcommander.Parameter;
 
-public class ActionCreate extends AbstractClusterBuildingAction {
+public class RmAddressDelegateArgs extends AbstractDelegateArgs {
 
-  @ParametersDelegate
-  public WaitDelegate waitDelegate;
-  
-  @ParametersDelegate
-  public RmAddressDelegate rmAddressDelegate;
+
+  //TODO: do we need this?
+  @Parameter(names = ARG_RESOURCE_MANAGER,
+             description = "Resource manager hostname:port ",
+             required = false)
+  private String rmAddress;
 }

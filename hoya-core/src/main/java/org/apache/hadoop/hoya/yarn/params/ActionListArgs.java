@@ -18,18 +18,5 @@
 
 package org.apache.hadoop.hoya.yarn.params;
 
-import com.beust.jcommander.Parameter;
-
-public class ActionGetConf extends AbstractAction {
-
-  //--format 
-  @Parameter(names = ARG_FORMAT,
-             description = "Format for a response: [text|xml|json|properties]")
-  public String format = FORMAT_XML;
-
-
-  @Parameter(names = {ARG_OUTPUT, ARG_OUTPUT_SHORT},
-             description = "Output file for the configuration data")
-  private String output;
-
+public class ActionListArgs extends AbstractActionArgs {
 }

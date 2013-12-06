@@ -18,16 +18,6 @@
 
 package org.apache.hadoop.hoya.yarn.params;
 
-import com.beust.jcommander.Parameter;
-
-/**
- * Base args for all actions
- */
-public class AbstractAction extends CrossActionArgs {
-
-
-  @Parameter(names = {"--m", ARG_MANAGER},
-             description = "hostname:port of the YARN resource manager")
-  public String manager;
+public class ActionBuildArgs extends AbstractClusterBuildingActionArgs {
 
 }

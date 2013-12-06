@@ -18,6 +18,13 @@
 
 package org.apache.hadoop.hoya.yarn.params;
 
-public class ActionBuild extends AbstractClusterBuildingAction {
+import com.beust.jcommander.ParametersDelegate;
 
+public class ActionCreateArgs extends AbstractClusterBuildingActionArgs {
+
+  @ParametersDelegate
+  public WaitDelegateArgs waitDelegate;
+  
+  @ParametersDelegate
+  public RmAddressDelegateArgs rmAddressDelegate;
 }
