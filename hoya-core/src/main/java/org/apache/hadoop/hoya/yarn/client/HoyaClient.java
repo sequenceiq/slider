@@ -196,7 +196,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   public int runService() throws Throwable {
 
     // choose the action
-    String action = serviceArgs.action;
+    String action = serviceArgs.getAction();
     int exitCode = EXIT_SUCCESS;
     String clusterName = serviceArgs.getClusterName();
     // actions
@@ -206,7 +206,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     } else if (HoyaActions.ACTION_CREATE.equals(action)) {
       exitCode = actionCreate(clusterName);
     } else if (HoyaActions.ACTION_FREEZE.equals(action)) {
-      exitCode = actionFreeze(clusterName, serviceArgs.waittime, "stopping cluster");
+      exitCode = actionFreeze(clusterName, serviceArgs.getWaittime(), "stopping cluster");
     } else if (HoyaActions.ACTION_THAW.equals(action)) {
       exitCode = actionThaw(clusterName);
     } else if (HoyaActions.ACTION_DESTROY.equals(action)) {
@@ -222,11 +222,11 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       exitCode = actionFlex(clusterName);
     } else if (HoyaActions.ACTION_GETCONF.equals(action)) {
       File outfile = null;
-      if (serviceArgs.output != null) {
-        outfile = new File(serviceArgs.output);
+      if (serviceArgs.getOutput() != null) {
+        outfile = new File(serviceArgs.getOutput());
       }
       exitCode = actionGetConf(clusterName,
-                               serviceArgs.format,
+                               serviceArgs.getFormat(),
                                outfile);
     } else if (HoyaActions.ACTION_HELP.equals(action) ||
                HoyaActions.ACTION_USAGE.equals(action)) {
@@ -377,14 +377,14 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // build up the initial cluster specification
     ClusterDescription clusterSpec = new ClusterDescription();
 
-    requireArgumentSet(Arguments.ARG_ZKHOSTS, serviceArgs.zkhosts);
-    Path appconfdir = serviceArgs.confdir;
+    requireArgumentSet(Arguments.ARG_ZKHOSTS, serviceArgs.getZkhosts());
+    Path appconfdir = serviceArgs.getConfdir();
     requireArgumentSet(Arguments.ARG_CONFDIR, appconfdir);
     // Provider
-    requireArgumentSet(Arguments.ARG_PROVIDER, serviceArgs.provider);
+    requireArgumentSet(Arguments.ARG_PROVIDER, serviceArgs.getProvider());
     HoyaAMClientProvider hoyaAM = new HoyaAMClientProvider(conf);
     ClientProvider provider;
-    provider = createClientProvider(serviceArgs.provider);
+    provider = createClientProvider(serviceArgs.getProvider());
 
     // remember this
     clusterSpec.type = provider.getName();
@@ -471,8 +471,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     clusterSpec.roles = clusterRoleMap;
 
     // App home or image
-    if (serviceArgs.image != null) {
-      if (!isUnset(serviceArgs.appHomeDir)) {
+    if (serviceArgs.getImage() != null) {
+      if (!isUnset(serviceArgs.getAppHomeDir())) {
         // both args have been set
         throw new BadCommandArgumentsException("only one of "
                                                + Arguments.ARG_IMAGE
@@ -480,28 +480,28 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                Arguments.ARG_APP_HOME +
                                                " can be provided");
       }
-      clusterSpec.setImagePath(serviceArgs.image.toUri().toString());
+      clusterSpec.setImagePath(serviceArgs.getImage().toUri().toString());
     } else {
       // the alternative is app home, which now MUST be set
-      if (isUnset(serviceArgs.appHomeDir)) {
+      if (isUnset(serviceArgs.getAppHomeDir())) {
         // both args have been set
         throw new BadCommandArgumentsException("Either " + Arguments.ARG_IMAGE
                                                + " or " +
                                                Arguments.ARG_APP_HOME +
                                                " must be provided");
       }
-      clusterSpec.setApplicationHome(serviceArgs.appHomeDir);
+      clusterSpec.setApplicationHome(serviceArgs.getAppHomeDir());
     }
 
     // set up the ZK binding
-    String zookeeperRoot = serviceArgs.appZKPath;
-    if (isUnset(serviceArgs.appZKPath)) {
+    String zookeeperRoot = serviceArgs.getAppZKPath();
+    if (isUnset(serviceArgs.getAppZKPath())) {
       zookeeperRoot =
         "/yarnapps_" + getAppName() + "_" + getUsername() + "_" + clustername;
     }
     clusterSpec.setZkPath(zookeeperRoot);
-    clusterSpec.setZkPort(serviceArgs.zkport);
-    clusterSpec.setZkHosts(serviceArgs.zkhosts);
+    clusterSpec.setZkPort(serviceArgs.getZkport());
+    clusterSpec.setZkHosts(serviceArgs.getZkhosts());
 
 
     // another sanity check before the cluster dir is created: the config
@@ -766,7 +766,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     }
     amContainer.setEnvironment(env);
 
-    String rmAddr = serviceArgs.rmAddress;
+    String rmAddr = serviceArgs.getRmAddress();
     // spec out the RM address
     if (isUnset(rmAddr) && HoyaUtils.isRmSchedulerAddressDefined(config)) {
       rmAddr = NetUtils.getHostPortString(HoyaUtils.getRmSchedulerAddress(config));
@@ -778,7 +778,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // insert any JVM options);
     hoyaAM.addJVMOptions(clusterSpec, commands);
     // enable asserts if the text option is set
-    if (serviceArgs.debug) {
+    if (serviceArgs.isDebug()) {
       commands.add(HoyaKeys.JVM_ENABLE_ASSERTIONS);
       commands.add(HoyaKeys.JVM_ENABLE_SYSTEM_ASSERTIONS);
     }
@@ -789,7 +789,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // immeiately followed by the classname
     commands.add(HoyaMasterServiceArgs.CLASSNAME);
     // now the app specific args
-    if (serviceArgs.debug) {
+    if (serviceArgs.isDebug()) {
       commands.add(Arguments.ARG_DEBUG);
     }
     commands.add(HoyaActions.ACTION_CREATE);
@@ -804,9 +804,9 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       commands.add(rmAddr);
     }
 
-    if (serviceArgs.filesystemURL != null) {
+    if (serviceArgs.getFilesystemURL() != null) {
       commands.add(Arguments.ARG_FILESYSTEM);
-      commands.add(serviceArgs.filesystemURL.toString());
+      commands.add(serviceArgs.getFilesystemURL().toString());
     }
 
     if (clusterSecure) {
@@ -897,9 +897,9 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       // exit unless there is a wait
       exitCode = EXIT_SUCCESS;
 
-      if (serviceArgs.waittime != 0) {
+      if (serviceArgs.getWaittime() != 0) {
         // waiting for state to change
-        Duration duration = new Duration(serviceArgs.waittime * 1000);
+        Duration duration = new Duration(serviceArgs.getWaittime() * 1000);
         duration.start();
         report = monitorAppToState(duration,
                                    YarnApplicationState.RUNNING);
@@ -1266,7 +1266,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                key, val);
       }
     }
-    return flex(name, roleInstances, serviceArgs.persist);
+    return flex(name, roleInstances, serviceArgs.isPersist());
   }
 
   /**
@@ -1381,7 +1381,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     int exitCode = EXIT_FALSE;
     
     int timeout = 60000;
-    int waittime = serviceArgs.waittime;
+    int waittime = serviceArgs.getWaittime();
     ClientProvider provider = createClientProvider(clusterSpec);
     List<Probe> probes =
       provider.createProbes(clusterSpec, report.getTrackingUrl(), getConfig(), timeout);
@@ -1521,10 +1521,10 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     }
     try {
       String description = "Hoya cluster " + clustername;
-      if (format.equals(ClientArgs.FORMAT_XML)) {
+      if (format.equals(Arguments.FORMAT_XML)) {
         Configuration siteConf = getSiteConf(status, clustername);
         siteConf.writeXml(writer);
-      } else if (format.equals(ClientArgs.FORMAT_PROPERTIES)) {
+      } else if (format.equals(Arguments.FORMAT_PROPERTIES)) {
         Properties props = new Properties();
         props.putAll(status.clientProperties);
         props.store(writer, description);

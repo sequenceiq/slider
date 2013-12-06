@@ -23,10 +23,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
-import org.apache.hadoop.hoya.tools.PathArgumentConverter;
+import org.apache.hadoop.hoya.yarn.params.PathArgumentConverter;
 import org.apache.hadoop.hoya.yarn.CommonArgs;
-import org.apache.hadoop.security.SecurityUtil;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
 import java.util.ArrayList;
@@ -41,73 +39,46 @@ import java.util.Map;
 
 public class ClientArgs extends CommonArgs {
 
-  /**
-   * Name of entry class: {@value}
-   */
-  public static final String CLASSNAME =
-    "org.apache.hadoop.hoya.yarn.client.HoyaClient";
-
-
-  public static final String FORMAT_XML = "xml";
-  public static final String FORMAT_PROPERTIES = "properties";
-
-  @Parameter(names = ARG_AMQUEUE,
-             description = "Application Manager Queue Name")
-  public String amqueue = "default";
-
   //--format 
   @Parameter(names = ARG_FORMAT,
              description = "Format for a response: [text|xml|json|properties]")
-  public String format = FORMAT_XML;
+  private String format = FORMAT_XML;
 
   //--wait [timeout]
   @Parameter(names = {ARG_WAIT},
              description = "time to wait for an action to complete")
-  public int waittime = 0;
+  private int waittime = 0;
 
-  /**
-   * --image path
-   the full path to a .tar or .tar.gz path containing an HBase image.
-   */
   @Parameter(names = ARG_IMAGE,
              description = "The full path to a .tar or .tar.gz path containing the application",
              converter = PathArgumentConverter.class)
-  public Path image;
+  private Path image;
 
   @Parameter(names = ARG_APP_HOME,
              description = "Home directory of a pre-installed application")
-  public String appHomeDir;
+  private String appHomeDir;
   
   @Parameter(names = ARG_PROVIDER,
              description = "Provider of the specific cluster application")
-  public String provider = HoyaProviderFactory.DEFAULT_CLUSTER_TYPE;
+  private String provider = HoyaProviderFactory.DEFAULT_CLUSTER_TYPE;
   
   
   @Parameter(names = {ARG_PERSIST},
              description = "flag to indicate whether a flex change should be persisted (default=true)",
              arity = 1)
-  public boolean persist;
+  private boolean persist;
 
-  /**
-   * This is a listing of the roles to create
-   */
   @Parameter(names = {ARG_OPTION, ARG_OPTION_SHORT}, arity = 2,
              description = "option <name> <value>")
-  public List<String> optionTuples = new ArrayList<String>(0);
+  private List<String> optionTuples = new ArrayList<String>(0);
 
-  /**
-   * This is a listing of the roles to create
-   */
   @Parameter(names = {ARG_ROLE}, arity = 2,
              description = "role <name> <count>")
-  public List<String> roleTuples = new ArrayList<String>(0);
+  private List<String> roleTuples = new ArrayList<String>(0);
 
-  /**
-   * All the role option triples
-   */
   @Parameter(names = {ARG_ROLEOPT}, arity = 3,
              description = "Role option " + ARG_ROLEOPT + " <role> <name> <option>")
-  public List<String> roleOptTriples = new ArrayList<String>(0);
+  private List<String> roleOptTriples = new ArrayList<String>(0);
 
 
   /**
@@ -116,11 +87,11 @@ public class ClientArgs extends CommonArgs {
    * @throws BadCommandArgumentsException parse problem
    */
   public Map<String, String> getRoleMap() throws BadCommandArgumentsException {
-    return convertTupleListToMap("roles", roleTuples);
+    return convertTupleListToMap("roles", getRoleTuples());
   }
   
   public Map<String, String> getOptionsMap() throws BadCommandArgumentsException {
-    return convertTupleListToMap("options", optionTuples);
+    return convertTupleListToMap("options", getOptionTuples());
   }
   
   
@@ -133,27 +104,33 @@ public class ClientArgs extends CommonArgs {
     new HashMap<String, List<Object>>();
 
   static {
-    ACTIONS.put(ACTION_BUILD, t("Build a Hoya cluster specification -but do not start it", 1));
-    ACTIONS.put(ACTION_CREATE, t("Create a live Hoya cluster", 1));
+    ACTIONS.put(ACTION_BUILD, triple(
+      "Build a Hoya cluster specification -but do not start it", 1));
+    ACTIONS.put(ACTION_CREATE, triple("Create a live Hoya cluster", 1));
     ACTIONS.put(ACTION_DESTROY,
-                t("Destroy a Hoya cluster (which must be stopped)", 1));
-    ACTIONS.put(ACTION_EMERGENCY_FORCE_KILL, t("Force kill an application by its YARN application ID", 1));
-    ACTIONS.put(ACTION_EXISTS, t("Probe for a cluster being live", 1));
-    ACTIONS.put(ACTION_FLEX, t("Flex a Hoya cluster", 1));
-    ACTIONS.put(ACTION_FREEZE, t("freeze/suspend a running cluster", 1));
-    ACTIONS.put(ACTION_GETCONF, t("Get the configuration of a cluster", 1));
+                triple("Destroy a Hoya cluster (which must be stopped)",
+                              1));
+    ACTIONS.put(ACTION_EMERGENCY_FORCE_KILL, triple(
+      "Force kill an application by its YARN application ID", 1));
+    ACTIONS.put(ACTION_EXISTS, triple("Probe for a cluster being live",
+                                             1));
+    ACTIONS.put(ACTION_FLEX, triple("Flex a Hoya cluster", 1));
+    ACTIONS.put(ACTION_FREEZE, triple("freeze/suspend a running cluster",
+                                             1));
+    ACTIONS.put(ACTION_GETCONF, triple(
+      "Get the configuration of a cluster", 1));
 //    ACTIONS.put(ACTION_GETSIZE, t("Get the size of a cluster", 1));
-    ACTIONS.put(ACTION_HELP, t("Print help information", 0));
-    ACTIONS.put(ACTION_LIST, t("List running Hoya clusters", 0, 1));
-    ACTIONS.put(ACTION_MONITOR, t("Monitor a running cluster", 1));
+    ACTIONS.put(ACTION_HELP, triple("Print help information", 0));
+    ACTIONS.put(ACTION_LIST, triple("List running Hoya clusters", 0, 1));
+    ACTIONS.put(ACTION_MONITOR, triple("Monitor a running cluster", 1));
 //    ACTIONS.put(ACTION_MIGRATE, t("Migrate a Hoya cluster to a new HBase version", 1));
 //    ACTIONS.put(ACTION_PREFLIGHT, t("Perform preflight checks", 0));
     ACTIONS.put(ACTION_RECONFIGURE,
-                t("change the configuration of a cluster", 1));
+                triple("change the configuration of a cluster", 1));
 //    ACTIONS.put(ACTION_REIMAGE, t("change the image a cluster uses", 1));
-    ACTIONS.put(ACTION_STATUS, t("Get the status of a cluster", 1));
-    ACTIONS.put(ACTION_THAW, t("thaw/start a frozen cluster", 1));
-    ACTIONS.put(ACTION_USAGE, t("Print help information", 0));
+    ACTIONS.put(ACTION_STATUS, triple("Get the status of a cluster", 1));
+    ACTIONS.put(ACTION_THAW, triple("thaw/start a frozen cluster", 1));
+    ACTIONS.put(ACTION_USAGE, triple("Print help information", 0));
   }
 
   public ClientArgs(String[] args) {
@@ -174,52 +151,10 @@ public class ClientArgs extends CommonArgs {
                                                    BadCommandArgumentsException {
     super.applyDefinitions(conf);
     //RM
-    if (manager != null) {
-      LOG.debug("Setting RM to {}", manager);
-      conf.set(YarnConfiguration.RM_ADDRESS, manager);
+    if (getManager() != null) {
+      log.debug("Setting RM to {}", getManager());
+      conf.set(YarnConfiguration.RM_ADDRESS, getManager());
     }
-  }
-
-  /**
-   * Create a map from a tuple list like
-   * ['worker','heapsize','5G','master','heapsize','2M'] into a map
-   * ['worker':'2',"master":'1'];
-   * Duplicate entries also trigger errors
-   * @param description
-   * @param list
-   * @return
-   * @throws BadCommandArgumentsException odd #of arguments received
-   */
-  public Map<String, Map<String, String>> convertTripleListToMaps(String description,
-          List<String> list) throws BadCommandArgumentsException {
-    Map<String, Map<String, String>> results =
-      new HashMap<String, Map<String, String>>();
-    if (list != null && !list.isEmpty()) {
-      int size = list.size();
-      if (size % 3 != 0) {
-        //wrong number of elements, not permitted
-        throw new BadCommandArgumentsException(
-          ERROR_PARSE_FAILURE + description);
-      }
-      for (int count = 0; count < size; count += 3) {
-        String role = list.get(count);
-        String key = list.get(count + 1);
-        String val = list.get(count + 2);
-        Map<String, String> roleMap = results.get(role);
-        if (roleMap == null) {
-          //demand create new role map
-          roleMap = new HashMap<String, String>();
-          results.put(role, roleMap);
-        }
-        if (roleMap.get(key) != null) {
-          throw new BadCommandArgumentsException(
-            ERROR_DUPLICATE_ENTRY + description
-            + ": for key " + key + " under " + role);
-        }
-        roleMap.put(key, val);
-      }
-    }
-    return results;
   }
 
 
@@ -230,6 +165,91 @@ public class ClientArgs extends CommonArgs {
    */
   public Map<String, Map<String, String>> getRoleOptionMap() throws
                                                      BadCommandArgumentsException {
-    return convertTripleListToMaps(ARG_ROLEOPT, roleOptTriples);
+    return convertTripleListToMaps(ARG_ROLEOPT, getRoleOptTriples());
+  }
+
+  public String getFormat() {
+    return format;
+  }
+
+  public void setFormat(String format) {
+    this.format = format;
+  }
+
+  public int getWaittime() {
+    return waittime;
+  }
+
+  public void setWaittime(int waittime) {
+    this.waittime = waittime;
+  }
+
+  /**
+   * --image path
+   the full path to a .tar or .tar.gz path containing an HBase image.
+   */
+  public Path getImage() {
+    return image;
+  }
+
+  public void setImage(Path image) {
+    this.image = image;
+  }
+
+  public String getAppHomeDir() {
+    return appHomeDir;
+  }
+
+  public void setAppHomeDir(String appHomeDir) {
+    this.appHomeDir = appHomeDir;
+  }
+
+  public String getProvider() {
+    return provider;
+  }
+
+  public void setProvider(String provider) {
+    this.provider = provider;
+  }
+
+  public boolean isPersist() {
+    return persist;
+  }
+
+  public void setPersist(boolean persist) {
+    this.persist = persist;
+  }
+
+  /**
+   * This is a listing of the roles to create
+   */
+  public List<String> getOptionTuples() {
+    return optionTuples;
+  }
+
+  public void setOptionTuples(List<String> optionTuples) {
+    this.optionTuples = optionTuples;
+  }
+
+  /**
+   * This is a listing of the roles to create
+   */
+  public List<String> getRoleTuples() {
+    return roleTuples;
+  }
+
+  public void setRoleTuples(List<String> roleTuples) {
+    this.roleTuples = roleTuples;
+  }
+
+  /**
+   * All the role option triples
+   */
+  public List<String> getRoleOptTriples() {
+    return roleOptTriples;
+  }
+
+  public void setRoleOptTriples(List<String> roleOptTriples) {
+    this.roleOptTriples = roleOptTriples;
   }
 }

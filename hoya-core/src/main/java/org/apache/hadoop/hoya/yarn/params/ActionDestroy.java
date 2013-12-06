@@ -16,19 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hoya.tools;
+package org.apache.hadoop.hoya.yarn.params;
 
-import com.beust.jcommander.converters.BaseConverter;
-import org.apache.hadoop.fs.Path;
-
-public class PathArgumentConverter extends BaseConverter<Path> {
-
-  public PathArgumentConverter(String optionName) {
-    super(optionName);
-  }
-
-  @Override
-  public Path convert(String value) {
-    return new Path(value);
-  }
+public class ActionDestroy extends AbstractAction {
 }

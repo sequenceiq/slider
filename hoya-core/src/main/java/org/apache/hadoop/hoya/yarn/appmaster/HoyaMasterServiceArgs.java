@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.appmaster;
 
 import com.beust.jcommander.Parameter;
 import org.apache.hadoop.hoya.yarn.CommonArgs;
+import org.apache.hadoop.hoya.yarn.params.ArgOps;
 
 import java.util.HashMap;
 import java.util.List;
@@ -68,8 +69,8 @@ public class HoyaMasterServiceArgs extends CommonArgs {
     new HashMap<String, List<Object>>();
 
   static {
-    ACTIONS.put(ACTION_CREATE, t("create cluster", 1));
-    ACTIONS.put(ACTION_HELP, t("Print Help information", 0));
+    ACTIONS.put(ACTION_CREATE, ArgOps.triple("create cluster", 1));
+    ACTIONS.put(ACTION_HELP, ArgOps.triple("Print Help information", 0));
   }
 
 

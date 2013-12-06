@@ -22,13 +22,14 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
+import org.apache.hadoop.hoya.exceptions.ErrorStrings;
 import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
-import org.apache.hadoop.hoya.tools.PathArgumentConverter;
-import org.apache.hadoop.hoya.tools.URIArgumentConverter;
+import org.apache.hadoop.hoya.yarn.params.PathArgumentConverter;
+import org.apache.hadoop.hoya.yarn.params.URIArgumentConverter;
+import org.apache.hadoop.hoya.yarn.params.ArgOps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,28 +48,9 @@ import java.util.Map;
  * in the range allowed
  */
 
-public class CommonArgs implements HoyaActions, Arguments {
+public class CommonArgs extends ArgOps implements HoyaActions, Arguments {
 
-  /**
-   * ERROR Strings
-   */
-  public static final String ERROR_NO_ACTION = "No action specified";
-
-  public static final String ERROR_UNKNOWN_ACTION = "Unknown command: ";
-
-  public static final String ERROR_NOT_ENOUGH_ARGUMENTS =
-    "Not enough arguments for action: ";
-
-  public static final String ERROR_PARSE_FAILURE =
-    "Failed to parse ";
-
-  /**
-   * All the remaining values after argument processing
-   */
-  public static final String ERROR_TOO_MANY_ARGUMENTS =
-    "Too many arguments";
-  protected static final Logger LOG = LoggerFactory.getLogger(CommonArgs.class);
-  public static final String ERROR_DUPLICATE_ENTRY = "Duplicate entry for ";
+  protected static final Logger log = LoggerFactory.getLogger(CommonArgs.class);
 
   /**
    * This is the default parameter
@@ -77,41 +59,42 @@ public class CommonArgs implements HoyaActions, Arguments {
   public List<String> parameters = new ArrayList<String>();
 
   @Parameter(names = ARG_DEBUG, description = "Debug mode")
-  public boolean debug = false;
+  private boolean debug = false;
 
-  /**
-   *    Declare the image configuration directory to use when creating or reconfiguring a hoya cluster. The path must be on a filesystem visible to all nodes in the YARN cluster.
-   Only one configuration directory can be specified.
-   */
   @Parameter(names = ARG_CONFDIR,
              description = "Path to cluster configuration directory in HDFS",
              converter = PathArgumentConverter.class)
-  public Path confdir;
+  private Path confdir;
 
   @Parameter(names = {ARG_FILESYSTEM, ARG_FILESYSTEM_LONG}, description = "Filesystem URI",
              converter = URIArgumentConverter.class)
-  public URI filesystemURL;
+  private URI filesystemURL;
 
   @Parameter(names = ARG_APP_ZKPATH,
              description = "Zookeeper path for the application")
-  public String appZKPath;
+  private String appZKPath;
 
   @Parameter(names = ARG_HELP, help = true)
   public boolean help;
+
+
+  @Parameter(names = {"--m", ARG_MANAGER},
+             description = "hostname:port of the YARN resource manager")
+  private String manager;
 
   //TODO: do we need this?
   @Parameter(names = ARG_RESOURCE_MANAGER,
              description = "Resource manager hostname:port ",
              required = false)
-  public String rmAddress;
+  private String rmAddress;
 
   @Parameter(names = ARG_ZKHOSTS,
              description = "comma separated list of the Zookeeper hosts")
-  public String zkhosts;
+  private String zkhosts;
   
   @Parameter(names = ARG_ZKPORT,
              description = "Zookeeper port")
-  public int zkport = HBaseConfigFileOptions.HBASE_ZK_PORT;
+  private int zkport = HBaseConfigFileOptions.HBASE_ZK_PORT;
 
   /**
    -D name=value
@@ -135,55 +118,26 @@ public class CommonArgs implements HoyaActions, Arguments {
   public List<String> sysprops = new ArrayList<String>(0);
   public Map<String, String> syspropsMap = new HashMap<String, String>();
 
-  @Parameter(names = {"--m", ARG_MANAGER},
-             description = "hostname:port of the YARN resource manager")
-  public String manager;
-
   @Parameter(names = {ARG_OUTPUT, "-o"},
              description = "Output file for the configuration data")
-  public String output;
+  private String output;
 
   /**
    * fields
    */
   public JCommander commander;
-  public String action;
+  private String action;
   //action arguments; 
-  public List<String> actionArgs;
-  public final String[] args;
-
-  /**
-   * create a 3-tuple
-   * @param msg
-   * @param min
-   * @param max
-   * @return
-   */
-  protected static List<Object> t(String msg, int min, int max) {
-    List<Object> l = new ArrayList<Object>(3);
-    l.add(msg);
-    l.add(min);
-    l.add(max);
-    return l;
-  }
-
-  /**
-   * Create a tuple
-   * @param msg
-   * @param min
-   * @return
-   */
-  protected static List<Object> t(String msg, int min) {
-    return t(msg, min, min);
-  }
+  private List<String> actionArgs;
+  private final String[] args;
 
   /**
    * get the name: relies on arg 1 being the cluster name in all operations 
    * @return the name argument, null if there is none
    */
   public String getClusterName() {
-    return (actionArgs == null || actionArgs.isEmpty() || args.length < 2) ?
-           null : args[1];
+    return (getActionArgs() == null || getActionArgs().isEmpty() || getArgs().length < 2) ?
+           null : getArgs()[1];
   }
 
   public CommonArgs(String[] args) {
@@ -213,11 +167,11 @@ public class CommonArgs implements HoyaActions, Arguments {
 
   public void parse() throws BadCommandArgumentsException {
     try {
-      commander.parse(args);
+      commander.parse(getArgs());
     } catch (ParameterException e) {
       throw new BadCommandArgumentsException(e, "%s in %s", 
         e.toString(),
-        (args != null ? ( HoyaUtils.join(args, " ")) : "[]"));
+        (getArgs() != null ? ( HoyaUtils.join(getArgs(), " ")) : "[]"));
     }
   }
 
@@ -246,50 +200,42 @@ public class CommonArgs implements HoyaActions, Arguments {
     }
   }
 
-  private void splitPairs(Collection<String> pairs, Map<String, String> dest) {
-    for (String prop : pairs) {
-      String[] keyval = prop.split("=", 2);
-      if (keyval.length == 2) {
-        dest.put(keyval[0], keyval[1]);
-      }
-    }
-  }
-
   /**
    * Validate the arguments against the action requested
    */
   public void validate() throws BadCommandArgumentsException {
     if (parameters.isEmpty()) {
-      throw new BadCommandArgumentsException(ERROR_NO_ACTION
+      throw new BadCommandArgumentsException(ErrorStrings.ERROR_NO_ACTION
                                              + usage());
     }
-    action = parameters.get(0);
-    LOG.debug("action={}", action);
+    setAction(parameters.get(0));
+    log.debug("action={}", getAction());
     Map<String, List<Object>> actionMap = getActions();
-    List<Object> actionOpts = actionMap.get(action);
+    List<Object> actionOpts = actionMap.get(getAction());
     if (null == actionOpts) {
-      throw new BadCommandArgumentsException(ERROR_UNKNOWN_ACTION
-                                             + action
+      throw new BadCommandArgumentsException(ErrorStrings.ERROR_UNKNOWN_ACTION
+                                             + getAction()
                                              + usage());
     }
-    actionArgs = parameters.subList(1, parameters.size());
+    setActionArgs(parameters.subList(1, parameters.size()));
 
     int minArgs = (Integer) actionOpts.get(1);
-    int actionArgSize = actionArgs.size();
+    int actionArgSize = getActionArgs().size();
     if (minArgs > actionArgSize) {
       throw new BadCommandArgumentsException(
-        ERROR_NOT_ENOUGH_ARGUMENTS + action );
+        ErrorStrings.ERROR_NOT_ENOUGH_ARGUMENTS + getAction());
     }
     int maxArgs =
       (actionOpts.size() == 3) ? ((Integer) actionOpts.get(2)) : minArgs;
     if (actionArgSize > maxArgs) {
       String message = String.format("%s for %s: limit is %d but saw %d",
-                                     ERROR_TOO_MANY_ARGUMENTS, action, maxArgs,
+                                     ErrorStrings.ERROR_TOO_MANY_ARGUMENTS,
+                                     getAction(), maxArgs,
                                      actionArgSize);
-      LOG.error(message);
+      log.error(message);
       int index=1;
-      for (String actionArg : actionArgs) {
-        LOG.error("[{}] \"{}\"", index++, actionArg);
+      for (String actionArg : getActionArgs()) {
+        log.error("[{}] \"{}\"", index++, actionArg);
       }
       throw new BadCommandArgumentsException(message);
     }
@@ -301,13 +247,9 @@ public class CommonArgs implements HoyaActions, Arguments {
    */
   public void applyDefinitions(Configuration conf) throws
                                                    BadCommandArgumentsException {
-    for (String key : definitionMap.keySet()) {
-      String val = definitionMap.get(key);
-      LOG.debug("configuration[{}]=\"{}\"", key, val);
-      conf.set(key, val, "command line");
-    }
-
+    applyDefinitions(definitionMap, conf);
   }
+
 
   /**
    * If the Filesystem URL was provided, it overrides anything in
@@ -315,44 +257,102 @@ public class CommonArgs implements HoyaActions, Arguments {
    * @param conf configuration
    */
   public void applyFileSystemURL(Configuration conf) {
-    if (filesystemURL != null) {
-      //filesystem argument was set -this overwrites any defaults in the
-      //configuration
-      FileSystem.setDefaultUri(conf, filesystemURL);
-    }
+    ArgOps.applyFileSystemURL(getFilesystemURL(), conf);
+  }
+
+  public boolean isDebug() {
+    return debug;
+  }
+
+  public void setDebug(boolean debug) {
+    this.debug = debug;
   }
 
   /**
-   * Create a map from a tuple list like ['worker','2','master','1] into a map
-   * ['worker':'2',"master":'1'];
-   * Duplicate entries also trigger errors
-   * @param description description for errors
-   * @param list list to conver to tuples
-   * @return the map of key value pairs -unordered.
-   * @throws BadCommandArgumentsException odd #of arguments received
+   *    Declare the image configuration directory to use when creating or reconfiguring a hoya cluster. The path must be on a filesystem visible to all nodes in the YARN cluster.
+   Only one configuration directory can be specified.
    */
-  public Map<String, String> convertTupleListToMap(String description,
-                                                   List<String> list) throws
-                                                                      BadCommandArgumentsException {
-    Map<String, String> results = new HashMap<String, String>();
-    if (list != null && !list.isEmpty()) {
-      int size = list.size();
-      if (size % 2 != 0) {
-        //odd number of elements, not permitted
-        throw new BadCommandArgumentsException(
-          ERROR_PARSE_FAILURE + description);
-      }
-      for (int count = 0; count < size; count += 2) {
-        String key = list.get(count);
-        String val = list.get(count + 1);
-        if (results.get(key) != null) {
-          throw new BadCommandArgumentsException(
-            ERROR_DUPLICATE_ENTRY + description
-            + ": " + key);
-        }
-        results.put(key, val);
-      }
-    }
-    return results;
+  public Path getConfdir() {
+    return confdir;
+  }
+
+  public void setConfdir(Path confdir) {
+    this.confdir = confdir;
+  }
+
+  public URI getFilesystemURL() {
+    return filesystemURL;
+  }
+
+  public void setFilesystemURL(URI filesystemURL) {
+    this.filesystemURL = filesystemURL;
+  }
+
+  public String getAppZKPath() {
+    return appZKPath;
+  }
+
+  public void setAppZKPath(String appZKPath) {
+    this.appZKPath = appZKPath;
+  }
+
+  public String getManager() {
+    return manager;
+  }
+
+  public void setManager(String manager) {
+    this.manager = manager;
+  }
+
+  public String getRmAddress() {
+    return rmAddress;
+  }
+
+  public void setRmAddress(String rmAddress) {
+    this.rmAddress = rmAddress;
+  }
+
+  public String getZkhosts() {
+    return zkhosts;
+  }
+
+  public void setZkhosts(String zkhosts) {
+    this.zkhosts = zkhosts;
+  }
+
+  public int getZkport() {
+    return zkport;
+  }
+
+  public void setZkport(int zkport) {
+    this.zkport = zkport;
+  }
+
+  public String getOutput() {
+    return output;
+  }
+
+  public void setOutput(String output) {
+    this.output = output;
+  }
+
+  public String getAction() {
+    return action;
+  }
+
+  public void setAction(String action) {
+    this.action = action;
+  }
+
+  public List<String> getActionArgs() {
+    return actionArgs;
+  }
+
+  public void setActionArgs(List<String> actionArgs) {
+    this.actionArgs = actionArgs;
+  }
+
+  public String[] getArgs() {
+    return args;
   }
 }

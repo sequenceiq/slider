@@ -24,10 +24,11 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hdfs.DFSConfigKeys
 import org.apache.hadoop.hoya.api.RoleKeys
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
+import org.apache.hadoop.hoya.exceptions.ErrorStrings
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.Arguments
-import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.HoyaActions
+import org.apache.hadoop.hoya.yarn.params.ArgOps
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.junit.Assert
 import org.junit.Assume
@@ -39,38 +40,53 @@ import org.junit.Test
 @CompileStatic
 @Slf4j
 
-class TestCommonArgParsing implements HoyaActions {
+class TestCommonArgParsing implements HoyaActions, Arguments{
 
   @Test
   public void testCreateActionArgs() throws Throwable {
-    ClientArgs clientArgs = createClientArgs([HoyaActions.ACTION_CREATE, 'cluster1'])
+    ClientArgs clientArgs = createClientArgs([ACTION_CREATE, 'cluster1'])
     assert clientArgs.clusterName == 'cluster1'
   }
 
   @Test
   public void testCreateFailsNoClustername() throws Throwable {
-    assertParseFails([HoyaActions.ACTION_CREATE])
-
+    assertParseFails([ACTION_CREATE])
   }
 
   @Test
   public void testCreateFailsTwoClusternames() throws Throwable {
     assertParseFails([
-        HoyaActions.ACTION_CREATE,
+        ACTION_CREATE,
         "c1",
         "c2",
       ])
   }
 
   @Test
+  public void testHelp() throws Throwable {
+    ClientArgs clientArgs = createClientArgs([ACTION_HELP])
+    assert clientArgs.clusterName == null
+  }
+
+  @Test
   public void testListNoClusternames() throws Throwable {
-    ClientArgs clientArgs = createClientArgs([HoyaActions.ACTION_LIST])
+    ClientArgs clientArgs = createClientArgs([ACTION_LIST])
+    assert clientArgs.clusterName == null
+  }
+
+  @Test
+  public void testListNoClusternamesDefinition() throws Throwable {
+    ClientArgs clientArgs = createClientArgs(
+        [ACTION_LIST,
+        ARG_DEFINE,
+        'fs.default.FS=file://localhost',
+        ])
     assert clientArgs.clusterName == null
   }
 
   @Test
   public void testList1Clustername() throws Throwable {
-    ClientArgs clientArgs = createClientArgs([HoyaActions.ACTION_LIST, 'cluster1'])
+    ClientArgs clientArgs = createClientArgs([ACTION_LIST, 'cluster1'])
     assert clientArgs.clusterName == 'cluster1'
   }
 
@@ -198,22 +214,22 @@ class TestCommonArgParsing implements HoyaActions {
   @Test
   public void testSingleRoleArg() throws Throwable {
     ClientArgs clientArgs = createClientArgs([
-        HoyaActions.ACTION_CREATE, 'cluster1',
+        ACTION_CREATE, 'cluster1',
         Arguments.ARG_ROLE,"master","5",
     ])
     def tuples = clientArgs.roleTuples;
     assert tuples.size() == 2;
-    Map<String, String> roleMap = clientArgs.convertTupleListToMap("roles", tuples);
+    Map<String, String> roleMap = ArgOps.convertTupleListToMap("roles", tuples);
     assert roleMap["master"] == "5"
   }
   
   @Test
   public void testNoRoleArg() throws Throwable {
     ClientArgs clientArgs = createClientArgs([
-        HoyaActions.ACTION_CREATE, 'cluster1',
+        ACTION_CREATE, 'cluster1',
     ])
     def tuples = clientArgs.roleTuples;
-    Map<String, String> roleMap = clientArgs.convertTupleListToMap("roles", tuples);
+    Map<String, String> roleMap = ArgOps.convertTupleListToMap("roles", tuples);
     assert roleMap["master"] == null
   }
   
@@ -221,13 +237,13 @@ class TestCommonArgParsing implements HoyaActions {
   @Test
   public void testMultiRoleArg() throws Throwable {
     ClientArgs clientArgs = createClientArgs([
-        HoyaActions.ACTION_CREATE, 'cluster1',
+        ACTION_CREATE, 'cluster1',
         Arguments.ARG_ROLE,"master","1",
         Arguments.ARG_ROLE,"worker","2",
     ])
     def tuples = clientArgs.roleTuples;
     assert tuples.size() == 4;
-    Map<String, String> roleMap = clientArgs.convertTupleListToMap("roles", tuples);
+    Map<String, String> roleMap = ArgOps.convertTupleListToMap("roles", tuples);
     assert roleMap["master"] == "1"
     assert roleMap["worker"] == "2"
   }
@@ -235,24 +251,24 @@ class TestCommonArgParsing implements HoyaActions {
   @Test
   public void testDuplicateRole() throws Throwable {
     ClientArgs clientArgs = createClientArgs([
-        HoyaActions.ACTION_CREATE, 'cluster1',
+        ACTION_CREATE, 'cluster1',
         Arguments.ARG_ROLE,"master","1",
         Arguments.ARG_ROLE,"master","2",
     ])
     def tuples = clientArgs.roleTuples;
     assert tuples.size() == 4;
     try {
-      Map<String, String> roleMap = clientArgs.convertTupleListToMap("roles", tuples);
+      Map<String, String> roleMap = ArgOps.convertTupleListToMap("roles", tuples);
       Assert.fail("got a role map $roleMap not a failure");
     } catch (BadCommandArgumentsException expected) {
-      assert expected.message.contains(ClientArgs.ERROR_DUPLICATE_ENTRY)
+      assert expected.message.contains(ErrorStrings.ERROR_DUPLICATE_ENTRY)
     }
   }
      
   @Test
   public void testOddRoleCount() throws Throwable {
     ClientArgs clientArgs = createClientArgs([
-        HoyaActions.ACTION_CREATE, 'cluster1',
+        ACTION_CREATE, 'cluster1',
         Arguments.ARG_ROLE,"master","1",
         Arguments.ARG_ROLE,"master","2",
     ])
@@ -260,10 +276,10 @@ class TestCommonArgParsing implements HoyaActions {
     tuples += "loggers";
     assert tuples.size() == 5;
     try {
-      Map<String, String> roleMap = clientArgs.convertTupleListToMap("roles", tuples);
+      Map<String, String> roleMap = ArgOps.convertTupleListToMap("roles", tuples);
       Assert.fail("got a role map $roleMap not a failure");
     } catch (BadCommandArgumentsException expected) {
-      assert expected.message.contains(ClientArgs.ERROR_PARSE_FAILURE)
+      assert expected.message.contains(ErrorStrings.ERROR_PARSE_FAILURE)
     }
   }
 
@@ -273,7 +289,7 @@ class TestCommonArgParsing implements HoyaActions {
    */
   public ClientArgs createRoleOptClientArgs() {
     ClientArgs clientArgs = createClientArgs([
-        HoyaActions.ACTION_CREATE, 'cluster1',
+        ACTION_CREATE, 'cluster1',
         Arguments.ARG_ROLE, "master", "1",
         Arguments.ARG_ROLEOPT, "master", "cheese", "swiss",
         Arguments.ARG_ROLEOPT, "master", "env.CHEESE", "cheddar",

@@ -20,8 +20,8 @@ package org.apache.hadoop.hoya.yarn.client
 
 import groovy.transform.CompileStatic
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.hoya.exceptions.ErrorStrings
 import org.apache.hadoop.hoya.yarn.Arguments
-import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
 import org.junit.Test
@@ -35,7 +35,7 @@ class TestClientBadArgs extends ServiceLauncherBaseTest {
   public void testNoAction() throws Throwable {
     launchExpectingException(HoyaClient,
                              new Configuration(),
-                             CommonArgs.ERROR_NO_ACTION,
+                             ErrorStrings.ERROR_NO_ACTION,
                              [])
 
   }
@@ -44,7 +44,7 @@ class TestClientBadArgs extends ServiceLauncherBaseTest {
   public void testUnknownAction() throws Throwable {
     launchExpectingException(HoyaClient,
                              new Configuration(),
-                             CommonArgs.ERROR_UNKNOWN_ACTION,
+                             ErrorStrings.ERROR_UNKNOWN_ACTION,
                              ["not-a-known-action"])
   }
 
@@ -52,7 +52,7 @@ class TestClientBadArgs extends ServiceLauncherBaseTest {
   public void testActionWithoutEnoughArgs() throws Throwable {
     launchExpectingException(HoyaClient,
                              new Configuration(),
-                             CommonArgs.ERROR_NOT_ENOUGH_ARGUMENTS,
+                             ErrorStrings.ERROR_NOT_ENOUGH_ARGUMENTS,
                              [HoyaActions.ACTION_THAW])
   }
 
@@ -60,7 +60,7 @@ class TestClientBadArgs extends ServiceLauncherBaseTest {
   public void testActionWithTooManyArgs() throws Throwable {
     launchExpectingException(HoyaClient,
                              new Configuration(),
-                             CommonArgs.ERROR_TOO_MANY_ARGUMENTS,
+                             ErrorStrings.ERROR_TOO_MANY_ARGUMENTS,
                              [HoyaActions.ACTION_HELP,
                              "hello, world"])
   }

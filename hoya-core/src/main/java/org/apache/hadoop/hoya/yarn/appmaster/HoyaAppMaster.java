@@ -137,7 +137,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
   public static final int NUM_RPC_HANDLERS = 5;
 
   /** YARN RPC to communicate with the Resource Manager or Node Manager */
-  private YarnRPC yarmRPC;
+  private YarnRPC yarnRPC;
 
   /** Handle to communicate with the Resource Manager*/
   private AMRMClientAsync asyncRMClient;
@@ -259,7 +259,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
     serviceArgs.applyDefinitions(conf);
     serviceArgs.applyFileSystemURL(conf);
 
-    String rmAddress = serviceArgs.rmAddress;
+    String rmAddress = serviceArgs.getRmAddress();
     if (rmAddress != null) {
       log.debug("Setting rm address from the command line: {}", rmAddress);
       HoyaUtils.setRmSchedulerAddress(conf, rmAddress);
@@ -319,8 +319,8 @@ public class HoyaAppMaster extends CompoundLaunchedService
   public int runService() throws Throwable {
 
     //choose the action
-    String action = serviceArgs.action;
-    List<String> actionArgs = serviceArgs.actionArgs;
+    String action = serviceArgs.getAction();
+    List<String> actionArgs = serviceArgs.getActionArgs();
     int exitCode = EXIT_SUCCESS;
     if (action.equals(HoyaActions.ACTION_HELP)) {
       log.info(getName() + serviceArgs.usage());
@@ -380,7 +380,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
 
     InetSocketAddress address = HoyaUtils.getRmSchedulerAddress(conf);
     log.info("RM is at {}", address);
-    yarmRPC = YarnRPC.create(conf);
+    yarnRPC = YarnRPC.create(conf);
 
     appMasterContainerID = ConverterUtils.toContainerId(
       HoyaUtils.mandatoryEnvVariable(
@@ -693,7 +693,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
   }
 
   public Object getProxy(Class protocol, InetSocketAddress addr) {
-    return yarmRPC.getProxy(protocol, addr, getConfig());
+    return yarnRPC.getProxy(protocol, addr, getConfig());
   }
 
   /**
