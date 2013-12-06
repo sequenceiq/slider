@@ -18,13 +18,18 @@
 
 package org.apache.hadoop.hoya.yarn.params;
 
+import com.beust.jcommander.Parameters;
 import com.beust.jcommander.ParametersDelegate;
+import org.apache.hadoop.hoya.yarn.HoyaActions;
+
+@Parameters(commandNames = {HoyaActions.ACTION_CREATE},
+            commandDescription = HoyaActions.DESCRIBE_ACTION_CREATE)
 
 public class ActionCreateArgs extends AbstractClusterBuildingActionArgs {
 
   @ParametersDelegate
-  public WaitDelegateArgs waitDelegate;
+  public WaitArgsDelegate waitDelegate = new WaitArgsDelegate();
   
   @ParametersDelegate
-  public RmAddressDelegateArgs rmAddressDelegate;
+  public RmAddressArgsDelegate rmAddressDelegate = new RmAddressArgsDelegate();
 }

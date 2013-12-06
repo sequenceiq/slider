@@ -23,8 +23,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
-import org.apache.hadoop.hoya.yarn.params.PathArgumentConverter;
-import org.apache.hadoop.hoya.yarn.params.CommonArgs;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
 import java.util.ArrayList;
@@ -34,14 +32,37 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Args list for JCommanderification
+ * Hoya Client CLI Args
  */
 
 public class ClientArgs extends CommonArgs {
 
+  /*
+   
+   All the arguments for specific actions
+  
+   */
+  /**
+   * This is not bonded to jcommander, it is set up
+   * after the construction to point to the relevant
+   * entry
+   */
+  AbstractClusterBuildingActionArgs buildingActionArgs;
+  ActionBuildArgs actionBuildArgs;
+  ActionCreateArgs actionCreateArgs;
+  ActionDestroyArgs actionDestroyArgs;
+  ActionExistsArgs actionExistsArgs;
+  ActionFlexArgs actionFlexArgs;
+  ActionForceKillArgs actionForceKillArgs;
+  ActionFreezeArgs actionFreezeArgs;
+  ActionGetConfArgs actionGetConfArgs;
+  ActionListArgs actionListArgs;
+  ActionMonitorArgs actionMonitorArgs;
+  ActionStatusArgs actionStatusArgs;
+  
   //--format 
   @Parameter(names = ARG_FORMAT,
-             description = "Format for a response: [text|xml|json|properties]")
+             description = "Format for a response: [xml|properties]")
   private String format = FORMAT_XML;
 
   //--wait [timeout]
@@ -105,32 +126,32 @@ public class ClientArgs extends CommonArgs {
 
   static {
     ACTIONS.put(ACTION_BUILD, triple(
-      "Build a Hoya cluster specification -but do not start it", 1));
-    ACTIONS.put(ACTION_CREATE, triple("Create a live Hoya cluster", 1));
+      DESCRIBE_ACTION_BUILD, 1));
+    ACTIONS.put(ACTION_CREATE, triple(DESCRIBE_ACTION_CREATE, 1));
     ACTIONS.put(ACTION_DESTROY,
-                triple("Destroy a Hoya cluster (which must be stopped)",
+                triple(DESCRIBE_ACTION_DESTROY,
                               1));
     ACTIONS.put(ACTION_EMERGENCY_FORCE_KILL, triple(
-      "Force kill an application by its YARN application ID", 1));
-    ACTIONS.put(ACTION_EXISTS, triple("Probe for a cluster being live",
+      DESCRIBE_ACTION_FORCE_KILL, 1));
+    ACTIONS.put(ACTION_EXISTS, triple(DESCRIBE_ACTION_EXISTS,
                                              1));
-    ACTIONS.put(ACTION_FLEX, triple("Flex a Hoya cluster", 1));
-    ACTIONS.put(ACTION_FREEZE, triple("freeze/suspend a running cluster",
+    ACTIONS.put(ACTION_FLEX, triple(DESCRIBE_ACTION_FLEX, 1));
+    ACTIONS.put(ACTION_FREEZE, triple(DESCRIBE_ACTION_FREEZE,
                                              1));
     ACTIONS.put(ACTION_GETCONF, triple(
-      "Get the configuration of a cluster", 1));
+      DESCRIBE_ACTION_GETCONF, 1));
 //    ACTIONS.put(ACTION_GETSIZE, t("Get the size of a cluster", 1));
-    ACTIONS.put(ACTION_HELP, triple("Print help information", 0));
-    ACTIONS.put(ACTION_LIST, triple("List running Hoya clusters", 0, 1));
-    ACTIONS.put(ACTION_MONITOR, triple("Monitor a running cluster", 1));
+    ACTIONS.put(ACTION_HELP, triple(DESCRIBE_ACTION_HELP, 0));
+    ACTIONS.put(ACTION_LIST, triple(DESCRIBE_ACTION_LIST, 0, 1));
+    ACTIONS.put(ACTION_MONITOR, triple(DESCRIBE_ACTION_MONITOR, 1));
 //    ACTIONS.put(ACTION_MIGRATE, t("Migrate a Hoya cluster to a new HBase version", 1));
 //    ACTIONS.put(ACTION_PREFLIGHT, t("Perform preflight checks", 0));
-    ACTIONS.put(ACTION_RECONFIGURE,
-                triple("change the configuration of a cluster", 1));
+//    ACTIONS.put(ACTION_RECONFIGURE,
+//                triple("change the configuration of a cluster", 1));
 //    ACTIONS.put(ACTION_REIMAGE, t("change the image a cluster uses", 1));
-    ACTIONS.put(ACTION_STATUS, triple("Get the status of a cluster", 1));
-    ACTIONS.put(ACTION_THAW, triple("thaw/start a frozen cluster", 1));
-    ACTIONS.put(ACTION_USAGE, triple("Print help information", 0));
+    ACTIONS.put(ACTION_STATUS, triple(DESCRIBE_ACTION_STATUS, 1));
+    ACTIONS.put(ACTION_THAW, triple(DESCRIBE_ACTION_THAW, 1));
+    ACTIONS.put(ACTION_USAGE, triple(DESCRIBE_ACTION_HELP, 0));
   }
 
   public ClientArgs(String[] args) {
@@ -139,6 +160,35 @@ public class ClientArgs extends CommonArgs {
 
   public ClientArgs(Collection args) {
     super(args);
+  }
+
+  @Override
+  protected void addActionArguments() {
+    super.addActionArguments();
+    actionBuildArgs = new ActionBuildArgs();
+    actionCreateArgs = new ActionCreateArgs();
+    actionDestroyArgs = new ActionDestroyArgs();
+    actionExistsArgs = new ActionExistsArgs();
+    actionFlexArgs = new ActionFlexArgs();
+    actionForceKillArgs = new ActionForceKillArgs();
+    actionFreezeArgs = new ActionFreezeArgs();
+    actionGetConfArgs = new ActionGetConfArgs();
+    actionListArgs = new ActionListArgs();
+    actionMonitorArgs = new ActionMonitorArgs();
+    actionStatusArgs = new ActionStatusArgs();
+    addActions(
+      actionBuildArgs,
+      actionCreateArgs,
+      actionDestroyArgs,
+      actionExistsArgs,
+      actionFlexArgs,
+      actionFreezeArgs,
+      actionGetConfArgs,
+      actionListArgs,
+      actionMonitorArgs,
+      actionStatusArgs);
+
+
   }
 
   @Override

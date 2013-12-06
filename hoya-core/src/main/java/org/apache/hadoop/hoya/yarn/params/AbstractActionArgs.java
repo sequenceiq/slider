@@ -19,6 +19,7 @@
 package org.apache.hadoop.hoya.yarn.params;
 
 import com.beust.jcommander.Parameter;
+import org.apache.hadoop.hoya.yarn.Arguments;
 
 /**
  * Base args for all actions

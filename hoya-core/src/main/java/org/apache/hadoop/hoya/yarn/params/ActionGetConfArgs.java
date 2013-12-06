@@ -19,6 +19,11 @@
 package org.apache.hadoop.hoya.yarn.params;
 
 import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
+import org.apache.hadoop.hoya.yarn.HoyaActions;
+
+@Parameters(commandNames = {HoyaActions.ACTION_GETCONF},
+            commandDescription = HoyaActions.DESCRIBE_ACTION_GETCONF)
 
 public class ActionGetConfArgs extends AbstractActionArgs {
 

@@ -18,14 +18,11 @@
 
 package org.apache.hadoop.hoya.yarn.params;
 
-import com.beust.jcommander.Parameter;
-
-public class WaitDelegateArgs extends AbstractDelegateArgs {
+import org.apache.hadoop.hoya.yarn.Arguments;
 
 
-  //--wait [timeout]
-  @Parameter(names = {ARG_WAIT},
-             description = "time to wait for an action to complete")
-  public int waittime = 0;
-
+/**
+ * Base class for all the delegates
+ */
+public class AbstractArgsDelegate extends ArgOps implements Arguments {
 }

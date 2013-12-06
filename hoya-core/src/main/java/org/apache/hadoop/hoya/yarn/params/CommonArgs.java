@@ -62,6 +62,8 @@ public class CommonArgs extends ArgOps implements HoyaActions, Arguments {
   
   @Parameter(names = ARG_DEBUG, description = "Debug mode")
   private boolean debug = false;
+  
+  
 
   @Parameter(names = ARG_CONFDIR,
              description = "Path to cluster configuration directory in HDFS",
@@ -166,8 +168,11 @@ public class CommonArgs extends ArgOps implements HoyaActions, Arguments {
     }
     return builder.toString();
   }
+  
+  
 
   public void parse() throws BadCommandArgumentsException {
+    addActionArguments();
     try {
       commander.parse(getArgs());
     } catch (ParameterException e) {
@@ -177,6 +182,28 @@ public class CommonArgs extends ArgOps implements HoyaActions, Arguments {
     }
   }
 
+  /**
+   * Add a command
+   * @param name action
+   * @param arg
+   */
+  protected void addAction(String name, Object arg) {
+    commander.addCommand(name, arg);
+  }
+
+  protected void addActions(Object...actions) {
+    for (Object action : actions) {
+      commander.addCommand(action);
+    }
+  }
+
+  /**
+   * Override point to add a set of actions
+   */
+  protected void addActionArguments() {
+    
+  }
+  
   /**
    * Map of supported actions to (description, #of args following)
    * format is of style:

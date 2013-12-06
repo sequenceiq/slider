@@ -18,5 +18,15 @@
 
 package org.apache.hadoop.hoya.yarn.params;
 
+import com.beust.jcommander.Parameters;
+import com.beust.jcommander.ParametersDelegate;
+import org.apache.hadoop.hoya.yarn.HoyaActions;
+
+@Parameters(commandNames = {HoyaActions.ACTION_FREEZE},
+            commandDescription = HoyaActions.DESCRIBE_ACTION_FREEZE)
+
 public class ActionFreezeArgs extends AbstractActionArgs {
+
+  @ParametersDelegate
+  public WaitArgsDelegate waitDelegate = new WaitArgsDelegate();
 }

@@ -19,16 +19,21 @@
 package org.apache.hadoop.hoya.yarn.params;
 
 import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
 import com.beust.jcommander.ParametersDelegate;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
+import org.apache.hadoop.hoya.yarn.HoyaActions;
 
 import java.util.Map;
+
+@Parameters(commandNames = {HoyaActions.ACTION_FLEX},
+            commandDescription = HoyaActions.DESCRIBE_ACTION_FLEX)
 
 public class ActionFlexArgs extends AbstractActionArgs {
 
 
   @ParametersDelegate
-  public RoleDelegateArgs roleDelegate;
+  public RoleArgsDelegate roleDelegate = new RoleArgsDelegate();
 
   @Parameter(names = {ARG_PERSIST},
              description = "flag to indicate whether a flex change should be persisted (default=true)",

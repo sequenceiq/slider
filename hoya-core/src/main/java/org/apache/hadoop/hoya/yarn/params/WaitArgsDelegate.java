@@ -20,12 +20,12 @@ package org.apache.hadoop.hoya.yarn.params;
 
 import com.beust.jcommander.Parameter;
 
-public class RmAddressDelegateArgs extends AbstractDelegateArgs {
+public class WaitArgsDelegate extends AbstractArgsDelegate {
 
 
-  //TODO: do we need this?
-  @Parameter(names = ARG_RESOURCE_MANAGER,
-             description = "Resource manager hostname:port ",
-             required = false)
-  private String rmAddress;
+  //--wait [timeout]
+  @Parameter(names = {ARG_WAIT},
+             description = "time to wait for an action to complete")
+  public int waittime = 0;
+
 }

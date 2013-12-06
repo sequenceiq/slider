@@ -18,6 +18,12 @@
 
 package org.apache.hadoop.hoya.yarn.params;
 
+import com.beust.jcommander.Parameters;
+import org.apache.hadoop.hoya.yarn.HoyaActions;
+
+@Parameters(commandNames = {HoyaActions.ACTION_BUILD},
+            commandDescription = HoyaActions.DESCRIBE_ACTION_BUILD)
+
 public class ActionBuildArgs extends AbstractClusterBuildingActionArgs {
 
 }

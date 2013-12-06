@@ -84,7 +84,7 @@ public class AbstractClusterBuildingActionArgs extends AbstractActionArgs {
 
 
   @ParametersDelegate 
-  public RoleDelegateArgs roleDelegate; 
+  public RoleArgsDelegate roleDelegate = new RoleArgsDelegate(); 
   
   /**
    * All the role option triples

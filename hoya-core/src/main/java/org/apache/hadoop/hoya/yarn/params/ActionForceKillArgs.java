@@ -18,29 +18,11 @@
 
 package org.apache.hadoop.hoya.yarn.params;
 
-import com.beust.jcommander.Parameter;
-import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
+import com.beust.jcommander.Parameters;
+import org.apache.hadoop.hoya.yarn.HoyaActions;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+@Parameters(commandNames = {HoyaActions.ACTION_EMERGENCY_FORCE_KILL},
+            commandDescription = HoyaActions.DESCRIBE_ACTION_FORCE_KILL)
 
-public class RoleDelegateArgs extends AbstractDelegateArgs {
-
-  /**
-   * This is a listing of the roles to create
-   */
-  @Parameter(names = {ARG_ROLE}, arity = 2,
-             description = "role <name> <count>")
-  public List<String> roleTuples = new ArrayList<String>(0);
-
-
-  /**
-   * Get the role mapping (may be empty, but never null)
-   * @return role mapping
-   * @throws BadCommandArgumentsException parse problem
-   */
-  public Map<String, String> getRoleMap() throws BadCommandArgumentsException {
-    return convertTupleListToMap("roles", roleTuples);
-  }
+public class ActionForceKillArgs extends AbstractActionArgs {
 }

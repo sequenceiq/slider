@@ -18,11 +18,14 @@
 
 package org.apache.hadoop.hoya.yarn.params;
 
-import com.beust.jcommander.Parameters;
-import org.apache.hadoop.hoya.yarn.HoyaActions;
+import com.beust.jcommander.Parameter;
 
-@Parameters(commandNames = {HoyaActions.ACTION_STATUS},
-            commandDescription = HoyaActions.DESCRIBE_ACTION_STATUS)
+public class RmAddressArgsDelegate extends AbstractArgsDelegate {
 
-public class ActionStatusArgs extends AbstractActionArgs {
+
+  //TODO: do we need this?
+  @Parameter(names = ARG_RESOURCE_MANAGER,
+             description = "Resource manager hostname:port ",
+             required = false)
+  private String rmAddress;
 }
