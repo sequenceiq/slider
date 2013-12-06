@@ -22,27 +22,23 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
 
-@Parameters(commandNames = {HoyaActions.ACTION_GETCONF},
-            commandDescription = HoyaActions.DESCRIBE_ACTION_GETCONF)
 
-public class ActionGetConfArgs extends AbstractActionArgs {
+@Parameters(commandNames = {HoyaActions.ACTION_CREATE},
+            commandDescription = HoyaActions.DESCRIBE_ACTION_CREATE)
 
-  //--format 
-  @Parameter(names = ARG_FORMAT,
-             description = "Format for a response: [text|xml|json|properties]")
-  public String format = FORMAT_XML;
+public class HoyaAMCreateAction extends AbstractActionArgs {
 
 
-  @Parameter(names = {ARG_OUTPUT, ARG_OUTPUT_SHORT},
-             description = "Output file for the configuration data")
-  private String output;
+  @Parameter(names = ARG_IMAGE, description = "image", required = false)
+  public String image;
+
+  /**
+   * This is the URI in the FS to the Hoya cluster; the conf file (and any
+   * other cluster-specifics) can be picked up here
+   */
+  @Parameter(names = ARG_HOYA_CLUSTER_URI,
+             description = "URI to the hoya cluster", required = true)
+  public String hoyaClusterURI;
 
 
-  public String getFormat() {
-    return format;
-  }
-
-  public String getOutput() {
-    return output;
-  }
 }

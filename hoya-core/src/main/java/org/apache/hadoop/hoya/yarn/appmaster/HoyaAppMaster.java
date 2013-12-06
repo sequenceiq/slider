@@ -52,6 +52,7 @@ import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerAssignment;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RMOperationHandler;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleInstance;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleStatus;
+import org.apache.hadoop.hoya.yarn.params.HoyaAMArgs;
 import org.apache.hadoop.hoya.yarn.service.CompoundLaunchedService;
 import org.apache.hadoop.hoya.yarn.service.EventCallback;
 import org.apache.hadoop.hoya.yarn.service.RpcService;
@@ -207,7 +208,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
 
 
   /** Arguments passed in : raw*/
-  private HoyaMasterServiceArgs serviceArgs;
+  private HoyaAMArgs serviceArgs;
 
   /**
    * ID of the AM container
@@ -301,9 +302,8 @@ public class HoyaAppMaster extends CompoundLaunchedService
   public Configuration bindArgs(Configuration config, String... args) throws
                                                                       Exception {
     config = super.bindArgs(config, args);
-    serviceArgs = new HoyaMasterServiceArgs(args);
+    serviceArgs = new HoyaAMArgs(args);
     serviceArgs.parse();
-    serviceArgs.postProcess();
     //yarn-ify
     YarnConfiguration yarnConfiguration = new YarnConfiguration(config);
     return HoyaUtils.patchConfiguration(yarnConfiguration);
@@ -344,7 +344,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
   private int createAndRunCluster(String clustername) throws Throwable {
 
     //load the cluster description from the cd argument
-    String hoyaClusterDir = serviceArgs.hoyaClusterURI;
+    String hoyaClusterDir = serviceArgs.getHoyaClusterURI();
     URI hoyaClusterURI = new URI(hoyaClusterDir);
     Path clusterDirPath = new Path(hoyaClusterURI);
     Path clusterSpecPath =

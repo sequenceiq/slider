@@ -25,11 +25,16 @@ import org.apache.hadoop.hoya.yarn.HoyaActions;
 @Parameters(commandNames = {HoyaActions.ACTION_CREATE},
             commandDescription = HoyaActions.DESCRIBE_ACTION_CREATE)
 
-public class ActionCreateArgs extends AbstractClusterBuildingActionArgs {
+public class ActionCreateArgs extends AbstractClusterBuildingActionArgs implements WaitTimeAccessor  {
 
   @ParametersDelegate
   public WaitArgsDelegate waitDelegate = new WaitArgsDelegate();
   
   @ParametersDelegate
   public RmAddressArgsDelegate rmAddressDelegate = new RmAddressArgsDelegate();
+
+  @Override
+  public int getWaittime() {
+    return waitDelegate.getWaittime();
+  }
 }

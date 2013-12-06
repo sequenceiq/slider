@@ -29,7 +29,7 @@ import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hadoop.hoya.yarn.params.ArgOps
-import org.apache.hadoop.hoya.yarn.params.ClientArgs
+import org.apache.hadoop.hoya.yarn.params.HoyaClientArgs
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.junit.Assert
 import org.junit.Assume
@@ -45,7 +45,7 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
 
   @Test
   public void testCreateActionArgs() throws Throwable {
-    ClientArgs clientArgs = createClientArgs([ACTION_CREATE, 'cluster1'])
+    HoyaClientArgs clientArgs = createClientArgs([ACTION_CREATE, 'cluster1'])
     assert clientArgs.clusterName == 'cluster1'
   }
 
@@ -65,19 +65,19 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
 
   @Test
   public void testHelp() throws Throwable {
-    ClientArgs clientArgs = createClientArgs([ACTION_HELP])
+    HoyaClientArgs clientArgs = createClientArgs([ACTION_HELP])
     assert clientArgs.clusterName == null
   }
 
   @Test
   public void testListNoClusternames() throws Throwable {
-    ClientArgs clientArgs = createClientArgs([ACTION_LIST])
+    HoyaClientArgs clientArgs = createClientArgs([ACTION_LIST])
     assert clientArgs.clusterName == null
   }
 
   @Test
   public void testListNoClusternamesDefinition() throws Throwable {
-    ClientArgs clientArgs = createClientArgs(
+    HoyaClientArgs clientArgs = createClientArgs(
         [ACTION_LIST,
         ARG_DEFINE,
         'fs.default.FS=file://localhost',
@@ -87,7 +87,7 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
 
   @Test
   public void testList1Clustername() throws Throwable {
-    ClientArgs clientArgs = createClientArgs([ACTION_LIST, 'cluster1'])
+    HoyaClientArgs clientArgs = createClientArgs([ACTION_LIST, 'cluster1'])
     assert clientArgs.clusterName == 'cluster1'
   }
 
@@ -102,7 +102,7 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
 
   @Test
   public void testDefinitions() throws Throwable {
-    ClientArgs ca = createClientArgs([
+    HoyaClientArgs ca = createClientArgs([
         ACTION_CREATE,
         "clustername",
         "-D","yarn.resourcemanager.principal=yarn/server@LOCAL",
@@ -120,8 +120,8 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
 
   @Test
   public void testActionComesAfterParseSingleArg() throws Throwable {
-    ClientArgs ca = createClientArgs([
-        Arguments.ARG_WAIT , "0", 
+    HoyaClientArgs ca = createClientArgs([
+        ARG_WAIT , "0", 
         ACTION_LIST,
     ])
   }
@@ -129,8 +129,8 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
   @Test
   public void testActionComesAfterParseComplexArg() throws Throwable {
     Configuration conf = new Configuration(false)
-    ClientArgs ca = createClientArgs([
-        Arguments.ARG_SYSPROP,"syspropkey=syspropval",
+    HoyaClientArgs ca = createClientArgs([
+        ARG_SYSPROP,"syspropkey=syspropval",
         ACTION_LIST,
     ])
   }
@@ -144,7 +144,7 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
     Assume.assumeTrue("test disabled -split arguments broken", false)
 
     Configuration conf = new Configuration(false)
-    ClientArgs ca = createClientArgs([
+    HoyaClientArgs ca = createClientArgs([
         "--manager", "ubuntu:8032", "--filesystem", "hdfs://ubuntu:9090",
         "--secure","-S","java.security.krb5.realm=LOCAL","-S", "java.security.krb5.kdc=ubuntu",
         "-D","yarn.resourcemanager.principal=yarn/ubuntu@LOCAL",
@@ -165,11 +165,10 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
 
     Configuration conf = new Configuration(false)
     String appId = "application_1381252124398_0013"
-    ClientArgs ca = createClientArgs([
+    HoyaClientArgs ca = createClientArgs([
         ACTION_EMERGENCY_FORCE_KILL,
         "--manager", "ubuntu:8032",
         "--filesystem", "hdfs://ubuntu:9090",
-        "--secure",
         "-S","java.security.krb5.realm=LOCAL",
         "-S", "java.security.krb5.kdc=ubuntu",
         "-D","yarn.resourcemanager.principal=yarn/ubuntu@LOCAL",
@@ -182,7 +181,7 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
   
   private void assertParseFails(List argsList) {
     try {
-      ClientArgs clientArgs = createClientArgs(argsList)
+      HoyaClientArgs clientArgs = createClientArgs(argsList)
       Assert.fail("exected an exception, got $clientArgs")
     } catch (BadCommandArgumentsException ignored) {
       //expected
@@ -193,10 +192,9 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
    * build and parse client args, after adding the base args list
    * @param argsList
    */
-  public ClientArgs createClientArgs(List argsList) {
-    def serviceArgs = new ClientArgs(argsList + baseArgs())
+  public HoyaClientArgs createClientArgs(List argsList) {
+    def serviceArgs = new HoyaClientArgs(argsList + baseArgs())
     serviceArgs.parse()
-    serviceArgs.postProcess();
     serviceArgs
   }
 
@@ -206,17 +204,16 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
    */
   private def baseArgs() {
     return [
-        Arguments.ARG_ZKHOSTS, "localhost",
-        Arguments.ARG_ZKPORT, "8080",
+
     ]
   }
 
 
   @Test
   public void testSingleRoleArg() throws Throwable {
-    ClientArgs clientArgs = createClientArgs([
+    HoyaClientArgs clientArgs = createClientArgs([
         ACTION_CREATE, 'cluster1',
-        Arguments.ARG_ROLE,"master","5",
+        ARG_ROLE,"master","5",
     ])
     def tuples = clientArgs.roleTuples;
     assert tuples.size() == 2;
@@ -226,21 +223,21 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
   
   @Test
   public void testNoRoleArg() throws Throwable {
-    ClientArgs clientArgs = createClientArgs([
+    HoyaClientArgs clientArgs = createClientArgs([
         ACTION_CREATE, 'cluster1',
     ])
     def tuples = clientArgs.roleTuples;
     Map<String, String> roleMap = ArgOps.convertTupleListToMap("roles", tuples);
     assert roleMap["master"] == null
   }
-  
-  
+
+
   @Test
   public void testMultiRoleArg() throws Throwable {
-    ClientArgs clientArgs = createClientArgs([
+    HoyaClientArgs clientArgs = createClientArgs([
         ACTION_CREATE, 'cluster1',
-        Arguments.ARG_ROLE,"master","1",
-        Arguments.ARG_ROLE,"worker","2",
+        ARG_ROLE, "master", "1",
+        ARG_ROLE, "worker", "2",
     ])
     def tuples = clientArgs.roleTuples;
     assert tuples.size() == 4;
@@ -248,18 +245,20 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
     assert roleMap["master"] == "1"
     assert roleMap["worker"] == "2"
   }
-   
+
   @Test
   public void testDuplicateRole() throws Throwable {
-    ClientArgs clientArgs = createClientArgs([
+    HoyaClientArgs clientArgs = createClientArgs([
         ACTION_CREATE, 'cluster1',
-        Arguments.ARG_ROLE,"master","1",
-        Arguments.ARG_ROLE,"master","2",
+        ARG_ROLE, "master", "1",
+        ARG_ROLE, "master", "2",
     ])
     def tuples = clientArgs.roleTuples;
     assert tuples.size() == 4;
     try {
-      Map<String, String> roleMap = ArgOps.convertTupleListToMap("roles", tuples);
+      Map<String, String> roleMap = ArgOps.convertTupleListToMap(
+          "roles",
+          tuples);
       Assert.fail("got a role map $roleMap not a failure");
     } catch (BadCommandArgumentsException expected) {
       assert expected.message.contains(ErrorStrings.ERROR_DUPLICATE_ENTRY)
@@ -268,10 +267,10 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
      
   @Test
   public void testOddRoleCount() throws Throwable {
-    ClientArgs clientArgs = createClientArgs([
+    HoyaClientArgs clientArgs = createClientArgs([
         ACTION_CREATE, 'cluster1',
-        Arguments.ARG_ROLE,"master","1",
-        Arguments.ARG_ROLE,"master","2",
+        ARG_ROLE,"master","1",
+        ARG_ROLE,"master","2",
     ])
     List<String> tuples = clientArgs.roleTuples
     tuples += "loggers";
@@ -288,25 +287,25 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
    * Create some role-opt client args, so that multiple tests can use it 
    * @return the args
    */
-  public ClientArgs createRoleOptClientArgs() {
-    ClientArgs clientArgs = createClientArgs([
+  public HoyaClientArgs createRoleOptClientArgs() {
+    HoyaClientArgs clientArgs = createClientArgs([
         ACTION_CREATE, 'cluster1',
-        Arguments.ARG_ROLE, "master", "1",
-        Arguments.ARG_ROLEOPT, "master", "cheese", "swiss",
-        Arguments.ARG_ROLEOPT, "master", "env.CHEESE", "cheddar",
-        Arguments.ARG_ROLEOPT, "master", RoleKeys.YARN_CORES, 3,
+        ARG_ROLE, "master", "1",
+        ARG_ROLEOPT, "master", "cheese", "swiss",
+        ARG_ROLEOPT, "master", "env.CHEESE", "cheddar",
+        ARG_ROLEOPT, "master", RoleKeys.YARN_CORES, 3,
 
-        Arguments.ARG_ROLE, "worker", "2",
-        Arguments.ARG_ROLEOPT, "worker", RoleKeys.YARN_CORES, 2,
-        Arguments.ARG_ROLEOPT, "worker", RoleKeys.JVM_HEAP, "65536",
-        Arguments.ARG_ROLEOPT, "worker", "env.CHEESE", "stilton",
+        ARG_ROLE, "worker", "2",
+        ARG_ROLEOPT, "worker", RoleKeys.YARN_CORES, 2,
+        ARG_ROLEOPT, "worker", RoleKeys.JVM_HEAP, "65536",
+        ARG_ROLEOPT, "worker", "env.CHEESE", "stilton",
     ])
     return clientArgs
   }
 
   @Test
   public void testRoleOptionParse() throws Throwable {
-    ClientArgs clientArgs = createRoleOptClientArgs()
+    HoyaClientArgs clientArgs = createRoleOptClientArgs()
     
     def tripleMaps = clientArgs.roleOptionMap
     def workerOpts = tripleMaps["worker"];
@@ -322,7 +321,7 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
 
   @Test
   public void testRoleOptionsMerge() throws Throwable {
-    ClientArgs clientArgs = createRoleOptClientArgs()
+    HoyaClientArgs clientArgs = createRoleOptClientArgs()
     
     def roleOpts = clientArgs.roleOptionMap
 
@@ -341,7 +340,7 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
 
   @Test
   public void testEnvVariableApply() throws Throwable {
-    ClientArgs clientArgs = createRoleOptClientArgs()
+    HoyaClientArgs clientArgs = createRoleOptClientArgs()
     
     def roleOpts = clientArgs.roleOptionMap
     def clusterRoleMap = [

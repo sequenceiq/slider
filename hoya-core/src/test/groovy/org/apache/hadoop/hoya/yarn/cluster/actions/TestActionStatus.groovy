@@ -21,8 +21,8 @@ package org.apache.hadoop.hoya.yarn.cluster.actions
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.Arguments
-import org.apache.hadoop.hoya.yarn.params.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
+import org.apache.hadoop.hoya.yarn.params.HoyaClientArgs
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.conf.YarnConfiguration
@@ -55,7 +55,7 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
           new YarnConfiguration(miniCluster.config),
           //varargs list of command line params
           [
-              ClientArgs.ACTION_STATUS,
+              HoyaClientArgs.ACTION_STATUS,
               "testStatusMissingCluster",
               Arguments.ARG_MANAGER, RMAddr
           ]
@@ -83,7 +83,7 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
         new YarnConfiguration(miniCluster.config),
         //varargs list of command line params
         [
-            ClientArgs.ACTION_STATUS,
+            HoyaClientArgs.ACTION_STATUS,
             clustername,
             Arguments.ARG_MANAGER, RMAddr,
         ]

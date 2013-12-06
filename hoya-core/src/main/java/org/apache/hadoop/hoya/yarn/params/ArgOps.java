@@ -61,7 +61,7 @@ public class ArgOps {
    * @param min
    * @return
    */
-  public static List<Object> triple(String msg, int min) {
+  public static List<Object> tuple(String msg, int min) {
     return triple(msg, min, min);
   }
 

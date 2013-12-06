@@ -18,31 +18,6 @@
 
 package org.apache.hadoop.hoya.yarn.params;
 
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.Parameters;
-import org.apache.hadoop.hoya.yarn.HoyaActions;
-
-@Parameters(commandNames = {HoyaActions.ACTION_GETCONF},
-            commandDescription = HoyaActions.DESCRIBE_ACTION_GETCONF)
-
-public class ActionGetConfArgs extends AbstractActionArgs {
-
-  //--format 
-  @Parameter(names = ARG_FORMAT,
-             description = "Format for a response: [text|xml|json|properties]")
-  public String format = FORMAT_XML;
-
-
-  @Parameter(names = {ARG_OUTPUT, ARG_OUTPUT_SHORT},
-             description = "Output file for the configuration data")
-  private String output;
-
-
-  public String getFormat() {
-    return format;
-  }
-
-  public String getOutput() {
-    return output;
-  }
+public interface WaitTimeAccessor {
+  int getWaittime();
 }

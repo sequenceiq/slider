@@ -25,6 +25,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.ErrorStrings;
+import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.Arguments;
@@ -47,7 +48,7 @@ import java.util.Map;
  * in the range allowed
  */
 
-public class CommonArgs extends ArgOps implements HoyaActions, Arguments {
+public abstract class CommonArgs extends ArgOps implements HoyaActions, Arguments {
 
   protected static final Logger log = LoggerFactory.getLogger(CommonArgs.class);
 
@@ -130,10 +131,11 @@ public class CommonArgs extends ArgOps implements HoyaActions, Arguments {
    * fields
    */
   public JCommander commander;
-  private String action;
   //action arguments; 
   private List<String> actionArgs;
   private final String[] args;
+  
+  private AbstractActionArgs coreAction;
 
   /**
    * get the name: relies on arg 1 being the cluster name in all operations 
@@ -168,10 +170,14 @@ public class CommonArgs extends ArgOps implements HoyaActions, Arguments {
     }
     return builder.toString();
   }
-  
-  
 
-  public void parse() throws BadCommandArgumentsException {
+
+  /**
+   * Parse routine -includes registering the action-specific argument classes
+   * and postprocess it
+   * @throws HoyaException on any problem
+   */
+  public void parse() throws HoyaException {
     addActionArguments();
     try {
       commander.parse(getArgs());
@@ -180,6 +186,9 @@ public class CommonArgs extends ArgOps implements HoyaActions, Arguments {
         e.toString(),
         (getArgs() != null ? ( HoyaUtils.join(getArgs(), " ")) : "[]"));
     }
+    //now copy back to this class some of the attributes that are common to all
+    //actions
+    postProcess();
   }
 
   /**
@@ -220,7 +229,8 @@ public class CommonArgs extends ArgOps implements HoyaActions, Arguments {
    * validate args via {@link #validate()}
    * then postprocess the arguments
    */
-  public void postProcess() throws BadCommandArgumentsException {
+  public void postProcess() throws HoyaException {
+    applyAction();
     validate();
     splitPairs(definitions, definitionMap);
     splitPairs(sysprops, syspropsMap);
@@ -229,15 +239,40 @@ public class CommonArgs extends ArgOps implements HoyaActions, Arguments {
     }
   }
 
+
+  /**
+   * Implementors must implement their action apply routine here
+   */
+  public abstract void applyAction() throws HoyaException;
+
+
+  /**
+   * Bind the core action; this extracts any attributes that are used
+   * across routines
+   * @param action action to bind
+   */
+  protected void bindCoreAction(AbstractActionArgs action) {
+    coreAction = action;
+    definitions = coreAction.definitions;
+    sysprops = coreAction.sysprops;
+  }
+
+  /**
+   * Get the core action -type depends on the action
+   * @return the action class
+   */
+  public AbstractActionArgs getCoreAction() {
+    return coreAction;
+  }
+
   /**
    * Validate the arguments against the action requested
    */
   public void validate() throws BadCommandArgumentsException {
-    if (parameters.isEmpty()) {
+    if (coreAction == null) {
       throw new BadCommandArgumentsException(ErrorStrings.ERROR_NO_ACTION
                                              + usage());
     }
-    setAction(parameters.get(0));
     log.debug("action={}", getAction());
     Map<String, List<Object>> actionMap = getActions();
     List<Object> actionOpts = actionMap.get(getAction());
@@ -366,13 +401,8 @@ public class CommonArgs extends ArgOps implements HoyaActions, Arguments {
   }
 
   public String getAction() {
-    return action;
+    return commander.getParsedCommand();
   }
-
-  public void setAction(String action) {
-    this.action = action;
-  }
-
   public List<String> getActionArgs() {
     return actionArgs;
   }

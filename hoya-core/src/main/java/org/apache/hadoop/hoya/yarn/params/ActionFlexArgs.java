@@ -48,4 +48,9 @@ public class ActionFlexArgs extends AbstractActionArgs {
   public Map<String, String> getRoleMap() throws BadCommandArgumentsException {
     return roleDelegate.getRoleMap();
   }
+
+
+  public boolean isPersist() {
+    return persist;
+  }
 }

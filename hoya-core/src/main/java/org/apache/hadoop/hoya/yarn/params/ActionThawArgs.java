@@ -18,31 +18,20 @@
 
 package org.apache.hadoop.hoya.yarn.params;
 
-import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
+import com.beust.jcommander.ParametersDelegate;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
 
-@Parameters(commandNames = {HoyaActions.ACTION_GETCONF},
-            commandDescription = HoyaActions.DESCRIBE_ACTION_GETCONF)
-
-public class ActionGetConfArgs extends AbstractActionArgs {
-
-  //--format 
-  @Parameter(names = ARG_FORMAT,
-             description = "Format for a response: [text|xml|json|properties]")
-  public String format = FORMAT_XML;
+@Parameters(commandNames = {HoyaActions.ACTION_THAW},
+            commandDescription = HoyaActions.DESCRIBE_ACTION_THAW)
+public class ActionThawArgs extends AbstractActionArgs implements WaitTimeAccessor  {
 
 
-  @Parameter(names = {ARG_OUTPUT, ARG_OUTPUT_SHORT},
-             description = "Output file for the configuration data")
-  private String output;
+  @ParametersDelegate
+  public WaitArgsDelegate waitDelegate = new WaitArgsDelegate();
 
-
-  public String getFormat() {
-    return format;
-  }
-
-  public String getOutput() {
-    return output;
+  @Override
+  public int getWaittime() {
+    return waitDelegate.getWaittime();
   }
 }

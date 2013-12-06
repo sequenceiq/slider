@@ -120,4 +120,32 @@ public class AbstractClusterBuildingActionArgs extends AbstractActionArgs {
   public Map<String, String> getRoleMap() throws BadCommandArgumentsException {
     return roleDelegate.getRoleMap();
   }
+
+  public Path getConfdir() {
+    return confdir;
+  }
+
+  public String getAppZKPath() {
+    return appZKPath;
+  }
+
+  public String getZKhosts() {
+    return zkhosts;
+  }
+
+  public int getZKport() {
+    return zkport;
+  }
+
+  public Path getImage() {
+    return image;
+  }
+
+  public String getAppHomeDir() {
+    return appHomeDir;
+  }
+
+  public String getProvider() {
+    return provider;
+  }
 }

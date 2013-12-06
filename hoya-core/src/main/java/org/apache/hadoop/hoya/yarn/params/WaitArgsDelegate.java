@@ -20,7 +20,7 @@ package org.apache.hadoop.hoya.yarn.params;
 
 import com.beust.jcommander.Parameter;
 
-public class WaitArgsDelegate extends AbstractArgsDelegate {
+public class WaitArgsDelegate extends AbstractArgsDelegate implements WaitTimeAccessor {
 
 
   //--wait [timeout]
@@ -28,4 +28,9 @@ public class WaitArgsDelegate extends AbstractArgsDelegate {
              description = "time to wait for an action to complete")
   public int waittime = 0;
 
+
+  @Override
+  public int getWaittime() {
+    return waittime;
+  }
 }

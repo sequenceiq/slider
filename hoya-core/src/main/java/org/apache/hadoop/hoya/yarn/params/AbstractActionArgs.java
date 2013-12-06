@@ -19,16 +19,112 @@
 package org.apache.hadoop.hoya.yarn.params;
 
 import com.beust.jcommander.Parameter;
+import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
+import org.apache.hadoop.hoya.exceptions.ErrorStrings;
 import org.apache.hadoop.hoya.yarn.Arguments;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Base args for all actions
  */
-public class AbstractActionArgs extends CrossActionArgs {
+public class AbstractActionArgs extends ArgOps implements Arguments {
+  protected static final Logger log = LoggerFactory.getLogger(AbstractActionArgs.class);
+
+
+  /**
+   * URI of the filesystem
+   */
+  @Parameter(names = {ARG_FILESYSTEM, ARG_FILESYSTEM_LONG},
+             description = "Filesystem URI",
+             converter = URIArgumentConverter.class)
+  public URI filesystemURL;
+
+
+  /**
+   * This is the default parameter
+   */
+  @Parameter
+  public List<String> parameters = new ArrayList<String>();
+
+  /**
+   -D name=value
+
+   Define an HBase configuration option which overrides any options in
+   the configuration XML files of the image or in the image configuration
+   directory. The values will be persisted.
+   Configuration options are only passed to the cluster when creating or reconfiguring a cluster.
+
+   */
+
+  @Parameter(names = ARG_DEFINE, arity = 1, description = "Definitions")
+  public final List<String> definitions = new ArrayList<String>();
+  
+  /**
+   * System properties
+   */
+  @Parameter(names = {ARG_SYSPROP}, arity = 1,
+             description = "system properties in the form name value" +
+                           " These are set after the JVM is started.")
+  public final List<String> sysprops = new ArrayList<String>(0);
 
 
   @Parameter(names = {"--m", ARG_MANAGER},
              description = "hostname:port of the YARN resource manager")
   public String manager;
 
+
+  /**
+   * Get the min #of params expected
+   * @return the min number of params in the {@link #parameters} field
+   */
+  public int getMinParams() {
+    return 0;
+  }
+  
+  public String getAction() {
+    Parameter annotation = this.getClass().getAnnotation(Parameter.class);
+    annotation.
+  }
+
+  /**
+   * Get the max #of params expected
+   * @return the number of params in the {@link #parameters} field; -1 means "as the min"
+   */
+  public int getMaxParams() {
+    return -1;
+  }
+
+  public void validate() throws BadCommandArgumentsException {
+    ;
+
+    int minArgs = getMinParams();
+    int actionArgSize = parameters.size();
+    if (minArgs > actionArgSize) {
+      throw new BadCommandArgumentsException(
+        ErrorStrings.ERROR_NOT_ENOUGH_ARGUMENTS + getAction());
+    }
+    int maxArgs =getMaxParams();
+    if (maxArgs == -1) {
+      maxArgs = minArgs;
+    }
+    if (actionArgSize > maxArgs) {
+      String message = String.format("%s for %s: limit is %d but saw %d",
+                                     ErrorStrings.ERROR_TOO_MANY_ARGUMENTS,
+                                     getAction(), maxArgs,
+                                     actionArgSize);
+      log.error(message);
+      int index = 1;
+      for (String actionArg : parameters) {
+        log.error("[{}] \"{}\"", index++, actionArg);
+      }
+      throw new BadCommandArgumentsException(message);
+    }
+  }
 }

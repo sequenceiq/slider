@@ -17,11 +17,7 @@
  */
 
 
-package org.apache.hadoop.hoya.yarn.appmaster;
-
-import com.beust.jcommander.Parameter;
-import org.apache.hadoop.hoya.yarn.params.CommonArgs;
-import org.apache.hadoop.hoya.yarn.params.ArgOps;
+package org.apache.hadoop.hoya.yarn.params;
 
 import java.util.HashMap;
 import java.util.List;
@@ -30,34 +26,14 @@ import java.util.Map;
 /**
  * Parameters sent by the Client to the AM
  */
-public class HoyaMasterServiceArgs extends CommonArgs {
+public class HoyaAMArgs extends CommonArgs {
   /**
    * Name of entry class: {@value}
    */
   public static final String CLASSNAME =
     "org.apache.hadoop.hoya.yarn.appmaster.HoyaAppMaster";
 
-
-  /**
-   *    Declare the image configuration directory to use when creating
-   *    or reconfiguring a hoya cluster.
-   *    The path must be on a filesystem visible to all nodes in the
-   *    YARN cluster.
-   *    Only one configuration directory can be specified.
-   */
-  @Parameter(names = "--generated_confdir",
-             description = "generated configuration directory")
-  public String generatedConfdir;
-
-  @Parameter(names = ARG_IMAGE, description = "image", required = false)
-  public String image;
-
-  /**
-   * This is the URI in the FS to the Hoya cluster; the conf file (and any
-   * other cluster-specifics) can be picked up here
-   */
-  @Parameter(names = ARG_HOYA_CLUSTER_URI, description = "URI to the hoya cluster", required = true)
-  public String hoyaClusterURI;
+  HoyaAMCreateAction createAction = new HoyaAMCreateAction();
 
 
   /**
@@ -69,13 +45,17 @@ public class HoyaMasterServiceArgs extends CommonArgs {
     new HashMap<String, List<Object>>();
 
   static {
-    ACTIONS.put(ACTION_CREATE, ArgOps.triple("create cluster", 1));
-    ACTIONS.put(ACTION_HELP, ArgOps.triple("Print Help information", 0));
+    ACTIONS.put(ACTION_CREATE, ArgOps.tuple("create cluster", 1));
   }
 
 
-  public HoyaMasterServiceArgs(String[] args) {
+  public HoyaAMArgs(String[] args) {
     super(args);
+  }
+
+  @Override
+  protected void addActionArguments() {
+    addActions(createAction);
   }
 
   @Override
@@ -84,4 +64,23 @@ public class HoyaMasterServiceArgs extends CommonArgs {
   }
 
 
+  public String getImage() {
+    return createAction.image;
+  }
+
+  /**
+   * This is the URI in the FS to the Hoya cluster; the conf file (and any
+   * other cluster-specifics) can be picked up here
+   */
+  public String getHoyaClusterURI() {
+    return createAction.hoyaClusterURI;
+  }
+
+  /**
+   * Am binding is simple: there is only one action
+   */
+  @Override
+  public void applyAction() {
+    bindCoreAction(createAction);
+  }
 }
