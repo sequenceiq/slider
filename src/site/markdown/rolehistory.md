@@ -14,29 +14,19 @@
   
 # Role History: how Hoya brings back nodes in the same location
 
-### 2013-10-29: WiP design doc
+### Last updated  2013-12-06
 
 ## Outstanding issues
 
-1. How best to distinguish at thaw time from nodes used just before thawing
-from nodes used some period before? Should the RoleHistory simply forget
-about nodes which are older than some threshold when reading in the history?
+1. Can we use the history to implement anti-affinity: for any role with this flag,
+use our knowledge of the cluster to ask for all nodes that aren't in use already
 
-1. Is there a way to avoid tracking the outstanding requests?
- 
-1. What will the strategy of picking the most-recently-used node do if
-that node creates the container and then fails to start it up. Do we need
-to add blacklisting too? Or actually monitor the container start time, and
-if a container hasn't been there for very long, don't pick it.
-
-1. Should we prioritise a node that was used for a long session ahead of
-a node that was used more recently for a shorter session? Maybe, but
-it complicates selection as generating a strict order of nodes gets
-significantly harder.
+1. How to add blacklisting here? We are tracking failures and startup failures
+per node (not persisted), but not using this in role placement requests yet.
 
 ## Introduction
 
-Hoya should try to bring up instances of a given role on the machine(s) on which
+Hoya needs to bring up instances of a given role on the machine(s) on which
 they last ran -it should remember after shrinking or freezing a cluster  which
 servers were last used for a role -and use this (persisted) data to select
 clusters next time
@@ -557,7 +547,7 @@ in it is only an approximate about what the previous state of the cluster was.
 
 There is a bias here towards previous nodes, even if the number of nodes
 in the cluster has changed. This is why a node is picked where the number
-of `active-releasing ==0 and requested == 0`, rather than where it is simply the lowest
+of `active-releasing == 0 and requested == 0`, rather than where it is simply the lowest
 value of `active + requested - releasing`: if there is no node in the nodemap that
 is not running an instance of that role, it is left to the RM to decide where
 the role instance should be instantiated.
@@ -980,3 +970,34 @@ And here, another region server has started. This does not actually change the c
 
 The `last_used` timestamps will not be changed until the cluster is shrunk or thawed, as the `active` flag being set
 implies that the server is running both roles at the save time of `1384183512217`.
+
+## Resolved issues
+
+> How best to distinguish at thaw time from nodes used just before thawing
+from nodes used some period before? Should the RoleHistory simply forget
+about nodes which are older than some threshold when reading in the history?
+
+we just track last used times
+
+
+> Is there a way to avoid tracking the outstanding requests?
+ 
+No 
+ 
+> What will the strategy of picking the most-recently-used node do if
+that node creates the container and then fails to start it up. Do we need
+to add blacklisting too? Or actually monitor the container start time, and
+if a container hasn't been there for very long, don't pick it.
+
+Startup failures drop the node from the ready-to-use list; the node is no longer
+trusted. We don't blacklist it (yet)
+
+
+> Should we prioritise a node that was used for a long session ahead of
+a node that was used more recently for a shorter session? Maybe, but
+it complicates selection as generating a strict order of nodes gets
+significantly harder.
+
+No: you need to start tracking aggregate execution time, for the last session.
+In a stable state, all servers recorded in the history will have spread the
+data amongst them, so its irrelevant.
