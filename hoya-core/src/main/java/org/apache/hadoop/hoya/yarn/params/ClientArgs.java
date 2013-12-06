@@ -16,7 +16,7 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.client;
+package org.apache.hadoop.hoya.yarn.params;
 
 import com.beust.jcommander.Parameter;
 import org.apache.hadoop.conf.Configuration;
@@ -24,7 +24,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
 import org.apache.hadoop.hoya.yarn.params.PathArgumentConverter;
-import org.apache.hadoop.hoya.yarn.CommonArgs;
+import org.apache.hadoop.hoya.yarn.params.CommonArgs;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
 import java.util.ArrayList;

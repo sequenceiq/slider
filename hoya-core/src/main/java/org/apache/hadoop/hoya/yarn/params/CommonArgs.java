@@ -16,7 +16,7 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn;
+package org.apache.hadoop.hoya.yarn.params;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -27,9 +27,8 @@ import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.ErrorStrings;
 import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
-import org.apache.hadoop.hoya.yarn.params.PathArgumentConverter;
-import org.apache.hadoop.hoya.yarn.params.URIArgumentConverter;
-import org.apache.hadoop.hoya.yarn.params.ArgOps;
+import org.apache.hadoop.hoya.yarn.Arguments;
+import org.apache.hadoop.hoya.yarn.HoyaActions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,6 +57,9 @@ public class CommonArgs extends ArgOps implements HoyaActions, Arguments {
   @Parameter
   public List<String> parameters = new ArrayList<String>();
 
+  
+  
+  
   @Parameter(names = ARG_DEBUG, description = "Debug mode")
   private boolean debug = false;
 

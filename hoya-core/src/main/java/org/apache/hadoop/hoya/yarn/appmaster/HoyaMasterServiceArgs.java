@@ -20,7 +20,7 @@
 package org.apache.hadoop.hoya.yarn.appmaster;
 
 import com.beust.jcommander.Parameter;
-import org.apache.hadoop.hoya.yarn.CommonArgs;
+import org.apache.hadoop.hoya.yarn.params.CommonArgs;
 import org.apache.hadoop.hoya.yarn.params.ArgOps;
 
 import java.util.HashMap;
