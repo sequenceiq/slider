@@ -30,6 +30,9 @@ import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hadoop.hoya.yarn.params.ActionCreateArgs
 import org.apache.hadoop.hoya.yarn.params.ActionForceKillArgs
+import org.apache.hadoop.hoya.yarn.params.ActionFreezeArgs
+import org.apache.hadoop.hoya.yarn.params.ActionListArgs
+import org.apache.hadoop.hoya.yarn.params.ActionThawArgs
 import org.apache.hadoop.hoya.yarn.params.ArgOps
 import org.apache.hadoop.hoya.yarn.params.ClientArgs
 import org.apache.hadoop.yarn.conf.YarnConfiguration
@@ -89,8 +92,9 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
 
   @Test
   public void testList1Clustername() throws Throwable {
-    ClientArgs clientArgs = createClientArgs([ACTION_LIST, 'cluster1'])
-    assert clientArgs.clusterName == 'cluster1'
+    ClientArgs ca = createClientArgs([ACTION_LIST, 'cluster1'])
+    assert ca.clusterName == 'cluster1'
+    assert ca.coreAction instanceof ActionListArgs
   }
 
   @Test
@@ -126,7 +130,6 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
    */
   @Test
   public void testComplexThaw() throws Throwable {
-    Configuration conf = new Configuration(false)
     ClientArgs ca = createClientArgs([
         ACTION_THAW,
         "--manager", "rhel:8032", "--filesystem", "hdfs://rhel:9090",
@@ -136,6 +139,8 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
         "cl1"    
     ])
     assert "cl1" == ca.clusterName
+    assert ca.coreAction instanceof ActionThawArgs
+
   }
   
   /**
@@ -174,6 +179,7 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
         appId
     ])
     assert appId == ca.clusterName
+    assert ca.coreAction instanceof ActionForceKillArgs
   }
   /**
    * Test a force kill command without args
@@ -186,7 +192,32 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
         ACTION_EMERGENCY_FORCE_KILL,
     ])
   }
+  
+  @Test
+  public void testFreezeFailsNoArg() throws Throwable {
+    assertParseFails([
+        ACTION_FREEZE,
+    ])
+  }
+  @Test
+  public void testFreezeWorks1Arg() throws Throwable {
+    ClientArgs ca = createClientArgs([
+        ACTION_FREEZE,
+        "clustername",
+    ])
+    assert ca.clusterName == "clustername"
+    assert ca.coreAction instanceof ActionFreezeArgs
+  }
+  
+  @Test
+  public void testFreezeFails2Arg() throws Throwable {
+    assertParseFails([
+        ACTION_FREEZE, "cluster", "cluster2"
+    ])
+  }
 
+  
+  
   /**
    * Assert that a pass fails with a BadCommandArgumentsException
    * @param argsList

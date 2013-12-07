@@ -36,6 +36,7 @@ import java.util.Map;
  */
 public class AbstractActionArgs extends ArgOps implements Arguments {
   protected static final Logger log = LoggerFactory.getLogger(AbstractActionArgs.class);
+  private static final String UNKNOWN = "unknown";
 
 
   /**
@@ -99,11 +100,14 @@ public class AbstractActionArgs extends ArgOps implements Arguments {
   public int getMinParams() {
     return 1;
   }
-  
+
   public String getAction() {
     Parameter annotation = this.getClass().getAnnotation(Parameter.class);
+    if (annotation == null) {
+      return UNKNOWN;
+    }
     String[] names = annotation.names();
-    return names.length > 0 ? names[0] : "unknown";
+    return names.length > 0 ? names[0] : UNKNOWN;
   }
 
   /**
