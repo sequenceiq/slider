@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.client
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
 import org.apache.hadoop.hoya.tools.HoyaUtils
+import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.params.ClientArgs
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
@@ -55,7 +56,20 @@ class TestClientBasicArgs extends ServiceLauncherBaseTest {
       // expected
     }
   }
-  
 
+  @Test
+  public void testListUnknownHost() throws Throwable {
+    try {
+      ServiceLauncher launcher = launch(HoyaClient,
+                                        HoyaUtils.createConfiguration(),
+                                        [ClientArgs.ACTION_LIST,
+                                        "cluster",
+                                        Arguments.ARG_MANAGER,"unknownhost.example.org:80"])
+      fail("expected an exception, got a launcher with exit code $launcher.serviceExitCode")
+    } catch (UnknownHostException expected) {
+      //expected
+    }
+
+  }
 
 }
