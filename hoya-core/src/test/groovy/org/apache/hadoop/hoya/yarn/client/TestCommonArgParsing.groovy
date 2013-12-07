@@ -28,10 +28,18 @@ import org.apache.hadoop.hoya.exceptions.ErrorStrings
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.HoyaActions
+import org.apache.hadoop.hoya.yarn.params.AbstractClusterBuildingActionArgs
+import org.apache.hadoop.hoya.yarn.params.ActionBuildArgs
 import org.apache.hadoop.hoya.yarn.params.ActionCreateArgs
+import org.apache.hadoop.hoya.yarn.params.ActionDestroyArgs
+import org.apache.hadoop.hoya.yarn.params.ActionExistsArgs
+import org.apache.hadoop.hoya.yarn.params.ActionFlexArgs
 import org.apache.hadoop.hoya.yarn.params.ActionForceKillArgs
 import org.apache.hadoop.hoya.yarn.params.ActionFreezeArgs
+import org.apache.hadoop.hoya.yarn.params.ActionGetConfArgs
 import org.apache.hadoop.hoya.yarn.params.ActionListArgs
+import org.apache.hadoop.hoya.yarn.params.ActionMonitorArgs
+import org.apache.hadoop.hoya.yarn.params.ActionStatusArgs
 import org.apache.hadoop.hoya.yarn.params.ActionThawArgs
 import org.apache.hadoop.hoya.yarn.params.ArgOps
 import org.apache.hadoop.hoya.yarn.params.ClientArgs
@@ -47,6 +55,9 @@ import org.junit.Test
 @Slf4j
 
 class TestCommonArgParsing implements HoyaActions, Arguments{
+
+
+  public static final String CLUSTERNAME = "clustername"
 
   @Test
   public void testCreateActionArgs() throws Throwable {
@@ -110,13 +121,13 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
   public void testDefinitions() throws Throwable {
     ClientArgs ca = createClientArgs([
         ACTION_CREATE,
-        "clustername",
+        CLUSTERNAME,
         "-D","yarn.resourcemanager.principal=yarn/server@LOCAL",
         "-D","dfs.datanode.kerberos.principal=hdfs/server@LOCAL",
     ])
     Configuration conf = new Configuration(false)
     ca.applyDefinitions(conf)
-    assert ca.clusterName == "clustername"
+    assert ca.clusterName == CLUSTERNAME
     HoyaUtils.verifyPrincipalSet(conf, YarnConfiguration.RM_PRINCIPAL);
     HoyaUtils.verifyPrincipalSet(
         conf,
@@ -199,13 +210,14 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
         ACTION_FREEZE,
     ])
   }
+  
   @Test
   public void testFreezeWorks1Arg() throws Throwable {
     ClientArgs ca = createClientArgs([
         ACTION_FREEZE,
-        "clustername",
+        CLUSTERNAME,
     ])
-    assert ca.clusterName == "clustername"
+    assert ca.clusterName == CLUSTERNAME
     assert ca.coreAction instanceof ActionFreezeArgs
   }
   
@@ -216,7 +228,79 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
     ])
   }
 
+  @Test
+  public void testGetConfFailsNoArg() throws Throwable {
+    assertParseFails([
+        ACTION_GETCONF,
+    ])
+  }
+
+  @Test
+  public void testGetConfWorks1Arg() throws Throwable {
+    ClientArgs ca = createClientArgs([
+        ACTION_GETCONF,
+        CLUSTERNAME,
+    ])
+    assert ca.clusterName == CLUSTERNAME
+    assert ca.coreAction instanceof ActionGetConfArgs
+  }
   
+  @Test
+  public void testGetConfWorksOut() throws Throwable {
+    ClientArgs ca = createClientArgs([
+        ACTION_GETCONF,
+        CLUSTERNAME,
+        ARG_FORMAT,"xml",
+        ARG_OUTPUT,"file.xml"
+    ])
+    assert ca.clusterName == CLUSTERNAME
+    assert ca.coreAction instanceof ActionGetConfArgs
+    assert ca.actionGetConfArgs.format == "xml"
+    assert ca.actionGetConfArgs.output == "file.xml"
+  }
+
+  @Test
+  public void testGetStatusWorks1Arg() throws Throwable {
+    ClientArgs ca = createClientArgs([
+        ACTION_STATUS,
+        CLUSTERNAME,
+    ])
+    assert ca.clusterName == CLUSTERNAME
+    assert ca.coreAction instanceof ActionStatusArgs
+  }
+  
+  @Test
+  public void testExistsWorks1Arg() throws Throwable {
+    ClientArgs ca = createClientArgs([
+        ACTION_EXISTS,
+        CLUSTERNAME,
+    ])
+    assert ca.clusterName == CLUSTERNAME
+    assert ca.coreAction instanceof ActionExistsArgs
+  }  
+  
+  @Test
+  public void testMonitorWorksWithWait() throws Throwable {
+    ClientArgs ca = createClientArgs([
+        ACTION_MONITOR,
+        CLUSTERNAME,
+        ARG_WAIT, "1000"
+    ])
+    assert ca.clusterName == CLUSTERNAME
+    assert ca.coreAction instanceof ActionMonitorArgs
+    assert ca.actionMonitorArgs.waittime == 1000
+  }
+
+
+  @Test
+  public void testDestroy1Arg() throws Throwable {
+    ClientArgs ca = createClientArgs([
+        ACTION_DESTROY,
+        CLUSTERNAME,
+    ])
+    assert ca.clusterName == CLUSTERNAME
+    assert ca.coreAction instanceof ActionDestroyArgs
+  }
   
   /**
    * Assert that a pass fails with a BadCommandArgumentsException
@@ -285,13 +369,33 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
 
 
   @Test
-  public void testMultiRoleArg() throws Throwable {
-    ActionCreateArgs createArgs = createAction([
-        ACTION_CREATE, 'cluster1',
+  public void testMultiRoleArgBuild() throws Throwable {
+    def ca = createClientArgs([
+        ACTION_BUILD, 'cluster1',
         ARG_ROLE, "master", "1",
         ARG_ROLE, "worker", "2",
     ])
-    def tuples = createArgs.roleTuples;
+    assert ca.action == ACTION_BUILD
+    assert ca.coreAction instanceof ActionBuildArgs
+    assert ca.buildingActionArgs instanceof ActionBuildArgs
+    AbstractClusterBuildingActionArgs args = ca.actionBuildArgs
+    def tuples = args.roleTuples;
+    assert tuples.size() == 4;
+    Map<String, String> roleMap = ArgOps.convertTupleListToMap("roles", tuples);
+    assert roleMap["master"] == "1"
+    assert roleMap["worker"] == "2"
+  }
+  
+  @Test
+  public void testFlexArgs() throws Throwable {
+    def ca = createClientArgs([
+        ACTION_FLEX, 'cluster1',
+        ARG_ROLE, "master", "1",
+        ARG_ROLE, "worker", "2",
+        ARG_PERSIST, "false"
+    ])
+    assert ca.coreAction instanceof ActionFlexArgs
+    def tuples = ca.actionFlexArgs.roleTuples;
     assert tuples.size() == 4;
     Map<String, String> roleMap = ArgOps.convertTupleListToMap("roles", tuples);
     assert roleMap["master"] == "1"

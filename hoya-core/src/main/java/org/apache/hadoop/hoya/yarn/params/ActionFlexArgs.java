@@ -24,6 +24,7 @@ import com.beust.jcommander.ParametersDelegate;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
 
+import java.util.List;
 import java.util.Map;
 
 @Parameters(commandNames = {HoyaActions.ACTION_FLEX},
@@ -47,6 +48,10 @@ public class ActionFlexArgs extends AbstractActionArgs {
    */
   public Map<String, String> getRoleMap() throws BadCommandArgumentsException {
     return roleDelegate.getRoleMap();
+  }
+
+  public List<String> getRoleTuples() {
+    return roleDelegate.getRoleTuples();
   }
 
 

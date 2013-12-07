@@ -22,6 +22,7 @@ import com.beust.jcommander.Parameter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
+import org.apache.hadoop.hoya.exceptions.ErrorStrings;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
@@ -211,10 +212,12 @@ public class ClientArgs extends CommonArgs {
     
     } else if (HoyaActions.ACTION_STATUS.equals(action)) {
       bindCoreAction(actionStatusArgs);
+    } else if (action == null || action.isEmpty()) {
+      throw new BadCommandArgumentsException(ErrorStrings.ERROR_NO_ACTION);
 
     } else {
-      throw new HoyaException(HoyaExitCodes.EXIT_UNIMPLEMENTED,
-                              "Unimplemented: " + action);
+      throw new BadCommandArgumentsException(ErrorStrings.ERROR_UNKNOWN_ACTION
+                                             + " " + action );
     }
   }
 }

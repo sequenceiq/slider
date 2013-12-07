@@ -44,7 +44,7 @@ class TestClientBadArgs extends ServiceLauncherBaseTest {
   public void testUnknownAction() throws Throwable {
     launchExpectingException(HoyaClient,
                              new Configuration(),
-                             ErrorStrings.ERROR_UNKNOWN_ACTION,
+                             "not-a-known-action",
                              ["not-a-known-action"])
   }
 
@@ -69,7 +69,7 @@ class TestClientBadArgs extends ServiceLauncherBaseTest {
   public void testBadImageArg() throws Throwable {
     launchExpectingException(HoyaClient,
                              new Configuration(),
-                             "Expected a value after parameter",
+                             "Unknown option: --image",
                             [HoyaActions.ACTION_HELP,
                              Arguments.ARG_IMAGE])
   }

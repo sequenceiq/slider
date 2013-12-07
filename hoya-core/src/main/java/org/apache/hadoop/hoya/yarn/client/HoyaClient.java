@@ -797,15 +797,18 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     commands.add(String.format(HoyaKeys.FORMAT_D_CLUSTER_TYPE, provider.getName()));
     // add the generic sevice entry point
     commands.add(ServiceLauncher.ENTRY_POINT);
-    // immeiately followed by the classname
+    // immediately followed by the classname
     commands.add(HoyaAMArgs.CLASSNAME);
-    // now the app specific args
-    if (serviceArgs.isDebug()) {
-      commands.add(Arguments.ARG_DEBUG);
-    }
+
+    // create action and the cluster name
     commands.add(HoyaActions.ACTION_CREATE);
     commands.add(clustername);
 
+    // debug
+    if (serviceArgs.isDebug()) {
+      commands.add(Arguments.ARG_DEBUG);
+    }
+    
     // set the cluster directory path
     commands.add(Arguments.ARG_HOYA_CLUSTER_URI);
     commands.add(clusterDirectory.toUri().toString());

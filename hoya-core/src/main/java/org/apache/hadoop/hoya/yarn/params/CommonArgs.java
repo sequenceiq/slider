@@ -202,28 +202,8 @@ public abstract class CommonArgs extends ArgOps implements HoyaActions, Argument
                                              + usage());
     }
     log.debug("action={}", getAction());
-    
-
-
-    int minArgs = coreAction.getMinParams();
-    int actionArgSize = getActionArgs().size();
-    if (minArgs > actionArgSize) {
-      throw new BadCommandArgumentsException(
-        ErrorStrings.ERROR_NOT_ENOUGH_ARGUMENTS + getAction());
-    }
-    int maxArgs = coreAction.getMaxParams();
-    if (actionArgSize > maxArgs) {
-      String message = String.format("%s for %s: limit is %d but saw %d",
-                                     ErrorStrings.ERROR_TOO_MANY_ARGUMENTS,
-                                     getAction(), maxArgs,
-                                     actionArgSize);
-      log.error(message);
-      int index=1;
-      for (String actionArg : getActionArgs()) {
-        log.error("[{}] \"{}\"", index++, actionArg);
-      }
-      throw new BadCommandArgumentsException(message);
-    }
+    //let the action validate itself
+    coreAction.validate();
   }
 
   /**
