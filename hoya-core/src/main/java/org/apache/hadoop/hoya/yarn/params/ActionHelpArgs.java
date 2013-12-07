@@ -19,7 +19,6 @@
 package org.apache.hadoop.hoya.yarn.params;
 
 import com.beust.jcommander.Parameters;
-import org.apache.hadoop.ha.HAAdmin;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
 
 @Parameters(commandNames = {HoyaActions.ACTION_HELP, HoyaActions.ACTION_USAGE},

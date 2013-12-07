@@ -83,9 +83,9 @@ public class AbstractClusterBuildingActionArgs extends AbstractActionArgs {
   public List<String> optionTuples = new ArrayList<String>(0);
 
 
-  @ParametersDelegate 
-  public RoleArgsDelegate roleDelegate = new RoleArgsDelegate(); 
-  
+  @ParametersDelegate
+  public RoleArgsDelegate roleDelegate = new RoleArgsDelegate();
+
   /**
    * All the role option triples
    */
@@ -93,7 +93,6 @@ public class AbstractClusterBuildingActionArgs extends AbstractActionArgs {
              description = "Role option " + ARG_ROLEOPT +
                            " <role> <name> <option>")
   public List<String> roleOptTriples = new ArrayList<String>(0);
-
 
 
   public Map<String, String> getOptionsMap() throws

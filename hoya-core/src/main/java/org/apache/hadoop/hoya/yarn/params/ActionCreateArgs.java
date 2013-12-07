@@ -26,7 +26,7 @@ import org.apache.hadoop.hoya.yarn.HoyaActions;
             commandDescription = HoyaActions.DESCRIBE_ACTION_CREATE)
 
 public class ActionCreateArgs extends AbstractClusterBuildingActionArgs
-  implements WaitTimeAccessor, LaunchArgsAccessor  {
+  implements WaitTimeAccessor, LaunchArgsAccessor {
 
   @ParametersDelegate
   LaunchArgsDelegate launchArgs = new LaunchArgsDelegate();
@@ -35,6 +35,7 @@ public class ActionCreateArgs extends AbstractClusterBuildingActionArgs
   public String getRmAddress() {
     return launchArgs.getRmAddress();
   }
+
   @Override
   public int getWaittime() {
     return launchArgs.getWaittime();

@@ -18,20 +18,14 @@
 
 package org.apache.hadoop.hoya.yarn.params;
 
-import com.beust.jcommander.Parameter;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.ErrorStrings;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Hoya Client CLI Args
@@ -61,7 +55,7 @@ public class ClientArgs extends CommonArgs {
   ActionListArgs actionListArgs = new ActionListArgs();
   ActionMonitorArgs actionMonitorArgs = new ActionMonitorArgs();
   ActionStatusArgs actionStatusArgs = new ActionStatusArgs();
-  ActionThawArgs  actionThawArgs = new ActionThawArgs();
+  ActionThawArgs actionThawArgs = new ActionThawArgs();
   private final ActionHelpArgs actionHelpArgs = new ActionHelpArgs();
 
 
@@ -162,7 +156,7 @@ public class ClientArgs extends CommonArgs {
    * @throws ClassCastException if the action is of a wrong type
    */
   public int getWaittime() {
-    return ((WaitTimeAccessor)getCoreAction()).getWaittime();
+    return ((WaitTimeAccessor) getCoreAction()).getWaittime();
   }
 
   @Override
@@ -172,12 +166,12 @@ public class ClientArgs extends CommonArgs {
       bindCoreAction(actionBuildArgs);
       //its a builder, so set those actions too
       buildingActionArgs = actionBuildArgs;
-      
+
     } else if (HoyaActions.ACTION_CREATE.equals(action)) {
       bindCoreAction(actionCreateArgs);
       //its a builder, so set those actions too
       buildingActionArgs = actionCreateArgs;
-      
+
     } else if (HoyaActions.ACTION_FREEZE.equals(action)) {
       bindCoreAction(actionFreezeArgs);
 
@@ -209,7 +203,7 @@ public class ClientArgs extends CommonArgs {
 
     } else if (HoyaActions.ACTION_STATUS.equals(action)) {
       bindCoreAction(actionStatusArgs);
-    
+
     } else if (HoyaActions.ACTION_STATUS.equals(action)) {
       bindCoreAction(actionStatusArgs);
     } else if (action == null || action.isEmpty()) {
@@ -217,7 +211,7 @@ public class ClientArgs extends CommonArgs {
 
     } else {
       throw new BadCommandArgumentsException(ErrorStrings.ERROR_UNKNOWN_ACTION
-                                             + " " + action );
+                                             + " " + action);
     }
   }
 }

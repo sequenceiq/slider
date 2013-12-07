@@ -19,10 +19,6 @@
 
 package org.apache.hadoop.hoya.yarn.params;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 /**
  * Parameters sent by the Client to the AM
  */

@@ -18,14 +18,15 @@
 
 package org.apache.hadoop.hoya.yarn.params;
 
-import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.beust.jcommander.ParametersDelegate;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
 
 @Parameters(commandNames = {HoyaActions.ACTION_THAW},
             commandDescription = HoyaActions.DESCRIBE_ACTION_THAW)
-public class ActionThawArgs extends AbstractActionArgs implements WaitTimeAccessor , LaunchArgsAccessor {
+public class ActionThawArgs extends AbstractActionArgs implements
+                                                       WaitTimeAccessor,
+                                                       LaunchArgsAccessor {
 
 
   @Override

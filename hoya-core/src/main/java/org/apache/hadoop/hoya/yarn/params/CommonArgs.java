@@ -22,11 +22,9 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.ErrorStrings;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
-import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.Arguments;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
@@ -34,9 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,10 +44,10 @@ import java.util.Map;
  * in the range allowed
  */
 
-public abstract class CommonArgs extends ArgOps implements HoyaActions, Arguments {
+public abstract class CommonArgs extends ArgOps implements HoyaActions,
+                                                           Arguments {
 
   protected static final Logger log = LoggerFactory.getLogger(CommonArgs.class);
-
 
 
   @Parameter(names = ARG_HELP, help = true)
@@ -62,9 +58,9 @@ public abstract class CommonArgs extends ArgOps implements HoyaActions, Argument
    -D name=value
 
    Define an HBase configuration option which overrides any options in
-    the configuration XML files of the image or in the image configuration
-     directory. The values will be persisted.
-      Configuration options are only passed to the cluster when creating or reconfiguring a cluster.
+   the configuration XML files of the image or in the image configuration
+   directory. The values will be persisted.
+   Configuration options are only passed to the cluster when creating or reconfiguring a cluster.
 
    */
 
@@ -80,7 +76,7 @@ public abstract class CommonArgs extends ArgOps implements HoyaActions, Argument
    */
   public JCommander commander;
   private final String[] args;
-  
+
   private AbstractActionArgs coreAction;
 
   /**
@@ -121,9 +117,11 @@ public abstract class CommonArgs extends ArgOps implements HoyaActions, Argument
     try {
       commander.parse(getArgs());
     } catch (ParameterException e) {
-      throw new BadCommandArgumentsException(e, "%s in %s", 
-        e.toString(),
-        (getArgs() != null ? ( HoyaUtils.join(getArgs(), " ")) : "[]"));
+      throw new BadCommandArgumentsException(e, "%s in %s",
+                                             e.toString(),
+                                             (getArgs() != null
+                                              ? (HoyaUtils.join(getArgs(), " "))
+                                              : "[]"));
     }
     //now copy back to this class some of the attributes that are common to all
     //actions
@@ -139,7 +137,7 @@ public abstract class CommonArgs extends ArgOps implements HoyaActions, Argument
     commander.addCommand(name, arg);
   }
 
-  protected void addActions(Object...actions) {
+  protected void addActions(Object... actions) {
     for (Object action : actions) {
       commander.addCommand(action);
     }
@@ -149,7 +147,7 @@ public abstract class CommonArgs extends ArgOps implements HoyaActions, Argument
    * Override point to add a set of actions
    */
   protected void addActionArguments() {
-    
+
   }
 
   /**
@@ -162,7 +160,7 @@ public abstract class CommonArgs extends ArgOps implements HoyaActions, Argument
 
     //apply entry set
     for (Map.Entry<String, String> entry : syspropsMap.entrySet()) {
-      System.setProperty(entry.getKey(),entry.getValue());
+      System.setProperty(entry.getKey(), entry.getValue());
     }
   }
 
@@ -230,7 +228,6 @@ public abstract class CommonArgs extends ArgOps implements HoyaActions, Argument
   }
 
 
-
   public URI getFilesystemURL() {
     return coreAction.filesystemURL;
   }
@@ -249,6 +246,7 @@ public abstract class CommonArgs extends ArgOps implements HoyaActions, Argument
   public String getAction() {
     return commander.getParsedCommand();
   }
+
   public List<String> getActionArgs() {
     return coreAction.parameters;
   }

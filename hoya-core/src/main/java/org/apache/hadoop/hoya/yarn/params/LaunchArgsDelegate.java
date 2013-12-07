@@ -23,7 +23,8 @@ import com.beust.jcommander.Parameter;
 /**
  * Any launch-time args
  */
-public class LaunchArgsDelegate extends WaitArgsDelegate implements LaunchArgsAccessor {
+public class LaunchArgsDelegate extends WaitArgsDelegate implements
+                                                         LaunchArgsAccessor {
 
 
   //TODO: do we need this?

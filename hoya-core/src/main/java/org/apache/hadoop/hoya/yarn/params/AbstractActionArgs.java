@@ -27,15 +27,14 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Base args for all actions
  */
 public class AbstractActionArgs extends ArgOps implements Arguments {
-  protected static final Logger log = LoggerFactory.getLogger(AbstractActionArgs.class);
+  protected static final Logger log =
+    LoggerFactory.getLogger(AbstractActionArgs.class);
   private static final String UNKNOWN = "unknown";
 
 
@@ -62,6 +61,7 @@ public class AbstractActionArgs extends ArgOps implements Arguments {
   public String getClusterName() {
     return (parameters.isEmpty()) ? null : parameters.get(0);
   }
+
   /**
    -D name=value
 
@@ -74,7 +74,7 @@ public class AbstractActionArgs extends ArgOps implements Arguments {
 
   @Parameter(names = ARG_DEFINE, arity = 1, description = "Definitions")
   public final List<String> definitions = new ArrayList<String>();
-  
+
   /**
    * System properties
    */
@@ -127,7 +127,7 @@ public class AbstractActionArgs extends ArgOps implements Arguments {
       throw new BadCommandArgumentsException(
         ErrorStrings.ERROR_NOT_ENOUGH_ARGUMENTS + getAction());
     }
-    int maxArgs =getMaxParams();
+    int maxArgs = getMaxParams();
     if (maxArgs == -1) {
       maxArgs = minArgs;
     }
@@ -147,6 +147,6 @@ public class AbstractActionArgs extends ArgOps implements Arguments {
 
   @Override
   public String toString() {
-    return super.toString() + ": "+ getAction();
+    return super.toString() + ": " + getAction();
   }
 }

@@ -27,7 +27,8 @@ import org.apache.hadoop.hoya.yarn.HoyaActions;
 @Parameters(commandNames = {HoyaActions.ACTION_CREATE},
             commandDescription = HoyaActions.DESCRIBE_ACTION_CREATE)
 
-public class HoyaAMCreateAction extends AbstractActionArgs implements  LaunchArgsAccessor {
+public class HoyaAMCreateAction extends AbstractActionArgs implements
+                                                           LaunchArgsAccessor {
 
 
   @Parameter(names = ARG_IMAGE, description = "image", required = false)

@@ -74,7 +74,7 @@ public class ArgOps {
   }
 
   public static void splitPairs(Collection<String> pairs,
-                                   Map<String, String> dest) {
+                                Map<String, String> dest) {
     for (String prop : pairs) {
       String[] keyval = prop.split("=", 2);
       if (keyval.length == 2) {
@@ -103,8 +103,8 @@ public class ArgOps {
    * @throws BadCommandArgumentsException odd #of arguments received
    */
   public static Map<String, String> convertTupleListToMap(String description,
-                                                   List<String> list) throws
-                                                                      BadCommandArgumentsException {
+                                                          List<String> list) throws
+                                                                             BadCommandArgumentsException {
     Map<String, String> results = new HashMap<String, String>();
     if (list != null && !list.isEmpty()) {
       int size = list.size();
@@ -138,7 +138,8 @@ public class ArgOps {
    * @throws BadCommandArgumentsException odd #of arguments received
    */
   public static Map<String, Map<String, String>> convertTripleListToMaps(String description,
-          List<String> list) throws BadCommandArgumentsException {
+                                                                         List<String> list) throws
+                                                                                            BadCommandArgumentsException {
     Map<String, Map<String, String>> results =
       new HashMap<String, Map<String, String>>();
     if (list != null && !list.isEmpty()) {
