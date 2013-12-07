@@ -28,12 +28,9 @@ import org.apache.hadoop.hoya.yarn.HoyaActions;
 public class ActionThawArgs extends AbstractActionArgs implements WaitTimeAccessor , LaunchArgsAccessor {
 
 
-  @ParametersDelegate
-  public WaitArgsDelegate waitDelegate = new WaitArgsDelegate();
-
   @Override
   public int getWaittime() {
-    return waitDelegate.getWaittime();
+    return launchArgs.getWaittime();
   }
 
   @ParametersDelegate

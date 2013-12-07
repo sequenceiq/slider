@@ -25,7 +25,7 @@ artifacts.
 
 ### Command line parsing reworked
 
-How the command line is parsed has changed, with two big implications
+How the command line is parsed has changed, with some implications
 
 1. In previous versions, parameters that were not used by a specific action would
 be ignored. Now an unknown parameter (such as `--wait` in the `list` action) results
@@ -33,7 +33,21 @@ in an error.
 
 2. The action which you wish to perform MUST be the first item on the command line.
 This is similar to how `git` works: the action defines the set of options that
-the command line supports
+the command line supports. 
+
+  BAD:  `hoya --filesystem hdfs://rhel:9090 thaw cluster1`
+  GOOD: `hoya thaw cluster1 --filesystem hdfs://rhel:9090`
+        
+3. You no longer have to list the cluster you wish to work with immediately
+after the action.
+
+  GOOD: `hoya thaw cluster1 --filesystem hdfs://rhel:9090`
+  GOOD: `hoya thaw --filesystem hdfs://rhel:9090 cluster1`
+
+These changes have resulted in significant changes inside the Hoya code itself
+-hopefully this will ease maintenance in future, as it will now enable us
+to add new commands more easily. It will also immediately highlight problems
+in the command lines passed to Hoya
 
 ### More and stricter exit codes.
 

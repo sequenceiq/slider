@@ -87,6 +87,7 @@ public class ClientArgs extends CommonArgs {
       actionListArgs,
       actionMonitorArgs,
       actionStatusArgs,
+      actionThawArgs,
       actionHelpArgs);
   }
 

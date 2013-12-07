@@ -119,38 +119,20 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
 
   }
 
-  @Test
-  public void testActionComesAfterParseSingleArg() throws Throwable {
-    ClientArgs ca = createClientArgs([
-        ARG_DEBUG , 
-        ACTION_LIST,
-    ])
-  }
-  
-  @Test
-  public void testActionComesAfterParseComplexArg() throws Throwable {
-    Configuration conf = new Configuration(false)
-    ClientArgs ca = createClientArgs([
-        ARG_SYSPROP,"syspropkey=syspropval",
-        ACTION_LIST,
-    ])
-  }
-
   /**
    * Test a thaw command
    * @throws Throwable
    */
   @Test
   public void testComplexThaw() throws Throwable {
-    Assume.assumeTrue("test disabled -split arguments broken", false)
-
     Configuration conf = new Configuration(false)
     ClientArgs ca = createClientArgs([
-        "--manager", "ubuntu:8032", "--filesystem", "hdfs://ubuntu:9090",
-        "--secure","-S","java.security.krb5.realm=LOCAL","-S", "java.security.krb5.kdc=ubuntu",
-        "-D","yarn.resourcemanager.principal=yarn/ubuntu@LOCAL",
-        "-D","namenode.resourcemanager.principal=hdfs/ubuntu@LOCAL",
-        "thaw","cl1"    
+        ACTION_THAW,
+        "--manager", "rhel:8032", "--filesystem", "hdfs://rhel:9090",
+        "-S","java.security.krb5.realm=LOCAL","-S", "java.security.krb5.kdc=rhel",
+        "-D","yarn.resourcemanager.principal=yarn/rhel@LOCAL",
+        "-D","namenode.resourcemanager.principal=hdfs/rhel@LOCAL",
+        "cl1"    
     ])
     assert "cl1" == ca.clusterName
   }
@@ -161,19 +143,18 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
    * 
    */
   @Test
-  public void testEmergencyKill() throws Throwable {
-    Assume.assumeTrue("test disabled -split arguments broken", false)
+  public void testEmergencyKillSplit() throws Throwable {
 
     Configuration conf = new Configuration(false)
     String appId = "application_1381252124398_0013"
     ClientArgs ca = createClientArgs([
         ACTION_EMERGENCY_FORCE_KILL,
-        "--manager", "ubuntu:8032",
-        "--filesystem", "hdfs://ubuntu:9090",
+        "--manager", "rhel:8032",
+        "--filesystem", "hdfs://rhel:9090",
         "-S","java.security.krb5.realm=LOCAL",
-        "-S", "java.security.krb5.kdc=ubuntu",
-        "-D","yarn.resourcemanager.principal=yarn/ubuntu@LOCAL",
-        "-D","namenode.resourcemanager.principal=hdfs/ubuntu@LOCAL",
+        "-S", "java.security.krb5.kdc=rhel",
+        "-D","yarn.resourcemanager.principal=yarn/rhel@LOCAL",
+        "-D","namenode.resourcemanager.principal=hdfs/rhel@LOCAL",
         appId
     ])
     assert appId == ca.clusterName
