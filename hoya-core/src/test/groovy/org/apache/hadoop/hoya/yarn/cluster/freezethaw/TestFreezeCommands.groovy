@@ -73,7 +73,6 @@ class TestFreezeCommands extends HBaseMiniClusterTestBase {
           new YarnConfiguration(miniCluster.config),
           [
               HoyaActions.ACTION_EXISTS, clustername,
-              Arguments.ARG_WAIT, waitTimeArg,
               Arguments.ARG_FILESYSTEM, fsDefaultName
           ],
           )
@@ -95,29 +94,29 @@ class TestFreezeCommands extends HBaseMiniClusterTestBase {
     log.info("Freeze 3");
 
     ServiceLauncher freeze3 = execHoyaCommand(conf,
-                                              [
-                                                  HoyaActions.ACTION_FREEZE, clustername,
-                                                  Arguments.ARG_WAIT, waitTimeArg
-                                              ]);
+                [
+                    HoyaActions.ACTION_FREEZE, clustername,
+                    Arguments.ARG_WAIT, waitTimeArg
+                ]);
     assert 0 == freeze3.serviceExitCode;
 
     log.info("thaw2");
     ServiceLauncher thaw2 = execHoyaCommand(conf,
-                                            [
-                                                HoyaActions.ACTION_THAW, clustername,
-                                                Arguments.ARG_WAIT, waitTimeArg,
-                                                Arguments.ARG_FILESYSTEM, fsDefaultName
-                                            ]);
+                [
+                    HoyaActions.ACTION_THAW, clustername,
+                    Arguments.ARG_WAIT, waitTimeArg,
+                    Arguments.ARG_FILESYSTEM, fsDefaultName
+                ]);
     assert 0 == thaw2.serviceExitCode;
 
     try {
       log.info("thaw3 - should fail");
       ServiceLauncher thaw3 = execHoyaCommand(conf,
-                                              [
-                                                  HoyaActions.ACTION_THAW, clustername,
-                                                  Arguments.ARG_WAIT, waitTimeArg,
-                                                  Arguments.ARG_FILESYSTEM, fsDefaultName
-                                              ]);
+                [
+                    HoyaActions.ACTION_THAW, clustername,
+                    Arguments.ARG_WAIT, waitTimeArg,
+                    Arguments.ARG_FILESYSTEM, fsDefaultName
+                ]);
       assert 0 != thaw3.serviceExitCode;
     } catch (HoyaException e) {
       assertFailureClusterInUse(e);
