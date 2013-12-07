@@ -23,6 +23,7 @@ import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.tools.Duration;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
+import org.apache.hadoop.hoya.yarn.params.ActionForceKillArgs;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.ApplicationClientProtocol;
 import org.apache.hadoop.yarn.api.protocolrecords.KillApplicationRequest;
@@ -147,7 +148,7 @@ public class HoyaYarnClientImpl extends YarnClientImpl {
                                                             IOException {
     
 
-    if ("all".equals(applicationId)) {
+    if (ActionForceKillArgs.ALL.equals(applicationId)) {
       // user wants all hoya applications killed
       String user = getUsername();
       log.info("Killing all applications belonging to {}", user);

@@ -29,6 +29,7 @@ import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hadoop.hoya.yarn.params.ActionCreateArgs
+import org.apache.hadoop.hoya.yarn.params.ActionForceKillArgs
 import org.apache.hadoop.hoya.yarn.params.ArgOps
 import org.apache.hadoop.hoya.yarn.params.ClientArgs
 import org.apache.hadoop.yarn.conf.YarnConfiguration
@@ -145,7 +146,6 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
   @Test
   public void testEmergencyKillSplit() throws Throwable {
 
-    Configuration conf = new Configuration(false)
     String appId = "application_1381252124398_0013"
     ClientArgs ca = createClientArgs([
         ACTION_EMERGENCY_FORCE_KILL,
@@ -158,8 +158,39 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
         appId
     ])
     assert appId == ca.clusterName
-    
   }
+  
+  /**
+   * Test a force kill command where appID == all
+   * @throws Throwable
+   * 
+   */
+  @Test
+  public void testEmergencyKillAll() throws Throwable {
+
+    String appId = ActionForceKillArgs.ALL
+    ClientArgs ca = createClientArgs([
+        ACTION_EMERGENCY_FORCE_KILL,
+        appId
+    ])
+    assert appId == ca.clusterName
+  }
+  /**
+   * Test a force kill command without args
+   * @throws Throwable
+   * 
+   */
+  @Test
+  public void testEmergencyKillNeedsOneArg() throws Throwable {
+    assertParseFails([
+        ACTION_EMERGENCY_FORCE_KILL,
+    ])
+  }
+
+  /**
+   * Assert that a pass fails with a BadCommandArgumentsException
+   * @param argsList
+   */
   
   private void assertParseFails(List argsList) {
     try {

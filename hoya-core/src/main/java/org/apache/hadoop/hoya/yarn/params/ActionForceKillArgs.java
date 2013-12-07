@@ -25,4 +25,5 @@ import org.apache.hadoop.hoya.yarn.HoyaActions;
             commandDescription = HoyaActions.DESCRIBE_ACTION_FORCE_KILL)
 
 public class ActionForceKillArgs extends AbstractActionArgs {
+  public static final String ALL = "all";
 }

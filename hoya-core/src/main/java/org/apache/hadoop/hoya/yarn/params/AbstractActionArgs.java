@@ -140,4 +140,9 @@ public class AbstractActionArgs extends ArgOps implements Arguments {
       throw new BadCommandArgumentsException(message);
     }
   }
+
+  @Override
+  public String toString() {
+    return super.toString() + ": "+ getAction();
+  }
 }
