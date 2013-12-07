@@ -16,25 +16,25 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.tools;
+
+package org.apache.hadoop.hoya.yarn.params;
 
 import com.beust.jcommander.converters.BaseConverter;
 
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.net.MalformedURLException;
+import java.net.URL;
 
-public class URIArgumentConverter extends BaseConverter<URI> {
-
-  public URIArgumentConverter(String optionName) {
+public class URLArgumentConverter extends BaseConverter<URL> {
+  public URLArgumentConverter(String optionName) {
     super(optionName);
   }
 
   @Override
-  public URI convert(String value) {
+  public URL convert(String value) {
     try {
-      return new URI(value);
-    } catch (URISyntaxException e) {
-      throw new RuntimeException("Cannot make a URI from " + value);
+      return new URL(value);
+    } catch (MalformedURLException e) {
+      throw new RuntimeException("Cannot make a URL from " + value);
     }
   }
 }

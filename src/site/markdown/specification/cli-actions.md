@@ -23,9 +23,6 @@ As well as the CLI options, the `conf/hoya-client.xml` XML file can define argum
 
 Equivalent to setting the filesystem with `--filesystem`
 
-####   `hoya.security.enabled`
-
-Equivalent to `--secure`
 
 
 ## Common

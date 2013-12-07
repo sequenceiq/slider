@@ -16,19 +16,22 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hoya.tools;
+package org.apache.hadoop.hoya.yarn.params;
 
-import com.beust.jcommander.converters.BaseConverter;
-import org.apache.hadoop.fs.Path;
+import com.beust.jcommander.Parameters;
+import org.apache.hadoop.hoya.yarn.HoyaActions;
 
-public class PathArgumentConverter extends BaseConverter<Path> {
+@Parameters(commandNames = {HoyaActions.ACTION_HELP, HoyaActions.ACTION_USAGE},
+            commandDescription = HoyaActions.DESCRIBE_ACTION_LIST)
 
-  public PathArgumentConverter(String optionName) {
-    super(optionName);
+public class ActionHelpArgs extends AbstractActionArgs {
+
+  /**
+   * Get the min #of params expected
+   * @return the min number of params in the {@link #parameters} field
+   */
+  public int getMinParams() {
+    return 0;
   }
 
-  @Override
-  public Path convert(String value) {
-    return new Path(value);
-  }
 }

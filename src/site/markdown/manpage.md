@@ -119,11 +119,6 @@ The full path in Hadoop HDFS (or other shared FS)  to the configuration director
 
 Only one configuration directory can be specified.
 
-### --generated_confdir localpath
-
-A path to a local directory where a copy of the generated configuration directory should be written. This is to provide a copy of the configuration during cluster creation.
-  
-
 ### -m, --manager url
 
 URL of the YARN resource manager
@@ -140,7 +135,7 @@ The list of hosts on which the ZK quorum is running.
 
 Use the specific filesystem URI as an argument to the operation.
 
-### --format {xml,properties,text}
+### --format {xml,properties}
 The format for returned documents. xml is the Hadoop XML configuration format; properties Java  properties.
 
 
@@ -156,15 +151,6 @@ for the Hoya Cluster itself to start running. It can still take time after this 
 
 When stopping a cluster -the time for the YARN application to enter a finished state.
 
-
-
-### --amqueue queue
-
-Application Manager Queue Name. Applicable (and optional) in cluster create and start operations. Default value: "default"
-
-### --ampriority priority
-
-Application Manager Priority. Applicable (and optional) in cluster create and start operations. Default value: 0
 
 
 
@@ -185,11 +171,11 @@ Build a cluster specification of the given name, with the specific options.
 
 The cluster is not started; this can be done later with a `thaw` command.
 
-### create \<cluster> --fs filesystem --appconf dir --zkhosts zkhosts \[--image path] \[--apphome apphomedir] \[--zkport port] \[--zkpath zkpath] \[--waittime time] \[--role \<name> \<count>]*  \[--roleopt \<name> \<value>]* 
+### create \<cluster> --fs filesystem --appconf dir --zkhosts zkhosts \[--image path] \[--apphome apphomedir] \[--zkport port] \[--zkpath zkpath] \[--wait time] \[--role \<name> \<count>]*  \[--roleopt \<name> \<value>]* 
 
 Build and run a cluster of the given name, using the specified image. If a configuration directory is specified, it's configuration files override those in the image. 
 
-The `--waittime` parameter, if provided, specifies the time to wait until the YARN application is actually running. Even after the YARN application has started, there may be some delay for the HBase cluster to start up.
+The `--wait` parameter, if provided, specifies the time to wait until the YARN application is actually running. Even after the YARN application has started, there may be some delay for the HBase cluster to start up.
 
 ### destroy \<cluster>
 
@@ -219,10 +205,10 @@ This operation has a return value of 0 if the size of a running cluster was chan
 
 It returns -1 if there is no running cluster, or the size of the flexed cluster matches that of the original -in which case the cluster state does not change.
 
-### freeze \<cluster>  \[--waittime time]
+### freeze \<cluster>  \[--wait time]
 freeze the cluster. The HBase cluster is scheduled to be destroyed. The cluster settings are retained in HDFS.
 
-The `--waittime` argument can specify a time in seconds to wait for the cluster to be destroyed.
+The `--wait` argument can specify a time in seconds to wait for the cluster to be destroyed.
 
 If an unknown (or already frozen) cluster is named, no error is returned.
 
@@ -241,7 +227,7 @@ If a cluster name is given and there is no running cluster with that name, an er
 ### monitor \<cluster> \[--wait time]
 
 Monitor a given cluster by deploying any application-provider specific monitors
-(HTTP probes, zookeeper probes).  The `--waittime` parameter specified in 
+(HTTP probes, zookeeper probes).  The `--wait` parameter specified in 
 seconds how long the cluster must be monitored.
 
 1. If there is no running cluster with the given name, an error is returned. 

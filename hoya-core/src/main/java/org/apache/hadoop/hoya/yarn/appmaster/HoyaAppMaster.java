@@ -52,6 +52,9 @@ import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerAssignment;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RMOperationHandler;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleInstance;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleStatus;
+import org.apache.hadoop.hoya.yarn.params.AbstractActionArgs;
+import org.apache.hadoop.hoya.yarn.params.HoyaAMArgs;
+import org.apache.hadoop.hoya.yarn.params.HoyaAMCreateAction;
 import org.apache.hadoop.hoya.yarn.service.CompoundLaunchedService;
 import org.apache.hadoop.hoya.yarn.service.EventCallback;
 import org.apache.hadoop.hoya.yarn.service.RpcService;
@@ -137,7 +140,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
   public static final int NUM_RPC_HANDLERS = 5;
 
   /** YARN RPC to communicate with the Resource Manager or Node Manager */
-  private YarnRPC yarmRPC;
+  private YarnRPC yarnRPC;
 
   /** Handle to communicate with the Resource Manager*/
   private AMRMClientAsync asyncRMClient;
@@ -207,7 +210,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
 
 
   /** Arguments passed in : raw*/
-  private HoyaMasterServiceArgs serviceArgs;
+  private HoyaAMArgs serviceArgs;
 
   /**
    * ID of the AM container
@@ -254,12 +257,14 @@ public class HoyaAppMaster extends CompoundLaunchedService
     Configuration serverConf =
       ConfigHelper.loadFromResource(HOYA_SERVER_RESOURCE);
     ConfigHelper.mergeConfigurations(conf, serverConf, HOYA_SERVER_RESOURCE);
-    
+
+    AbstractActionArgs action = serviceArgs.getCoreAction();
+    HoyaAMCreateAction createAction = (HoyaAMCreateAction) action;
     //sort out the location of the AM
     serviceArgs.applyDefinitions(conf);
     serviceArgs.applyFileSystemURL(conf);
 
-    String rmAddress = serviceArgs.rmAddress;
+    String rmAddress = createAction.getRmAddress();
     if (rmAddress != null) {
       log.debug("Setting rm address from the command line: {}", rmAddress);
       HoyaUtils.setRmSchedulerAddress(conf, rmAddress);
@@ -301,9 +306,8 @@ public class HoyaAppMaster extends CompoundLaunchedService
   public Configuration bindArgs(Configuration config, String... args) throws
                                                                       Exception {
     config = super.bindArgs(config, args);
-    serviceArgs = new HoyaMasterServiceArgs(args);
+    serviceArgs = new HoyaAMArgs(args);
     serviceArgs.parse();
-    serviceArgs.postProcess();
     //yarn-ify
     YarnConfiguration yarnConfiguration = new YarnConfiguration(config);
     return HoyaUtils.patchConfiguration(yarnConfiguration);
@@ -319,8 +323,8 @@ public class HoyaAppMaster extends CompoundLaunchedService
   public int runService() throws Throwable {
 
     //choose the action
-    String action = serviceArgs.action;
-    List<String> actionArgs = serviceArgs.actionArgs;
+    String action = serviceArgs.getAction();
+    List<String> actionArgs = serviceArgs.getActionArgs();
     int exitCode = EXIT_SUCCESS;
     if (action.equals(HoyaActions.ACTION_HELP)) {
       log.info(getName() + serviceArgs.usage());
@@ -344,7 +348,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
   private int createAndRunCluster(String clustername) throws Throwable {
 
     //load the cluster description from the cd argument
-    String hoyaClusterDir = serviceArgs.hoyaClusterURI;
+    String hoyaClusterDir = serviceArgs.getHoyaClusterURI();
     URI hoyaClusterURI = new URI(hoyaClusterDir);
     Path clusterDirPath = new Path(hoyaClusterURI);
     Path clusterSpecPath =
@@ -380,7 +384,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
 
     InetSocketAddress address = HoyaUtils.getRmSchedulerAddress(conf);
     log.info("RM is at {}", address);
-    yarmRPC = YarnRPC.create(conf);
+    yarnRPC = YarnRPC.create(conf);
 
     appMasterContainerID = ConverterUtils.toContainerId(
       HoyaUtils.mandatoryEnvVariable(
@@ -693,7 +697,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
   }
 
   public Object getProxy(Class protocol, InetSocketAddress addr) {
-    return yarmRPC.getProxy(protocol, addr, getConfig());
+    return yarnRPC.getProxy(protocol, addr, getConfig());
   }
 
   /**

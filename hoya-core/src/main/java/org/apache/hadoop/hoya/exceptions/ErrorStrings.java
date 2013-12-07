@@ -30,4 +30,19 @@ public interface ErrorStrings {
   String E_DESTROY_CREATE_RACE_CONDITION =
       "created while it was being destroyed";
   String E_UNKNOWN_ROLE = "Unknown role ";
+  /**
+   * ERROR Strings
+   */
+  String ERROR_NO_ACTION = "No action specified";
+  String ERROR_UNKNOWN_ACTION = "Unknown command: ";
+  String ERROR_NOT_ENOUGH_ARGUMENTS =
+    "Not enough arguments for action: ";
+  String ERROR_PARSE_FAILURE =
+      "Failed to parse ";
+  /**
+   * All the remaining values after argument processing
+   */
+  String ERROR_TOO_MANY_ARGUMENTS =
+    "Too many arguments";
+  String ERROR_DUPLICATE_ENTRY = "Duplicate entry for ";
 }
