@@ -49,11 +49,16 @@ class TestFreezeCommands extends HBaseMiniClusterTestBase {
     ServiceLauncher launcher = createMasterlessAM(clustername, 0, true, true);
     addToTeardown(launcher.service as HoyaClient);
 
+    
+    log.info("ListOp")
+    assertSucceeded(execHoyaCommand(conf,
+              [HoyaActions.ACTION_LIST,clustername]))
+    
     log.info("First Freeze command");
     ServiceLauncher freezeCommand = execHoyaCommand(conf,
                           [HoyaActions.ACTION_FREEZE, clustername,
                             Arguments.ARG_WAIT, waitTimeArg]);
-    assert 0 == freezeCommand.serviceExitCode;
+    assertSucceeded(freezeCommand)
 
     log.info("Second Freeze command");
 
@@ -62,7 +67,7 @@ class TestFreezeCommands extends HBaseMiniClusterTestBase {
                                     HoyaActions.ACTION_FREEZE, clustername,
                                     Arguments.ARG_WAIT, waitTimeArg
                                 ]);
-    assert 0 == freeze2.serviceExitCode;
+    assertSucceeded(freeze2)
 
     log.info("First Exists");
 
@@ -89,7 +94,11 @@ class TestFreezeCommands extends HBaseMiniClusterTestBase {
                               Arguments.ARG_WAIT, waitTimeArg,
                               Arguments.ARG_FILESYSTEM, fsDefaultName
                           ]);
-    assert 0 == thawCommand.serviceExitCode;
+    assertSucceeded(thawCommand)
+    assertSucceeded(execHoyaCommand(conf,
+                  [HoyaActions.ACTION_LIST, clustername]))
+    assertSucceeded(execHoyaCommand(conf,
+                  [HoyaActions.ACTION_EXISTS, clustername]))
 
     log.info("Freeze 3");
 
@@ -98,7 +107,7 @@ class TestFreezeCommands extends HBaseMiniClusterTestBase {
                     HoyaActions.ACTION_FREEZE, clustername,
                     Arguments.ARG_WAIT, waitTimeArg
                 ]);
-    assert 0 == freeze3.serviceExitCode;
+    assertSucceeded(freeze3)
 
     log.info("thaw2");
     ServiceLauncher thaw2 = execHoyaCommand(conf,
@@ -108,6 +117,7 @@ class TestFreezeCommands extends HBaseMiniClusterTestBase {
                     Arguments.ARG_FILESYSTEM, fsDefaultName
                 ]);
     assert 0 == thaw2.serviceExitCode;
+    assertSucceeded(thaw2)
 
     try {
       log.info("thaw3 - should fail");
@@ -141,16 +151,15 @@ class TestFreezeCommands extends HBaseMiniClusterTestBase {
                                                   HoyaActions.ACTION_FREEZE, clustername,
                                                   Arguments.ARG_WAIT, waitTimeArg
                                               ]);
-    assert 0 == freeze4.serviceExitCode;
+    assertSucceeded(freeze4)
 
     log.info("destroy2");
     ServiceLauncher destroy2 = execHoyaCommand(conf,
                                                [
                                                    HoyaActions.ACTION_DESTROY, clustername,
                                                    Arguments.ARG_FILESYSTEM, fsDefaultName,
-                                                   Arguments.ARG_WAIT, waitTimeArg
                                                ]);
-    assert 0 == destroy2.serviceExitCode;
+    assertSucceeded(destroy2)
 
   }
 

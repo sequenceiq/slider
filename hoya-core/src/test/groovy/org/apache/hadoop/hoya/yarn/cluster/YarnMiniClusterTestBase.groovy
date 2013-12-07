@@ -949,4 +949,8 @@ implements KeysForTests, HoyaExitCodes {
     assertExceptionDetails(e, HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER,
                            ErrorStrings.E_UNKNOWN_CLUSTER)
   }
+
+  public void assertSucceeded(ServiceLauncher service) {
+    assert 0 == service.serviceExitCode;
+  }
 }
