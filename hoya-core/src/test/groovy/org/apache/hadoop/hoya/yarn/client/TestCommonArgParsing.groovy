@@ -45,7 +45,6 @@ import org.apache.hadoop.hoya.yarn.params.ArgOps
 import org.apache.hadoop.hoya.yarn.params.ClientArgs
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.junit.Assert
-import org.junit.Assume
 import org.junit.Test
 
 /**

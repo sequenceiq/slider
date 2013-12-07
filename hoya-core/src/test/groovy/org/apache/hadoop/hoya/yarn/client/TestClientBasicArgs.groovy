@@ -19,8 +19,8 @@
 package org.apache.hadoop.hoya.yarn.client
 
 import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
 import org.apache.hadoop.hoya.tools.HoyaUtils
-import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.params.ClientArgs
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
@@ -42,61 +42,20 @@ class TestClientBasicArgs extends ServiceLauncherBaseTest {
                                       HoyaUtils.createConfiguration(),
                                       [ClientArgs.ACTION_HELP])
     assert 0 == launcher.serviceExitCode
-  }  /**
-   * help should print out help string and then succeed
-   * @throws Throwable
-   */
+  } 
   
   @Test
   public void testNoArgs() throws Throwable {
-    ServiceLauncher launcher = launch(HoyaClient,
-                                      HoyaUtils.createConfiguration(),
-                                      [])
-    assert 0 == launcher.serviceExitCode
+    try {
+      ServiceLauncher launcher = launch(HoyaClient,
+                                        HoyaUtils.createConfiguration(),
+                                        [])
+      assert HoyaExitCodes.EXIT_COMMAND_ARGUMENT_ERROR == launcher.serviceExitCode
+    } catch (BadCommandArgumentsException ignored) {
+      // expected
+    }
   }
   
-  /**
-   * help should print out help string and then succeed
-   * @throws Throwable
-   */
-  @Test
-  public void testCreateWithHyphenArgs() throws Throwable {
-    ServiceLauncher launcher = launch(HoyaClient,
-                                      HoyaUtils.createConfiguration(),
-                                      [
-                                          ClientArgs.ACTION_CREATE,
-                                          "",
-                                          Arguments.ARG_MANAGER, "localhost:80",
-                                          Arguments.ARG_DEBUG,
-                                          Arguments.ARG_IMAGE, "hdfs://users/bob/hbase0.94.tar.gz",
-                                          Arguments.ARG_CONFDIR, "hdfs://users/bob/hoya/conf1"
-                                      ])
-    assert 0 == launcher.serviceExitCode
 
-  }
-
-  @Test
-  public void testHelpActionOrdering() throws Throwable {
-    ServiceLauncher launcher = launch(HoyaClient,
-                                      HoyaUtils.createConfiguration(),
-                                      [
-                                          ClientArgs.ACTION_LIST,
-                                          ""
-                                      ])
-    assert 0 == launcher.serviceExitCode
-  }
-
-  @Test
-  public void testThawActionOrderingDualItemArg() throws Throwable {
-    ServiceLauncher launcher = launch(HoyaClient,
-                                      HoyaUtils.createConfiguration(),
-                                      [
-                                          ClientArgs.ACTION_THAW,
-                                          '""',
-                                          Arguments.ARG_MANAGER, "localhost:80",
-                                          Arguments.ARG_WAIT, "60",
-                                      ])
-    assert HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER == launcher.serviceExitCode
-  }
 
 }
