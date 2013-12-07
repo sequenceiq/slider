@@ -25,8 +25,13 @@ import org.apache.hadoop.hoya.yarn.HoyaActions;
 @Parameters(commandNames = {HoyaActions.ACTION_MONITOR},
             commandDescription = HoyaActions.DESCRIBE_ACTION_MONITOR)
 
-public class ActionMonitorArgs extends AbstractActionArgs {
+public class ActionMonitorArgs extends AbstractActionArgs implements WaitTimeAccessor {
 
   @ParametersDelegate
   public WaitArgsDelegate waitDelegate = new WaitArgsDelegate();
+
+  @Override
+  public int getWaittime() {
+    return waitDelegate.getWaittime();
+  }
 }

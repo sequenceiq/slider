@@ -43,4 +43,8 @@ public class RoleArgsDelegate extends AbstractArgsDelegate {
   public Map<String, String> getRoleMap() throws BadCommandArgumentsException {
     return convertTupleListToMap("roles", roleTuples);
   }
+
+  public List<String> getRoleTuples() {
+    return roleTuples;
+  }
 }

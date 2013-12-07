@@ -52,7 +52,9 @@ import org.apache.hadoop.hoya.yarn.appmaster.state.ContainerAssignment;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RMOperationHandler;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleInstance;
 import org.apache.hadoop.hoya.yarn.appmaster.state.RoleStatus;
+import org.apache.hadoop.hoya.yarn.params.AbstractActionArgs;
 import org.apache.hadoop.hoya.yarn.params.HoyaAMArgs;
+import org.apache.hadoop.hoya.yarn.params.HoyaAMCreateAction;
 import org.apache.hadoop.hoya.yarn.service.CompoundLaunchedService;
 import org.apache.hadoop.hoya.yarn.service.EventCallback;
 import org.apache.hadoop.hoya.yarn.service.RpcService;
@@ -255,12 +257,14 @@ public class HoyaAppMaster extends CompoundLaunchedService
     Configuration serverConf =
       ConfigHelper.loadFromResource(HOYA_SERVER_RESOURCE);
     ConfigHelper.mergeConfigurations(conf, serverConf, HOYA_SERVER_RESOURCE);
-    
+
+    AbstractActionArgs action = serviceArgs.getCoreAction();
+    HoyaAMCreateAction createAction = (HoyaAMCreateAction) action;
     //sort out the location of the AM
     serviceArgs.applyDefinitions(conf);
     serviceArgs.applyFileSystemURL(conf);
 
-    String rmAddress = serviceArgs.getRmAddress();
+    String rmAddress = createAction.getRmAddress();
     if (rmAddress != null) {
       log.debug("Setting rm address from the command line: {}", rmAddress);
       HoyaUtils.setRmSchedulerAddress(conf, rmAddress);

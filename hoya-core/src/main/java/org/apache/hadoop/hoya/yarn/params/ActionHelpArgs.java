@@ -18,14 +18,21 @@
 
 package org.apache.hadoop.hoya.yarn.params;
 
-import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
+import org.apache.hadoop.ha.HAAdmin;
+import org.apache.hadoop.hoya.yarn.HoyaActions;
 
-public class RmAddressArgsDelegate extends AbstractArgsDelegate {
+@Parameters(commandNames = {HoyaActions.ACTION_HELP, HoyaActions.ACTION_USAGE},
+            commandDescription = HoyaActions.DESCRIBE_ACTION_LIST)
 
+public class ActionHelpArgs extends AbstractActionArgs {
 
-  //TODO: do we need this?
-  @Parameter(names = ARG_RESOURCE_MANAGER,
-             description = "Resource manager hostname:port ",
-             required = false)
-  private String rmAddress;
+  /**
+   * Get the min #of params expected
+   * @return the min number of params in the {@link #parameters} field
+   */
+  public int getMinParams() {
+    return 0;
+  }
+
 }

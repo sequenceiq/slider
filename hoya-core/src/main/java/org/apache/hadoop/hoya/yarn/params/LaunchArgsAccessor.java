@@ -18,29 +18,9 @@
 
 package org.apache.hadoop.hoya.yarn.params;
 
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.Parameters;
-import com.beust.jcommander.ParametersDelegate;
-import org.apache.hadoop.hoya.yarn.HoyaActions;
-
-@Parameters(commandNames = {HoyaActions.ACTION_THAW},
-            commandDescription = HoyaActions.DESCRIBE_ACTION_THAW)
-public class ActionThawArgs extends AbstractActionArgs implements WaitTimeAccessor , LaunchArgsAccessor {
-
-
-  @ParametersDelegate
-  public WaitArgsDelegate waitDelegate = new WaitArgsDelegate();
-
-  @Override
-  public int getWaittime() {
-    return waitDelegate.getWaittime();
-  }
-
-  @ParametersDelegate
-  LaunchArgsDelegate launchArgs = new LaunchArgsDelegate();
-
-  @Override
-  public String getRmAddress() {
-    return launchArgs.getRmAddress();
-  }
+/**
+ * Launch args for create and thaw and anything else that can start something
+ */
+public interface LaunchArgsAccessor extends WaitTimeAccessor {
+  String getRmAddress();
 }

@@ -25,8 +25,13 @@ import org.apache.hadoop.hoya.yarn.HoyaActions;
 @Parameters(commandNames = {HoyaActions.ACTION_FREEZE},
             commandDescription = HoyaActions.DESCRIBE_ACTION_FREEZE)
 
-public class ActionFreezeArgs extends AbstractActionArgs {
+public class ActionFreezeArgs extends AbstractActionArgs implements WaitTimeAccessor{
 
   @ParametersDelegate
   public WaitArgsDelegate waitDelegate = new WaitArgsDelegate();
+
+  @Override
+  public int getWaittime() {
+    return waitDelegate.getWaittime();
+  }
 }

@@ -35,20 +35,6 @@ public class HoyaAMArgs extends CommonArgs {
 
   HoyaAMCreateAction createAction = new HoyaAMCreateAction();
 
-
-  /**
-   * The only action you can do in the MasterService (apart from ask for help)
-   * Is create a cluster
-   */
-
-  private static final Map<String, List<Object>> ACTIONS =
-    new HashMap<String, List<Object>>();
-
-  static {
-    ACTIONS.put(ACTION_CREATE, ArgOps.tuple("create cluster", 1));
-  }
-
-
   public HoyaAMArgs(String[] args) {
     super(args);
   }
@@ -57,12 +43,6 @@ public class HoyaAMArgs extends CommonArgs {
   protected void addActionArguments() {
     addActions(createAction);
   }
-
-  @Override
-  public Map<String, List<Object>> getActions() {
-    return ACTIONS;
-  }
-
 
   public String getImage() {
     return createAction.image;

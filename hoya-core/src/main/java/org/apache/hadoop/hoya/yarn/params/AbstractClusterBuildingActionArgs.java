@@ -112,6 +112,10 @@ public class AbstractClusterBuildingActionArgs extends AbstractActionArgs {
     return convertTripleListToMaps(ARG_ROLEOPT, roleOptTriples);
   }
 
+  public List<String> getRoleTuples() {
+    return roleDelegate.getRoleTuples();
+  }
+
   /**
    * Get the role mapping (may be empty, but never null)
    * @return role mapping

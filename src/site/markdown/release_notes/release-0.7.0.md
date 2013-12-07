@@ -12,7 +12,7 @@
   limitations under the License. See accompanying LICENSE file.
 -->
   
-# Hoya Release 0.6.6
+# Hoya Release 0.7.0
 
 November 2013
 

@@ -25,4 +25,17 @@ import org.apache.hadoop.hoya.yarn.HoyaActions;
             commandDescription = HoyaActions.DESCRIBE_ACTION_LIST)
 
 public class ActionListArgs extends AbstractActionArgs {
+
+  /**
+   * Get the min #of params expected
+   * @return the min number of params in the {@link #parameters} field
+   */
+  public int getMinParams() {
+    return 0;
+  }
+
+  @Override
+  public int getMaxParams() {
+    return 1;
+  }
 }

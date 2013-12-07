@@ -20,7 +20,7 @@ package org.apache.hadoop.hoya.yarn.client
 
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.Arguments
-import org.apache.hadoop.hoya.yarn.params.HoyaClientArgs
+import org.apache.hadoop.hoya.yarn.params.ClientArgs
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
 import org.junit.Test
@@ -39,7 +39,7 @@ class TestClientBasicArgs extends ServiceLauncherBaseTest {
   public void testHelp() throws Throwable {
     ServiceLauncher launcher = launch(HoyaClient,
                                       HoyaUtils.createConfiguration(),
-                                      [HoyaClientArgs.ACTION_HELP])
+                                      [ClientArgs.ACTION_HELP])
     assert 0 == launcher.serviceExitCode
   }
   /**
@@ -51,7 +51,7 @@ class TestClientBasicArgs extends ServiceLauncherBaseTest {
     ServiceLauncher launcher = launch(HoyaClient,
                                       HoyaUtils.createConfiguration(),
                                       [
-                                          HoyaClientArgs.ACTION_HELP,
+                                          ClientArgs.ACTION_HELP,
                                           Arguments.ARG_DEBUG,
                                           Arguments.ARG_IMAGE, "hdfs://users/bob/hbase0.94.tar.gz",
                                           Arguments.ARG_CONFDIR, "hdfs://users/bob/hoya/conf1"
@@ -66,7 +66,7 @@ class TestClientBasicArgs extends ServiceLauncherBaseTest {
                                       HoyaUtils.createConfiguration(),
                                       [
                                           Arguments.ARG_DEBUG,
-                                          HoyaClientArgs.ACTION_HELP,
+                                          ClientArgs.ACTION_HELP,
                                       ])
     assert 0 == launcher.serviceExitCode
   }
@@ -77,7 +77,7 @@ class TestClientBasicArgs extends ServiceLauncherBaseTest {
                                       HoyaUtils.createConfiguration(),
                                       [
                                           Arguments.ARG_WAIT, "60",
-                                          HoyaClientArgs.ACTION_HELP,
+                                          ClientArgs.ACTION_HELP,
                                       ])
     assert 0 == launcher.serviceExitCode
   }

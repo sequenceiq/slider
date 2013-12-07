@@ -51,8 +51,16 @@ public class AbstractActionArgs extends ArgOps implements Arguments {
    * This is the default parameter
    */
   @Parameter
-  public List<String> parameters = new ArrayList<String>();
+  public final List<String> parameters = new ArrayList<String>();
 
+
+  /**
+   * get the name: relies on arg 1 being the cluster name in all operations 
+   * @return the name argument, null if there is none
+   */
+  public String getClusterName() {
+    return (parameters.isEmpty()) ? null : parameters.get(0);
+  }
   /**
    -D name=value
 
@@ -80,25 +88,30 @@ public class AbstractActionArgs extends ArgOps implements Arguments {
   public String manager;
 
 
+  @Parameter(names = ARG_DEBUG, description = "Debug mode")
+  public boolean debug = false;
+
+
   /**
    * Get the min #of params expected
    * @return the min number of params in the {@link #parameters} field
    */
   public int getMinParams() {
-    return 0;
+    return 1;
   }
   
   public String getAction() {
     Parameter annotation = this.getClass().getAnnotation(Parameter.class);
-    annotation.
+    String[] names = annotation.names();
+    return names.length > 0 ? names[0] : "unknown";
   }
 
   /**
    * Get the max #of params expected
-   * @return the number of params in the {@link #parameters} field; -1 means "as the min"
+   * @return the number of params in the {@link #parameters} field;
    */
   public int getMaxParams() {
-    return -1;
+    return getMinParams();
   }
 
   public void validate() throws BadCommandArgumentsException {

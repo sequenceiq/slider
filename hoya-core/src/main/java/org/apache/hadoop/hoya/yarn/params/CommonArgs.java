@@ -52,54 +52,11 @@ public abstract class CommonArgs extends ArgOps implements HoyaActions, Argument
 
   protected static final Logger log = LoggerFactory.getLogger(CommonArgs.class);
 
-  /**
-   * This is the default parameter
-   */
-  @Parameter
-  public List<String> parameters = new ArrayList<String>();
 
-  
-  
-  
-  @Parameter(names = ARG_DEBUG, description = "Debug mode")
-  private boolean debug = false;
-  
-  
-
-  @Parameter(names = ARG_CONFDIR,
-             description = "Path to cluster configuration directory in HDFS",
-             converter = PathArgumentConverter.class)
-  private Path confdir;
-
-  @Parameter(names = {ARG_FILESYSTEM, ARG_FILESYSTEM_LONG}, description = "Filesystem URI",
-             converter = URIArgumentConverter.class)
-  private URI filesystemURL;
-
-  @Parameter(names = ARG_APP_ZKPATH,
-             description = "Zookeeper path for the application")
-  private String appZKPath;
 
   @Parameter(names = ARG_HELP, help = true)
   public boolean help;
 
-
-  @Parameter(names = {"--m", ARG_MANAGER},
-             description = "hostname:port of the YARN resource manager")
-  private String manager;
-
-  //TODO: do we need this?
-  @Parameter(names = ARG_RESOURCE_MANAGER,
-             description = "Resource manager hostname:port ",
-             required = false)
-  private String rmAddress;
-
-  @Parameter(names = ARG_ZKHOSTS,
-             description = "comma separated list of the Zookeeper hosts")
-  private String zkhosts;
-  
-  @Parameter(names = ARG_ZKPORT,
-             description = "Zookeeper port")
-  private int zkport = HBaseConfigFileOptions.HBASE_ZK_PORT;
 
   /**
    -D name=value
@@ -111,28 +68,17 @@ public abstract class CommonArgs extends ArgOps implements HoyaActions, Argument
 
    */
 
-  @Parameter(names = ARG_DEFINE, arity = 1, description = "Definitions")
-  public List<String> definitions = new ArrayList<String>();
   public Map<String, String> definitionMap = new HashMap<String, String>();
   /**
    * System properties
    */
-  @Parameter(names = {ARG_SYSPROP}, arity = 1,
-             description = "system properties in the form name value" +
-                           " These are set after the JVM is started.")
-  public List<String> sysprops = new ArrayList<String>(0);
   public Map<String, String> syspropsMap = new HashMap<String, String>();
 
-  @Parameter(names = {ARG_OUTPUT, "-o"},
-             description = "Output file for the configuration data")
-  private String output;
 
   /**
    * fields
    */
   public JCommander commander;
-  //action arguments; 
-  private List<String> actionArgs;
   private final String[] args;
   
   private AbstractActionArgs coreAction;
@@ -142,8 +88,7 @@ public abstract class CommonArgs extends ArgOps implements HoyaActions, Argument
    * @return the name argument, null if there is none
    */
   public String getClusterName() {
-    return (getActionArgs() == null || getActionArgs().isEmpty() || getArgs().length < 2) ?
-           null : getArgs()[1];
+    return coreAction.getClusterName();
   }
 
   public CommonArgs(String[] args) {
@@ -162,12 +107,6 @@ public abstract class CommonArgs extends ArgOps implements HoyaActions, Argument
     StringBuilder builder = new StringBuilder("\n");
     commander.usage(builder, "  ");
     builder.append("\nactions: ");
-    Map<String, List<Object>> actions = getActions();
-    List<String>keys = new ArrayList<String>(actions.keySet());
-    Collections.sort(keys);
-    for (String key : keys) {
-      builder.append(key).append(" ");
-    }
     return builder.toString();
   }
 
@@ -212,18 +151,6 @@ public abstract class CommonArgs extends ArgOps implements HoyaActions, Argument
   protected void addActionArguments() {
     
   }
-  
-  /**
-   * Map of supported actions to (description, #of args following)
-   * format is of style:
-   * <pre>
-   *   (ACTION_CREATE): ["create cluster", 1],
-   * </pre>
-   * @return
-   */
-  public Map<String, List<Object>> getActions() {
-    return Collections.emptyMap();
-  }
 
   /**
    * validate args via {@link #validate()}
@@ -232,8 +159,8 @@ public abstract class CommonArgs extends ArgOps implements HoyaActions, Argument
   public void postProcess() throws HoyaException {
     applyAction();
     validate();
-    splitPairs(definitions, definitionMap);
-    splitPairs(sysprops, syspropsMap);
+
+    //apply entry set
     for (Map.Entry<String, String> entry : syspropsMap.entrySet()) {
       System.setProperty(entry.getKey(),entry.getValue());
     }
@@ -253,8 +180,9 @@ public abstract class CommonArgs extends ArgOps implements HoyaActions, Argument
    */
   protected void bindCoreAction(AbstractActionArgs action) {
     coreAction = action;
-    definitions = coreAction.definitions;
-    sysprops = coreAction.sysprops;
+
+    splitPairs(coreAction.definitions, definitionMap);
+    splitPairs(coreAction.sysprops, syspropsMap);
   }
 
   /**
@@ -274,23 +202,16 @@ public abstract class CommonArgs extends ArgOps implements HoyaActions, Argument
                                              + usage());
     }
     log.debug("action={}", getAction());
-    Map<String, List<Object>> actionMap = getActions();
-    List<Object> actionOpts = actionMap.get(getAction());
-    if (null == actionOpts) {
-      throw new BadCommandArgumentsException(ErrorStrings.ERROR_UNKNOWN_ACTION
-                                             + getAction()
-                                             + usage());
-    }
-    setActionArgs(parameters.subList(1, parameters.size()));
+    
 
-    int minArgs = (Integer) actionOpts.get(1);
+
+    int minArgs = coreAction.getMinParams();
     int actionArgSize = getActionArgs().size();
     if (minArgs > actionArgSize) {
       throw new BadCommandArgumentsException(
         ErrorStrings.ERROR_NOT_ENOUGH_ARGUMENTS + getAction());
     }
-    int maxArgs =
-      (actionOpts.size() == 3) ? ((Integer) actionOpts.get(2)) : minArgs;
+    int maxArgs = coreAction.getMaxParams();
     if (actionArgSize > maxArgs) {
       String message = String.format("%s for %s: limit is %d but saw %d",
                                      ErrorStrings.ERROR_TOO_MANY_ARGUMENTS,
@@ -325,90 +246,31 @@ public abstract class CommonArgs extends ArgOps implements HoyaActions, Argument
   }
 
   public boolean isDebug() {
-    return debug;
+    return coreAction.debug;
   }
 
-  public void setDebug(boolean debug) {
-    this.debug = debug;
-  }
 
-  /**
-   *    Declare the image configuration directory to use when creating or reconfiguring a hoya cluster. The path must be on a filesystem visible to all nodes in the YARN cluster.
-   Only one configuration directory can be specified.
-   */
-  public Path getConfdir() {
-    return confdir;
-  }
-
-  public void setConfdir(Path confdir) {
-    this.confdir = confdir;
-  }
 
   public URI getFilesystemURL() {
-    return filesystemURL;
+    return coreAction.filesystemURL;
   }
 
-  public void setFilesystemURL(URI filesystemURL) {
-    this.filesystemURL = filesystemURL;
-  }
-
-  public String getAppZKPath() {
-    return appZKPath;
-  }
-
-  public void setAppZKPath(String appZKPath) {
-    this.appZKPath = appZKPath;
-  }
 
   public String getManager() {
-    return manager;
+    return coreAction.manager;
   }
 
-  public void setManager(String manager) {
-    this.manager = manager;
-  }
 
-  public String getRmAddress() {
-    return rmAddress;
-  }
+//  public String getRmAddress() {
+//    return rmAddress;
+//  }
 
-  public void setRmAddress(String rmAddress) {
-    this.rmAddress = rmAddress;
-  }
-
-  public String getZkhosts() {
-    return zkhosts;
-  }
-
-  public void setZkhosts(String zkhosts) {
-    this.zkhosts = zkhosts;
-  }
-
-  public int getZkport() {
-    return zkport;
-  }
-
-  public void setZkport(int zkport) {
-    this.zkport = zkport;
-  }
-
-  public String getOutput() {
-    return output;
-  }
-
-  public void setOutput(String output) {
-    this.output = output;
-  }
 
   public String getAction() {
     return commander.getParsedCommand();
   }
   public List<String> getActionArgs() {
-    return actionArgs;
-  }
-
-  public void setActionArgs(List<String> actionArgs) {
-    this.actionArgs = actionArgs;
+    return coreAction.parameters;
   }
 
   public String[] getArgs() {

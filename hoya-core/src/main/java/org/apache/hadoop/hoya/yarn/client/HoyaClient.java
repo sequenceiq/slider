@@ -63,9 +63,10 @@ import org.apache.hadoop.hoya.yarn.params.ActionCreateArgs;
 import org.apache.hadoop.hoya.yarn.params.ActionFlexArgs;
 import org.apache.hadoop.hoya.yarn.params.ActionGetConfArgs;
 import org.apache.hadoop.hoya.yarn.params.ActionThawArgs;
+import org.apache.hadoop.hoya.yarn.params.ClientArgs;
 import org.apache.hadoop.hoya.yarn.params.HoyaAMArgs;
-import org.apache.hadoop.hoya.yarn.params.HoyaClientArgs;
 import org.apache.hadoop.hoya.yarn.appmaster.rpc.RpcBinder;
+import org.apache.hadoop.hoya.yarn.params.LaunchArgsAccessor;
 import org.apache.hadoop.hoya.yarn.service.CompoundLaunchedService;
 import org.apache.hadoop.hoya.yarn.service.SecurityCheckerService;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -124,7 +125,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   // Queue for App master
   private String amQueue = "default";
 
-  private HoyaClientArgs serviceArgs;
+  private ClientArgs serviceArgs;
   public ApplicationId applicationId;
   
 
@@ -162,7 +163,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   public Configuration bindArgs(Configuration config, String... args) throws Exception {
     config = super.bindArgs(config, args);
     log.debug("Binding Arguments");
-    serviceArgs = new HoyaClientArgs(args);
+    serviceArgs = new ClientArgs(args);
     serviceArgs.parse();
     // yarn-ify
     YarnConfiguration yarnConfiguration = new YarnConfiguration(config);
@@ -211,7 +212,9 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     } else if (HoyaActions.ACTION_CREATE.equals(action)) {
       exitCode = actionCreate(clusterName);
     } else if (HoyaActions.ACTION_FREEZE.equals(action)) {
-      exitCode = actionFreeze(clusterName, serviceArgs.getWaittime(), "stopping cluster");
+      exitCode = actionFreeze(clusterName,
+                              serviceArgs.getActionFreezeArgs().getWaittime(),
+                              "stopping cluster");
     } else if (HoyaActions.ACTION_THAW.equals(action)) {
       exitCode = actionThaw(clusterName);
     } else if (HoyaActions.ACTION_DESTROY.equals(action)) {
@@ -237,7 +240,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       }
       exitCode = actionList(clusterName);
     } else if (HoyaActions.ACTION_MONITOR.equals(action)) {
-      exitCode = actionMonitor(clusterName);
+      exitCode = actionMonitor(clusterName,
+                               serviceArgs.getActionMonitorArgs().getWaittime());
     } else if (HoyaActions.ACTION_STATUS.equals(action)) {
       exitCode = actionStatus(clusterName);
     } else {
@@ -338,7 +342,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     ActionCreateArgs createArgs = serviceArgs.getActionCreateArgs();
     actionBuild(clustername, createArgs);
-    return startCluster(clustername, createArgs.getWaittime());
+    return startCluster(clustername, createArgs);
   }
 
   /**
@@ -426,14 +430,14 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     propagatePrincipals(clusterSpec, conf);
 
     // next the options provided on the command line
-    HoyaUtils.mergeMap(clusterSpec.options, serviceArgs.getOptionsMap());
+    HoyaUtils.mergeMap(clusterSpec.options, buildInfo.getOptionsMap());
 
     // build the list of supported roles
     List<ProviderRole> supportedRoles = new ArrayList<ProviderRole>();
     // provider roles
     supportedRoles.addAll(provider.getRoles());
     // and any extra
-    Map<String, String> argsRoleMap = serviceArgs.getRoleMap();
+    Map<String, String> argsRoleMap = buildInfo.getRoleMap();
 
     Map<String, Map<String, String>> clusterRoleMap =
       new HashMap<String, Map<String, String>>();
@@ -498,8 +502,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     }
 
     // set up the ZK binding
-    String zookeeperRoot = serviceArgs.getAppZKPath();
-    if (isUnset(buildInfo.getAppZKPath())) {
+    String zookeeperRoot = buildInfo.getAppZKPath();
+    if (isUnset(zookeeperRoot)) {
       zookeeperRoot =
         "/yarnapps_" + getAppName() + "_" + getUsername() + "_" + clustername;
     }
@@ -572,12 +576,14 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
   /**
    * Create a cluster to the specification
+   *
    * @param clusterSpec cluster specification
+   * @param launchArgs
    * @return the exit code from the operation
    */
   public int executeClusterStart(Path clusterDirectory,
                                  ClusterDescription clusterSpec,
-                                 int waittime)
+                                 LaunchArgsAccessor launchArgs)
       throws YarnException, IOException {
 
     // verify that a live cluster isn't there;
@@ -771,7 +777,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     }
     amContainer.setEnvironment(env);
 
-    String rmAddr = serviceArgs.getRmAddress();
+    String rmAddr = launchArgs.getRmAddress();
     // spec out the RM address
     if (isUnset(rmAddr) && HoyaUtils.isRmSchedulerAddressDefined(config)) {
       rmAddr = NetUtils.getHostPortString(HoyaUtils.getRmSchedulerAddress(config));
@@ -902,9 +908,10 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       // exit unless there is a wait
       exitCode = EXIT_SUCCESS;
 
-      if (serviceArgs.getWaittime() != 0) {
+      int waittime = launchArgs.getWaittime();
+      if (waittime != 0) {
         // waiting for state to change
-        Duration duration = new Duration(serviceArgs.getWaittime() * 1000);
+        Duration duration = new Duration(waittime * 1000);
         duration.start();
         report = monitorAppToState(duration,
                                    YarnApplicationState.RUNNING);
@@ -1356,13 +1363,15 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
   /**
    * Monitor operation
+   *
    * @param clustername cluster name
+   * @param waittime
    * @return 0 if the monitoring finished after timeout with no problems
    * @throws YarnException
    * @throws IOException
    */
   @VisibleForTesting
-  public int actionMonitor(String clustername) throws
+  public int actionMonitor(String clustername, int waittime) throws
                                               YarnException,
                                               IOException {
     verifyManagerSet();
@@ -1387,7 +1396,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     int exitCode = EXIT_FALSE;
     
     int timeout = 60000;
-    int waittime = serviceArgs.getWaittime();
     ClientProvider provider = createClientProvider(clusterSpec);
     List<Probe> probes =
       provider.createProbes(clusterSpec, report.getTrackingUrl(), getConfig(), timeout);
@@ -1574,19 +1582,21 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
 
     //start the cluster
-    return startCluster(clustername, serviceArgs.getActionThawArgs().getWaittime());
+    return startCluster(clustername, thaw);
   }
 
   /**
    * Load and start a cluster specification.
    * This assumes that all validation of args and cluster state
    * have already taken place
+   *
    * @param clustername name of the cluster.
+   * @param launchArgs
    * @return the exit code
    * @throws YarnException
    * @throws IOException
    */
-  private int startCluster(String clustername, int waittime) throws
+  private int startCluster(String clustername, LaunchArgsAccessor launchArgs) throws
                                                YarnException,
                                                IOException {
     Path clusterSpecPath = locateClusterSpecification(clustername);
@@ -1596,7 +1606,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     Path clusterDirectory =
       HoyaUtils.buildHoyaClusterDirPath(getClusterFS(), clustername);
 
-    return executeClusterStart(clusterDirectory, clusterSpec, waittime);
+    return executeClusterStart(clusterDirectory, clusterSpec, launchArgs);
   }
 
   /**
