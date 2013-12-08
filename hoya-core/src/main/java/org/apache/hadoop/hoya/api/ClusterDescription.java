@@ -18,12 +18,24 @@
 
 package org.apache.hadoop.hoya.api;
 
+import static org.apache.hadoop.hoya.api.OptionKeys.APPLICATION_HOME;
+import static org.apache.hadoop.hoya.api.OptionKeys.APPLICATION_IMAGE_PATH;
+import static org.apache.hadoop.hoya.api.OptionKeys.ZOOKEEPER_HOSTS;
+import static org.apache.hadoop.hoya.api.OptionKeys.ZOOKEEPER_PATH;
+import static org.apache.hadoop.hoya.api.OptionKeys.ZOOKEEPER_PORT;
+
+import java.io.IOException;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import static org.apache.hadoop.hoya.api.OptionKeys.*;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.ErrorStrings;
@@ -39,11 +51,6 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Represents a cluster specification; designed to be sendable over the wire
@@ -476,6 +483,13 @@ public class ClusterDescription {
     }
     roles.put(role, map);
     return map;
+  }
+  
+  /*
+   * return the Set of role names
+   */
+  public Set<String> getRoleNames() {
+    return new HashSet<String>(roles.keySet());
   }
 
   /**
