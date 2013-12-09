@@ -54,3 +54,22 @@ in the command lines passed to Hoya
 The `EXIT_CLUSTER_IN_USE` (74) is now raised whenever the named cluster
 is in use when an action is requested which requires a cluster to not be running.
 Examples : thaw, destroy, create
+
+### `hoya status` command supports a `--out` argument
+
+You can direct the JSON output of the `hoya status` command into a file -as
+this excludes all the other logged information, this is the way to retrieve
+a JSON specification that can be parsed.
+
+Example
+
+    hoya status cluster1 --out cluster1.json
+    
+### Cleanup of cached lib files used in thawing/creating clusters
+
+Hoya copies its JAR files into `/${user.home}/.hoya/tmp/${clustername}/${app-id}`
+in order to launch the Hoya Application Master -until this release they were
+not cleaned up.
+
+Now, whenever an cluster is thawed, all existing temporary files saved on
+previous cluster launches are deleted.
