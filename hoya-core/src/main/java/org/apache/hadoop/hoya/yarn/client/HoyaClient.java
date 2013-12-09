@@ -243,7 +243,9 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       exitCode = actionMonitor(clusterName,
                                serviceArgs.getActionMonitorArgs().getWaittime());
     } else if (HoyaActions.ACTION_STATUS.equals(action)) {
-      exitCode = actionStatus(clusterName);
+      
+      exitCode = actionStatus(clusterName,
+                              serviceArgs.getActionStatusArgs().getOutput());
     } else {
       throw new HoyaException(EXIT_UNIMPLEMENTED,
                               "Unimplemented: " + action);
@@ -1433,19 +1435,27 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   
   /**
    * Status operation
+   *
    * @param clustername cluster name
+   * @param outfile filename : if not null indicates output is to be saved
+   * to this file
    * @return 0 -for success, else an exception is thrown
    * @throws YarnException
    * @throws IOException
    */
   @VisibleForTesting
-  public int actionStatus(String clustername) throws
+  public int actionStatus(String clustername, String outfile) throws
                                               YarnException,
                                               IOException {
     verifyManagerSet();
     HoyaUtils.validateClusterName(clustername);
     ClusterDescription status = getClusterDescription(clustername);
-    log.info(status.toJsonString());
+    String text = status.toJsonString();
+    if (outfile == null) {
+      log.info(text);
+    } else {
+      status.save(new File(outfile));
+    }
     return EXIT_SUCCESS;
   }
 

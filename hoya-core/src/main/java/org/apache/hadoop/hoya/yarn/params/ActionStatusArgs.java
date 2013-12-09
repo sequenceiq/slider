@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.yarn.params;
 
+import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
 
@@ -25,4 +26,13 @@ import org.apache.hadoop.hoya.yarn.HoyaActions;
             commandDescription = HoyaActions.DESCRIBE_ACTION_STATUS)
 
 public class ActionStatusArgs extends AbstractActionArgs {
+
+
+  @Parameter(names = {ARG_OUTPUT, ARG_OUTPUT_SHORT},
+             description = "Output file for the configuration data")
+  private String output;
+
+  public String getOutput() {
+    return output;
+  }
 }

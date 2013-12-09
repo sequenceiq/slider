@@ -24,6 +24,10 @@ import static org.apache.hadoop.hoya.api.OptionKeys.ZOOKEEPER_HOSTS;
 import static org.apache.hadoop.hoya.api.OptionKeys.ZOOKEEPER_PATH;
 import static org.apache.hadoop.hoya.api.OptionKeys.ZOOKEEPER_PORT;
 
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
@@ -265,14 +269,38 @@ public class ClusterDescription {
    * @param fs filesystem
    * @param path path
    * @param overwrite should any existing file be overwritten
-   * @throws IOException IO excpetion
+   * @throws IOException IO exception
    */
   public void save(FileSystem fs, Path path, boolean overwrite) throws
                                                                 IOException {
-    String json = toJsonString();
     FSDataOutputStream dataOutputStream = fs.create(path, overwrite);
-    byte[] b = json.getBytes(UTF_8);
+    writeJsonAsBytes(dataOutputStream);
+  }
+  
+  /**
+   * Save a cluster description to the local filesystem
+   * @param file file
+   * @throws IOException IO excpetion
+   */
+  public void save(File file) throws IOException {
+    if (!(file.getParentFile().mkdirs())) {
+      throw new FileNotFoundException(
+        "Failed to create parent dirs for " + file);
+    }
+    DataOutputStream dataOutputStream = new DataOutputStream(new FileOutputStream(file));
+    writeJsonAsBytes(dataOutputStream);
+  }
+
+  /**
+   * Write the json as bytes -then close the file
+   * @param dataOutputStream an outout stream that will always be closed
+   * @throws IOExceptionon any failure
+   */
+  private void writeJsonAsBytes(DataOutputStream dataOutputStream) throws
+                                                                   IOException {
     try {
+      String json = toJsonString();
+      byte[] b = json.getBytes(UTF_8);
       dataOutputStream.write(b);
     } finally {
       dataOutputStream.close();
