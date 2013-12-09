@@ -340,9 +340,30 @@ public final class HoyaUtils {
                                                    String appID) throws
                                                                  IOException {
     Path hoyaPath = getBaseHoyaPath(fs);
-    Path instancePath = new Path(hoyaPath, "tmp/" + clustername + "/" + appID);
+    Path tmp = getTempPathForCluster(clustername, hoyaPath);
+    Path instancePath = new Path(tmp, appID);
     fs.mkdirs(instancePath);
     return instancePath;
+  }
+  /**
+   * Create the application-instance specific temporary directory
+   * in the DFS
+   * @param fs filesystem
+   * @param clustername name of the cluster
+   * @param appID appliation ID
+   * @return the path; this directory will already have been deleted
+   */
+  public static Path purgeHoyaAppInstanceTempFiles(FileSystem fs,
+                                                   String clustername) throws
+                                                                 IOException {
+    Path hoyaPath = getBaseHoyaPath(fs);
+    Path tmp = getTempPathForCluster(clustername, hoyaPath);
+    fs.delete(tmp, true);
+    return tmp;
+  }
+
+  public static Path getTempPathForCluster(String clustername, Path hoyaPath) {
+    return new Path(hoyaPath, "tmp/" + clustername + "/");
   }
 
   /**

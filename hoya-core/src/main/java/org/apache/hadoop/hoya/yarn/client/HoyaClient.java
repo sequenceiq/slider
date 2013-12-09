@@ -643,6 +643,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     }
 
     FileSystem fs = getClusterFS();
+    HoyaUtils.purgeHoyaAppInstanceTempFiles(fs, clustername);
     Path tempPath = HoyaUtils.createHoyaAppInstanceTempPath(fs,
                                                             clustername,
                                                             appId.toString());
