@@ -55,6 +55,8 @@ public interface StatusKeys {
   String INFO_CREATE_TIME_HUMAN = "create.time";
   String INFO_LIVE_TIME_MILLIS = "live.time.millis";
   String INFO_LIVE_TIME_HUMAN = "live.time";
+  String INFO_FLEX_TIME_MILLIS = "flex.time.millis";
+  String INFO_FLEX_TIME_HUMAN = "flex.time";
 
   /**
    * System time in millis when the status report was generated

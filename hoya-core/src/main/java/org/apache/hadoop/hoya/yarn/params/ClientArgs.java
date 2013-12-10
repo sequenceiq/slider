@@ -56,6 +56,7 @@ public class ClientArgs extends CommonArgs {
   ActionMonitorArgs actionMonitorArgs = new ActionMonitorArgs();
   ActionStatusArgs actionStatusArgs = new ActionStatusArgs();
   ActionThawArgs actionThawArgs = new ActionThawArgs();
+  ActionVersionArgs actionVersionArgs = new ActionVersionArgs();
   private final ActionHelpArgs actionHelpArgs = new ActionHelpArgs();
 
 
@@ -83,7 +84,9 @@ public class ClientArgs extends CommonArgs {
       actionMonitorArgs,
       actionStatusArgs,
       actionThawArgs,
-      actionHelpArgs);
+      actionHelpArgs,
+      actionVersionArgs
+      );
   }
 
   @Override
@@ -192,9 +195,11 @@ public class ClientArgs extends CommonArgs {
 
     } else if (HoyaActions.ACTION_GETCONF.equals(action)) {
       bindCoreAction(actionGetConfArgs);
+
     } else if (HoyaActions.ACTION_HELP.equals(action) ||
                HoyaActions.ACTION_USAGE.equals(action)) {
       bindCoreAction(actionHelpArgs);
+
     } else if (HoyaActions.ACTION_LIST.equals(action)) {
       bindCoreAction(actionListArgs);
 
@@ -204,8 +209,9 @@ public class ClientArgs extends CommonArgs {
     } else if (HoyaActions.ACTION_STATUS.equals(action)) {
       bindCoreAction(actionStatusArgs);
 
-    } else if (HoyaActions.ACTION_STATUS.equals(action)) {
-      bindCoreAction(actionStatusArgs);
+    } else if (HoyaActions.ACTION_VERSION.equals(action)) {
+      bindCoreAction(actionVersionArgs);
+
     } else if (action == null || action.isEmpty()) {
       throw new BadCommandArgumentsException(ErrorStrings.ERROR_NO_ACTION);
 

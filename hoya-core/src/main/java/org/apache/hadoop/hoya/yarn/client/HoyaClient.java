@@ -56,6 +56,7 @@ import org.apache.hadoop.hoya.servicemonitor.YarnApplicationProbe;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.Duration;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
+import org.apache.hadoop.hoya.tools.HoyaVersionInfo;
 import org.apache.hadoop.hoya.yarn.Arguments;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
 import org.apache.hadoop.hoya.yarn.params.AbstractClusterBuildingActionArgs;
@@ -74,6 +75,7 @@ import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.util.VersionInfo;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
@@ -246,6 +248,9 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       
       exitCode = actionStatus(clusterName,
                               serviceArgs.getActionStatusArgs().getOutput());
+    } else if (HoyaActions.ACTION_VERSION.equals(action)) {
+      
+      exitCode = actionVersion();
     } else {
       throw new HoyaException(EXIT_UNIMPLEMENTED,
                               "Unimplemented: " + action);
@@ -405,6 +410,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     clusterSpec.setInfoTime(StatusKeys.INFO_CREATE_TIME_HUMAN,
                             StatusKeys.INFO_CREATE_TIME_MILLIS,
                             now);
+    HoyaUtils.addBuildInfo(clusterSpec,"create");
     
     // build up the options map
     // first the defaults provided by the provider
@@ -1460,6 +1466,23 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   }
 
   /**
+   * Version Details
+   * @return exit code
+   */
+  public int actionVersion() {
+    Properties props = HoyaVersionInfo.loadVersionProperties();
+    log.info(props.getProperty(HoyaVersionInfo.APP_BUILD_INFO));
+    log.info("Compiled against Hadoop {}",
+             props.getProperty(HoyaVersionInfo.HADOOP_BUILD_INFO));
+    log.info(
+      "Hadoop runtime version {} with source checksum {} and build date {}",
+      VersionInfo.getBranch(),
+      VersionInfo.getSrcChecksum(),
+      VersionInfo.getDate());
+    return EXIT_SUCCESS;
+  }
+
+  /**
    * Stop the cluster
    * @param clustername cluster name
    * @param text
@@ -1655,6 +1678,10 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     ClusterDescription clusterSpec =
       HoyaUtils.loadAndValidateClusterSpec(fs, clusterSpecPath);
 
+    HoyaUtils.addBuildInfo(clusterSpec, "flex");
+    clusterSpec.setInfoTime(StatusKeys.INFO_FLEX_TIME_HUMAN,
+                            StatusKeys.INFO_FLEX_TIME_MILLIS,
+                            System.currentTimeMillis());
     for (Map.Entry<String, Integer> entry : roleInstances.entrySet()) {
       String role = entry.getKey();
       int count = entry.getValue();

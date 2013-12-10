@@ -73,3 +73,9 @@ not cleaned up.
 
 Now, whenever an cluster is thawed, all existing temporary files saved on
 previous cluster launches are deleted.
+
+### A new `version` action
+
+The command `hoya version` will print out information about the compiled
+Hoya application, the version of Hadoop against which it was built -and
+the version of Hadoop that is currently on its classpath.
