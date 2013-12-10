@@ -335,6 +335,26 @@ Examples:
 
 If a cluster is already running, this is a no-op
 
+### `version`
+
+The command `hoya version` prints out information about the compiled
+Hoya application, the version of Hadoop against which it was built -and
+the version of Hadoop that is currently on its classpath.
+
+Note that this is the client-side Hadoop version, not that running on the server, though
+that can be obtained in the cluster status operation
+
+
+Example
+
+
+    > hadoop version
+    
+    2013-12-10 14:28:17,624 [JUnit] INFO  client.HoyaClient - Hoya Core-0.7.1-SNAPSHOT Built against 1dd69 on Java 1.7.0_45 by stevel
+    2013-12-10 14:28:17,624 [JUnit] INFO  client.HoyaClient - Compiled against Hadoop 2.2.0
+    2013-12-10 14:28:17,625 [JUnit] INFO  client.HoyaClient - Hadoop runtime version branch-2.2.0 with source checksum 79e53ce7994d1628b240f09af91e1af4 and build date 2013-10-07T06:28Z
+
+
 ### `emergency-force-kill <applicationID>`
 
 This attempts to force kill any YARN application referenced by application ID.

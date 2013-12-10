@@ -1009,6 +1009,7 @@ public class AppState {
     // set the RM-defined maximum cluster values
     cd.setInfo(RoleKeys.YARN_CORES, Integer.toString(containerMaxCores));
     cd.setInfo(RoleKeys.YARN_MEMORY, Integer.toString(containerMaxMemory));
+    HoyaUtils.addBuildInfo(cd,"status");
     cd.statistics = new HashMap<String, Map<String, Integer>>();
     Map<String, Integer> instanceMap = createRoleToInstanceMap();
     if (log.isDebugEnabled()) {

@@ -41,6 +41,7 @@ import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.ExitUtil;
+import org.apache.hadoop.util.VersionInfo;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -74,6 +75,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 /**
@@ -1409,10 +1411,27 @@ public final class HoyaUtils {
    * @param time timestamp 
    * @return string value as ISO-9601
    */
+  @SuppressWarnings({"CallToDateToString", "deprecation"})
   public static String toGMTString(long time) {
     return new Date(time).toGMTString();
   }
 
+  /**
+   * Add the cluster build information; this will include Hadoop details too
+   * @param cd cluster
+   * @param prefix prefix for the build info
+   */
+  public static void addBuildInfo(ClusterDescription cd, String prefix) {
+
+    Properties props = HoyaVersionInfo.loadVersionProperties();
+    cd.setInfo(prefix + "." + HoyaVersionInfo.APP_BUILD_INFO,props.getProperty(
+      HoyaVersionInfo.APP_BUILD_INFO));
+    cd.setInfo(prefix + "." + HoyaVersionInfo.HADOOP_BUILD_INFO,
+               props.getProperty(HoyaVersionInfo.HADOOP_BUILD_INFO));
+    
+    cd.setInfo(prefix + "." + HoyaVersionInfo.HADOOP_DEPLOYED_INFO,
+               VersionInfo.getBranch() + " @" + VersionInfo.getSrcChecksum());
+  }
 
   /**
    * This wrapps ApplicationReports and generates a string version

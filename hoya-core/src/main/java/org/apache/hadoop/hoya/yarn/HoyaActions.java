@@ -42,6 +42,7 @@ public interface HoyaActions {
   String ACTION_STATUS = "status";
   String ACTION_THAW = "thaw";
   String ACTION_USAGE = "usage";
+  String ACTION_VERSION = "version";
   String DESCRIBE_ACTION_BUILD =
     "Build a Hoya cluster specification -but do not start it";
   String DESCRIBE_ACTION_CREATE =
@@ -66,4 +67,6 @@ public interface HoyaActions {
                       "Get the status of a cluster";
   String DESCRIBE_ACTION_THAW =
                         "thaw/start a frozen cluster";
+  String DESCRIBE_ACTION_VERSION =
+                        "get version information";
 }

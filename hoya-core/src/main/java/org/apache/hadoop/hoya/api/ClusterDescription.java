@@ -637,9 +637,9 @@ public class ClusterDescription {
    * @param keyMachineTime name of machine time
    * @param time timestamp
    */
-  @SuppressWarnings("CallToDateToString")
+  
   public void setInfoTime(String keyHumanTime, String keyMachineTime, long time) {
-    setInfo(keyHumanTime, new Date(time).toString());
+    setInfo(keyHumanTime, HoyaUtils.toGMTString(time));
     setInfo(keyMachineTime, Long.toString(time));
   }
 
