@@ -61,7 +61,6 @@
               <mode>development</mode>
               <url>${project.url}</url>
             </manifestEntries>
-            <Implementation-Build>$\{buildNumber}</Implementation-Build>
             <!-- Manifest specific configuration -->
             <manifest>
             </manifest>
