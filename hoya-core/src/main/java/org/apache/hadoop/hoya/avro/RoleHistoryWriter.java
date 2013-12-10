@@ -19,6 +19,7 @@
 package org.apache.hadoop.hoya.avro;
 
 import com.google.common.annotations.VisibleForTesting;
+import org.apache.avro.AvroTypeException;
 import org.apache.avro.Schema;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DatumWriter;
@@ -364,6 +365,8 @@ public class RoleHistoryWriter {
         success = true;
       } catch (IOException e) {
         log.info("Failed to read {}", path, e);
+      } catch (AvroTypeException e) {
+        log.warn("Failed to parse {}", path, e);
       }
     }
     return success ? path : null;
