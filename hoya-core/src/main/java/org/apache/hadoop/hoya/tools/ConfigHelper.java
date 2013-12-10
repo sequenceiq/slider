@@ -56,7 +56,7 @@ import java.util.TreeSet;
  * the same method
  */
 public class ConfigHelper {
-  private static final Logger log = LoggerFactory.getLogger(HoyaUtils.class);
+  private static final Logger log = LoggerFactory.getLogger(ConfigHelper.class);
 
   /**
    * Dump the (sorted) configuration
