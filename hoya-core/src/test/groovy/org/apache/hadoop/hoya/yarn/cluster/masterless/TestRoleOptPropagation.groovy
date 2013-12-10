@@ -24,7 +24,6 @@ import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.yarn.Arguments
-import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
@@ -37,7 +36,7 @@ class TestRoleOptPropagation extends HBaseMiniClusterTestBase {
 
   @Test
   public void testRoleOptPropagation() throws Throwable {
-    String clustername = "TestRoleOptPropagation"
+    String clustername = "test_role_opt_propagation"
     createMiniCluster(clustername, createConfiguration(), 1, true)
 
     describe "verify that role options propagate down to deployed roles"

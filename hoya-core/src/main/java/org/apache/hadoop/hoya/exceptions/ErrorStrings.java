@@ -20,4 +20,29 @@ package org.apache.hadoop.hoya.exceptions;
 
 public interface ErrorStrings {
   String E_UNSTABLE_CLUSTER = "Unstable Cluster:";
+  String E_CLUSTER_RUNNING = "cluster already running";
+  String E_ALREADY_EXISTS = "already exists";
+  String PRINTF_E_ALREADY_EXISTS = "Hoya Cluster \"%s\" already exists and is defined in %s";
+  String E_MISSING_PATH = "Missing path ";
+  String E_INCOMPLETE_CLUSTER_SPEC =
+    "Cluster specification is marked as incomplete: ";
+  String E_UNKNOWN_CLUSTER = "Unknown cluster ";
+  String E_DESTROY_CREATE_RACE_CONDITION =
+      "created while it was being destroyed";
+  String E_UNKNOWN_ROLE = "Unknown role ";
+  /**
+   * ERROR Strings
+   */
+  String ERROR_NO_ACTION = "No action specified";
+  String ERROR_UNKNOWN_ACTION = "Unknown command: ";
+  String ERROR_NOT_ENOUGH_ARGUMENTS =
+    "Not enough arguments for action: ";
+  String ERROR_PARSE_FAILURE =
+      "Failed to parse ";
+  /**
+   * All the remaining values after argument processing
+   */
+  String ERROR_TOO_MANY_ARGUMENTS =
+    "Too many arguments";
+  String ERROR_DUPLICATE_ENTRY = "Duplicate entry for ";
 }

@@ -40,6 +40,26 @@ public interface RoleKeys {
   String ROLE_ACTUAL_INSTANCES = "role.actual.instances";
 
   /**
+   * Status report: number currently requested: {@value} 
+   */
+  String ROLE_REQUESTED_INSTANCES = "role.requested.instances";
+
+  /**
+   * Status report: number currently being released: {@value} 
+   */
+  String ROLE_RELEASING_INSTANCES = "role.releasing.instances";
+
+  /**
+   * Status report: number currently being released: {@value} 
+   */
+  String ROLE_FAILED_INSTANCES = "role.failed.instances";
+
+  /**
+   * Status report: number currently being released: {@value} 
+   */
+  String ROLE_FAILED_STARTING_INSTANCES = "role.failed.starting.instances";
+
+  /**
    *  Amount of memory to ask YARN for in MB.
    *  <i>Important:</i> this may be a hard limit on the
    *  amount of RAM that the service can use

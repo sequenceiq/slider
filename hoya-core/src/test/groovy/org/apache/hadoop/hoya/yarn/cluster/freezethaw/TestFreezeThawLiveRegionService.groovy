@@ -16,12 +16,17 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.cluster.live
+package org.apache.hadoop.hoya.yarn.cluster.freezethaw
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hbase.ClusterStatus
+import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.api.RoleKeys
+import org.apache.hadoop.hoya.exceptions.HoyaException
+import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
@@ -36,11 +41,16 @@ class TestFreezeThawLiveRegionService extends HBaseMiniClusterTestBase {
 
   @Test
   public void testFreezeThawLiveRegionService() throws Throwable {
-    String clustername = "TestFreezeThawLiveRegionService"
+    String clustername = "test_freeze_thaw_live_regionservice"
     int regionServerCount = 2
     createMiniCluster(clustername, createConfiguration(), 1, true)
-    describe("Create a cluster, freeze it, thaw it and verify that it came back")
-    ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount, [], true, true)
+    describe("Create a cluster, freeze it, thaw it and verify that it came back ")
+    //use a smaller AM HEAP to include it in the test cycle
+    ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount,
+          [
+              Arguments.ARG_ROLEOPT, HoyaKeys.ROLE_HOYA_AM, RoleKeys.JVM_HEAP, "96M",
+          ],
+                                                  true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
     ClusterDescription status = hoyaClient.getClusterDescription(clustername)
@@ -54,6 +64,16 @@ class TestFreezeThawLiveRegionService extends HBaseMiniClusterTestBase {
     log.info(hbaseStatusToString(clustat));
     
 
+    //verify you can't start a new cluster with that name
+    try {
+      ServiceLauncher launcher3 = createHBaseCluster(clustername, regionServerCount, [], false, false)
+      HoyaClient cluster3 = launcher3.service as HoyaClient
+      fail("expected a failure, got ${cluster3}")
+    } catch (HoyaException e) {
+      assert e.exitCode == HoyaExitCodes.EXIT_CLUSTER_IN_USE;
+    }
+    
+    
     clusterActionFreeze(hoyaClient, clustername)
     killAllRegionServers();
     //now let's start the cluster up again
@@ -64,7 +84,16 @@ class TestFreezeThawLiveRegionService extends HBaseMiniClusterTestBase {
     //get the hbase status
     waitForHBaseRegionServerCount(newCluster, clustername, regionServerCount,
                             HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-
+    
+    // finally, attempt to thaw it while it is running
+    //now let's start the cluster up again
+    try {
+      ServiceLauncher launcher3 = thawHoyaCluster(clustername, [], true);
+      HoyaClient cluster3 = launcher3.service as HoyaClient
+      fail("expected a failure, got ${cluster3}")
+    } catch (HoyaException e) {
+      assert e.exitCode == HoyaExitCodes.EXIT_CLUSTER_IN_USE
+    }
   }
 
 

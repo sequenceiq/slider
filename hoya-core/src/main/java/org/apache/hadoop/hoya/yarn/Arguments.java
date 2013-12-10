@@ -37,9 +37,7 @@ package org.apache.hadoop.hoya.yarn;
  * command lines. Both entry 
  */
 public interface Arguments {
-//  String ARG_ACTION = "--action";
-  String ARG_AMQUEUE = "--amqueue";
-  String ARG_AMPRIORITY = "--ampriority";
+
   String ARG_APP_HOME = "--apphome";
   String ARG_APP_ZKPATH = "--zkpath";
   String ARG_CONFDIR = "--appconf";
@@ -55,17 +53,15 @@ public interface Arguments {
   String ARG_IMAGE = "--image";
   String ARG_MANAGER = "--manager";
 //  String ARG_NAME = "--name";
-  String ARG_OUTPUT = "--output";
+  String ARG_OUTPUT = "--out";
   String ARG_OPTION = "--option";
   String ARG_OPTION_SHORT = "-O";
   String ARG_PERSIST = "--persist";
   String ARG_PROVIDER = "--provider";
   String ARG_RESOURCE_MANAGER = "--rm";
   String ARG_ROLE = "--role";
-  String ARG_SECURE = "--secure";
   String ARG_SYSPROP = "-S";
   String ARG_ROLEOPT = "--roleopt";
-  String ARG_USER = "--user";
   String ARG_WAIT = "--wait";
   String ARG_ZKPORT = "--zkport";
   String ARG_ZKHOSTS = "--zkhosts";
@@ -81,4 +77,7 @@ public interface Arguments {
    */
   String ARG_RM_ADDR = "--rm";
 
+  String FORMAT_XML = "xml";
+  String FORMAT_PROPERTIES = "properties";
+  String ARG_OUTPUT_SHORT = "-o";
 }

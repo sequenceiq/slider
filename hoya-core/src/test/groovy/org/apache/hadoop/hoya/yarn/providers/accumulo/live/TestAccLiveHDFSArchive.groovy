@@ -36,7 +36,7 @@ class TestAccLiveHDFSArchive extends AccumuloTestBase {
 
   @Test
   public void testAccLiveHDFSArchive() throws Throwable {
-    String clustername = "TestAccLiveHDFSArchive"
+    String clustername = "test_acc_live_hdfs_archive"
     int tablets = 1
     int monitor = 1
     int gc = 1

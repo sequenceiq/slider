@@ -18,6 +18,21 @@
 
 package org.apache.hadoop.hoya.providers.hbase;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
@@ -38,6 +53,7 @@ import org.apache.hadoop.hoya.HoyaXmlConfKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.api.RoleKeys;
+import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
@@ -56,19 +72,6 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * This class implements  the client-side aspects
@@ -369,6 +372,15 @@ public class HBaseClientProvider extends Configured implements
     }
   }
 
+  private static Set<String> knownRoleNames = new HashSet<String>();
+  static {
+    List<ProviderRole> roles = HBaseRoles.getRoles();
+    knownRoleNames.add(HoyaKeys.ROLE_HOYA_AM);
+    for (ProviderRole role : roles) {
+      knownRoleNames.add(role.name);
+    }
+  }
+  
   /**
    * Validate the cluster specification. This can be invoked on both
    * server and client
@@ -377,6 +389,12 @@ public class HBaseClientProvider extends Configured implements
   @Override // Client and Server
   public void validateClusterSpec(ClusterDescription clusterSpec) throws
                                                                   HoyaException {
+    Set<String> unknownRoles = clusterSpec.getRoleNames();
+    unknownRoles.removeAll(knownRoleNames);
+    if (!unknownRoles.isEmpty()) {
+      throw new BadCommandArgumentsException("There is unknown role: %s",
+        unknownRoles.iterator().next());
+    }
     providerUtils.validateNodeCount(HBaseKeys.ROLE_WORKER,
                                     clusterSpec.getDesiredInstanceCount(
                                       HBaseKeys.ROLE_WORKER,

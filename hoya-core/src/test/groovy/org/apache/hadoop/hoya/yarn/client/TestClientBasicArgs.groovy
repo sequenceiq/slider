@@ -18,9 +18,11 @@
 
 package org.apache.hadoop.hoya.yarn.client
 
+import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.Arguments
-import org.apache.hadoop.hoya.yarn.CommonArgs
+import org.apache.hadoop.hoya.yarn.params.ClientArgs
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
 import org.junit.Test
@@ -41,45 +43,33 @@ class TestClientBasicArgs extends ServiceLauncherBaseTest {
                                       HoyaUtils.createConfiguration(),
                                       [ClientArgs.ACTION_HELP])
     assert 0 == launcher.serviceExitCode
-  }
-  /**
-   * help should print out help string and then succeed
-   * @throws Throwable
-   */
+  } 
+  
   @Test
-  public void testHelpWithHyphenArgs() throws Throwable {
-    ServiceLauncher launcher = launch(HoyaClient,
-                                      HoyaUtils.createConfiguration(),
-                                      [
-                                          ClientArgs.ACTION_HELP,
-                                          Arguments.ARG_DEBUG,
-                                          Arguments.ARG_IMAGE, "hdfs://users/bob/hbase0.94.tar.gz",
-                                          Arguments.ARG_CONFDIR, "hdfs://users/bob/hoya/conf1"
-                                      ])
-    assert 0 == launcher.serviceExitCode
-
+  public void testNoArgs() throws Throwable {
+    try {
+      ServiceLauncher launcher = launch(HoyaClient,
+                                        HoyaUtils.createConfiguration(),
+                                        [])
+      assert HoyaExitCodes.EXIT_COMMAND_ARGUMENT_ERROR == launcher.serviceExitCode
+    } catch (BadCommandArgumentsException ignored) {
+      // expected
+    }
   }
 
   @Test
-  public void testHelpActionOrdering() throws Throwable {
-    ServiceLauncher launcher = launch(HoyaClient,
-                                      HoyaUtils.createConfiguration(),
-                                      [
-                                          Arguments.ARG_DEBUG,
-                                          ClientArgs.ACTION_HELP,
-                                      ])
-    assert 0 == launcher.serviceExitCode
-  }
+  public void testListUnknownHost() throws Throwable {
+    try {
+      ServiceLauncher launcher = launch(HoyaClient,
+                                        HoyaUtils.createConfiguration(),
+                                        [ClientArgs.ACTION_LIST,
+                                        "cluster",
+                                        Arguments.ARG_MANAGER,"unknownhost.example.org:80"])
+      fail("expected an exception, got a launcher with exit code $launcher.serviceExitCode")
+    } catch (UnknownHostException expected) {
+      //expected
+    }
 
-  @Test
-  public void testHelpActionOrderingDualItemArg() throws Throwable {
-    ServiceLauncher launcher = launch(HoyaClient,
-                                      HoyaUtils.createConfiguration(),
-                                      [
-                                          Arguments.ARG_WAIT, "60",
-                                          ClientArgs.ACTION_HELP,
-                                      ])
-    assert 0 == launcher.serviceExitCode
   }
 
 }

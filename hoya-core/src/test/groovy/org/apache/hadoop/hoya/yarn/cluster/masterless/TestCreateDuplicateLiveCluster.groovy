@@ -38,7 +38,7 @@ class TestCreateDuplicateLiveCluster extends HBaseMiniClusterTestBase {
 
     @Test
     public void testCreateClusterRunning() throws Throwable {
-      String clustername = "TestCreateDuplicateLiveCluster"
+      String clustername = "test_create_duplicate_live_cluster"
       createMiniCluster(clustername, createConfiguration(), 1, true)
 
       describe "create a masterless AM, while it is running, try to create" +
@@ -55,8 +55,7 @@ class TestCreateDuplicateLiveCluster extends HBaseMiniClusterTestBase {
       createMasterlessAM(clustername, 0, false, true)
       fail("expected a failure")
     } catch (HoyaException e) {
-      assert e.exitCode == HoyaExitCodes.EXIT_BAD_CLUSTER_STATE
-      assert e.toString().contains(HoyaClient.E_CLUSTER_RUNNING)
+      assertFailureClusterInUse(e);
     }
 
 

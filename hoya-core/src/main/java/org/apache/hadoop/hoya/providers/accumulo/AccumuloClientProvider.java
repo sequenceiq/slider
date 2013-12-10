@@ -30,6 +30,7 @@ import org.apache.hadoop.hoya.HoyaXmlConfKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.api.RoleKeys;
+import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.providers.ClientProvider;
@@ -54,8 +55,10 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -375,6 +378,13 @@ public class AccumuloClientProvider extends Configured implements
 
   }
 
+  private static Set<String> knownRoleNames = new HashSet<String>();
+  static {
+    knownRoleNames.add(HoyaKeys.ROLE_HOYA_AM);
+    for (ProviderRole role : AccumuloRoles.ROLES) {
+      knownRoleNames.add(role.name);
+    }
+  }
 
   /**
    * Validate the cluster specification. This can be invoked on both
@@ -384,6 +394,12 @@ public class AccumuloClientProvider extends Configured implements
   @Override // Client and Server
   public void validateClusterSpec(ClusterDescription clusterSpec) throws
                                                                   HoyaException {
+    Set<String> unknownRoles = clusterSpec.getRoleNames();
+    unknownRoles.removeAll(knownRoleNames);
+    if (!unknownRoles.isEmpty()) {
+      throw new BadCommandArgumentsException("There is unknown role: %s",
+        unknownRoles.iterator().next());
+    }
     providerUtils.validateNodeCount(AccumuloKeys.ROLE_TABLET,
                                     clusterSpec.getDesiredInstanceCount(
                                       AccumuloKeys.ROLE_TABLET,

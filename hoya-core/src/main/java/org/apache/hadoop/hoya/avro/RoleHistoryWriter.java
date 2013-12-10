@@ -19,6 +19,7 @@
 package org.apache.hadoop.hoya.avro;
 
 import com.google.common.annotations.VisibleForTesting;
+import org.apache.avro.AvroTypeException;
 import org.apache.avro.Schema;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DatumWriter;
@@ -96,7 +97,8 @@ public class RoleHistoryWriter {
       header.setVersion(ROLE_HISTORY_VERSION);
       header.setSaved(savetime);
       header.setSavedx(Long.toHexString(savetime));
-      header.setRoles( roles);
+      header.setSavedate(HoyaUtils.toGMTString(savetime));
+      header.setRoles(roles);
       RoleHistoryRecord record = new RoleHistoryRecord(header);
       Schema schema = record.getSchema();
       Encoder encoder = EncoderFactory.get().jsonEncoder(schema, out);
@@ -363,6 +365,8 @@ public class RoleHistoryWriter {
         success = true;
       } catch (IOException e) {
         log.info("Failed to read {}", path, e);
+      } catch (AvroTypeException e) {
+        log.warn("Failed to parse {}", path, e);
       }
     }
     return success ? path : null;

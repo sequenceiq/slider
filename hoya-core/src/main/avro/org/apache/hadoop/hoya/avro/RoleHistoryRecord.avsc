@@ -42,6 +42,11 @@
         "type": "string"
       },
       {
+        "name": "savedate",
+        "type": "string",
+        "default": ""
+      },
+      {
         "name": "roles",
         "type": "int"
       }

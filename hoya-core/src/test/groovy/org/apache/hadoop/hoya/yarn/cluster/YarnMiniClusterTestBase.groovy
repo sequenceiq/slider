@@ -32,6 +32,7 @@ import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.api.OptionKeys
 import org.apache.hadoop.hoya.api.RoleKeys
+import org.apache.hadoop.hoya.exceptions.ErrorStrings
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.exceptions.WaitTimeoutException
 import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions
@@ -267,6 +268,24 @@ implements KeysForTests, HoyaExitCodes {
    */
   protected ServiceLauncher launchHoyaClientAgainstMiniMR(Configuration conf,
                                                           List args) {
+    ServiceLauncher launcher = launchHoyaClientNoExitCodeCheck(conf, args)
+    int exited = launcher.serviceExitCode
+    if (exited != 0) {
+      throw new HoyaException(exited,"Launch failed with exit code $exited")
+    }
+    return launcher;
+  }
+
+  /**
+   * Launch the hoya client with the specific args against the MiniMR cluster
+   * without any checks for exit codes
+   * @param conf configuration
+   * @param args arg list
+   * @return the return code
+   */
+  public ServiceLauncher launchHoyaClientNoExitCodeCheck(
+      Configuration conf,
+      List args) {
     assert miniCluster != null
     ResourceManager rm = miniCluster.resourceManager
     log.info("Connecting to rm at ${rm}")
@@ -275,10 +294,9 @@ implements KeysForTests, HoyaExitCodes {
       args += [Arguments.ARG_MANAGER, RMAddr]
     }
     ServiceLauncher launcher = execHoyaCommand(conf, args)
-    assert launcher.serviceExitCode == 0
-    return launcher;
+    return launcher
   }
-  
+
   /**
    * Launch the hoya client with the specific args; no validation
    * of return code takes place
@@ -433,7 +451,6 @@ implements KeysForTests, HoyaExitCodes {
     ];
     extraArgs << Arguments.ARG_ROLEOPT << HBaseKeys.ROLE_MASTER << RoleKeys.YARN_MEMORY << YRAM
     extraArgs << Arguments.ARG_ROLEOPT << HBaseKeys.ROLE_WORKER << RoleKeys.YARN_MEMORY << YRAM
-
     return createHoyaCluster(clustername,
                              roles,
                              extraArgs,
@@ -854,7 +871,7 @@ implements KeysForTests, HoyaExitCodes {
     log.info(prettyPrint(status.toJsonString()))
   }
   
-  void assertExceptionDetails(ServiceLaunchException ex, int exitCode, String text){
+  void assertExceptionDetails(ServiceLaunchException ex, int exitCode, String text = ""){
     assert exitCode == ex.exitCode
     if (text) {
       assert ex.toString().contains(text)
@@ -912,6 +929,28 @@ implements KeysForTests, HoyaExitCodes {
         remoteUnresolvedArchive)
     return remotePath
   }
-  
-  
+
+  /**
+   * Assert that an operation failed because a cluster is in use
+   * @param e exception
+   */
+  public void assertFailureClusterInUse(HoyaException e) {
+    assertExceptionDetails(e,
+                           HoyaExitCodes.EXIT_CLUSTER_IN_USE,
+                           ErrorStrings.E_CLUSTER_RUNNING)
+  }
+
+  /**
+   * Assert that a cluster is unknown by the exit code
+   * & the {@link HoyaClient#E_UNKNOWN_CLUSTER} text
+   * @param exception
+   */
+  public void assertUnknownClusterException(HoyaException e) {
+    assertExceptionDetails(e, HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER,
+                           ErrorStrings.E_UNKNOWN_CLUSTER)
+  }
+
+  public void assertSucceeded(ServiceLauncher service) {
+    assert 0 == service.serviceExitCode;
+  }
 }

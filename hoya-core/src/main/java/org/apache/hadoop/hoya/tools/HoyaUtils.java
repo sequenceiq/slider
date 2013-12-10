@@ -33,14 +33,15 @@ import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
+import org.apache.hadoop.hoya.exceptions.ErrorStrings;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.exceptions.MissingArgException;
 import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions;
-import org.apache.hadoop.hoya.yarn.client.HoyaClient;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.ExitUtil;
+import org.apache.hadoop.util.VersionInfo;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -74,6 +75,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 /**
@@ -232,29 +234,25 @@ public final class HoyaUtils {
     if (name == null || name.isEmpty()) {
       return false;
     }
-    name = normalizeClusterName(name);
     int first = name.charAt(0);
-    if (!Character.isLetter(first)) {
+    if (0 == (Character.getType(first)  & Character.LOWERCASE_LETTER)) {
       return false;
     }
 
     for (int i = 0; i < name.length(); i++) {
       int elt = (int) name.charAt(i);
-      if (!Character.isLetterOrDigit(elt) && elt != '-') {
+      int t = Character.getType(elt);
+      if (0 == (t & Character.LOWERCASE_LETTER) 
+          && 0 == (t & Character.DECIMAL_DIGIT_NUMBER) 
+          && elt != '-'
+          && elt != '_') {
+        return false;
+      }
+      if (!Character.isLetterOrDigit(elt) && elt != '-' && elt != '_') {
         return false;
       }
     }
     return true;
-  }
-
-  /**
-   * Perform whatever operations are needed to make different
-   * case cluster names consistent
-   * @param name cluster name
-   * @return the normalized one (currently: the lower case name)
-   */
-  public static String normalizeClusterName(String name) {
-    return name.toLowerCase(Locale.ENGLISH);
   }
 
   /**
@@ -344,9 +342,30 @@ public final class HoyaUtils {
                                                    String appID) throws
                                                                  IOException {
     Path hoyaPath = getBaseHoyaPath(fs);
-    Path instancePath = new Path(hoyaPath, "tmp/" + clustername + "/" + appID);
+    Path tmp = getTempPathForCluster(clustername, hoyaPath);
+    Path instancePath = new Path(tmp, appID);
     fs.mkdirs(instancePath);
     return instancePath;
+  }
+  /**
+   * Create the application-instance specific temporary directory
+   * in the DFS
+   * @param fs filesystem
+   * @param clustername name of the cluster
+   * @param appID appliation ID
+   * @return the path; this directory will already have been deleted
+   */
+  public static Path purgeHoyaAppInstanceTempFiles(FileSystem fs,
+                                                   String clustername) throws
+                                                                 IOException {
+    Path hoyaPath = getBaseHoyaPath(fs);
+    Path tmp = getTempPathForCluster(clustername, hoyaPath);
+    fs.delete(tmp, true);
+    return tmp;
+  }
+
+  public static Path getTempPathForCluster(String clustername, Path hoyaPath) {
+    return new Path(hoyaPath, "tmp/" + clustername + "/");
   }
 
   /**
@@ -549,10 +568,10 @@ public final class HoyaUtils {
     builder.append(separator).append(
       "state: ").append(r.getYarnApplicationState());
     builder.append(separator).append("URL: ").append(r.getTrackingUrl());
-    builder.append(separator).append("Started ").append(new Date(r.getStartTime()).toLocaleString());
+    builder.append(separator).append("Started ").append(new Date(r.getStartTime()).toGMTString());
     long finishTime = r.getFinishTime();
     if (finishTime>0) {
-      builder.append(separator).append("Finished ").append(new Date(finishTime).toLocaleString());
+      builder.append(separator).append("Finished ").append(new Date(finishTime).toGMTString());
     }
     builder.append(separator).append("RPC :").append(r.getHost()).append(':').append(r.getRpcPort());
     String diagnostics = r.getDiagnostics();
@@ -671,16 +690,16 @@ public final class HoyaUtils {
       throw new BadConfigException("Failed to parse value of "
                                    + errorKey + ": \"" + trim + "\"");
     }
-    if (min>=0 && val<min) {
+    if (min >= 0 && val < min) {
       throw new BadConfigException("Value of "
-                                   + errorKey + ": " + val+ "" 
-      + "is less than the minimum of " + min);
+                                   + errorKey + ": " + val + ""
+                                   + "is less than the minimum of " + min);
 
     }
-    if (max>=0 && val>max) {
+    if (max >= 0 && val > max) {
       throw new BadConfigException("Value of "
-                                   + errorKey + ": " + val+ "" 
-      + "is more than the maximum of " + max);
+                                   + errorKey + ": " + val + ""
+                                   + "is more than the maximum of " + max);
 
     }
     return val;
@@ -925,7 +944,7 @@ public final class HoyaUtils {
                                                                           HoyaException {
     if (clusterSpec.state == ClusterDescription.STATE_INCOMPLETE) {
       throw new HoyaException(HoyaExitCodes.EXIT_BAD_CLUSTER_STATE,
-                              HoyaClient.E_INCOMPLETE_CLUSTER_SPEC + clusterSpecPath);
+                              ErrorStrings.E_INCOMPLETE_CLUSTER_SPEC + clusterSpecPath);
     }
   }
 
@@ -1385,6 +1404,34 @@ public final class HoyaUtils {
     return keytabFile;
   }
 
+  /**
+   * Convert an epoch time to a GMT time. This
+   * uses the deprecated Date.toString() operation,
+   * so is in one place to reduce the number of deprecation warnings.
+   * @param time timestamp 
+   * @return string value as ISO-9601
+   */
+  @SuppressWarnings({"CallToDateToString", "deprecation"})
+  public static String toGMTString(long time) {
+    return new Date(time).toGMTString();
+  }
+
+  /**
+   * Add the cluster build information; this will include Hadoop details too
+   * @param cd cluster
+   * @param prefix prefix for the build info
+   */
+  public static void addBuildInfo(ClusterDescription cd, String prefix) {
+
+    Properties props = HoyaVersionInfo.loadVersionProperties();
+    cd.setInfo(prefix + "." + HoyaVersionInfo.APP_BUILD_INFO,props.getProperty(
+      HoyaVersionInfo.APP_BUILD_INFO));
+    cd.setInfo(prefix + "." + HoyaVersionInfo.HADOOP_BUILD_INFO,
+               props.getProperty(HoyaVersionInfo.HADOOP_BUILD_INFO));
+    
+    cd.setInfo(prefix + "." + HoyaVersionInfo.HADOOP_DEPLOYED_INFO,
+               VersionInfo.getBranch() + " @" + VersionInfo.getSrcChecksum());
+  }
 
   /**
    * This wrapps ApplicationReports and generates a string version

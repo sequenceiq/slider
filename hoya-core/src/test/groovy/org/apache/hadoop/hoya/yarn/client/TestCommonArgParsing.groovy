@@ -24,13 +24,27 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hdfs.DFSConfigKeys
 import org.apache.hadoop.hoya.api.RoleKeys
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
+import org.apache.hadoop.hoya.exceptions.ErrorStrings
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.Arguments
-import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.HoyaActions
+import org.apache.hadoop.hoya.yarn.params.AbstractClusterBuildingActionArgs
+import org.apache.hadoop.hoya.yarn.params.ActionBuildArgs
+import org.apache.hadoop.hoya.yarn.params.ActionCreateArgs
+import org.apache.hadoop.hoya.yarn.params.ActionDestroyArgs
+import org.apache.hadoop.hoya.yarn.params.ActionExistsArgs
+import org.apache.hadoop.hoya.yarn.params.ActionFlexArgs
+import org.apache.hadoop.hoya.yarn.params.ActionForceKillArgs
+import org.apache.hadoop.hoya.yarn.params.ActionFreezeArgs
+import org.apache.hadoop.hoya.yarn.params.ActionGetConfArgs
+import org.apache.hadoop.hoya.yarn.params.ActionListArgs
+import org.apache.hadoop.hoya.yarn.params.ActionMonitorArgs
+import org.apache.hadoop.hoya.yarn.params.ActionStatusArgs
+import org.apache.hadoop.hoya.yarn.params.ActionThawArgs
+import org.apache.hadoop.hoya.yarn.params.ArgOps
+import org.apache.hadoop.hoya.yarn.params.ClientArgs
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.junit.Assert
-import org.junit.Assume
 import org.junit.Test
 
 /**
@@ -39,39 +53,58 @@ import org.junit.Test
 @CompileStatic
 @Slf4j
 
-class TestCommonArgParsing implements HoyaActions {
+class TestCommonArgParsing implements HoyaActions, Arguments{
+
+
+  public static final String CLUSTERNAME = "clustername"
 
   @Test
   public void testCreateActionArgs() throws Throwable {
-    ClientArgs clientArgs = createClientArgs([HoyaActions.ACTION_CREATE, 'cluster1'])
+    ClientArgs clientArgs = createClientArgs([ACTION_CREATE, 'cluster1'])
     assert clientArgs.clusterName == 'cluster1'
   }
 
   @Test
   public void testCreateFailsNoClustername() throws Throwable {
-    assertParseFails([HoyaActions.ACTION_CREATE])
-
+    assertParseFails([ACTION_CREATE])
   }
 
   @Test
   public void testCreateFailsTwoClusternames() throws Throwable {
     assertParseFails([
-        HoyaActions.ACTION_CREATE,
+        ACTION_CREATE,
         "c1",
         "c2",
       ])
   }
 
   @Test
+  public void testHelp() throws Throwable {
+    ClientArgs clientArgs = createClientArgs([ACTION_HELP])
+    assert clientArgs.clusterName == null
+  }
+
+  @Test
   public void testListNoClusternames() throws Throwable {
-    ClientArgs clientArgs = createClientArgs([HoyaActions.ACTION_LIST])
+    ClientArgs clientArgs = createClientArgs([ACTION_LIST])
+    assert clientArgs.clusterName == null
+  }
+
+  @Test
+  public void testListNoClusternamesDefinition() throws Throwable {
+    ClientArgs clientArgs = createClientArgs(
+        [ACTION_LIST,
+        ARG_DEFINE,
+        'fs.default.FS=file://localhost',
+        ])
     assert clientArgs.clusterName == null
   }
 
   @Test
   public void testList1Clustername() throws Throwable {
-    ClientArgs clientArgs = createClientArgs([HoyaActions.ACTION_LIST, 'cluster1'])
-    assert clientArgs.clusterName == 'cluster1'
+    ClientArgs ca = createClientArgs([ACTION_LIST, 'cluster1'])
+    assert ca.clusterName == 'cluster1'
+    assert ca.coreAction instanceof ActionListArgs
   }
 
   @Test
@@ -87,35 +120,18 @@ class TestCommonArgParsing implements HoyaActions {
   public void testDefinitions() throws Throwable {
     ClientArgs ca = createClientArgs([
         ACTION_CREATE,
-        "clustername",
+        CLUSTERNAME,
         "-D","yarn.resourcemanager.principal=yarn/server@LOCAL",
         "-D","dfs.datanode.kerberos.principal=hdfs/server@LOCAL",
     ])
     Configuration conf = new Configuration(false)
     ca.applyDefinitions(conf)
-    assert ca.clusterName == "clustername"
+    assert ca.clusterName == CLUSTERNAME
     HoyaUtils.verifyPrincipalSet(conf, YarnConfiguration.RM_PRINCIPAL);
     HoyaUtils.verifyPrincipalSet(
         conf,
         DFSConfigKeys.DFS_DATANODE_USER_NAME_KEY);
 
-  }
-
-  @Test
-  public void testActionComesAfterParseSingleArg() throws Throwable {
-    ClientArgs ca = createClientArgs([
-        Arguments.ARG_WAIT , "0", 
-        ACTION_LIST,
-    ])
-  }
-  
-  @Test
-  public void testActionComesAfterParseComplexArg() throws Throwable {
-    Configuration conf = new Configuration(false)
-    ClientArgs ca = createClientArgs([
-        Arguments.ARG_SYSPROP,"syspropkey=syspropval",
-        ACTION_LIST,
-    ])
   }
 
   /**
@@ -124,17 +140,17 @@ class TestCommonArgParsing implements HoyaActions {
    */
   @Test
   public void testComplexThaw() throws Throwable {
-    Assume.assumeTrue("test disabled -split arguments broken", false)
-
-    Configuration conf = new Configuration(false)
     ClientArgs ca = createClientArgs([
-        "--manager", "ubuntu:8032", "--filesystem", "hdfs://ubuntu:9090",
-        "--secure","-S","java.security.krb5.realm=LOCAL","-S", "java.security.krb5.kdc=ubuntu",
-        "-D","yarn.resourcemanager.principal=yarn/ubuntu@LOCAL",
-        "-D","namenode.resourcemanager.principal=hdfs/ubuntu@LOCAL",
-        "thaw","cl1"    
+        ACTION_THAW,
+        "--manager", "rhel:8032", "--filesystem", "hdfs://rhel:9090",
+        "-S","java.security.krb5.realm=LOCAL","-S", "java.security.krb5.kdc=rhel",
+        "-D","yarn.resourcemanager.principal=yarn/rhel@LOCAL",
+        "-D","namenode.resourcemanager.principal=hdfs/rhel@LOCAL",
+        "cl1"    
     ])
     assert "cl1" == ca.clusterName
+    assert ca.coreAction instanceof ActionThawArgs
+
   }
   
   /**
@@ -143,25 +159,152 @@ class TestCommonArgParsing implements HoyaActions {
    * 
    */
   @Test
-  public void testEmergencyKill() throws Throwable {
-    Assume.assumeTrue("test disabled -split arguments broken", false)
+  public void testEmergencyKillSplit() throws Throwable {
 
-    Configuration conf = new Configuration(false)
     String appId = "application_1381252124398_0013"
     ClientArgs ca = createClientArgs([
         ACTION_EMERGENCY_FORCE_KILL,
-        "--manager", "ubuntu:8032",
-        "--filesystem", "hdfs://ubuntu:9090",
-        "--secure",
+        "--manager", "rhel:8032",
+        "--filesystem", "hdfs://rhel:9090",
         "-S","java.security.krb5.realm=LOCAL",
-        "-S", "java.security.krb5.kdc=ubuntu",
-        "-D","yarn.resourcemanager.principal=yarn/ubuntu@LOCAL",
-        "-D","namenode.resourcemanager.principal=hdfs/ubuntu@LOCAL",
+        "-S", "java.security.krb5.kdc=rhel",
+        "-D","yarn.resourcemanager.principal=yarn/rhel@LOCAL",
+        "-D","namenode.resourcemanager.principal=hdfs/rhel@LOCAL",
         appId
     ])
     assert appId == ca.clusterName
-    
   }
+  
+  /**
+   * Test a force kill command where appID == all
+   * @throws Throwable
+   * 
+   */
+  @Test
+  public void testEmergencyKillAll() throws Throwable {
+
+    String appId = ActionForceKillArgs.ALL
+    ClientArgs ca = createClientArgs([
+        ACTION_EMERGENCY_FORCE_KILL,
+        appId
+    ])
+    assert appId == ca.clusterName
+    assert ca.coreAction instanceof ActionForceKillArgs
+  }
+  /**
+   * Test a force kill command without args
+   * @throws Throwable
+   * 
+   */
+  @Test
+  public void testEmergencyKillNeedsOneArg() throws Throwable {
+    assertParseFails([
+        ACTION_EMERGENCY_FORCE_KILL,
+    ])
+  }
+  
+  @Test
+  public void testFreezeFailsNoArg() throws Throwable {
+    assertParseFails([
+        ACTION_FREEZE,
+    ])
+  }
+  
+  @Test
+  public void testFreezeWorks1Arg() throws Throwable {
+    ClientArgs ca = createClientArgs([
+        ACTION_FREEZE,
+        CLUSTERNAME,
+    ])
+    assert ca.clusterName == CLUSTERNAME
+    assert ca.coreAction instanceof ActionFreezeArgs
+  }
+  
+  @Test
+  public void testFreezeFails2Arg() throws Throwable {
+    assertParseFails([
+        ACTION_FREEZE, "cluster", "cluster2"
+    ])
+  }
+
+  @Test
+  public void testGetConfFailsNoArg() throws Throwable {
+    assertParseFails([
+        ACTION_GETCONF,
+    ])
+  }
+
+  @Test
+  public void testGetConfWorks1Arg() throws Throwable {
+    ClientArgs ca = createClientArgs([
+        ACTION_GETCONF,
+        CLUSTERNAME,
+    ])
+    assert ca.clusterName == CLUSTERNAME
+    assert ca.coreAction instanceof ActionGetConfArgs
+  }
+  
+  @Test
+  public void testGetConfWorksOut() throws Throwable {
+    ClientArgs ca = createClientArgs([
+        ACTION_GETCONF,
+        CLUSTERNAME,
+        ARG_FORMAT,"xml",
+        ARG_OUTPUT,"file.xml"
+    ])
+    assert ca.clusterName == CLUSTERNAME
+    assert ca.coreAction instanceof ActionGetConfArgs
+    assert ca.actionGetConfArgs.format == "xml"
+    assert ca.actionGetConfArgs.output == "file.xml"
+  }
+
+  @Test
+  public void testGetStatusWorks1Arg() throws Throwable {
+    ClientArgs ca = createClientArgs([
+        ACTION_STATUS,
+        CLUSTERNAME,
+    ])
+    assert ca.clusterName == CLUSTERNAME
+    assert ca.coreAction instanceof ActionStatusArgs
+  }
+  
+  @Test
+  public void testExistsWorks1Arg() throws Throwable {
+    ClientArgs ca = createClientArgs([
+        ACTION_EXISTS,
+        CLUSTERNAME,
+    ])
+    assert ca.clusterName == CLUSTERNAME
+    assert ca.coreAction instanceof ActionExistsArgs
+  }  
+  
+  @Test
+  public void testMonitorWorksWithWait() throws Throwable {
+    ClientArgs ca = createClientArgs([
+        ACTION_MONITOR,
+        CLUSTERNAME,
+        ARG_WAIT, "1000"
+    ])
+    assert ca.clusterName == CLUSTERNAME
+    assert ca.coreAction instanceof ActionMonitorArgs
+    assert ca.actionMonitorArgs.waittime == 1000
+  }
+
+
+  @Test
+  public void testDestroy1Arg() throws Throwable {
+    ClientArgs ca = createClientArgs([
+        ACTION_DESTROY,
+        CLUSTERNAME,
+    ])
+    assert ca.clusterName == CLUSTERNAME
+    assert ca.coreAction instanceof ActionDestroyArgs
+  }
+  
+  /**
+   * Assert that a pass fails with a BadCommandArgumentsException
+   * @param argsList
+   */
   
   private void assertParseFails(List argsList) {
     try {
@@ -179,8 +322,15 @@ class TestCommonArgParsing implements HoyaActions {
   public ClientArgs createClientArgs(List argsList) {
     def serviceArgs = new ClientArgs(argsList + baseArgs())
     serviceArgs.parse()
-    serviceArgs.postProcess();
     serviceArgs
+  }
+  
+  public ActionCreateArgs createAction(List argsList) {
+    def ca = createClientArgs(argsList)
+    assert ca.action == ACTION_CREATE
+    ActionCreateArgs args = ca.actionCreateArgs
+    assert args != null
+    return args
   }
 
   /**
@@ -189,81 +339,102 @@ class TestCommonArgParsing implements HoyaActions {
    */
   private def baseArgs() {
     return [
-        Arguments.ARG_ZKHOSTS, "localhost",
-        Arguments.ARG_ZKPORT, "8080",
+
     ]
   }
 
 
   @Test
   public void testSingleRoleArg() throws Throwable {
-    ClientArgs clientArgs = createClientArgs([
-        HoyaActions.ACTION_CREATE, 'cluster1',
-        Arguments.ARG_ROLE,"master","5",
+    def createArgs = createAction([
+        ACTION_CREATE, 'cluster1',
+        ARG_ROLE,"master","5",
     ])
-    def tuples = clientArgs.roleTuples;
+    def tuples = createArgs.roleTuples;
     assert tuples.size() == 2;
-    Map<String, String> roleMap = clientArgs.convertTupleListToMap("roles", tuples);
+    Map<String, String> roleMap = ArgOps.convertTupleListToMap("roles", tuples);
     assert roleMap["master"] == "5"
   }
   
   @Test
   public void testNoRoleArg() throws Throwable {
-    ClientArgs clientArgs = createClientArgs([
-        HoyaActions.ACTION_CREATE, 'cluster1',
+    ActionCreateArgs createArgs = createAction([
+        ACTION_CREATE, 'cluster1',
     ])
-    def tuples = clientArgs.roleTuples;
-    Map<String, String> roleMap = clientArgs.convertTupleListToMap("roles", tuples);
+    def tuples = createArgs.roleTuples;
+    Map<String, String> roleMap = ArgOps.convertTupleListToMap("roles", tuples);
     assert roleMap["master"] == null
   }
-  
-  
+
+
   @Test
-  public void testMultiRoleArg() throws Throwable {
-    ClientArgs clientArgs = createClientArgs([
-        HoyaActions.ACTION_CREATE, 'cluster1',
-        Arguments.ARG_ROLE,"master","1",
-        Arguments.ARG_ROLE,"worker","2",
+  public void testMultiRoleArgBuild() throws Throwable {
+    def ca = createClientArgs([
+        ACTION_BUILD, 'cluster1',
+        ARG_ROLE, "master", "1",
+        ARG_ROLE, "worker", "2",
     ])
-    def tuples = clientArgs.roleTuples;
+    assert ca.action == ACTION_BUILD
+    assert ca.coreAction instanceof ActionBuildArgs
+    assert ca.buildingActionArgs instanceof ActionBuildArgs
+    AbstractClusterBuildingActionArgs args = ca.actionBuildArgs
+    def tuples = args.roleTuples;
     assert tuples.size() == 4;
-    Map<String, String> roleMap = clientArgs.convertTupleListToMap("roles", tuples);
+    Map<String, String> roleMap = ArgOps.convertTupleListToMap("roles", tuples);
     assert roleMap["master"] == "1"
     assert roleMap["worker"] == "2"
   }
-   
+  
+  @Test
+  public void testFlexArgs() throws Throwable {
+    def ca = createClientArgs([
+        ACTION_FLEX, 'cluster1',
+        ARG_ROLE, "master", "1",
+        ARG_ROLE, "worker", "2",
+        ARG_PERSIST, "false"
+    ])
+    assert ca.coreAction instanceof ActionFlexArgs
+    def tuples = ca.actionFlexArgs.roleTuples;
+    assert tuples.size() == 4;
+    Map<String, String> roleMap = ArgOps.convertTupleListToMap("roles", tuples);
+    assert roleMap["master"] == "1"
+    assert roleMap["worker"] == "2"
+  }
+
   @Test
   public void testDuplicateRole() throws Throwable {
-    ClientArgs clientArgs = createClientArgs([
-        HoyaActions.ACTION_CREATE, 'cluster1',
-        Arguments.ARG_ROLE,"master","1",
-        Arguments.ARG_ROLE,"master","2",
+    ActionCreateArgs createArgs = createAction([
+        ACTION_CREATE, 'cluster1',
+        ARG_ROLE, "master", "1",
+        ARG_ROLE, "master", "2",
     ])
-    def tuples = clientArgs.roleTuples;
+    def tuples = createArgs.roleTuples;
     assert tuples.size() == 4;
     try {
-      Map<String, String> roleMap = clientArgs.convertTupleListToMap("roles", tuples);
+      Map<String, String> roleMap = ArgOps.convertTupleListToMap(
+          "roles",
+          tuples);
       Assert.fail("got a role map $roleMap not a failure");
     } catch (BadCommandArgumentsException expected) {
-      assert expected.message.contains(ClientArgs.ERROR_DUPLICATE_ENTRY)
+      assert expected.message.contains(ErrorStrings.ERROR_DUPLICATE_ENTRY)
     }
   }
      
   @Test
   public void testOddRoleCount() throws Throwable {
-    ClientArgs clientArgs = createClientArgs([
-        HoyaActions.ACTION_CREATE, 'cluster1',
-        Arguments.ARG_ROLE,"master","1",
-        Arguments.ARG_ROLE,"master","2",
+    ActionCreateArgs createArgs = createAction([
+        ACTION_CREATE, 'cluster1',
+        ARG_ROLE,"master","1",
+        ARG_ROLE,"master","2",
     ])
-    List<String> tuples = clientArgs.roleTuples
+    List<String> tuples = createArgs.roleTuples
     tuples += "loggers";
     assert tuples.size() == 5;
     try {
-      Map<String, String> roleMap = clientArgs.convertTupleListToMap("roles", tuples);
+      Map<String, String> roleMap = ArgOps.convertTupleListToMap("roles", tuples);
       Assert.fail("got a role map $roleMap not a failure");
     } catch (BadCommandArgumentsException expected) {
-      assert expected.message.contains(ClientArgs.ERROR_PARSE_FAILURE)
+      assert expected.message.contains(ErrorStrings.ERROR_PARSE_FAILURE)
     }
   }
 
@@ -271,27 +442,26 @@ class TestCommonArgParsing implements HoyaActions {
    * Create some role-opt client args, so that multiple tests can use it 
    * @return the args
    */
-  public ClientArgs createRoleOptClientArgs() {
-    ClientArgs clientArgs = createClientArgs([
-        HoyaActions.ACTION_CREATE, 'cluster1',
-        Arguments.ARG_ROLE, "master", "1",
-        Arguments.ARG_ROLEOPT, "master", "cheese", "swiss",
-        Arguments.ARG_ROLEOPT, "master", "env.CHEESE", "cheddar",
-        Arguments.ARG_ROLEOPT, "master", RoleKeys.YARN_CORES, 3,
+  public ActionCreateArgs createRoleOptClientArgs() {
+    ActionCreateArgs createArgs = createAction([
+        ACTION_CREATE, 'cluster1',
+        ARG_ROLE, "master", "1",
+        ARG_ROLEOPT, "master", "cheese", "swiss",
+        ARG_ROLEOPT, "master", "env.CHEESE", "cheddar",
+        ARG_ROLEOPT, "master", RoleKeys.YARN_CORES, 3,
 
-        Arguments.ARG_ROLE, "worker", "2",
-        Arguments.ARG_ROLEOPT, "worker", RoleKeys.YARN_CORES, 2,
-        Arguments.ARG_ROLEOPT, "worker", RoleKeys.JVM_HEAP, "65536",
-        Arguments.ARG_ROLEOPT, "worker", "env.CHEESE", "stilton",
+        ARG_ROLE, "worker", "2",
+        ARG_ROLEOPT, "worker", RoleKeys.YARN_CORES, 2,
+        ARG_ROLEOPT, "worker", RoleKeys.JVM_HEAP, "65536",
+        ARG_ROLEOPT, "worker", "env.CHEESE", "stilton",
     ])
-    return clientArgs
+    return createArgs
   }
 
   @Test
   public void testRoleOptionParse() throws Throwable {
-    ClientArgs clientArgs = createRoleOptClientArgs()
-    
-    def tripleMaps = clientArgs.roleOptionMap
+    ActionCreateArgs createArgs = createRoleOptClientArgs()
+    def tripleMaps = createArgs.roleOptionMap
     def workerOpts = tripleMaps["worker"];
     assert workerOpts.size() == 3
     assert workerOpts[RoleKeys.YARN_CORES] == "2"
@@ -305,9 +475,9 @@ class TestCommonArgParsing implements HoyaActions {
 
   @Test
   public void testRoleOptionsMerge() throws Throwable {
-    ClientArgs clientArgs = createRoleOptClientArgs()
-    
-    def roleOpts = clientArgs.roleOptionMap
+    ActionCreateArgs createArgs = createRoleOptClientArgs()
+
+    def roleOpts = createArgs.roleOptionMap
 
     def clusterRoleMap = [
         "master":["cheese":"french"],
@@ -324,9 +494,10 @@ class TestCommonArgParsing implements HoyaActions {
 
   @Test
   public void testEnvVariableApply() throws Throwable {
-    ClientArgs clientArgs = createRoleOptClientArgs()
+    ActionCreateArgs createArgs = createRoleOptClientArgs()
+
     
-    def roleOpts = clientArgs.roleOptionMap
+    def roleOpts = createArgs.roleOptionMap
     def clusterRoleMap = [
         "master": ["cheese": "french"],
         "worker": ["env.CHEESE": "french"]

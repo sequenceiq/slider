@@ -16,13 +16,14 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.cluster.masterless
+package org.apache.hadoop.hoya.yarn.cluster.freezethaw
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import org.apache.hadoop.hoya.yarn.HoyaActions
-import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
-import org.apache.hadoop.yarn.conf.YarnConfiguration
+import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.hoya.exceptions.HoyaException
+import org.apache.hadoop.hoya.yarn.client.HoyaClient
+import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
@@ -33,24 +34,22 @@ import org.junit.Test
 @CompileStatic
 @Slf4j
 
-class TestFreezeUnknownCluster extends HBaseMiniClusterTestBase {
+class TestThawUnknownCluster extends YarnMiniClusterTestBase {
 
   @Test
-  public void testFreezeUnknownCluster() throws Throwable {
-    String clustername = "TestStartUnknownCluster"
-    YarnConfiguration conf = createConfiguration()
-    createMiniCluster(clustername, conf, 1, true)
+  public void testThawUnknownCluster() throws Throwable {
+    String clustername = "test_thaw_unknown_cluster"
+    createMiniCluster(clustername, createConfiguration(), 1, true)
 
-    describe "try to freeze a cluster that isn't defined"
+    describe "try to start a cluster that isn't defined"
 
-    //we are secretly picking up the RM details from the configuration file
-    ServiceLauncher command = execHoyaCommand(conf,
-                                              [
-                                                  HoyaActions.ACTION_FREEZE,
-                                                  "no-such-cluster"
-                                              ]);
-    assert !command.serviceExitCode ;
+    try {
+      ServiceLauncher launcher = thawHoyaCluster(clustername, [], true);
+      fail("expected a failure, got ${launcher.serviceExitCode}")
+    } catch (HoyaException e) {
+      assertUnknownClusterException(e)
+      assert e.toString().contains(clustername)
+    }
   }
-
 
 }

@@ -19,17 +19,14 @@ package org.apache.hadoop.hoya.servicemonitor;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hoya.HoyaExitCodes;
+import org.apache.hadoop.hoya.exceptions.ErrorStrings;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.yarn.client.HoyaYarnClientImpl;
-import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.util.List;
 
 /**
@@ -83,8 +80,8 @@ public class YarnApplicationProbe extends Probe {
         yarnClient.findClusterInInstanceList(instances, clustername);
       if (null == instance) {
         throw new HoyaException(HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER,
-                                       "Hoya cluster not found: \"%s\"",
-                                       clustername);
+                                ErrorStrings.E_UNKNOWN_CLUSTER
+                                + ": \"" + clustername + "\"");
 
       }
 

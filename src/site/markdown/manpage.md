@@ -20,8 +20,8 @@ hoya - HBase on YARN
 
 ## SYNOPSIS
 
-The hoya program is the main interface for managing HBase clusters on a YARN-managed datacenter.
-The program can be used to create, pause, and shutdown HBase clusters. It can also be used to list current clusters.
+Hoya enables HBase and Accumulo clusters do be dynamically created on a YARN-managed datacenter.
+The program can be used to create, pause, and shutdown Hoya clusters. It can also be used to list current clusters.
  
 ## CONCEPTS
 
@@ -63,7 +63,7 @@ The program can be used to create, pause, and shutdown HBase clusters. It can al
 
 1. A cluster consists of a set of role instances; 
 
-1. The supported roles depends upon the provider behind Hoya: HBase only has "worker"
+1. The supported roles depends upon the provider behind Hoya: HBase only has `worker` and `master`
 
 1. the number of instances of each role must be specified when a cluster is created.
 
@@ -80,103 +80,36 @@ started.
 ## Invoking Hoya
 
  
-    hoya <ACTION> <OPTIONS>
+    hoya <ACTION> [<CLUSTER>] [<OPTIONS>]
 
 
 <!--- ======================================================================= -->
 
-## COMMAND-LINE OPTIONS
+## COMMON COMMAND-LINE OPTIONS
 
-### --conf configuration.xml
+### `--conf configuration.xml`
 
 Configure the Hoya client. This allows the filesystem, zookeeper instance and other properties to be picked up from the configuration file, rather than on the command line.
 
 Important: *this configuration file is not propagated to the HBase cluster configuration*. It is purely for configuring the client itself. 
 
-### -D name=value
+### `-D name=value`
 
 Define a Hadoop configuration option which overrides any options in the configuration XML files of the image or in the image configuration directory. The values will be persisted. Configuration options are only passed to the cluster when creating or reconfiguring a cluster.
 
-### --option name value  / -O name value
-
-Set a cluster option. These are interpreted by specific cluster providers.
-
-### --apphome localpath
-
-A path to the home dir of a pre-installed application. If set when a Hoya
-cluster is created, the cluster will run with the binaries pre-installed
-on the nodes at this location
 
 
-### --image dfspath
-
-The full path in Hadoop HDFS  to a .tar or .tar.gz file containing an HBase image.
-
-
-### --appconf dfspath
-
-The full path in Hadoop HDFS (or other shared FS)  to the configuration directory containing the template cluster specification. The path must be on a filesystem visible to all nodes in the YARN cluster.
-
-Only one configuration directory can be specified.
-
-### --generated_confdir localpath
-
-A path to a local directory where a copy of the generated configuration directory should be written. This is to provide a copy of the configuration during cluster creation.
-  
-
-### -m, --manager url
+### `-m, --manager url`
 
 URL of the YARN resource manager
 
-### --zkport port 
 
-The port on which the zookeeper processes are listening.
-
-### --zkhosts host1[,host2,host3] 
-
-The list of hosts on which the ZK quorum is running.
-
-### --fs filesystem-uri
+### `--fs filesystem-uri`
 
 Use the specific filesystem URI as an argument to the operation.
 
-### --format {xml,properties,text}
-The format for returned documents. xml is the Hadoop XML configuration format; properties Java  properties.
 
 
-### --role \<rolename> \<count>
-
-the number of instances of a role desired when creating or flexing a cluster.
-
-
-### --wait timeInSeconds
-
-When creating or starting a cluster, wait the specified number of seconds
-for the Hoya Cluster itself to start running. It can still take time after this for HBase to be live.
-
-When stopping a cluster -the time for the YARN application to enter a finished state.
-
-
-
-### --amqueue queue
-
-Application Manager Queue Name. Applicable (and optional) in cluster create and start operations. Default value: "default"
-
-### --ampriority priority
-
-Application Manager Priority. Applicable (and optional) in cluster create and start operations. Default value: 0
-
-
-## Testing and debugging arguments
-
-These options are provided for internal testing of Hoya, and are documented for completeness. No guarantees as to the stability of the commands can be made, and they must be considered unsupported.
-
-### --Xtest
-
-This notifies the application that this is a test run, and that the application should behave in a way to aid testing. Currently all this does is
-
-1. Limit the number of attempts to start the AM to one.
-1. Enable verbose output in the client-AM RPC
 
 
 <!--- ======================================================================= -->
@@ -190,26 +123,121 @@ CLUSTER COMMANDS
 
 
 
-### build \<cluster> --fs filesystem --appconf dir --zkhosts zkhosts \[--image path] \[--apphome apphomedir] \[--zkport port] \[--zkpath zkpath]\[ \[--waittime time] \[--role \<name> \<count>]*  \[--roleopt \<name> \<value>]* \[--provider provider]
+### `build cluster`
 
 Build a cluster specification of the given name, with the specific options.
 
 The cluster is not started; this can be done later with a `thaw` command.
 
-### create \<cluster> --fs filesystem --appconf dir --zkhosts zkhosts \[--image path] \[--apphome apphomedir] \[--zkport port] \[--zkpath zkpath]\[ \[--waittime time] \[--role \<name> \<count>]*  \[--roleopt \<name> \<value>]* 
+### `create cluster`
 
 Build and run a cluster of the given name, using the specified image. If a configuration directory is specified, it's configuration files override those in the image. 
 
-The `--waittime` parameter, if provided, specifies the time to wait until the YARN application is actually running. Even after the YARN application has started, there may be some delay for the HBase cluster to start up.
+The `--wait` parameter, if provided, specifies the time to wait until the YARN application is actually running. Even after the YARN application has started, there may be some delay for the HBase cluster to start up.
 
-### destroy \<cluster>
+### Arguments for `build` and `create` 
+
+
+##### `--option <name> <value>`  
+
+Set a cluster option. These are interpreted by specific cluster providers.
+
+Example:
+
+Set an option to be passed into the `-site.xml` file of the target system, reducing
+the HDFS replication factor to 2. (
+
+    --option site.dfs.blocksize 128m
+    
+Increase the number of YARN containers which must fail before the Hoya cluster
+itself fails.
+    
+    -O hoya.container.failure.threshold 16
+
+##### `--appconf dfspath`
+
+A URI path to the configuration directory containing the template cluster specification. The path must be on a filesystem visible to all nodes in the YARN cluster.
+
+1. Only one configuration directory can be specified.
+1. The contents of the directory will only be read when the cluster is created/built.
+
+Example:
+
+    --appconf hdfs://namenode/users/hoya/conf/hbase-template
+    --appconf file://users/accumulo/conf/template
+
+
+
+##### `--apphome localpath`
+
+A path to the home dir of a pre-installed application. If set when a Hoya
+cluster is created, the cluster will run with the binaries pre-installed
+on the nodes at this location
+
+*Important*: this is a path in the local filesystem which must be present
+on all hosts in the cluster
+
+Example
+
+    --apphome /usr/hadoop/hbase
+
+##### `--image path`
+
+The full path in Hadoop HDFS  to a `.tar` or `.tar.gz` file containing 
+the binaries needed to run the target application -HBase or Accumulo as appropriate.
+
+Example
+
+    --image hdfs://namenode/shared/binaries/hbase-0.96.tar.gz
+
+##### `--role <rolename> <count>`
+
+The desired number of instances of a role.
+
+
+Example
+
+    --role worker 16
+
+#### `--roleopt <rolename> <option> <value>`
+
+Set any role-specific option, such as its YARN memory requirements.
+
+Example
+
+    --roleopt master yarn.memory 2048
+    --roleopt worker yarn.memory max
+
+
+##### `--zkport port` 
+
+The port on which the zookeeper processes are listening.
+
+    Example
+    
+        --zkport 29181
+
+##### `--zkhosts host1[,host2,host3, ...] `
+
+The list of hosts on which the ZK quorum is running.
+
+
+Example
+
+    --zkhosts zk1,zk2,zk3,zk4,zk5,zk6,zk7,zk8,zk8,zk10,zk11
+
+
+### `destroy \<cluster>`
 
 Destroy a (stopped) cluster.
 
-Important: This deletes all the database data.
+Important: This deletes all the database data as well as the cluster information
 
+Example
 
-### exists \<cluster>
+    hoya destroy cluster1
+
+### `exists \<cluster>`
 
 Probe the existence of a running instance of the named Hoya cluster
 
@@ -220,8 +248,11 @@ If not, an error code is returned.
 with the rule that a new Hoya cluster can be created if an existing cluster exists in any
 of the YARN termination states.
 
+Example
 
-### flex \<cluster> \[--role rolename count]* \[--persist true|false]
+    hoya destroy cluster1
+
+### `flex <cluster> [--role rolename count]* [--persist true|false]`
 
 Flex the number of workers in a cluster to the new value. If greater than before -nodes will be added. If less, nodes will be removed  from the cluster. 
 The persist flag (default = true) indicates whether or not the new worker count should be persisted and used the next time the cluster is started up. Set this to false if the flexed cluster size is only to be applied to a live cluster.
@@ -230,29 +261,47 @@ This operation has a return value of 0 if the size of a running cluster was chan
 
 It returns -1 if there is no running cluster, or the size of the flexed cluster matches that of the original -in which case the cluster state does not change.
 
-### freeze \<cluster>  \[--waittime time]
+Example
+
+    hoya flex cluster1 --role worker 8 --persist true
+    hoya flex cluster1 --role master 2 --persist false
+    
+
+### `freeze <cluster>  [--wait time]`
+
 freeze the cluster. The HBase cluster is scheduled to be destroyed. The cluster settings are retained in HDFS.
 
-The `--waittime` argument can specify a time in seconds to wait for the cluster to be destroyed.
+The `--wait` argument can specify a time in seconds to wait for the cluster to be frozen.
 
 If an unknown (or already frozen) cluster is named, no error is returned.
 
+Example
 
-### getconf \<cluster>  \[--out file] \[--format xml|properties]
+    hoya freeze cluster1 --wait 30
+
+
+### `getconf <cluster>  [--out file] [--format xml|properties]`
 
 Get the configuration properties needed for hbase clients to connect to the cluster. Hadoop XML format files (the default) and Java properties files can be generated.
-The output can be streamed to the console in `stdout`, or it can be saved to a file.
+The output can be streamed to the console in `stdout`, or it can be saved to a file via the `--out` parameter
 
-### list \<cluster>
+
+
+### `list <cluster>`
 
 List running Hoya clusters visible to the user.
 
 If a cluster name is given and there is no running cluster with that name, an error is returned. 
 
-### monitor \<cluster> \[--wait time]
+Example
+
+    hoya list
+    hoya list cluster1
+
+### `monitor \<cluster> \[--wait time]`
 
 Monitor a given cluster by deploying any application-provider specific monitors
-(HTTP probes, zookeeper probes).  The `--waittime` parameter specified in 
+(HTTP probes, zookeeper probes).  The `--wait` parameter specified in 
 seconds how long the cluster must be monitored.
 
 1. If there is no running cluster with the given name, an error is returned. 
@@ -260,20 +309,53 @@ seconds how long the cluster must be monitored.
 is considered a succed.
 1. If during the wait time the probes fail, an error code is reported
 
-### status \<cluster>
+### `status <cluster> [--out <filename>]`
 
-Get the status of the named Hoya cluster
+Get the status of the named Hoya cluster in JSON format. A filename can be used to 
+specify the destination.
+
+Examples:
+
+    hoya status cluster1
+    
+    hoya status cluster2 --out status.json
 
 
 
-### thaw \<cluster>
+### `thaw <cluster> [--wait time`]
 
 Resume a frozen cluster: recreate the cluster from its previous state. This will include a best-effort attempt to create the same number of nodes as before, though their locations may be different.
 The same zookeeper bindings as before will be used.
 
+Examples:
+
+    hoya thaw cluster2
+    hoya thaw cluster1 --wait 60
+
+
 If a cluster is already running, this is a no-op
 
-### emergency-force-kill \<applicationID>
+### `version`
+
+The command `hoya version` prints out information about the compiled
+Hoya application, the version of Hadoop against which it was built -and
+the version of Hadoop that is currently on its classpath.
+
+Note that this is the client-side Hadoop version, not that running on the server, though
+that can be obtained in the cluster status operation
+
+
+Example
+
+
+    > hadoop version
+    
+    2013-12-10 14:28:17,624 [JUnit] INFO  client.HoyaClient - Hoya Core-0.7.1-SNAPSHOT Built against 1dd69 on Java 1.7.0_45 by stevel
+    2013-12-10 14:28:17,624 [JUnit] INFO  client.HoyaClient - Compiled against Hadoop 2.2.0
+    2013-12-10 14:28:17,625 [JUnit] INFO  client.HoyaClient - Hadoop runtime version branch-2.2.0 with source checksum 79e53ce7994d1628b240f09af91e1af4 and build date 2013-10-07T06:28Z
+
+
+### `emergency-force-kill <applicationID>`
 
 This attempts to force kill any YARN application referenced by application ID.
 There is no attempt to notify the running AM. 
@@ -284,6 +366,11 @@ user are killed.
 These are clearly abnormal operations; they are here primarily for testing
 -and documented for completeness.
 
+
+Example
+
+    hoya emergency-force-kill application_1386596138212_0001
+
 <!--- ======================================================================= -->
 
 
@@ -292,17 +379,17 @@ These are clearly abnormal operations; they are here primarily for testing
 Cluster names must:
 
 1. be at least one character long
-1. begin with a letter
-1. All other characters must be in the range \[a-z,0-9,-]
+1. begin with a lower case letter
+1. All other characters must be in the range \[a-z,0-9,-, -]
 1. All upper case characters are converted to lower case
  
 Example valid names:
 
     hoya1
     hbase-cluster
-    HBase-cluster
+    hbase_cluster
+    accumulo_m1_tserve4
 
-The latter two cluster names are considered equivalent
 
 <!--- ======================================================================= -->
 ## Cluster Options

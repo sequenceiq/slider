@@ -57,20 +57,6 @@ public class ProviderUtils implements RoleKeys {
     this.log = log;
   }
 
-  /**
-   * Validate requested JVM heap settings with the role options, and
-   * flag if the JVM heap requested is larger than the 
-   * @param role role with both YARN and heap settings
-   * @return the JVM heap
-   * @throws BadConfigException if the config is invalid
-   */
-  public int validateAndGetJavaHeapSettings(Map<String, String> role,
-                                            int defHeap)
-    throws BadConfigException {
-    int yarnRAM = validateAndGetYARNMemory(role);
-    return HoyaUtils.getIntValue(role, RoleKeys.JVM_HEAP, defHeap, 0, yarnRAM);
-  }
-
   public int validateAndGetYARNMemory(Map<String, String> role) throws
                                                              BadConfigException {
     return HoyaUtils.getIntValue(role, RoleKeys.YARN_MEMORY, 0, 0, -1);

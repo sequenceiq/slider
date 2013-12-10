@@ -107,6 +107,9 @@ Examples:
     --roleopt master yarn.memory 2048
     --roleopt worker yarn.memory max
 
+If a YARN cluster is configured to set process memory limits via the OS,
+and the application tries to use more memory than allocated, it will fail
+with the exit code "143". 
 
 #### YARN vCores `yarn.vcores`
 
@@ -180,3 +183,17 @@ the cluster is created. A more rigorous password can be set on the command
 line _at the time of cluster creation_.
 
 
+## Hoya AM Role Options
+
+The Hoya Application Master has its own role, `hoya`, which can also
+be configured with role options. Currently only JVM and YARN options 
+are supported:
+
+    --roleopt hoya jvm.heapsize 256M
+    --roleopt hoya jvm.opts "-Djvm.property=true"
+    --roleopt hoya yarn.memory 512
+
+Normal memory requirements of the AM are low, except in the special case of
+starting an accumulo cluster for the first time. In this case, `bin\accumulo init`
+needs to be run: the extra memory requirements of the accumulo process
+need to be included in the hoya role's `yarn.memory` values.

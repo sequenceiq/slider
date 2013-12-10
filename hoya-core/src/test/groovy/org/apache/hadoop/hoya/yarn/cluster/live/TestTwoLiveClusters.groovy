@@ -20,7 +20,6 @@ package org.apache.hadoop.hoya.yarn.cluster.live
 
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.yarn.Arguments
-import org.apache.hadoop.hoya.yarn.CommonArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
@@ -39,7 +38,7 @@ class TestTwoLiveClusters extends HBaseMiniClusterTestBase {
   @Test
   public void testTwoLiveClusters() throws Throwable {
     createMiniCluster("TestTwoLiveClusters", createConfiguration(), 1, true)
-    String clustername1 = "TestTwoLiveClusters-a"
+    String clustername1 = "testtwoliveclusters-a"
     //now launch the cluster
     int regionServerCount = 1
     ServiceLauncher launcher = createHBaseCluster(clustername1, regionServerCount, [], true, true) 
@@ -56,7 +55,7 @@ class TestTwoLiveClusters extends HBaseMiniClusterTestBase {
     waitForHBaseRegionServerCount(hoyaClient, clustername1, 1, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
     //now here comes cluster #2
-    String clustername2 = "TestTwoLiveClusters-b"
+    String clustername2 = "testtwoliveclusters-b"
 
     launcher = createHBaseCluster(clustername2, regionServerCount,
                                  [

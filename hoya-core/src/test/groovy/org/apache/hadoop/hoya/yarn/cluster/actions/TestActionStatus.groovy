@@ -19,10 +19,11 @@
 package org.apache.hadoop.hoya.yarn.cluster.actions
 
 import groovy.util.logging.Slf4j
+import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.Arguments
-import org.apache.hadoop.hoya.yarn.client.ClientArgs
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
+import org.apache.hadoop.hoya.yarn.params.ClientArgs
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.conf.YarnConfiguration
@@ -62,7 +63,7 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
       )
       fail("expected an exception, got a status code " + launcher.serviceExitCode)
     } catch (HoyaException e) {
-      assert e.exitCode == EXIT_UNKNOWN_HOYA_CLUSTER
+      assertUnknownClusterException(e)
     }
   }
   
@@ -70,7 +71,7 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
   public void testStatusLiveCluster() throws Throwable {
     describe("create a live cluster then exec the status command")
     //launch fake master
-    String clustername = "testStatusLiveCluster"
+    String clustername = "test_status_live_cluster"
     
     //launch the cluster
     ServiceLauncher launcher = createMasterlessAM(clustername, 0, true, false)
@@ -94,8 +95,16 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
     
     //do the low level operations to get a better view of what is going on 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
-    int status = hoyaClient.actionStatus(clustername)
+    int status = hoyaClient.actionStatus(clustername, null)
     assert status == EXIT_SUCCESS
+    
+    
+    //status to a file
+    File tfile = new File("target/"+clustername + "/status.json")
+    hoyaClient.actionStatus(clustername, tfile.absolutePath)
+    def text = tfile.text
+    ClusterDescription cd = new ClusterDescription();
+    cd.fromJson(text)
   }
 
 

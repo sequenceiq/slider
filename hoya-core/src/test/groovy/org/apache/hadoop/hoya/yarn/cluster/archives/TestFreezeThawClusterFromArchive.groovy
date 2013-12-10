@@ -37,7 +37,7 @@ class TestFreezeThawClusterFromArchive extends HBaseMiniClusterTestBase {
 
   @Test
   public void testFreezeThawClusterFromArchive() throws Throwable {
-    String clustername = "TestFreezeThawClusterFromArchive"
+    String clustername = "test_freeze_thaw_cluster_from_archive"
     int regionServerCount = 1
     createMiniCluster(clustername, createConfiguration(), 1, true)
     switchToImageDeploy = true

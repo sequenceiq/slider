@@ -21,36 +21,48 @@ package org.apache.hadoop.hoya.yarn.cluster.masterless
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.HoyaExitCodes
-import org.apache.hadoop.hoya.exceptions.HoyaException
+import org.apache.hadoop.hoya.HoyaKeys
+import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.api.RoleKeys
+import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
+import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
-import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
+import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
+import org.apache.hadoop.yarn.service.launcher.ServiceLaunchException
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
-/**
- * create masterless AMs and work with them. This is faster than
- * bringing up full clusters
- */
 @CompileStatic
 @Slf4j
 
-class TestThawUnknownCluster extends YarnMiniClusterTestBase {
+class TestBadAMHeap extends HBaseMiniClusterTestBase {
 
   @Test
-  public void testThawUnknownCluster() throws Throwable {
-    String clustername = "TestThawUnknownCluster"
+  public void testBadAMHeap() throws Throwable {
+    String clustername = "test_bad_am_heap"
     createMiniCluster(clustername, createConfiguration(), 1, true)
 
-    describe "try to start a cluster that isn't defined"
+    describe "verify that bad Java heap options are picked up"
 
     try {
-      ServiceLauncher launcher = thawHoyaCluster(clustername, [], true);
-      fail("expected a failure")
-    } catch (HoyaException e) {
-      assert e.exitCode == HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER
-      assert e.toString().contains(HoyaClient.E_UNKNOWN_CLUSTER)
-      assert e.toString().contains(clustername)
+      ServiceLauncher launcher = createHoyaCluster(clustername,
+           [
+               (HBaseKeys.ROLE_MASTER): 0,
+               (HBaseKeys.ROLE_WORKER): 0,
+           ],
+           [
+               Arguments.ARG_ROLEOPT, HoyaKeys.ROLE_HOYA_AM, RoleKeys.JVM_HEAP, "invalid",
+           ],
+           true,
+           true, [:])
+      HoyaClient hoyaClient = (HoyaClient) launcher.service
+      addToTeardown(hoyaClient);
+      ClusterDescription status = hoyaClient.clusterDescription
+      dumpClusterDescription("Remote CD", status)
+    } catch (ServiceLaunchException e) {
+      assertExceptionDetails(e, HoyaExitCodes.EXIT_YARN_SERVICE_FAILED)
     }
+    
   }
 
 }

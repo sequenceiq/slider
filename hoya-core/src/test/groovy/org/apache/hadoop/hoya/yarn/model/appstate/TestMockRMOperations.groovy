@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.hoya.yarn.model.appstate
 
-import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.exceptions.HoyaRuntimeException
 import org.apache.hadoop.hoya.yarn.appmaster.state.AbstractRMOperation
@@ -38,7 +37,6 @@ import org.junit.Test
 import static org.apache.hadoop.hoya.yarn.appmaster.state.ContainerPriority.buildPriority
 import static org.apache.hadoop.hoya.yarn.appmaster.state.ContainerPriority.extractRole
 
-@CompileStatic
 @Slf4j
 class TestMockRMOperations extends BaseMockAppStateTest implements MockRoles {
 

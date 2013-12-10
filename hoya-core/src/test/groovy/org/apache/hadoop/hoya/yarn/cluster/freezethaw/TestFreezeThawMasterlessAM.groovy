@@ -16,7 +16,7 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.cluster.masterless
+package org.apache.hadoop.hoya.yarn.cluster.freezethaw
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
@@ -39,7 +39,7 @@ import org.junit.Test
 class TestFreezeThawMasterlessAM extends HBaseMiniClusterTestBase {
 
   File getConfDirFile() {
-    return new File("target/TestStartMasterlessAMconf")
+    return new File("target/TestFreezeThawMasterlessAM/conf")
   }
 
   @Override
@@ -49,7 +49,7 @@ class TestFreezeThawMasterlessAM extends HBaseMiniClusterTestBase {
 
   @Test
   public void testFreezeThawMasterlessAM() throws Throwable {
-    String clustername = "TestFreezeThawMasterlessAM"
+    String clustername = "test_freeze_thaw_masterless_am"
     YarnConfiguration conf = createConfiguration()
     createMiniCluster(clustername, conf, 1, 1, 1, true, true)
     
@@ -66,7 +66,8 @@ class TestFreezeThawMasterlessAM extends HBaseMiniClusterTestBase {
 
     clusterActionFreeze(hoyaClient, clustername)
 
-    //here we do something devious: delete our copy of the configuration
+    // here we do something devious: delete our copy of the configuration
+    // this makes sure the remote config gets picked up
     HadoopFS localFS = HadoopFS.get(tempConfPath.toUri(), conf)
     localFS.delete(tempConfPath,true)
     

@@ -29,7 +29,6 @@ public interface HoyaActions {
   String ACTION_DESTROY = "destroy";
   String ACTION_EMERGENCY_FORCE_KILL = "emergency-force-kill";
   String ACTION_EXISTS = "exists";
-  String ACTION_GETSIZE = "getsize";
   String ACTION_FLEX = "flex";
   String ACTION_FREEZE = "freeze";
   String ACTION_GETCONF = "getconf";
@@ -43,4 +42,31 @@ public interface HoyaActions {
   String ACTION_STATUS = "status";
   String ACTION_THAW = "thaw";
   String ACTION_USAGE = "usage";
+  String ACTION_VERSION = "version";
+  String DESCRIBE_ACTION_BUILD =
+    "Build a Hoya cluster specification -but do not start it";
+  String DESCRIBE_ACTION_CREATE =
+      "Create a live Hoya cluster";
+  String DESCRIBE_ACTION_DESTROY =
+        "Destroy a frozen Hoya cluster)";
+  String DESCRIBE_ACTION_FORCE_KILL =
+          "Force kill an application by its YARN application ID";
+  String DESCRIBE_ACTION_EXISTS =
+            "Probe for a cluster running";
+  String DESCRIBE_ACTION_FLEX = "Flex a Hoya cluster";
+  String DESCRIBE_ACTION_FREEZE =
+              "freeze/suspend a running cluster";
+  String DESCRIBE_ACTION_GETCONF =
+                "Get the configuration of a cluster";
+  String DESCRIBE_ACTION_HELP = "Print help information";
+  String DESCRIBE_ACTION_LIST =
+                  "List running Hoya clusters";
+  String DESCRIBE_ACTION_MONITOR =
+                    "Monitor a running cluster";
+  String DESCRIBE_ACTION_STATUS =
+                      "Get the status of a cluster";
+  String DESCRIBE_ACTION_THAW =
+                        "thaw/start a frozen cluster";
+  String DESCRIBE_ACTION_VERSION =
+                        "get version information";
 }

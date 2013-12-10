@@ -18,18 +18,34 @@
 
 package org.apache.hadoop.hoya.api;
 
+import static org.apache.hadoop.hoya.api.OptionKeys.APPLICATION_HOME;
+import static org.apache.hadoop.hoya.api.OptionKeys.APPLICATION_IMAGE_PATH;
+import static org.apache.hadoop.hoya.api.OptionKeys.ZOOKEEPER_HOSTS;
+import static org.apache.hadoop.hoya.api.OptionKeys.ZOOKEEPER_PATH;
+import static org.apache.hadoop.hoya.api.OptionKeys.ZOOKEEPER_PORT;
+
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import static org.apache.hadoop.hoya.api.OptionKeys.*;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
+import org.apache.hadoop.hoya.exceptions.ErrorStrings;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
-import org.apache.hadoop.hoya.yarn.client.HoyaClient;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.annotate.JsonIgnore;
@@ -39,11 +55,6 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Represents a cluster specification; designed to be sendable over the wire
@@ -211,10 +222,10 @@ public class ClusterDescription {
                                              Path clusterSpecPath) throws
                                                                    IOException,
                                                                    HoyaException {
-    if (!fs.exists(clusterSpecPath)) {
+    if (!fs.isFile(clusterSpecPath)) {
       log.debug("Missing cluster specification file {}", clusterSpecPath);
       throw new HoyaException(HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER,
-                              HoyaClient.E_UNKNOWN_CLUSTER + clustername +
+                              ErrorStrings.E_UNKNOWN_CLUSTER + clustername +
                               "\n (cluster definition not found at " +
                               clusterSpecPath);
     }
@@ -258,14 +269,38 @@ public class ClusterDescription {
    * @param fs filesystem
    * @param path path
    * @param overwrite should any existing file be overwritten
-   * @throws IOException IO excpetion
+   * @throws IOException IO exception
    */
   public void save(FileSystem fs, Path path, boolean overwrite) throws
                                                                 IOException {
-    String json = toJsonString();
     FSDataOutputStream dataOutputStream = fs.create(path, overwrite);
-    byte[] b = json.getBytes(UTF_8);
+    writeJsonAsBytes(dataOutputStream);
+  }
+  
+  /**
+   * Save a cluster description to the local filesystem
+   * @param file file
+   * @throws IOException IO excpetion
+   */
+  public void save(File file) throws IOException {
+    if (!(file.getParentFile().mkdirs())) {
+      throw new FileNotFoundException(
+        "Failed to create parent dirs for " + file);
+    }
+    DataOutputStream dataOutputStream = new DataOutputStream(new FileOutputStream(file));
+    writeJsonAsBytes(dataOutputStream);
+  }
+
+  /**
+   * Write the json as bytes -then close the file
+   * @param dataOutputStream an outout stream that will always be closed
+   * @throws IOExceptionon any failure
+   */
+  private void writeJsonAsBytes(DataOutputStream dataOutputStream) throws
+                                                                   IOException {
     try {
+      String json = toJsonString();
+      byte[] b = json.getBytes(UTF_8);
       dataOutputStream.write(b);
     } finally {
       dataOutputStream.close();
@@ -477,6 +512,13 @@ public class ClusterDescription {
     roles.put(role, map);
     return map;
   }
+  
+  /*
+   * return the Set of role names
+   */
+  public Set<String> getRoleNames() {
+    return new HashSet<String>(roles.keySet());
+  }
 
   /**
    * Get a role whose presence is mandatory
@@ -595,9 +637,9 @@ public class ClusterDescription {
    * @param keyMachineTime name of machine time
    * @param time timestamp
    */
-  @SuppressWarnings("CallToDateToString")
+  
   public void setInfoTime(String keyHumanTime, String keyMachineTime, long time) {
-    setInfo(keyHumanTime, new Date(time).toString());
+    setInfo(keyHumanTime, HoyaUtils.toGMTString(time));
     setInfo(keyMachineTime, Long.toString(time));
   }
 

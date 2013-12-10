@@ -26,10 +26,12 @@ public interface HoyaExitCodes extends LauncherExitCodes {
    * starting point for exit codes; not an exception itself
    */
   int _EXIT_CODE_BASE =           64;
+  
   /**
    * internal error: {@value}
    */
   int EXIT_INTERNAL_ERROR = _EXIT_CODE_BASE;
+  
   /**
    * Unimplemented feature: {@value}
    */
@@ -75,5 +77,13 @@ public interface HoyaExitCodes extends LauncherExitCodes {
    * failing or some other threshold was reached
    */
   int EXIT_CLUSTER_FAILED = 73;
+
+  /**
+   * The cluster is live -and the requested operation
+   * does not work if the cluster is running,
+   * or there already is a cluster of that name
+   * when attempt is made to create a new cluster
+   */
+  int EXIT_CLUSTER_IN_USE = 74;
 
 }

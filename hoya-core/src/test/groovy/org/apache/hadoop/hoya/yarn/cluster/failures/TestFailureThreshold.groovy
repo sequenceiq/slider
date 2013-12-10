@@ -43,7 +43,7 @@ class TestFailureThreshold extends HBaseMiniClusterTestBase {
 
   @Test
   public void testFailedRegionService() throws Throwable {
-    failureThresholdTestRun("TestFailureThreshold", true, 2, 5)
+    failureThresholdTestRun("test_failure_threshold", true, 2, 5)
   }
 
 

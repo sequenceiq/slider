@@ -16,7 +16,7 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.cluster.live
+package org.apache.hadoop.hoya.yarn.cluster.freezethaw
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
@@ -43,7 +43,7 @@ class TestFreezeReconfigureThawLiveRegionService extends HBaseMiniClusterTestBas
 
   @Test
   public void testFreezeReconfigureThawLiveRegionService() throws Throwable {
-    String clustername = "TestFreezeReconfigureThawLiveRegionService"
+    String clustername = "test_freeze_reconfigure_thaw_live_regionservice"
     int regionServerCount = 4
     int nodemanagers = 3
     YarnConfiguration conf = createConfiguration()
