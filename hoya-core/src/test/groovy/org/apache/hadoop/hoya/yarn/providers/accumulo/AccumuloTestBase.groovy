@@ -78,7 +78,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
   }
   
   void killAllAccumuloProcesses() {
-    killJavaProcesses("Main", 9)
+    killJavaProcesses("org.apache.accumulo.start.Main", 9)
   }
 
   /**
