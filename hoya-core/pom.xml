@@ -13,6 +13,15 @@
   </parent>
 
   <build>
+
+    <!-- resources are filtered for dynamic updates. This gets build info in-->
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>true</filtering>
+      </resource>
+    </resources>
+    
     <plugins>
 
       
@@ -52,6 +61,7 @@
               <mode>development</mode>
               <url>${project.url}</url>
             </manifestEntries>
+            <Implementation-Build>$\{buildNumber}</Implementation-Build>
             <!-- Manifest specific configuration -->
             <manifest>
             </manifest>
@@ -189,7 +199,31 @@
         </dependencies>
       </plugin>
 
-
+      <!--
+       see http://mojo.codehaus.org/buildnumber-maven-plugin/usage.html
+      -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>buildnumber-maven-plugin</artifactId>
+        <version>${buildnumber-maven-plugin.version}</version>
+        <executions>
+          <execution>
+            <phase>validate</phase>
+            <goals>
+              <goal>create</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <!-- disabled to allow releases with local binaries-->
+          <doCheck>false</doCheck>
+          <!-- skips any update-->
+          <doUpdate>false</doUpdate>
+          <!-- uses shorter Git checksums-->
+          <shortRevisionLength>5</shortRevisionLength>
+        </configuration>
+      </plugin>
+      
     </plugins>
   </build>
 
