@@ -1402,6 +1402,17 @@ public final class HoyaUtils {
     return keytabFile;
   }
 
+  /**
+   * Convert an epoch time to a GMT time. This
+   * uses the deprecated Date.toString() operation,
+   * so is in one place to reduce the number of deprecation warnings.
+   * @param time timestamp 
+   * @return string value as ISO-9601
+   */
+  public static String toGMTString(long time) {
+    return new Date(time).toGMTString();
+  }
+
 
   /**
    * This wrapps ApplicationReports and generates a string version
