@@ -31,6 +31,7 @@ import org.apache.hadoop.hoya.providers.AbstractProviderService;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
+import org.apache.hadoop.hoya.servicemonitor.Probe;
 import org.apache.hadoop.hoya.tools.BlockingZKWatcher;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
@@ -335,5 +336,13 @@ public class AccumuloProviderService extends AbstractProviderService implements
     zookeeper.getChildren("/", watcher);
 
     watcher.waitForZKConnection(timeout);
+  }
+
+  @Override
+  public List<Probe> createProbes(ClusterDescription clusterSpec,
+                                  String url,
+                                  Configuration config,
+                                  int timeout) throws IOException {
+    return new ArrayList<Probe>(0);
   }
 }

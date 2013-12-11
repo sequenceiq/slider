@@ -514,27 +514,6 @@ implements KeysForTests, HoyaExitCodes {
     return launcher;
   }
 
-  /**
-   * Monitor a named cluster
-   * @param clustername
-   * @param waittime
-   * @return the exit code from the operation
-   */
-  public int actionMonitor(String clustername, int waittime) {
-    try {
-      ServiceLauncher launcher = execHoyaCommand(
-          new YarnConfiguration(miniCluster.config),
-          [
-              HoyaActions.ACTION_MONITOR, clustername,
-              Arguments.ARG_WAIT, waittime,
-              Arguments.ARG_MANAGER, RMAddr
-          ])
-      return launcher.serviceExitCode
-    } catch (ServiceLaunchException e) {
-      log.info("Monitor failed",e);
-      return e.exitCode;
-    }
-  }
 
   public String getConfDir() {
     return resourceConfDirURI

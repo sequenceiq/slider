@@ -298,17 +298,6 @@ Example
     hoya list
     hoya list cluster1
 
-### `monitor \<cluster> \[--wait time]`
-
-Monitor a given cluster by deploying any application-provider specific monitors
-(HTTP probes, zookeeper probes).  The `--wait` parameter specified in 
-seconds how long the cluster must be monitored.
-
-1. If there is no running cluster with the given name, an error is returned. 
-1. If, after the given wait time, the cluster is still running, the operation 
-is considered a succed.
-1. If during the wait time the probes fail, an error code is reported
-
 ### `status <cluster> [--out <filename>]`
 
 Get the status of the named Hoya cluster in JSON format. A filename can be used to 

@@ -20,10 +20,8 @@ package org.apache.hadoop.hoya.providers.hoyaam;
 
 import com.beust.jcommander.JCommander;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hoya.HostAndPort;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.RoleKeys;
@@ -31,17 +29,15 @@ import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.exceptions.HoyaRuntimeException;
+import org.apache.hadoop.hoya.providers.AbstractProviderCore;
 import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.PlacementPolicy;
-import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
-import org.apache.hadoop.hoya.servicemonitor.Probe;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,9 +45,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -60,8 +54,7 @@ import java.util.Map;
  * This keeps aspects of role, cluster validation and Clusterspec setup
  * out of the core hoya client
  */
-public class HoyaAMClientProvider extends Configured implements
-                                                     ProviderCore,
+public class HoyaAMClientProvider extends AbstractProviderCore implements
                                                      HoyaKeys,
                                                      ClientProvider {
 
@@ -96,15 +89,6 @@ public class HoyaAMClientProvider extends Configured implements
   @Override
   public String getName() {
     return NAME;
-  }
-
-  @Override
-  public List<Probe> createProbes(ClusterDescription clusterSpec, String urlStr,
-                                  Configuration config,
-                                  int timeout)
-    throws IOException {
-    List<Probe> probes = new ArrayList<Probe>();
-    return probes;
   }
 
   @Override
@@ -268,17 +252,6 @@ public class HoyaAMClientProvider extends Configured implements
   public void prepareAMServiceData(ClusterDescription clusterSpec,
                                    Map<String, ByteBuffer> serviceData) {
 
-  }
-
-  @Override
-  public HostAndPort getMasterAddress() throws IOException, KeeperException {
-    return null;
-  }
-
-  @Override
-  public Collection<HostAndPort> listDeadServers(Configuration conf) throws
-                                                                     IOException {
-    return new LinkedList<HostAndPort>();
   }
 
   @Override

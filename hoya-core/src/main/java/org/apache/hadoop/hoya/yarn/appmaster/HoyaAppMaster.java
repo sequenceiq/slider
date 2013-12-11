@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.BlockingService;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
@@ -29,6 +30,7 @@ import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.HoyaClusterProtocol;
+import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.api.proto.HoyaClusterAPI;
 import org.apache.hadoop.hoya.api.proto.Messages;
@@ -36,10 +38,18 @@ import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hadoop.hoya.exceptions.TriggerClusterTeardownException;
+import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderService;
 import org.apache.hadoop.hoya.providers.hoyaam.HoyaAMClientProvider;
+import org.apache.hadoop.hoya.servicemonitor.Probe;
+import org.apache.hadoop.hoya.servicemonitor.ProbeFailedException;
+import org.apache.hadoop.hoya.servicemonitor.ProbePhase;
+import org.apache.hadoop.hoya.servicemonitor.ProbeReportHandler;
+import org.apache.hadoop.hoya.servicemonitor.ProbeStatus;
+import org.apache.hadoop.hoya.servicemonitor.ReportingLoop;
+import org.apache.hadoop.hoya.servicemonitor.YarnApplicationProbe;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
@@ -71,6 +81,7 @@ import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterRespo
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
@@ -119,7 +130,8 @@ public class HoyaAppMaster extends CompoundLaunchedService
              ServiceStateChangeListener,
              RoleKeys,
              EventCallback,
-             ContainerStartOperation {
+             ContainerStartOperation,
+             ProbeReportHandler {
   protected static final Logger log =
     LoggerFactory.getLogger(HoyaAppMaster.class);
 
@@ -528,7 +540,8 @@ public class HoyaAppMaster extends CompoundLaunchedService
 
     //launcher service
     launchService = new RoleLaunchService(this,
-                                          providerService, getClusterFS(),
+                                          providerService,
+                                          getClusterFS(),
                                           new Path(getDFSConfDir()));
     runChildService(launchService);
 
@@ -1001,16 +1014,9 @@ public class HoyaAppMaster extends CompoundLaunchedService
    * Update the cluster description with anything interesting
    */
   private void updateClusterStatus() {
-    String addr = "";
-    try {
-      HostAndPort host = providerService.getClientProvider().getMasterAddress();
-      if (host != null) {
-        addr = host.toString();
-      }
-    } catch (Exception e) {
-      log.warn("Getting exception when retrieving master address", e);
-    }
-    appState.refreshClusterStatus(addr);
+    Map<String, String> providerStatus = providerService.buildProviderStatus();
+    assert providerStatus != null : "null provider status";
+    appState.refreshClusterStatus(providerStatus);
   }
 
   /**
@@ -1037,6 +1043,110 @@ public class HoyaAppMaster extends CompoundLaunchedService
     }
   }
 
+
+  /**
+   * Monitor operation
+   * TODO: implement.
+   * @return true if the monitor started
+   * @throws YarnException
+   * @throws IOException
+   */
+  public boolean startReportingLoop() throws YarnException,
+                                                IOException {
+    
+    if (!getClusterSpec().getOptionBool(OptionKeys.AM_MONITORING_ENABLED,
+                                        OptionKeys.AM_MONITORING_ENABLED_DEFAULT)) {
+      log.debug("AM Monitoring disabled");
+      return false;
+    }
+    
+/*    ClusterDescription clusterSpec = getClusterSpec();
+    ReportingLoop masterReportingLoop;
+    Thread loopThread;
+
+    // build the probes
+    int timeout = 60000;
+    ProviderService provider = getProviderService();
+    List<Probe> probes =
+      provider.createProbes(clusterSpec, appMasterTrackingUrl, getConfig(),
+                            timeout);
+
+    // start ReportingLoop only when there're probes
+    if (!probes.isEmpty()) {
+      masterReportingLoop =
+        new ReportingLoop("MasterStatusCheck", this, probes, null, 1000, 1000,
+                          timeout, -1);
+      if (!masterReportingLoop.startReporting()) {
+        throw new HoyaException(EXIT_INTERNAL_ERROR,
+                                "failed to start monitoring");
+      }
+      loopThread = new Thread(masterReportingLoop, "MasterStatusCheck");
+      loopThread.setDaemon(true);
+      loopThread.start();
+      // now wait until finished
+      try {
+        loopThread.join(waittime * 1000L);
+      } catch (InterruptedException e) {
+        //interrupted
+      }
+      masterReportingLoop.close();
+    }
+    */
+    return false;
+  }
+
+  @Override // ProbeReportHandler
+  public void probeFailure(ProbeFailedException exception) {
+  }
+
+  @Override // ProbeReportHandler
+  public void probeBooted(ProbeStatus status) {
+
+  }
+
+  @Override // ProbeReportHandler
+  public boolean commence(String name, String description) {
+    return true;
+  }
+
+  @Override // ProbeReportHandler
+  public void unregister() {
+
+  }
+
+  @Override // ProbeReportHandler
+  public void probeTimedOut(ProbePhase currentPhase,
+                            Probe probe,
+                            ProbeStatus lastStatus,
+                            long currentTime) {
+
+  }
+
+  @Override // ProbeReportHandler
+  public void liveProbeCycleCompleted() {
+
+  }
+
+  @Override // ProbeReportHandler
+
+  public void heartbeat(ProbeStatus status) {
+
+  }
+
+  /*
+   * Methods for ProbeReportHandler
+   */
+  @Override // ProbeReportHandler
+  public void probeProcessStateChange(ProbePhase probePhase) {
+  }
+
+  @Override // ProbeReportHandler
+
+  public void probeResult(ProbePhase phase, ProbeStatus status) {
+    if (!status.isSuccess()) {
+      log.warn("Failed probe {}", status);
+    }
+  }
   /* =================================================================== */
   /* EventCallback  from the child or ourselves directly */
   /* =================================================================== */
@@ -1069,7 +1179,6 @@ public class HoyaAppMaster extends CompoundLaunchedService
     if (service == providerService) {
       //its the current master process in play
       int exitCode = providerService.getExitCode();
-      int spawnedProcessExitCode = exitCode;
       int mappedProcessExitCode =
         AMUtils.mapProcessExitCodeToYarnExitCode(exitCode);
       boolean shouldTriggerFailure = !amCompletionFlag.get()
@@ -1142,6 +1251,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
     LOG_YARN.info("Started Container {} ", containerId);
     RoleInstance cinfo = appState.onNodeManagerContainerStarted(containerId);
     if (cinfo != null) {
+      LOG_YARN.info("Deployed instance of role {}", cinfo.role);
       //trigger an async container status
       nmClientAsync.getContainerStatusAsync(containerId,
                                             cinfo.container.getNodeId());
@@ -1195,4 +1305,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
     return appState.getClusterDescription();
   }
 
+  public ProviderService getProviderService() {
+    return providerService;
+  }
 }

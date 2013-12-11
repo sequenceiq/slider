@@ -51,8 +51,6 @@ import org.apache.hadoop.hoya.servicemonitor.ProbeFailedException;
 import org.apache.hadoop.hoya.servicemonitor.ProbePhase;
 import org.apache.hadoop.hoya.servicemonitor.ProbeReportHandler;
 import org.apache.hadoop.hoya.servicemonitor.ProbeStatus;
-import org.apache.hadoop.hoya.servicemonitor.ReportingLoop;
-import org.apache.hadoop.hoya.servicemonitor.YarnApplicationProbe;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.Duration;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
@@ -116,7 +114,6 @@ import java.util.Properties;
  */
 
 public class HoyaClient extends CompoundLaunchedService implements RunService,
-                                                          ProbeReportHandler,
                                                           HoyaExitCodes,
                                                           HoyaKeys,
                                                           ErrorStrings {
@@ -241,9 +238,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
         HoyaUtils.validateClusterName(clusterName);
       }
       exitCode = actionList(clusterName);
-    } else if (HoyaActions.ACTION_MONITOR.equals(action)) {
-      exitCode = actionMonitor(clusterName,
-                               serviceArgs.getActionMonitorArgs().getWaittime());
     } else if (HoyaActions.ACTION_STATUS.equals(action)) {
       
       exitCode = actionStatus(clusterName,
@@ -940,61 +934,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     return exitCode;
   }
 
-  /*
-   * Methods for ProbeReportHandler
-   */
-  @Override
-  public void probeProcessStateChange(ProbePhase probePhase) {
-  }
-
-  @Override
-  public void probeResult(ProbePhase phase, ProbeStatus status) {
-    if (!status.isSuccess()) {
-      try {
-        /* TODO: need to decide the best response to probe error
-        killApplication(applicationId);
-        log.error("killing " + applicationId, status.getThrown());
-        */
-      } catch (Exception e) {
-        log.warn("error killing " + applicationId, e);
-      }
-    }
-  }
-
-  @Override
-  public void probeFailure(ProbeFailedException exception) {
-  }
-
-  @Override
-  public void probeBooted(ProbeStatus status) {
-
-  }
-
-  @Override
-  public boolean commence(String name, String description) {
-    return true;
-  }
-
-  @Override
-  public void unregister() {
-
-  }
-
-  @Override
-  public void probeTimedOut(ProbePhase currentPhase, Probe probe, ProbeStatus lastStatus,
-      long currentTime) {
-
-  }
-
-  @Override
-  public void liveProbeCycleCompleted() {
-
-  }
-
-  @Override
-  public void heartbeat(ProbeStatus status) {
-
-  }
 
   /**
    * Propagate any critical principals from the current site config down to the HBase one.
@@ -1373,72 +1312,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     }
   }
 
-  /**
-   * Monitor operation
-   *
-   * @param clustername cluster name
-   * @param waittime
-   * @return 0 if the monitoring finished after timeout with no problems
-   * @throws YarnException
-   * @throws IOException
-   */
-  @VisibleForTesting
-  public int actionMonitor(String clustername, int waittime) throws
-                                              YarnException,
-                                              IOException {
-    verifyManagerSet();
-    HoyaUtils.validateClusterName(clustername);
 
-    if (clustername == null) {
-      throw unknownClusterException("");
-    }
-    Path clusterSpecPath = locateClusterSpecification(clustername);
-
-    ClusterDescription clusterSpec =
-      HoyaUtils.loadAndValidateClusterSpec(getClusterFS(), clusterSpecPath);
-    
-    ApplicationReport report = findInstance(getUsername(), clustername);
-    if (null == report) {
-      throw unknownClusterException(clustername);
-    }
-    ReportingLoop masterReportingLoop;
-    Thread loopThread;
-    
-    // build the probes
-    int exitCode = EXIT_FALSE;
-    
-    int timeout = 60000;
-    ClientProvider provider = createClientProvider(clusterSpec);
-    List<Probe> probes =
-      provider.createProbes(clusterSpec, report.getTrackingUrl(), getConfig(), timeout);
-    probes.add(
-      new YarnApplicationProbe(clustername, yarnClient, "Yarn application probe",
-                               getConfig(), getUsername()));
-    // start ReportingLoop only when there're probes
-    if (!probes.isEmpty()) {
-      masterReportingLoop =
-        new ReportingLoop("MasterStatusCheck", this, probes, null, 1000, 1000,
-                          timeout, -1);
-      if (!masterReportingLoop.startReporting()) {
-        throw new HoyaException(EXIT_INTERNAL_ERROR,
-                                "failed to start monitoring");
-      }
-      loopThread = new Thread(masterReportingLoop, "MasterStatusCheck");
-      loopThread.setDaemon(true);
-      loopThread.start();
-      // now wait until finished
-      try {
-        loopThread.join(waittime * 1000L);
-        //getting here implies timeout with no interruptions
-        exitCode = EXIT_SUCCESS;
-      } catch (InterruptedException e) {
-        //interrupted
-      }
-      masterReportingLoop.close();
-    }
-    return exitCode;
-  }
-  
   /**
    * Status operation
    *

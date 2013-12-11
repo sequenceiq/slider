@@ -24,36 +24,29 @@ import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hoya.HostAndPort;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.HoyaXmlConfKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.OptionKeys;
-import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
+import org.apache.hadoop.hoya.providers.AbstractProviderCore;
 import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
-import org.apache.hadoop.hoya.providers.hbase.HBaseKeys;
-import org.apache.hadoop.hoya.servicemonitor.Probe;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import static org.apache.hadoop.hoya.providers.accumulo.AccumuloConfigFileOptions.*;
-import static org.apache.hadoop.hoya.api.RoleKeys.*;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -61,11 +54,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.apache.hadoop.hoya.api.RoleKeys.APP_INFOPORT;
+import static org.apache.hadoop.hoya.providers.accumulo.AccumuloConfigFileOptions.INSTANCE_SECRET;
+import static org.apache.hadoop.hoya.providers.accumulo.AccumuloConfigFileOptions.MASTER_PORT_CLIENT;
+import static org.apache.hadoop.hoya.providers.accumulo.AccumuloConfigFileOptions.MONITOR_PORT_CLIENT;
+import static org.apache.hadoop.hoya.providers.accumulo.AccumuloConfigFileOptions.TSERV_PORT_CLIENT;
+
 /**
  * Client-side accumulo provider
  */
-public class AccumuloClientProvider extends Configured implements
-                                                       ProviderCore,
+public class AccumuloClientProvider extends AbstractProviderCore implements
                                                        AccumuloKeys,
                                                        ClientProvider {
 
@@ -90,33 +88,10 @@ public class AccumuloClientProvider extends Configured implements
   public Configuration create(Configuration conf) {
     return conf;
   }
-  
-  @Override
-  public HostAndPort getMasterAddress() throws IOException, KeeperException {
-    return null;
-  }
-  
-  @Override
-  public Collection<HostAndPort> listDeadServers(Configuration conf)  throws IOException {
-    return new ArrayList<HostAndPort>();
-  }
 
-  @Override
-  public List<Probe> createProbes(ClusterDescription clusterSpec, String urlStr,
-                                  Configuration config,
-                                  int timeout) 
-      throws IOException {
-    return new ArrayList<Probe>();
-  }
-  
   @Override
   public List<ProviderRole> getRoles() {
     return AccumuloRoles.ROLES;
-  }
-
-  private void putSiteOpt(Map<String, String> options, String key, String val) {
-    options.put(
-      OptionKeys.SITE_XML_PREFIX + key, val);
   }
 
   /**
@@ -180,36 +155,6 @@ public class AccumuloClientProvider extends Configured implements
     return rolemap;
   }
 
-
-
-  /**
-   * Propagate a key's value from the conf to the site, ca
-   * @param sitexml
-   * @param conf
-   * @param srckey
-   * @param destkey
-   */
-  private void propagate(Map<String, String> sitexml,
-                         Configuration conf,
-                         String srckey, String destkey) {
-    String val = conf.get(srckey);
-    if (val != null) {
-      sitexml.put(destkey, val);
-    }
-  }
-
-  private void assignIfSet(Map<String, String> sitexml,
-                           String prop,
-                           ClusterDescription cd,
-                           String role,
-                           String key) throws BadConfigException {
-    Map<String, String> map = cd.getMandatoryRole(role);
-
-    String value = map.get(key);
-    if (value != null) {
-      sitexml.put(prop, value);
-    }
-  }
 
   /**
    * Build the conf dir from the service arguments, adding the hbase root

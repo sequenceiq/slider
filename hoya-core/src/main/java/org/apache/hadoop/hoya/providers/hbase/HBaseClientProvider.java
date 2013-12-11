@@ -18,36 +18,10 @@
 
 package org.apache.hadoop.hoya.providers.hbase;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.Abortable;
-import org.apache.hadoop.hbase.ClusterStatus;
 import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HConnection;
-import org.apache.hadoop.hbase.client.HConnectionManager;
-import org.apache.hadoop.hbase.zookeeper.MasterAddressTracker;
-import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
-import org.apache.hadoop.hoya.HostAndPort;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.HoyaXmlConfKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
@@ -56,151 +30,61 @@ import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
+import org.apache.hadoop.hoya.providers.AbstractProviderCore;
 import org.apache.hadoop.hoya.providers.ClientProvider;
-import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
-import org.apache.hadoop.hoya.servicemonitor.HttpProbe;
-import org.apache.hadoop.hoya.servicemonitor.MonitorKeys;
-import org.apache.hadoop.hoya.servicemonitor.Probe;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * This class implements  the client-side aspects
  * of an HBase Cluster
  */
-public class HBaseClientProvider extends Configured implements
-                                                          ProviderCore,
+public class HBaseClientProvider extends AbstractProviderCore implements
                                                           HBaseKeys, HoyaKeys,
                                                           ClientProvider,
                                                           HBaseConfigFileOptions {
 
-  private static class ClientProviderAbortable implements Abortable {
-    @Override
-    public void abort(String why, Throwable e) {
-    }
-    @Override
-    public boolean isAborted() {
-      return false;
-    }
-  }
+
+
+  
   protected static final Logger log =
     LoggerFactory.getLogger(HBaseClientProvider.class);
   protected static final String NAME = "hbase";
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
-  private MasterAddressTracker masterTracker = null;
+
 
   protected HBaseClientProvider(Configuration conf) {
     super(conf);
-    try {
-      Abortable abortable = new ClientProviderAbortable();
-      ZooKeeperWatcher zkw = new ZooKeeperWatcher(getConf(), "HBaseClient", abortable);
-      masterTracker = new MasterAddressTracker(zkw, abortable);
-    } catch (IOException ioe) {
-      log.error("Couldn't instantiate ZooKeeperWatcher", ioe);
-    }
   }
-
 
   @Override
   public String getName() {
     return NAME;
   }
 
-  @Override
-  public List<Probe> createProbes(ClusterDescription clusterSpec, String urlStr,
-                                  Configuration config,
-                                  int timeout) 
-      throws IOException {
-    List<Probe> probes = new ArrayList<Probe>();
-    if (urlStr!=null) {
-      // set up HTTP probe if a path is provided
-      String prefix = "";
-      URL url = null;
-      if (!urlStr.startsWith("http") && urlStr.contains("/proxy/")) {
-        if (!UserGroupInformation.isSecurityEnabled()) {
-          prefix = "http://proxy/relay/";
-        } else {
-          prefix = "https://proxy/relay/";
-        }
-      }
-      try {
-        url = new URL(prefix + urlStr);
-      } catch (MalformedURLException mue) {
-        log.error("tracking url: " + prefix + urlStr + " is malformed");
-      }
-      if (url != null) {
-        log.info("tracking url: " + url);
-        HttpURLConnection connection = null;
-        try {
-          connection = HttpProbe.getConnection(url, timeout);
-          // see if the host is reachable
-          connection.getResponseCode();
-  
-          HttpProbe probe = new HttpProbe(url, timeout,
-            MonitorKeys.WEB_PROBE_DEFAULT_CODE, MonitorKeys.WEB_PROBE_DEFAULT_CODE, config);
-          probes.add(probe);
-        } catch (UnknownHostException uhe) {
-          log.error("host unknown: " + url);
-        } finally {
-          if (connection != null) {
-            connection.disconnect();
-            connection = null;
-          }
-        }
-      }
-    }
-    return probes;
-  }
 
-  @Override
-  public HostAndPort getMasterAddress() throws IOException, KeeperException {
-    // masterTracker receives notification from zookeeper on current master
-    if (masterTracker == null) {
-      return null;
-    }
-    ServerName sn = masterTracker.getMasterAddress();
-    log.debug("getMasterAddress " + sn + ", quorum=" 
-              + getConf().get(HConstants.ZOOKEEPER_QUORUM));
-    if (sn == null) {
-      return null;
-    }
-    return new HostAndPort(sn.getHostname(), sn.getPort());
-  }
-  
-  private Collection<HostAndPort> serverNameToHostAndPort(Collection<ServerName> servers) {
-    Collection<HostAndPort> col = new ArrayList<HostAndPort>();
-    if (servers == null || servers.isEmpty()) return col;
-    for (ServerName sn : servers) {
-      col.add(new HostAndPort(sn.getHostname(), sn.getPort()));
-    }
-    return col;
-  }
 
   @Override
   public Configuration create(Configuration conf) {
     return HBaseConfiguration.create(conf);
   }
 
-  @Override
-  public Collection<HostAndPort> listDeadServers(Configuration conf)  throws IOException {
-    HConnection hbaseConnection = HConnectionManager.createConnection(conf);
-    HBaseAdmin hBaseAdmin = new HBaseAdmin(hbaseConnection);
-    try {
-      ClusterStatus cs = hBaseAdmin.getClusterStatus();
-      return serverNameToHostAndPort(cs.getDeadServerNames());
-    } finally {
-      hBaseAdmin.close();
-      hbaseConnection.close();
-    }
-  }
+
 
   @Override
   public List<ProviderRole> getRoles() {

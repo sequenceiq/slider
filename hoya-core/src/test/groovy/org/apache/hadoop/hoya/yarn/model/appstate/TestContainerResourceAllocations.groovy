@@ -99,7 +99,7 @@ class TestContainerResourceAllocations extends BaseMockAppStateTest {
 
   @Test
   public void testLimitsInClusterStatus() throws Throwable {
-    appState.refreshClusterStatus("")
+    appState.refreshClusterStatus(null)
     ClusterDescription cd = appState.clusterDescription
     assert cd.info[RoleKeys.YARN_MEMORY] == Integer.toString(RM_MAX_RAM)
     assert cd.info[RoleKeys.YARN_CORES] == Integer.toString(RM_MAX_CORES)

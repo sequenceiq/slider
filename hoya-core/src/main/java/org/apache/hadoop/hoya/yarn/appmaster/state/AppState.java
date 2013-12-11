@@ -997,15 +997,17 @@ public class AppState {
 
   /**
    * Update the cluster description with anything interesting
-   * @param masterAddr
+   * @param providerStatus status from the provider
    */
-  public void refreshClusterStatus(String masterAddr) {
+  public void refreshClusterStatus(Map<String, String> providerStatus) {
     ClusterDescription cd = getClusterDescription();
     long now = now();
     cd.setInfoTime(StatusKeys.INFO_STATUS_TIME_HUMAN,
                    StatusKeys.INFO_STATUS_TIME_MILLIS,
                    now);
-    cd.setInfo(StatusKeys.INFO_MASTER_ADDRESS, masterAddr);
+    for (Map.Entry<String, String> entry : providerStatus.entrySet()) {
+      cd.setInfo(entry.getKey(),entry.getValue());
+    }
     // set the RM-defined maximum cluster values
     cd.setInfo(RoleKeys.YARN_CORES, Integer.toString(containerMaxCores));
     cd.setInfo(RoleKeys.YARN_MEMORY, Integer.toString(containerMaxMemory));

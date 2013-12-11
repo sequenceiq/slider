@@ -574,22 +574,6 @@ else only the one running (or one of the finished ones)
        let e = hoya-app-instances(YARN, clustername, user) 
        e.toString() in STDOUT'
 
-
-
-## Action: monitor
-
-(This is still a work in progress. The goal is to be able to monitor the 
-health of a cluster by blocking while HDFS or accumulo is live).
-It may not be supported in Hoya 1.x
-
-#### Preconditions
-
-
-
-#### Postconditions
-
-
-
 ## Action: emergency-force-kill
 
 This is an administration operation added while implementing security in
@@ -606,7 +590,7 @@ it tells the YARN AM to kill it.
 
 #### Postconditions
 
-If 'all' was requested, then no applications of the user should be running:
+If `all` was requested, then no applications of the user should be running:
 
     if appid == "all" :
         not exists a for app in YARN'.Apps'.values where app.report.User = username and app.report.State <= RUNNING

@@ -38,7 +38,7 @@ import org.apache.hadoop.hoya.yarn.params.ActionForceKillArgs
 import org.apache.hadoop.hoya.yarn.params.ActionFreezeArgs
 import org.apache.hadoop.hoya.yarn.params.ActionGetConfArgs
 import org.apache.hadoop.hoya.yarn.params.ActionListArgs
-import org.apache.hadoop.hoya.yarn.params.ActionMonitorArgs
+
 import org.apache.hadoop.hoya.yarn.params.ActionStatusArgs
 import org.apache.hadoop.hoya.yarn.params.ActionThawArgs
 import org.apache.hadoop.hoya.yarn.params.ArgOps
@@ -277,19 +277,6 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
     assert ca.clusterName == CLUSTERNAME
     assert ca.coreAction instanceof ActionExistsArgs
   }  
-  
-  @Test
-  public void testMonitorWorksWithWait() throws Throwable {
-    ClientArgs ca = createClientArgs([
-        ACTION_MONITOR,
-        CLUSTERNAME,
-        ARG_WAIT, "1000"
-    ])
-    assert ca.clusterName == CLUSTERNAME
-    assert ca.coreAction instanceof ActionMonitorArgs
-    assert ca.actionMonitorArgs.waittime == 1000
-  }
-
 
   @Test
   public void testDestroy1Arg() throws Throwable {

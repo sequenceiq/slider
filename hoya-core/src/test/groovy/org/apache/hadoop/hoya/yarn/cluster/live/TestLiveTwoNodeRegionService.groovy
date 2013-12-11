@@ -44,9 +44,6 @@ class TestLiveTwoNodeRegionService extends HBaseMiniClusterTestBase {
     createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, false)
 
     describe(" Create a two node region service cluster");
-    
-    //exec monitor quickly just to expect it to fail
-    assert actionMonitor(clustername, 10) == HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER
 
     //now launch the cluster
     ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount, [], true, true)
@@ -58,9 +55,6 @@ class TestLiveTwoNodeRegionService extends HBaseMiniClusterTestBase {
     assert ZKPort == status.zkPort
 
     ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient)
-
-    assert actionMonitor(clustername, 10) == 0
-
 
     status = waitForHoyaWorkerCount(hoyaClient, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     //get the hbase status

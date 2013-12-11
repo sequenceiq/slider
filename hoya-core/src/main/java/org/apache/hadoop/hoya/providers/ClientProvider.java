@@ -21,20 +21,15 @@ package org.apache.hadoop.hoya.providers;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hoya.HostAndPort;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
-import org.apache.hadoop.hoya.servicemonitor.Probe;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.zookeeper.KeeperException;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -152,30 +147,8 @@ public interface ClientProvider extends ProviderCore {
                                                              HoyaException,
                                                              IOException;
 
-  /**
-   * @param clusterSpec cluster specification
-   * @param url the tracking URL
-   * @param config the Configuration
-   * @param timeout
-   * @return List of applicable Probe's
-   */
-  List<Probe> createProbes(ClusterDescription clusterSpec, String url,
-                           Configuration config,
-                           int timeout) throws IOException;
-  
-  /*
-   * @param conf
-   * @return the collection of HostAndPort's whose servers are considered dead
-   */
-  Collection<HostAndPort> listDeadServers(Configuration conf) throws IOException;
-  
   /*
    * @return Configuration customized for the corresponding provider
    */
-  Configuration create(Configuration conf);
-  
-  /*
-   * @return host and port for the master
-   */
-  HostAndPort getMasterAddress() throws IOException, KeeperException;
+  public abstract Configuration create(Configuration conf);
 }

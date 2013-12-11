@@ -25,7 +25,12 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import static org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys.*;
+
+import static org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys.ROLE_GARBAGE_COLLECTOR;
+import static org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys.ROLE_MASTER;
+import static org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys.ROLE_MONITOR;
+import static org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys.ROLE_TABLET;
+import static org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys.ROLE_TRACER;
 
 public class AccumuloRoles  {
   protected static final Logger log =

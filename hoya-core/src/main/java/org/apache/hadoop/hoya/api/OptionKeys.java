@@ -132,4 +132,12 @@ public interface OptionKeys {
    */
   String ZOOKEEPER_PATH = "zookeeper.path";
 
+
+  /**
+   * Is monitoring enabled on the AM?
+   */
+  String AM_MONITORING_ENABLED = "hoya.am.monitoring.enabled";
+
+  boolean AM_MONITORING_ENABLED_DEFAULT = false;
+
 }

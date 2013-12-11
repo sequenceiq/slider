@@ -18,10 +18,12 @@
 
 package org.apache.hadoop.hoya.providers;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
+import org.apache.hadoop.hoya.servicemonitor.Probe;
 import org.apache.hadoop.hoya.yarn.service.EventCallback;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
@@ -29,6 +31,7 @@ import org.apache.hadoop.yarn.service.launcher.ExitCodeProvider;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 public interface ProviderService extends ProviderCore, Service,
@@ -94,4 +97,28 @@ public interface ProviderService extends ProviderCore, Service,
                                         File confDir,
                                         boolean secure
                                        ) throws IOException, HoyaException;
+
+  /**
+   * Initialize any monitoring logic -return true if monitoring
+   * has started/has any side effects
+   * @return 
+   */
+  boolean initMonitoring();
+
+  /**
+   * @param clusterSpec cluster specification
+   * @param url the tracking URL
+   * @param config the Configuration
+   * @param timeout
+   * @return List of applicable Probe's
+   */
+  List<Probe> createProbes(ClusterDescription clusterSpec, String url,
+                           Configuration config,
+                           int timeout) throws IOException;
+
+  /*
+     * Build the provider status, can be empty
+     * @return the provider status - map of entries to add to the info section
+     */
+  Map<String, String> buildProviderStatus();
 }

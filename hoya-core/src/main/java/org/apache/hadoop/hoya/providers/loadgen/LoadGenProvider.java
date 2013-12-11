@@ -20,28 +20,24 @@ package org.apache.hadoop.hoya.providers.loadgen;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hoya.HostAndPort;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
+import org.apache.hadoop.hoya.providers.AbstractProviderCore;
 import org.apache.hadoop.hoya.providers.ClientProvider;
-import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys;
-import org.apache.hadoop.hoya.servicemonitor.Probe;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +45,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,8 +53,7 @@ import java.util.Map;
  * This class implements both the client-side and server-side aspects
  * of an HBase Cluster
  */
-public class LoadGenProvider extends Configured implements
-                                                ProviderCore,
+public class LoadGenProvider extends AbstractProviderCore implements
                                                 LoadGenKeys,
                                                 ClientProvider {
 
@@ -94,13 +88,6 @@ public class LoadGenProvider extends Configured implements
     return PROVIDER_NAME;
   }
 
-  @Override
-  public List<Probe> createProbes(ClusterDescription clusterSpec, String urlStr,
-                                  Configuration config,
-                                  int timeout)
-    throws IOException {
-    return new ArrayList<Probe>();
-  }
 
   @Override
   public Configuration create(Configuration conf) {
@@ -111,18 +98,6 @@ public class LoadGenProvider extends Configured implements
   public List<ProviderRole> getRoles() {
     return ROLES;
   }
-
-  @Override
-  public HostAndPort getMasterAddress() throws IOException, KeeperException {
-    return null;
-  }
-
-  @Override
-  public Collection<HostAndPort> listDeadServers(Configuration conf) throws
-                                                                     IOException {
-    return new ArrayList<HostAndPort>();
-  }
-
 
   @Override
   public Configuration getDefaultClusterConfiguration() throws
