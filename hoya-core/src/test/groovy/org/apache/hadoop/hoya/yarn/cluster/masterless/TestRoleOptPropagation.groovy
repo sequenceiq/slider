@@ -49,7 +49,7 @@ class TestRoleOptPropagation extends HBaseMiniClusterTestBase {
                                                  ],
                                                  [
                                                      Arguments.ARG_ROLEOPT, HoyaKeys.ROLE_HOYA_AM, MALLOC_ARENA, "4",
-                                                     Arguments.ARG_ROLEOPT, "unknown", MALLOC_ARENA, "3",
+                                                     /* Arguments.ARG_ROLEOPT, "unknown", MALLOC_ARENA, "3", */
                                                  ],
                                                  true,
                                                  true, [:])
@@ -59,8 +59,8 @@ class TestRoleOptPropagation extends HBaseMiniClusterTestBase {
     Map<String, String> masterRole = status.getRole(HoyaKeys.ROLE_HOYA_AM);
     assert masterRole[MALLOC_ARENA] == "4"
 
-    Map<String, String> unknownRole = status.getRole("unknown");
-    assert unknownRole[MALLOC_ARENA] == "3"
+    /* Map<String, String> unknownRole = status.getRole("unknown");
+    assert unknownRole[MALLOC_ARENA] == "3" */
 
     dumpClusterDescription("Remote CD", status)
   }
