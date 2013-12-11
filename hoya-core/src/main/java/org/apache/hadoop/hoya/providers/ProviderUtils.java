@@ -28,9 +28,12 @@ import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
+import org.apache.hadoop.hoya.exceptions.HoyaException;
+import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.slf4j.Logger;
 
 import java.io.File;
@@ -55,6 +58,50 @@ public class ProviderUtils implements RoleKeys {
   
   public ProviderUtils(Logger log) {
     this.log = log;
+  }
+
+  /**
+   * Add a set of dependencies to the provider resources being built up,
+   * by copying them from the local classpath to the remote one, then
+   * registering them
+   * @param providerResources map of provider resources to add these entries to
+   * @param clusterFS target filesystem
+   * @param tempPath path in the cluster FS for temp files
+   * @param libdir relative directory to place resources
+   * @param resources list of resource names (e.g. "hbase.jar"
+   * @param classes list of classes where classes[i] refers to a class in
+   * resources[i]
+   * @throws IOException IO problems
+   * @throws HoyaException any Hoya problem
+   */
+  public static void addDependencyJars(Map<String, LocalResource> providerResources,
+                                       FileSystem clusterFS,
+                                       
+                                       Path tempPath,
+                                       String libdir,
+                                       String[] resources,
+                                       Class[] classes
+                                      ) throws
+                                        IOException,
+                                        HoyaException {
+    if (resources.length != classes.length) {
+      throw new HoyaInternalStateException(
+        "mismatch in Jar names [%d] and classes [%d]",
+        resources.length,
+        classes.length);
+    }
+    int size = resources.length;
+    for (int i = 0; i < size; i++) {
+      String jarName = resources[i];
+      Class clazz = classes[i];
+      HoyaUtils.putJar(providerResources,
+                       clusterFS,
+                       clazz,
+                       tempPath,
+                       libdir,
+                       jarName);
+    }
+    
   }
 
   public int validateAndGetYARNMemory(Map<String, String> role) throws

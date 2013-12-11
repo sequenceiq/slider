@@ -56,7 +56,6 @@ import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
-import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
@@ -409,36 +408,6 @@ public class HBaseClientProvider extends Configured implements
                                     -1);
   }
 
-  public static void addDependencyJars(Map<String, LocalResource> providerResources,
-                                       FileSystem clusterFS,
-                                       
-                                       Path tempPath,
-                                       String libdir,
-                                       String[] resources,
-                                       Class[] classes
-                                      ) throws
-                                        IOException,
-                                        HoyaException {
-    if (resources.length != classes.length) {
-      throw new HoyaInternalStateException(
-        "mismatch in Jar names [%d] and classes [%d]",
-        resources.length,
-        classes.length);
-    }
-    int size = resources.length;
-    for (int i = 0; i < size; i++) {
-      String jarName = resources[i];
-      Class clazz = classes[i];
-      HoyaUtils.putJar(providerResources,
-                       clusterFS,
-                       clazz,
-                       tempPath,
-                       libdir,
-                       jarName);
-    }
-    
-  }
-  
   /**
    * Add HBase and its dependencies (only) to the job configuration.
    * <p>
@@ -481,8 +450,9 @@ public class HBaseClientProvider extends Configured implements
       //zk
       org.apache.zookeeper.ClientCnxn.class
     };
-    addDependencyJars(providerResources, clusterFS, tempPath, libdir, jars,
-                      classes);
+    ProviderUtils.addDependencyJars(providerResources, clusterFS, tempPath,
+                                    libdir, jars,
+                                    classes);
   }
 
   @Override
