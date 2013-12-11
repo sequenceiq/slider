@@ -219,7 +219,7 @@
           <!-- skips any update-->
           <doUpdate>false</doUpdate>
           <!-- uses shorter Git checksums-->
-          <shortRevisionLength>5</shortRevisionLength>
+          <shortRevisionLength>10</shortRevisionLength>
         </configuration>
       </plugin>
       

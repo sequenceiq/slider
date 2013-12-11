@@ -52,6 +52,7 @@ import org.apache.hadoop.hoya.servicemonitor.ReportingLoop;
 import org.apache.hadoop.hoya.servicemonitor.YarnApplicationProbe;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
+import org.apache.hadoop.hoya.tools.HoyaVersionInfo;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
 import org.apache.hadoop.hoya.yarn.appmaster.rpc.HoyaAMPolicyProvider;
 import org.apache.hadoop.hoya.yarn.appmaster.rpc.HoyaClusterProtocolPBImpl;
@@ -358,6 +359,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
    * @throws Throwable on a failure
    */
   private int createAndRunCluster(String clustername) throws Throwable {
+    HoyaVersionInfo.loadAndPrintVersionInfo(log);
 
     //load the cluster description from the cd argument
     String hoyaClusterDir = serviceArgs.getHoyaClusterURI();

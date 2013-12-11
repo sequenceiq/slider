@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.tools;
 
+import org.apache.hadoop.util.VersionInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,4 +85,19 @@ public class HoyaVersionInfo {
     return props;
   }
 
+  /**
+   * Load the version info and print it
+   * @param logger logger
+   */
+  public static void loadAndPrintVersionInfo(Logger logger) {
+    Properties props = loadVersionProperties();
+    logger.info(props.getProperty(APP_BUILD_INFO));
+    logger.info("Compiled against Hadoop {}",
+                props.getProperty(HADOOP_BUILD_INFO));
+    logger.info(
+      "Hadoop runtime version {} with source checksum {} and build date {}",
+      VersionInfo.getBranch(),
+      VersionInfo.getSrcChecksum(),
+      VersionInfo.getDate());
+  }
 }

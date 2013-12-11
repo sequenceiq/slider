@@ -46,11 +46,6 @@ import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.hoyaam.HoyaAMClientProvider;
-import org.apache.hadoop.hoya.servicemonitor.Probe;
-import org.apache.hadoop.hoya.servicemonitor.ProbeFailedException;
-import org.apache.hadoop.hoya.servicemonitor.ProbePhase;
-import org.apache.hadoop.hoya.servicemonitor.ProbeReportHandler;
-import org.apache.hadoop.hoya.servicemonitor.ProbeStatus;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.Duration;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
@@ -73,7 +68,6 @@ import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
-import org.apache.hadoop.util.VersionInfo;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
@@ -273,7 +267,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // delete the directory;
     boolean exists = fs.exists(clusterDirectory);
     if (exists) {
-      log.info("Cluster found -destroying");
+      log.info("Cluster found: destroying");
     } else {
       log.info("Cluster already destroyed");
     }
@@ -1344,15 +1338,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * @return exit code
    */
   public int actionVersion() {
-    Properties props = HoyaVersionInfo.loadVersionProperties();
-    log.info(props.getProperty(HoyaVersionInfo.APP_BUILD_INFO));
-    log.info("Compiled against Hadoop {}",
-             props.getProperty(HoyaVersionInfo.HADOOP_BUILD_INFO));
-    log.info(
-      "Hadoop runtime version {} with source checksum {} and build date {}",
-      VersionInfo.getBranch(),
-      VersionInfo.getSrcChecksum(),
-      VersionInfo.getDate());
+    HoyaVersionInfo.loadAndPrintVersionInfo(log);
     return EXIT_SUCCESS;
   }
 
