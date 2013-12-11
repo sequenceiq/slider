@@ -22,6 +22,7 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
@@ -49,7 +50,6 @@ class TestRoleOptPropagation extends HBaseMiniClusterTestBase {
                                                  ],
                                                  [
                                                      Arguments.ARG_ROLEOPT, HoyaKeys.ROLE_HOYA_AM, MALLOC_ARENA, "4",
-                                                     /* Arguments.ARG_ROLEOPT, "unknown", MALLOC_ARENA, "3", */
                                                  ],
                                                  true,
                                                  true, [:])
@@ -59,10 +59,31 @@ class TestRoleOptPropagation extends HBaseMiniClusterTestBase {
     Map<String, String> masterRole = status.getRole(HoyaKeys.ROLE_HOYA_AM);
     assert masterRole[MALLOC_ARENA] == "4"
 
-    /* Map<String, String> unknownRole = status.getRole("unknown");
-    assert unknownRole[MALLOC_ARENA] == "3" */
-
     dumpClusterDescription("Remote CD", status)
   }
 
+  @Test
+  public void testUnknownRole() throws Throwable {
+    String clustername = "test_unknown_role"
+    createMiniCluster(clustername, createConfiguration(), 1, true)
+
+    describe "verify that unknown role results in cluster creation failure"
+    try {
+      String MALLOC_ARENA = "env.MALLOC_ARENA_MAX"
+      ServiceLauncher launcher = createHoyaCluster(clustername,
+                                                 [
+                                                     (HBaseKeys.ROLE_MASTER): 0,
+                                                     (HBaseKeys.ROLE_WORKER): 0,
+                                                 ],
+                                                 [
+                                                     Arguments.ARG_ROLEOPT, HoyaKeys.ROLE_HOYA_AM, MALLOC_ARENA, "4",
+                                                     Arguments.ARG_ROLEOPT, "unknown", MALLOC_ARENA, "3",
+                                                 ],
+                                                 true,
+                                                 true, [:])
+      assert false
+    } catch (BadCommandArgumentsException bcae) {
+      /* expected */
+    }
+  }
 }
