@@ -28,7 +28,7 @@
       hoya create cluster1 \
       --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
          --role workers 4\
-          --zkhosts ubuntu \
+          --zkhosts ubuntu --zkport 2121 \
           -D hoya.security.enabled=true -S java.security.krb5.realm=COTHAM \
           -S java.security.krb5.kdc=ubuntu \
           --image hdfs://ubuntu:9090/hbase.tar \
@@ -49,7 +49,7 @@
      -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
             --role worker 1\
             --role master 0\
-        --zkhosts ubuntu \
+        --zkhosts ubuntu --zkport 2121 \
         --image hdfs://ubuntu:9090/hbase.tar \
         --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/ubuntu-secure/hbase \
         --roleopt master app.infoport 8080 \
@@ -67,7 +67,7 @@
      -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
      -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM \
         --role master 0 \
-        --zkhosts ubuntu \
+        --zkhosts ubuntu --zkport 2121 \
         --image hdfs://ubuntu:9090/hbase.tar \
         --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/ubuntu-secure/hbase \
         --roleopt master app.infoport 8080 \
@@ -95,7 +95,7 @@
 # single master & workre
      
     bin/hoya create cluster3 \
-    --zkhosts ubuntu \
+    --zkhosts ubuntu --zkport 2121 \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
     -D hoya.security.enabled=true -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
     -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
@@ -110,7 +110,7 @@
 # one master
      
     bin/hoya create cl1 \
-    --zkhosts ubuntu \
+    --zkhosts ubuntu  --zkport 2121 \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
     -D hoya.security.enabled=true -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
     -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
@@ -122,16 +122,21 @@
 # one master env set up
       
      bin/hoya create cl1 \
-     --zkhosts ubuntu \
-     -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
+     --zkhosts ubuntu  --zkport 2121 \
+     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
+     -D hoya.security.enabled=true -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
+     -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
+     -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM \
      --image hdfs://ubuntu:9090/hbase.tar \
      --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/ubuntu-secure/hbase \
-     --role master 1  
+     --role master 1  \
+     --role worker 1  
     
 # build but don't deploy single master
      
     bin/hoya build cl1 \
     --zkhosts ubuntu \
+    --zkport 2121 \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
     -D hoya.security.enabled=true -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
     -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
