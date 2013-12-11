@@ -49,6 +49,9 @@
     <value>256M</value>
   </property>
   
- 
-  
+  <property>
+    <name>env.MALLOC_ARENA_MAX</name>
+    <value>4</value>
+  </property>
+
 </configuration>
