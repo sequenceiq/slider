@@ -123,12 +123,9 @@ public class AccumuloProviderService extends AbstractProviderService implements
     env.put(HADOOP_HOME, hadoop_home);
     env.put(HADOOP_PREFIX, hadoop_home);
     
-    //buildup accumulo home env variable to be absolute or relative
-    String accumulo_home = providerUtils.buildPathToHomeDir(
-      clusterSpec, "bin", "accumulo");
-    
-    env.put(ACCUMULO_HOME,
-            accumulo_home);
+    // By not setting ACCUMULO_HOME, this will cause the Accumulo script to
+    // compute it on its own to an absolute path.
+
     env.put(ACCUMULO_CONF_DIR,
             ProviderUtils.convertToAppRelativePath(
               HoyaKeys.PROPAGATED_CONF_DIR_NAME));
