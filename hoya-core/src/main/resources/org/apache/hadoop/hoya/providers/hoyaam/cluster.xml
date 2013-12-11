@@ -34,8 +34,18 @@
   <property>
     <name>hoya.container.failure.threshold</name>
     <value>5</value>
+    <description>
+      maximum number of failed containers (in a single role)
+      before the cluster is deemed to have failed.
+    </description>
   </property>
   
- 
+   
+  <property>
+    <name>hoya.am.monitoring.enabled</name>
+    <value>false</value>
+    <description>Is monitoring enabled on the AM?</description>
+  </property>
+  
   
 </configuration>
