@@ -47,6 +47,7 @@ public final class RoleStatus implements Cloneable {
   private int desired, actual, requested, releasing;
   private int failed, started, startFailed, completed, totalRequested;
 
+  private String failureMessage = "";
 
   public RoleStatus(ProviderRole providerRole) {
     this.providerRole = providerRole;
@@ -137,8 +138,17 @@ public final class RoleStatus implements Cloneable {
     return failed;
   }
 
-  public void incFailed() {
+  /**
+   * Note that a role failed, text will
+   * be used in any diagnostics if an exception
+   * is later raised.
+   * @param text text about the failure
+   */
+  public void noteFailed(String text) {
     failed++;
+    if (text != null) {
+      failureMessage = text;
+    }
   }
 
   public int getStartFailed() {
@@ -147,6 +157,10 @@ public final class RoleStatus implements Cloneable {
 
   public void incStartFailed() {
     startFailed++;
+  }
+
+  public String getFailureMessage() {
+    return failureMessage;
   }
 
   public int getCompleted() {
@@ -205,6 +219,8 @@ public final class RoleStatus implements Cloneable {
            ", started=" + started +
            ", startFailed=" + startFailed +
            ", completed=" + completed +
+           ", failureMessage='" + failureMessage + '\'' +
+           
            '}';
   }
 

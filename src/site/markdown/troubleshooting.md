@@ -52,6 +52,33 @@ For ambari-managed deployments, we recommend the following
 
 The `yarn-site.xml` file for the site will contain the relevant value.
 
+### Hoya application fails, "TriggerClusterTeardownException: Unstable Cluster" 
+
+Hoya gives up if it cannot keep enough instances of a role running -or more
+precisely, if they keep failing. 
+
+If this happens on cluster startup, it means that the application is not working
+
+   org.apache.hadoop.hoya.exceptions.TriggerClusterTeardownException: Unstable Cluster: 
+   - failed with role worker failing 4 times (4 in startup); threshold is 2 - last failure: Failure container_1386872971874_0001_01_000006 on host 192.168.1.86
+
+This message warns that a role -here worker- is failing to start and it has failed
+more than the configured failure threshold is. What it doesn't do is say why it failed,
+because that is not something the AM knows -that is a fact hidden in the logs on
+the container that failed.
+
+The final bit of the exception message can help you track down the problem,
+as it points you to the logs.
+
+In the example above the failure was in `container_1386872971874_0001_01_000006`
+on the host `192.168.1.86`. If you go to then node manager on that machine (the YARN
+RM web page will let you do this), and look for that container,
+you may be able to grab the logs from it. 
+
+It is from those logs that the cause of the problem -because they are the actual
+output of the actual application which Hoya is trying to deploy.
+
+
 ### Configuring YARN
  
  

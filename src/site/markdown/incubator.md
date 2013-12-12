@@ -25,7 +25,7 @@ applications under YARN"
 
 ## == Proposal ==
 
-Apache Hoya allows users to deploy distributed applications across a Hadoop
+Hoya allows users to deploy distributed applications across a Hadoop
 cluster, using the YARN resource manager to place components of these
 application , across the cluster. Hoya can monitor the health of these deployed
 components, and react to their failure or the loss of the servers on which they
@@ -54,6 +54,16 @@ released containers for HBase worker nodes based on demand.
 
 Since then Hoya has evolved based on the experiences of using the
 previous iterations, and a long-term goal of creating and managing distributed applications
+
+
+deployment of different roles: master and worker for HBase
+support for different systems via a provider plugin: accumulo is the other one, with more roles: master, tserver, monitor, tracer, gc.
+creation time patching of site XML for ZK bindings as well as other user-specified configurations. You point to a template conf/ directory which is snapshotted and then patched.
+Support for tarballs on HDFS or hdfs-home based HDFS instances, working off the maven built tars directly.
+manual flexing of cluster size -grow or shrink as requested, optionally persisted for future runs.
+placement tracking, "role history": https://github.com/hortonworks/hoya/blob/master/src/site/markdown/rolehistory.md . This is quite a sophisticated little bit of code -we persist the placement history to HDFS whenever it changes, then use this to build a list of which nodes to request containers on. It increases the likelihood that the workers come up on nodes that have the data, so even if you bring up a small hbase cluster in a large YARN cluster, there's not that much data to be moved around. [It's a best-effort request, not an absolute requirement request, though that could always be made a switch.
+secure clusters -though when the AM's tokens for YARN and hdfs expire, the cluster is dead.
+
 
  * Added the notion of a Provider, a set of classes containing the code to
    support different applications; factoring out HBase support into one such

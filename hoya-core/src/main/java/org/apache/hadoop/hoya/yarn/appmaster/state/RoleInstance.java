@@ -115,8 +115,9 @@ public class RoleInstance {
   public void buildUUID() {
     uuid = UUID.randomUUID().toString();
   }
+
   public ContainerId getContainerId() {
-    return container!=null? container.getId(): null;
+    return container != null ? container.getId() : null;
   }
 
   /**

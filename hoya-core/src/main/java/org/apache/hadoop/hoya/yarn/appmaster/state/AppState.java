@@ -826,11 +826,11 @@ public class AppState {
     RoleInstance instance = getStartingNodes().remove(containerId);
     if (null != instance) {
       RoleStatus roleStatus = lookupRoleStatus(instance.roleId);
-      roleStatus.incFailed();
-      roleStatus.incStartFailed();
       if (null != thrown) {
         instance.diagnostics = HoyaUtils.stringify(thrown);
       }
+      roleStatus.noteFailed(null);
+      roleStatus.incStartFailed(); 
       getFailedNodes().put(containerId, instance);
       roleHistory.onNodeManagerContainerStartFailed(instance.container);
     }
@@ -929,9 +929,20 @@ public class AppState {
         try {
           RoleStatus roleStatus = lookupRoleStatus(roleId);
           roleStatus.decActual();
-          roleStatus.incFailed();
-          //have a look to see if it short lived
           boolean shortLived = isShortLived(roleInstance);
+          String message;
+          if (roleInstance.container != null) {
+            message = String.format("Failure %s on host %s",
+                                           roleInstance.getContainerId(),
+                                           roleInstance.container
+                                                       .getNodeId()
+                                                       .getHost());
+          } else {
+            message = String.format("Failure %s",
+                                    containerId.toString());
+          }
+          roleStatus.noteFailed(message);
+          //have a look to see if it short lived
           if (shortLived) {
             roleStatus.incStartFailed();
           }
@@ -1076,8 +1087,12 @@ public class AppState {
       throw new TriggerClusterTeardownException(
         HoyaExitCodes.EXIT_CLUSTER_FAILED,
         ErrorStrings.E_UNSTABLE_CLUSTER +
-        " - failed with role %s failing %d times (%d in startup); threshold is %d",
-        role.getName(), role.getFailed(), role.getStartFailed(), failureThreshold);
+        " - failed with role %s failing %d times (%d in startup); threshold is %d - last failure: %s",
+        role.getName(),
+        role.getFailed(),
+        role.getStartFailed(),
+        failureThreshold,
+        role.getFailureMessage());
     }
   }
   
