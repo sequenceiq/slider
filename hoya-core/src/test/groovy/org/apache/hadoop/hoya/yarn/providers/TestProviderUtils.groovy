@@ -20,6 +20,8 @@ package org.apache.hadoop.hoya.yarn.providers
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+
+import org.apache.hadoop.hoya.api.RoleKeys
 import org.apache.hadoop.hoya.providers.ProviderUtils
 import org.apache.hadoop.hoya.yarn.HoyaTestBase
 import org.junit.Before
@@ -63,6 +65,30 @@ class TestProviderUtils extends HoyaTestBase {
     
     File sh = providerUtils.findBinScriptInExpandedArchive(archive,"bin","hbase")
     assert sh == script
+  }
+  
+  @Test
+  public void testAdditionalArgs() {
+    final String extraArgs = "--address 0.0.0.0";
+    Map<String,String> roleOptions = [ (RoleKeys.ROLE_NAME):"foo", 
+      (RoleKeys.ROLE_INSTANCES):"1", 
+      (RoleKeys.ROLE_ADDITIONAL_ARGS):(extraArgs)
+    ];
+    
+    String actualExtraArgs = ProviderUtils.getAdditionalArgs(roleOptions);
+    
+    assert extraArgs == actualExtraArgs;
+  }
+  
+  @Test
+  public void testUndefinedAdditionalArgs() {
+    Map<String,String> roleOptions = [ (RoleKeys.ROLE_NAME):"foo", 
+      (RoleKeys.ROLE_INSTANCES):"1",
+    ];
+    
+    String actualExtraArgs = ProviderUtils.getAdditionalArgs(roleOptions);
+    
+    assert "" == actualExtraArgs;
   }
   
   

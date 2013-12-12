@@ -93,6 +93,16 @@ of the roles.
 
 #### Desired instance count `role.instances`
 
+#### Additional command-line arguments `role.additional.args`
+
+This argument is meant to provide a configuration-based static option
+that is provided to every instance of the given role. For example, this is
+useful in providing a binding address to Accumulo's Monitor process.
+
+Users can override the option on the hoya executable using the roleopt argument:
+
+    --roleopt monitor role.additional.args "--address 127.0.0.1"
+
 #### YARN container memory `yarn.memory`
 
 The amount of memory in MB for the YARN container hosting

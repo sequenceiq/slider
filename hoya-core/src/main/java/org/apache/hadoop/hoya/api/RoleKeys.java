@@ -60,6 +60,11 @@ public interface RoleKeys {
   String ROLE_FAILED_STARTING_INSTANCES = "role.failed.starting.instances";
 
   /**
+   * Extra arguments (non-JVM) to use when starting this role
+   */
+  String ROLE_ADDITIONAL_ARGS = "roles.additional.args";
+  
+  /**
    *  Amount of memory to ask YARN for in MB.
    *  <i>Important:</i> this may be a hard limit on the
    *  amount of RAM that the service can use

@@ -367,4 +367,21 @@ public class ProviderUtils implements RoleKeys {
     return scriptFile;
   }
 
+  /**
+   * Return any additional arguments (argv) to provide when starting this role
+   * 
+   * @param roleOptions
+   *          The options for this role
+   * @return A non-null String which contains command line arguments for this role, or the empty string.
+   */
+  public static String getAdditionalArgs(Map<String,String> roleOptions) {
+    if (roleOptions.containsKey(RoleKeys.ROLE_ADDITIONAL_ARGS)) {
+      String additionalArgs = roleOptions.get(RoleKeys.ROLE_ADDITIONAL_ARGS);
+      if (null != additionalArgs) {
+        return additionalArgs;
+      }
+    }
+
+    return "";
+  }
 }
