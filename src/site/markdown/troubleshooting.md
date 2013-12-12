@@ -59,8 +59,9 @@ precisely, if they keep failing.
 
 If this happens on cluster startup, it means that the application is not working
 
-   org.apache.hadoop.hoya.exceptions.TriggerClusterTeardownException: Unstable Cluster: 
-   - failed with role worker failing 4 times (4 in startup); threshold is 2 - last failure: Failure container_1386872971874_0001_01_000006 on host 192.168.1.86
+     org.apache.hadoop.hoya.exceptions.TriggerClusterTeardownException: Unstable Cluster: 
+     - failed with role worker failing 4 times (4 in startup); threshold is 2
+     - last failure: Failure container_1386872971874_0001_01_000006 on host 192.168.1.86
 
 This message warns that a role -here worker- is failing to start and it has failed
 more than the configured failure threshold is. What it doesn't do is say why it failed,
