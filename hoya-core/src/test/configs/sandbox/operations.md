@@ -23,12 +23,12 @@
 
     
     hoya-assembly/target/hoya-assembly-0.5.1-SNAPSHOT-bin/bin/hoya \
-      --manager sandbox:8032 --filesystem hdfs://sandbox:8020 list -D hoya.security.enabled=true
+      --manager sandbox:8032 --filesystem hdfs://sandbox.hortonworks.com:8020 list -D hoya.security.enabled=true
       
       hoya create cluster1 \
          --role worker 4\
           --zkhosts sandbox \
-          --image hdfs://sandbox:8020/user/hoya/hbase.tar.gz \
+          --image hdfs://sandbox.hortonworks.com:8020/user/hoya/hbase.tar.gz \
           --appconf file:////Users/hoya/Hadoop/configs/master/hbase \
           --roleopt master app.infoport 8190 \
           --roleopt master jvm.heap 128 \
@@ -39,14 +39,14 @@
 ### bypassing /etc/krb.conf via the -S argument
 
     bin/hoya create cl1 \
-    --manager sandbox:8032 --filesystem hdfs://sandbox:8020 \
+    --manager sandbox:8032 --filesystem hdfs://sandbox.hortonworks.com:8020 \
     -S java.security.krb5.realm=COTHAM \
     \
      -D yarn.resourcemanager.principal=yarn/sandbox@COTHAM \
             --role worker 1\
             --role master 0\
         --zkhosts sandbox  \
-        --image hdfs://sandbox:8020/user/hoya/hbase.tar.gz \
+        --image hdfs://sandbox.hortonworks.com:8020/user/hoya/hbase.tar.gz \
         --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/sandbox/hbase \
         --roleopt master app.infoport 8180 \
         --roleopt master jvm.heap 128 \
@@ -59,7 +59,7 @@
     bin/hoya create cl1 \
         --role master 0 \
         --zkhosts sandbox  \
-        --image hdfs://sandbox:8020/user/hoya/hbase.tar.gz \
+        --image hdfs://sandbox.hortonworks.com:8020/user/hoya/hbase.tar.gz \
         --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/sandbox/hbase \
         --roleopt master app.infoport 8180 \
         --roleopt master jvm.heap 128 \
@@ -68,7 +68,7 @@
                 
         
     bin/hoya status clu1 \
-    --manager sandbox:8032 --filesystem hdfs://sandbox:8020 \
+    --manager sandbox:8032 --filesystem hdfs://sandbox.hortonworks.com:8020 \
     -S java.security.krb5.realm=COTHAM \
     \
      -D yarn.resourcemanager.principal=yarn/sandbox@COTHAM \
@@ -87,7 +87,7 @@
      
     bin/hoya create cluster3 \
     --zkhosts sandbox  \
-    --image hdfs://sandbox:8020/user/hoya/hbase.tar.gz \
+    --image hdfs://sandbox.hortonworks.com:8020/user/hoya/hbase.tar.gz \
     --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/sandbox/hbase \
     --roleopt master app.infoport 8180  \
     --role master 1 \
@@ -98,7 +98,7 @@
      
     bin/hoya create cl1 \
     --zkhosts sandbox   \
-    --image hdfs://sandbox:8020/user/hoya/hbase.tar.gz \
+    --image hdfs://sandbox.hortonworks.com:8020/user/hoya/hbase.tar.gz \
     --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/sandbox/hbase \
     --role master 1 
 
@@ -106,7 +106,7 @@
       
      bin/hoya create cl1 \
      --zkhosts sandbox   \
-     --image hdfs://sandbox:8020/user/hoya/hbase.tar.gz \
+     --image hdfs://sandbox.hortonworks.com:8020/user/hoya/hbase.tar.gz \
      --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/sandbox/hbase \
      --role master 1  \
      --role worker 1  
@@ -116,7 +116,7 @@
     bin/hoya build cl1 \
     --zkhosts sandbox \
      \
-    --image hdfs://sandbox:8020/user/hoya/hbase.tar.gz \
+    --image hdfs://sandbox.hortonworks.com:8020/user/hoya/hbase.tar.gz \
     --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/sandbox/hbase \
     --roleopt master app.infoport 8180  \
     --role master 1 
@@ -151,7 +151,7 @@
       --role worker 1\
       --role master 2\
       --zkhosts sandbox \
-      --image hdfs://sandbox:8020/user/hoya/hbase.tar.gz  \
+      --image hdfs://sandbox.hortonworks.com:8020/user/hoya/hbase.tar.gz  \
       --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/sandbox/hbase \
       --roleopt master app.infoport 8180 \
       --roleopt master env.MALLOC_ARENA_MAX 4 \

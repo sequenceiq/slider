@@ -26,7 +26,31 @@ that works
 The Hoya Application Master, the "Hoya AM" builds up its classpath from
 those JARs it has locally, and the JARS pre-installed on the classpath
 
+This often surfaces in an exception that can be summarized as
+"hadoop-common.jar is not on the classpath":
 
+    Exception in thread "main" java.lang.NoClassDefFoundError: org/apache/hadoop/util/ExitUtil$ExitException
+    Caused by: java.lang.ClassNotFoundException: org.apache.hadoop.util.ExitUtil$ExitException
+      at java.net.URLClassLoader$1.run(URLClassLoader.java:202)
+      at java.security.AccessController.doPrivileged(Native Method)
+      at java.net.URLClassLoader.findClass(URLClassLoader.java:190)
+      at java.lang.ClassLoader.loadClass(ClassLoader.java:306)
+      at sun.misc.Launcher$AppClassLoader.loadClass(Launcher.java:301)
+      at java.lang.ClassLoader.loadClass(ClassLoader.java:247)
+    Could not find the main class: org.apache.hadoop.yarn.service.launcher.ServiceLauncher.  Program will exit.
+
+
+For ambari-managed deployments, we recommend the following
+
+  
+      <property>
+        <name>yarn.application.classpath</name>
+        <value>
+          /etc/hadoop/conf,/usr/lib/hadoop/*,/usr/lib/hadoop/lib/*,/usr/lib/hadoop-hdfs/*,/usr/lib/hadoop-hdfs/lib/*,/usr/lib/hadoop-yarn/*,/usr/lib/hadoop-yarn/lib/*,/usr/lib/hadoop-mapreduce/*,/usr/lib/hadoop-mapreduce/lib/*
+        </value>
+      </property>
+
+The `yarn-site.xml` file for the site will contain the relevant value.
 
 ### Configuring YARN
  
