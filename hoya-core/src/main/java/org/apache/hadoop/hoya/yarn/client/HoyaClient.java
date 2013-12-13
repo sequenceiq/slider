@@ -851,8 +851,10 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       amContainer.setTokens(fsTokens);
     }
     // write out the path output
-    commands.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/out.txt");
-    commands.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/err.txt");
+    commands.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/"+
+                 STDOUT_HOYAAM);
+    commands.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/"+
+                 STDERR_HOYAAM);
 
     String cmdStr = HoyaUtils.join(commands, " ");
     log.info("Completed setting up app master command {}", cmdStr);
