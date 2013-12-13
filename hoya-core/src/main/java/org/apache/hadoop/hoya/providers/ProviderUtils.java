@@ -295,8 +295,8 @@ public class ProviderUtils implements RoleKeys {
    * @return the path to the directory
    * @throws IOException trouble
    */
-  public Path createDataDirectory(ClusterDescription cd,
-                                   Configuration conf) throws IOException {
+  public Path createClusterDirecties(ClusterDescription cd,
+                                     Configuration conf) throws IOException {
     Path path = new Path(cd.dataPath);
     FileSystem fs = FileSystem.get(path.toUri(), conf);
     if (!fs.exists(path)) {
@@ -304,11 +304,20 @@ public class ProviderUtils implements RoleKeys {
       String parentOpts =
         cd.getOption(OptionKeys.HOYA_CLUSTER_DIRECTORY_PERMISSIONS,
                      OptionKeys.DEFAULT_HOYA_CLUSTER_DIRECTORY_PERMISSIONS);
-      fs.mkdirs(path.getParent(), new FsPermission(parentOpts));
+      Path clusterDirPath = path.getParent();
+      log.debug("Setting cluster dir {} permissions to {}", 
+                clusterDirPath,
+                parentOpts);
+
+      fs.mkdirs(clusterDirPath, new FsPermission(parentOpts));
+      
       String dataOpts =
         cd.getOption(OptionKeys.HOYA_DATA_DIRECTORY_PERMISSIONS,
                      OptionKeys.DEFAULT_HOYA_DATA_DIRECTORY_PERMISSIONS);
+      log.debug("Setting data directory permissions to {}", dataOpts);
       fs.mkdirs(path,new FsPermission(dataOpts));
+      Path historyDir = new Path(clusterDirPath, HoyaKeys.HISTORY_DIR_NAME);
+      fs.mkdirs(historyDir, new FsPermission(dataOpts));
     }
     return path;
   }

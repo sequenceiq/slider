@@ -321,7 +321,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
    * @throws IOException IO problems
    */
   private boolean isInited(ClusterDescription cd) throws IOException {
-    providerUtils.createDataDirectory(cd, getConf());
+    providerUtils.createClusterDirecties(cd, getConf());
 
     Path accumuloInited = new Path(cd.dataPath, "instance_id");
     FileSystem fs2 = FileSystem.get(accumuloInited.toUri(), getConf());

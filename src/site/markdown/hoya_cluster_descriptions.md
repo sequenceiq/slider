@@ -74,6 +74,35 @@ An integer stating the number of failures tolerated in a single role before
 the cluster is considered to have failed.
 
 
+
+#### `hoya.am.monitoring.enabled`
+
+A boolean flag to indicate whether application-specific health monitoring
+should take place. Until this monitoring is completed the option
+is ignored -it is added as `false` by default on clusters created.
+
+#### `hoya.cluster.directory.permissions`
+
+An octal-format (`chmod`-style) permissions mask for the directory
+that contains the cluster specification `${user.home}/.hoya/clusters/${clustername}`
+
+Default: `0750`
+
+Other users in the same group are given write permissions so that
+in an insecure cluster, the user running yarn applications, (such as the user `yarn`)
+has the permissions needed to write to this
+
+#### `hoya.data.directory.permissions`
+
+An octal-format (`chmod`-style) permissions mask for the directory
+that contains the application data `${user.home}/.hoya/clusters/${clustername}/database`
+
+Default: `0770`
+
+Other users in the same group are given write permissions so that
+in an insecure cluster
+
+
 ## Roles
 
 A Hoya application consists of the Hoya Application Master, "the AM", which
