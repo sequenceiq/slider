@@ -22,11 +22,9 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 
 import org.apache.hadoop.hoya.api.ClusterDescription
-import org.apache.hadoop.hoya.api.RoleKeys
 import org.apache.hadoop.hoya.providers.accumulo.AccumuloConfigFileOptions
 import org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys
 import org.apache.hadoop.hoya.tools.ZKIntegration
-import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.accumulo.AccumuloTestBase
 import org.apache.hadoop.yarn.api.records.YarnApplicationState
@@ -56,8 +54,7 @@ class TestAccM1T1GC1Mon1 extends AccumuloTestBase {
         (AccumuloKeys.ROLE_MONITOR): monitor,
         (AccumuloKeys.ROLE_GARBAGE_COLLECTOR): gc
     ];
-    List<String> args = [Arguments.ARG_ROLEOPT, AccumuloKeys.ROLE_MONITOR, RoleKeys.ROLE_ADDITIONAL_ARGS, "--address localhost"];
-    ServiceLauncher launcher = createAccCluster(clustername, roles, args, true, true)
+    ServiceLauncher launcher = createAccCluster(clustername, roles, [], true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
 

@@ -59,8 +59,7 @@ class TestAccLiveLocalArchive extends AccumuloTestBase {
         (AccumuloKeys.ROLE_MONITOR): monitor,
         (AccumuloKeys.ROLE_GARBAGE_COLLECTOR): gc
     ];
-    List<String> args = [Arguments.ARG_ROLEOPT, AccumuloKeys.ROLE_MONITOR, RoleKeys.ROLE_ADDITIONAL_ARGS, "--address localhost"];
-    ServiceLauncher launcher = createAccCluster(clustername, roles, args, true, true)
+    ServiceLauncher launcher = createAccCluster(clustername, roles, [], true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
 
