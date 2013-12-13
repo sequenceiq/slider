@@ -538,6 +538,12 @@
 
       <dependency>
         <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-fate</artifactId>
+        <version>${accumulo.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-minicluster</artifactId>
         <version>${accumulo.version}</version>
       </dependency>

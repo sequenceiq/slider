@@ -344,14 +344,7 @@
 
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-server</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-core</artifactId>
-      <scope>test</scope>
     </dependency>
 
     <dependency>
