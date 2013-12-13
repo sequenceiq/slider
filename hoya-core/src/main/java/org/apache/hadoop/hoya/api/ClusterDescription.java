@@ -283,10 +283,8 @@ public class ClusterDescription {
    * @throws IOException IO excpetion
    */
   public void save(File file) throws IOException {
-    if (!(file.getParentFile().mkdirs())) {
-      throw new FileNotFoundException(
-        "Failed to create parent dirs for " + file);
-    }
+    log.debug("Saving to {}", file.getAbsolutePath());
+    file.getParentFile().mkdirs();
     DataOutputStream dataOutputStream = new DataOutputStream(new FileOutputStream(file));
     writeJsonAsBytes(dataOutputStream);
   }

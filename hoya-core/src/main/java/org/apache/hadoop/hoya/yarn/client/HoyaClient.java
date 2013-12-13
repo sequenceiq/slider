@@ -1328,7 +1328,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     if (outfile == null) {
       log.info(text);
     } else {
-      status.save(new File(outfile));
+      status.save(new File(outfile).getAbsoluteFile());
     }
     return EXIT_SUCCESS;
   }

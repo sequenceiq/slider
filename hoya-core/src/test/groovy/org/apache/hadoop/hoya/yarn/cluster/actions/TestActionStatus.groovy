@@ -105,6 +105,25 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
     def text = tfile.text
     ClusterDescription cd = new ClusterDescription();
     cd.fromJson(text)
+    
+    //status to a file via the command line :  bin/hoya status cl1 --out file.json
+    String path = "target/cluster.json"
+    launcher = launchHoyaClientAgainstMiniMR(
+        //config includes RM binding info
+        new YarnConfiguration(miniCluster.config),
+        //varargs list of command line params
+        [
+            ClientArgs.ACTION_STATUS,
+            clustername,
+            Arguments.ARG_MANAGER, RMAddr,
+            Arguments.ARG_OUTPUT, path
+        ]
+    )
+    assert launcher.serviceExitCode == 0
+    tfile = new File(path)
+    ClusterDescription cd2 = new ClusterDescription();
+    cd2.fromJson(text)
+
   }
 
 
