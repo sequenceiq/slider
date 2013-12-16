@@ -33,6 +33,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.OptionKeys;
+import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.exceptions.BadClusterStateException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
@@ -145,7 +146,6 @@ public class AccumuloProviderService extends AbstractProviderService implements
                                               HoyaKeys.PROPAGATED_CONF_DIR_NAME);
     localResources.putAll(confResources);
 
-
     //Add binaries
     //now add the image if it was set
     if (clusterSpec.isImagePathSet()) {
@@ -156,10 +156,21 @@ public class AccumuloProviderService extends AbstractProviderService implements
     ctx.setLocalResources(localResources);
 
     List<String> commands = new ArrayList<String>();
-
-
-
     List<String> command = new ArrayList<String>();
+    
+    String heap = clusterSpec.getRoleOpt(role, RoleKeys.JVM_HEAP, DEFAULT_JVM_HEAP);
+    if (HoyaUtils.isSet(heap)) {
+      if (AccumuloKeys.ROLE_MASTER.equals(role)) {
+        command.add("ACCUMULO_MASTER_OPTS='-Xmx" + heap + "'");
+      } else if (AccumuloKeys.ROLE_TABLET.equals(role)) {
+        command.add("ACCUMULO_TSERVER_OPTS='-Xmx" + heap + "'");
+      } else if (AccumuloKeys.ROLE_MONITOR.equals(role)) {
+        command.add("ACCUMULO_MONITOR_OPTS='-Xmx" + heap + "'");
+      } else if (AccumuloKeys.ROLE_GARBAGE_COLLECTOR.equals(role)) {
+        command.add("ACCUMULO_GC_OPTS='-Xmx" + heap + "'");
+      } else command.add("ACCUMULO_OTHER_OPTS='-Xmx" + heap + "'");
+    }
+
     //this must stay relative if it is an image
     command.add(
       AccumuloClientProvider.buildScriptBinPath(clusterSpec).toString());
