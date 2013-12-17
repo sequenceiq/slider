@@ -1016,8 +1016,10 @@ public class AppState {
     cd.setInfoTime(StatusKeys.INFO_STATUS_TIME_HUMAN,
                    StatusKeys.INFO_STATUS_TIME_MILLIS,
                    now);
-    for (Map.Entry<String, String> entry : providerStatus.entrySet()) {
-      cd.setInfo(entry.getKey(),entry.getValue());
+    if (providerStatus != null) {
+      for (Map.Entry<String, String> entry : providerStatus.entrySet()) {
+        cd.setInfo(entry.getKey(),entry.getValue());
+      }
     }
     // set the RM-defined maximum cluster values
     cd.setInfo(RoleKeys.YARN_CORES, Integer.toString(containerMaxCores));
