@@ -100,6 +100,21 @@ public final class HoyaUtils {
   public static boolean isSet(String s) {
     return !isUnset(s);
   }
+  /*
+   * Translates the trailing JVM heapsize unit: g, G, m, M
+   * This assumes designated unit of 'm'
+   * @param heapsize
+   * @return heapsize in MB
+   */
+  public static String translateTrailingHeapUnit(String heapsize) {
+    if (heapsize.endsWith("m") || heapsize.endsWith("M")) {
+      return heapsize.substring(0, heapsize.length()-1);
+    }
+    if (heapsize.endsWith("g") || heapsize.endsWith("G")) {
+      return heapsize.substring(0, heapsize.length()-1)+"000";
+    }
+    return heapsize;
+  }
 
   /**
    * recursive directory delete

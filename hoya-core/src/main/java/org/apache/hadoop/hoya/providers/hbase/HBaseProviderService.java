@@ -33,6 +33,7 @@ import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.hadoop.hoya.HostAndPort;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
+import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.api.StatusKeys;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
@@ -178,11 +179,15 @@ public class HBaseProviderService extends AbstractProviderService implements
     ctx.setLocalResources(localResources);
     List<String> commands = new ArrayList<String>();
 
-
     List<String> command = new ArrayList<String>();
+
+    String heap = clusterSpec.getRoleOpt(role, RoleKeys.JVM_HEAP, DEFAULT_JVM_HEAP);
+    if (HoyaUtils.isSet(heap)) {
+      command.add("HBASE_HEAPSIZE=" + HoyaUtils.translateTrailingHeapUnit(heap));
+    }
+    
     //this must stay relative if it is an image
     command.add(buildHBaseScriptBinPath(clusterSpec));
-
     //config dir is relative to the generated file
     command.add(ARG_CONFIG);
     command.add("$PROPAGATED_CONFDIR");

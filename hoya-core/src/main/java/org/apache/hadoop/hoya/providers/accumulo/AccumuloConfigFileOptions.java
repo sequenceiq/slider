@@ -18,6 +18,8 @@
 
 package org.apache.hadoop.hoya.providers.accumulo;
 
+import org.apache.accumulo.core.conf.Property;
+
 /**
  * Mappings of config params to env variables for
  * custom -site.xml files to pick up
@@ -32,30 +34,30 @@ public interface AccumuloConfigFileOptions {
   /**
    * quorum style, comma separated list of hostname:port values
    */
-  String ZOOKEEPER_HOST = "instance.zookeeper.host";
+  String ZOOKEEPER_HOST = Property.INSTANCE_ZK_HOST.getKey();
 
   /**
    * URI to the filesystem
    */
-  String INSTANCE_DFS_URI = "instance.dfs.uri";
+  String INSTANCE_DFS_URI = Property.INSTANCE_DFS_URI.getKey();
 
   /**
    * Dir under the DFS URI
    */
-  String INSTANCE_DFS_DIR = "instance.dfs.dir";
+  String INSTANCE_DFS_DIR = Property.INSTANCE_DFS_DIR.getKey();
 
 
-  String INSTANCE_SECRET = "instance.secret";
-  String MASTER_PORT_CLIENT = "master.port.client";
-  String MASTER_PORT_CLIENT_DEFAULT = "9999";
+  String INSTANCE_SECRET = Property.INSTANCE_SECRET.getKey();
+  String MASTER_PORT_CLIENT = Property.MASTER_CLIENTPORT.getKey();
+  String MASTER_PORT_CLIENT_DEFAULT = Property.MASTER_CLIENTPORT.getDefaultValue();
   
-  String MONITOR_PORT_CLIENT = "monitor.port.client";
-  int MONITOR_PORT_CLIENT_INT = 50095;
-  String MONITOR_PORT_CLIENT_DEFAULT = "" + MONITOR_PORT_CLIENT_INT;
-  String TRACE_PORT_CLIENT = "trace.port.client";
-  String TRACE_PORT_CLIENT_DEFAULT = "12234";
+  String MONITOR_PORT_CLIENT = Property.MONITOR_PORT.getKey();
+  String MONITOR_PORT_CLIENT_DEFAULT = Property.MONITOR_PORT.getDefaultValue();
+  int MONITOR_PORT_CLIENT_INT = Integer.parseInt(MONITOR_PORT_CLIENT_DEFAULT);
+  String TRACE_PORT_CLIENT = Property.TRACE_PORT.getKey();
+  String TRACE_PORT_CLIENT_DEFAULT = Property.TRACE_PORT.getDefaultValue();
 
-  String TSERV_PORT_CLIENT = "tserver.port.client";
-  String TSERV_PORT_CLIENT_DEFAULT = "9997";
+  String TSERV_PORT_CLIENT = Property.TSERV_CLIENTPORT.getKey();
+  String TSERV_PORT_CLIENT_DEFAULT = Property.TSERV_CLIENTPORT.getDefaultValue();
   
 }

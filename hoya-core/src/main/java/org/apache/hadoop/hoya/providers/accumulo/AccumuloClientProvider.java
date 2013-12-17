@@ -246,6 +246,47 @@ public class AccumuloClientProvider extends AbstractProviderCore implements
   }
 
   /**
+   * Add Accumulo and its dependencies (only) to the job configuration.
+   * <p>
+   * This is intended as a low-level API, facilitating code reuse between this
+   * class and its mapred counterpart. It also of use to external tools that
+   * need to build a MapReduce job that interacts with Accumulo but want
+   * fine-grained control over the jars shipped to the cluster.
+   * </p>
+   *
+   * @see org.apache.hadoop.hbase.mapred.TableMapReduceUtil
+   * @see <a href="https://issues.apache.org/;jira/browse/PIG-3285">PIG-3285</a>
+   *
+   * @param providerResources provider resources to add resource to
+   * @param clusterFS filesystem
+   * @param libdir relative directory to place resources
+   * @param tempPath path in the cluster FS for temp files
+   * @throws IOException IO problems
+   * @throws HoyaException Hoya-specific issues
+   */
+  public static void addAccumuloDependencyJars(Map<String, LocalResource> providerResources,
+                                            FileSystem clusterFS,
+                                            String libdir,
+                                            Path tempPath) throws
+                                                           IOException,
+                                                           HoyaException {
+    String[] jars =
+      {
+        "accumulo-core.jar",
+        "zookeeper.jar",
+      };
+    Class[] classes = {
+      // accumulo-core
+      org.apache.accumulo.core.Constants.class,
+      //zk
+      org.apache.zookeeper.ClientCnxn.class
+    };
+    ProviderUtils.addDependencyJars(providerResources, clusterFS, tempPath,
+                                    libdir, jars,
+                                    classes);
+  }
+
+  /**
    * This builds up the site configuration for the AM and downstream services;
    * the path is added to the cluster spec so that launchers in the 
    * AM can pick it up themselves. 
@@ -273,6 +314,7 @@ public class AccumuloClientProvider extends AbstractProviderCore implements
                                                                 String libdir,
                                                                 Path tempPath) throws
                                                                                            IOException,
+                                                                                           HoyaException,
                                                                                            BadConfigException {
     Configuration siteConf = ConfigHelper.loadTemplateConfiguration(
       serviceConf,
@@ -299,6 +341,9 @@ public class AccumuloClientProvider extends AbstractProviderCore implements
     confResources = HoyaUtils.submitDirectory(clusterFS,
                                               generatedConfDirPath,
                                               HoyaKeys.PROPAGATED_CONF_DIR_NAME);
+    
+    addAccumuloDependencyJars(confResources, clusterFS, libdir, tempPath);
+    
     return confResources;
   }
 

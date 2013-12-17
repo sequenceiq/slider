@@ -20,11 +20,15 @@ package org.apache.hadoop.hoya.yarn.cluster.live
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.tools.ZKIntegration
+import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
+import org.apache.hadoop.yarn.service.launcher.ServiceLaunchException
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
@@ -43,7 +47,8 @@ class TestHBaseMaster extends HBaseMiniClusterTestBase {
     ZKIntegration zki = createZKIntegrationInstance(ZKBinding, clustername, false, false, 5000)
     //now launch the cluster with 1 region server
     int regionServerCount = 1
-    ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount, [], true, true) 
+    ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount,
+      [Arguments.ARG_ROLEOPT, HBaseKeys.ROLE_MASTER, RoleKeys.JVM_HEAP, "1G"], true, true) 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
     ClusterDescription status = hoyaClient.getClusterDescription(clustername)
@@ -64,4 +69,20 @@ class TestHBaseMaster extends HBaseMiniClusterTestBase {
                      HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
   }
 
+  @Test
+  public void testHBaseMasterWithBadHeap() throws Throwable {
+    String clustername = "test_hbase_master_with_bad_heap"
+    createMiniCluster(clustername, createConfiguration(), 1, true)
+
+    describe "verify that bad Java heap options are picked up"
+    //now launch the cluster with 1 region server
+    int regionServerCount = 1
+    try {
+      ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount,
+        [Arguments.ARG_ROLEOPT, HBaseKeys.ROLE_MASTER, RoleKeys.JVM_HEAP, "invalid"], true, true) 
+      HoyaClient hoyaClient = (HoyaClient) launcher.service
+    } catch (ServiceLaunchException e) {
+      assertExceptionDetails(e, HoyaExitCodes.EXIT_CLUSTER_FAILED)
+    }
+  }
 }
