@@ -24,7 +24,6 @@ import java.io.IOException;
 /**
  * Relay from Protobuf to internal RPC.
  *
- * This is not (currently) implemented.
  */
 public class HoyaClusterProtocolPBImpl implements HoyaClusterProtocolPB {
 
