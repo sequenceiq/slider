@@ -1062,7 +1062,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
       return false;
     }
     
-/*    ClusterDescription clusterSpec = getClusterSpec();
+    ClusterDescription clusterSpec = getClusterSpec();
     ReportingLoop masterReportingLoop;
     Thread loopThread;
 
@@ -1079,12 +1079,14 @@ public class HoyaAppMaster extends CompoundLaunchedService
         new ReportingLoop("MasterStatusCheck", this, probes, null, 1000, 1000,
                           timeout, -1);
       if (!masterReportingLoop.startReporting()) {
+        masterReportingLoop.close();
         throw new HoyaException(EXIT_INTERNAL_ERROR,
                                 "failed to start monitoring");
       }
       loopThread = new Thread(masterReportingLoop, "MasterStatusCheck");
       loopThread.setDaemon(true);
       loopThread.start();
+      int waittime = 0;
       // now wait until finished
       try {
         loopThread.join(waittime * 1000L);
@@ -1093,7 +1095,6 @@ public class HoyaAppMaster extends CompoundLaunchedService
       }
       masterReportingLoop.close();
     }
-    */
     return false;
   }
 
