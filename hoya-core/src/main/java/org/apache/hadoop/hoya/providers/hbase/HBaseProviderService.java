@@ -188,6 +188,12 @@ public class HBaseProviderService extends AbstractProviderService implements
       env.put("HBASE_HEAPSIZE", adjustedHeap);
     }
     
+    String gcOpts = clusterSpec.getRoleOpt(role, RoleKeys.GC_OPTS, DEFAULT_GC_OPTS);
+    if (HoyaUtils.isSet(gcOpts)) {
+      command.add("SERVER_GC_OPTS=" + gcOpts);
+      env.put("SERVER_GC_OPTS", gcOpts);
+    }
+    
     //this must stay relative if it is an image
     command.add(buildHBaseScriptBinPath(clusterSpec));
     //config dir is relative to the generated file

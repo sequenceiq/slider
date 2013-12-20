@@ -104,6 +104,11 @@ public interface RoleKeys {
    *  {@value}
    */
   String JVM_HEAP = "jvm.heapsize";
+  
+  /*
+   * GC options for Java applications.
+   */
+  String GC_OPTS = "gc.opts";
 
   /**
    * JVM options other than heap size. Only relevant for Java applications.

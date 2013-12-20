@@ -147,4 +147,6 @@ public interface HoyaKeys extends HoyaXmlConfKeys {
 
   String DEFAULT_JVM_HEAP = "256M";
   int DEFAULT_YARN_MEMORY = 256;
+  
+  String DEFAULT_GC_OPTS = "";
 }
