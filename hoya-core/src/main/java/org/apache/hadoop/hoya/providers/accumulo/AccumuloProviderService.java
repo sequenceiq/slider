@@ -158,17 +158,20 @@ public class AccumuloProviderService extends AbstractProviderService implements
     List<String> commands = new ArrayList<String>();
     List<String> command = new ArrayList<String>();
     
-    String heap = clusterSpec.getRoleOpt(role, RoleKeys.JVM_HEAP, DEFAULT_JVM_HEAP);
+    String heap = "-Xmx" + clusterSpec.getRoleOpt(role, RoleKeys.JVM_HEAP, DEFAULT_JVM_HEAP);
+    String opt = "ACCUMULO_OTHER_OPTS";
     if (HoyaUtils.isSet(heap)) {
       if (AccumuloKeys.ROLE_MASTER.equals(role)) {
-        command.add("ACCUMULO_MASTER_OPTS='-Xmx" + heap + "'");
+        opt = "ACCUMULO_MASTER_OPTS";
       } else if (AccumuloKeys.ROLE_TABLET.equals(role)) {
-        command.add("ACCUMULO_TSERVER_OPTS='-Xmx" + heap + "'");
+        opt = "ACCUMULO_TSERVER_OPTS";
       } else if (AccumuloKeys.ROLE_MONITOR.equals(role)) {
-        command.add("ACCUMULO_MONITOR_OPTS='-Xmx" + heap + "'");
+        opt = "ACCUMULO_MONITOR_OPTS";
       } else if (AccumuloKeys.ROLE_GARBAGE_COLLECTOR.equals(role)) {
-        command.add("ACCUMULO_GC_OPTS='-Xmx" + heap + "'");
-      } else command.add("ACCUMULO_OTHER_OPTS='-Xmx" + heap + "'");
+        opt = "ACCUMULO_GC_OPTS";
+      }
+      command.add(opt + "='" + heap + "'");
+      env.put(opt, heap);
     }
 
     //this must stay relative if it is an image

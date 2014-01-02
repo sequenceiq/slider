@@ -263,8 +263,8 @@ It returns -1 if there is no running cluster, or the size of the flexed cluster 
 
 Example
 
-    hoya flex cluster1 --role worker 8 --persist true
-    hoya flex cluster1 --role master 2 --persist false
+    hoya flex cluster1 --role worker 8 --persist true --filesystem hdfs://host:port
+    hoya flex cluster1 --role master 2 --persist false --filesystem hdfs://host:port
     
 
 ### `freeze <cluster>  [--wait time]`
@@ -305,9 +305,9 @@ specify the destination.
 
 Examples:
 
-    hoya status cluster1
+    hoya status cluster1 --manager host:port
     
-    hoya status cluster2 --out status.json
+    hoya status cluster2 --manager host:port --out status.json
 
 
 

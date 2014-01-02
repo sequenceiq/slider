@@ -183,7 +183,15 @@ public class HBaseProviderService extends AbstractProviderService implements
 
     String heap = clusterSpec.getRoleOpt(role, RoleKeys.JVM_HEAP, DEFAULT_JVM_HEAP);
     if (HoyaUtils.isSet(heap)) {
-      command.add("HBASE_HEAPSIZE=" + HoyaUtils.translateTrailingHeapUnit(heap));
+      String adjustedHeap = HoyaUtils.translateTrailingHeapUnit(heap);
+      command.add("HBASE_HEAPSIZE=" + adjustedHeap);
+      env.put("HBASE_HEAPSIZE", adjustedHeap);
+    }
+    
+    String gcOpts = clusterSpec.getRoleOpt(role, RoleKeys.GC_OPTS, DEFAULT_GC_OPTS);
+    if (HoyaUtils.isSet(gcOpts)) {
+      command.add("SERVER_GC_OPTS=" + gcOpts);
+      env.put("SERVER_GC_OPTS", gcOpts);
     }
     
     //this must stay relative if it is an image

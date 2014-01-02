@@ -149,4 +149,5 @@ public interface HoyaKeys extends HoyaXmlConfKeys {
   int DEFAULT_YARN_MEMORY = 256;
   String STDOUT_HOYAAM = "hoyaam.txt";
   String STDERR_HOYAAM = "hoyaam-err.txt";
+  String DEFAULT_GC_OPTS = "";
 }

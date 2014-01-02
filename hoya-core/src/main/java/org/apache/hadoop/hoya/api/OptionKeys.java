@@ -138,6 +138,6 @@ public interface OptionKeys {
    */
   String AM_MONITORING_ENABLED = "hoya.am.monitoring.enabled";
 
-  boolean AM_MONITORING_ENABLED_DEFAULT = false;
+  boolean AM_MONITORING_ENABLED_DEFAULT = true;
 
 }
