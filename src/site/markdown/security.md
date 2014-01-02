@@ -203,7 +203,7 @@ via a `kinit` call.
 
       hoya create cluster1 \
       --manager master:8032 --filesystem hdfs://master:9090 \
-         --role workers 4\
+          --role worker 4  --role master 1 \
           --zkhosts master \
           -D hoya.security.enabled=true -S java.security.krb5.realm=MINICLUSTER \
           -S java.security.krb5.kdc=master \

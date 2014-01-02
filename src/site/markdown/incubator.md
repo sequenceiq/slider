@@ -59,7 +59,7 @@ previous iterations, and a long-term goal of creating and managing distributed a
 1. Deployment of different clustered applications via a provider plugin: HBase and Accumulo being the two currently supported. 
 1. A notion of different *roles* in an application. For HBase the two roles
 are 'master' and 'worker'; Accumulo has five: master, tserver, monitor, tracer and gc.
-1. Automatic download and expansion of an application's .tar and .tar.gz binaries from HDFS
+1. Automatic download and expansion of .tar and .tar.gz binaries from HDFS
 -which allows for side-by-side clusters of different versions of an application.
 1. The option to bypass the tarball download and run with pre-installed binaries.
 1. Create-time patching of site XML for ZK bindings as well as other user-specified configurations. 
