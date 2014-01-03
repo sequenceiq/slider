@@ -55,11 +55,11 @@ class TestBadClusterName extends HBaseMiniClusterTestBase {
                
            ],
            true,
-           true, [:])
+           false,
+           [:])
       HoyaClient hoyaClient = (HoyaClient) launcher.service
       addToTeardown(hoyaClient);
-      ClusterDescription status = hoyaClient.clusterDescription
-      dumpClusterDescription("Remote CD", status)
+      fail("expected a failure")
     } catch (ServiceLaunchException e) {
       assertExceptionDetails(e, LauncherExitCodes.EXIT_COMMAND_ARGUMENT_ERROR)
     }
