@@ -98,7 +98,7 @@ class TestCreateMasterlessAM extends HBaseMiniClusterTestBase {
     //now kill that cluster
     assert 0 == clusterActionFreeze(hoyaClient, clustername)
     //list it & See if it is still there
-    ApplicationReport oldInstance = hoyaClient.findInstance(username, clustername)
+    ApplicationReport oldInstance = hoyaClient.findInstance(clustername)
     assert oldInstance != null
     assert oldInstance.yarnApplicationState >= YarnApplicationState.FINISHED
 
