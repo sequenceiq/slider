@@ -35,4 +35,10 @@ public class ActionFreezeArgs extends AbstractActionArgs implements
   public int getWaittime() {
     return waitDelegate.getWaittime();
   }
+
+  @Override
+  public void setWaittime(int waittime) {
+    waitDelegate.setWaittime(waittime);
+  }
+
 }

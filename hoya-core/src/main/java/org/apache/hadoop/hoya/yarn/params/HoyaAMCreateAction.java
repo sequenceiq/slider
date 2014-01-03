@@ -54,4 +54,10 @@ public class HoyaAMCreateAction extends AbstractActionArgs implements
   public int getWaittime() {
     return launchArgs.getWaittime();
   }
+
+  @Override
+  public void setWaittime(int waittime) {
+    launchArgs.setWaittime(waittime);
+  }
+  
 }
