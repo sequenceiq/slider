@@ -947,7 +947,9 @@ public class AppState {
             roleStatus.incStartFailed();
           }
           
-          roleHistory.onFailedContainer(roleInstance.container, shortLived);
+          if (roleInstance.container != null) {
+            roleHistory.onFailedContainer(roleInstance.container, shortLived);
+          }
           
         } catch (YarnRuntimeException e1) {
           log.error("Failed container of unknown role {}", roleId);

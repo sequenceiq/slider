@@ -645,7 +645,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
    * @param exitCode exit code for the aM
    * @param reason reason for termination
    */
-  public void signalAMComplete(int exitCode, String reason) {
+  public synchronized void signalAMComplete(int exitCode, String reason) {
     amCompletionReason = reason;
     AMExecutionStateLock.lock();
     try {
