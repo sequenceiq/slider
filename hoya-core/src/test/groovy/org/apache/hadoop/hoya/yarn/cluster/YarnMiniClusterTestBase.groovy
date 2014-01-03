@@ -27,6 +27,7 @@ import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.FileUtil
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hdfs.MiniDFSCluster
+import org.apache.hadoop.hoya.Hoya
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.ClusterNode
@@ -45,7 +46,9 @@ import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.MicroZKCluster
 import org.apache.hadoop.hoya.tools.ZKIntegration
+import org.apache.hadoop.hoya.yarn.appmaster.HoyaAppMaster
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
+import org.apache.hadoop.hoya.yarn.params.ActionFreezeArgs
 import org.apache.hadoop.service.ServiceOperations
 import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.api.records.YarnApplicationState
@@ -310,6 +313,13 @@ implements KeysForTests, HoyaExitCodes {
     return launcher;
   }
 
+  /**
+   * Kill all Hoya Services. That i
+   * @param signal
+   */
+  public void killHoyaAM(int signal) {
+    killJavaProcesses(HoyaAppMaster.SERVICE_CLASSNAME, signal)
+  }
   
   /**
    * Kill any java process with the given grep pattern
@@ -330,7 +340,6 @@ implements KeysForTests, HoyaExitCodes {
     for (String grep : greps) {
       killJavaProcesses(grep,signal)
     }
-    
   }
 
   /**
@@ -802,9 +811,11 @@ implements KeysForTests, HoyaExitCodes {
    */
   public int clusterActionFreeze(HoyaClient hoyaClient, String clustername, String message = "action freeze") {
     log.info("Freezing cluster $clustername")
+    ActionFreezeArgs freezeArgs  = new ActionFreezeArgs();
+    freezeArgs.waittime = HBASE_CLUSTER_STOP_TIME
     int exitCode = hoyaClient.actionFreeze(clustername,
-                                           HBASE_CLUSTER_STOP_TIME,
-                                           message);
+                                           message,
+                                           freezeArgs);
     if (exitCode != 0) {
       log.warn("Cluster freeze failed with error code $exitCode")
     }

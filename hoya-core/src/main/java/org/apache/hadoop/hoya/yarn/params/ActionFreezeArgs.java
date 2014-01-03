@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.yarn.params;
 
+import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.beust.jcommander.ParametersDelegate;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
@@ -41,4 +42,7 @@ public class ActionFreezeArgs extends AbstractActionArgs implements
     waitDelegate.setWaittime(waittime);
   }
 
+  @Parameter(names = {ARG_FORCE},
+             description = "force the operation")
+  public boolean force;
 }

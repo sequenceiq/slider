@@ -57,6 +57,7 @@ import org.apache.hadoop.hoya.yarn.HoyaActions;
 import org.apache.hadoop.hoya.yarn.params.AbstractClusterBuildingActionArgs;
 import org.apache.hadoop.hoya.yarn.params.ActionCreateArgs;
 import org.apache.hadoop.hoya.yarn.params.ActionFlexArgs;
+import org.apache.hadoop.hoya.yarn.params.ActionFreezeArgs;
 import org.apache.hadoop.hoya.yarn.params.ActionGetConfArgs;
 import org.apache.hadoop.hoya.yarn.params.ActionThawArgs;
 import org.apache.hadoop.hoya.yarn.params.ClientArgs;
@@ -210,8 +211,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       exitCode = actionCreate(clusterName);
     } else if (HoyaActions.ACTION_FREEZE.equals(action)) {
       exitCode = actionFreeze(clusterName,
-                              serviceArgs.getActionFreezeArgs().getWaittime(),
-                              "stopping cluster");
+                              "stopping cluster",
+                              serviceArgs.getActionFreezeArgs());
     } else if (HoyaActions.ACTION_THAW.equals(action)) {
       exitCode = actionThaw(clusterName);
     } else if (HoyaActions.ACTION_DESTROY.equals(action)) {
@@ -1373,20 +1374,26 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
   /**
    * Stop the cluster
+   *
+   *
    * @param clustername cluster name
    * @param text
-   * @return the cluster name
+   * @param freezeArgs
+   * @return EXIT_SUCCESS if the cluster was not running by the end of the operation
    */
-  public int actionFreeze(String clustername, int waittime, String text) throws
+  public int actionFreeze(String clustername,
+                          String text,
+                          ActionFreezeArgs freezeArgs) throws
                                                             YarnException,
                                                             IOException {
     verifyManagerSet();
     HoyaUtils.validateClusterName(clustername);
-    log.debug("actionFreeze({}, {})", clustername, waittime);
+    int waittime = freezeArgs.getWaittime();
+    boolean forcekill = freezeArgs.force;
+    log.debug("actionFreeze({}, {}, force={})", clustername, waittime, forcekill);
     
     //is this actually a known cluster? 
     locateClusterSpecification(clustername);
-    
     ApplicationReport app = findInstance(clustername);
     if (app == null) {
       // exit early
@@ -1402,15 +1409,36 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                app.getYarnApplicationState());
       return EXIT_SUCCESS;
     }
-    boolean forcekill = false;
     ApplicationId appId = app.getApplicationId();
-    try {
-      HoyaClusterProtocol appMaster = connect(app);
-      Messages.StopClusterRequestProto r =
-        Messages.StopClusterRequestProto.newBuilder().setMessage(text).build();
-      appMaster.stopCluster(r);
 
-      log.debug("Cluster stop command issued");
+    if (forcekill) {
+      //escalating to forced kill
+      yarnClient.killRunningApplication(appId,
+                                        "Forced kill of {}");
+    } else {
+      try {
+        HoyaClusterProtocol appMaster = connect(app);
+        Messages.StopClusterRequestProto r =
+          Messages.StopClusterRequestProto
+                  .newBuilder()
+                  .setMessage(text)
+                  .build();
+        appMaster.stopCluster(r);
+
+        log.debug("Cluster stop command issued");
+
+      } catch (YarnException e) {
+        log.warn("Exception while trying to terminate {}: {}", clustername, e);
+        return EXIT_FALSE;
+      } catch (IOException e) {
+        log.warn("Exception while trying to terminate {}: {}", clustername, e);
+        return EXIT_FALSE;
+      }
+    }
+
+    //wait for completion. We don't currently return an exception during this process
+    //as the stop operation has been issued, this is just YARN.
+    try {
       if (waittime > 0) {
         ApplicationReport applicationReport =
           monitorAppToState(appId,
@@ -1418,22 +1446,17 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                             new Duration(waittime * 1000));
         if (applicationReport == null) {
           log.info("application did not shut down in time");
-          forcekill = true;
+          return EXIT_FALSE;
         }
       }
     } catch (YarnException e) {
-      log.warn("Exception while trying to terminate {}: {}", clustername, e);
-      forcekill = true;
+      log.warn("Exception while waiting for the cluster {} to shut down: {}",
+               clustername, e);
     } catch (IOException e) {
-      log.warn("Exception while trying to terminate {}: {}", clustername, e);
-      forcekill = true;
+      log.warn("Exception while waiting for the cluster {} to shut down: {}",
+               clustername, e);
     }
-    if (forcekill) {
-      //escalating to forced kill
-      yarnClient.killRunningApplication(appId,
-                      "Forced kill as Hoya AM did not shut down");
 
-    }
     return EXIT_SUCCESS;
   }
 

@@ -83,6 +83,10 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
   public void killAllRegionServers() {
     killJavaProcesses(HREGION, SIGKILL);
   }
+
+  /**
+   * Kill all master servers
+   */
   public void killAllMasterServers() {
     killJavaProcesses(HMASTER, SIGKILL);
   }
