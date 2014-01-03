@@ -455,11 +455,39 @@ implements KeysForTests, HoyaExitCodes {
                              roles,
                              extraArgs,
                              deleteExistingData,
-                             blockUntilRunning, [:])
+                             blockUntilRunning,
+                             [:])
 
   }
-  
+
+  /**
+   * Create a hoya cluster
+   * @param clustername cluster name
+   * @param roles map of rolename to count
+   * @param extraArgs list of extra args to add to the creation command
+   * @param deleteExistingData should the data of any existing cluster
+   * of this name be deleted
+   * @param blockUntilRunning block until the AM is running
+   * @param clusterOps map of key=value cluster options to set with the --option arg
+   * @return launcher which will have executed the command.
+   */
   public ServiceLauncher createHoyaCluster(String clustername, Map<String, Integer> roles, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning, Map<String, String> clusterOps) {
+    createOrBuildHoyaCluster(HoyaActions.ACTION_CREATE,clustername,roles,extraArgs,deleteExistingData,blockUntilRunning,clusterOps)
+  }
+
+  /**
+   * Create or build a hoya cluster (the action is set by the first verb)
+   * @param action operation to invoke: HoyaActions.ACTION_CREATE or HoyaActions.ACTION_BUILD
+   * @param clustername cluster name
+   * @param roles map of rolename to count
+   * @param extraArgs list of extra args to add to the creation command
+   * @param deleteExistingData should the data of any existing cluster
+   * of this name be deleted
+   * @param blockUntilRunning block until the AM is running
+   * @param clusterOps map of key=value cluster options to set with the --option arg
+   * @return launcher which will have executed the command.
+   */
+  public ServiceLauncher createOrBuildHoyaCluster(String action, String clustername, Map<String, Integer> roles, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning, Map<String, String> clusterOps) {
     assert clustername != null
     assert miniCluster != null
     if (deleteExistingData) {
@@ -479,16 +507,19 @@ implements KeysForTests, HoyaExitCodes {
     }
     
     List<String> argsList = [
-        HoyaActions.ACTION_CREATE, clustername,
+        action, clustername,
         Arguments.ARG_MANAGER, RMAddr,
         Arguments.ARG_ZKHOSTS, ZKHosts,
         Arguments.ARG_ZKPORT, ZKPort.toString(),
-        Arguments.ARG_WAIT, WAIT_TIME_ARG,
         Arguments.ARG_FILESYSTEM, fsDefaultName,
         Arguments.ARG_OPTION, OptionKeys.HOYA_TEST_FLAG, "true",
         Arguments.ARG_DEBUG,
         Arguments.ARG_CONFDIR, confDir
     ]
+    if (blockUntilRunning) {
+      argsList << Arguments.ARG_WAIT << WAIT_TIME_ARG
+    }
+
     argsList += roleList;
     argsList += imageCommands
 
@@ -686,8 +717,15 @@ implements KeysForTests, HoyaExitCodes {
    */
   public ApplicationReport waitForAppToFinish(HoyaClient hoyaClient) {
 
+    int waitTime = getWaitTimeMillis(hoyaClient.config)
+    return waitForAppToFinish(hoyaClient, waitTime)
+  }
+
+  public ApplicationReport waitForAppToFinish(
+      HoyaClient hoyaClient,
+      int waitTime) {
     ApplicationReport report = hoyaClient.monitorAppToState(new Duration(
-        getWaitTimeMillis(hoyaClient.config)), YarnApplicationState.FINISHED);
+        waitTime), YarnApplicationState.FINISHED);
     if (report == null) {
       log.info("Forcibly killing application")
       dumpClusterStatus(hoyaClient, "final application status")
