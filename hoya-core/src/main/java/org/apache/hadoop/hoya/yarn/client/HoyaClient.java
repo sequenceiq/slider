@@ -361,7 +361,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // verify that a live cluster isn't there
     HoyaUtils.validateClusterName(clustername);
     verifyManagerSet();
-    //no=op, it is now mandatory. 
     verifyNoLiveClusters(clustername);
 
     // build up the paths in the DFS
@@ -375,7 +374,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       new Path(clusterDirectory, HoyaKeys.CLUSTER_SPECIFICATION_FILE);
 
     if (fs.exists(clusterDirectory)) {
-      throw new HoyaException(EXIT_CLUSTER_IN_USE,
+      throw new HoyaException(EXIT_CLUSTER_EXISTS,
                               PRINTF_E_ALREADY_EXISTS, clustername,
                               clusterSpecPath);
     }
@@ -529,12 +528,12 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     try {
       clusterSpec.save(fs, clusterSpecPath, false);
     } catch (FileAlreadyExistsException fae) {
-      throw new HoyaException(EXIT_CLUSTER_IN_USE,
+      throw new HoyaException(EXIT_CLUSTER_EXISTS,
                               PRINTF_E_ALREADY_EXISTS, clustername,
                               clusterSpecPath);
     } catch (IOException e) {
       // this is probably a file exists exception too, but include it in the trace just in case
-      throw new HoyaException(EXIT_CLUSTER_IN_USE, e,
+      throw new HoyaException(EXIT_CLUSTER_EXISTS, e,
                               PRINTF_E_ALREADY_EXISTS, clustername,
                               clusterSpecPath);
     }

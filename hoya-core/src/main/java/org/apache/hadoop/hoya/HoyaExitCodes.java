@@ -80,10 +80,14 @@ public interface HoyaExitCodes extends LauncherExitCodes {
 
   /**
    * The cluster is live -and the requested operation
-   * does not work if the cluster is running,
-   * or there already is a cluster of that name
-   * when attempt is made to create a new cluster
+   * does not work if the cluster is running
    */
   int EXIT_CLUSTER_IN_USE = 74;
+
+  /**
+   * There already is a cluster of that name
+   * when an attempt is made to create a new cluster
+   */
+  int EXIT_CLUSTER_EXISTS = 75;
 
 }
