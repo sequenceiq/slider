@@ -100,6 +100,7 @@ import org.apache.hadoop.yarn.ipc.YarnRPC;
 import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenSecretManager;
 import org.apache.hadoop.yarn.service.launcher.RunService;
+import org.apache.hadoop.yarn.service.launcher.ServiceLauncher;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -110,6 +111,7 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -151,6 +153,8 @@ public class HoyaAppMaster extends CompoundLaunchedService
 
   public static final int HEARTBEAT_INTERVAL = 1000;
   public static final int NUM_RPC_HANDLERS = 5;
+  public static final String SERVICE_CLASSNAME =
+    "org.apache.hadoop.hoya.yarn.appmaster.HoyaAppMaster";
 
   /** YARN RPC to communicate with the Resource Manager or Node Manager */
   private YarnRPC yarnRPC;
@@ -1310,4 +1314,22 @@ public class HoyaAppMaster extends CompoundLaunchedService
   public ProviderService getProviderService() {
     return providerService;
   }
+
+
+  /**
+   * This is the main entry point for the service launcher.
+   * @param args command line arguments.
+   */
+  public static void main(String[] args) {
+
+    //turn the args to a list
+    List<String> argsList = Arrays.asList(args);
+    //create a new list, as the ArrayList type doesn't push() on an insert
+    List<String> extendedArgs = new ArrayList<String>(argsList);
+    //insert the service name
+    extendedArgs.add(0, SERVICE_CLASSNAME);
+    //now have the service launcher do its work
+    ServiceLauncher.serviceMain(extendedArgs);
+  }
+
 }

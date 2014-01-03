@@ -19,6 +19,8 @@
 
 package org.apache.hadoop.hoya.yarn.params;
 
+import org.apache.hadoop.hoya.yarn.appmaster.HoyaAppMaster;
+
 /**
  * Parameters sent by the Client to the AM
  */
@@ -26,8 +28,7 @@ public class HoyaAMArgs extends CommonArgs {
   /**
    * Name of entry class: {@value}
    */
-  public static final String CLASSNAME =
-    "org.apache.hadoop.hoya.yarn.appmaster.HoyaAppMaster";
+  public static final String CLASSNAME = HoyaAppMaster.SERVICE_CLASSNAME;
 
   HoyaAMCreateAction createAction = new HoyaAMCreateAction();
 
