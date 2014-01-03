@@ -302,7 +302,8 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
                              
                          ],
                          true,
-                         true, [:]);
+                         true,
+                         [:]);
     hoyaClient = (HoyaClient) launcher.service;
     try {
       basicHBaseClusterStartupSequence(hoyaClient);

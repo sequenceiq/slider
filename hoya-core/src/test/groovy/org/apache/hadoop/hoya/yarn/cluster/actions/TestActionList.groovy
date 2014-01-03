@@ -95,8 +95,7 @@ class TestActionList extends HBaseMiniClusterTestBase {
     
     //do the low level operations to get a better view of what is going on 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
-    ApplicationReport instance = hoyaClient.findInstance(hoyaClient.getUsername(),
-                                                         clustername)
+    ApplicationReport instance = hoyaClient.findInstance(clustername)
     assert instance != null
     log.info(instance.toString())
 

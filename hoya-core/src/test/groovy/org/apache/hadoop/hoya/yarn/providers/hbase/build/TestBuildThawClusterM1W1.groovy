@@ -16,54 +16,53 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn.cluster.masterless
+package org.apache.hadoop.hoya.yarn.providers.hbase.build
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.HoyaExitCodes
-import org.apache.hadoop.hoya.HoyaKeys
-import org.apache.hadoop.hoya.api.ClusterDescription
-import org.apache.hadoop.hoya.api.RoleKeys
+import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
-import org.apache.hadoop.hoya.yarn.Arguments
+import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
-import org.apache.hadoop.yarn.service.launcher.LauncherExitCodes
-import org.apache.hadoop.yarn.service.launcher.ServiceLaunchException
+import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
 @CompileStatic
 @Slf4j
 
-class TestBadClusterName extends HBaseMiniClusterTestBase {
+class TestBuildThawClusterM1W1 extends HBaseMiniClusterTestBase {
 
   @Test
-  public void testBadClusterName() throws Throwable {
-    String clustername = "TestBadClusterName"
+  public void testBuildCluster() throws Throwable {
+    String clustername = "test_build_thaw_cluster_m1_w1"
     createMiniCluster(clustername, createConfiguration(), 1, true)
 
-    describe "verify that bad cluster are picked up"
+    describe "verify that a built cluster can be thawed"
 
-    try {
-      ServiceLauncher launcher = createHoyaCluster(clustername,
-           [
-               (HBaseKeys.ROLE_MASTER): 0,
-               (HBaseKeys.ROLE_WORKER): 0,
-           ],
-           [
-               
-           ],
-           true,
-           false,
-           [:])
-      HoyaClient hoyaClient = (HoyaClient) launcher.service
-      addToTeardown(hoyaClient);
-      fail("expected a failure")
-    } catch (ServiceLaunchException e) {
-      assertExceptionDetails(e, LauncherExitCodes.EXIT_COMMAND_ARGUMENT_ERROR)
-    }
-    
+    ServiceLauncher launcher = createOrBuildHoyaCluster(
+        HoyaActions.ACTION_BUILD,
+        clustername,
+        [
+            (HBaseKeys.ROLE_MASTER): 1,
+            (HBaseKeys.ROLE_WORKER): 1,
+        ],
+        [],
+        true,
+        false,
+        [:])
+    HoyaClient hoyaClient = (HoyaClient) launcher.service
+    addToTeardown(hoyaClient);
+
+
+    ApplicationReport report = hoyaClient.findInstance(clustername)
+    assert report == null;
+
+    //thaw time
+    ServiceLauncher l2 = thawHoyaCluster(clustername, [], true)
+    waitForClusterLive(l2.service as HoyaClient)
   }
 
 }
