@@ -1404,16 +1404,37 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                app.getYarnApplicationState());
       return EXIT_SUCCESS;
     }
-    HoyaClusterProtocol appMaster = connect(app);
-    Messages.StopClusterRequestProto r =
-      Messages.StopClusterRequestProto.newBuilder().setMessage(text).build();
-    appMaster.stopCluster(r);
+    boolean forcekill = false;
+    ApplicationId appId = app.getApplicationId();
+    try {
+      HoyaClusterProtocol appMaster = connect(app);
+      Messages.StopClusterRequestProto r =
+        Messages.StopClusterRequestProto.newBuilder().setMessage(text).build();
+      appMaster.stopCluster(r);
 
-    log.debug("Cluster stop command issued");
-    if (waittime > 0) {
-      monitorAppToState(app.getApplicationId(),
-                        YarnApplicationState.FINISHED,
-                        new Duration(waittime * 1000));
+      log.debug("Cluster stop command issued");
+      if (waittime > 0) {
+        ApplicationReport applicationReport =
+          monitorAppToState(appId,
+                            YarnApplicationState.FINISHED,
+                            new Duration(waittime * 1000));
+        if (applicationReport == null) {
+          log.info("application did not shut down in time");
+          forcekill = true;
+        }
+      }
+    } catch (YarnException e) {
+      log.warn("Exception while trying to terminate {}: {}", clustername, e);
+      forcekill = true;
+    } catch (IOException e) {
+      log.warn("Exception while trying to terminate {}: {}", clustername, e);
+      forcekill = true;
+    }
+    if (forcekill) {
+      //escalating to forced kill
+      yarnClient.killRunningApplication(appId,
+                      "Forced kill as Hoya AM did not shut down");
+
     }
     return EXIT_SUCCESS;
   }
