@@ -41,4 +41,9 @@ public class ActionThawArgs extends AbstractActionArgs implements
   public String getRmAddress() {
     return launchArgs.getRmAddress();
   }
+
+  @Override
+  public void setWaittime(int waittime) {
+    launchArgs.setWaittime(waittime);
+  }
 }

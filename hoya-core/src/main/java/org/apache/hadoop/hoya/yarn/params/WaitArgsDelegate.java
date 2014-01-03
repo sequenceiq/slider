@@ -34,4 +34,9 @@ public class WaitArgsDelegate extends AbstractArgsDelegate implements
   public int getWaittime() {
     return waittime;
   }
+
+  @Override
+  public void setWaittime(int waittime) {
+    this.waittime = waittime;
+  }
 }

@@ -40,4 +40,9 @@ public class ActionCreateArgs extends AbstractClusterBuildingActionArgs
   public int getWaittime() {
     return launchArgs.getWaittime();
   }
+
+  @Override
+  public void setWaittime(int waittime) {
+    launchArgs.setWaittime(waittime);
+  }
 }

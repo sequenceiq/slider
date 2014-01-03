@@ -145,11 +145,15 @@ class TestFreezeCommands extends HBaseMiniClusterTestBase {
       assertFailureClusterInUse(e);
     }
     log.info("freeze4");
+    
+    //kill -19 the process to hang it, then force kill
+    killHoyaAM(SIGSTOP)
 
     ServiceLauncher freeze4 = execHoyaCommand(conf,
                                               [
                                                   HoyaActions.ACTION_FREEZE, clustername,
-                                                  Arguments.ARG_WAIT, waitTimeArg
+                                                  Arguments.ARG_FORCE,
+                                                  Arguments.ARG_WAIT, waitTimeArg,
                                               ]);
     assertSucceeded(freeze4)
 

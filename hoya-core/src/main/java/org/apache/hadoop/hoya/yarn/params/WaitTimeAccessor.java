@@ -20,4 +20,5 @@ package org.apache.hadoop.hoya.yarn.params;
 
 public interface WaitTimeAccessor {
   int getWaittime();
+  void setWaittime(int waittime);
 }
