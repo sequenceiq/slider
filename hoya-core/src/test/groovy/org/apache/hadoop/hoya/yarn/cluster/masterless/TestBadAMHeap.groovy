@@ -54,7 +54,8 @@ class TestBadAMHeap extends HBaseMiniClusterTestBase {
                Arguments.ARG_ROLEOPT, HoyaKeys.ROLE_HOYA_AM, RoleKeys.JVM_HEAP, "invalid",
            ],
            true,
-           true, [:])
+           false,
+           [:])
       HoyaClient hoyaClient = (HoyaClient) launcher.service
       addToTeardown(hoyaClient);
       ClusterDescription status = hoyaClient.clusterDescription

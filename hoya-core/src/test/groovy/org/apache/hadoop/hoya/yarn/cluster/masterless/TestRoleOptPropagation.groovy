@@ -52,7 +52,8 @@ class TestRoleOptPropagation extends HBaseMiniClusterTestBase {
                                                      Arguments.ARG_ROLEOPT, HoyaKeys.ROLE_HOYA_AM, MALLOC_ARENA, "4",
                                                  ],
                                                  true,
-                                                 true, [:])
+                                                 true,
+                                                 [:])
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
     ClusterDescription status = hoyaClient.clusterDescription
@@ -80,7 +81,8 @@ class TestRoleOptPropagation extends HBaseMiniClusterTestBase {
                                                      Arguments.ARG_ROLEOPT, "unknown", MALLOC_ARENA, "3",
                                                  ],
                                                  true,
-                                                 true, [:])
+                                                 true,
+                                                 [:])
       assert false
     } catch (BadCommandArgumentsException bcae) {
       /* expected */

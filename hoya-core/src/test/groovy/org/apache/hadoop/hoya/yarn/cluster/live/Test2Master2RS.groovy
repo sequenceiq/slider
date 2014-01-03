@@ -54,7 +54,8 @@ class Test2Master2RS extends HBaseMiniClusterTestBase {
                                                  roles,
                                                  [],
                                                  true,
-                                                 true, [:])
+                                                 true,
+                                                 [:])
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
     ClusterDescription status = hoyaClient.getClusterDescription(clustername)
