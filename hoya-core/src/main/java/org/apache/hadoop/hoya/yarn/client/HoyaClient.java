@@ -1240,7 +1240,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   public int actionExists(String name) throws YarnException, IOException {
     verifyManagerSet();
     log.debug("actionExists({})", name);
-    ApplicationReport instance = findInstance(getUsername(), name);
+    ApplicationReport instance = findInstance(name);
     if (instance == null) {
       log.info("cluster {} not found");
       throw unknownClusterException(name);
@@ -1260,6 +1260,29 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     return EXIT_SUCCESS;
   }
 
+
+  /**
+   * Find an instance of a hoya application belong to the current user
+   * @param appname application name
+   * @return the app report or null if none is found
+   * @throws YarnException YARN issues
+   * @throws IOException IO problems
+   */
+  @VisibleForTesting
+  public ApplicationReport findInstance(String appname) throws
+                                                        YarnException,
+                                                        IOException {
+    return findInstance(getUsername(), appname);
+  }
+
+  /**
+   * Find an instance of a hoya application belong to the current user
+   * @param user user name
+   * @param appname application name
+   * @return the app report or null if none is found
+   * @throws YarnException YARN issues
+   * @throws IOException IO problems
+   */
   @VisibleForTesting
   public ApplicationReport findInstance(String user, String appname) throws
                                                                      IOException,
@@ -1366,7 +1389,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     //is this actually a known cluster? 
     locateClusterSpecification(clustername);
     
-    ApplicationReport app = findInstance(getUsername(), clustername);
+    ApplicationReport app = findInstance(clustername);
     if (app == null) {
       // exit early
       log.info("Cluster {} not running", clustername);
@@ -1583,7 +1606,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     // now see if it is actually running and bail out if not
     verifyManagerSet();
-    ApplicationReport instance = findInstance(getUsername(), clustername);
+    ApplicationReport instance = findInstance(clustername);
     if (instance != null) {
       log.info("Flexing running cluster");
       HoyaClusterProtocol appMaster = connect(instance);
@@ -1699,7 +1722,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     if (clustername == null) {
       throw unknownClusterException("");
     }
-    ApplicationReport instance = findInstance(getUsername(), clustername);
+    ApplicationReport instance = findInstance(clustername);
     if (null == instance) {
       throw unknownClusterException(clustername);
     }
