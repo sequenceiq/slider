@@ -26,12 +26,13 @@ applications under YARN"
 ## == Proposal ==
 
 Hoya allows users to deploy distributed applications across a Hadoop
-cluster, using the YARN resource manager to place components of these
-application , across the cluster. Hoya can monitor the health of these deployed
+cluster, using the YARN resource manager to allocate and distribute parts of an
+application.. Hoya can monitor the health of these deployed
 components, and react to their failure or the loss of the servers on which they
 run on by creating new instances of them. Hoya can expand or shrink the size of
 the application in response to user commands, and pause and resume an
-application.
+application. A `frozen` application has its state saved to disk, but consumes
+no cluster compute resources until `thawed`
 
 In this way, Hoya can take a classic "deployed by the ops team on every server"
 Hadoop application -such as Apache HBase and Apache Accumulo- and make it a
@@ -41,35 +42,37 @@ based on load, and be frozen and thawed on demand.
 
 ## == Background ==
 
-Hoya was written as an extension of the YARN resource framework, a YARN
+Hoya was written as an extension of the YARN resource framework: a YARN
 application to deliver the flexibility and recoverability features of a YARN
 application to existing Hadoop applications. The original Groovy-language
 prototype targeted HBase, hence the name Hoya: HBase On YARN
 
-"Hoya 0.1" could create an HBase cluster in a YARN cluster, using YARN to copy
+The original Groovy based "Hoya 0.1" applicatn could create an HBase cluster
+in a YARN cluster, using YARN to copy
 over the HBase .tar binaries and configuration files supplied by the end user
 and modified by Hoya en route. Hoya provided its own YARN Application Master,
-(AM), which spawned the HBase master as child process, and requested and
+(AM), which forked the HBase master as child process, and requested and
 released containers for HBase worker nodes based on demand.
 
 Since then Hoya has evolved based on the experiences of using the
 previous iterations, and a long-term goal of creating and managing distributed applications
 
 
-1. Deployment of different clustered applications via a provider plugin: HBase and Accumulo being the two currently supported. 
-1. A notion of different *roles* in an application. For HBase the two roles
+ 1. Deployment of different clustered applications via a provider plugin: HBase and Accumulo being the two currently supported. 
+ 1. A notion of different *roles* in an application. For HBase the two roles
 are 'master' and 'worker'; Accumulo has five: master, tserver, monitor, tracer and gc.
-1. Automatic download and expansion of .tar and .tar.gz binaries from HDFS
+ 1. Automatic download and expansion of .tar and .tar.gz binaries from HDFS
 -which allows for side-by-side clusters of different versions of an application.
-1. The option to bypass the tarball download and run with pre-installed binaries.
-1. Create-time patching of site XML for ZK bindings as well as other user-specified configurations. 
-You point to a template conf/ directory which is snapshotted and then patched.
-1. Manual flexing of cluster size -grow or shrink as requested, optionally persisted for future runs.
-1. Placement tracking, "role history": https://github.com/hortonworks/hoya/blob/master/src/site/markdown/rolehistory.md . This is quite a sophisticated little bit of code -we persist the placement history to HDFS whenever it changes, then use this to build a list of which nodes to request containers on. It increases the likelihood that the workers come up on nodes that have the data, so even if you bring up a small hbase cluster in a large YARN cluster, there's not that much data to be moved around. [It's a best-effort request, not an absolute requirement request, though that could always be made a switch.
-1. failure tracking, to track servers that appear to be unreliable,
+ 1. The option to bypass the tarball download and run with pre-installed binaries.
+ 1. Patching of site XML for ZK bindings as well as other user-specified configurations when the application
+ is initially specified. The user identifies a template conf/ directory which is snapshotted and then patched.
+ 1. Manual flexing of cluster size -grow or shrink as requested, optionally persisted for future runs.
+ 1. Placement tracking, "role history": https://github.com/hortonworks/hoya/blob/master/src/site/markdown/rolehistory.md.
+ This is quite a sophisticated little bit of code -we persist the placement history to HDFS whenever it changes, then use this to build a list of which nodes to request containers on. It increases the likelihood that the workers come up on nodes that have the data, so even if you bring up a small hbase cluster in a large YARN cluster, there's not that much data to be moved around. [It's a best-effort request, not an absolute requirement request, though that could always be made a switch.
+ 1. failure tracking, to track servers that appear to be unreliable,
  and to recognize when so many role instances are failing that the Hoya cluster
  should consider itself failed
-1. Secure clusters -for as long as the YARN and HDFS tokens remain valid in the Application Master.
+ 1. Secure clusters -for as long as the YARN and HDFS tokens remain valid in the Application Master.
 
 
  * Added the notion of a Provider, a set of classes containing the code to
@@ -194,6 +197,11 @@ development team. We don't expect to have or need many full-time developers,
 but active engagement from the HBase and Accumulo developers would
 significantly aid adoption and governance.
 
+The other risk is YARN not having the complete feature set needed
+for long lived services: restarting, security token renewal, log capture
+and other issues. We are working with the YARN developers to address these
+issues, issues shared with other long-lived services on YARN.
+
 ## == Documentation ==
 
 All Hoya documentation is currently in markdown-formatted text files in the
@@ -224,6 +232,8 @@ Mailing Lists
  1. git repository
 
 Jenkins builds on x86-Linux, ARM-Linux and Windows hooked up to JIRA
+
+Gerrit would be useful for reviewing, if available.
 
 ## == Initial Committers ==
 
