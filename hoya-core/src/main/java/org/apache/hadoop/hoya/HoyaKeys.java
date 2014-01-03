@@ -81,7 +81,7 @@ public interface HoyaKeys extends HoyaXmlConfKeys {
    */
   String PROPAGATED_CONF_DIR_NAME = "propagatedconf";
   String GENERATED_CONF_DIR_NAME = "generated";
-  String ORIG_CONF_DIR_NAME = "original";
+  String SNAPSHOT_CONF_DIR_NAME = "snapshot";
   String DATA_DIR_NAME = "database";
   String HISTORY_DIR_NAME = "history";
   String HISTORY_FILENAME_SUFFIX = "json";

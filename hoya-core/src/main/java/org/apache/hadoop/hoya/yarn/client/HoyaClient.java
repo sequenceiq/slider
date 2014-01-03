@@ -364,7 +364,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     FileSystem fs = getClusterFS();
     Path clusterDirectory = HoyaUtils.buildHoyaClusterDirPath(fs, clustername); 
-    Path origConfPath = new Path(clusterDirectory, HoyaKeys.ORIG_CONF_DIR_NAME);
+    Path snapshotConfPath = new Path(clusterDirectory, HoyaKeys.SNAPSHOT_CONF_DIR_NAME);
     Path generatedConfPath =
       new Path(clusterDirectory, HoyaKeys.GENERATED_CONF_DIR_NAME);
     Path clusterSpecPath =
@@ -516,7 +516,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
         "Configuration directory specified in %s not valid: %s",
        Arguments.ARG_CONFDIR, appconfdir.toString());
     }
-    clusterSpec.originConfigurationPath = origConfPath.toUri().toASCIIString();
+    clusterSpec.originConfigurationPath = snapshotConfPath.toUri().toASCIIString();
     clusterSpec.generatedConfigurationPath =
       generatedConfPath.toUri().toASCIIString();
     HoyaUtils.createHoyaClusterDirPath(fs, clustername);
@@ -537,9 +537,9 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     // bulk copy
     // first the original from wherever to the DFS
-    HoyaUtils.copyDirectory(conf, appconfdir, origConfPath);
+    HoyaUtils.copyDirectory(conf, appconfdir, snapshotConfPath);
     // then build up the generated path. This d
-    HoyaUtils.copyDirectory(conf, origConfPath, generatedConfPath);
+    HoyaUtils.copyDirectory(conf, snapshotConfPath, generatedConfPath);
 
     // Data Directory
     Path datapath = new Path(clusterDirectory, HoyaKeys.DATA_DIR_NAME);
