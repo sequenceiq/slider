@@ -20,6 +20,7 @@ package org.apache.hadoop.hoya.yarn.client;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.hoya.HoyaKeys;
+import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.tools.Duration;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
@@ -185,8 +186,11 @@ public class HoyaYarnClientImpl extends YarnClientImpl {
     ApplicationId appId, YarnApplicationState desiredState, Duration duration)
     throws YarnException, IOException {
 
+    if (appId == null) {
+      throw new BadCommandArgumentsException("null application ID");
+    }
     if (duration.limit <= 0) {
-      throw new HoyaException("Invalid monitoring duration");
+      throw new BadCommandArgumentsException("Invalid monitoring duration");
     }
     log.debug("Waiting {} millis for app to reach state {} ",
               duration.limit,

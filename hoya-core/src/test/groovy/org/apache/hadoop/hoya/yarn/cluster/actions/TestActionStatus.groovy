@@ -20,6 +20,8 @@ package org.apache.hadoop.hoya.yarn.cluster.actions
 
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.exceptions.BadClusterStateException
+import org.apache.hadoop.hoya.exceptions.ErrorStrings
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
@@ -78,8 +80,11 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
 
     ApplicationReport report = waitForClusterLive((HoyaClient)launcher.service)
 
+    //do the low level operations to get a better view of what is going on 
+    HoyaClient hoyaClient = (HoyaClient) launcher.service
+    
     //now exec the status command
-    launcher = launchHoyaClientAgainstMiniMR(
+    ServiceLauncher stausLauncher = launchHoyaClientAgainstMiniMR(
         //config includes RM binding info
         new YarnConfiguration(miniCluster.config),
         //varargs list of command line params
@@ -90,11 +95,9 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
         ]
         
     )
-    assert launcher.serviceExitCode == 0
+    assert stausLauncher.serviceExitCode == 0
     //now look for the explicit sevice
-    
-    //do the low level operations to get a better view of what is going on 
-    HoyaClient hoyaClient = (HoyaClient) launcher.service
+
     int status = hoyaClient.actionStatus(clustername, null)
     assert status == EXIT_SUCCESS
     
@@ -108,7 +111,7 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
     
     //status to a file via the command line :  bin/hoya status cl1 --out file.json
     String path = "target/cluster.json"
-    launcher = launchHoyaClientAgainstMiniMR(
+    stausLauncher = launchHoyaClientAgainstMiniMR(
         //config includes RM binding info
         new YarnConfiguration(miniCluster.config),
         //varargs list of command line params
@@ -119,11 +122,21 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
             Arguments.ARG_OUTPUT, path
         ]
     )
-    assert launcher.serviceExitCode == 0
+    assert stausLauncher.serviceExitCode == 0
     tfile = new File(path)
     ClusterDescription cd2 = new ClusterDescription();
     cd2.fromJson(text)
+    
+    clusterActionFreeze(hoyaClient, clustername, "stopping first cluster")
+    waitForAppToFinish(hoyaClient)
 
+    //now expect the status to fail
+    try {
+      status = hoyaClient.actionStatus(clustername, null)
+      fail("expected an exception, but got the status $status")
+    } catch (BadClusterStateException e) {
+      assert e.toString().contains(ErrorStrings.E_FINISHED_APPLICATION)
+    }
   }
 
 

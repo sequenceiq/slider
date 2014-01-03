@@ -1080,8 +1080,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
                           timeout, -1);
       if (!masterReportingLoop.startReporting()) {
         masterReportingLoop.close();
-        throw new HoyaException(EXIT_INTERNAL_ERROR,
-                                "failed to start monitoring");
+        throw new HoyaInternalStateException("failed to start monitoring");
       }
       loopThread = new Thread(masterReportingLoop, "MasterStatusCheck");
       loopThread.setDaemon(true);

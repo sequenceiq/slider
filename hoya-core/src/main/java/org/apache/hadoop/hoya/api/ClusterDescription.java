@@ -44,6 +44,7 @@ import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.ErrorStrings;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
+import org.apache.hadoop.hoya.exceptions.UnknownClusterException;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.codehaus.jackson.JsonGenerationException;
@@ -224,10 +225,10 @@ public class ClusterDescription {
                                                                    HoyaException {
     if (!fs.isFile(clusterSpecPath)) {
       log.debug("Missing cluster specification file {}", clusterSpecPath);
-      throw new HoyaException(HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER,
-                              ErrorStrings.E_UNKNOWN_CLUSTER + clustername +
-                              "\n (cluster definition not found at " +
-                              clusterSpecPath);
+      throw new UnknownClusterException( ErrorStrings.E_UNKNOWN_CLUSTER
+                              + clustername 
+                              + "\n (cluster definition not found at " 
+                              + clusterSpecPath);
     }
   }
 

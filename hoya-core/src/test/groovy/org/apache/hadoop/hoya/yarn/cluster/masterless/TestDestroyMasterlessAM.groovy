@@ -61,6 +61,9 @@ class TestDestroyMasterlessAM extends HBaseMiniClusterTestBase {
     clusterActionFreeze(hoyaClient, clustername,"stopping first cluster")
     waitForAppToFinish(hoyaClient)
     
+
+    
+    
     //now try to create instance #2, and expect an in-use failure
     try {
       createMasterlessAM(clustername, 0, false, false)
@@ -71,6 +74,9 @@ class TestDestroyMasterlessAM extends HBaseMiniClusterTestBase {
                              ErrorStrings.E_ALREADY_EXISTS)
     }
 
+    
+    
+    
     //now: destroy it
     int exitCode = hoyaClient.actionDestroy(clustername);
     assert 0 == exitCode

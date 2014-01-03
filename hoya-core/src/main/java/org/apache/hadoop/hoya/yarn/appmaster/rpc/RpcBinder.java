@@ -36,6 +36,8 @@ import com.google.protobuf.BlockingService;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.api.HoyaClusterProtocol;
+import org.apache.hadoop.hoya.exceptions.BadClusterStateException;
+import org.apache.hadoop.hoya.exceptions.ErrorStrings;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.tools.Duration;
 import org.apache.hadoop.ipc.ProtobufRpcEngine;
@@ -177,8 +179,9 @@ public class RpcBinder {
     Duration timeout = new Duration(connectTimeout);
     timeout.start();
     Exception exception = null;
-    while (application!=null && application.getYarnApplicationState()
-                      .equals(YarnApplicationState.RUNNING)) {
+    while (application != null && 
+           application.getYarnApplicationState().equals(
+             YarnApplicationState.RUNNING)) {
 
       try {
         return getProxy(conf, application, rpcTimeout);
@@ -206,9 +209,9 @@ public class RpcBinder {
     }
     //get here if the app is no longer running. Raise a specific
     //exception but init it with the previous failure
-    throw new HoyaException(HoyaExitCodes.EXIT_BAD_CLUSTER_STATE,
+    throw new BadClusterStateException(
                             exception,
-                            "Application %s has finished", appId);
+                            ErrorStrings.E_FINISHED_APPLICATION + appId);
   }
 
   public static HoyaClusterProtocol getProxy(final Configuration conf,

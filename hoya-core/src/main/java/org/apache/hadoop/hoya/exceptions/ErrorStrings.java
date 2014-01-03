@@ -45,4 +45,5 @@ public interface ErrorStrings {
   String ERROR_TOO_MANY_ARGUMENTS =
     "Too many arguments";
   String ERROR_DUPLICATE_ENTRY = "Duplicate entry for ";
+  String E_FINISHED_APPLICATION = "Finished application: ";
 }

@@ -36,11 +36,13 @@ import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.api.StatusKeys;
 import org.apache.hadoop.hoya.api.proto.Messages;
+import org.apache.hadoop.hoya.exceptions.BadClusterStateException;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.ErrorStrings;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.exceptions.NoSuchNodeException;
+import org.apache.hadoop.hoya.exceptions.UnknownClusterException;
 import org.apache.hadoop.hoya.exceptions.WaitTimeoutException;
 import org.apache.hadoop.hoya.providers.ClientProvider;
 import org.apache.hadoop.hoya.providers.HoyaProviderFactory;
@@ -114,6 +116,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   private static final Logger log = LoggerFactory.getLogger(HoyaClient.class);
 
   public static final int ACCEPT_TIME = 60000;
+  public static final int CONNECT_TIMEOUT = 10000;
+  public static final int RPC_TIMEOUT = 15000;
   private int amPriority = 0;
   // Queue for App master
   private String amQueue = "default";
@@ -610,7 +614,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     } else {
       imagePath = null;
       if (isUnset(clusterSpec.getApplicationHome())) {
-        throw new HoyaException(EXIT_BAD_CLUSTER_STATE,
+        throw new BadClusterStateException(
             "Neither an image path nor binary home dir were specified");
       }
     }
@@ -972,7 +976,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
   public void verifyPathExists(Path path) throws HoyaException, IOException {
     if (!getClusterFS().exists(path)) {
-      throw new HoyaException(EXIT_BAD_CLUSTER_STATE, E_MISSING_PATH + path);
+      throw new BadClusterStateException(E_MISSING_PATH + path);
     }
   }
 
@@ -1299,8 +1303,11 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                               IOException {
 
     try {
-      return RpcBinder.getProxy(getConfig(), yarnClient.getRmClient(), app,
-                                10000, 15000);
+      return RpcBinder.getProxy(getConfig(),
+                                yarnClient.getRmClient(),
+                                app,
+                                CONNECT_TIMEOUT,
+                                RPC_TIMEOUT);
     } catch (InterruptedException e) {
       throw new HoyaException(HoyaExitCodes.EXIT_TIMED_OUT,
                               e,
@@ -1603,8 +1610,9 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   public ClusterDescription getClusterDescription(String clustername) throws
                                                                  YarnException,
                                                                  IOException {
-    return createClusterOperations(clustername)
-              .getClusterDescription(clustername);
+    HoyaClusterOperations clusterOperations =
+      createClusterOperations(clustername);
+    return clusterOperations.getClusterDescription(clustername);
   }
 
   /**
@@ -1751,8 +1759,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * @param clustername cluster name
    * @return an exception with text and a relevant exit code
    */
-  public HoyaException unknownClusterException(String clustername) {
-    return new HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER, E_UNKNOWN_CLUSTER 
+  public UnknownClusterException unknownClusterException(String clustername) {
+    return new UnknownClusterException(E_UNKNOWN_CLUSTER 
                              +": \""+ clustername+ "\"");
   }
 

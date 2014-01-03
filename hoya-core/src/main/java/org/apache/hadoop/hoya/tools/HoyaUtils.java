@@ -31,6 +31,7 @@ import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.HoyaXmlConfKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.RoleKeys;
+import org.apache.hadoop.hoya.exceptions.BadClusterStateException;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.ErrorStrings;
@@ -958,8 +959,7 @@ public final class HoyaUtils {
                                                  ClusterDescription clusterSpec) throws
                                                                           HoyaException {
     if (clusterSpec.state == ClusterDescription.STATE_INCOMPLETE) {
-      throw new HoyaException(HoyaExitCodes.EXIT_BAD_CLUSTER_STATE,
-                              ErrorStrings.E_INCOMPLETE_CLUSTER_SPEC + clusterSpecPath);
+      throw new BadClusterStateException(ErrorStrings.E_INCOMPLETE_CLUSTER_SPEC + clusterSpecPath);
     }
   }
 
