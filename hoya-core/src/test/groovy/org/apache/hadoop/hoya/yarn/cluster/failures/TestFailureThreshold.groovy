@@ -24,6 +24,7 @@ import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.OptionKeys
+import org.apache.hadoop.hoya.exceptions.BadClusterStateException
 import org.apache.hadoop.hoya.exceptions.ErrorStrings
 import org.apache.hadoop.hoya.exceptions.HoyaException
 import org.apache.hadoop.hoya.yarn.Arguments
@@ -112,8 +113,8 @@ class TestFailureThreshold extends HBaseMiniClusterTestBase {
             regionServerCount,
             HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
       }
-    } catch (HoyaException e) {
-      assert e.toString().contains("finished")
+    } catch (BadClusterStateException e) {
+      assert e.toString().contains("inished")
       assert e.exitCode == HoyaExitCodes.EXIT_BAD_CLUSTER_STATE
     }
     ApplicationReport report = hoyaClient.getApplicationReport()
