@@ -27,7 +27,7 @@ included passwords or other test run details into the build resource
 tree.
 
 
-**Step #1:** Create a JIRA for the release, estimate  2h
+**Step #1:** Create a JIRA for the release, estimate 3h
 (so you don't try to skip the tests)
 
 **Step #2:** Check everything in. Git flow won't let you progress without this.
