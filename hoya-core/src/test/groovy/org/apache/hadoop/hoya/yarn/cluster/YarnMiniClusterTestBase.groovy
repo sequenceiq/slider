@@ -900,9 +900,17 @@ implements KeysForTests, HoyaExitCodes {
   }
   
   void assertExceptionDetails(ServiceLaunchException ex, int exitCode, String text = ""){
-    assert exitCode == ex.exitCode
+    if (exitCode != ex.exitCode) {
+      log.warn("Wrong exit code, expected $exitCode but got $ex.exitCode in $ex",
+               ex)
+      assert exitCode == ex.exitCode
+    }
     if (text) {
-      assert ex.toString().contains(text)
+      if (!(ex.toString().contains(text))) {
+        log.warn("String match failed in $ex", ex)
+        assert ex.toString().contains(text);
+      }
+      
     }
   }
 
