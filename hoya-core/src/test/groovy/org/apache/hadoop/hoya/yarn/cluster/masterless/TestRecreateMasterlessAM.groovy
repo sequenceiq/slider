@@ -56,7 +56,7 @@ class TestRecreateMasterlessAM extends HBaseMiniClusterTestBase {
       fail("expected a failure")
     } catch (HoyaException e) {
       assertExceptionDetails(e,
-                             HoyaExitCodes.EXIT_CLUSTER_IN_USE,
+                             HoyaExitCodes.EXIT_CLUSTER_EXISTS,
                              ErrorStrings.E_ALREADY_EXISTS)
     }
 
