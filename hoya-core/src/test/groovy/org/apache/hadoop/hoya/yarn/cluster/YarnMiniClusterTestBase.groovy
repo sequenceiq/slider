@@ -358,7 +358,7 @@ implements KeysForTests, HoyaExitCodes {
 
 
   public void killServiceLaunchers(int value) {
-    killJavaProcesses(SERVICE_LAUNCHER, value);
+    killHoyaAM(value)
   }
 
   public YarnConfiguration getTestConfiguration() {
