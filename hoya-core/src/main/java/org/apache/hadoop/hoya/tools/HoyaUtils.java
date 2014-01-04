@@ -933,8 +933,9 @@ public final class HoyaUtils {
    */
   public static void applyCommandLineOptsToRoleMap(Map<String, Map<String, String>> clusterRoleMap,
                                                    Map<String, Map<String, String>> commandOptions) {
-    for (String key: commandOptions.keySet()) {
-      Map<String, String> optionMap = commandOptions.get(key);
+    for (Map.Entry<String, Map<String, String>> entry: commandOptions.entrySet()) {
+      String key = entry.getKey();
+      Map<String, String> optionMap = entry.getValue();
       Map<String, String> existingMap = clusterRoleMap.get(key);
       if (existingMap == null) {
         existingMap = new HashMap<String, String>();

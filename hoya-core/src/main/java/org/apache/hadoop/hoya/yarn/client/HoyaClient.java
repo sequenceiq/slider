@@ -753,8 +753,9 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     }
 
     if (log.isDebugEnabled()) {
-      for (String key : localResources.keySet()) {
-        LocalResource val = localResources.get(key);
+      for (Map.Entry<String, LocalResource> entry : localResources.entrySet()) {
+        String key = entry.getKey();
+        LocalResource val = entry.getValue();
         log.debug("{}={}", key, HoyaUtils.stringify(val.getResource()));
       }
     }
