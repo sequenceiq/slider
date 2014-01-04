@@ -28,6 +28,8 @@ import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
+import org.apache.hadoop.yarn.api.records.ApplicationReport
+import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.hadoop.yarn.service.launcher.ServiceLaunchException
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
@@ -58,8 +60,10 @@ class TestBadAMHeap extends HBaseMiniClusterTestBase {
            [:])
       HoyaClient hoyaClient = (HoyaClient) launcher.service
       addToTeardown(hoyaClient);
-      ClusterDescription status = hoyaClient.clusterDescription
-      dumpClusterDescription("Remote CD", status)
+
+      ApplicationReport report = waitForClusterLive(hoyaClient)
+      assert report.yarnApplicationState == YarnApplicationState.FAILED
+      
     } catch (ServiceLaunchException e) {
       assertExceptionDetails(e, HoyaExitCodes.EXIT_YARN_SERVICE_FAILED)
     }

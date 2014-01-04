@@ -358,7 +358,7 @@ implements KeysForTests, HoyaExitCodes {
 
 
   public void killServiceLaunchers(int value) {
-    killJavaProcesses(SERVICE_LAUNCHER, value);
+    killHoyaAM(value)
   }
 
   public YarnConfiguration getTestConfiguration() {
@@ -496,7 +496,7 @@ implements KeysForTests, HoyaExitCodes {
    * @param clusterOps map of key=value cluster options to set with the --option arg
    * @return launcher which will have executed the command.
    */
-  public ServiceLauncher createOrBuildHoyaCluster(String action, String clustername, Map<String, Integer> roles, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning, Map<String, String> clusterOps) {
+  public ServiceLauncher  createOrBuildHoyaCluster(String action, String clustername, Map<String, Integer> roles, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning, Map<String, String> clusterOps) {
     assert clustername != null
     assert miniCluster != null
     if (deleteExistingData) {
@@ -900,9 +900,17 @@ implements KeysForTests, HoyaExitCodes {
   }
   
   void assertExceptionDetails(ServiceLaunchException ex, int exitCode, String text = ""){
-    assert exitCode == ex.exitCode
+    if (exitCode != ex.exitCode) {
+      log.warn("Wrong exit code, expected $exitCode but got $ex.exitCode in $ex",
+               ex)
+      assert exitCode == ex.exitCode
+    }
     if (text) {
-      assert ex.toString().contains(text)
+      if (!(ex.toString().contains(text))) {
+        log.warn("String match failed in $ex", ex)
+        assert ex.toString().contains(text);
+      }
+      
     }
   }
 
