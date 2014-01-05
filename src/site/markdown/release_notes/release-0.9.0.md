@@ -14,7 +14,7 @@
   
 # Hoya Release 0.9.0
 
-December 2013
+January 2013
 
 This release is built against the Apache Hadoop 2.2.0 and hbase 0.96.0-hadoop2
 artifacts. 
@@ -27,3 +27,32 @@ artifacts.
 The monitioring logic has moved into the Application Master, where it will
 ultimately monitor the liveness of the deployed service -for Hoya to react
 to.
+
+### Freeze command failes with ` EXIT_UNKNOWN_HOYA_CLUSTER = 70` on an unknown cluster
+
+An attempt to freeze an unknown cluster now fails with the error code 70:
+
+    hoya freeze no_such_cluster
+
+### `freeze --force` force kills a hung AM
+
+If an AM is hung, the normal freeze command fails; the `--force` option
+avoids talking to the AM and just asks YARN to terminate the application.
+
+    hoya freeze mycluster --force
+
+### `env.MALLOC_ARENA_MAX` added to all roles by default
+
+When the template roles are created, `env.MALLOC_ARENA_MAX=4`
+is set for them. This addresses an issue with linux that can cause
+containers to fail to start.
+
+
+### cluster `original/` directory renamed `snapshot`
+
+In earler releases, a copy of the supplied configuration directory was made
+into the directory `~/.hoya/clusters/$CLUSTERNAME/original`. This
+has caused a bit of confusion during diagnostic emails. We've renamed it
+`snapshot` to make clear it is a snapshot of the original configuration directory.
+
+
