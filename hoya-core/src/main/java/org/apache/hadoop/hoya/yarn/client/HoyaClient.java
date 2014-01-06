@@ -117,7 +117,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   public static final int ACCEPT_TIME = 60000;
   public static final int CONNECT_TIMEOUT = 10000;
   public static final int RPC_TIMEOUT = 15000;
-  private int amPriority = 0;
 
   private ClientArgs serviceArgs;
   public ApplicationId applicationId;
@@ -879,8 +878,11 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     appContext.setAMContainerSpec(amContainer);
 
     // Set the priority for the application master
+    
+    int amPriority = config.getInt(KEY_HOYA_YARN_QUEUE_PRIORITY,
+                                   DEFAULT_HOYA_YARN_QUEUE_PRIORITY);
+
     Priority pri = Records.newRecord(Priority.class);
-    // TODO - what is the range for priority? how to decide?
     pri.setPriority(amPriority);
     appContext.setPriority(pri);
 

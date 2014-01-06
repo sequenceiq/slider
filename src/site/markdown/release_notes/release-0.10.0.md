@@ -25,15 +25,21 @@ artifacts.
 ### YARN queue for the application can be specified
 
 The configuration parameter `hoya.yarn.queue` can now be set
-in the `hoya-client.xml` file, 
+in the `hoya-client.xml` file to name the queue; `hoya.yarn.queue.priority`
+is an integer defining priority within the queue (0 is the highest priority)
 
     <property>
       <name>hoya.yarn.queue</name>
       <value>background</value>
     </property>
 
+    <property>
+      <name>hoya.yarn.queue</name>
+      <value>10</value>
+    </property>
+
 or on the command line via the `-D` option:
 
-    -D hoya.yarn.queue interactive
+  bin/hoya  thaw cl1  -D hoya.yarn.queue=interactive -D hoya.yarn.queue.priority=5 
   
   

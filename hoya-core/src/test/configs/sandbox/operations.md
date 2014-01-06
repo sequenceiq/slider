@@ -160,7 +160,7 @@
     
 ### thaw
 
-    bin/hoya  thaw cl1
+    bin/hoya  thaw cl1 -D hoya.yarn.queue.priority=5 -D hoya.yarn.queue=default
     
     
 ### thaw with bad queue: _MUST_ fail
