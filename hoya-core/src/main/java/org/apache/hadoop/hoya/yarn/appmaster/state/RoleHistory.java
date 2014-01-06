@@ -21,7 +21,6 @@ package org.apache.hadoop.hoya.yarn.appmaster.state;
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.avro.RoleHistoryHeader;
 import org.apache.hadoop.hoya.avro.RoleHistoryWriter;
 import org.apache.hadoop.hoya.exceptions.HoyaIOException;
@@ -39,7 +38,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 /**

@@ -19,7 +19,6 @@
 package org.apache.hadoop.hoya.yarn.client;
 
 import com.google.common.annotations.VisibleForTesting;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileAlreadyExistsException;
@@ -54,6 +53,7 @@ import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.tools.HoyaVersionInfo;
 import org.apache.hadoop.hoya.yarn.Arguments;
 import org.apache.hadoop.hoya.yarn.HoyaActions;
+import org.apache.hadoop.hoya.yarn.appmaster.rpc.RpcBinder;
 import org.apache.hadoop.hoya.yarn.params.AbstractClusterBuildingActionArgs;
 import org.apache.hadoop.hoya.yarn.params.ActionCreateArgs;
 import org.apache.hadoop.hoya.yarn.params.ActionFlexArgs;
@@ -62,7 +62,6 @@ import org.apache.hadoop.hoya.yarn.params.ActionGetConfArgs;
 import org.apache.hadoop.hoya.yarn.params.ActionThawArgs;
 import org.apache.hadoop.hoya.yarn.params.ClientArgs;
 import org.apache.hadoop.hoya.yarn.params.HoyaAMArgs;
-import org.apache.hadoop.hoya.yarn.appmaster.rpc.RpcBinder;
 import org.apache.hadoop.hoya.yarn.params.LaunchArgsAccessor;
 import org.apache.hadoop.hoya.yarn.service.CompoundLaunchedService;
 import org.apache.hadoop.hoya.yarn.service.SecurityCheckerService;
@@ -85,7 +84,6 @@ import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.service.launcher.RunService;
-import org.apache.hadoop.yarn.service.launcher.ServiceLauncher;
 import org.apache.hadoop.yarn.util.Records;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1391,7 +1389,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     HoyaUtils.validateClusterName(clustername);
     int waittime = freezeArgs.getWaittime();
     boolean forcekill = freezeArgs.force;
-    log.debug("actionFreeze({}, {}, force={})", clustername, waittime, forcekill);
+    log.debug("actionFreeze({}, {}, force={})", clustername, waittime,
+              forcekill);
     
     //is this actually a known cluster? 
     locateClusterSpecification(clustername);

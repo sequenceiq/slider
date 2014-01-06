@@ -28,7 +28,7 @@ import org.apache.hadoop.hoya.api.ClusterDescription;
 import org.apache.hadoop.hoya.api.OptionKeys;
 import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.api.StatusKeys;
-import static org.apache.hadoop.hoya.api.RoleKeys.*;
+import org.apache.hadoop.hoya.exceptions.ErrorStrings;
 import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hadoop.hoya.exceptions.HoyaRuntimeException;
 import org.apache.hadoop.hoya.exceptions.NoSuchNodeException;
@@ -36,7 +36,6 @@ import org.apache.hadoop.hoya.exceptions.TriggerClusterTeardownException;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
-import org.apache.hadoop.hoya.exceptions.ErrorStrings;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
@@ -59,6 +58,15 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.apache.hadoop.hoya.api.RoleKeys.DEF_YARN_CORES;
+import static org.apache.hadoop.hoya.api.RoleKeys.DEF_YARN_MEMORY;
+import static org.apache.hadoop.hoya.api.RoleKeys.ROLE_FAILED_INSTANCES;
+import static org.apache.hadoop.hoya.api.RoleKeys.ROLE_FAILED_STARTING_INSTANCES;
+import static org.apache.hadoop.hoya.api.RoleKeys.ROLE_RELEASING_INSTANCES;
+import static org.apache.hadoop.hoya.api.RoleKeys.ROLE_REQUESTED_INSTANCES;
+import static org.apache.hadoop.hoya.api.RoleKeys.YARN_CORES;
+import static org.apache.hadoop.hoya.api.RoleKeys.YARN_MEMORY;
 
 
 /**

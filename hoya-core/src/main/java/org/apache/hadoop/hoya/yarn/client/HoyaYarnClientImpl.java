@@ -21,7 +21,6 @@ package org.apache.hadoop.hoya.yarn.client;
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.exceptions.BadCommandArgumentsException;
-import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.tools.Duration;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.hoya.yarn.params.ActionForceKillArgs;

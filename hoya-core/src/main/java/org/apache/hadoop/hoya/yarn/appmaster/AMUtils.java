@@ -19,7 +19,6 @@
 package org.apache.hadoop.hoya.yarn.appmaster;
 
 import org.apache.hadoop.hoya.HoyaExitCodes;
-import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.service.launcher.LauncherExitCodes;
 
 public class AMUtils {

@@ -19,7 +19,6 @@
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
 import com.google.common.annotations.VisibleForTesting;
-import org.apache.hadoop.hoya.exceptions.HoyaInternalStateException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

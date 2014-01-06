@@ -19,7 +19,6 @@
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
 import org.apache.hadoop.hoya.api.ClusterDescription;
-import org.apache.hadoop.hoya.api.ClusterNode;
 import org.apache.hadoop.hoya.api.proto.Messages;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
 import org.apache.hadoop.yarn.api.records.Container;
