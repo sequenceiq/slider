@@ -40,9 +40,6 @@
 
     bin/hoya create cl1 \
     --manager sandbox:8032 --filesystem hdfs://sandbox.hortonworks.com:8020 \
-    -S java.security.krb5.realm=COTHAM \
-    \
-     -D yarn.resourcemanager.principal=yarn/sandbox@COTHAM \
             --role worker 1\
             --role master 0\
         --zkhosts sandbox  \
@@ -69,17 +66,9 @@
         
     bin/hoya status clu1 \
     --manager sandbox:8032 --filesystem hdfs://sandbox.hortonworks.com:8020 \
-    -S java.security.krb5.realm=COTHAM \
-    \
-     -D yarn.resourcemanager.principal=yarn/sandbox@COTHAM \
-     -D dfs.namenode.kerberos.principal=hdfs/sandbox@COTHAM 
            
     bin/hoya list \
     --manager sandbox:8032 \
-    -S java.security.krb5.realm=COTHAM \
-     -D yarn.resourcemanager.principal=yarn/sandbox@COTHAM \
-      -D dfs.namenode.kerberos.principal=hdfs/sandbox@COTHAM
-               
                
 
                
@@ -157,36 +146,43 @@
       --roleopt master env.MALLOC_ARENA_MAX 4 \
       --roleopt worker app.infoport 0 \
   
-# flex the cluster
+### flex the cluster
   
    bin/hoya flex cl1 \
     --role master 1 \
     --role worker 2 
     
-# freeze
+### freeze
 
     bin/hoya  freeze cl1 
     
-# thaw
+    bin/hoya  freeze cl1 --force 
+    
+### thaw
 
-    bin/hoya  thaw cl1
+    bin/hoya  thaw cl1 -D hoya.yarn.queue.priority=5 -D hoya.yarn.queue=default
+    
+    
+### thaw with bad queue: _MUST_ fail
+    
+    bin/hoya  thaw cl1 -D hoya.yarn.queue=unknown
      
-# monitor
+### monitor
 
     bin/hoya  monitor cl1      
 
-# list all
+### list all
 
     bin/hoya  list
      
-# list
+### list
 
     bin/hoya  list cl1 
     
-# status
+### status
 
     bin/hoya  status cl1 
     
-# destroy
+### destroy
 
     bin/hoya  destroy cl1 

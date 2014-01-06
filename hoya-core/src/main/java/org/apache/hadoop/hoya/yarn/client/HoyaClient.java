@@ -117,9 +117,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   public static final int ACCEPT_TIME = 60000;
   public static final int CONNECT_TIMEOUT = 10000;
   public static final int RPC_TIMEOUT = 15000;
-  private int amPriority = 0;
-  // Queue for App master
-  private String amQueue = "default";
 
   private ClientArgs serviceArgs;
   public ApplicationId applicationId;
@@ -612,8 +609,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     } else {
       imagePath = null;
       if (isUnset(clusterSpec.getApplicationHome())) {
-        throw new BadClusterStateException(
-            "Neither an image path nor binary home dir were specified");
+        throw new BadClusterStateException(NO_IMAGE_OR_HOME_DIR_SPECIFIED);
       }
     }
 
@@ -667,7 +663,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     } else {
       File hoyaConfDir = new File(hoyaConfdirProp);
       if (!hoyaConfDir.exists()) {
-        throw new BadConfigException("Conf dir \"%s\" not found", hoyaConfDir);
+        throw new BadConfigException(HOYA_CONFIGURATION_DIRECTORY_NOT_FOUND,
+                                     hoyaConfDir);
       }
       Path localConfDirPath = HoyaUtils.createLocalPath(hoyaConfDir);
       log.debug("Copying Hoya AM configuration data from {}", localConfDirPath);
@@ -691,7 +688,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
         HoyaUtils.mergeMaps(localResources, submittedConfDir);
       }
 
-      log.info("Copying JARs from local filesystem");
+      log.debug("Copying JARs from local filesystem");
       // Copy the application master jar to the filesystem
       // Create a local resource to point to the destination jar path
 
@@ -881,12 +878,18 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     appContext.setAMContainerSpec(amContainer);
 
     // Set the priority for the application master
+    
+    int amPriority = config.getInt(KEY_HOYA_YARN_QUEUE_PRIORITY,
+                                   DEFAULT_HOYA_YARN_QUEUE_PRIORITY);
+
     Priority pri = Records.newRecord(Priority.class);
-    // TODO - what is the range for priority? how to decide?
     pri.setPriority(amPriority);
     appContext.setPriority(pri);
 
     // Set the queue to which this application is to be submitted in the RM
+    // Queue for App master
+    String amQueue = config.get(KEY_HOYA_YARN_QUEUE, DEFAULT_HOYA_YARN_QUEUE);
+
     appContext.setQueue(amQueue);
 
     // Submit the application to the applications manager
@@ -1414,7 +1417,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     if (forcekill) {
       //escalating to forced kill
       yarnClient.killRunningApplication(appId,
-                                        "Forced kill of {}");
+                                        "Forced freeze of " + clustername);
     } else {
       try {
         HoyaClusterProtocol appMaster = connect(app);

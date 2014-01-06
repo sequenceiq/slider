@@ -22,6 +22,7 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.HoyaKeys
+import org.apache.hadoop.hoya.HoyaXmlConfKeys
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.RoleKeys
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
@@ -37,7 +38,7 @@ import org.junit.Test
 @CompileStatic
 @Slf4j
 
-class TestBadAMHeap extends HBaseMiniClusterTestBase {
+class TestBadArguments extends HBaseMiniClusterTestBase {
 
   @Test
   public void testBadAMHeap() throws Throwable {
@@ -54,6 +55,41 @@ class TestBadAMHeap extends HBaseMiniClusterTestBase {
            ],
            [
                Arguments.ARG_ROLEOPT, HoyaKeys.ROLE_HOYA_AM, RoleKeys.JVM_HEAP, "invalid",
+           ],
+           true,
+           false,
+           [:])
+      HoyaClient hoyaClient = (HoyaClient) launcher.service
+      addToTeardown(hoyaClient);
+
+      ApplicationReport report = waitForClusterLive(hoyaClient)
+      assert report.yarnApplicationState == YarnApplicationState.FAILED
+      
+    } catch (ServiceLaunchException e) {
+      assertExceptionDetails(e, HoyaExitCodes.EXIT_YARN_SERVICE_FAILED)
+    }
+    
+  }
+
+  /**
+   * Test disabled because YARN queues don't get validated in the mini cluster
+   * @throws Throwable
+   */
+  public void DisabledtestBadYarnQueue() throws Throwable {
+    String clustername = "test_bad_yarn_queue"
+    createMiniCluster(clustername, createConfiguration(), 1, true)
+
+    describe "verify that bad Java heap options are picked up"
+
+    try {
+      ServiceLauncher launcher = createHoyaCluster(clustername,
+           [
+               (HBaseKeys.ROLE_MASTER): 0,
+               (HBaseKeys.ROLE_WORKER): 0,
+           ],
+           [
+               Arguments.ARG_DEFINE,
+               HoyaXmlConfKeys.KEY_HOYA_YARN_QUEUE + "=noqueue"
            ],
            true,
            false,
