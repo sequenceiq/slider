@@ -21,6 +21,7 @@ package org.apache.hadoop.hoya.yarn.cluster.live
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.hoya.HoyaXmlConfKeys
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.RoleKeys;
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
@@ -48,7 +49,12 @@ class TestHBaseMaster extends HBaseMiniClusterTestBase {
     //now launch the cluster with 1 region server
     int regionServerCount = 1
     ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount,
-      [Arguments.ARG_ROLEOPT, HBaseKeys.ROLE_MASTER, RoleKeys.JVM_HEAP, "1G"], true, true) 
+      [
+        Arguments.ARG_ROLEOPT, HBaseKeys.ROLE_MASTER, RoleKeys.JVM_HEAP, "1G",
+        Arguments.ARG_DEFINE, HoyaXmlConfKeys.KEY_HOYA_YARN_QUEUE+"=default"
+      ], 
+      true,
+      true) 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
     ClusterDescription status = hoyaClient.getClusterDescription(clustername)

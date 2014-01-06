@@ -27,7 +27,6 @@ import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.FileUtil
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hdfs.MiniDFSCluster
-import org.apache.hadoop.hoya.Hoya
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.ClusterNode

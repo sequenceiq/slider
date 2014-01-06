@@ -18,6 +18,8 @@
 
 package org.apache.hadoop.hoya;
 
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
+
 /**
  * These are the keys that can be added to <code>conf/hoya-client.xml</code>.
  */
@@ -71,4 +73,15 @@ public interface HoyaXmlConfKeys {
    * when talking to this cluster.
    */
   String KEY_HOYA_SECURITY_ENABLED = "hoya.security.enabled";
+  
+ 
+  /**
+   * Flag which is set to indicate that security should be enabled
+   * when talking to this cluster.
+   */
+  String KEY_HOYA_YARN_QUEUE = "hoya.yarn.queue";
+
+  String DEFAULT_HOYA_YARN_QUEUE= YarnConfiguration.DEFAULT_QUEUE_NAME;
+
+
 }
