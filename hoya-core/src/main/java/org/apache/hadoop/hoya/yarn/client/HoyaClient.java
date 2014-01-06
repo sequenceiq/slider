@@ -612,8 +612,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     } else {
       imagePath = null;
       if (isUnset(clusterSpec.getApplicationHome())) {
-        throw new BadClusterStateException(
-            "Neither an image path nor binary home dir were specified");
+        throw new BadClusterStateException(NO_IMAGE_OR_HOME_DIR_SPECIFIED);
       }
     }
 
@@ -667,7 +666,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     } else {
       File hoyaConfDir = new File(hoyaConfdirProp);
       if (!hoyaConfDir.exists()) {
-        throw new BadConfigException("Conf dir \"%s\" not found", hoyaConfDir);
+        throw new BadConfigException(HOYA_CONFIGURATION_DIRECTORY_NOT_FOUND,
+                                     hoyaConfDir);
       }
       Path localConfDirPath = HoyaUtils.createLocalPath(hoyaConfDir);
       log.debug("Copying Hoya AM configuration data from {}", localConfDirPath);

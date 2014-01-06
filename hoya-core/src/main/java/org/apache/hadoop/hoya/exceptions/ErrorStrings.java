@@ -46,4 +46,8 @@ public interface ErrorStrings {
     "Too many arguments";
   String ERROR_DUPLICATE_ENTRY = "Duplicate entry for ";
   String E_FINISHED_APPLICATION = "Finished application: ";
+  String NO_IMAGE_OR_HOME_DIR_SPECIFIED =
+    "Neither an image path nor binary home directory were specified";
+  String HOYA_CONFIGURATION_DIRECTORY_NOT_FOUND =
+    "Hoya configuration directory \"%s\" not found";
 }
