@@ -116,13 +116,17 @@ the release number
 (We recommend naming the hortonworks github repository 'hortonworks' to avoid
  confusion with apache, personal and others):
 
-    git push hortonworks master develop 
+    git push origin master develop 
 
-(if you are planning on any release work of more than a single test run,
- consider having your local release branch track the master)
+(assuming that `origin` maps to `git@github.com:hortonworks/hoya.git`;
+ you can check this with `git remote -v`
+
 
 The `git-flow` program automatically pushes up the `release/hoya-X.Y` branch,
 before deleting it locally.
+
+If you are planning on any release work of more than a single test run,
+consider having your local release branch track the master.
 
 
 **Step #14:** ### For releasing small artifacts
