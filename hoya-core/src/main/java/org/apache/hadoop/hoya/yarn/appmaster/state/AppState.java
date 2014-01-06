@@ -124,11 +124,6 @@ public class AppState {
     new ConcurrentHashMap<ContainerId, Container>();
   
   /**
-   *  This is the number of containers which we desire for HoyaAM to maintain
-   */
-  //private int desiredContainerCount = 0;
-
-  /**
    * Counter for completed containers ( complete denotes successful or failed )
    */
   private final AtomicInteger completedContainerCount = new AtomicInteger();
@@ -670,8 +665,8 @@ public class AppState {
    * @throws HoyaInternalStateException if there is no container of that ID
    * on the active list
    */
-  public synchronized void containerReleaseSubmitted(Container container) throws
-                                                                     HoyaInternalStateException {
+  public synchronized void containerReleaseSubmitted(Container container)
+      throws HoyaInternalStateException {
     ContainerId id = container.getId();
     //look up the container
     RoleInstance info = getActiveContainer(id);
