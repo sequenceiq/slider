@@ -23,10 +23,6 @@ import org.apache.accumulo.core.conf.Property;
 /**
  * Mappings of config params to env variables for
  * custom -site.xml files to pick up
- *
- * A lot of these come from HConstants -the reason they have been copied
- * and pasted in here is to remove dependencies on HBase from
- * the Hoya Client and AM.
  */
 public interface AccumuloConfigFileOptions {
 
@@ -46,18 +42,33 @@ public interface AccumuloConfigFileOptions {
    */
   String INSTANCE_DFS_DIR = Property.INSTANCE_DFS_DIR.getKey();
 
-
+  // String used to restrict access to data in ZK
   String INSTANCE_SECRET = Property.INSTANCE_SECRET.getKey();
+  
+  // IPC port for master
   String MASTER_PORT_CLIENT = Property.MASTER_CLIENTPORT.getKey();
   String MASTER_PORT_CLIENT_DEFAULT = Property.MASTER_CLIENTPORT.getDefaultValue();
   
+  // IPC port for monitor
   String MONITOR_PORT_CLIENT = Property.MONITOR_PORT.getKey();
   String MONITOR_PORT_CLIENT_DEFAULT = Property.MONITOR_PORT.getDefaultValue();
   int MONITOR_PORT_CLIENT_INT = Integer.parseInt(MONITOR_PORT_CLIENT_DEFAULT);
+  
+  // Log4j forwarding port
+  String MONITOR_LOG4J_PORT = Property.MONITOR_LOG4J_PORT.getKey();
+  String MONITOR_LOG4J_PORT_DEFAULT = Property.MONITOR_LOG4J_PORT.getDefaultValue();
+  int MONITOR_LOG4J_PORT_INT = Integer.parseInt(MONITOR_LOG4J_PORT_DEFAULT);
+  
+  // IPC port for tracer
   String TRACE_PORT_CLIENT = Property.TRACE_PORT.getKey();
   String TRACE_PORT_CLIENT_DEFAULT = Property.TRACE_PORT.getDefaultValue();
 
+  // IPC port for tserver
   String TSERV_PORT_CLIENT = Property.TSERV_CLIENTPORT.getKey();
   String TSERV_PORT_CLIENT_DEFAULT = Property.TSERV_CLIENTPORT.getDefaultValue();
   
+  // IPC port for gc
+  String GC_PORT_CLIENT = Property.GC_PORT.getKey();
+  String GC_PORT_CLIENT_DEFAULT = Property.GC_PORT.getDefaultValue();
+  int GC_PORT_CLIENT_INT = Integer.parseInt(GC_PORT_CLIENT_DEFAULT);
 }

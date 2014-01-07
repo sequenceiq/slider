@@ -19,7 +19,6 @@
 package org.apache.hadoop.hoya.providers.accumulo;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileSystem;
@@ -33,7 +32,6 @@ import org.apache.hadoop.hoya.exceptions.BadConfigException;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.providers.AbstractProviderCore;
 import org.apache.hadoop.hoya.providers.ClientProvider;
-import org.apache.hadoop.hoya.providers.ProviderCore;
 import org.apache.hadoop.hoya.providers.ProviderRole;
 import org.apache.hadoop.hoya.providers.ProviderUtils;
 import org.apache.hadoop.hoya.tools.ConfigHelper;
@@ -54,11 +52,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import static org.apache.hadoop.hoya.api.RoleKeys.APP_INFOPORT;
 import static org.apache.hadoop.hoya.providers.accumulo.AccumuloConfigFileOptions.INSTANCE_SECRET;
-import static org.apache.hadoop.hoya.providers.accumulo.AccumuloConfigFileOptions.MASTER_PORT_CLIENT;
-import static org.apache.hadoop.hoya.providers.accumulo.AccumuloConfigFileOptions.MONITOR_PORT_CLIENT;
-import static org.apache.hadoop.hoya.providers.accumulo.AccumuloConfigFileOptions.TSERV_PORT_CLIENT;
 
 /**
  * Client-side accumulo provider
@@ -167,15 +161,6 @@ public class AccumuloClientProvider extends AbstractProviderCore implements
   public Map<String, String> buildSiteConfFromSpec(ClusterDescription clusterSpec)
     throws BadConfigException {
 
-
-    Map<String, String> master = clusterSpec.getMandatoryRole(
-      AccumuloKeys.ROLE_MASTER);
-
-    Map<String, String> tserver = clusterSpec.getMandatoryRole(
-      AccumuloKeys.ROLE_TABLET);
-    Map<String, String> monitor = clusterSpec.getMandatoryRole(
-      AccumuloKeys.ROLE_MONITOR);
-
     Map<String, String> sitexml = new HashMap<String, String>();
 
 
@@ -199,15 +184,6 @@ public class AccumuloClientProvider extends AbstractProviderCore implements
     sitexml.put(AccumuloConfigFileOptions.INSTANCE_DFS_URI, fspath);
     sitexml.put(AccumuloConfigFileOptions.INSTANCE_DFS_DIR,
                 parentUri.getPath());
-
-    assignIfSet(sitexml, MASTER_PORT_CLIENT, clusterSpec, ROLE_MASTER,
-                APP_INFOPORT);
-    assignIfSet(sitexml, MONITOR_PORT_CLIENT, clusterSpec, ROLE_MONITOR,
-                APP_INFOPORT);
-    assignIfSet(sitexml, TSERV_PORT_CLIENT, clusterSpec, ROLE_TABLET,
-                APP_INFOPORT);
-    assignIfSet(sitexml, MASTER_PORT_CLIENT, clusterSpec, ROLE_MASTER,
-                APP_INFOPORT);
 
     //fix up ZK
     int zkPort = clusterSpec.getZkPort();
@@ -275,7 +251,7 @@ public class AccumuloClientProvider extends AbstractProviderCore implements
         "accumulo-core.jar",
         "zookeeper.jar",
       };
-    Class[] classes = {
+    Class<?>[] classes = {
       // accumulo-core
       org.apache.accumulo.core.Constants.class,
       //zk

@@ -19,7 +19,7 @@
   -->
 
   <!--
-  These are the default cluster options for a Hoya HBase cluster
+  These are the default cluster options for a Hoya Accumulo cluster
   -->
 <configuration>
 
@@ -37,6 +37,18 @@
 
   <property>
     <name>site.tserver.port.client</name>
+    <value>0</value>
+  </property>
+
+
+  <property>
+    <name>site.gc.port.client</name>
+    <value>0</value>
+  </property>
+
+
+  <property>
+    <name>site.monitor.port.log4j</name>
     <value>0</value>
   </property>
 
