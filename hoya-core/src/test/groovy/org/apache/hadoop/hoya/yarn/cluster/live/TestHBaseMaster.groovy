@@ -20,6 +20,7 @@ package org.apache.hadoop.hoya.yarn.cluster.live
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.HoyaXmlConfKeys
 import org.apache.hadoop.hoya.api.ClusterDescription
@@ -85,11 +86,16 @@ class TestHBaseMaster extends HBaseMiniClusterTestBase {
     int regionServerCount = 1
     try {
       ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount,
-        [Arguments.ARG_ROLEOPT, HBaseKeys.ROLE_MASTER, RoleKeys.JVM_HEAP, "invalid"], true, true) 
+        [Arguments.ARG_ROLEOPT, HBaseKeys.ROLE_WORKER, RoleKeys.JVM_HEAP, "invalid"], true, true) 
       HoyaClient hoyaClient = (HoyaClient) launcher.service
       addToTeardown(hoyaClient);
+
+      basicHBaseClusterStartupSequence(hoyaClient)
       waitForClusterLive(hoyaClient)
-      fail("expected a failure, got a live cluster")
+
+      ClusterStatus clustat = getHBaseClusterStatus(hoyaClient);
+      // verify that region server cannot start
+      assert 0 == clustat.servers.size()
     } catch (ServiceLaunchException e) {
       assertExceptionDetails(e, HoyaExitCodes.EXIT_CLUSTER_FAILED)
     }

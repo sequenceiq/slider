@@ -107,12 +107,18 @@ public final class HoyaUtils {
    * @param heapsize
    * @return heapsize in MB
    */
-  public static String translateTrailingHeapUnit(String heapsize) {
+  public static String translateTrailingHeapUnit(String heapsize) throws BadConfigException {
     if (heapsize.endsWith("m") || heapsize.endsWith("M")) {
       return heapsize.substring(0, heapsize.length()-1);
     }
     if (heapsize.endsWith("g") || heapsize.endsWith("G")) {
       return heapsize.substring(0, heapsize.length()-1)+"000";
+    }
+    // check if specified heap size is a number
+    try {
+      Integer.parseInt(heapsize);
+    } catch (NumberFormatException nfe) {
+      throw new BadConfigException("Bad heapsize: " + heapsize);
     }
     return heapsize;
   }
