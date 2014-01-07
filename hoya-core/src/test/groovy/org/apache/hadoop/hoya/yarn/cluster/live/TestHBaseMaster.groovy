@@ -88,6 +88,8 @@ class TestHBaseMaster extends HBaseMiniClusterTestBase {
         [Arguments.ARG_ROLEOPT, HBaseKeys.ROLE_MASTER, RoleKeys.JVM_HEAP, "invalid"], true, true) 
       HoyaClient hoyaClient = (HoyaClient) launcher.service
       addToTeardown(hoyaClient);
+      waitForClusterLive(hoyaClient)
+      fail("expected a failure, got a live cluster")
     } catch (ServiceLaunchException e) {
       assertExceptionDetails(e, HoyaExitCodes.EXIT_CLUSTER_FAILED)
     }
