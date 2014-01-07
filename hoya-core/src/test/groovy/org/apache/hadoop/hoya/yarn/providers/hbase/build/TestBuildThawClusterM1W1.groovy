@@ -62,6 +62,8 @@ class TestBuildThawClusterM1W1 extends HBaseMiniClusterTestBase {
 
     //thaw time
     ServiceLauncher l2 = thawHoyaCluster(clustername, [], true)
+    HoyaClient client2 = (HoyaClient) l2.service
+    addToTeardown(client2);
     waitForClusterLive(l2.service as HoyaClient)
   }
 
