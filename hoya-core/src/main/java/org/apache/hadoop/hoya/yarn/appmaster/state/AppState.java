@@ -1237,7 +1237,8 @@ public class AppState {
                                     List<AbstractRMOperation> releaseOperations) {
     assignments.clear();
     releaseOperations.clear();
-    for (Container container : allocatedContainers) {
+    List<Container> ordered = roleHistory.prepareAllocationList(allocatedContainers);
+    for (Container container : ordered) {
       String containerHostInfo = container.getNodeId().getHost()
                                  + ":" +
                                  container.getNodeId().getPort();
