@@ -33,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -499,13 +500,34 @@ public class RoleHistory {
   }
 
   /**
+   * Perform any pre-allocation operations on the list of allocated containers
+   * based on knowledge of system state. 
+   * Currently this places requested hosts ahead of unrequested ones.
+   * @param allocatedContainers list of allocated containers
+   * @return list of containers potentially reordered
+   */
+  public List<Container> prepareAllocationList(List<Container> allocatedContainers) {
+    
+    //partition into requested and unrequested
+    List<Container> requested =
+      new ArrayList<Container>(allocatedContainers.size());
+    List<Container> unrequested =
+      new ArrayList<Container>(allocatedContainers.size());
+    outstandingRequests.partitionRequests(allocatedContainers, requested, unrequested);
+    
+    //give the unrequested ones lower priority
+    requested.addAll(unrequested);
+    return requested;
+  }
+  
+  /**
    * A container has been allocated on a node -update the data structures
    * @param container container
    * @param desiredCount desired #of instances
    * @param actualCount current count of instances
    * @return true if an entry was found and dropped
    */
-  public synchronized boolean  onContainerAllocated(Container container, int desiredCount, int actualCount) {
+  public synchronized boolean onContainerAllocated(Container container, int desiredCount, int actualCount) {
     int role = ContainerPriority.extractRole(container);
     String hostname = RoleHistoryUtils.hostnameOf(container);
     boolean requestFound =

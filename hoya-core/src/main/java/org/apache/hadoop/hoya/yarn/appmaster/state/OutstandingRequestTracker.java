@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hoya.yarn.appmaster.state;
 
+import org.apache.hadoop.yarn.api.records.Container;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,6 +96,30 @@ public class OutstandingRequestTracker {
     }
     return true;
   }
+
+  /**
+   * Take a list of requests and split them into specific host requests and
+   * generic assignments. This is to give requested hosts priority
+   * in container assignments if more come back than expected
+   * @param allocatedContainers the list of allocated containers
+   * @param requested empty list of requested locations 
+   * @param unrequested empty list of unrequested hosts
+   */
+  public synchronized void partitionRequests(List<Container> allocatedContainers,
+                                                List<Container> requested,
+                                                List<Container> unrequested) {
+
+    for (Container container : allocatedContainers) {
+      int role = ContainerPriority.extractRole(container);
+      String hostname = RoleHistoryUtils.hostnameOf(container);
+      if (requests.containsKey(new OutstandingRequest(role, hostname))) {
+        requested.add(container);
+      } else {
+        unrequested.add(container);
+      }
+    }
+  }
+  
 
   /**
    * Cancel all outstanding requests for a role: return the hostnames
