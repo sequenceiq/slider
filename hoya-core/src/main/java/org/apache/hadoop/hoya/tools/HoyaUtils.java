@@ -101,6 +101,20 @@ public final class HoyaUtils {
   public static boolean isSet(String s) {
     return !isUnset(s);
   }
+  
+  /*
+   * Validates whether num is an integer
+   * @param num
+   * @param msg the message to be shown in exception
+   */
+  private static void validateNumber(String num, String msg)  throws BadConfigException {
+    try {
+      Integer.parseInt(num);
+    } catch (NumberFormatException nfe) {
+      throw new BadConfigException(msg + num);
+    }
+  }
+  
   /*
    * Translates the trailing JVM heapsize unit: g, G, m, M
    * This assumes designated unit of 'm'
@@ -108,18 +122,19 @@ public final class HoyaUtils {
    * @return heapsize in MB
    */
   public static String translateTrailingHeapUnit(String heapsize) throws BadConfigException {
+    String errMsg = "Bad heapsize: ";
     if (heapsize.endsWith("m") || heapsize.endsWith("M")) {
-      return heapsize.substring(0, heapsize.length()-1);
+      String num = heapsize.substring(0, heapsize.length()-1);
+      validateNumber(num, errMsg);
+      return num;
     }
     if (heapsize.endsWith("g") || heapsize.endsWith("G")) {
-      return heapsize.substring(0, heapsize.length()-1)+"000";
+      String num = heapsize.substring(0, heapsize.length()-1)+"000";
+      validateNumber(num, errMsg);
+      return num;
     }
     // check if specified heap size is a number
-    try {
-      Integer.parseInt(heapsize);
-    } catch (NumberFormatException nfe) {
-      throw new BadConfigException("Bad heapsize: " + heapsize);
-    }
+    validateNumber(heapsize, errMsg);
     return heapsize;
   }
 
