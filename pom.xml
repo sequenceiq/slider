@@ -101,6 +101,7 @@
      artifact versions
     -->
     <avro.version>1.7.4</avro.version>
+    <bigtop.version>0.7.0</bigtop.version>
     <commons-codec.version>1.7</commons-codec.version>
     <gmavenVersion>1.5</gmavenVersion>
     <gmavenProviderSelection>2.0</gmavenProviderSelection>

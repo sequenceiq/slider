@@ -77,17 +77,28 @@
     </dependency>
 
     <dependency>
-      <groupId>com.beust</groupId>
-      <artifactId>jcommander</artifactId>
-    </dependency>
-
-
-    <dependency>
       <groupId>org.apache.hoya</groupId>
       <artifactId>hoya-core</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>
     </dependency>
+
+    <dependency>
+      <groupId>org.apache.hoya</groupId>
+      <artifactId>hoya-assembly</artifactId>
+      <version>${project.version}</version>
+      <classifier>all</classifier>
+      <type>tar.gz</type>
+      <scope>test</scope>
+    </dependency>
+
+
+    <dependency>
+      <groupId>org.apache.bigtop.itest</groupId>
+      <artifactId>itest-common</artifactId>
+      <version>${bigtop.version}</version>
+    </dependency>
+
   </dependencies>
 
 
