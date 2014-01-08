@@ -31,7 +31,7 @@ import java.util.UUID;
 /**
  * Info about a continer to keep around when deciding which container to release
  */
-public class RoleInstance {
+public final class RoleInstance implements Cloneable {
 
   public Container container;
   /**
@@ -154,5 +154,17 @@ public class RoleInstance {
       builder.setUuid(uuid);
     }
     return builder.build();
+  }
+
+  /**
+   * Clone operation clones all the simple values but shares the 
+   * Container object into the cloned copy -same with the output,
+   * diagnostics and env arrays.
+   * @return a clone of the object
+   * @throws CloneNotSupportedException
+   */
+  @Override
+  public Object clone() throws CloneNotSupportedException {
+    return super.clone();
   }
 }
