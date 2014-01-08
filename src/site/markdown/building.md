@@ -183,13 +183,13 @@ is ignored by git), declaring where HBase, accumulo, Hadoop and zookeeper are:
       </property> 
          
       <property>
-        <name>hoya.test.accumulo_home</name>
+        <name>hoya.test.accumulo.home</name>
         <value>/home/hoya/accumulo/assemble/target/accumulo-1.6.0-SNAPSHOT/</value>
         <description>Accumulo Home</description>
       </property>
     
       <property>
-        <name>hoya.test.accumulo_tar</name>
+        <name>hoya.test.accumulo.tar</name>
         <value>/home/hoya/accumulo/assemble/target/accumulo-1.6.0-SNAPSHOT-bin.tar.gz</value>
         <description>Accumulo archive URI</description>
       </property>
