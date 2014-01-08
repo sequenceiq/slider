@@ -503,6 +503,9 @@ public class HoyaAppMaster extends CompoundLaunchedService
       //tell the server what the ACLs are 
       rpcService.getServer().refreshServiceAcl(conf, new HoyaAMPolicyProvider());
     }
+    
+    //TODO: build from response once it is coming back
+    List<Container> liveContainers = null;
 
     //now validate the dir by loading in a hadoop-site.xml file from it
 
@@ -531,7 +534,12 @@ public class HoyaAppMaster extends CompoundLaunchedService
     Path historyDir = new Path(clusterDirPath, HISTORY_DIR_NAME);
     
     //build the instance
-    appState.buildInstance(clusterSpec, siteConf, providerRoles, fs, historyDir);
+    appState.buildInstance(clusterSpec,
+                           siteConf,
+                           providerRoles,
+                           fs,
+                           historyDir,
+                           liveContainers);
 
     //before bothering to start the containers, bring up the master.
     //This ensures that if the master doesn't come up, less
