@@ -71,19 +71,21 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
   void initApp(){
 
     String historyDirName = testName;
-    appState = new AppState(new MockRecordFactory())
-    appState.setContainerLimits(RM_MAX_RAM, RM_MAX_CORES)
+
     
     YarnConfiguration conf = createConfiguration()
     fs = HadoopFS.get(new URI("file:///"), conf)
     historyWorkDir = new File("target/history", historyDirName)
     historyPath = new Path(historyWorkDir.toURI())
     fs.delete(historyPath, true)
+    appState = new AppState(new MockRecordFactory())
+    appState.setContainerLimits(RM_MAX_RAM, RM_MAX_CORES)
     appState.buildInstance(factory.newClusterSpec(0, 0, 0),
                            new Configuration(false),
                            factory.ROLES,
                            fs,
-                           historyPath)
+                           historyPath,
+                           null)
   }
 
   abstract String getTestName();

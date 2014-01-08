@@ -20,7 +20,8 @@ package org.apache.hadoop.hoya.yarn.model.mock
 
 public interface MockRoles {
 
-  public static final String ROLE0 = "role0"
-  public static final String ROLE1 = "role1"
-  public static final String ROLE2 = "role2"
+  String ROLE0 = "role0"
+  String ROLE1 = "role1"
+  String ROLE2 = "role2"
+  int ROLE_COUNT = 3
 }
