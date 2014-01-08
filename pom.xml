@@ -14,6 +14,7 @@
   <modules>
     <module>hoya-core</module>
     <module>hoya-assembly</module>
+    <module>hoya-funtest</module>
   </modules>
 
   <licenses>
