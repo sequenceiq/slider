@@ -278,8 +278,8 @@ public class AppState {
   private Map<ContainerId, RoleInstance> getLiveNodes() {
     return liveNodes;
   }
-
-  public ClusterDescription getClusterSpec() {
+  
+ public ClusterDescription getClusterSpec() {
     return clusterSpec;
   }
 
@@ -327,21 +327,23 @@ public class AppState {
   
   /**
    * Build up the application state
-   * @param clusterSpec cluster specification
+   * @param cd cluster specification
    * @param siteConf site configuration
    * @param providerRoles roles offered by a provider
    * @param fs filesystem
    * @param historyDir directory containing history files
+   * @param liveContainers
    */
-  public void buildInstance(ClusterDescription clusterSpec,
+  public void buildInstance(ClusterDescription cd,
                             Configuration siteConf,
                             List<ProviderRole> providerRoles,
                             FileSystem fs,
-                            Path historyDir) {
+                            Path historyDir,
+                            List<Container> liveContainers) {
 
 
     // set the cluster specification
-    setClusterSpec(clusterSpec);
+    setClusterSpec(cd);
 
 
     //build the role list
@@ -352,7 +354,7 @@ public class AppState {
     buildRoleRequirementsFromClusterSpec();
 
     //copy into cluster status. 
-    ClusterDescription clusterStatus = ClusterDescription.copy(clusterSpec);
+    ClusterDescription clusterStatus = ClusterDescription.copy(cd);
     Set<String> confKeys = ConfigHelper.sortedConfigKeys(siteConf);
 
 //     Add the -site configuration properties
@@ -362,11 +364,11 @@ public class AppState {
     }
 
     //set the livespan
-    startTimeThreshold = 1000 * clusterSpec.getOptionInt(
+    startTimeThreshold = 1000 * cd.getOptionInt(
       OptionKeys.CONTAINER_FAILURE_SHORTLIFE,
       OptionKeys.DEFAULT_CONTAINER_FAILURE_SHORTLIFE);
     
-    failureThreshold = clusterSpec.getOptionInt(
+    failureThreshold = cd.getOptionInt(
       OptionKeys.CONTAINER_FAILURE_THRESHOLD,
       OptionKeys.DEFAULT_CONTAINER_FAILURE_THRESHOLD);
     
@@ -389,6 +391,9 @@ public class AppState {
     // add the roles
     roleHistory = new RoleHistory(providerRoles);
     roleHistory.onStart(fs, historyDir);
+    
+    //rebuild any live containers
+    rebuildModelFromRestart(liveContainers);
   }
 
   /**
@@ -1299,4 +1304,64 @@ public class AppState {
     return builder.toString();
   }
 
+  /**
+   * Event handler for the list of active containers on restart
+   * @param liveContainers the containers allocated
+   * @return true if a rebuild took place (even if size 0)
+   * @throws HoyaRuntimeException on problems
+   */
+  private boolean rebuildModelFromRestart(List<Container> liveContainers) {
+
+    if (liveContainers == null) {
+      return false;
+    }
+    for (Container container : liveContainers) {
+      addRestartedContainer(container);
+    }
+    return true;
+  }
+
+  /**
+   * Add a restarted container by walking it through the create/submit/start
+   * lifecycle, so building up the internal structures
+   * @param container container that was running before the AM restarted
+   * @throws HoyaRuntimeException on problems
+   */
+  private void addRestartedContainer(Container container) {
+    String containerHostInfo = container.getNodeId().getHost()
+                               + ":" +
+                               container.getNodeId().getPort();
+    // get the container ID
+    ContainerId cid = container.getId();
+    
+    // get the role
+    int roleId = ContainerPriority.extractRole(container);
+    RoleStatus role =
+      lookupRoleStatus(roleId);
+    // increment its count
+    role.incActual();
+    String roleName = role.getName();
+    log.info("Rebuilding container {} in role {} on {},",
+             cid,
+             roleName,
+             containerHostInfo);
+    
+    //update app state internal structures and maps
+
+    RoleInstance instance = new RoleInstance(container);
+    instance.command = roleName;
+    instance.role = roleName;
+    instance.roleId = roleId;
+    instance.environment = new String[0];
+    instance.container = container;
+    instance.createTime = now();
+    instance.state = ClusterDescription.STATE_LIVE;
+    activeContainers.put(cid, instance);
+    //role history gets told
+    roleHistory.onContainerAssigned(container);
+    // pretend the container has just had its start actions submitted
+    containerStartSubmitted(container, instance);
+    // now pretend it has just started
+    innerOnNodeManagerContainerStarted(cid);
+  }
 }

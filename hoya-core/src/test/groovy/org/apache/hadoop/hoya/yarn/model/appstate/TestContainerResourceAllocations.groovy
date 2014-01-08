@@ -86,7 +86,7 @@ class TestContainerResourceAllocations extends BaseMockAppStateTest {
   }
   
   @Test
-  public void testMaxDefeAllocations() throws Throwable {
+  public void testMaxDefaultAllocations() throws Throwable {
     ClusterDescription clusterSpec = factory.newClusterSpec(1, 0, 0)
     appState.updateClusterSpec(clusterSpec)
     List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()

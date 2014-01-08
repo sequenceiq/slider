@@ -503,6 +503,9 @@ public class HoyaAppMaster extends CompoundLaunchedService
       //tell the server what the ACLs are 
       rpcService.getServer().refreshServiceAcl(conf, new HoyaAMPolicyProvider());
     }
+    
+    //TODO: build from response once it is coming back
+    List<Container> liveContainers = null;
 
     //now validate the dir by loading in a hadoop-site.xml file from it
 
@@ -531,7 +534,12 @@ public class HoyaAppMaster extends CompoundLaunchedService
     Path historyDir = new Path(clusterDirPath, HISTORY_DIR_NAME);
     
     //build the instance
-    appState.buildInstance(clusterSpec, siteConf, providerRoles, fs, historyDir);
+    appState.buildInstance(clusterSpec,
+                           siteConf,
+                           providerRoles,
+                           fs,
+                           historyDir,
+                           liveContainers);
 
     //before bothering to start the containers, bring up the master.
     //This ensures that if the master doesn't come up, less
@@ -739,9 +747,18 @@ public class HoyaAppMaster extends CompoundLaunchedService
 /* =================================================================== */
 
   /**
-   * Callback event when a container is allocated
+   * Callback event when a container is allocated.
+   * 
+   * The app state is updated with the allocation, and builds up a list
+   * of assignments and RM opreations. The assignments are 
+   * handed off into the pool of service launchers to asynchronously schedule
+   * container launch operations.
+   * 
+   * The operations are run in sequence; they are expected to be 0 or more
+   * release operations (to handle over-allocations)
+   * 
    * @param allocatedContainers list of containers that are now ready to be
-   * given work
+   * given work.
    */
   @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
   @Override //AMRMClientAsync
@@ -751,7 +768,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
     List<AbstractRMOperation> operations = new ArrayList<AbstractRMOperation>();
     
     //app state makes all the decisions
-    appState.onContainersAllocated(allocatedContainers,assignments, operations);
+    appState.onContainersAllocated(allocatedContainers, assignments, operations);
 
     //for each assignment: launch a thread to instantiate that role
     for (ContainerAssignment assignment : assignments) {
@@ -871,7 +888,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
 
   /**
    * Monitored nodes have been changed
-   * @param updatedNodes list of updated notes
+   * @param updatedNodes list of updated nodes
    */
   @Override //AMRMClientAsync
   public void onNodesUpdated(List<NodeReport> updatedNodes) {
