@@ -44,7 +44,8 @@ public class OutstandingRequestTracker {
 
   /**
    * Create a new request for the specific role. If a
-   * location is set, the h
+   * location is set, the request is added to the list of requests to track.
+   * if it isn't -it isn't.
    * This does not update the node instance's role's request count
    * @param instance node instance to manager
    * @param role role index
