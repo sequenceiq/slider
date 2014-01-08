@@ -1299,4 +1299,44 @@ public class AppState {
     return builder.toString();
   }
 
+  /**
+   * Event handler for the list of active containers on restart
+   * @param liveContainers the containers allocated
+
+   */
+  public synchronized void onContainersActiveOnRestart(List<Container> liveContainers) {
+    
+  }
+
+  public synchronized void onRestartedContainer(Container container) {
+    String containerHostInfo = container.getNodeId().getHost()
+                               + ":" +
+                               container.getNodeId().getPort();
+    //get the role
+    ContainerId cid = container.getId();
+    int roleId = ContainerPriority.extractRole(container);
+    RoleStatus role =
+      lookupRoleStatus(roleId);
+    String roleName = role.getName();
+    log.info("Assiging role {} to container" +
+             " {}," +
+             " on {},",
+             roleName,
+             cid,
+             containerHostInfo);
+    
+    //update app state internal structures and maps
+
+    RoleInstance instance = new RoleInstance(container);
+    instance.command = "unknown";
+    instance.role = roleName;
+    instance.roleId = roleId;
+    instance.environment = new String[0];
+    instance.container = container;
+    instance.createTime = now();
+    instance.state = ClusterDescription.STATE_LIVE;
+    activeContainers.put(cid, instance);
+    //role history gets told
+    roleHistory.onContainerAssigned(container);
+  }
 }
