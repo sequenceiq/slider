@@ -30,7 +30,6 @@ import org.apache.hadoop.hoya.api.RoleKeys
 import org.apache.hadoop.hoya.providers.accumulo.AccumuloConfigFileOptions
 import org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys
 import org.apache.hadoop.hoya.yarn.Arguments
-import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.conf.YarnConfiguration
@@ -80,22 +79,6 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
   
   void killAllAccumuloProcesses() {
     killJavaProcesses("org.apache.accumulo.start.Main", SIGKILL)
-  }
-
-  /**
-   * Fetch the current hbase site config from the Hoya AM, from the 
-   * <code>hBaseClientProperties</code> field of the ClusterDescription
-   * @param hoyaClient client
-   * @param clustername name of the cluster
-   * @return the site config
-   */
-  public Configuration fetchClientSiteConfig(HoyaClient hoyaClient) {
-    ClusterDescription status = hoyaClient.clusterDescription;
-    Configuration siteConf = new Configuration(false)
-    status.clientProperties.each { String key, String val ->
-      siteConf.set(key, val, "hoya cluster");
-    }
-    return siteConf;
   }
 
   @Override
@@ -195,16 +178,6 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
     instance.getConnector("user", "pass").instanceOperations().tabletServers;
   }
 
-  public def fetchWebPage(String url) {
-    def client = new HttpClient(new MultiThreadedHttpConnectionManager());
-    client.httpConnectionManager.params.connectionTimeout = 10000;
-    GetMethod get = new GetMethod(url);
-
-    get.followRedirects = true;
-    int resultCode = client.executeMethod(get);
-    String body = get.responseBodyAsString;
-    return body;
-  }
   
   
   public def fetchLocalPage(int port, String page) {

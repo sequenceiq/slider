@@ -22,7 +22,8 @@ import groovy.json.JsonOutput;
 import groovy.transform.CompileStatic;
 import groovy.util.logging.Slf4j;
 import org.apache.hadoop.hoya.tools.HoyaUtils;
-import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.conf.YarnConfiguration
+import org.apache.hoya.testtools.HoyaTestUtils;
 import org.junit.Assert;
 import org.junit.Assume
 import org.junit.Before;
@@ -37,7 +38,7 @@ import org.junit.Before;
 @CompileStatic
 @Slf4j
 
-public class HoyaTestBase extends Assert {
+public class HoyaTestBase extends HoyaTestUtils {
   protected static String[] toArray(List<Object> args) {
     String[] converted = new String[args.size()];
     for (int i = 0; i < args.size(); i++) {
@@ -50,21 +51,6 @@ public class HoyaTestBase extends Assert {
     return HoyaUtils.createConfiguration();
   }
 
-  protected void describe(String s) {
-    log.info("");
-    log.info("===============================");
-    log.info(s);
-    log.info("===============================");
-    log.info("");
-  }
-
-  String prettyPrint(String json) {
-    JsonOutput.prettyPrint(json)
-  }
-
-  public void skip(String message) {
-    Assume.assumeTrue(message, false);
-  }
 
   @Before
   public void setup() {
@@ -72,10 +58,4 @@ public class HoyaTestBase extends Assert {
     Thread.currentThread().name = "JUnit"
   }
 
-  public void assertListEquals(List left, List right) {
-    assert left.size() == right.size();
-    for (int i = 0; i < left.size(); i++) {
-      assert left[0] == right[0]
-    }
-  }
 }

@@ -25,12 +25,15 @@ import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hadoop.security.UserGroupInformation
+import org.apache.hoya.testtools.HoyaTestUtils
 import org.junit.BeforeClass
-import org.apache.hadoop.fs.FileSystem as HadoopFS;
+import org.apache.hadoop.fs.FileSystem as HadoopFS
+import org.junit.Rule
+import org.junit.rules.Timeout;
 
 //@CompileStatic
 @Slf4j
-class HoyaCommandTestBase implements HoyaExitCodes {
+class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
   private static String USER = System.getProperty("user.name")
   private static String pwd = ""
   private static Configuration conf
@@ -53,6 +56,10 @@ class HoyaCommandTestBase implements HoyaExitCodes {
   }
   public static final UserGroupInformation HADOOP_USER = UserGroupInformation.currentUser
 
+  @Rule
+  public final Timeout testTimeout = new Timeout(10 * 60 * 1000);
+
+
   @BeforeClass
   public static void setupClass() {
     bash.exec("pwd")
@@ -71,12 +78,13 @@ class HoyaCommandTestBase implements HoyaExitCodes {
    */
   public static Shell hoya(List<String> commands) {
     String confDirCmd = "export HOYA_CONF_DIR=${HOYA_CONF_DIRECTORY.toString()};"
-    String hoyaCommands = commands.join(" ")
+    String hoyaCommands = HOYA_SCRIPT.absolutePath + " " + commands.join(" ")
+    log.info(hoyaCommands)
     List<String> commandLine = [
         confDirCmd,
-        HOYA_SCRIPT.absolutePath + " " + hoyaCommands
+        hoyaCommands
     ]
-    String script = commandLine.join("\n")
+        String script = commandLine.join("\n")
     log.debug(script)
     return bash.exec(script);
   }

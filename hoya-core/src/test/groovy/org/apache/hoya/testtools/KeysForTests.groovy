@@ -16,7 +16,7 @@
  *  limitations under the License.
  */
 
-package org.apache.hadoop.hoya.yarn
+package org.apache.hoya.testtools
 
 import org.apache.hadoop.hoya.HoyaKeys
 import org.apache.hadoop.hoya.HoyaXMLConfKeysForTesting
