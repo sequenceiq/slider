@@ -33,7 +33,7 @@ Maven needs to be given
 1. A path to a hoya configuration directory for the cluster
 
 
-    hoya-funtest $ mvn test -Dhoya.conf.dir=../hoya-core/src/test/configs/sandbox/hoya
+    hoya-funtest $ mvn test -Dhoya.conf.dir=src/test/configs/sandbox/hoya
 
 ## Parallel execution
 

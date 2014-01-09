@@ -21,49 +21,46 @@ package org.apache.hoya.itest
 import org.apache.hoya.funtest.itest.HoyaCommandTestBase
 import org.junit.Test
 
+/**
+ * Simple tests to verify that the build has been set up: if these
+ * fail then the arguments to the test run are incomplete.
+ */
 class TestBuildSetup extends HoyaCommandTestBase {
 
 
   @Test
   public void testConfDirSet() throws Throwable {
-    String hoyaConfDir = System.getProperty(HOYA_CONF_DIR)
-    assert hoyaConfDir
+    assert getHoyaConfDir()
   }
-  
+
+
   @Test
   public void testConfDirExists() throws Throwable {
-    String hoyaConfDir = System.getProperty(HOYA_CONF_DIR)
-    File dir = new File(hoyaConfDir).absoluteFile
-    assert dir.exists()
+    assert hoyaConfDirectory.exists()
   }
-  
+
+
   @Test
   public void testConfDirHasHoyaClientXML() throws Throwable {
-    String hoyaConfDir = System.getProperty(HOYA_CONF_DIR)
-    File dir = new File(hoyaConfDir)
+    File dir = hoyaConfDirectory
     File hoyaClientXMLFile = new File(dir, "hoya-client.xml").absoluteFile
     
     assert hoyaClientXMLFile.exists()
   }
 
-
-  @Test
+@Test
   public void testBinDirExists() throws Throwable {
-    String binDirProp = System.getProperty(HOYA_BIN_DIR)
+    String binDirProp = getHoyaBinDir()
     assert binDirProp
     File dir = new File(binDirProp).absoluteFile
     assert dir.exists()
   }
-  
+
+
   @Test
   public void testBinScriptExists() throws Throwable {
-    String binDirProp = System.getProperty(HOYA_BIN_DIR)
-    assert binDirProp
-    File dir = new File(binDirProp)
-    File binFile = new File(dir, "bin/hoya").absoluteFile
-
-    assert binFile.exists()
+    assert hoyaScript.exists()
   }
-  
-  
+
+
 }

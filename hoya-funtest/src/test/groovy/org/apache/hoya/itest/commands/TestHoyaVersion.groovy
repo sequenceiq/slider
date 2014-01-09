@@ -18,9 +18,18 @@
 
 package org.apache.hoya.itest.commands
 
+import org.apache.bigtop.itest.shell.Shell
+import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hoya.funtest.itest.HoyaCommandTestBase
 import org.junit.Test
 
-public class TestListUnknownCluster extends HoyaCommandTestBase {
+public class TestHoyaVersion extends HoyaCommandTestBase {
+
+  @Test
+  public void testHoyaVersion() throws Throwable {
+    Shell shell = hoya([HoyaActions.ACTION_VERSION])
+    print(shell)
+    assert shell.ret == 0
+  }
 
 }
