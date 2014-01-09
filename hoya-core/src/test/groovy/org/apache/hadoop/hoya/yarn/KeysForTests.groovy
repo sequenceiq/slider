@@ -19,11 +19,12 @@
 package org.apache.hadoop.hoya.yarn
 
 import org.apache.hadoop.hoya.HoyaKeys
+import org.apache.hadoop.hoya.HoyaXMLConfKeysForTesting
 
 /**
  * Keys shared across tests
  */
-public interface KeysForTests extends HoyaKeys {
+public interface KeysForTests extends HoyaKeys, HoyaXMLConfKeysForTesting {
   /**
    * Username for all clusters, ZK, etc
    */
@@ -32,11 +33,6 @@ public interface KeysForTests extends HoyaKeys {
   int WAIT_TIME = 120;
   String WAIT_TIME_ARG = WAIT_TIME.toString()
 
-  String HOYA_TEST_HBASE_HOME = "hoya.test.hbase.home";
-  String HOYA_TEST_HBASE_TAR = "hoya.test.hbase.tar";
-
-  String HOYA_TEST_ACCUMULO_HOME = "hoya.test.accumulo.home";
-  String HOYA_TEST_ACCUMULO_TAR = "hoya.test.accumulo.tar";
-
+ 
   String HOYA_TEST = "hoya-test.xml"
 }

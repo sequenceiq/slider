@@ -24,6 +24,7 @@ import org.apache.commons.httpclient.HttpClient
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager
 import org.apache.commons.httpclient.methods.GetMethod
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.hoya.HoyaXMLConfKeysForTesting
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.RoleKeys
 import org.apache.hadoop.hoya.providers.accumulo.AccumuloConfigFileOptions
@@ -99,7 +100,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
 
   @Override
   public String getArchiveKey() {
-    return KeysForTests.HOYA_TEST_ACCUMULO_TAR
+    return  HoyaXMLConfKeysForTesting.KEY_HOYA_TEST_ACCUMULO_TAR
   }
 
   /**
@@ -108,7 +109,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
    */
   @Override
   public String getApplicationHomeKey() {
-    return KeysForTests.HOYA_TEST_ACCUMULO_HOME
+    return HoyaXMLConfKeysForTesting.KEY_HOYA_TEST_ACCUMULO_HOME
   }
 
   /**

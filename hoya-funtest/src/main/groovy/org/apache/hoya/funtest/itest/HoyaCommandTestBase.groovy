@@ -18,35 +18,48 @@
 
 package org.apache.hoya.funtest.itest
 
-import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.bigtop.itest.shell.Shell
+import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.HoyaActions
+import org.apache.hadoop.security.UserGroupInformation
 import org.junit.BeforeClass
-import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.FileSystem as HadoopFS;
 
-@CompileStatic
+//@CompileStatic
 @Slf4j
 class HoyaCommandTestBase implements HoyaExitCodes {
   private static String USER = System.getProperty("user.name")
   private static String pwd = ""
   private static Configuration conf
   private static Shell bash = new Shell('/bin/bash -s');
-  public static final String HOYA_CONF_DIR = "hoya.conf.dir"
-  public static final String HOYA_BIN_DIR = "hoya.bin.dir"
+  public static final String HOYA_CONF_DIR = System.getProperty(
+      HoyaTestProperties.HOYA_CONF_DIR_PROP)
+  public static final String HOYA_BIN_DIR = System.getProperty(
+      HoyaTestProperties.HOYA_BIN_DIR_PROP)
+  public static final File HOYA_BIN_DIRECTORY = new File(HOYA_BIN_DIR).canonicalFile
+  public static final File HOYA_SCRIPT = new File(HOYA_BIN_DIRECTORY, "bin/hoya").canonicalFile
+  public static final File HOYA_CONF_DIRECTORY = new File(
+      HOYA_CONF_DIR).canonicalFile
+  public static final File HOYA_CONF_XML = new File(HOYA_CONF_DIRECTORY,
+                                                    "hoya-client.xml").canonicalFile
 
+  public static final Configuration HOYA_CONFIG 
+  static {
+    HOYA_CONFIG = new Configuration(true)
+    HOYA_CONFIG.addResource(HOYA_CONF_XML.toURI().toURL())
+  }
+  public static final UserGroupInformation HADOOP_USER = UserGroupInformation.currentUser
 
   @BeforeClass
-  static void setupClass() {
+  public static void setupClass() {
     bash.exec("pwd")
     pwd = bash.out
     int lastIndex = pwd.length() - 1
     pwd = pwd.substring(1, lastIndex)
     Thread.currentThread().name = "junit"
-
-//    JarContent.unpackJarContainer(HoyaCommandTestBase, '.', null);
 
   }
 
@@ -56,13 +69,13 @@ class HoyaCommandTestBase implements HoyaExitCodes {
    * @param commands
    * @return the shell
    */
-  Shell hoya(List<String> commands) {
-    String confDirCmd = "export HOYA_CONF_DIR=${hoyaConfDirectory.toString()};"
+  public static Shell hoya(List<String> commands) {
+    String confDirCmd = "export HOYA_CONF_DIR=${HOYA_CONF_DIRECTORY.toString()};"
     String hoyaCommands = commands.join(" ")
     List<String> commandLine = [
         confDirCmd,
-        hoyaScript.absolutePath + " " + hoyaCommands
-        ]
+        HOYA_SCRIPT.absolutePath + " " + hoyaCommands
+    ]
     String script = commandLine.join("\n")
     log.debug(script)
     return bash.exec(script);
@@ -74,43 +87,28 @@ class HoyaCommandTestBase implements HoyaExitCodes {
    * @param commands commands
    * @return
    */
-  Shell hoya(int exitCode, List<String> commands) {
+  public static Shell hoya(int exitCode, List<String> commands) {
     Shell shell = hoya(commands)
     assertExitCode(shell, exitCode)
     return shell
-  }
-  
-  public String getHoyaConfDir() { 
-    return System.getProperty(HOYA_CONF_DIR)
   }
 
   /**
    * get the hoya conf dir
    * @return the absolute file of the configuration dir
    */
-  public File getHoyaConfDirectory() {
-    assert hoyaConfDir
-    return new File(hoyaConfDir).absoluteFile
+  public static File getHoyaConfDirectory() {
+    assert HOYA_CONF_DIR
+    return HOYA_CONF_DIRECTORY
   }
 
-  /**
-   * Get the system property for the hoya bin dir -includes
-   * an assertion that it is defined
-   * @return
-   */
-  public String getHoyaBinDir() {
-    String binDirProp = System.getProperty(HOYA_BIN_DIR)
-    assert binDirProp
-    return binDirProp
-  }
-  
   /**
    * Get the directory defined in the hoya.bin.dir syprop
    * @return the directory as a file
    */
-  public File getHoyaBinDirectory() {
-    String binDirProp = hoyaBinDir
-    File dir = new File(binDirProp).absoluteFile
+  public static File getHoyaBinDirectory() {
+    String binDirProp = HOYA_BIN_DIR
+    File dir = new File(binDirProp).canonicalFile
     return dir
   }
 
@@ -118,47 +116,68 @@ class HoyaCommandTestBase implements HoyaExitCodes {
    * Get a file referring to the hoya script
    * @return
    */
-  public File getHoyaScript() {
-    return new File(hoyaBinDirectory, "bin/hoya")
-  }
-  
-  public void print(Shell shell) {
-    List<String> out = shell.out
-    shell.err.each { String it -> log.error(it)}
-    shell.out.each { String it -> log.info(it)}
+  public static File getHoyaScript() {
+    return new File(HOYA_BIN_DIRECTORY, "bin/hoya")
   }
 
-  Shell destroy(String name) {
+
+  public static File getHoyaClientXMLFile() {
+    File hoyaClientXMLFile = HOYA_CONF_XML
+    assert hoyaClientXMLFile.exists()
+    return hoyaClientXMLFile
+  }
+
+  /**
+   * Load the client XML file
+   * @return
+   */
+  public static Configuration loadHoyaConf() {
+    Configuration conf = new Configuration(true)
+    conf.addResource(hoyaClientXMLFile.toURI().toURL())
+    return conf
+  }
+  
+  public HadoopFS getClusterFS() {
+    return HadoopFS.get(HOYA_CONFIG)
+  }
+  
+  public static void print(Shell shell) {
+    List<String> out = shell.out
+    shell.err.each { String it -> log.error(it) }
+    shell.out.each { String it -> log.info(it) }
+  }
+
+  static Shell destroy(String name) {
     hoya([
         HoyaActions.ACTION_DESTROY, name
     ])
   }
-  
-  Shell exists(String name) {
+
+  static Shell exists(String name) {
     hoya([
-         HoyaActions.ACTION_EXISTS, name
-    ])
-  }
-  
-  Shell freeze(String name) {
-    hoya([
-         HoyaActions.ACTION_FREEZE, name
-    ])
-  }
-  
-  Shell getConf(String name) {
-    hoya([
-         HoyaActions.ACTION_GETCONF, name
-    ])
-  }
-  
-  Shell freezeForce(String name) {
-    hoya([
-         HoyaActions.ACTION_FREEZE, Arguments.ARG_FORCE, name
+        HoyaActions.ACTION_EXISTS, name
     ])
   }
 
-  Shell list(String name) {
+  static Shell freeze(String name) {
+    hoya([
+        HoyaActions.ACTION_FREEZE, name
+    ])
+  }
+
+  static Shell getConf(String name) {
+    hoya([
+        HoyaActions.ACTION_GETCONF, name
+    ])
+  }
+
+  static Shell freezeForce(String name) {
+    hoya([
+        HoyaActions.ACTION_FREEZE, Arguments.ARG_FORCE, name
+    ])
+  }
+
+  static Shell list(String name) {
     List<String> cmd = [
         HoyaActions.ACTION_LIST
     ]
@@ -168,15 +187,15 @@ class HoyaCommandTestBase implements HoyaExitCodes {
     hoya(cmd)
   }
 
-  Shell status(String name) {
+  static Shell status(String name) {
     hoya([
         HoyaActions.ACTION_STATUS, name
     ])
   }
 
-  Shell thaw(String name) {
+  static Shell thaw(String name) {
     hoya([
-         HoyaActions.ACTION_THAW, name
+        HoyaActions.ACTION_THAW, name
     ])
   }
 
@@ -184,42 +203,25 @@ class HoyaCommandTestBase implements HoyaExitCodes {
    * Ensure that a cluster has been destroyed
    * @param name
    */
-  void ensureClusterDestroyed(String name) {
+  static void ensureClusterDestroyed(String name) {
     if (freezeForce(name).ret != EXIT_UNKNOWN_HOYA_CLUSTER) {
       //cluster exists
       destroy(name)
     }
   }
 
-  public File getHoyaClientXMLFile() {
-    File dir = hoyaConfDirectory
-    File hoyaClientXMLFile = new File(dir, "hoya-client.xml").absoluteFile
-    assert hoyaClientXMLFile.exists()
-    return hoyaClientXMLFile
-  }
-
-  /**
-   * Load the client XML file
-   * @return
-   */
-  public Configuration loadClientXML() {
-    Configuration conf = new Configuration(true)
-    conf.addResource(hoyaClientXMLFile.toURI().toURL())
-    return conf
-  }
-
   /**
    * Assert the exit code is that the cluster is unknown
    * @param shell shell
    */
-  public void assertSuccess(Shell shell) {
+  public static void assertSuccess(Shell shell) {
     assertExitCode(shell, 0)
   }
   /**
    * Assert the exit code is that the cluster is unknown
    * @param shell shell
    */
-  public void assertUnknownCluster(Shell shell) {
+  public static void assertUnknownCluster(Shell shell) {
     assertExitCode(shell, HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER)
   }
   /**
@@ -228,7 +230,7 @@ class HoyaCommandTestBase implements HoyaExitCodes {
    * @param shell shell
    * @param errorCode expected error code
    */
-  public void assertExitCode(Shell shell, int errorCode) {
+  public static void assertExitCode(Shell shell, int errorCode) {
     assert shell != null
     if (shell.ret != errorCode) {
       print(shell)

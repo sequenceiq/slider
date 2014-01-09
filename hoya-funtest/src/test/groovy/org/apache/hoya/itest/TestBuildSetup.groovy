@@ -21,9 +21,13 @@ package org.apache.hoya.itest
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.Path
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hoya.funtest.itest.HoyaCommandTestBase
+import org.apache.hoya.funtest.itest.HoyaTestProperties
 import org.junit.Test
+
+import org.apache.hadoop.fs.FileSystem as HadoopFS;
 
 /**
  * Simple tests to verify that the build has been set up: if these
@@ -31,12 +35,12 @@ import org.junit.Test
  */
 @CompileStatic
 @Slf4j
-class TestBuildSetup extends HoyaCommandTestBase {
+class TestBuildSetup extends HoyaCommandTestBase implements HoyaTestProperties {
 
 
   @Test
   public void testConfDirSet() throws Throwable {
-    assert getHoyaConfDir()
+    assert HOYA_CONF_DIR
   }
 
 
@@ -55,7 +59,7 @@ class TestBuildSetup extends HoyaCommandTestBase {
 
   @Test
   public void testBinDirExists() throws Throwable {
-    String binDirProp = hoyaBinDir
+    String binDirProp = HOYA_BIN_DIR
     assert binDirProp
     File dir = new File(binDirProp).absoluteFile
     assert dir.exists()
@@ -69,7 +73,7 @@ class TestBuildSetup extends HoyaCommandTestBase {
 
   @Test
   public void testConfLoad() throws Throwable {
-    Configuration conf = loadClientXML()
+    Configuration conf = loadHoyaConf()
     String fs = conf.get("fs.defaultFS")
     assert fs != null
   }
@@ -77,11 +81,35 @@ class TestBuildSetup extends HoyaCommandTestBase {
 
   @Test
   public void testConfHasRM() throws Throwable {
-    Configuration conf = loadClientXML()
+    Configuration conf = loadHoyaConf()
     String val = conf.get(YarnConfiguration.RM_ADDRESS)
     log.debug("$YarnConfiguration.DEFAULT_RM_ADDRESS = $val")
     assert val != YarnConfiguration.DEFAULT_RM_ADDRESS
   }
 
+
+  @Test
+  public void testImageExists() throws Throwable {
+
+
+    Configuration conf = loadHoyaConf()
+    String testImage = conf.get(KEY_HOYA_TEST_HBASE_TAR)
+    assert testImage
+    Path path = new Path(testImage)
+    HadoopFS fs = HadoopFS.get(path.toUri(), conf)
+    assert fs.exists(path)
+  }
+
+  @Test
+  public void testAppConfExists() throws Throwable {
+
+
+    Configuration conf = loadHoyaConf()
+    String dir = conf.get(KEY_HOYA_TEST_HBASE_APPCONF)
+    assert dir
+    Path path = new Path(dir)
+    HadoopFS fs = HadoopFS.get(path.toUri(), conf)
+    assert fs.exists(path)
+  }
 
 }

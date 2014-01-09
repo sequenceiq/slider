@@ -1,3 +1,7 @@
+package org.apache.hoya.funtest.itest
+
+import org.apache.hadoop.hoya.HoyaXMLConfKeysForTesting
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,35 +20,12 @@
  * limitations under the License.
  */
 
-package org.apache.hoya.itest.commands
+public interface HoyaTestProperties extends HoyaXMLConfKeysForTesting {
 
-import groovy.transform.CompileStatic
-import groovy.util.logging.Slf4j
-import org.apache.bigtop.itest.shell.Shell
-import org.apache.hadoop.hoya.yarn.HoyaActions
-import org.apache.hoya.funtest.itest.HoyaCommandTestBase
-import org.junit.Test
+  String HOYA_CONF_DIR_PROP = "hoya.conf.dir"
+  String HOYA_BIN_DIR_PROP = "hoya.bin.dir"
 
-@CompileStatic
-@Slf4j
-public class TestSimpleCommands extends HoyaCommandTestBase {
 
-  @Test
-  public void testHoyaVersion() throws Throwable {
-    Shell shell = hoya([HoyaActions.ACTION_VERSION])
-    assertSuccess(shell)
-  }
-
-  @Test
-  public void testHoyaUsage() throws Throwable {
-    Shell shell = hoya(0, [HoyaActions.ACTION_USAGE])
-    assertSuccess(shell)
-  }
-  
-  @Test
-  public void testListAll() throws Throwable {
-    assertSuccess(list(null))
-  }
-
+  String KEY_HOYA_TEST_ZK_HOSTS = "hoya.test.zkhosts";
 
 }

@@ -16,35 +16,19 @@
  * limitations under the License.
  */
 
-package org.apache.hoya.itest.commands
+package org.apache.hadoop.hoya;
 
-import groovy.transform.CompileStatic
-import groovy.util.logging.Slf4j
-import org.apache.bigtop.itest.shell.Shell
-import org.apache.hadoop.hoya.yarn.HoyaActions
-import org.apache.hoya.funtest.itest.HoyaCommandTestBase
-import org.junit.Test
+/**
+ * Keys shared across tests
+ */
+public interface HoyaXMLConfKeysForTesting {
 
-@CompileStatic
-@Slf4j
-public class TestSimpleCommands extends HoyaCommandTestBase {
+  String KEY_HOYA_TEST_HBASE_HOME = "hoya.test.hbase.home";
+  String KEY_HOYA_TEST_HBASE_TAR = "hoya.test.hbase.tar";
+  String KEY_HOYA_TEST_HBASE_APPCONF = "hoya.test.hbase.appconf";
+  String KEY_HOYA_TEST_ACCUMULO_HOME = "hoya.test.accumulo.home";
 
-  @Test
-  public void testHoyaVersion() throws Throwable {
-    Shell shell = hoya([HoyaActions.ACTION_VERSION])
-    assertSuccess(shell)
-  }
-
-  @Test
-  public void testHoyaUsage() throws Throwable {
-    Shell shell = hoya(0, [HoyaActions.ACTION_USAGE])
-    assertSuccess(shell)
-  }
-  
-  @Test
-  public void testListAll() throws Throwable {
-    assertSuccess(list(null))
-  }
-
+  String KEY_HOYA_TEST_ACCUMULO_TAR = "hoya.test.accumulo.tar";
+  String KEY_HOYA_TEST_ACCUMULO_APPCONF = "hoya.test.accumulo.appconf";
 
 }

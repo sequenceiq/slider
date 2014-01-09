@@ -28,6 +28,7 @@ import org.apache.hadoop.fs.FileUtil
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hdfs.MiniDFSCluster
 import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.hoya.HoyaXMLConfKeysForTesting
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.api.OptionKeys
@@ -77,7 +78,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 @CompileStatic
 @Slf4j
 public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest
-implements KeysForTests, HoyaExitCodes {
+implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
 
   /**
    * Mini YARN cluster only
@@ -563,7 +564,7 @@ implements KeysForTests, HoyaExitCodes {
    * @return
    */
   public String getApplicationHomeKey() {
-    return KeysForTests.HOYA_TEST_HBASE_HOME
+    return KEY_HOYA_TEST_HBASE_HOME
   }
   /**
    * Get the archive path -which defaults to the local one
@@ -584,7 +585,7 @@ implements KeysForTests, HoyaExitCodes {
    * @return
    */
   public String getArchiveKey() {
-    return KeysForTests.HOYA_TEST_HBASE_TAR
+    return KEY_HOYA_TEST_HBASE_TAR
   }
 
   public void assumeArchiveDefined() {
