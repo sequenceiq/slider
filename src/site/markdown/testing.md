@@ -41,4 +41,36 @@ see [Maven docs](http://maven.apache.org/surefire/maven-surefire-plugin/examples
 1. Maven is set up to run test case classes in parallel, *but not the individual tests*.
 1. Java7+ does not place any guarantees on the ordering of test methods within 
 a test case.
+1. Test suites must be designed to work even when executed in parallel with
+other test suites.
+1. Tests within a test suite *do not need to be designed to work in parallel
+with other tests in the same suite*
+
+This leads to a design where every test suite/test class must be designed to
+work with its own Hoya cluster instance within a single, shared YARN cluster,
+in parallel with other Hoya clusters -but the tests within the suite
+can expect to be run one at a time, albeit in an unknown order.
+
+## Other constraints
+
+* Port assignments SHOULD NOT be fixed, as this will cause clusters to fail if
+there are too many instances of a role on a same host, or if other tests are
+using the same port.
+* If a test does need to fix a port, it MUST be for a single instance of a role,
+and it must be different from all others. The assignment should be set in 
+`org.apache.hoya.funtest.itest.PortAssignments` so as to ensure uniqueness
+over time. Otherwise: use the value of `0` to allow the OS to assign free ports
+on demand.
+
+## Test Requirements
+
+
+1. Test cases should be written so that each class works with exactly one
+Hoya-deployed cluster
+1. Every test MUST have its own cluster name -preferably derived from the
+classname.
+1. This cluster should be deployed in an `@BeforeClass` method.
+1. The `@AfterClass` method MUST tear this cluster down.
+1. Tests within the suite (i.e. class) must be designed to be independent
+-to work irrespectively of the ordering of other tests.
 

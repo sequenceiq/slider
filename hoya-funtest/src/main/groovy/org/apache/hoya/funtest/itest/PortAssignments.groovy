@@ -16,33 +16,11 @@
  * limitations under the License.
  */
 
-package org.apache.hoya.itest.commands
+package org.apache.hoya.funtest.itest
 
-import groovy.transform.CompileStatic
-import groovy.util.logging.Slf4j
-import org.apache.bigtop.itest.shell.Shell
-import org.apache.hadoop.hoya.yarn.HoyaActions
-import org.apache.hoya.funtest.itest.HoyaCommandTestBase
-import org.junit.Test
-
-@CompileStatic
-@Slf4j
-public class TestSimpleCommands extends HoyaCommandTestBase {
-  @Test
-  public void testHoyaVersion() throws Throwable {
-    Shell shell = hoya([HoyaActions.ACTION_VERSION])
-    assertSuccess(shell)
-  }
-@Test
-  public void testHoyaUsage() throws Throwable {
-    Shell shell = hoya(0,[HoyaActions.ACTION_USAGE])
-    assertSuccess(shell)
-  }
-  
-  @Test
-  public void testListAll() throws Throwable {
-    assertSuccess(list(null))
-  }
-  
-  
+/**
+ * Here is where all port assignments should be booked, to ensure that no
+ * other test suite is using the same ports
+ */
+interface PortAssignments {
 }

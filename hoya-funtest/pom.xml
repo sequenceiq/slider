@@ -35,14 +35,32 @@
         <directory>src/main/resources</directory>
         <filtering>true</filtering>
       </resource>
-      <resource>
-        <directory>src/test/resources</directory>
-        <filtering>true</filtering>
-      </resource>
     </resources>
 
     <plugins>
 
+      <!--read in a build.properties file if defined-->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>properties-maven-plugin</artifactId>
+        <version>${maven.properties.version}</version>
+        <executions>
+          <execution>
+            <phase>initialize</phase>
+            <goals>
+              <goal>read-project-properties</goal>
+            </goals>
+            <configuration>
+              <quiet>true</quiet>
+              <files>
+                <file>build.properties</file>
+                <file>../build.properties</file>
+              </files>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>${maven-compiler-plugin.version}</version>
@@ -74,10 +92,12 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <version>${maven-surefire-plugin.version}</version>
         <configuration>
-          <forkMode>always</forkMode>
-          <forkedProcessTimeoutInSeconds>9000</forkedProcessTimeoutInSeconds>
+          <!--mvn process fork options-->
+          <reuseForks>true</reuseForks>
+          <forkCount>1</forkCount>
+          <forkedProcessTimeoutInSeconds>60</forkedProcessTimeoutInSeconds>
           <parallel>classes</parallel>
-          <threadCount>2</threadCount>
+          <threadCount>4</threadCount>
           <argLine>-Xmx1024m -XX:+HeapDumpOnOutOfMemoryError</argLine>
           <failIfNoTests>true</failIfNoTests>
           <trimStackTrace>false</trimStackTrace>

@@ -29,7 +29,7 @@ import org.apache.hadoop.conf.Configuration
 
 @CompileStatic
 @Slf4j
-class HoyaCommandTestBase {
+class HoyaCommandTestBase implements HoyaExitCodes {
   private static String USER = System.getProperty("user.name")
   private static String pwd = ""
   private static Configuration conf
@@ -77,6 +77,7 @@ class HoyaCommandTestBase {
   Shell hoya(int exitCode, List<String> commands) {
     Shell shell = hoya(commands)
     assertExitCode(shell, exitCode)
+    return shell
   }
   
   public String getHoyaConfDir() { 
@@ -126,39 +127,68 @@ class HoyaCommandTestBase {
     shell.err.each { String it -> log.error(it)}
     shell.out.each { String it -> log.info(it)}
   }
+
+  Shell destroy(String name) {
+    hoya([
+        HoyaActions.ACTION_DESTROY, name
+    ])
+  }
+  
+  Shell exists(String name) {
+    hoya([
+         HoyaActions.ACTION_EXISTS, name
+    ])
+  }
   
   Shell freeze(String name) {
     hoya([
          HoyaActions.ACTION_FREEZE, name
     ])
-  }  
+  }
+  
+  Shell getConf(String name) {
+    hoya([
+         HoyaActions.ACTION_GETCONF, name
+    ])
+  }
+  
   Shell freezeForce(String name) {
     hoya([
          HoyaActions.ACTION_FREEZE, Arguments.ARG_FORCE, name
     ])
   }
-  
-  Shell destroy(String name) {
-    hoya([
-         HoyaActions.ACTION_DESTROY, name
-    ])
-  }
-    
-  Shell list(String name) {
 
+  Shell list(String name) {
     List<String> cmd = [
         HoyaActions.ACTION_LIST
     ]
     if (name != null) {
       cmd << name
     }
-    
     hoya(cmd)
   }
-  
+
+  Shell status(String name) {
+    hoya([
+        HoyaActions.ACTION_STATUS, name
+    ])
+  }
+
+  Shell thaw(String name) {
+    hoya([
+         HoyaActions.ACTION_THAW, name
+    ])
+  }
+
+  /**
+   * Ensure that a cluster has been destroyed
+   * @param name
+   */
   void ensureClusterDestroyed(String name) {
-    freezeForce(name)
-    destroy(name)
+    if (freezeForce(name).ret != EXIT_UNKNOWN_HOYA_CLUSTER) {
+      //cluster exists
+      destroy(name)
+    }
   }
 
   public File getHoyaClientXMLFile() {
@@ -199,6 +229,7 @@ class HoyaCommandTestBase {
    * @param errorCode expected error code
    */
   public void assertExitCode(Shell shell, int errorCode) {
+    assert shell != null
     if (shell.ret != errorCode) {
       print(shell)
     }

@@ -21,8 +21,6 @@ package org.apache.hoya.itest.commands
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.bigtop.itest.shell.Shell
-import org.apache.hadoop.hoya.HoyaExitCodes
-import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hoya.funtest.itest.HoyaCommandTestBase
 import org.junit.Test
 
@@ -33,7 +31,7 @@ public class TestUnknownClusterOperations extends HoyaCommandTestBase {
 
   public static final String UNKNOWN = "unknown_cluster"
 
- 
+
   @Test
   public void testFreezeUnknownCluster() throws Throwable {
     Shell shell = freeze(UNKNOWN)
@@ -46,7 +44,6 @@ public class TestUnknownClusterOperations extends HoyaCommandTestBase {
     assertUnknownCluster(shell)
   }
 
-
   @Test
   public void testDestroyUnknownCluster() throws Throwable {
     Shell shell = destroy(UNKNOWN)
@@ -57,4 +54,27 @@ public class TestUnknownClusterOperations extends HoyaCommandTestBase {
   public void testListUnknownCluster() throws Throwable {
     assertUnknownCluster(list(UNKNOWN))
   }
+
+  @Test
+  public void testExistsUnknownCluster() throws Throwable {
+    assertUnknownCluster(exists(UNKNOWN))
+  }
+
+  @Test
+  public void testThawUnknownCluster() throws Throwable {
+    assertUnknownCluster(thaw(UNKNOWN))
+  }
+
+  @Test
+  public void testStatusUnknownCluster() throws Throwable {
+    assertUnknownCluster(status(UNKNOWN))
+  }
+
+
+  @Test
+  public void testGetConfUnknownCluster() throws Throwable {
+    assertUnknownCluster(getConf(UNKNOWN))
+  }
+
+
 }
