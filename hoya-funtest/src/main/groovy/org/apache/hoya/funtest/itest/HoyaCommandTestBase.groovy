@@ -26,7 +26,7 @@ import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.hoya.testtools.HoyaTestUtils
-import org.junit.BeforeClass
+import org.junit.Beforeimport org.junit.BeforeClass
 import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.junit.Rule
 import org.junit.rules.Timeout;
@@ -35,9 +35,8 @@ import org.junit.rules.Timeout;
 @Slf4j
 class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
   private static String USER = System.getProperty("user.name")
-  private static String pwd = ""
-  private static Configuration conf
-  private static Shell bash = new Shell('/bin/bash -s');
+  public static final String BASH = '/bin/bash -s'
+  private Shell bash = new Shell(BASH);
   public static final String HOYA_CONF_DIR = System.getProperty(
       HoyaTestProperties.HOYA_CONF_DIR_PROP)
   public static final String HOYA_BIN_DIR = System.getProperty(
@@ -62,12 +61,7 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
 
   @BeforeClass
   public static void setupClass() {
-    bash.exec("pwd")
-    pwd = bash.out
-    int lastIndex = pwd.length() - 1
-    pwd = pwd.substring(1, lastIndex)
-    Thread.currentThread().name = "junit"
-
+    
   }
 
   /**
@@ -84,7 +78,8 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
         confDirCmd,
         hoyaCommands
     ]
-        String script = commandLine.join("\n")
+    Shell bash = new Shell(BASH);
+    String script = commandLine.join("\n")
     log.debug(script)
     return bash.exec(script);
   }
