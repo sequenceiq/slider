@@ -24,13 +24,11 @@
     <description>This is just for diagnostics</description>
   </property>
 
-
   <property>
     <name>yarn.resourcemanager.address</name>
     <value>sandbox.hortonworks.com:8050</value>
   </property>
   
-
   <property>
     <name>fs.defaultFS</name>
     <value>hdfs://sandbox.hortonworks.com:8020</value>

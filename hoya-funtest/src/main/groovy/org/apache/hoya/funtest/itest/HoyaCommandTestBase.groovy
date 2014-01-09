@@ -21,6 +21,9 @@ package org.apache.hoya.funtest.itest
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.bigtop.itest.shell.Shell
+import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.hoya.yarn.Arguments
+import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.junit.BeforeClass
 import org.apache.hadoop.conf.Configuration
 
@@ -65,6 +68,17 @@ class HoyaCommandTestBase {
     return bash.exec(script);
   }
 
+  /**
+   * Execute an operation, state the expected error code
+   * @param exitCode exit code
+   * @param commands commands
+   * @return
+   */
+  Shell hoya(int exitCode, List<String> commands) {
+    Shell shell = hoya(commands)
+    assertExitCode(shell, exitCode)
+  }
+  
   public String getHoyaConfDir() { 
     return System.getProperty(HOYA_CONF_DIR)
   }
@@ -111,5 +125,83 @@ class HoyaCommandTestBase {
     List<String> out = shell.out
     shell.err.each { String it -> log.error(it)}
     shell.out.each { String it -> log.info(it)}
+  }
+  
+  Shell freeze(String name) {
+    hoya([
+         HoyaActions.ACTION_FREEZE, name
+    ])
+  }  
+  Shell freezeForce(String name) {
+    hoya([
+         HoyaActions.ACTION_FREEZE, Arguments.ARG_FORCE, name
+    ])
+  }
+  
+  Shell destroy(String name) {
+    hoya([
+         HoyaActions.ACTION_DESTROY, name
+    ])
+  }
+    
+  Shell list(String name) {
+
+    List<String> cmd = [
+        HoyaActions.ACTION_LIST
+    ]
+    if (name != null) {
+      cmd << name
+    }
+    
+    hoya(cmd)
+  }
+  
+  void ensureClusterDestroyed(String name) {
+    freezeForce(name)
+    destroy(name)
+  }
+
+  public File getHoyaClientXMLFile() {
+    File dir = hoyaConfDirectory
+    File hoyaClientXMLFile = new File(dir, "hoya-client.xml").absoluteFile
+    assert hoyaClientXMLFile.exists()
+    return hoyaClientXMLFile
+  }
+
+  /**
+   * Load the client XML file
+   * @return
+   */
+  public Configuration loadClientXML() {
+    Configuration conf = new Configuration(true)
+    conf.addResource(hoyaClientXMLFile.toURI().toURL())
+    return conf
+  }
+
+  /**
+   * Assert the exit code is that the cluster is unknown
+   * @param shell shell
+   */
+  public void assertSuccess(Shell shell) {
+    assertExitCode(shell, 0)
+  }
+  /**
+   * Assert the exit code is that the cluster is unknown
+   * @param shell shell
+   */
+  public void assertUnknownCluster(Shell shell) {
+    assertExitCode(shell, HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER)
+  }
+  /**
+   * Assert a shell exited with a given error code
+   * if not the output is printed and an assertion is raised
+   * @param shell shell
+   * @param errorCode expected error code
+   */
+  public void assertExitCode(Shell shell, int errorCode) {
+    if (shell.ret != errorCode) {
+      print(shell)
+    }
+    assert shell.ret == errorCode
   }
 }

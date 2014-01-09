@@ -18,18 +18,43 @@
 
 package org.apache.hoya.itest.commands
 
+import groovy.transform.CompileStatic
+import groovy.util.logging.Slf4j
 import org.apache.bigtop.itest.shell.Shell
+import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hoya.funtest.itest.HoyaCommandTestBase
 import org.junit.Test
 
-public class TestHoyaVersion extends HoyaCommandTestBase {
+@CompileStatic
+@Slf4j
+public class TestUnknownClusterOperations extends HoyaCommandTestBase {
 
+
+  public static final String UNKNOWN = "unknown_cluster"
+
+ 
   @Test
-  public void testHoyaVersion() throws Throwable {
-    Shell shell = hoya([HoyaActions.ACTION_VERSION])
-    print(shell)
-    assert shell.ret == 0
+  public void testFreezeUnknownCluster() throws Throwable {
+    Shell shell = freeze(UNKNOWN)
+    assertUnknownCluster(shell)
   }
 
+  @Test
+  public void testFreezeForceUnknownCluster() throws Throwable {
+    Shell shell = freezeForce(UNKNOWN)
+    assertUnknownCluster(shell)
+  }
+
+
+  @Test
+  public void testDestroyUnknownCluster() throws Throwable {
+    Shell shell = destroy(UNKNOWN)
+    assertSuccess(shell)
+  }
+
+  @Test
+  public void testListUnknownCluster() throws Throwable {
+    assertUnknownCluster(list(UNKNOWN))
+  }
 }

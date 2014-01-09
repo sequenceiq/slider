@@ -18,9 +18,24 @@
 
 package org.apache.hoya.itest.commands
 
+import groovy.transform.CompileStatic
+import groovy.util.logging.Slf4j
+import org.apache.bigtop.itest.shell.Shell
+import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hoya.funtest.itest.HoyaCommandTestBase
 import org.junit.Test
 
-public class TestListUnknownCluster extends HoyaCommandTestBase {
+@CompileStatic
+@Slf4j
+public class TestSimpleCommands extends HoyaCommandTestBase {
+  @Test
+  public void testHoyaVersion() throws Throwable {
+    Shell shell = hoya([HoyaActions.ACTION_VERSION])
+    assertSuccess(shell)
+  }
 
+  @Test
+  public void testListAllHoyaVersion() throws Throwable {
+    assertSuccess(list(null))
+  }
 }

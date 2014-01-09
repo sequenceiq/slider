@@ -18,6 +18,10 @@
 
 package org.apache.hoya.itest
 
+import groovy.transform.CompileStatic
+import groovy.util.logging.Slf4j
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hoya.funtest.itest.HoyaCommandTestBase
 import org.junit.Test
 
@@ -25,6 +29,8 @@ import org.junit.Test
  * Simple tests to verify that the build has been set up: if these
  * fail then the arguments to the test run are incomplete.
  */
+@CompileStatic
+@Slf4j
 class TestBuildSetup extends HoyaCommandTestBase {
 
 
@@ -42,15 +48,14 @@ class TestBuildSetup extends HoyaCommandTestBase {
 
   @Test
   public void testConfDirHasHoyaClientXML() throws Throwable {
-    File dir = hoyaConfDirectory
-    File hoyaClientXMLFile = new File(dir, "hoya-client.xml").absoluteFile
-    
-    assert hoyaClientXMLFile.exists()
+    File hoyaClientXMLFile = hoyaClientXMLFile
+    hoyaClientXMLFile.toString()
   }
 
-@Test
+
+  @Test
   public void testBinDirExists() throws Throwable {
-    String binDirProp = getHoyaBinDir()
+    String binDirProp = hoyaBinDir
     assert binDirProp
     File dir = new File(binDirProp).absoluteFile
     assert dir.exists()
@@ -60,6 +65,22 @@ class TestBuildSetup extends HoyaCommandTestBase {
   @Test
   public void testBinScriptExists() throws Throwable {
     assert hoyaScript.exists()
+  }
+
+  @Test
+  public void testConfLoad() throws Throwable {
+    Configuration conf = loadClientXML()
+    String fs = conf.get("fs.defaultFS")
+    assert fs != null
+  }
+
+
+  @Test
+  public void testConfHasRM() throws Throwable {
+    Configuration conf = loadClientXML()
+    String val = conf.get(YarnConfiguration.RM_ADDRESS)
+    log.debug("$YarnConfiguration.DEFAULT_RM_ADDRESS = $val")
+    assert val != YarnConfiguration.DEFAULT_RM_ADDRESS
   }
 
 
