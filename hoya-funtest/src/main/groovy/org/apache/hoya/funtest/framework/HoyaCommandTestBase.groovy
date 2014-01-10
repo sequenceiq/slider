@@ -48,11 +48,23 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
   public static final File HOYA_CONF_XML = new File(HOYA_CONF_DIRECTORY,
                                                     "hoya-client.xml").canonicalFile
 
-  public static final Configuration HOYA_CONFIG 
+  public static final Configuration HOYA_CONFIG
+  public static final int THAW_WAIT_TIME
+  public static final int FREEZE_WAIT_TIME
+
   static {
     HOYA_CONFIG = new Configuration(true)
     HOYA_CONFIG.addResource(HOYA_CONF_XML.toURI().toURL())
+    THAW_WAIT_TIME = HOYA_CONFIG.getInt(
+        HoyaTestProperties.KEY_HOYA_THAW_WAIT_TIME,
+        HoyaTestProperties.DEFAULT_HOYA_THAW_WAIT_TIME)
+    FREEZE_WAIT_TIME = HOYA_CONFIG.getInt(
+        HoyaTestProperties.KEY_HOYA_FREEZE_WAIT_TIME,
+        HoyaTestProperties.DEFAULT_HOYA_FREEZE_WAIT_TIME)
   }
+
+
+
 
   @Rule
   public final Timeout testTimeout = new Timeout(10 * 60 * 1000);
@@ -157,9 +169,21 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
         HoyaActions.ACTION_DESTROY, name
     ])
   }
+  
+  static Shell destroy(int result, String name) {
+    hoya(result, [
+        HoyaActions.ACTION_DESTROY, name
+    ])
+  }
 
   static Shell exists(String name) {
     hoya([
+        HoyaActions.ACTION_EXISTS, name
+    ])
+  }
+
+  static Shell exists(int result, String name) {
+    hoya(result, [
         HoyaActions.ACTION_EXISTS, name
     ])
   }
@@ -174,6 +198,13 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
     hoya([
         HoyaActions.ACTION_GETCONF, name
     ])
+  }
+
+  static Shell getConf(int result, String name) {
+    hoya(result,
+      [
+        HoyaActions.ACTION_GETCONF, name
+      ])
   }
 
   static Shell freezeForce(String name) {
@@ -192,14 +223,37 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
     hoya(cmd)
   }
 
+  static Shell list(int result, String name) {
+    List<String> cmd = [
+        HoyaActions.ACTION_LIST
+    ]
+    if (name != null) {
+      cmd << name
+    }
+    hoya(result, cmd)
+  }
+
   static Shell status(String name) {
     hoya([
+        HoyaActions.ACTION_STATUS, name
+    ])
+  }
+  
+  static Shell status(int result, String name) {
+    hoya(result,
+    [
         HoyaActions.ACTION_STATUS, name
     ])
   }
 
   static Shell thaw(String name) {
     hoya([
+        HoyaActions.ACTION_THAW, name
+    ])
+  }
+  static Shell thaw(int result, String name) {
+    hoya(result, 
+         [
         HoyaActions.ACTION_THAW, name
     ])
   }

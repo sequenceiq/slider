@@ -21,6 +21,9 @@ package org.apache.hoya.funtest.commands
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.bigtop.itest.shell.Shell
+import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.hoya.yarn.Arguments
+import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hoya.funtest.framework.HoyaCommandTestBase
 import org.junit.Test
 
@@ -37,6 +40,16 @@ public class TestUnknownClusterOperations extends HoyaCommandTestBase {
   public void testFreezeUnknownCluster() throws Throwable {
     Shell shell = freeze(UNKNOWN)
     assertUnknownCluster(shell)
+  }
+
+  @Test
+  public void testFreezeUnknownClusterWithMessage() throws Throwable {
+      hoya(HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER,
+         [
+        HoyaActions.ACTION_FREEZE, UNKNOWN,
+        Arguments.ARG_WAIT, Integer.toString(FREEZE_WAIT_TIME),
+        Arguments.ARG_MESSAGE, "testFreezeUnknownClusterWithMessage"
+        ])
   }
 
   @Test

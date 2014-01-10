@@ -21,6 +21,7 @@ package org.apache.hoya.funtest.hbase
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.fs.Path
+import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.HoyaActions
@@ -34,7 +35,7 @@ import org.junit.Test
 @CompileStatic
 @Slf4j
 public class TestHBaseCreateCluster extends HoyaCommandTestBase
-    implements HoyaTestProperties, Arguments {
+    implements HoyaTestProperties, Arguments, HoyaExitCodes {
 
 
   static String CLUSTER = "test_hbase_create_cluster"
@@ -47,20 +48,16 @@ public class TestHBaseCreateCluster extends HoyaCommandTestBase
 
   @AfterClass
   public static void destroyCluster() {
-    destroy(CLUSTER)
+    ensureClusterDestroyed(CLUSTER)
   }
-  
-  //TODO
   
   @Test
   public void testHBaseCreateCluster() throws Throwable {
 
-    int wait = HOYA_CONFIG.getInt(KEY_HOYA_WAIT_TIME, DEFAULT_HOYA_WAIT_TIME)
-    
     describe "Create a working HBase cluster"
     hoya(0,
          [
-             HoyaActions.ACTION_BUILD,
+             HoyaActions.ACTION_CREATE,
              CLUSTER,
              ARG_ZKHOSTS,
              HOYA_CONFIG.get(KEY_HOYA_TEST_ZK_HOSTS),
@@ -74,15 +71,60 @@ public class TestHBaseCreateCluster extends HoyaCommandTestBase
              Integer.toString(PortAssignments._testHBaseCreateCluster),
              ARG_ROLEOPT, HBaseKeys.ROLE_WORKER, "app.infoport",
              Integer.toString(PortAssignments._testHBaseCreateCluster2),
-//             ARG_WAIT, Integer.toString(wait)
-
+             ARG_WAIT, Integer.toString(THAW_WAIT_TIME)
          ])
 
     assert clusterFS.exists(
         new Path(clusterFS.homeDirectory, ".hoya/cluster/$CLUSTER"))
 
+    // assert it exists
+    exists(0, CLUSTER)
     
+    //destroy will fail in use
     
+    destroy(EXIT_CLUSTER_IN_USE, CLUSTER)
+    
+    //thaw will fail as cluster is in use
+    thaw(EXIT_CLUSTER_IN_USE, CLUSTER)
+    
+    //listing the cluster will succeed
+    list(0, CLUSTER)
+    
+    status(0, CLUSTER)
+    
+    getConf(0, CLUSTER)
+    
+
+
+    //freeze
+    hoya(0, [
+        HoyaActions.ACTION_FREEZE, CLUSTER,
+        ARG_WAIT, Integer.toString(FREEZE_WAIT_TIME),
+        ARG_MESSAGE, "freeze-in-testHBaseCreateCluster"
+    ])
+
+    exists(HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER, CLUSTER)
+
+/*
+
+    hoya(0, 
+         [
+        HoyaActions.ACTION_THAW, CLUSTER,
+        ARG_WAIT, Integer.toString(THAW_WAIT_TIME)
+        ])
+
+    exists(0, CLUSTER)
+    hoya(0, [
+        HoyaActions.ACTION_FREEZE, CLUSTER,
+        ARG_FORCE,
+        ARG_WAIT, Integer.toString(FREEZE_WAIT_TIME),
+        ARG_MESSAGE, "forced-freeze-in-test"
+    ])
+*/
+
+    destroy(0, CLUSTER)
+
+
   }
 
 

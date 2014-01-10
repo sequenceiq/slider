@@ -32,9 +32,13 @@ public interface HoyaTestProperties extends HoyaXMLConfKeysForTesting {
    */
   String HOYA_BIN_DIR_PROP = "hoya.bin.dir"
   
-  String KEY_HOYA_WAIT_TIME = "hoya.test.create.wait.seconds"
+  String KEY_HOYA_THAW_WAIT_TIME = "hoya.test.thaw.wait.seconds"
 
-  int DEFAULT_HOYA_WAIT_TIME = 60000
+  int DEFAULT_HOYA_THAW_WAIT_TIME = 60000
+
+  String KEY_HOYA_FREEZE_WAIT_TIME = "hoya.test.freeze.wait.seconds"
+
+  int DEFAULT_HOYA_FREEZE_WAIT_TIME = 60000
 
   String KEY_HOYA_TEST_ZK_HOSTS = "hoya.test.zkhosts";
 
