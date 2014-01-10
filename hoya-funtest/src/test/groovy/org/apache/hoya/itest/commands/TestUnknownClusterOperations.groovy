@@ -31,9 +31,7 @@ import org.junit.Test
 @Slf4j
 public class TestUnknownClusterOperations extends HoyaCommandTestBase {
 
-
   public static final String UNKNOWN = "unknown_cluster"
-
 
   @Test
   public void testFreezeUnknownCluster() throws Throwable {
@@ -73,11 +71,9 @@ public class TestUnknownClusterOperations extends HoyaCommandTestBase {
     assertUnknownCluster(status(UNKNOWN))
   }
 
-
   @Test
   public void testGetConfUnknownCluster() throws Throwable {
     assertUnknownCluster(getConf(UNKNOWN))
   }
-
 
 }
