@@ -171,6 +171,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     serviceArgs.applyFileSystemURL(conf);
     // init security with our conf
     if (HoyaUtils.isClusterSecure(conf)) {
+      HoyaUtils.forceLogin();
       addService(new SecurityCheckerService());
     }
     //create the YARN client

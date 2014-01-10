@@ -26,7 +26,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
-import org.apache.hadoop.hoya.HoyaExitCodes;
 import org.apache.hadoop.hoya.HoyaKeys;
 import org.apache.hadoop.hoya.HoyaXmlConfKeys;
 import org.apache.hadoop.hoya.api.ClusterDescription;
@@ -38,6 +37,7 @@ import org.apache.hadoop.hoya.exceptions.ErrorStrings;
 import org.apache.hadoop.hoya.exceptions.HoyaException;
 import org.apache.hadoop.hoya.exceptions.MissingArgException;
 import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions;
+import org.apache.hadoop.hoya.yarn.appmaster.AMUtils;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -78,6 +78,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * These are hoya-specific Util methods
@@ -85,6 +86,13 @@ import java.util.Set;
 public final class HoyaUtils {
 
   private static final Logger log = LoggerFactory.getLogger(HoyaUtils.class);
+
+  /**
+   * Atomic bool to track whether or not process security has already been 
+   * turned on (prevents re-entrancy)
+   */
+  private static final AtomicBoolean processSecurityAlreadyInitialized =
+    new AtomicBoolean(false);
 
   private HoyaUtils() {
   }
@@ -1047,10 +1055,12 @@ public final class HoyaUtils {
   public static void verifyPrincipalSet(Configuration conf,
                                         String principal) throws
                                                            BadConfigException {
-    if (conf.get(principal) == null) {
+    String principalName = conf.get(principal);
+    if (principalName == null) {
       throw new BadConfigException("Unset Kerberos principal : %s",
                                    principal);
     }
+    log.debug("Kerberos princial {}={}", principal, principalName);
   }
 
   /**
@@ -1062,6 +1072,87 @@ public final class HoyaUtils {
     return conf.getBoolean(HoyaXmlConfKeys.KEY_HOYA_SECURITY_ENABLED, false);
   }
 
+  /**
+   * Init security if the cluster configuration declares the cluster is secure
+   * @param conf configuration to look at
+   * @return true if the cluster is secure
+   * @throws IOException cluster is secure
+   * @throws BadConfigException the configuration/process is invalid
+   */
+  public static boolean maybeInitSecurity(Configuration conf) throws
+                                                              IOException,
+                                                              BadConfigException {
+    boolean clusterSecure = isClusterSecure(conf);
+    if (clusterSecure) {
+      log.debug("Enabling security");
+      HoyaUtils.initProcessSecurity(conf);
+    }
+    return clusterSecure;
+  }
+
+  /**
+   * Turn on security. This is setup to only run once.
+   * @param conf configuration to build up security
+   * @return true if security was initialized in this call
+   * @throws IOException IO/Net problems
+   * @throws BadConfigException the configuration and system state are inconsistent
+   */
+  public static boolean initProcessSecurity(Configuration conf) throws
+                                                                IOException,
+                                                                BadConfigException {
+
+    if (processSecurityAlreadyInitialized.compareAndSet(true, true)) {
+      //security is already inited
+      return false;
+    }
+
+    log.info("JVM initialized into secure mode with kerberos realm {}",
+             HoyaUtils.getKerberosRealm());
+    //this gets UGI to reset its previous world view (i.e simple auth)
+    //security
+    log.debug("java.security.krb5.realm={}",
+              System.getProperty("java.security.krb5.realm", ""));
+    log.debug("java.security.krb5.kdc={}",
+              System.getProperty("java.security.krb5.kdc", ""));
+    SecurityUtil.setAuthenticationMethod(
+      UserGroupInformation.AuthenticationMethod.KERBEROS, conf);
+    UserGroupInformation.setConfiguration(conf);
+    UserGroupInformation authUser = UserGroupInformation.getCurrentUser();
+    log.debug("Authenticating as " + authUser.toString());
+    log.debug("Login user is {}", UserGroupInformation.getLoginUser());
+    if (!UserGroupInformation.isSecurityEnabled()) {
+      throw new BadConfigException("Although secure mode is enabled," +
+                                   "the application has already set up its user as an insecure entity %s",
+                                   authUser);
+    }
+    if (authUser.getAuthenticationMethod() ==
+        UserGroupInformation.AuthenticationMethod.SIMPLE) {
+      throw new BadConfigException("Auth User is not Kerberized %s",
+                                   authUser);
+
+    }
+
+    HoyaUtils.verifyPrincipalSet(conf, YarnConfiguration.RM_PRINCIPAL);
+    HoyaUtils.verifyPrincipalSet(conf,
+                                 DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY);
+    return true;
+  }
+
+  /**
+   * Force an early login: This catches any auth problems early rather than
+   * in RPC operatins
+   * @throws IOException if the login fails
+   */
+  public static void forceLogin() throws IOException {
+    if (UserGroupInformation.isSecurityEnabled()) {
+      if (UserGroupInformation.isLoginKeytabBased()) {
+        UserGroupInformation.getLoginUser().reloginFromKeytab();
+      } else {
+        UserGroupInformation.getLoginUser().reloginFromTicketCache();
+      }
+    }
+  }
+  
   /**
    * Submit a JAR containing a specific class, returning
    * the resource to be mapped in
@@ -1278,29 +1369,6 @@ public final class HoyaUtils {
   public static String sequenceToString(CharSequence charSequence) {
     StringBuilder stringBuilder = new StringBuilder(charSequence);
     return stringBuilder.toString();
-  }
-  
-  public static void initProcessSecurity(Configuration conf) throws
-                                                             IOException,
-                                                             BadConfigException {
-    log.info("Secure mode with kerberos realm {}",
-             HoyaUtils.getKerberosRealm());
-    //this gets UGI to reset its previous world view (i.e simple auth)
-    //security
-    SecurityUtil.setAuthenticationMethod(
-      UserGroupInformation.AuthenticationMethod.KERBEROS, conf);
-    UserGroupInformation.setConfiguration(conf);
-    UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
-    log.debug("Authenticating as " + ugi.toString());
-    log.debug("Login user is {}", UserGroupInformation.getLoginUser());
-    if (!UserGroupInformation.isSecurityEnabled()) {
-      throw new BadConfigException("Although secure mode is enabled," +
-                                   "the application has already set up its user as an insecure entity %s",
-                                   ugi);
-    }
-    HoyaUtils.verifyPrincipalSet(conf, YarnConfiguration.RM_PRINCIPAL);
-    HoyaUtils.verifyPrincipalSet(conf,
-                                 DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY);
   }
 
   /**
