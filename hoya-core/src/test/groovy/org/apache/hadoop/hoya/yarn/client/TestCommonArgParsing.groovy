@@ -53,7 +53,7 @@ import org.junit.Test
 @CompileStatic
 @Slf4j
 
-class TestCommonArgParsing implements HoyaActions, Arguments{
+class TestCommonArgParsing implements HoyaActions, Arguments {
 
 
   public static final String CLUSTERNAME = "clustername"
@@ -328,6 +328,16 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
     return [
 
     ]
+  }
+
+
+  @Test
+  public void testCreateWaitTime() throws Throwable {
+    ActionCreateArgs createArgs = createAction([
+        ACTION_CREATE, 'cluster1',
+        ARG_WAIT, "600"
+    ])
+    assert 600 == createArgs.getWaittime()
   }
 
 

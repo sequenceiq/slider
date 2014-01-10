@@ -22,9 +22,19 @@ import org.apache.hadoop.hoya.HoyaXMLConfKeysForTesting
 
 public interface HoyaTestProperties extends HoyaXMLConfKeysForTesting {
 
+  /**
+   * Maven Property of location of hoya conf dir: {@value}
+   */
   String HOYA_CONF_DIR_PROP = "hoya.conf.dir"
-  String HOYA_BIN_DIR_PROP = "hoya.bin.dir"
 
+  /**
+   * Maven Property of location of hoya binary image dir: {@value}
+   */
+  String HOYA_BIN_DIR_PROP = "hoya.bin.dir"
+  
+  String KEY_HOYA_WAIT_TIME = "hoya.test.create.wait.seconds"
+
+  int DEFAULT_HOYA_WAIT_TIME = 60000
 
   String KEY_HOYA_TEST_ZK_HOSTS = "hoya.test.zkhosts";
 

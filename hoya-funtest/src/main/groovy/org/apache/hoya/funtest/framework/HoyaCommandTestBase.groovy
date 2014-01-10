@@ -142,7 +142,7 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
     return conf
   }
   
-  public HadoopFS getClusterFS() {
+  public static HadoopFS getClusterFS() {
     return HadoopFS.get(HOYA_CONFIG)
   }
   

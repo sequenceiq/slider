@@ -23,4 +23,7 @@ package org.apache.hoya.funtest.framework
  * other test suite is using the same ports
  */
 interface PortAssignments {
+  
+  int _testHBaseCreateCluster = 7000;
+  int _testHBaseCreateCluster2 = 7001;
 }
