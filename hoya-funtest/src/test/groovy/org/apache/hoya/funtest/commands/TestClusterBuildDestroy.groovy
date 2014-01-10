@@ -24,8 +24,8 @@ import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.HoyaActions
-import org.apache.hoya.funtest.itest.HoyaCommandTestBase
-import org.apache.hoya.funtest.itest.HoyaTestProperties
+import org.apache.hoya.funtest.framework.HoyaCommandTestBase
+import org.apache.hoya.funtest.framework.HoyaTestProperties
 import org.junit.AfterClass
 import org.junit.BeforeClass
 import org.junit.Test

@@ -20,8 +20,8 @@ package org.apache.hoya.funtest.basic
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
-import org.apache.hoya.funtest.itest.HoyaCommandTestBase
-import org.apache.hoya.funtest.itest.HoyaTestProperties
+import org.apache.hoya.funtest.framework.HoyaCommandTestBase
+import org.apache.hoya.funtest.framework.HoyaTestProperties
 import org.junit.Test
 import org.apache.hadoop.fs.FileSystem as HadoopFS;
 

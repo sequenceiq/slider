@@ -21,7 +21,7 @@ package org.apache.hoya.funtest.commands
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.bigtop.itest.shell.Shell
-import org.apache.hoya.funtest.itest.HoyaCommandTestBase
+import org.apache.hoya.funtest.framework.HoyaCommandTestBase
 import org.junit.Test
 
 /**

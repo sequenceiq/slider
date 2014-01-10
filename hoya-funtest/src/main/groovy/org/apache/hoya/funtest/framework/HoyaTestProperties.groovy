@@ -1,3 +1,7 @@
+package org.apache.hoya.funtest.framework
+
+import org.apache.hadoop.hoya.HoyaXMLConfKeysForTesting
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,11 +20,12 @@
  * limitations under the License.
  */
 
-package org.apache.hoya.funtest.itest
+public interface HoyaTestProperties extends HoyaXMLConfKeysForTesting {
 
-/**
- * Here is where all port assignments should be booked, to ensure that no
- * other test suite is using the same ports
- */
-interface PortAssignments {
+  String HOYA_CONF_DIR_PROP = "hoya.conf.dir"
+  String HOYA_BIN_DIR_PROP = "hoya.bin.dir"
+
+
+  String KEY_HOYA_TEST_ZK_HOSTS = "hoya.test.zkhosts";
+
 }
