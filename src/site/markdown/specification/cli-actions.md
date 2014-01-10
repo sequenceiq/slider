@@ -170,7 +170,7 @@ All files that were in the configuration directory now have equivalents in the g
 
 ## Action: Thaw
 
-    thaw clustername [--wait [timeout]]
+    thaw clustername [--wait <timeout>]
 
 Thaw takes a cluster with configuration and (possibly) data on disk, and
 attempts to instantiate a Hoya cluster with the specified number of nodes
@@ -377,7 +377,7 @@ action are intended to match the preconditions of the second.
 
 ## Action: freeze
 
-    freeze clustername [--wait time]
+    freeze clustername [--wait time] [--message message]
 
 The *freeze* action "freezes" the cluster: all its nodes running in the YARN
 cluster are stopped, leaving all the persistent state.
@@ -400,6 +400,10 @@ If the cluster was running, an RPC call has been sent to it `stopCluster(message
 
 If the `--wait` argument specified a wait time, then the command will block
 until the cluster has finished or the wait time was exceeded. 
+
+If the `--message` argument specified a message -it must appear in the
+YARN logs as the reason the cluster was frozen.
+
 
 The outcome should be the same:
 

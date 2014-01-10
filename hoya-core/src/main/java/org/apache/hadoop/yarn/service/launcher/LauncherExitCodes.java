@@ -46,28 +46,34 @@ public interface LauncherExitCodes {
    * Exit code when targets could not be launched: {@value}
    */
   int EXIT_TASK_LAUNCH_FAILURE        =  2;
+  
   /**
    * Exit code when an exception was thrown from the service: {@value}
    */
   int EXIT_EXCEPTION_THROWN           = 32;
+  
   /**
    * Exit code when a usage message was printed: {@value}
    */
   int EXIT_USAGE                      = 33;
+  
   /**
    * Exit code when something happened but we can't be specific: {@value}
    */
   int EXIT_OTHER_FAILURE              = 34;
+  
   /**
    * Exit code when a control-C, kill -3, signal was picked up: {@value}
    */
                                 
   int EXIT_INTERRUPTED                = 35;
+  
   /**
    * Exit code when the command line doesn't parse: {@value}, or
    * when it is otherwise invalid.
    */
   int EXIT_COMMAND_ARGUMENT_ERROR     = 36;
+  
   /**
    * Exit code when the configurations in valid/incomplete: {@value}
    */

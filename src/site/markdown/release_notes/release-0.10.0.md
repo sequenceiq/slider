@@ -40,6 +40,10 @@ is an integer defining priority within the queue (0 is the highest priority)
 
 or on the command line via the `-D` option:
 
-  bin/hoya  thaw cl1  -D hoya.yarn.queue=interactive -D hoya.yarn.queue.priority=5 
+    bin/hoya thaw cl1  -D hoya.yarn.queue=interactive -D hoya.yarn.queue.priority=5 
   
   
+### the `freeze` command now supports a `--message` parameter
+
+
+    bin/hoya freeze cl1  --message "shutdown for maintenance"

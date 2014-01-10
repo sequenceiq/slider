@@ -228,6 +228,21 @@ class TestCommonArgParsing implements HoyaActions, Arguments {
   }
 
   @Test
+  public void testFreezeForceWaitAndMessage() throws Throwable {
+    ClientArgs ca = createClientArgs([
+        ACTION_FREEZE, CLUSTERNAME,
+        ARG_FORCE,
+        ARG_WAIT, "0",
+        ARG_MESSAGE, "explanation"
+    ])
+    assert ca.clusterName == CLUSTERNAME
+    assert ca.coreAction instanceof ActionFreezeArgs
+    ActionFreezeArgs freezeArgs = (ActionFreezeArgs) ca.coreAction;
+    assert freezeArgs.message == "explanation"
+    assert freezeArgs.force;
+  }
+
+  @Test
   public void testGetConfFailsNoArg() throws Throwable {
     assertParseFails([
         ACTION_GETCONF,
