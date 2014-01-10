@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.hoya.itest.commands
+package org.apache.hoya.funtest.commands
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j

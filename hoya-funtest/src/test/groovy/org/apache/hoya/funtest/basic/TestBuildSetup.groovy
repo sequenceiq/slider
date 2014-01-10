@@ -16,20 +16,17 @@
  * limitations under the License.
  */
 
-package org.apache.hoya.itest.basic
+package org.apache.hoya.funtest.basic
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hoya.funtest.itest.HoyaTestProperties
 import org.apache.hoya.testtools.HoyaTestUtils
 import org.junit.Test
-
-import org.apache.hadoop.fs.FileSystem as HadoopFS;
 
 /**
  * Simple tests to verify that the build has been set up: if these

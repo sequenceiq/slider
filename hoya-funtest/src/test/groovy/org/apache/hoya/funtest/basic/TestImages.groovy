@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.hoya.itest.basic
+package org.apache.hoya.funtest.basic
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path

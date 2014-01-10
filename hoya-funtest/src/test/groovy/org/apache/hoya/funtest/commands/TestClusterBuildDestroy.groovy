@@ -16,14 +16,12 @@
  * limitations under the License.
  */
 
-package org.apache.hoya.itest.commands
+package org.apache.hoya.funtest.commands
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import org.apache.bigtop.itest.shell.Shell
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
-import org.apache.hadoop.hoya.providers.hbase.HBaseProviderService
 import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hoya.funtest.itest.HoyaCommandTestBase
