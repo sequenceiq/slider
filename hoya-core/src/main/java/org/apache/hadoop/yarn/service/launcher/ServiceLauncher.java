@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * A class to launch any service by name.
@@ -76,6 +77,8 @@ public class ServiceLauncher
     new ArrayList<IrqHandler>(1);
   private Configuration configuration;
   private String serviceClassName;
+  private static AtomicBoolean signalAlreadyReceived = new AtomicBoolean(false);
+  
 
   /**
    * Create an instance of the launcher
@@ -236,10 +239,17 @@ public class ServiceLauncher
    */
 //  @Override
   public void interrupted(IrqHandler.InterruptData interruptData) {
+    String message = "Service interrupted by " + interruptData.toString();
+    LOG.info(message);
+    if (!signalAlreadyReceived.compareAndSet(false, true)) {
+      LOG.info("Repeated interrupt: escalating to a JVM halt");
+      // signal already received. On a second request to a hard JVM
+      // halt and so bypass any blocking shutdown hooks.
+      ExitUtil.halt(EXIT_INTERRUPTED, message);
+    }
     boolean controlC = IrqHandler.CONTROL_C.equals(interruptData.name);
     int shutdownTimeMillis = SHUTDOWN_TIME_ON_INTERRUPT;
     //start an async shutdown thread with a timeout
-    LOG.info("Halting service");
     ServiceForcedShutdown forcedShutdown =
       new ServiceForcedShutdown(shutdownTimeMillis);
     Thread thread = new Thread(forcedShutdown);
@@ -254,7 +264,7 @@ public class ServiceLauncher
     if (!forcedShutdown.isServiceStopped()) {
       LOG.warn("Service did not shut down in time");
     }
-    exit(controlC ? EXIT_SUCCESS : EXIT_INTERRUPTED);
+    exit(EXIT_INTERRUPTED, message);
   }
 
   /**
@@ -266,8 +276,8 @@ public class ServiceLauncher
    * no other code in the same method is called.
    * @param exitCode code to exit
    */
-  protected void exit(int exitCode) {
-    ExitUtil.terminate(exitCode);
+  protected void exit(int exitCode, String message) {
+    ExitUtil.terminate(exitCode, message);
   }
 
   /**
