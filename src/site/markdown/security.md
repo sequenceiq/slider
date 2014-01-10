@@ -30,21 +30,21 @@ listed at the bottom.
 Hoya runs in secure clusters, but with restrictions 
 
 1. The keytabs to allow a worker to authenticate with the master must
-be distributed in advance: Hoya does not attempt to pass these around.
+   be distributed in advance: Hoya does not attempt to pass these around.
 1. Until the location of Hoya node instances can be strictly limited to
-a set of nodes (a future YARN feature), the keytabs must be passed to
-all the nodes in the cluster in advance, *and made available to the
-user creating the cluster*
+  a set of nodes (a future YARN feature), the keytabs must be passed to
+  all the nodes in the cluster in advance, *and made available to the
+  user creating the cluster*
 1. due to the way that HBase and accumulo authenticate worker nodes to
-the masters, any HBase node running on a server must authenticate as
-the same principal, and so have equal access rights to the HBase cluster.
+  the masters, any HBase node running on a server must authenticate as
+  the same principal, and so have equal access rights to the HBase cluster.
 1. As the data directories for a hoya cluster are created under the home
-directories of that user, the principals representing all role instances
-in the clusters *MUST* have read/write access to these files. This can be
-done with a shortname that matches that of the user, or by requesting
-that Hoya create a directory with group write permissions -and using LDAP
-to indentify the application principals as members of the same group
-as the user.
+  directories of that user, the principals representing all role instances
+  in the clusters *MUST* have read/write access to these files. This can be
+  done with a shortname that matches that of the user, or by requesting
+  that Hoya create a directory with group write permissions -and using LDAP
+  to indentify the application principals as members of the same group
+  as the user.
 
 
 ## Requirements
@@ -184,6 +184,10 @@ When trying to talk to a secure, cluster you may see the message:
 
     No valid credentials provided (Mechanism level: Illegal key size)]
 
+This means that the JRE does not have the extended cryptography package
+needed to work with the keys that Kerberos needs. This must be downloaded
+from Oracle (or other supplier of the JVM) and installed according to
+its accompanying instructions.
 
 ## Putting it all together: examples
 

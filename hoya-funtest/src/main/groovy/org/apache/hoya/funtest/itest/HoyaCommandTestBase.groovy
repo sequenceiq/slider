@@ -22,11 +22,13 @@ import groovy.util.logging.Slf4j
 import org.apache.bigtop.itest.shell.Shell
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.hoya.tools.HoyaUtils
 import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.hoya.testtools.HoyaTestUtils
-import org.junit.Beforeimport org.junit.BeforeClass
+import org.junit.Before
+import org.junit.BeforeClass
 import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.junit.Rule
 import org.junit.rules.Timeout;
@@ -53,7 +55,6 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
     HOYA_CONFIG = new Configuration(true)
     HOYA_CONFIG.addResource(HOYA_CONF_XML.toURI().toURL())
   }
-  public static final UserGroupInformation HADOOP_USER = UserGroupInformation.currentUser
 
   @Rule
   public final Timeout testTimeout = new Timeout(10 * 60 * 1000);
@@ -61,8 +62,12 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
 
   @BeforeClass
   public static void setupClass() {
-    
-  }
+    Configuration conf = loadHoyaConf();
+    if (HoyaUtils.maybeInitSecurity(conf)) {
+      log.debug("Security enabled")
+      HoyaUtils.forceLogin()
+      }
+    }
 
   /**
    * Exec any hoya command 
@@ -122,7 +127,6 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
   public static File getHoyaScript() {
     return new File(HOYA_BIN_DIRECTORY, "bin/hoya")
   }
-
 
   public static File getHoyaClientXMLFile() {
     File hoyaClientXMLFile = HOYA_CONF_XML
@@ -227,6 +231,7 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
   public static void assertUnknownCluster(Shell shell) {
     assertExitCode(shell, HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER)
   }
+  
   /**
    * Assert a shell exited with a given error code
    * if not the output is printed and an assertion is raised

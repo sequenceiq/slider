@@ -105,6 +105,8 @@
           <systemPropertyVariables>
             <java.net.preferIPv4Stack>true</java.net.preferIPv4Stack>
             <java.awt.headless>true</java.awt.headless>
+            <java.security.krb5.realm>${hoya.test.java.security.krb5.realm}</java.security.krb5.realm>
+            <java.security.krb5.kdc>${hoya.test.java.security.krb5.kdc}</java.security.krb5.kdc>
             <!-- this property must be supplied-->
             <hoya.conf.dir>${hoya.conf.dir}</hoya.conf.dir>
             <hoya.bin.dir>../hoya-assembly/target/hoya-${project.version}-all/hoya-${project.version}</hoya.bin.dir>

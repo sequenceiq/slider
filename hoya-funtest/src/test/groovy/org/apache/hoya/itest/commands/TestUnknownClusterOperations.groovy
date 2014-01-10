@@ -24,6 +24,9 @@ import org.apache.bigtop.itest.shell.Shell
 import org.apache.hoya.funtest.itest.HoyaCommandTestBase
 import org.junit.Test
 
+/**
+ * Test the return code from ops against unknown clusters are what we expect
+ */
 @CompileStatic
 @Slf4j
 public class TestUnknownClusterOperations extends HoyaCommandTestBase {

@@ -25,6 +25,7 @@ import org.apache.hadoop.fs.Path
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hoya.funtest.itest.HoyaCommandTestBase
 import org.apache.hoya.funtest.itest.HoyaTestProperties
+import org.junit.BeforeClass
 import org.junit.Test
 
 import org.apache.hadoop.fs.FileSystem as HadoopFS;
@@ -37,10 +38,13 @@ import org.apache.hadoop.fs.FileSystem as HadoopFS;
 @Slf4j
 class TestBuildSetup extends HoyaCommandTestBase implements HoyaTestProperties {
 
+  
+  
 
   @Test
   public void testConfDirSet() throws Throwable {
     assert HOYA_CONF_DIR
+    log.info("Hoya Configuration directory $HOYA_CONF_DIR")
   }
 
 
@@ -61,7 +65,8 @@ class TestBuildSetup extends HoyaCommandTestBase implements HoyaTestProperties {
   public void testBinDirExists() throws Throwable {
     String binDirProp = HOYA_BIN_DIR
     assert binDirProp
-    File dir = new File(binDirProp).absoluteFile
+    File dir = new File(binDirProp).canonicalFile
+    log.info("Hoya binaries dir = $dir")
     assert dir.exists()
   }
 
@@ -75,6 +80,7 @@ class TestBuildSetup extends HoyaCommandTestBase implements HoyaTestProperties {
   public void testConfLoad() throws Throwable {
     Configuration conf = loadHoyaConf()
     String fs = conf.get("fs.defaultFS")
+    log.info("Test Filesystem $fs")
     assert fs != null
   }
 
@@ -83,7 +89,7 @@ class TestBuildSetup extends HoyaCommandTestBase implements HoyaTestProperties {
   public void testConfHasRM() throws Throwable {
     Configuration conf = loadHoyaConf()
     String val = conf.get(YarnConfiguration.RM_ADDRESS)
-    log.debug("$YarnConfiguration.DEFAULT_RM_ADDRESS = $val")
+    log.info("$YarnConfiguration.RM_ADDRESS = $val")
     assert val != YarnConfiguration.DEFAULT_RM_ADDRESS
   }
 
@@ -106,7 +112,8 @@ class TestBuildSetup extends HoyaCommandTestBase implements HoyaTestProperties {
 
     Configuration conf = loadHoyaConf()
     String dir = conf.get(KEY_HOYA_TEST_HBASE_APPCONF)
-    assert dir
+    
+    assert conf.get(KEY_HOYA_TEST_HBASE_APPCONF)
     Path path = new Path(dir)
     HadoopFS fs = HadoopFS.get(path.toUri(), conf)
     assert fs.exists(path)
