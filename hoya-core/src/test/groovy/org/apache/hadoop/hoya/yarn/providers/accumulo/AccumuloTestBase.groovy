@@ -115,7 +115,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
    * @param blockUntilRunning block until the AM is running
    * @return launcher which will have executed the command.
    */
-  public ServiceLauncher createAccCluster(String clustername, int tablets, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
+  public ServiceLauncher<HoyaClient> createAccCluster(String clustername, int tablets, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
     Map<String, Integer> roles = [
         (AccumuloKeys.ROLE_MASTER): 1,
         (AccumuloKeys.ROLE_TABLET): tablets,
@@ -133,7 +133,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
    * @param blockUntilRunning
    * @return the cluster launcher
    */
-  public ServiceLauncher createAccCluster(String clustername, Map<String, Integer> roles, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
+  public ServiceLauncher<HoyaClient> createAccCluster(String clustername, Map<String, Integer> roles, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
     extraArgs << Arguments.ARG_PROVIDER << AccumuloKeys.PROVIDER_ACCUMULO;
 
     YarnConfiguration conf = testConfiguration

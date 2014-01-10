@@ -57,7 +57,6 @@ import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fifo.FifoSchedule
 import org.apache.hadoop.yarn.service.launcher.ServiceLaunchException
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
-import org.apache.hoya.testtools.HoyaTestUtils
 import org.apache.hoya.testtools.KeysForTests
 import org.junit.After
 import org.junit.Assume
@@ -240,16 +239,6 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
     createMiniCluster(name, conf, noOfNodeManagers, 1, 1, startZK, false)
   }
 
-  /**
-   * Launch the hoya client with the specific args
-   * @param conf configuration
-   * @param args arg list
-   * @return the service launcher that launched it, containing exit codes
-   * and the service itself
-   */
-  protected ServiceLauncher launchHoyaClient(Configuration conf, List args) {
-    return launch(HoyaClient, conf, args);
-  }
 
   /**
    * Launch the hoya client with the specific args against the MiniMR cluster
@@ -258,9 +247,9 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
    * @param args arg list
    * @return the return code
    */
-  protected ServiceLauncher launchHoyaClientAgainstMiniMR(Configuration conf,
+  protected ServiceLauncher<HoyaClient> launchHoyaClientAgainstMiniMR(Configuration conf,
                                                           List args) {
-    ServiceLauncher launcher = launchHoyaClientNoExitCodeCheck(conf, args)
+    ServiceLauncher<HoyaClient> launcher = launchHoyaClientNoExitCodeCheck(conf, args)
     int exited = launcher.serviceExitCode
     if (exited != 0) {
       throw new HoyaException(exited,"Launch failed with exit code $exited")
@@ -275,7 +264,7 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
    * @param args arg list
    * @return the return code
    */
-  public ServiceLauncher launchHoyaClientNoExitCodeCheck(
+  public ServiceLauncher<HoyaClient> launchHoyaClientNoExitCodeCheck(
       Configuration conf,
       List args) {
     assert miniCluster != null
@@ -285,7 +274,7 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
     if (!args.contains(Arguments.ARG_MANAGER)) {
       args += [Arguments.ARG_MANAGER, RMAddr]
     }
-    ServiceLauncher launcher = execHoyaCommand(conf, args)
+    ServiceLauncher<HoyaClient> launcher = execHoyaCommand(conf, args)
     return launcher
   }
 
@@ -296,10 +285,15 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
    * @param args arg list
    * @return the return code
    */
-  protected ServiceLauncher execHoyaCommand(Configuration conf,
+  protected ServiceLauncher<HoyaClient> execHoyaCommand(Configuration conf,
                                                           List args) {
-    ServiceLauncher launcher = launch(HoyaClient, conf, args);
-    return launcher;
+    String clientname = HoyaClient.name
+    ServiceLauncher<HoyaClient> serviceLauncher =
+        new ServiceLauncher<HoyaClient>(clientname);
+    serviceLauncher.launchService(conf,
+                                  toArray(args),
+                                  false);
+    return serviceLauncher
   }
 
   /**
@@ -415,7 +409,7 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
    * @param blockUntilRunning block until the AM is running
    * @return launcher which will have executed the command.
    */
-  public ServiceLauncher createMasterlessAM(String clustername, int size, boolean deleteExistingData, boolean blockUntilRunning) {
+  public ServiceLauncher<HoyaClient> createMasterlessAM(String clustername, int size, boolean deleteExistingData, boolean blockUntilRunning) {
     Map<String, Integer> roles = [
         (HBaseKeys.ROLE_MASTER): 0,
         (HBaseKeys.ROLE_WORKER): size,
@@ -438,7 +432,7 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
    * @param blockUntilRunning block until the AM is running
    * @return launcher which will have executed the command.
    */
-  public ServiceLauncher createHBaseCluster(String clustername, int size, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
+  public ServiceLauncher<HoyaClient> createHBaseCluster(String clustername, int size, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
     Map<String, Integer> roles = [
         (HBaseKeys.ROLE_MASTER): 1,
         (HBaseKeys.ROLE_WORKER): size,
@@ -465,7 +459,7 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
    * @param clusterOps map of key=value cluster options to set with the --option arg
    * @return launcher which will have executed the command.
    */
-  public ServiceLauncher createHoyaCluster(String clustername, Map<String, Integer> roles, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning, Map<String, String> clusterOps) {
+  public ServiceLauncher<HoyaClient> createHoyaCluster(String clustername, Map<String, Integer> roles, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning, Map<String, String> clusterOps) {
     createOrBuildHoyaCluster(HoyaActions.ACTION_CREATE,clustername,roles,extraArgs,deleteExistingData,blockUntilRunning,clusterOps)
   }
 
@@ -481,7 +475,7 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
    * @param clusterOps map of key=value cluster options to set with the --option arg
    * @return launcher which will have executed the command.
    */
-  public ServiceLauncher  createOrBuildHoyaCluster(String action, String clustername, Map<String, Integer> roles, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning, Map<String, String> clusterOps) {
+  public ServiceLauncher<HoyaClient> createOrBuildHoyaCluster(String action, String clustername, Map<String, Integer> roles, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning, Map<String, String> clusterOps) {
     assert clustername != null
     assert miniCluster != null
     if (deleteExistingData) {
@@ -525,7 +519,7 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
     if (extraArgs != null) {
       argsList += extraArgs;
     }
-    ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
+    ServiceLauncher<HoyaClient> launcher = launchHoyaClientAgainstMiniMR(
         //config includes RM binding info
         new YarnConfiguration(miniCluster.config),
         //varargs list of command line params
@@ -629,7 +623,7 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
    * @param blockUntilRunning block until the AM is running
    * @return launcher which will have executed the command.
    */
-  public ServiceLauncher thawHoyaCluster(String clustername, List<String> extraArgs, boolean blockUntilRunning) {
+  public ServiceLauncher<HoyaClient> thawHoyaCluster(String clustername, List<String> extraArgs, boolean blockUntilRunning) {
     assert clustername != null
     assert miniCluster != null
 
@@ -642,7 +636,7 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
     if (extraArgs != null) {
       argsList += extraArgs;
     }
-    ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
+    ServiceLauncher<HoyaClient> launcher = launchHoyaClientAgainstMiniMR(
         //config includes RM binding info
         new YarnConfiguration(miniCluster.config),
         //varargs list of command line params
@@ -698,7 +692,7 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
    * @return the app report of the live cluster
    */
   public ApplicationReport waitForClusterLive(HoyaClient hoyaClient) {
-    return HoyaTestUtils.waitForClusterLive(hoyaClient,CLUSTER_GO_LIVE_TIME)
+    return waitForClusterLive(hoyaClient,CLUSTER_GO_LIVE_TIME)
   }
 
   /**
@@ -752,8 +746,8 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
     log.info("Freezing cluster $clustername")
     ActionFreezeArgs freezeArgs  = new ActionFreezeArgs();
     freezeArgs.waittime = CLUSTER_STOP_TIME
-    int exitCode = hoyaClient.actionFreeze(clustername,
-                                           message,
+    int exitCode = hoyaClient.actionFreeze(clustername
+                                           ,
                                            freezeArgs);
     if (exitCode != 0) {
       log.warn("Cluster freeze failed with error code $exitCode")

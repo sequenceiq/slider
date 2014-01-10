@@ -21,7 +21,6 @@ package org.apache.hadoop.yarn.service.launcher;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FsUrlStreamHandlerFactory;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.util.ExitUtil;
@@ -50,7 +49,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * </ol>
  */
 @SuppressWarnings("UseOfSystemOutOrSystemErr")
-public class ServiceLauncher
+public class ServiceLauncher<S extends Service>
   implements LauncherExitCodes, IrqHandler.Interrupted {
   private static final Log LOG = LogFactory.getLog(ServiceLauncher.class);
   protected static final int PRIORITY = 30;
@@ -71,7 +70,7 @@ public class ServiceLauncher
   public static final String ARG_CONF = "--conf";
   static int SHUTDOWN_TIME_ON_INTERRUPT = 30 * 1000;
 
-  private volatile Service service;
+  private volatile S service;
   private int serviceExitCode;
   private final List<IrqHandler> interruptHandlers =
     new ArrayList<IrqHandler>(1);
@@ -93,7 +92,7 @@ public class ServiceLauncher
    * {@link #launchService(Configuration, String[], boolean)} has completed
    * @return the service
    */
-  public Service getService() {
+  public S getService() {
     return service;
   }
 
@@ -218,7 +217,7 @@ public class ServiceLauncher
                                        "Not a Service: " + serviceClassName);
     }
 
-    service = (Service) instance;
+    service = (S) instance;
     return service;
   }
 
@@ -536,7 +535,7 @@ public class ServiceLauncher
       Thread.setDefaultUncaughtExceptionHandler(
         new YarnUncaughtExceptionHandler());
 
-      ServiceLauncher serviceLauncher = new ServiceLauncher(serviceClassName);
+      ServiceLauncher serviceLauncher = new ServiceLauncher<Service>(serviceClassName);
       serviceLauncher.launchServiceAndExit(argsList);
     }
   }
