@@ -18,6 +18,8 @@
 
 package org.apache.hoya.testtools
 
+import groovy.transform.CompileStatic
+import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hbase.HBaseConfiguration
@@ -36,6 +38,8 @@ import org.apache.hadoop.hoya.yarn.client.HoyaClient
 /**
  * Static HBase test utils
  */
+@Slf4j
+@CompileStatic
 class HBaseTestUtils extends HoyaTestUtils {
 
   /**
