@@ -25,6 +25,7 @@ import org.apache.hadoop.hoya.HoyaExitCodes
 import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hoya.funtest.framework.HoyaCommandTestBase
+import org.apache.hoya.funtest.framework.HoyaShell
 import org.junit.Test
 
 /**
@@ -38,7 +39,7 @@ public class TestUnknownClusterOperations extends HoyaCommandTestBase {
 
   @Test
   public void testFreezeUnknownCluster() throws Throwable {
-    Shell shell = freeze(UNKNOWN)
+    HoyaShell shell = freeze(UNKNOWN)
     assertUnknownCluster(shell)
   }
 
@@ -54,13 +55,13 @@ public class TestUnknownClusterOperations extends HoyaCommandTestBase {
 
   @Test
   public void testFreezeForceUnknownCluster() throws Throwable {
-    Shell shell = freezeForce(UNKNOWN)
+    HoyaShell shell = freezeForce(UNKNOWN)
     assertUnknownCluster(shell)
   }
 
   @Test
   public void testDestroyUnknownCluster() throws Throwable {
-    Shell shell = destroy(UNKNOWN)
+    HoyaShell shell = destroy(UNKNOWN)
     assertSuccess(shell)
   }
 

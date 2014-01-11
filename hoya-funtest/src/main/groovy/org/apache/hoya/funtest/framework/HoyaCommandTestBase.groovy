@@ -34,9 +34,7 @@ import org.junit.rules.Timeout;
 //@CompileStatic
 @Slf4j
 class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
-  private static String USER = System.getProperty("user.name")
   public static final String BASH = '/bin/bash -s'
-  private Shell bash = new Shell(BASH);
   public static final String HOYA_CONF_DIR = System.getProperty(
       HoyaTestProperties.HOYA_CONF_DIR_PROP)
   public static final String HOYA_BIN_DIR = System.getProperty(
@@ -63,9 +61,6 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
         HoyaTestProperties.DEFAULT_HOYA_FREEZE_WAIT_TIME)
   }
 
-
-
-
   @Rule
   public final Timeout testTimeout = new Timeout(10 * 60 * 1000);
 
@@ -77,6 +72,8 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
       log.debug("Security enabled")
       HoyaUtils.forceLogin()
       }
+    HoyaShell.hoyaConfDir = HOYA_CONF_DIRECTORY
+    HoyaShell.hoyaScript = HOYA_SCRIPT
     }
 
   /**
@@ -85,18 +82,10 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
    * @param commands
    * @return the shell
    */
-  public static Shell hoya(List<String> commands) {
-    String confDirCmd = "export HOYA_CONF_DIR=${HOYA_CONF_DIRECTORY.toString()};"
-    String hoyaCommands = HOYA_SCRIPT.absolutePath + " " + commands.join(" ")
-    log.info(hoyaCommands)
-    List<String> commandLine = [
-        confDirCmd,
-        hoyaCommands
-    ]
-    Shell bash = new Shell(BASH);
-    String script = commandLine.join("\n")
-    log.debug(script)
-    return bash.exec(script);
+  public static HoyaShell hoya(List<String> commands) {
+    HoyaShell shell = new HoyaShell(commands)
+    shell.execute()
+    return shell
   }
 
   /**
@@ -105,10 +94,8 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
    * @param commands commands
    * @return
    */
-  public static Shell hoya(int exitCode, List<String> commands) {
-    Shell shell = hoya(commands)
-    assertExitCode(shell, exitCode)
-    return shell
+  public static HoyaShell hoya(int exitCode, List<String> commands) {
+    return HoyaShell.run(commands, exitCode)
   }
 
   /**
@@ -157,63 +144,58 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
   public static HadoopFS getClusterFS() {
     return HadoopFS.get(HOYA_CONFIG)
   }
-  
-  public static void print(Shell shell) {
-    List<String> out = shell.out
-    shell.err.each { String it -> log.error(it) }
-    shell.out.each { String it -> log.info(it) }
-  }
 
-  static Shell destroy(String name) {
+
+  static HoyaShell destroy(String name) {
     hoya([
         HoyaActions.ACTION_DESTROY, name
     ])
   }
   
-  static Shell destroy(int result, String name) {
+  static HoyaShell destroy(int result, String name) {
     hoya(result, [
         HoyaActions.ACTION_DESTROY, name
     ])
   }
 
-  static Shell exists(String name) {
+  static HoyaShell exists(String name) {
     hoya([
         HoyaActions.ACTION_EXISTS, name
     ])
   }
 
-  static Shell exists(int result, String name) {
+  static HoyaShell exists(int result, String name) {
     hoya(result, [
         HoyaActions.ACTION_EXISTS, name
     ])
   }
 
-  static Shell freeze(String name) {
+  static HoyaShell freeze(String name) {
     hoya([
         HoyaActions.ACTION_FREEZE, name
     ])
   }
 
-  static Shell getConf(String name) {
+  static HoyaShell getConf(String name) {
     hoya([
         HoyaActions.ACTION_GETCONF, name
     ])
   }
 
-  static Shell getConf(int result, String name) {
+  static HoyaShell getConf(int result, String name) {
     hoya(result,
       [
         HoyaActions.ACTION_GETCONF, name
       ])
   }
 
-  static Shell freezeForce(String name) {
+  static HoyaShell freezeForce(String name) {
     hoya([
         HoyaActions.ACTION_FREEZE, Arguments.ARG_FORCE, name
     ])
   }
 
-  static Shell list(String name) {
+  static HoyaShell list(String name) {
     List<String> cmd = [
         HoyaActions.ACTION_LIST
     ]
@@ -223,7 +205,7 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
     hoya(cmd)
   }
 
-  static Shell list(int result, String name) {
+  static HoyaShell list(int result, String name) {
     List<String> cmd = [
         HoyaActions.ACTION_LIST
     ]
@@ -233,25 +215,25 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
     hoya(result, cmd)
   }
 
-  static Shell status(String name) {
+  static HoyaShell status(String name) {
     hoya([
         HoyaActions.ACTION_STATUS, name
     ])
   }
   
-  static Shell status(int result, String name) {
+  static HoyaShell status(int result, String name) {
     hoya(result,
     [
         HoyaActions.ACTION_STATUS, name
     ])
   }
 
-  static Shell thaw(String name) {
+  static HoyaShell thaw(String name) {
     hoya([
         HoyaActions.ACTION_THAW, name
     ])
   }
-  static Shell thaw(int result, String name) {
+  static HoyaShell thaw(int result, String name) {
     hoya(result, 
          [
         HoyaActions.ACTION_THAW, name
@@ -273,14 +255,14 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
    * Assert the exit code is that the cluster is unknown
    * @param shell shell
    */
-  public static void assertSuccess(Shell shell) {
+  public static void assertSuccess(HoyaShell shell) {
     assertExitCode(shell, 0)
   }
   /**
    * Assert the exit code is that the cluster is unknown
    * @param shell shell
    */
-  public static void assertUnknownCluster(Shell shell) {
+  public static void assertUnknownCluster(HoyaShell shell) {
     assertExitCode(shell, HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER)
   }
   
@@ -290,11 +272,7 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
    * @param shell shell
    * @param errorCode expected error code
    */
-  public static void assertExitCode(Shell shell, int errorCode) {
-    assert shell != null
-    if (shell.ret != errorCode) {
-      print(shell)
-    }
-    assert shell.ret == errorCode
+  public static void assertExitCode(HoyaShell shell, int errorCode) {
+    shell.assertExitCode(errorCode)
   }
 }

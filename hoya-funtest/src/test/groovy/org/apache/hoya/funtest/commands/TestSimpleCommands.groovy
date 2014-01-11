@@ -23,6 +23,7 @@ import groovy.util.logging.Slf4j
 import org.apache.bigtop.itest.shell.Shell
 import org.apache.hadoop.hoya.yarn.HoyaActions
 import org.apache.hoya.funtest.framework.HoyaCommandTestBase
+import org.apache.hoya.funtest.framework.HoyaShell
 import org.junit.Test
 
 @CompileStatic
@@ -37,7 +38,7 @@ public class TestSimpleCommands extends HoyaCommandTestBase {
 
   @Test
   public void testHoyaUsage() throws Throwable {
-    Shell shell = hoya(0, [HoyaActions.ACTION_USAGE])
+    HoyaShell shell = hoya(0, [HoyaActions.ACTION_USAGE])
     assertSuccess(shell)
   }
   
