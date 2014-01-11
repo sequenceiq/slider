@@ -22,7 +22,10 @@ import org.apache.hadoop.yarn.api.records.Container;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -98,18 +101,46 @@ public class OutstandingRequestTracker {
     return true;
   }
 
+  static class newerThan implements Comparator<Container>, Serializable {
+    private RoleHistory rh;
+    
+    public newerThan(RoleHistory rh) {
+      this.rh = rh;
+    }
+    
+    @Override
+    public int compare(Container c1, Container c2) {
+      int role1 = ContainerPriority.extractRole(c1);
+      int role2 = ContainerPriority.extractRole(c2);
+      if (role1 < role2) return -1;
+      if (role1 > role2) return 1;
+
+      NodeInstance o1 = rh.getOrCreateNodeInstance(c1), o2 = rh.getOrCreateNodeInstance(c2);
+      long age = o1.getOrCreate(role1).getLastUsed();
+      long age2 = o2.getOrCreate(role1).getLastUsed();
+
+      if (age > age2) {
+        return -1;
+      } else if (age < age2) {
+        return 1;
+      }
+      // equal
+      return 0;
+    }
+  }
   /**
    * Take a list of requests and split them into specific host requests and
    * generic assignments. This is to give requested hosts priority
    * in container assignments if more come back than expected
+   * @param rh RoleHistory instance
    * @param allocatedContainers the list of allocated containers
    * @param requested empty list of requested locations 
    * @param unrequested empty list of unrequested hosts
    */
-  public synchronized void partitionRequests(List<Container> allocatedContainers,
+  public synchronized void partitionRequests(RoleHistory rh, List<Container> allocatedContainers,
                                                 List<Container> requested,
                                                 List<Container> unrequested) {
-
+    Collections.sort(allocatedContainers, new newerThan(rh));
     for (Container container : allocatedContainers) {
       int role = ContainerPriority.extractRole(container);
       String hostname = RoleHistoryUtils.hostnameOf(container);

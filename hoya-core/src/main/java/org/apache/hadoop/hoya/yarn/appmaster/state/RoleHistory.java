@@ -513,7 +513,7 @@ public class RoleHistory {
       new ArrayList<Container>(allocatedContainers.size());
     List<Container> unrequested =
       new ArrayList<Container>(allocatedContainers.size());
-    outstandingRequests.partitionRequests(allocatedContainers, requested, unrequested);
+    outstandingRequests.partitionRequests(this, allocatedContainers, requested, unrequested);
     
     //give the unrequested ones lower priority
     requested.addAll(unrequested);

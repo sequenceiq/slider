@@ -31,6 +31,8 @@ import org.apache.hadoop.hoya.yarn.model.mock.BaseMockAppStateTest
 import org.apache.hadoop.hoya.yarn.model.mock.MockContainer
 import org.apache.hadoop.hoya.yarn.model.mock.MockFactory
 import org.apache.hadoop.hoya.yarn.model.mock.MockNodeId
+import org.apache.hadoop.yarn.api.records.Container
+import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource
 import org.apache.hadoop.yarn.client.api.AMRMClient
 import org.junit.Before
@@ -324,5 +326,34 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
     assert roleEntry.available
     assert roleEntry.active == 0
     assert roleEntry.live == 0
+  }
+
+  @Test
+  public void testAllocationListPrep() throws Throwable {
+    describe("test prepareAllocationList")
+    int role = 0
+    AMRMClient.ContainerRequest request =
+        roleHistory.requestNode(role, resource);
+
+    String hostname = request.getNodes()[0]
+    assert hostname == age3Active0.hostname
+
+    MockContainer container1 = factory.newContainer()
+    container1.nodeId = new MockNodeId(hostname, 0)
+    container1.priority = Priority.newInstance(0);
+
+    MockContainer container2 = factory.newContainer()
+    container2.nodeId = new MockNodeId(hostname, 0)
+    container2.priority = Priority.newInstance(1);
+
+    // put containers in List with role == 1 first
+    List<Container> containers = [ (Container) container2, (Container) container1 ]
+    List<Container> sortedContainers = roleHistory.prepareAllocationList(containers)
+
+    // verify that the first container has role == 0 after sorting
+    MockContainer c1 = (MockContainer) sortedContainers[0]
+    assert c1.priority.getPriority() == 0
+    MockContainer c2 = (MockContainer) sortedContainers[1]
+    assert c2.priority.getPriority() == 1
   }
 }
