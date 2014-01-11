@@ -28,23 +28,21 @@ import org.apache.hadoop.fs.FileUtil
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hdfs.MiniDFSCluster
 import org.apache.hadoop.hoya.HoyaExitCodes
-import org.apache.hadoop.hoya.api.ClusterDescription
+import org.apache.hadoop.hoya.HoyaXMLConfKeysForTesting
 import org.apache.hadoop.hoya.api.ClusterNode
 import org.apache.hadoop.hoya.api.OptionKeys
 import org.apache.hadoop.hoya.api.RoleKeys
 import org.apache.hadoop.hoya.exceptions.ErrorStrings
 import org.apache.hadoop.hoya.exceptions.HoyaException
-import org.apache.hadoop.hoya.exceptions.WaitTimeoutException
 import org.apache.hadoop.hoya.providers.hbase.HBaseConfigFileOptions
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.tools.BlockingZKWatcher
 import org.apache.hadoop.hoya.tools.Duration
 import org.apache.hadoop.hoya.tools.HoyaUtils
+import org.apache.hadoop.hoya.tools.ZKIntegration
 import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.HoyaActions
-import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.MicroZKCluster
-import org.apache.hadoop.hoya.tools.ZKIntegration
 import org.apache.hadoop.hoya.yarn.appmaster.HoyaAppMaster
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.params.ActionFreezeArgs
@@ -59,6 +57,7 @@ import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fifo.FifoSchedule
 import org.apache.hadoop.yarn.service.launcher.ServiceLaunchException
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
+import org.apache.hoya.testtools.KeysForTests
 import org.junit.After
 import org.junit.Assume
 import org.junit.Rule
@@ -77,23 +76,13 @@ import java.util.concurrent.atomic.AtomicBoolean
 @CompileStatic
 @Slf4j
 public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest
-implements KeysForTests, HoyaExitCodes {
+implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
 
   /**
    * Mini YARN cluster only
    */
   public static final int CLUSTER_GO_LIVE_TIME = 3 * 60 * 1000
-  public static final int HBASE_CLUSTER_STARTUP_TIME = 3 * 60 * 1000
-  public static final int HBASE_CLUSTER_STOP_TIME = 1 * 60 * 1000
-  
-  /**
-   * The time to sleep before trying to talk to the HBase Master and
-   * expect meaningful results.
-   */
-  public static final int HBASE_CLUSTER_STARTUP_TO_LIVE_TIME = HBASE_CLUSTER_STARTUP_TIME
-  
-  public static final String HREGION = "HRegion"
-  public static final String HMASTER = "HMaster"
+  public static final int CLUSTER_STOP_TIME = 1 * 60 * 1000
 
   public static final int SIGTERM = -15
   public static final int SIGKILL = -9
@@ -250,16 +239,6 @@ implements KeysForTests, HoyaExitCodes {
     createMiniCluster(name, conf, noOfNodeManagers, 1, 1, startZK, false)
   }
 
-  /**
-   * Launch the hoya client with the specific args
-   * @param conf configuration
-   * @param args arg list
-   * @return the service launcher that launched it, containing exit codes
-   * and the service itself
-   */
-  protected ServiceLauncher launchHoyaClient(Configuration conf, List args) {
-    return launch(HoyaClient, conf, args);
-  }
 
   /**
    * Launch the hoya client with the specific args against the MiniMR cluster
@@ -268,9 +247,9 @@ implements KeysForTests, HoyaExitCodes {
    * @param args arg list
    * @return the return code
    */
-  protected ServiceLauncher launchHoyaClientAgainstMiniMR(Configuration conf,
+  protected ServiceLauncher<HoyaClient> launchHoyaClientAgainstMiniMR(Configuration conf,
                                                           List args) {
-    ServiceLauncher launcher = launchHoyaClientNoExitCodeCheck(conf, args)
+    ServiceLauncher<HoyaClient> launcher = launchHoyaClientNoExitCodeCheck(conf, args)
     int exited = launcher.serviceExitCode
     if (exited != 0) {
       throw new HoyaException(exited,"Launch failed with exit code $exited")
@@ -285,7 +264,7 @@ implements KeysForTests, HoyaExitCodes {
    * @param args arg list
    * @return the return code
    */
-  public ServiceLauncher launchHoyaClientNoExitCodeCheck(
+  public ServiceLauncher<HoyaClient> launchHoyaClientNoExitCodeCheck(
       Configuration conf,
       List args) {
     assert miniCluster != null
@@ -295,7 +274,7 @@ implements KeysForTests, HoyaExitCodes {
     if (!args.contains(Arguments.ARG_MANAGER)) {
       args += [Arguments.ARG_MANAGER, RMAddr]
     }
-    ServiceLauncher launcher = execHoyaCommand(conf, args)
+    ServiceLauncher<HoyaClient> launcher = execHoyaCommand(conf, args)
     return launcher
   }
 
@@ -306,10 +285,15 @@ implements KeysForTests, HoyaExitCodes {
    * @param args arg list
    * @return the return code
    */
-  protected ServiceLauncher execHoyaCommand(Configuration conf,
+  protected ServiceLauncher<HoyaClient> execHoyaCommand(Configuration conf,
                                                           List args) {
-    ServiceLauncher launcher = launch(HoyaClient, conf, args);
-    return launcher;
+    String clientname = HoyaClient.name
+    ServiceLauncher<HoyaClient> serviceLauncher =
+        new ServiceLauncher<HoyaClient>(clientname);
+    serviceLauncher.launchService(conf,
+                                  toArray(args),
+                                  false);
+    return serviceLauncher
   }
 
   /**
@@ -367,10 +351,6 @@ implements KeysForTests, HoyaExitCodes {
     return conf
   }
 
-  public void assumeConfOptionSet(Configuration conf, String key) {
-    Assume.assumeNotNull("npt defined " + key, conf.get(key))
-  }
-  
   protected String getRMAddr() {
     assert miniCluster != null
     String addr = miniCluster.config.get(YarnConfiguration.RM_ADDRESS)
@@ -429,7 +409,7 @@ implements KeysForTests, HoyaExitCodes {
    * @param blockUntilRunning block until the AM is running
    * @return launcher which will have executed the command.
    */
-  public ServiceLauncher createMasterlessAM(String clustername, int size, boolean deleteExistingData, boolean blockUntilRunning) {
+  public ServiceLauncher<HoyaClient> createMasterlessAM(String clustername, int size, boolean deleteExistingData, boolean blockUntilRunning) {
     Map<String, Integer> roles = [
         (HBaseKeys.ROLE_MASTER): 0,
         (HBaseKeys.ROLE_WORKER): size,
@@ -452,7 +432,7 @@ implements KeysForTests, HoyaExitCodes {
    * @param blockUntilRunning block until the AM is running
    * @return launcher which will have executed the command.
    */
-  public ServiceLauncher createHBaseCluster(String clustername, int size, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
+  public ServiceLauncher<HoyaClient> createHBaseCluster(String clustername, int size, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
     Map<String, Integer> roles = [
         (HBaseKeys.ROLE_MASTER): 1,
         (HBaseKeys.ROLE_WORKER): size,
@@ -479,7 +459,7 @@ implements KeysForTests, HoyaExitCodes {
    * @param clusterOps map of key=value cluster options to set with the --option arg
    * @return launcher which will have executed the command.
    */
-  public ServiceLauncher createHoyaCluster(String clustername, Map<String, Integer> roles, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning, Map<String, String> clusterOps) {
+  public ServiceLauncher<HoyaClient> createHoyaCluster(String clustername, Map<String, Integer> roles, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning, Map<String, String> clusterOps) {
     createOrBuildHoyaCluster(HoyaActions.ACTION_CREATE,clustername,roles,extraArgs,deleteExistingData,blockUntilRunning,clusterOps)
   }
 
@@ -495,7 +475,7 @@ implements KeysForTests, HoyaExitCodes {
    * @param clusterOps map of key=value cluster options to set with the --option arg
    * @return launcher which will have executed the command.
    */
-  public ServiceLauncher  createOrBuildHoyaCluster(String action, String clustername, Map<String, Integer> roles, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning, Map<String, String> clusterOps) {
+  public ServiceLauncher<HoyaClient> createOrBuildHoyaCluster(String action, String clustername, Map<String, Integer> roles, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning, Map<String, String> clusterOps) {
     assert clustername != null
     assert miniCluster != null
     if (deleteExistingData) {
@@ -539,7 +519,7 @@ implements KeysForTests, HoyaExitCodes {
     if (extraArgs != null) {
       argsList += extraArgs;
     }
-    ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
+    ServiceLauncher<HoyaClient> launcher = launchHoyaClientAgainstMiniMR(
         //config includes RM binding info
         new YarnConfiguration(miniCluster.config),
         //varargs list of command line params
@@ -563,7 +543,7 @@ implements KeysForTests, HoyaExitCodes {
    * @return
    */
   public String getApplicationHomeKey() {
-    return KeysForTests.HOYA_TEST_HBASE_HOME
+    return KEY_HOYA_TEST_HBASE_HOME
   }
   /**
    * Get the archive path -which defaults to the local one
@@ -584,7 +564,7 @@ implements KeysForTests, HoyaExitCodes {
    * @return
    */
   public String getArchiveKey() {
-    return KeysForTests.HOYA_TEST_HBASE_TAR
+    return KEY_HOYA_TEST_HBASE_TAR
   }
 
   public void assumeArchiveDefined() {
@@ -643,7 +623,7 @@ implements KeysForTests, HoyaExitCodes {
    * @param blockUntilRunning block until the AM is running
    * @return launcher which will have executed the command.
    */
-  public ServiceLauncher thawHoyaCluster(String clustername, List<String> extraArgs, boolean blockUntilRunning) {
+  public ServiceLauncher<HoyaClient> thawHoyaCluster(String clustername, List<String> extraArgs, boolean blockUntilRunning) {
     assert clustername != null
     assert miniCluster != null
 
@@ -656,7 +636,7 @@ implements KeysForTests, HoyaExitCodes {
     if (extraArgs != null) {
       argsList += extraArgs;
     }
-    ServiceLauncher launcher = launchHoyaClientAgainstMiniMR(
+    ServiceLauncher<HoyaClient> launcher = launchHoyaClientAgainstMiniMR(
         //config includes RM binding info
         new YarnConfiguration(miniCluster.config),
         //varargs list of command line params
@@ -712,10 +692,7 @@ implements KeysForTests, HoyaExitCodes {
    * @return the app report of the live cluster
    */
   public ApplicationReport waitForClusterLive(HoyaClient hoyaClient) {
-    ApplicationReport report = hoyaClient.monitorAppToRunning(
-        new Duration(CLUSTER_GO_LIVE_TIME));
-    assertNotNull("Cluster did not go live in the time $CLUSTER_GO_LIVE_TIME", report);
-    return report;
+    return waitForClusterLive(hoyaClient,CLUSTER_GO_LIVE_TIME)
   }
 
   /**
@@ -729,7 +706,7 @@ implements KeysForTests, HoyaExitCodes {
     return waitForAppToFinish(hoyaClient, waitTime)
   }
 
-  public ApplicationReport waitForAppToFinish(
+  public static ApplicationReport waitForAppToFinish(
       HoyaClient hoyaClient,
       int waitTime) {
     ApplicationReport report = hoyaClient.monitorAppToState(new Duration(
@@ -748,15 +725,6 @@ implements KeysForTests, HoyaExitCodes {
     return report;
   }
 
-  public void dumpClusterStatus(HoyaClient hoyaClient, String text) {
-    ClusterDescription status = hoyaClient.getClusterDescription();
-    dumpClusterDescription(text, status)
-  }
-
-  List<ClusterNode> listNodesInRole(HoyaClient hoyaClient, String role) {
-    return hoyaClient.listClusterNodesInRole(role)
-  }
-
   public ExecutorService createExecutorService() {
     ThreadPoolExecutor pool = new ThreadPoolExecutor(1, 1,
                                                      1000L,
@@ -768,17 +736,23 @@ implements KeysForTests, HoyaExitCodes {
 
 
   /**
-   * Wait for the hbase master to be live (or past it in the lifecycle)
+   * stop the cluster via the stop action -and wait for {@link #CLUSTER_STOP_TIME}
+   * for the cluster to stop. If it doesn't
+   * @param hoyaClient client
    * @param clustername cluster
-   * @param spintime time to wait
-   * @return true if the cluster came out of the sleep time live 
-   * @throws IOException
-   * @throws HoyaException
+   * @return the exit code
    */
-  public boolean spinForClusterStartup(HoyaClient hoyaClient, long spintime)
-  throws WaitTimeoutException, IOException, HoyaException {
-    int state = hoyaClient.waitForRoleInstanceLive(HBaseKeys.MASTER, spintime);
-    return state == ClusterDescription.STATE_LIVE;
+  public int clusterActionFreeze(HoyaClient hoyaClient, String clustername, String message = "action freeze") {
+    log.info("Freezing cluster $clustername")
+    ActionFreezeArgs freezeArgs  = new ActionFreezeArgs();
+    freezeArgs.waittime = CLUSTER_STOP_TIME
+    int exitCode = hoyaClient.actionFreeze(clustername
+                                           ,
+                                           freezeArgs);
+    if (exitCode != 0) {
+      log.warn("Cluster freeze failed with error code $exitCode")
+    }
+    return exitCode
   }
 
   /**
@@ -788,7 +762,10 @@ implements KeysForTests, HoyaExitCodes {
    * @param clustername name of cluster to teardown
    * @return
    */
-  public int maybeStopCluster(HoyaClient hoyaClient, String clustername, String message) {
+  public int maybeStopCluster(
+      HoyaClient hoyaClient,
+      String clustername,
+      String message) {
     if (hoyaClient != null) {
       if (!clustername) {
         clustername = hoyaClient.deployedClusterName;
@@ -796,109 +773,13 @@ implements KeysForTests, HoyaExitCodes {
       //only stop a cluster that exists
       if (clustername) {
         return clusterActionFreeze(hoyaClient, clustername, message);
-      }  
+      }
     }
     return 0;
   }
-  
-  /**
-   * stop the cluster via the stop action -and wait for {@link #HBASE_CLUSTER_STOP_TIME}
-   * for the cluster to stop. If it doesn't
-   * @param hoyaClient client
-   * @param clustername cluster
-   * @return the exit code
-   */
-  public int clusterActionFreeze(HoyaClient hoyaClient, String clustername, String message = "action freeze") {
-    log.info("Freezing cluster $clustername")
-    ActionFreezeArgs freezeArgs  = new ActionFreezeArgs();
-    freezeArgs.waittime = HBASE_CLUSTER_STOP_TIME
-    int exitCode = hoyaClient.actionFreeze(clustername,
-                                           message,
-                                           freezeArgs);
-    if (exitCode != 0) {
-      log.warn("Cluster freeze failed with error code $exitCode")
-    }
-    return exitCode
-  }
 
 
-  public void waitWhileClusterExists(HoyaClient client, int timeout) {
-    Duration duration = new Duration(timeout);
-    duration.start()
-    while(client.actionExists(client.deployedClusterName) && !duration.limitExceeded) {
-      sleep(1000);
-    }
-  }
-
-  /**
-   * Spin waiting for the Hoya role count to match expected
-   * @param hoyaClient client
-   * @param role role to look for
-   * @param desiredCount RS count
-   * @param timeout timeout
-   */
-  public ClusterDescription waitForRoleCount(HoyaClient hoyaClient, String role, int desiredCount, int timeout) {
-    return waitForRoleCount(hoyaClient, [(role): desiredCount], timeout)
-  }
-  
-  /**
-   * Spin waiting for the Hoya role count to match expected
-   * @param hoyaClient client
-   * @param roles map of roles to look for
-   * @param desiredCount RS count
-   * @param timeout timeout
-   */
-  public ClusterDescription waitForRoleCount(
-      HoyaClient hoyaClient,
-      Map<String, Integer> roles,
-      int timeout,
-      String operation = "startup") {
-    String clustername = hoyaClient.deployedClusterName;
-    ClusterDescription status = null
-    Duration duration = new Duration(timeout);
-    duration.start()
-    boolean roleCountFound = false;
-    while (!roleCountFound) {
-      StringBuilder details = new StringBuilder()
-      roleCountFound = true;
-      status = hoyaClient.getClusterDescription(clustername)
-
-      for (Map.Entry<String, Integer> entry : roles.entrySet()) {
-        String role = entry.key
-        int desiredCount = entry.value
-        Integer instances = status.instances[role];
-        int instanceCount = instances != null ? instances.intValue() : 0;
-        if (instanceCount != desiredCount) {
-          roleCountFound = false;
-        }
-        details.append("[$role]: $instanceCount of $desiredCount; ")
-      }
-      if (roleCountFound) {
-        //successful
-        log.info("$operation: role count as desired: $details")
-
-        break;
-      }
-
-      if (duration.limitExceeded) {
-        duration.finish();
-        describe("$operation: role count not met after $duration: $details")
-        log.info(prettyPrint(status.toJsonString()))
-        fail("$operation: role counts not met  after $duration: $details in \n$status ")
-      }
-      log.info("Waiting: " + details)
-      Thread.sleep(1000)
-    }
-    return status
-  }
-
-
-  void dumpClusterDescription(String text, ClusterDescription status) {
-    describe(text)
-    log.info(prettyPrint(status.toJsonString()))
-  }
-  
-  void assertExceptionDetails(ServiceLaunchException ex, int exitCode, String text = ""){
+  static void assertExceptionDetails(ServiceLaunchException ex, int exitCode, String text = ""){
     if (exitCode != ex.exitCode) {
       log.warn("Wrong exit code, expected $exitCode but got $ex.exitCode in $ex",
                ex)

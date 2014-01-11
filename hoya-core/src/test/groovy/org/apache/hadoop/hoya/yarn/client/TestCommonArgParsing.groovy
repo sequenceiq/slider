@@ -53,7 +53,7 @@ import org.junit.Test
 @CompileStatic
 @Slf4j
 
-class TestCommonArgParsing implements HoyaActions, Arguments{
+class TestCommonArgParsing implements HoyaActions, Arguments {
 
 
   public static final String CLUSTERNAME = "clustername"
@@ -228,6 +228,21 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
   }
 
   @Test
+  public void testFreezeForceWaitAndMessage() throws Throwable {
+    ClientArgs ca = createClientArgs([
+        ACTION_FREEZE, CLUSTERNAME,
+        ARG_FORCE,
+        ARG_WAIT, "0",
+        ARG_MESSAGE, "explanation"
+    ])
+    assert ca.clusterName == CLUSTERNAME
+    assert ca.coreAction instanceof ActionFreezeArgs
+    ActionFreezeArgs freezeArgs = (ActionFreezeArgs) ca.coreAction;
+    assert freezeArgs.message == "explanation"
+    assert freezeArgs.force;
+  }
+
+  @Test
   public void testGetConfFailsNoArg() throws Throwable {
     assertParseFails([
         ACTION_GETCONF,
@@ -328,6 +343,16 @@ class TestCommonArgParsing implements HoyaActions, Arguments{
     return [
 
     ]
+  }
+
+
+  @Test
+  public void testCreateWaitTime() throws Throwable {
+    ActionCreateArgs createArgs = createAction([
+        ACTION_CREATE, 'cluster1',
+        ARG_WAIT, "600"
+    ])
+    assert 600 == createArgs.getWaittime()
   }
 
 

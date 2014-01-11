@@ -267,17 +267,25 @@ Example
     hoya flex cluster1 --role master 2 --persist false --filesystem hdfs://host:port
     
 
-### `freeze <cluster>  [--wait time]`
+### `freeze <cluster>  [--force] [--wait time] [--message text]`
 
 freeze the cluster. The HBase cluster is scheduled to be destroyed. The cluster settings are retained in HDFS.
 
 The `--wait` argument can specify a time in seconds to wait for the cluster to be frozen.
 
+The `--force` flag causes the HoyaAM to be bypassed, and YARN asked directly
+to terminate the application. This will freeze a cluster that has hung or
+is otherwise not responding.
+
+The `--message` argument supplies an optional text message to be used in
+the request: this will appear in the application's diagnostics in the YARN RM UI.
+
 If an unknown (or already frozen) cluster is named, no error is returned.
 
-Example
+Examples
 
     hoya freeze cluster1 --wait 30
+    hoya freeze cluster2 --force --message "maintenance session"
 
 
 ### `getconf <cluster>  [--out file] [--format xml|properties]`

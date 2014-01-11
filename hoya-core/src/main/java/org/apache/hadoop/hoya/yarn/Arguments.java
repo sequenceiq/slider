@@ -53,6 +53,7 @@ public interface Arguments {
   String ARG_HELP = "--help";
   String ARG_IMAGE = "--image";
   String ARG_MANAGER = "--manager";
+  String ARG_MESSAGE = "--message";
 //  String ARG_NAME = "--name";
   String ARG_OUTPUT = "--out";
   String ARG_OPTION = "--option";

@@ -24,12 +24,12 @@ import org.apache.commons.httpclient.HttpClient
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager
 import org.apache.commons.httpclient.methods.GetMethod
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.hoya.HoyaXMLConfKeysForTesting
 import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.api.RoleKeys
 import org.apache.hadoop.hoya.providers.accumulo.AccumuloConfigFileOptions
 import org.apache.hadoop.hoya.providers.accumulo.AccumuloKeys
 import org.apache.hadoop.hoya.yarn.Arguments
-import org.apache.hadoop.hoya.yarn.KeysForTests
 import org.apache.hadoop.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.conf.YarnConfiguration
@@ -81,25 +81,9 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
     killJavaProcesses("org.apache.accumulo.start.Main", SIGKILL)
   }
 
-  /**
-   * Fetch the current hbase site config from the Hoya AM, from the 
-   * <code>hBaseClientProperties</code> field of the ClusterDescription
-   * @param hoyaClient client
-   * @param clustername name of the cluster
-   * @return the site config
-   */
-  public Configuration fetchClientSiteConfig(HoyaClient hoyaClient) {
-    ClusterDescription status = hoyaClient.clusterDescription;
-    Configuration siteConf = new Configuration(false)
-    status.clientProperties.each { String key, String val ->
-      siteConf.set(key, val, "hoya cluster");
-    }
-    return siteConf;
-  }
-
   @Override
   public String getArchiveKey() {
-    return KeysForTests.HOYA_TEST_ACCUMULO_TAR
+    return  HoyaXMLConfKeysForTesting.KEY_HOYA_TEST_ACCUMULO_TAR
   }
 
   /**
@@ -108,7 +92,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
    */
   @Override
   public String getApplicationHomeKey() {
-    return KeysForTests.HOYA_TEST_ACCUMULO_HOME
+    return HoyaXMLConfKeysForTesting.KEY_HOYA_TEST_ACCUMULO_HOME
   }
 
   /**
@@ -131,7 +115,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
    * @param blockUntilRunning block until the AM is running
    * @return launcher which will have executed the command.
    */
-  public ServiceLauncher createAccCluster(String clustername, int tablets, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
+  public ServiceLauncher<HoyaClient> createAccCluster(String clustername, int tablets, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
     Map<String, Integer> roles = [
         (AccumuloKeys.ROLE_MASTER): 1,
         (AccumuloKeys.ROLE_TABLET): tablets,
@@ -149,7 +133,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
    * @param blockUntilRunning
    * @return the cluster launcher
    */
-  public ServiceLauncher createAccCluster(String clustername, Map<String, Integer> roles, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
+  public ServiceLauncher<HoyaClient> createAccCluster(String clustername, Map<String, Integer> roles, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
     extraArgs << Arguments.ARG_PROVIDER << AccumuloKeys.PROVIDER_ACCUMULO;
 
     YarnConfiguration conf = testConfiguration
@@ -194,16 +178,6 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
     instance.getConnector("user", "pass").instanceOperations().tabletServers;
   }
 
-  public def fetchWebPage(String url) {
-    def client = new HttpClient(new MultiThreadedHttpConnectionManager());
-    client.httpConnectionManager.params.connectionTimeout = 10000;
-    GetMethod get = new GetMethod(url);
-
-    get.followRedirects = true;
-    int resultCode = client.executeMethod(get);
-    String body = get.responseBodyAsString;
-    return body;
-  }
   
   
   public def fetchLocalPage(int port, String page) {

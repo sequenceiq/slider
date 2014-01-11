@@ -29,6 +29,7 @@ import org.apache.hadoop.hoya.yarn.HoyaActions;
 public class ActionFreezeArgs extends AbstractActionArgs implements
                                                          WaitTimeAccessor {
 
+  public static final String FREEZE_COMMAND_ISSUED = "freeze command issued";
   @ParametersDelegate
   public WaitArgsDelegate waitDelegate = new WaitArgsDelegate();
 
@@ -41,6 +42,10 @@ public class ActionFreezeArgs extends AbstractActionArgs implements
   public void setWaittime(int waittime) {
     waitDelegate.setWaittime(waittime);
   }
+
+  @Parameter(names={ARG_MESSAGE},
+             description = "reason for the operation")
+  public String message = FREEZE_COMMAND_ISSUED;
 
   @Parameter(names = {ARG_FORCE},
              description = "force the operation")

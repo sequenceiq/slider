@@ -672,7 +672,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
     int exitCode = amExitCode;
     success = exitCode == 0;
 
-    appStatus = success? FinalApplicationStatus.SUCCEEDED:
+    appStatus = success ? FinalApplicationStatus.SUCCEEDED:
                 FinalApplicationStatus.FAILED;
     if (!spawnedProcessExitedBeforeShutdownTriggered) {
       //stopped the forked process but don't worry about its exit code
@@ -945,7 +945,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
     HoyaUtils.getCurrentUser();
     String message = request.getMessage();
     log.info("HoyaAppMasterApi.stopCluster: {}",message);
-    signalAMComplete(EXIT_CLIENT_INITIATED_SHUTDOWN, "stopCluster: " + message);
+    signalAMComplete(EXIT_CLIENT_INITIATED_SHUTDOWN, message);
     return Messages.StopClusterResponseProto.getDefaultInstance();
   }
 

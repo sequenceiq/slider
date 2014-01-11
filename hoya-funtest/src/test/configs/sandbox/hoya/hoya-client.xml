@@ -24,13 +24,11 @@
     <description>This is just for diagnostics</description>
   </property>
 
-
   <property>
     <name>yarn.resourcemanager.address</name>
     <value>sandbox.hortonworks.com:8050</value>
   </property>
   
-
   <property>
     <name>fs.defaultFS</name>
     <value>hdfs://sandbox.hortonworks.com:8020</value>
@@ -46,6 +44,24 @@
   <value>
     /etc/hadoop/conf,/usr/lib/hadoop/*,/usr/lib/hadoop/lib/*,/usr/lib/hadoop-hdfs/*,/usr/lib/hadoop-hdfs/lib/*,/usr/lib/hadoop-yarn/*,/usr/lib/hadoop-yarn/lib/*,/usr/lib/hadoop-mapreduce/*,/usr/lib/hadoop-mapreduce/lib/*
   </value>
+  </property>
+  
+  <property>
+    <name>hoya.test.hbase.tar</name>
+    <description>Path to the HBase Tar file in HDFS</description>
+    <value>hdfs://sandbox.hortonworks.com:8020/user/hoya/hbase.tar.gz</value>
+  </property>
+  
+  <property>
+    <name>hoya.test.hbase.appconf</name>
+    <description>Path to the directory containing the HBase application config</description>
+    <value>file://${user.dir}/src/test/configs/sandbox/hbase</value>
+  </property>
+ 
+  <property>
+    <name>hoya.test.zkhosts</name>
+    <description>list of the zookeeper hosts</description>
+    <value>sandbox</value>
   </property>
 
 </configuration>

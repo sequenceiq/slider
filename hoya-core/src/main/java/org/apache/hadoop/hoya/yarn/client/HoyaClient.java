@@ -171,6 +171,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     serviceArgs.applyFileSystemURL(conf);
     // init security with our conf
     if (HoyaUtils.isClusterSecure(conf)) {
+      HoyaUtils.forceLogin();
       addService(new SecurityCheckerService());
     }
     //create the YARN client
@@ -206,7 +207,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       exitCode = actionCreate(clusterName);
     } else if (HoyaActions.ACTION_FREEZE.equals(action)) {
       exitCode = actionFreeze(clusterName,
-                              "stopping cluster",
                               serviceArgs.getActionFreezeArgs());
     } else if (HoyaActions.ACTION_THAW.equals(action)) {
       exitCode = actionThaw(clusterName);
@@ -1378,21 +1378,23 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * Stop the cluster
    *
    *
+   *
    * @param clustername cluster name
-   * @param text
    * @param freezeArgs
    * @return EXIT_SUCCESS if the cluster was not running by the end of the operation
    */
   public int actionFreeze(String clustername,
-                          String text,
                           ActionFreezeArgs freezeArgs) throws
                                                             YarnException,
                                                             IOException {
     verifyManagerSet();
     HoyaUtils.validateClusterName(clustername);
     int waittime = freezeArgs.getWaittime();
+    String text = freezeArgs.message;
     boolean forcekill = freezeArgs.force;
-    log.debug("actionFreeze({}, {}, force={})", clustername, waittime,
+    log.debug("actionFreeze({}, reason={}, wait={}, force={})", clustername,
+              text,
+              waittime,
               forcekill);
     
     //is this actually a known cluster? 
@@ -1417,7 +1419,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     if (forcekill) {
       //escalating to forced kill
       yarnClient.killRunningApplication(appId,
-                                        "Forced freeze of " + clustername);
+                                        "Forced freeze of " + clustername +
+                                       ": " + text);
     } else {
       try {
         HoyaClusterProtocol appMaster = connect(app);

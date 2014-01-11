@@ -14,6 +14,7 @@
   <modules>
     <module>hoya-core</module>
     <module>hoya-assembly</module>
+    <module>hoya-funtest</module>
   </modules>
 
   <licenses>
@@ -100,6 +101,7 @@
      artifact versions
     -->
     <avro.version>1.7.4</avro.version>
+    <bigtop.version>0.7.0</bigtop.version>
     <commons-codec.version>1.7</commons-codec.version>
     <gmavenVersion>1.5</gmavenVersion>
     <gmavenProviderSelection>2.0</gmavenProviderSelection>
@@ -127,6 +129,7 @@
     <maven-jar-plugin.version>2.3.1</maven-jar-plugin.version>
     <maven.javadoc.version>2.8</maven.javadoc.version>
     <maven.project.version>2.4</maven.project.version>
+    <maven.properties.version>1.0-alpha-2</maven.properties.version>
     <maven-project-info-reports-plugin.version>2.6</maven-project-info-reports-plugin.version>
     <maven-site-plugin.version>3.3</maven-site-plugin.version>
     <maven-source-plugin.version>2.2.1</maven-source-plugin.version>
@@ -211,7 +214,28 @@
         </dependencies>
       </plugin>
 
-    </plugins>
+      <!--read in a build.properties file if defined-->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>properties-maven-plugin</artifactId>
+        <version>${maven.properties.version}</version>
+        <executions>
+          <execution>
+            <phase>initialize</phase>
+            <goals>
+              <goal>read-project-properties</goal>
+            </goals>
+            <configuration>
+              <quiet>true</quiet>
+              <files>
+                <file>build.properties</file>
+              </files>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+  
+  </plugins>
   </build>
 
   <reporting>
