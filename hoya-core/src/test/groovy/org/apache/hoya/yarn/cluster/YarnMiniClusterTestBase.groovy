@@ -26,7 +26,6 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.FileUtil
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.hbase.client.HTableUtil
 import org.apache.hadoop.hdfs.MiniDFSCluster
 import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.HoyaXMLConfKeysForTesting
@@ -270,33 +269,9 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
       Configuration conf,
       List args) {
     assert miniCluster != null
-    ResourceManager rm = miniCluster.resourceManager
-    log.info("Connecting to rm at ${rm}")
-
-    if (!args.contains(Arguments.ARG_MANAGER)) {
-      args += [Arguments.ARG_MANAGER, RMAddr]
-    }
-    ServiceLauncher<HoyaClient> launcher = execHoyaCommand(conf, args)
-    return launcher
+    return launchHoyaClientAgainstRM(RMAddr, args, conf)
   }
 
-  /**
-   * Launch the hoya client with the specific args; no validation
-   * of return code takes place
-   * @param conf configuration
-   * @param args arg list
-   * @return the return code
-   */
-  protected ServiceLauncher<HoyaClient> execHoyaCommand(Configuration conf,
-                                                          List args) {
-    String clientname = HoyaClient.name
-    ServiceLauncher<HoyaClient> serviceLauncher =
-        new ServiceLauncher<HoyaClient>(clientname);
-    serviceLauncher.launchService(conf,
-                                  toArray(args),
-                                  false);
-    return serviceLauncher
-  }
 
   /**
    * Kill all Hoya Services. That i
@@ -875,7 +850,4 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
                            ErrorStrings.E_UNKNOWN_CLUSTER)
   }
 
-  public void assertSucceeded(ServiceLauncher service) {
-    HoyaTestUtils.assertSucceeded(service)
-  }
 }

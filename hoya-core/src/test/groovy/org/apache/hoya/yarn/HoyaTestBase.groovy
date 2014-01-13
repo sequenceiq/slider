@@ -36,13 +36,7 @@ import org.junit.Before;
 @Slf4j
 
 public class HoyaTestBase extends HoyaTestUtils {
-  protected static String[] toArray(List<Object> args) {
-    String[] converted = new String[args.size()];
-    for (int i = 0; i < args.size(); i++) {
-      converted[i] = args.get(i).toString();
-    }
-    return converted;
-  }
+
 
   protected YarnConfiguration createConfiguration() {
     return HoyaUtils.createConfiguration();

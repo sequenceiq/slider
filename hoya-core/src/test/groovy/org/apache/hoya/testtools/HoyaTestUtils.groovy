@@ -33,6 +33,7 @@ import org.apache.hoya.exceptions.HoyaException
 import org.apache.hoya.exceptions.WaitTimeoutException
 import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.hoya.tools.Duration
+import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.junit.Assert
@@ -92,7 +93,13 @@ class HoyaTestUtils extends Assert {
     return report;
   }
 
-
+  protected static String[] toArray(List<Object> args) {
+    String[] converted = new String[args.size()];
+    for (int i = 0; i < args.size(); i++) {
+      converted[i] = args.get(i).toString();
+    }
+    return converted;
+  }
 
   public static void waitWhileClusterExists(HoyaClient client, int timeout) {
     Duration duration = new Duration(timeout);
@@ -262,4 +269,67 @@ class HoyaTestUtils extends Assert {
       }
     }
   }
+
+  /**
+   * Launch the hoya client with the specific args; no validation
+   * of return code takes place
+   * @param conf configuration
+   * @param args arg list
+   * @return the return code
+   */
+  protected static ServiceLauncher<HoyaClient> execHoyaCommand(
+      Configuration conf,
+      List args) {
+    String clientname = HoyaClient.name
+    ServiceLauncher<HoyaClient> serviceLauncher =
+        new ServiceLauncher<HoyaClient>(clientname);
+    serviceLauncher.launchService(conf,
+                                  toArray(args),
+                                  false);
+    return serviceLauncher
+  }
+
+  public static ServiceLauncher launch(Class serviceClass,
+                                       Configuration conf,
+                                       List<Object> args) throws
+      Throwable {
+    ServiceLauncher serviceLauncher =
+        new ServiceLauncher(serviceClass.getName());
+    serviceLauncher.launchService(conf,
+                                  toArray(args),
+                                  false);
+    return serviceLauncher;
+  }
+
+  public static void launchExpectingException(Class serviceClass,
+                                              Configuration conf,
+                                              String expectedText,
+                                              List args) throws
+      Throwable {
+    try {
+      ServiceLauncher launch = launch(serviceClass, conf, args);
+      fail("Expected an exception with text containing " + expectedText
+               + " -but the service completed with exit code "
+               + launch.getServiceExitCode());
+    } catch (Throwable thrown) {
+      if (!thrown.toString().contains(expectedText)) {
+        //not the right exception -rethrow
+        throw thrown;
+      }
+    }
+  }
+
+
+  public static ServiceLauncher<HoyaClient> launchHoyaClientAgainstRM(
+      String address,
+      List args,
+      Configuration conf) {
+    log.info("Connecting to rm at ${address}")
+    if (!args.contains(Arguments.ARG_MANAGER)) {
+      args += [Arguments.ARG_MANAGER, address]
+    }
+    ServiceLauncher<HoyaClient> launcher = execHoyaCommand(conf, args)
+    return launcher
+  }
+  
 }

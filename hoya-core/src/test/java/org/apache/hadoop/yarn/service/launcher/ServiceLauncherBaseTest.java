@@ -18,60 +18,12 @@
 
 package org.apache.hadoop.yarn.service.launcher;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hoya.yarn.HoyaTestBase;
-
-import java.util.List;
 
 /**
  * Base class for tests that use the service launcher
  */
 public class ServiceLauncherBaseTest extends HoyaTestBase {
-
-  /**
-   * Launch a service
-   * @param serviceClass service class
-   * @param conf configuration
-   * @param args list of args to hand down (as both raw and processed)
-   * @return the service launcher. It's exitCode field will
-   * contain any exit code; its <code>service</code> field
-   * the service itself.
-   */
-  protected ServiceLauncher launch(Class serviceClass,
-                                Configuration conf,
-                                List<Object> args) throws
-                                    Throwable {
-    ServiceLauncher serviceLauncher =
-      new ServiceLauncher(serviceClass.getName());
-    serviceLauncher.launchService(conf,
-                                  toArray(args),
-                                  false);
-    return serviceLauncher;
-  }
-
-  /**
-   * Launch a service
-   * @param serviceClass service class
-   * @param conf configuration
-   * @param args list of args to hand down (as both raw and processed)
-   */
-  protected void launchExpectingException(Class serviceClass,
-                                       Configuration conf,
-                                       String expectedText,
-                                       List args) throws
-                                                       Throwable {
-    try {
-      ServiceLauncher launch = launch(serviceClass, conf, args);
-      fail("Expected an exception with text containing " + expectedText
-           + " -but the service completed with exit code "
-           + launch.getServiceExitCode());
-    } catch (Throwable thrown) {
-      if (!thrown.toString().contains(expectedText)) {
-        //not the right exception -rethrow
-        throw thrown;
-      }
-    }
-  }
 
 
 }
