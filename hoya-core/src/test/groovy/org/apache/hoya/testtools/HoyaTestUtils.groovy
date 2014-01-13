@@ -25,13 +25,13 @@ import org.apache.commons.httpclient.HttpClient
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager
 import org.apache.commons.httpclient.methods.GetMethod
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.hoya.api.ClusterDescription
-import org.apache.hadoop.hoya.api.ClusterNode
-import org.apache.hadoop.hoya.exceptions.HoyaException
-import org.apache.hadoop.hoya.exceptions.WaitTimeoutException
-import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
-import org.apache.hadoop.hoya.tools.Duration
-import org.apache.hadoop.hoya.yarn.client.HoyaClient
+import org.apache.hoya.api.ClusterDescription
+import org.apache.hoya.api.ClusterNode
+import org.apache.hoya.exceptions.HoyaException
+import org.apache.hoya.exceptions.WaitTimeoutException
+import org.apache.hoya.providers.hbase.HBaseKeys
+import org.apache.hoya.tools.Duration
+import org.apache.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.junit.Assert
 import org.junit.Assume
@@ -174,7 +174,7 @@ class HoyaTestUtils extends Assert {
    * @param spintime time to wait
    * @return true if the cluster came out of the sleep time live 
    * @throws IOException
-   * @throws org.apache.hadoop.hoya.exceptions.HoyaException
+   * @throws org.apache.hoya.exceptions.HoyaException
    */
   public static boolean spinForClusterStartup(HoyaClient hoyaClient, long spintime)
       throws WaitTimeoutException, IOException, HoyaException {

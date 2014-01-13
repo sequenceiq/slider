@@ -28,12 +28,12 @@ import org.apache.hadoop.hbase.client.HBaseAdmin
 import org.apache.hadoop.hbase.client.HConnection
 import org.apache.hadoop.hbase.client.HConnectionManager
 import org.apache.hadoop.hbase.client.RetriesExhaustedException
-import org.apache.hadoop.hoya.HoyaKeys
-import org.apache.hadoop.hoya.api.ClusterDescription
-import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
-import org.apache.hadoop.hoya.tools.ConfigHelper
-import org.apache.hadoop.hoya.tools.Duration
-import org.apache.hadoop.hoya.yarn.client.HoyaClient
+import org.apache.hoya.HoyaKeys
+import org.apache.hoya.api.ClusterDescription
+import org.apache.hoya.providers.hbase.HBaseKeys
+import org.apache.hoya.tools.ConfigHelper
+import org.apache.hoya.tools.Duration
+import org.apache.hoya.yarn.client.HoyaClient
 
 /**
  * Static HBase test utils

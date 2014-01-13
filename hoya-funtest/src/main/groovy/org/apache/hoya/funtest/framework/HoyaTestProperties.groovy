@@ -1,6 +1,6 @@
 package org.apache.hoya.funtest.framework
 
-import org.apache.hadoop.hoya.HoyaXMLConfKeysForTesting
+import org.apache.hoya.HoyaXMLConfKeysForTesting
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one

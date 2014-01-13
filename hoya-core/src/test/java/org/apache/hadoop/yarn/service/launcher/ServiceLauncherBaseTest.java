@@ -19,7 +19,7 @@
 package org.apache.hadoop.yarn.service.launcher;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hoya.yarn.HoyaTestBase;
+import org.apache.hoya.yarn.HoyaTestBase;
 
 import java.util.List;
 

@@ -57,7 +57,7 @@ hoya_jvm_opts=${HOYA_JVM_OPTS:-$hoya_jvm_opts}
 
 hoya_classpath="${libdir}/*:${confdir}"
 
-launcher=org.apache.hadoop.hoya.Hoya
+launcher=org.apache.hoya.Hoya
 
 
 echo "classpath is \"${hoya_classpath}\""

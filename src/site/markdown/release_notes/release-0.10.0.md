@@ -47,3 +47,14 @@ or on the command line via the `-D` option:
 
 
     bin/hoya freeze cl1  --message "shutdown for maintenance"
+
+### Package `org.apache.hadoop.hoya` renamed `org.apache.hoya`
+
+This is in preparation for incubating the project in the Apache Incubator.
+
+1. logging configuration in `log4j.properties` may need to be updated.
+1. It may break debugger configurations and other entry points into the code.
+1. It will stop existing role history files being read in. This should
+be ignored by Hoya; these files are a hint to the location in
+a YARN cluster of the data used previously. If there is any problem, 
+delete the directory `~/.hoya/cluster/${cluster}/history/`

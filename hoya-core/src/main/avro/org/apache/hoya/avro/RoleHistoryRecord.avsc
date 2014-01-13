@@ -1,0 +1,83 @@
+[
+
+  {
+    "type": "record",
+    "name": "NodeEntryRecord",
+    "namespace": "org.apache.hoya.avro",
+    "fields": [
+      {
+        "name": "host",
+        "type": "string"
+      },
+      {
+        "name": "role",
+        "type": "int"
+      },
+      {
+        "name": "active",
+        "type": "boolean"
+      },
+      {
+        "name": "last_used",
+        "type": "long"
+      }
+    ]
+  },
+
+  {
+    "type": "record",
+    "name": "RoleHistoryHeader",
+    "namespace": "org.apache.hoya.avro",
+    "fields": [
+      {
+        "name": "version",
+        "type": "int"
+      },
+      {
+        "name": "saved",
+        "type": "long"
+      },
+      {
+        "name": "savedx",
+        "type": "string"
+      },
+      {
+        "name": "savedate",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "name": "roles",
+        "type": "int"
+      }
+    ]
+  },
+  {
+    "type": "record",
+    "name": "RoleHistoryFooter",
+    "namespace": "org.apache.hoya.avro",
+    "fields": [
+      {
+        "name": "count",
+        "type": "long"
+      }
+    ]
+  },
+
+  {
+    "type": "record",
+    "name": "RoleHistoryRecord",
+    "namespace": "org.apache.hoya.avro",
+    "fields": [
+      {
+        "name": "entry",
+        "type": [
+          "org.apache.hoya.avro.NodeEntryRecord",
+          "org.apache.hoya.avro.RoleHistoryHeader",
+          "org.apache.hoya.avro.RoleHistoryFooter"
+        ]
+      }
+    ]
+  }
+
+]

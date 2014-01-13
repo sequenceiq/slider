@@ -21,9 +21,9 @@ package org.apache.hoya.funtest.commands
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
-import org.apache.hadoop.hoya.yarn.Arguments
-import org.apache.hadoop.hoya.yarn.HoyaActions
+import org.apache.hoya.providers.hbase.HBaseKeys
+import org.apache.hoya.yarn.Arguments
+import org.apache.hoya.yarn.HoyaActions
 import org.apache.hoya.funtest.framework.HoyaCommandTestBase
 import org.apache.hoya.funtest.framework.HoyaTestProperties
 import org.junit.AfterClass

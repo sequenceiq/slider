@@ -40,7 +40,7 @@ All options beginning with the prefix `site.` are converted into
 site XML options for the specific application (assuming the application uses 
 a site XML configuration file)
 
-Standard keys are defined in the class `org.apache.hadoop.hoya.api.OptionKeys`.
+Standard keys are defined in the class `org.apache.hoya.api.OptionKeys`.
 
 ####  `hoya.test`
 

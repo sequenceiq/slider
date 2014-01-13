@@ -19,12 +19,11 @@
 package org.apache.hoya.funtest.framework
 
 import groovy.util.logging.Slf4j
-import org.apache.bigtop.itest.shell.Shell
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.hoya.HoyaExitCodes
-import org.apache.hadoop.hoya.tools.HoyaUtils
-import org.apache.hadoop.hoya.yarn.Arguments
-import org.apache.hadoop.hoya.yarn.HoyaActions
+import org.apache.hoya.HoyaExitCodes
+import org.apache.hoya.tools.HoyaUtils
+import org.apache.hoya.yarn.Arguments
+import org.apache.hoya.yarn.HoyaActions
 import org.apache.hoya.testtools.HoyaTestUtils
 import org.junit.BeforeClass
 import org.apache.hadoop.fs.FileSystem as HadoopFS

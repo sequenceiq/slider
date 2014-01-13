@@ -441,7 +441,7 @@
                 <argument>-Xmx512m</argument>
                 <argument>-classpath</argument>
                 <classpath/>
-                <argument>org.apache.hadoop.hoya.Hoya</argument>
+                <argument>org.apache.hoya.Hoya</argument>
                 <argument>list</argument>
               </arguments>
             </configuration>
@@ -466,7 +466,7 @@
               </execution>
             </executions>
             <configuration>
-              <mainClass>org.apache.hadoop.hoya.Hoya</mainClass>
+              <mainClass>org.apache.hoya.Hoya</mainClass>
               <arguments>
                 <argument>list</argument>
               </arguments>

@@ -59,7 +59,7 @@ precisely, if they keep failing.
 
 If this happens on cluster startup, it means that the application is not working
 
-     org.apache.hadoop.hoya.exceptions.TriggerClusterTeardownException: Unstable Cluster: 
+     org.apache.hoya.exceptions.TriggerClusterTeardownException: Unstable Cluster: 
      - failed with role worker failing 4 times (4 in startup); threshold is 2
      - last failure: Failure container_1386872971874_0001_01_000006 on host 192.168.1.86
 
