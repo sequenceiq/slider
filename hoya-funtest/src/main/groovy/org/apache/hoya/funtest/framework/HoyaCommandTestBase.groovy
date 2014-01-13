@@ -285,7 +285,7 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
    */
   HoyaClient bondToCluster(String clustername) {
 
-    HoyaClient hoyaClient = 
+//    HoyaClient hoyaClient = 
     
   }
 }
