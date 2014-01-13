@@ -22,6 +22,7 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hoya.HoyaExitCodes
+import org.apache.hadoop.hoya.api.ClusterDescription
 import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
 import org.apache.hadoop.hoya.yarn.Arguments
 import org.apache.hadoop.hoya.yarn.HoyaActions
@@ -77,33 +78,49 @@ public class TestHBaseCreateCluster extends HoyaCommandTestBase
     assert clusterFS.exists(
         new Path(clusterFS.homeDirectory, ".hoya/cluster/$CLUSTER"))
 
-    // assert it exists
+// assert it exists
     exists(0, CLUSTER)
-    
+
     //destroy will fail in use
-    
+
     destroy(EXIT_CLUSTER_IN_USE, CLUSTER)
-    
+
     //thaw will fail as cluster is in use
     thaw(EXIT_CLUSTER_IN_USE, CLUSTER)
-    
+
     //listing the cluster will succeed
     list(0, CLUSTER)
-    
+
+    //simple status
+
     status(0, CLUSTER)
-    
-    getConf(0, CLUSTER)
-    
 
+    //now status to a temp file
+    File jsonStatus = File.createTempFile("hoya", ".json")
+    try {
+      hoya(0,
+           [
+               HoyaActions.ACTION_STATUS, CLUSTER,
+               ARG_OUTPUT, jsonStatus.canonicalPath
+           ])
 
-    //freeze
-    hoya(0, [
-        HoyaActions.ACTION_FREEZE, CLUSTER,
-        ARG_WAIT, Integer.toString(FREEZE_WAIT_TIME),
-        ARG_MESSAGE, "freeze-in-testHBaseCreateCluster"
-    ])
+      assert jsonStatus.exists()
+      ClusterDescription cd = ClusterDescription.fromFile(jsonStatus)
 
-    exists(HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER, CLUSTER)
+      assert CLUSTER == cd.name
+
+      log.info(cd.toJsonString())
+
+      getConf(0, CLUSTER)
+
+      //freeze
+      hoya(0, [
+          HoyaActions.ACTION_FREEZE, CLUSTER,
+          ARG_WAIT, Integer.toString(FREEZE_WAIT_TIME),
+          ARG_MESSAGE, "freeze-in-testHBaseCreateCluster"
+      ])
+
+      exists(HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER, CLUSTER)
 
 /*
 
@@ -121,8 +138,15 @@ public class TestHBaseCreateCluster extends HoyaCommandTestBase
         ARG_MESSAGE, "forced-freeze-in-test"
     ])
 */
+      destroy(0, CLUSTER)
+    } finally {
 
-    destroy(0, CLUSTER)
+      jsonStatus.delete()
+
+
+    }
+
+
 
 
   }
