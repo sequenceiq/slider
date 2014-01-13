@@ -48,13 +48,13 @@ The path to the configuration directory must be supplied in the property
 
 It can also be set in the (optional) file `hoya-funtest/build.properties`:
 
-hoya.conf.dir=src/test/configs/sandbox/hoya
+    hoya.conf.dir=src/test/configs/sandbox/hoya
 
 This file is loaded whenever a hoya build or test run takes place
 
 ### Configuration of `hoya-client.xml`
 
-Test configuration parameters must be added to `hoya-client.xml`
+Mandatory test options must be added to `hoya-client.xml`
 
   
     <property>
@@ -69,12 +69,43 @@ Test configuration parameters must be added to `hoya-client.xml`
       <value>file://${user.dir}/src/test/configs/sandbox/hbase</value>
     </property>
 
+Other test options may be added to `hoya-client.xml` if the defaults
+need to be changed
+                   
+    <property>
+      <name>hoya.test.zkhosts</name>
+      <description>comma separated list of ZK hosts</description>
+      <value>localhost</value>
+    </property>
+        
+
+    <property>
+      <name>hoya.test.thaw.wait.seconds/name>
+      <description>Time to wait in seconds for a thaw to result in a running AM</description>
+      <value>60000</value>
+    </property>
+    
+    <property>
+      <name>hoya.test.freeze.wait.seconds/name>
+      <description>Time to wait in seconds for a freeze to halt the cluster</description>
+      <value>60000</value>
+    </property>
+    
+    
 Note that while the same properties need to be set in
 `hoya-core/src/test/resources/hoya-client.xml`, those tests take a file in the local
 filesystem -here a URI to a path visible across all nodes in the cluster are required
 the tests do not copy the .tar/.tar.gz files over. The application configuration
 directories may be local or remote -they are copied into the `.hoya` directory
 during cluster creation.
+
+### Testing against a secure cluster
+
+To test against a secure cluster
+
+1. `hoya-client.xml` must be configured as per [Security](security.html).
+1. the client must have the kerberos tokens issued so that the user running
+the tests has access to HDFS and YARN.
 
 ### Validating the configuration
 
@@ -83,19 +114,15 @@ during cluster creation.
 
 ## Parallel execution
 
-See [Maven docs](http://maven.apache.org/surefire/maven-surefire-plugin/examples/fork-options-and-parallel-execution.html)
-1. Maven is set up to run test case classes in parallel, *but not the individual tests*.
-1. Java7+ does not place any guarantees on the ordering of test methods within 
-a test case.
-1. Test suites must be designed to work even when executed in parallel with
-other test suites.
-1. Tests within a test suite *do not need to be designed to work in parallel
-with other tests in the same suite*
+Attempts to run test cases in parallel failed -even with a configuration
+to run methods in a class sequentially, but separate classes independently.
 
-This leads to a design where every test suite/test class must be designed to
-work with its own Hoya cluster instance within a single, shared YARN cluster,
-in parallel with other Hoya clusters -but the tests within the suite
-can expect to be run one at a time, albeit in an unknown order.
+Even after identifying and eliminating some unintended sharing of static
+mutable variables, trying to run test cases in parallel seemed to hang
+tests and produce timeouts.
+
+For this reason parallel tests have been disabled. To accelerate test runs
+through parallelization, run different tests on different hosts instead.
 
 ## Other constraints
 
@@ -120,3 +147,25 @@ classname.
 1. Tests within the suite (i.e. class) must be designed to be independent
 -to work irrespectively of the ordering of other tests.
 
+## Running and debugging the functional tests.
+
+The functional tests all 
+
+1. In the root `hoya` directory, build a complete Hoya release
+
+        mvn install -DskipTests
+1. Start the YARN cluster/set up proxies to connect to it, etc.
+
+1. In the `hoya-funtest` dir, run the test
+
+        mvn test -Dtest=TestHBaseCreateCluster
+        
+A common mistake during development is to rebuild the `hoya-core` JARs
+then the `hoya-funtest` tests without rebuilding the `hoya-assembly`.
+In this situation, the tests are in sync with the latest build of the code
+-including any bug fixes- but the scripts executed by those tests are
+of a previous build of `hoya-core.jar`. As a result, the fixes are not picked
+up.
+
+#### To propagate changes in hoya-core through to the funtest classes for
+testing, you must build/install the hoya packages from the root assembly.
