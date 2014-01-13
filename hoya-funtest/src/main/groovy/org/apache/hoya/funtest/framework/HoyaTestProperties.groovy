@@ -41,5 +41,6 @@ public interface HoyaTestProperties extends HoyaXMLConfKeysForTesting {
   int DEFAULT_HOYA_FREEZE_WAIT_TIME = 60000
 
   String KEY_HOYA_TEST_ZK_HOSTS = "hoya.test.zkhosts";
+  String DEFAULT_HOYA_ZK_HOSTS = "localhost";
 
 }

@@ -60,7 +60,7 @@ public class TestHBaseCreateCluster extends HoyaCommandTestBase
              HoyaActions.ACTION_CREATE,
              CLUSTER,
              ARG_ZKHOSTS,
-             HOYA_CONFIG.get(KEY_HOYA_TEST_ZK_HOSTS),
+             HOYA_CONFIG.get(KEY_HOYA_TEST_ZK_HOSTS, DEFAULT_HOYA_ZK_HOSTS),
              ARG_IMAGE,
              HOYA_CONFIG.get(KEY_HOYA_TEST_HBASE_TAR),
              ARG_CONFDIR,
