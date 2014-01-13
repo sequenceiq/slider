@@ -25,11 +25,11 @@
 // This file contains protocol buffers that are used throughout HDFS -- i.e.
 // by the client, server, and data transfer protocols.
 
-option java_package = "org.apache.hadoop.hoya.api.proto";
+option java_package = "org.apache.hoya.api.proto";
 option java_outer_classname = "Messages";
 option java_generic_services = true;
 option java_generate_equals_and_hash = true;
-package org.apache.hadoop.hoya.api;
+package org.apache.hoya.api;
 
 //import "Security.proto";
 
@@ -98,14 +98,12 @@ message ListNodeUUIDsByRoleRequestProto {
   required string role = 1;
 }
 
-
 /**
  * list the nodes in a role
  */
 message ListNodeUUIDsByRoleResponseProto {
   repeated string uuid = 1 ;
 }
-
 
 /**
  * get a node
@@ -122,15 +120,12 @@ message GetNodeResponseProto {
    required RoleInstanceState clusterNode = 1 ;
 }
 
-
-
 /**
  * list the nodes for the UUDs
  */
 message GetClusterNodesRequestProto {
   repeated string uuid = 1 ;
 }
-
 
 /**
  * list the nodes in a role

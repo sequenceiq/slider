@@ -18,8 +18,8 @@
 
 package org.apache.hoya.testtools
 
-import org.apache.hadoop.hoya.HoyaKeys
-import org.apache.hadoop.hoya.HoyaXMLConfKeysForTesting
+import org.apache.hoya.HoyaKeys
+import org.apache.hoya.HoyaXMLConfKeysForTesting
 
 /**
  * Keys shared across tests

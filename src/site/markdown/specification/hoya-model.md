@@ -226,7 +226,7 @@ is well-defined if
 1. Any cluster options that are required to be integers must be integers
 
 This specification is very vague here to avoid duplication: the cluster description structure is currently implicitly defined in 
-`org.apache.hadoop.hoya.api.ClusterDescription` 
+`org.apache.hoya.api.ClusterDescription` 
 
 Currently Hoya ignores unknown elements during parsing. This may be changed.
 

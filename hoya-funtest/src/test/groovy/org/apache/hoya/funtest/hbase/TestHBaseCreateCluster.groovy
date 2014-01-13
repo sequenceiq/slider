@@ -21,11 +21,11 @@ package org.apache.hoya.funtest.hbase
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.hoya.HoyaExitCodes
-import org.apache.hadoop.hoya.api.ClusterDescription
-import org.apache.hadoop.hoya.providers.hbase.HBaseKeys
-import org.apache.hadoop.hoya.yarn.Arguments
-import org.apache.hadoop.hoya.yarn.HoyaActions
+import org.apache.hoya.HoyaExitCodes
+import org.apache.hoya.api.ClusterDescription
+import org.apache.hoya.providers.hbase.HBaseKeys
+import org.apache.hoya.yarn.Arguments
+import org.apache.hoya.yarn.HoyaActions
 import org.apache.hoya.funtest.framework.HoyaCommandTestBase
 import org.apache.hoya.funtest.framework.HoyaTestProperties
 import org.apache.hoya.funtest.framework.PortAssignments
@@ -88,11 +88,12 @@ public class TestHBaseCreateCluster extends HoyaCommandTestBase
     //thaw will fail as cluster is in use
     thaw(EXIT_CLUSTER_IN_USE, CLUSTER)
 
+    //it's still there
+    exists(0, CLUSTER)
     //listing the cluster will succeed
     list(0, CLUSTER)
 
     //simple status
-
     status(0, CLUSTER)
 
     //now status to a temp file

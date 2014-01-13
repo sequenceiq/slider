@@ -85,10 +85,10 @@ class HoyaShell extends Shell {
 
   @Override
   public String toString() {
-    return hoyaCommand
+    return ret + " =>" + hoyaCommand
   }
 
-  public void print() {
+  public void dump() {
     log.error(toString())
     log.error("return code = $ret")
     if (out.size() != 0) {
@@ -117,9 +117,9 @@ class HoyaShell extends Shell {
   public static int assertExitCode(HoyaShell shell, int errorCode) {
     assert shell != null
     if (shell.ret != errorCode) {
-      print(shell)
+      shell.dump()
     }
-    assert shell.ret == errorCode
+    assert errorCode == shell.ret
     return errorCode
   }
 }

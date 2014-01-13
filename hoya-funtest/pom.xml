@@ -96,8 +96,7 @@
           <reuseForks>true</reuseForks>
           <forkCount>1</forkCount>
           <forkedProcessTimeoutInSeconds>600</forkedProcessTimeoutInSeconds>
-          <parallel>classes</parallel>
-          <threadCount>4</threadCount>
+          <threadCount>1</threadCount>
           <argLine>-Xmx1024m -XX:+HeapDumpOnOutOfMemoryError</argLine>
           <failIfNoTests>true</failIfNoTests>
           <trimStackTrace>false</trimStackTrace>

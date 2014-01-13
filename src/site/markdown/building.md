@@ -333,6 +333,6 @@ between Hadoop, HBase and Accumulo to watch out for
 You can hook an IDE up to Hoya from the `hoya-core` package
 
 * target to run first `mvn package -DskipTests` in `hoya-core`
-* Main Class `org.apache.hadoop.hoya.Hoya`
-* Recommended JVM Args `-Xmx256m -Dlog4j.configuration=org/apache/hadoop/hoya/log4j.properties`
+* Main Class `org.apache.hoya.Hoya`
+* Recommended JVM Args `-Xmx256m -Dlog4j.configuration=org/apache/hoya/log4j.properties`
 

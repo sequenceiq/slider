@@ -305,7 +305,7 @@ has been received.
 
 ### RoleStatus
 
-This is the existing `org.apache.hadoop.hoya.yarn.appmaster.state.RoleStatus` class
+This is the existing `org.apache.hoya.yarn.appmaster.state.RoleStatus` class
 
 ### RoleList
 
@@ -926,21 +926,21 @@ and two region servers.
 
 Initial save; the instance of Role 1 (HBase master) is live, Role 2 (RS) is not.
 
-    {"entry":{"org.apache.hadoop.hoya.avro.RoleHistoryHeader":{"version":1,"saved":1384183475949,"savedx":"14247c3aeed","roles":3}}}
-    {"entry":{"org.apache.hadoop.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":1,"active":true,"last_used":0}}}
-    {"entry":{"org.apache.hadoop.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":2,"active":false,"last_used":0}}}
+    {"entry":{"org.apache.hoya.avro.RoleHistoryHeader":{"version":1,"saved":1384183475949,"savedx":"14247c3aeed","roles":3}}}
+    {"entry":{"org.apache.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":1,"active":true,"last_used":0}}}
+    {"entry":{"org.apache.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":2,"active":false,"last_used":0}}}
   
 At least one RS is live: 
   
-    {"entry":{"org.apache.hadoop.hoya.avro.RoleHistoryFooter":{"count":2}}}{"entry":{"org.apache.hadoop.hoya.avro.RoleHistoryHeader":{"version":1,"saved":1384183476010,"savedx":"14247c3af2a","roles":3}}}
-    {"entry":{"org.apache.hadoop.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":1,"active":true,"last_used":0}}}
-    {"entry":{"org.apache.hadoop.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":2,"active":true,"last_used":0}}}
+    {"entry":{"org.apache.hoya.avro.RoleHistoryFooter":{"count":2}}}{"entry":{"org.apache.hoya.avro.RoleHistoryHeader":{"version":1,"saved":1384183476010,"savedx":"14247c3af2a","roles":3}}}
+    {"entry":{"org.apache.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":1,"active":true,"last_used":0}}}
+    {"entry":{"org.apache.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":2,"active":true,"last_used":0}}}
 
 Another entry is saved -presumably the second RS is now live, which triggered another write
   
-    {"entry":{"org.apache.hadoop.hoya.avro.RoleHistoryFooter":{"count":2}}}{"entry":{"org.apache.hadoop.hoya.avro.RoleHistoryHeader":{"version":1,"saved":1384183476028,"savedx":"14247c3af3c","roles":3}}}
-    {"entry":{"org.apache.hadoop.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":1,"active":true,"last_used":0}}}
-    {"entry":{"org.apache.hadoop.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":2,"active":true,"last_used":0}}}
+    {"entry":{"org.apache.hoya.avro.RoleHistoryFooter":{"count":2}}}{"entry":{"org.apache.hoya.avro.RoleHistoryHeader":{"version":1,"saved":1384183476028,"savedx":"14247c3af3c","roles":3}}}
+    {"entry":{"org.apache.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":1,"active":true,"last_used":0}}}
+    {"entry":{"org.apache.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":2,"active":true,"last_used":0}}}
 
 At this point the cluster was frozen and thawed. Hoya does not save the cluster state
 at freeze time, but does as it is rebuilt.
@@ -952,21 +952,21 @@ When the history is next saved, the master has come back onto the (single) node,
 it is active while its `last_used` timestamp is the previous file's timestamp.
 No region servers are yet live.
 
-    {"entry":{"org.apache.hadoop.hoya.avro.RoleHistoryFooter":{"count":2}}}{"entry":{"org.apache.hadoop.hoya.avro.RoleHistoryHeader":{"version":1,"saved":1384183512173,"savedx":"14247c43c6d","roles":3}}}
-    {"entry":{"org.apache.hadoop.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":1,"active":true,"last_used":1384183476028}}}
-    {"entry":{"org.apache.hadoop.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":2,"active":false,"last_used":1384183476028}}}
+    {"entry":{"org.apache.hoya.avro.RoleHistoryFooter":{"count":2}}}{"entry":{"org.apache.hoya.avro.RoleHistoryHeader":{"version":1,"saved":1384183512173,"savedx":"14247c43c6d","roles":3}}}
+    {"entry":{"org.apache.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":1,"active":true,"last_used":1384183476028}}}
+    {"entry":{"org.apache.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":2,"active":false,"last_used":1384183476028}}}
 
 Here a region server is live
 
-    {"entry":{"org.apache.hadoop.hoya.avro.RoleHistoryFooter":{"count":2}}}{"entry":{"org.apache.hadoop.hoya.avro.RoleHistoryHeader":{"version":1,"saved":1384183512199,"savedx":"14247c43c87","roles":3}}}
-    {"entry":{"org.apache.hadoop.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":1,"active":true,"last_used":1384183476028}}}
-    {"entry":{"org.apache.hadoop.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":2,"active":true,"last_used":1384183476028}}}
+    {"entry":{"org.apache.hoya.avro.RoleHistoryFooter":{"count":2}}}{"entry":{"org.apache.hoya.avro.RoleHistoryHeader":{"version":1,"saved":1384183512199,"savedx":"14247c43c87","roles":3}}}
+    {"entry":{"org.apache.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":1,"active":true,"last_used":1384183476028}}}
+    {"entry":{"org.apache.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":2,"active":true,"last_used":1384183476028}}}
 
 And here, another region server has started. This does not actually change the contents of the file
 
-    {"entry":{"org.apache.hadoop.hoya.avro.RoleHistoryFooter":{"count":2}}}{"entry":{"org.apache.hadoop.hoya.avro.RoleHistoryHeader":{"version":1,"saved":1384183512217,"savedx":"14247c43c99","roles":3}}}
-    {"entry":{"org.apache.hadoop.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":1,"active":true,"last_used":1384183476028}}}
-    {"entry":{"org.apache.hadoop.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":2,"active":true,"last_used":1384183476028}}}
+    {"entry":{"org.apache.hoya.avro.RoleHistoryFooter":{"count":2}}}{"entry":{"org.apache.hoya.avro.RoleHistoryHeader":{"version":1,"saved":1384183512217,"savedx":"14247c43c99","roles":3}}}
+    {"entry":{"org.apache.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":1,"active":true,"last_used":1384183476028}}}
+    {"entry":{"org.apache.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":2,"active":true,"last_used":1384183476028}}}
 
 The `last_used` timestamps will not be changed until the cluster is shrunk or thawed, as the `active` flag being set
 implies that the server is running both roles at the save time of `1384183512217`.
