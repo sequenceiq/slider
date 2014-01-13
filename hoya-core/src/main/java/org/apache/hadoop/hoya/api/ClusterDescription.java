@@ -351,12 +351,12 @@ public class ClusterDescription {
     return mapper.writeValueAsString(this);
   }
 
-
   /**
    * Convert from JSON
    * @param json input
    * @return the parsed JSON
    * @throws IOException IO
+   * @throws JsonMappingException failure to map from the JSON to this class
    */
   public static ClusterDescription fromJson(String json)
     throws IOException, JsonParseException, JsonMappingException {
@@ -365,6 +365,24 @@ public class ClusterDescription {
       return mapper.readValue(json, ClusterDescription.class);
     } catch (IOException e) {
       log.error("Exception while parsing json : " + e + "\n" + json, e);
+      throw e;
+    }
+  }
+
+  /**
+   * Convert from a JSON file
+   * @param jsonFile input file
+   * @return the parsed JSON
+   * @throws IOException IO problems
+   * @throws JsonMappingException failure to map from the JSON to this class
+   */
+  public static ClusterDescription fromFile(File jsonFile)
+    throws IOException, JsonParseException, JsonMappingException {
+    ObjectMapper mapper = new ObjectMapper();
+    try {
+      return mapper.readValue(jsonFile, ClusterDescription.class);
+    } catch (IOException e) {
+      log.error("Exception while parsing json file {}: {}" , jsonFile, e);
       throw e;
     }
   }
