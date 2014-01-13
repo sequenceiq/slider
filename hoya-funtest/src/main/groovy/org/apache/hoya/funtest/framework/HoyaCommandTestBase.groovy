@@ -20,11 +20,13 @@ package org.apache.hoya.funtest.framework
 
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.tools.HoyaUtils
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.HoyaActions
 import org.apache.hoya.testtools.HoyaTestUtils
+import org.apache.hoya.yarn.client.HoyaClient
 import org.junit.BeforeClass
 import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.junit.Rule
@@ -273,5 +275,17 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
    */
   public static void assertExitCode(HoyaShell shell, int errorCode) {
     shell.assertExitCode(errorCode)
+  }
+
+  /**
+   * Create a connection to the cluster by execing the status command
+   * 
+   * @param clustername
+   * @return
+   */
+  HoyaClient bondToCluster(String clustername) {
+
+    HoyaClient hoyaClient = 
+    
   }
 }

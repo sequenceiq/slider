@@ -26,6 +26,7 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.FileUtil
 import org.apache.hadoop.fs.Path
+import org.apache.hadoop.hbase.client.HTableUtil
 import org.apache.hadoop.hdfs.MiniDFSCluster
 import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.HoyaXMLConfKeysForTesting
@@ -36,6 +37,7 @@ import org.apache.hoya.exceptions.ErrorStrings
 import org.apache.hoya.exceptions.HoyaException
 import org.apache.hoya.providers.hbase.HBaseConfigFileOptions
 import org.apache.hoya.providers.hbase.HBaseKeys
+import org.apache.hoya.testtools.HoyaTestUtils
 import org.apache.hoya.tools.BlockingZKWatcher
 import org.apache.hoya.tools.Duration
 import org.apache.hoya.tools.HoyaUtils
@@ -791,20 +793,14 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
     return 0;
   }
 
-
+  /**
+   * Make an assertion about the exit code of an exception
+   * @param ex exception
+   * @param exitCode exit code
+   * @param text error text to look for in the exception (optional)
+   */
   static void assertExceptionDetails(ServiceLaunchException ex, int exitCode, String text = ""){
-    if (exitCode != ex.exitCode) {
-      log.warn("Wrong exit code, expected $exitCode but got $ex.exitCode in $ex",
-               ex)
-      assert exitCode == ex.exitCode
-    }
-    if (text) {
-      if (!(ex.toString().contains(text))) {
-        log.warn("String match failed in $ex", ex)
-        assert ex.toString().contains(text);
-      }
-      
-    }
+    HoyaTestUtils.assertExceptionDetails(ex, exitCode, text)
   }
 
 
@@ -880,6 +876,6 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
   }
 
   public void assertSucceeded(ServiceLauncher service) {
-    assert 0 == service.serviceExitCode;
+    HoyaTestUtils.assertSucceeded(service)
   }
 }

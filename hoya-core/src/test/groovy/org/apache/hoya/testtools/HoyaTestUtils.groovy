@@ -25,6 +25,8 @@ import org.apache.commons.httpclient.HttpClient
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager
 import org.apache.commons.httpclient.methods.GetMethod
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.yarn.service.launcher.ServiceLaunchException
+import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.ClusterNode
 import org.apache.hoya.exceptions.HoyaException
@@ -212,6 +214,11 @@ class HoyaTestUtils extends Assert {
     return siteConf;
   }
 
+  /**
+   * Fetch a web page -the response code is not checked
+   * @param url URL
+   * @return the response body
+   */
 
   public static String fetchWebPage(String url) {
     def client = new HttpClient(new MultiThreadedHttpConnectionManager());
@@ -222,5 +229,37 @@ class HoyaTestUtils extends Assert {
     int resultCode = client.executeMethod(get);
     String body = get.responseBodyAsString;
     return body;
+  }
+
+  /**
+   * Assert that a service operation succeeded
+   * @param service service
+   */
+  public static void assertSucceeded(ServiceLauncher service) {
+    assert 0 == service.serviceExitCode;
+  }
+
+  /**
+   * Make an assertion about the exit code of an exception
+   * @param ex exception
+   * @param exitCode exit code
+   * @param text error text to look for in the exception
+   */
+  static void assertExceptionDetails(
+      ServiceLaunchException ex,
+      int exitCode,
+      String text) {
+    if (exitCode != ex.exitCode) {
+      log.warn(
+          "Wrong exit code, expected $exitCode but got $ex.exitCode in $ex",
+          ex)
+      assert exitCode == ex.exitCode
+    }
+    if (text) {
+      if (!(ex.toString().contains(text))) {
+        log.warn("String match failed in $ex", ex)
+        assert ex.toString().contains(text);
+      }
+    }
   }
 }
