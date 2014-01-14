@@ -48,6 +48,23 @@ or on the command line via the `-D` option:
 
     bin/hoya freeze cl1  --message "shutdown for maintenance"
 
+### `exists` command behavior changed
+
+1. `exists` succeeds if the cluster is defined in the filesystem
+1. Clusters that are not in the filesystem result in a return code of `70`:
+   unknown cluster
+1. if the `--live` argument is supplied, the cluster must be running.
+1. The return code if `--live` was specified but the cluster is frozen is`-1`.
+That includes the case where the cluster has failed.
+
+These changes allow scripts to look for a cluster being defined
+
+    hoya exists cluster4 && echo "cluster 4 is defined"
+ 
+And to declare that a cluster must be running
+
+    hoya exists cluster4 --live || exit
+
 ### Package `org.apache.hadoop.hoya` renamed `org.apache.hoya`
 
 This is in preparation for incubating the project in the Apache Incubator.

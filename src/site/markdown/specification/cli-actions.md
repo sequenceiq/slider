@@ -375,7 +375,7 @@ to run/exiting on or nearly immediately.
 Create is simply `build` + `thaw` in sequence  - the postconditions from the first
 action are intended to match the preconditions of the second.
 
-## Action: freeze
+## Action: Freeze
 
     freeze clustername [--wait time] [--message message]
 
@@ -409,7 +409,7 @@ The outcome should be the same:
 
     not hoya-app-running(YARN', clustername)
 
-## Action: flex
+## Action: Flex
 
 Flex the cluster size: add or remove roles. Flexing can be
 marked as persistent or not; 
@@ -465,7 +465,7 @@ case the relevant requests will have been queued by the completion of the
 action. It is not possible to state whether or when the requests will be
 satisfied.
 
-## Action: destroy
+## Action: Destroy
 
 Idempotent operation to destroy a frozen cluster -it succeeds if the 
 cluster has already been destroyed/is unknown, but not if it is
@@ -485,7 +485,7 @@ The cluster directory and all its children do not exist
     not is-dir(HDFS', cluster-path(HDFS', clustername))
   
 
-## Action: status
+## Action: Dtatus
 
     status clustername
     
@@ -504,21 +504,29 @@ The status of the application has been successfully queried and printed out:
     let status = hoya-app-live-instances(YARN).rpcPort.getJSONClusterStatus()
     status.toString() in STDOUT'
 
-## Action: exists
+## Action: Exists
 
-This probes for a named cluster being in the running state; it is essentially the status
+This probes for a named cluster being defined or actually being in the running
+state.
+
+ in the running state; it is essentially the status
 operation with the exit code only returned.
 
 #### Preconditions
 
-    if not hoya-app-running(YARN, clustername) : raise HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER)
+
+    if not is-file(HDFS, cluster-path(HDFS, clustername)) :
+        raise HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER)
 
 #### Postconditions
 
 The operation succeeds if the cluster is running and the RPC call returns the cluster
 status.
 
-    let status = hoya-app-live-instances(YARN).rpcPort.getJSONClusterStatus()
+    if live and not hoya-app-running(YARN, clustername):
+      retcode = -1
+    else:  
+      retcode = 0
  
 ## Action: getConf
 
