@@ -117,6 +117,10 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
   protected void addToTeardown(HoyaClient client) {
     clustersToTeardown << client;
   }
+  protected void addToTeardown(ServiceLauncher<HoyaClient> launcher) {
+    HoyaClient hoyaClient = launcher.service
+    if (hoyaClient) addToTeardown(hoyaClient)
+  }
 
   /**
    * Stop any running cluster that has been added

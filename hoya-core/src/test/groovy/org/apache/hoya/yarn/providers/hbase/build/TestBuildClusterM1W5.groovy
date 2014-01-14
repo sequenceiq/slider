@@ -20,6 +20,7 @@ package org.apache.hoya.yarn.providers.hbase.build
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.apache.hadoop.yarn.service.launcher.LauncherExitCodes
 import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.exceptions.HoyaException
 import org.apache.hoya.providers.hbase.HBaseKeys
@@ -55,6 +56,13 @@ class TestBuildClusterM1W5 extends HBaseMiniClusterTestBase {
         [:])
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
+
+    //verify that exists(live) is now false
+    assert LauncherExitCodes.EXIT_FALSE ==
+           hoyaClient.actionExists(clustername, true)
+
+    //but the cluster is still there for the default
+    assert 0 == hoyaClient.actionExists(clustername, false)
 
 
     ApplicationReport report = hoyaClient.findInstance(clustername)
