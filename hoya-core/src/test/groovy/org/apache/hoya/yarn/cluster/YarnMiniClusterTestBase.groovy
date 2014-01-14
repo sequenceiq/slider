@@ -768,16 +768,6 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
     return 0;
   }
 
-  /**
-   * Make an assertion about the exit code of an exception
-   * @param ex exception
-   * @param exitCode exit code
-   * @param text error text to look for in the exception (optional)
-   */
-  static void assertExceptionDetails(ServiceLaunchException ex, int exitCode, String text = ""){
-    HoyaTestUtils.assertExceptionDetails(ex, exitCode, text)
-  }
-
 
   String roleMapToString(Map<String,Integer> roles) {
     StringBuilder builder = new StringBuilder()

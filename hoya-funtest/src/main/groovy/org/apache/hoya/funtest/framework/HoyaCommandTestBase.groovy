@@ -18,21 +18,24 @@
 
 package org.apache.hoya.funtest.framework
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.yarn.api.records.ApplicationReport
+import org.apache.hadoop.fs.FileSystem as HadoopFS
+import org.apache.hadoop.util.ExitUtil
+import org.apache.hadoop.yarn.conf.YarnConfiguration
+import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hoya.HoyaExitCodes
+import org.apache.hoya.testtools.HoyaTestUtils
 import org.apache.hoya.tools.HoyaUtils
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.HoyaActions
-import org.apache.hoya.testtools.HoyaTestUtils
 import org.apache.hoya.yarn.client.HoyaClient
 import org.junit.BeforeClass
-import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.junit.Rule
-import org.junit.rules.Timeout;
+import org.junit.rules.Timeout
 
-//@CompileStatic
+@CompileStatic
 @Slf4j
 class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
   public static final String BASH = '/bin/bash -s'
@@ -40,8 +43,11 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
       HoyaTestProperties.HOYA_CONF_DIR_PROP)
   public static final String HOYA_BIN_DIR = System.getProperty(
       HoyaTestProperties.HOYA_BIN_DIR_PROP)
-  public static final File HOYA_BIN_DIRECTORY = new File(HOYA_BIN_DIR).canonicalFile
-  public static final File HOYA_SCRIPT = new File(HOYA_BIN_DIRECTORY, "bin/hoya").canonicalFile
+  public static final File HOYA_BIN_DIRECTORY = new File(
+      HOYA_BIN_DIR).canonicalFile
+  public static final File HOYA_SCRIPT = new File(
+      HOYA_BIN_DIRECTORY,
+      "bin/hoya").canonicalFile
   public static final File HOYA_CONF_DIRECTORY = new File(
       HOYA_CONF_DIR).canonicalFile
   public static final File HOYA_CONF_XML = new File(HOYA_CONF_DIRECTORY,
@@ -50,6 +56,8 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
   public static final Configuration HOYA_CONFIG
   public static final int THAW_WAIT_TIME
   public static final int FREEZE_WAIT_TIME
+  public static final int HBASE_LAUNCH_WAIT_TIME
+  public static final int HOYA_TEST_TIMEOUT
 
   static {
     HOYA_CONFIG = new Configuration(true)
@@ -60,10 +68,16 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
     FREEZE_WAIT_TIME = HOYA_CONFIG.getInt(
         HoyaTestProperties.KEY_HOYA_FREEZE_WAIT_TIME,
         HoyaTestProperties.DEFAULT_HOYA_FREEZE_WAIT_TIME)
+    HBASE_LAUNCH_WAIT_TIME = HOYA_CONFIG.getInt(
+        HoyaTestProperties.KEY_HOYA_HBASE_LAUNCH_TIME,
+        HoyaTestProperties.DEFAULT_HOYA_HBASE_LAUNCH_TIME)
+    HOYA_TEST_TIMEOUT = HOYA_CONFIG.getInt(
+        HoyaTestProperties.KEY_HOYA_TEST_TIMEOUT,
+        HoyaTestProperties.DEFAULT_HOYA_TEST_TIMEOUT)
   }
 
   @Rule
-  public final Timeout testTimeout = new Timeout(10 * 60 * 1000);
+  public final Timeout testTimeout = new Timeout(HOYA_TEST_TIMEOUT);
 
 
   @BeforeClass
@@ -72,10 +86,10 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
     if (HoyaUtils.maybeInitSecurity(conf)) {
       log.debug("Security enabled")
       HoyaUtils.forceLogin()
-      }
+    }
     HoyaShell.hoyaConfDir = HOYA_CONF_DIRECTORY
     HoyaShell.hoyaScript = HOYA_SCRIPT
-    }
+  }
 
   /**
    * Exec any hoya command 
@@ -127,9 +141,9 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
   }
 
   public static File getHoyaClientXMLFile() {
-    File hoyaClientXMLFile = HOYA_CONF_XML
-    assert hoyaClientXMLFile.exists()
-    return hoyaClientXMLFile
+    File file = HOYA_CONF_XML
+    assert file.exists()
+    return file
   }
 
   /**
@@ -138,10 +152,10 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
    */
   public static Configuration loadHoyaConf() {
     Configuration conf = new Configuration(true)
-    conf.addResource(hoyaClientXMLFile.toURI().toURL())
+    conf.addResource(HOYA_CONF_XML.toURI().toURL())
     return conf
   }
-  
+
   public static HadoopFS getClusterFS() {
     return HadoopFS.get(HOYA_CONFIG)
   }
@@ -152,7 +166,7 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
         HoyaActions.ACTION_DESTROY, name
     ])
   }
-  
+
   static HoyaShell destroy(int result, String name) {
     hoya(result, [
         HoyaActions.ACTION_DESTROY, name
@@ -185,9 +199,9 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
 
   static HoyaShell getConf(int result, String name) {
     hoya(result,
-      [
-        HoyaActions.ACTION_GETCONF, name
-      ])
+         [
+             HoyaActions.ACTION_GETCONF, name
+         ])
   }
 
   static HoyaShell freezeForce(String name) {
@@ -221,12 +235,12 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
         HoyaActions.ACTION_STATUS, name
     ])
   }
-  
+
   static HoyaShell status(int result, String name) {
     hoya(result,
-    [
-        HoyaActions.ACTION_STATUS, name
-    ])
+         [
+             HoyaActions.ACTION_STATUS, name
+         ])
   }
 
   static HoyaShell thaw(String name) {
@@ -234,11 +248,12 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
         HoyaActions.ACTION_THAW, name
     ])
   }
+
   static HoyaShell thaw(int result, String name) {
-    hoya(result, 
+    hoya(result,
          [
-        HoyaActions.ACTION_THAW, name
-    ])
+             HoyaActions.ACTION_THAW, name
+         ])
   }
 
   /**
@@ -246,7 +261,7 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
    * @param name
    */
   static void ensureClusterDestroyed(String name) {
-    if (freezeForce(name).ret != EXIT_UNKNOWN_HOYA_CLUSTER) {
+    if (freezeForce(name).ret != HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER) {
       //cluster exists
       destroy(name)
     }
@@ -266,7 +281,7 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
   public static void assertUnknownCluster(HoyaShell shell) {
     assertExitCode(shell, HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER)
   }
-  
+
   /**
    * Assert a shell exited with a given error code
    * if not the output is printed and an assertion is raised
@@ -279,13 +294,25 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
 
   /**
    * Create a connection to the cluster by execing the status command
-   * 
+   *
    * @param clustername
    * @return
    */
-  HoyaClient bondToCluster(String clustername) {
+  HoyaClient bondToCluster(Configuration conf, String clustername) {
 
-//    HoyaClient hoyaClient = 
-    
+    String address = conf.get(YarnConfiguration.RM_ADDRESS)
+
+    ServiceLauncher<HoyaClient> launcher = launchHoyaClientAgainstRM(
+        address,
+        ["exists", clustername],
+        conf)
+
+    int exitCode = launcher.serviceExitCode
+    if (exitCode) {
+      throw new ExitUtil.ExitException(exitCode,"exit code = $exitCode") 
+    }
+    HoyaClient hoyaClient = launcher.service
+    hoyaClient.deployedClusterName = clustername
+    return hoyaClient;
   }
 }

@@ -23,10 +23,12 @@ import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hbase.client.HConnection
+import org.apache.hadoop.hbase.client.HTableUtil
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.ClusterNode
 import org.apache.hoya.api.RoleKeys
 import org.apache.hoya.providers.hbase.HBaseKeys
+import org.apache.hoya.testtools.HoyaTestUtils
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.client.HoyaClient
 import org.apache.hoya.yarn.cluster.YarnMiniClusterTestBase
@@ -269,23 +271,15 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
    * @param clientConf client config
    */
   public void assertNoHBaseMaster(Configuration clientConf) {
-    boolean masterFound = isHBaseMasterFound(clientConf)
-    if (masterFound) {
-      fail("HBase master running")
-    }
+    HBaseTestUtils.assertNoHBaseMaster(clientConf)
   }
+  
   /**
    * attempt to talk to the hbase master; expect success
    * @param clientConf client config
    */
-  public void assertHBaseMaster(Configuration clientConf) {
-    boolean masterFound = isHBaseMasterFound(clientConf)
-    if (masterFound) {
-      fail("HBase master running")
-    }
+  public void assertHBaseMasterFound(Configuration clientConf) {
+    HBaseTestUtils.assertHBaseMasterFound(clientConf)
   }
 
-  public static boolean isHBaseMasterFound(Configuration clientConf) {
-    return HBaseTestUtils.isHBaseMasterFound(clientConf)
-  }
 }

@@ -1010,6 +1010,11 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     return deployedClusterName;
   }
 
+  @VisibleForTesting
+  public void setDeployedClusterName(String deployedClusterName) {
+    this.deployedClusterName = deployedClusterName;
+  }
+
   /**
    * Get the filesystem of this cluster
    * @return the FS of the config
@@ -1836,7 +1841,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
   @Override
   public String toString() {
-    return "HoyaClient in state " + getServiceState();
+    return "HoyaClient in state " + getServiceState()
+           + " and cluster name " + deployedClusterName;
   }
 
   /**

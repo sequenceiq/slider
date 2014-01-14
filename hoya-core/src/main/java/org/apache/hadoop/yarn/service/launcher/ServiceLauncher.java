@@ -145,7 +145,11 @@ public class ServiceLauncher<S extends Service>
   public int launchService(Configuration conf,
                            String[] processedArgs,
                            boolean addShutdownHook)
-    throws Throwable {
+    throws Throwable,
+           ClassNotFoundException,
+           InstantiationException,
+           IllegalAccessException,
+           ExitUtil.ExitException {
 
     instantiateService(conf);
 
@@ -214,7 +218,7 @@ public class ServiceLauncher<S extends Service>
     if (!(instance instanceof Service)) {
       //not a service
       throw new ExitUtil.ExitException(EXIT_BAD_CONFIGURATION,
-                                       "Not a Service: " + serviceClassName);
+                                       "Not a Service class: " + serviceClassName);
     }
 
     service = (S) instance;
@@ -236,7 +240,7 @@ public class ServiceLauncher<S extends Service>
    * Give the service time to do this before the exit operation is called 
    * @param interruptData the interrupted data.
    */
-//  @Override
+  @Override
   public void interrupted(IrqHandler.InterruptData interruptData) {
     String message = "Service interrupted by " + interruptData.toString();
     LOG.info(message);
@@ -380,7 +384,7 @@ public class ServiceLauncher<S extends Service>
   }
 
   /**
-   * Launch a service catching all excpetions and downgrading them to exit codes
+   * Launch a service catching all exceptions and downgrading them to exit codes
    * after logging.
    * @param conf configuration to use
    * @param processedArgs command line after the launcher-specific arguments have

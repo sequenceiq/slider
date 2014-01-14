@@ -20,38 +20,41 @@ package org.apache.hoya.funtest.hbase
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import org.apache.hadoop.fs.Path
+import org.apache.hadoop.conf.Configuration
 import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.api.ClusterDescription
-import org.apache.hoya.providers.hbase.HBaseKeys
-import org.apache.hoya.yarn.Arguments
-import org.apache.hoya.yarn.HoyaActions
 import org.apache.hoya.funtest.framework.HoyaCommandTestBase
 import org.apache.hoya.funtest.framework.HoyaTestProperties
 import org.apache.hoya.funtest.framework.PortAssignments
+import org.apache.hoya.providers.hbase.HBaseKeys
+import static org.apache.hoya.testtools.HBaseTestUtils.*
+import org.apache.hoya.testtools.HBaseTestUtils
+import org.apache.hoya.yarn.Arguments
+import org.apache.hoya.yarn.HoyaActions
+import org.apache.hoya.yarn.client.HoyaClient
 import org.junit.AfterClass
 import org.junit.BeforeClass
 import org.junit.Test
 
 @CompileStatic
 @Slf4j
-public class TestHBaseCreateCluster extends HoyaCommandTestBase
+public class TestFunctionalHBaseCluster extends HoyaCommandTestBase
     implements HoyaTestProperties, Arguments, HoyaExitCodes {
 
 
-  static String CLUSTER = "test_hbase_create_cluster"
-  
+  static String CLUSTER = "test_functional_hbase_cluster"
+
 
   @BeforeClass
   public static void prepareCluster() {
     ensureClusterDestroyed(CLUSTER)
- }
+  }
 
   @AfterClass
   public static void destroyCluster() {
     ensureClusterDestroyed(CLUSTER)
   }
-  
+
   @Test
   public void testHBaseCreateCluster() throws Throwable {
 
@@ -75,79 +78,31 @@ public class TestHBaseCreateCluster extends HoyaCommandTestBase
              ARG_WAIT, Integer.toString(THAW_WAIT_TIME)
          ])
 
-    assert clusterFS.exists(
-        new Path(clusterFS.homeDirectory, ".hoya/cluster/$CLUSTER"))
-
-// assert it exists
-    exists(0, CLUSTER)
-
-    //destroy will fail in use
-
-    destroy(EXIT_CLUSTER_IN_USE, CLUSTER)
-
-    //thaw will fail as cluster is in use
-    thaw(EXIT_CLUSTER_IN_USE, CLUSTER)
-
-    //it's still there
-    exists(0, CLUSTER)
-    //listing the cluster will succeed
-    list(0, CLUSTER)
-
-    //simple status
-    status(0, CLUSTER)
-
-    //now status to a temp file
-    File jsonStatus = File.createTempFile("hoya", ".json")
-    try {
-      hoya(0,
-           [
-               HoyaActions.ACTION_STATUS, CLUSTER,
-               ARG_OUTPUT, jsonStatus.canonicalPath
-           ])
-
-      assert jsonStatus.exists()
-      ClusterDescription cd = ClusterDescription.fromFile(jsonStatus)
-
-      assert CLUSTER == cd.name
-
-      log.info(cd.toJsonString())
-
-      getConf(0, CLUSTER)
-
-      //freeze
-      hoya(0, [
-          HoyaActions.ACTION_FREEZE, CLUSTER,
-          ARG_WAIT, Integer.toString(FREEZE_WAIT_TIME),
-          ARG_MESSAGE, "freeze-in-testHBaseCreateCluster"
-      ])
-
-      exists(HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER, CLUSTER)
-
-/*
-
-    hoya(0, 
-         [
-        HoyaActions.ACTION_THAW, CLUSTER,
-        ARG_WAIT, Integer.toString(THAW_WAIT_TIME)
-        ])
-
-    exists(0, CLUSTER)
-    hoya(0, [
-        HoyaActions.ACTION_FREEZE, CLUSTER,
-        ARG_FORCE,
-        ARG_WAIT, Integer.toString(FREEZE_WAIT_TIME),
-        ARG_MESSAGE, "forced-freeze-in-test"
-    ])
-*/
-      destroy(0, CLUSTER)
-    } finally {
-
-      jsonStatus.delete()
 
 
-    }
 
+    //get a hoya client against the cluster
+    HoyaClient hoyaClient = bondToCluster(HOYA_CONFIG, CLUSTER)
+    ClusterDescription cd2 = hoyaClient.getClusterDescription()
+    assert CLUSTER == cd2.name
 
+    log.info("Connected via HoyaClient {}", hoyaClient.toString())
+
+    //wait for the role counts to be reached
+    waitForRoleCount(hoyaClient, 
+                     [
+                       (HBaseKeys.ROLE_MASTER): 1,
+                       (HBaseKeys.ROLE_WORKER): 1
+                     ],
+                     THAW_WAIT_TIME)
+
+    Configuration clientConf = HBaseTestUtils.createHBaseConfiguration(hoyaClient)
+    assertHBaseMasterFound(clientConf)
+    waitForHBaseRegionServerCount(hoyaClient,CLUSTER, 1, HBASE_LAUNCH_WAIT_TIME)
+    
+
+   // role count good, let's talk HBase
+   
 
 
   }

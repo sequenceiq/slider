@@ -79,9 +79,13 @@ class HBaseTestUtils extends HoyaTestUtils {
   }
 
   public static ClusterStatus getHBaseClusterStatus(HoyaClient hoyaClient) {
+    Configuration clientConf = createHBaseConfiguration(hoyaClient)
+    return getHBaseClusterStatus(clientConf)
+  }
+
+  public static ClusterStatus getHBaseClusterStatus(Configuration clientConf) {
     try {
-      Configuration clientConf1 = createHBaseConfiguration(hoyaClient)
-      HConnection hbaseConnection1 = createHConnection(clientConf1)
+      HConnection hbaseConnection1 = createHConnection(clientConf)
       HConnection hbaseConnection = hbaseConnection1;
       HBaseAdmin hBaseAdmin = new HBaseAdmin(hbaseConnection);
       ClusterStatus hBaseClusterStatus = hBaseAdmin.clusterStatus;
@@ -164,8 +168,9 @@ class HBaseTestUtils extends HoyaTestUtils {
     Duration duration = new Duration(timeout);
     duration.start();
     ClusterStatus clustat = null;
+    Configuration clientConf = createHBaseConfiguration(hoyaClient)
     while (true) {
-      clustat = getHBaseClusterStatus(hoyaClient);
+      clustat = getHBaseClusterStatus(clientConf);
       int workerCount = clustat.servers.size();
       if (workerCount == regionServerCount) {
         break;
@@ -204,4 +209,27 @@ class HBaseTestUtils extends HoyaTestUtils {
     }
     return masterFound
   }
+
+  /**
+   * attempt to talk to the hbase master; expect a failure
+   * @param clientConf client config
+   */
+  public static void assertNoHBaseMaster(Configuration clientConf) {
+    boolean masterFound = isHBaseMasterFound(clientConf)
+    if (masterFound) {
+      fail("HBase master running")
+    }
+  }
+
+  /**
+   * attempt to talk to the hbase master; expect success
+   * @param clientConf client config
+   */
+  public static void assertHBaseMasterFound(Configuration clientConf) {
+    boolean masterFound = isHBaseMasterFound(clientConf)
+    if (!masterFound) {
+      fail("HBase master not running")
+    }
+  }
+  
 }

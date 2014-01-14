@@ -255,7 +255,7 @@ class HoyaTestUtils extends Assert {
   static void assertExceptionDetails(
       ServiceLaunchException ex,
       int exitCode,
-      String text) {
+      String text = "") {
     if (exitCode != ex.exitCode) {
       log.warn(
           "Wrong exit code, expected $exitCode but got $ex.exitCode in $ex",
@@ -280,9 +280,8 @@ class HoyaTestUtils extends Assert {
   protected static ServiceLauncher<HoyaClient> execHoyaCommand(
       Configuration conf,
       List args) {
-    String clientname = HoyaClient.name
     ServiceLauncher<HoyaClient> serviceLauncher =
-        new ServiceLauncher<HoyaClient>(clientname);
+        new ServiceLauncher<HoyaClient>(HoyaClient.name);
     serviceLauncher.launchService(conf,
                                   toArray(args),
                                   false);

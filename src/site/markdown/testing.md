@@ -69,7 +69,7 @@ Mandatory test options must be added to `hoya-client.xml`
       <value>file://${user.dir}/src/test/configs/sandbox/hbase</value>
     </property>
 
-Other test options may be added to `hoya-client.xml` if the defaults
+The following non-mandatory test options may be added to `hoya-client.xml` if the defaults
 need to be changed
                    
     <property>
@@ -77,8 +77,7 @@ need to be changed
       <description>comma separated list of ZK hosts</description>
       <value>localhost</value>
     </property>
-        
-
+       
     <property>
       <name>hoya.test.thaw.wait.seconds/name>
       <description>Time to wait in seconds for a thaw to result in a running AM</description>
@@ -89,6 +88,19 @@ need to be changed
       <name>hoya.test.freeze.wait.seconds/name>
       <description>Time to wait in seconds for a freeze to halt the cluster</description>
       <value>60000</value>
+    </property>
+    
+     <property>
+      <name>hoya.test.hbase.launch.wait.seconds/name>
+      <description>Time to wait in seconds for HBase to start</description>
+      <value>180000</value>
+    </property>
+        
+     <property>
+      <name>hoya.test.timeout.seconds/name>
+      <description>Time to in seconds before a test is considered to have failed.
+      There are some maven properties which also define limits and may need adjusting</description>
+      <value>180000</value>
     </property>
     
     
@@ -106,6 +118,9 @@ To test against a secure cluster
 1. `hoya-client.xml` must be configured as per [Security](security.html).
 1. the client must have the kerberos tokens issued so that the user running
 the tests has access to HDFS and YARN.
+
+If there are problems authenticating (including the cluster being offline)
+the tests appear to hang
 
 ### Validating the configuration
 
@@ -169,3 +184,8 @@ up.
 
 #### To propagate changes in hoya-core through to the funtest classes for
 testing, you must build/install the hoya packages from the root assembly.
+
+## Limitations of hoya-funtest
+
+1. All tests run from a single client -workload can't scale
+1. Output from failed AM and containers aren't collected
