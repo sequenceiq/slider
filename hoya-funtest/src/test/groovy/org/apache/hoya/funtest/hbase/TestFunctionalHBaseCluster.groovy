@@ -55,31 +55,31 @@ public class TestFunctionalHBaseCluster extends HoyaCommandTestBase
     ensureClusterDestroyed(CLUSTER)
   }
 
+  
+  
   @Test
   public void testHBaseCreateCluster() throws Throwable {
 
     describe "Create a working HBase cluster"
-    hoya(0,
-         [
-             HoyaActions.ACTION_CREATE,
-             CLUSTER,
-             ARG_ZKHOSTS,
-             HOYA_CONFIG.get(KEY_HOYA_TEST_ZK_HOSTS, DEFAULT_HOYA_ZK_HOSTS),
-             ARG_IMAGE,
-             HOYA_CONFIG.get(KEY_HOYA_TEST_HBASE_TAR),
-             ARG_CONFDIR,
-             HOYA_CONFIG.get(KEY_HOYA_TEST_HBASE_APPCONF),
-             ARG_ROLE, HBaseKeys.ROLE_MASTER, "1",
-             ARG_ROLE, HBaseKeys.ROLE_WORKER, "1",
-             ARG_ROLEOPT, HBaseKeys.ROLE_MASTER, "app.infoport",
-             Integer.toString(PortAssignments._testHBaseCreateCluster),
-             ARG_ROLEOPT, HBaseKeys.ROLE_WORKER, "app.infoport",
-             Integer.toString(PortAssignments._testHBaseCreateCluster2),
-             ARG_WAIT, Integer.toString(THAW_WAIT_TIME)
-         ])
 
 
-
+    Map<String, Integer> roleMap = [
+        (HBaseKeys.ROLE_MASTER): 1,
+        (HBaseKeys.ROLE_WORKER): 1,
+    ]
+    
+    createHoyaCluster(
+        CLUSTER,
+        roleMap,
+        [
+            ARG_ROLEOPT, HBaseKeys.ROLE_MASTER, "app.infoport",
+            Integer.toString(PortAssignments._testHBaseCreateCluster),
+            ARG_ROLEOPT, HBaseKeys.ROLE_WORKER, "app.infoport",
+            Integer.toString(PortAssignments._testHBaseCreateCluster2),
+        ],
+        true,
+        [:]
+    )
 
     //get a hoya client against the cluster
     HoyaClient hoyaClient = bondToCluster(HOYA_CONFIG, CLUSTER)
@@ -89,20 +89,13 @@ public class TestFunctionalHBaseCluster extends HoyaCommandTestBase
     log.info("Connected via HoyaClient {}", hoyaClient.toString())
 
     //wait for the role counts to be reached
-    waitForRoleCount(hoyaClient, 
-                     [
-                       (HBaseKeys.ROLE_MASTER): 1,
-                       (HBaseKeys.ROLE_WORKER): 1
-                     ],
-                     THAW_WAIT_TIME)
+    waitForRoleCount(hoyaClient, roleMap, HBASE_LAUNCH_WAIT_TIME)
 
     Configuration clientConf = HBaseTestUtils.createHBaseConfiguration(hoyaClient)
     assertHBaseMasterFound(clientConf)
     waitForHBaseRegionServerCount(hoyaClient,CLUSTER, 1, HBASE_LAUNCH_WAIT_TIME)
     
 
-   // role count good, let's talk HBase
-   
 
 
   }

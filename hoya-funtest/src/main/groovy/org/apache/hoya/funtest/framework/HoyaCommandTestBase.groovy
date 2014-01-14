@@ -19,7 +19,6 @@
 package org.apache.hoya.funtest.framework
 
 import groovy.transform.CompileStatic
-import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.util.ExitUtil
@@ -34,10 +33,17 @@ import org.apache.hoya.yarn.client.HoyaClient
 import org.junit.BeforeClass
 import org.junit.Rule
 import org.junit.rules.Timeout
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+
+import static org.apache.hoya.testtools.HoyaTestUtils.launchHoyaClientAgainstRM
 
 @CompileStatic
-@Slf4j
-class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
+class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes,
+    Arguments, HoyaTestProperties {
+  private static final Logger log =
+      LoggerFactory.getLogger(HoyaCommandTestBase.class);
+  
   public static final String BASH = '/bin/bash -s'
   public static final String HOYA_CONF_DIR = System.getProperty(
       HoyaTestProperties.HOYA_CONF_DIR_PROP)
@@ -178,7 +184,9 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
     List<String> args = [
         HoyaActions.ACTION_EXISTS, name
     ]
-    if (live) args << Arguments.ARG_LIVE
+    if (live) {
+      args << Arguments.ARG_LIVE
+    }
     hoya(args)
   }
 
@@ -186,7 +194,9 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
     List<String> args = [
         HoyaActions.ACTION_EXISTS, name
     ]
-    if (live) args << Arguments.ARG_LIVE
+    if (live) {
+      args << Arguments.ARG_LIVE
+    }
     hoya(result, args)
   }
 
@@ -314,10 +324,94 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
 
     int exitCode = launcher.serviceExitCode
     if (exitCode) {
-      throw new ExitUtil.ExitException(exitCode,"exit code = $exitCode") 
+      throw new ExitUtil.ExitException(exitCode, "exit code = $exitCode")
     }
     HoyaClient hoyaClient = launcher.service
     hoyaClient.deployedClusterName = clustername
     return hoyaClient;
   }
+
+  /**
+   * Create or build a hoya cluster (the action is set by the first verb)
+   * @param action operation to invoke: HoyaActions.ACTION_CREATE or HoyaActions.ACTION_BUILD
+   * @param clustername cluster name
+   * @param roles map of rolename to count
+   * @param extraArgs list of extra args to add to the creation command
+   * @param deleteExistingData should the data of any existing cluster
+   * of this name be deleted
+   * @param blockUntilRunning block until the AM is running
+   * @param clusterOps map of key=value cluster options to set with the --option arg
+   * @return shell which will have executed the command.
+   */
+  public HoyaShell createOrBuildHoyaCluster(
+      String action,
+      String clustername,
+      Map<String, Integer> roles,
+      List<String> extraArgs,
+      boolean blockUntilRunning,
+      Map<String, String> clusterOps) {
+    assert action != null
+    assert clustername != null
+
+
+
+    List<String> roleList = [];
+    roles.each { String role, Integer val ->
+      log.info("Role $role := $val")
+      roleList << ARG_ROLE << role << Integer.toString(val)
+    }
+
+    List<String> argsList = [action, clustername]
+
+    argsList << ARG_ZKHOSTS <<
+    HOYA_CONFIG.get(KEY_HOYA_TEST_ZK_HOSTS, DEFAULT_HOYA_ZK_HOSTS)
+
+    argsList << ARG_IMAGE <<
+    HOYA_CONFIG.get(KEY_HOYA_TEST_HBASE_TAR)
+
+    argsList << ARG_CONFDIR <<
+    HOYA_CONFIG.get(KEY_HOYA_TEST_HBASE_APPCONF)
+
+    if (blockUntilRunning) {
+      argsList << Arguments.ARG_WAIT << Integer.toString(THAW_WAIT_TIME)
+    }
+
+    argsList += roleList;
+
+    //now inject any cluster options
+    clusterOps.each { String opt, String val ->
+      argsList << ARG_OPTION << opt << val;
+    }
+
+    if (extraArgs != null) {
+      argsList += extraArgs;
+    }
+    hoya(0, argsList)
+  }
+
+  /**
+   * Create a hoya cluster
+   * @param clustername cluster name
+   * @param roles map of rolename to count
+   * @param extraArgs list of extra args to add to the creation command
+   * @param blockUntilRunning block until the AM is running
+   * @param clusterOps map of key=value cluster options to set with the --option arg
+   * @return launcher which will have executed the command.
+   */
+  public HoyaShell createHoyaCluster(
+      String clustername,
+      Map<String, Integer> roles,
+      List<String> extraArgs,
+      boolean blockUntilRunning,
+      Map<String, String> clusterOps) {
+    return createOrBuildHoyaCluster(
+        HoyaActions.ACTION_CREATE,
+        clustername,
+        roles,
+        extraArgs,
+        blockUntilRunning,
+        clusterOps)
+  }
+
+
 }

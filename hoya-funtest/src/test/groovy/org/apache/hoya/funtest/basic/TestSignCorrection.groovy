@@ -19,6 +19,7 @@
 package org.apache.hoya.funtest.basic
 
 import org.junit.Test
+
 import static org.apache.hoya.funtest.framework.HoyaShell.signCorrect
 
 /**

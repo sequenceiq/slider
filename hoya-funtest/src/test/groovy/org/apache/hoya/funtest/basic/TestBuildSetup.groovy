@@ -21,11 +21,11 @@ package org.apache.hoya.funtest.basic
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
-import org.apache.hoya.tools.HoyaUtils
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hoya.funtest.framework.HoyaTestProperties
 import org.apache.hoya.testtools.HoyaTestUtils
+import org.apache.hoya.tools.HoyaUtils
 import org.junit.Test
 
 /**

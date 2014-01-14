@@ -54,24 +54,21 @@ public class TestClusterLifecycle extends HoyaCommandTestBase
   }
 
   @Test
-  public void testHBaseCreateCluster() throws Throwable {
+  public void testClusterLifecycle() throws Throwable {
 
     describe "Walk a 0-role Hoya cluster through its lifecycle"
-    hoya(0,
-         [
-             HoyaActions.ACTION_CREATE,
-             CLUSTER,
-             ARG_ZKHOSTS,
-             HOYA_CONFIG.get(KEY_HOYA_TEST_ZK_HOSTS, DEFAULT_HOYA_ZK_HOSTS),
-             ARG_IMAGE,
-             HOYA_CONFIG.get(KEY_HOYA_TEST_HBASE_TAR),
-             ARG_CONFDIR,
-             HOYA_CONFIG.get(KEY_HOYA_TEST_HBASE_APPCONF),
-             ARG_ROLE, HBaseKeys.ROLE_MASTER, "0",
-             ARG_ROLE, HBaseKeys.ROLE_WORKER, "0",
-             ARG_WAIT, Integer.toString(THAW_WAIT_TIME)
-         ])
 
+    Map<String, Integer> roleMap = [
+        (HBaseKeys.ROLE_MASTER): 0,
+        (HBaseKeys.ROLE_WORKER): 0,
+    ]
+
+    createHoyaCluster(
+        CLUSTER,
+        roleMap,
+        [],
+        true,
+        [:])
     assert clusterFS.exists(
         new Path(clusterFS.homeDirectory, ".hoya/cluster/$CLUSTER"))
 
