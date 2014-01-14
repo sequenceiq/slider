@@ -71,7 +71,12 @@ public class TestUnknownClusterOperations extends HoyaCommandTestBase {
 
   @Test
   public void testExistsUnknownCluster() throws Throwable {
-    assertUnknownCluster(exists(UNKNOWN))
+    assertUnknownCluster(exists(UNKNOWN, false))
+  }
+
+  @Test
+  public void testExistsLiveUnknownCluster() throws Throwable {
+    assertUnknownCluster(exists(UNKNOWN, true))
   }
 
   @Test

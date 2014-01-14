@@ -16,18 +16,27 @@
  * limitations under the License.
  */
 
-package org.apache.hoya.yarn.params;
+package org.apache.hoya.funtest.basic
 
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.Parameters;
-import org.apache.hoya.yarn.HoyaActions;
+import org.junit.Test
+import static org.apache.hoya.funtest.framework.HoyaShell.signCorrect
 
-@Parameters(commandNames = {HoyaActions.ACTION_EXISTS},
-            commandDescription = HoyaActions.DESCRIBE_ACTION_EXISTS)
+/**
+ * This just verifies the two's complement sign correction that will
+ * be applied after the return code is picked up from the shell
+ */
+class TestSignCorrection {
 
-public class ActionExistsArgs extends AbstractActionArgs {
-
-  @Parameter(names = {ARG_LIVE},
-             description = "verify that the cluster is running")
-  public boolean live;
+  @Test
+  public void test255ToMinus1() throws Throwable {
+    assert -1 == signCorrect(255) 
+  }
+  @Test
+  public void test74To74() throws Throwable {
+    assert 74 == signCorrect(74) 
+  }
+  @Test
+  public void test1To1() throws Throwable {
+    assert 1 == signCorrect(1) 
+  }
 }

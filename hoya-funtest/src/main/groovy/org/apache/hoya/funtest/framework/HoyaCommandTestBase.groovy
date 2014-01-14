@@ -173,16 +173,21 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
     ])
   }
 
-  static HoyaShell exists(String name) {
-    hoya([
+  static HoyaShell exists(String name, boolean live = true) {
+
+    List<String> args = [
         HoyaActions.ACTION_EXISTS, name
-    ])
+    ]
+    if (live) args << Arguments.ARG_LIVE
+    hoya(args)
   }
 
-  static HoyaShell exists(int result, String name) {
-    hoya(result, [
+  static HoyaShell exists(int result, String name, boolean live = true) {
+    List<String> args = [
         HoyaActions.ACTION_EXISTS, name
-    ])
+    ]
+    if (live) args << Arguments.ARG_LIVE
+    hoya(result, args)
   }
 
   static HoyaShell freeze(String name) {

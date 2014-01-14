@@ -117,6 +117,10 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
   protected void addToTeardown(HoyaClient client) {
     clustersToTeardown << client;
   }
+  protected void addToTeardown(ServiceLauncher<HoyaClient> launcher) {
+    HoyaClient hoyaClient = launcher.service
+    if (hoyaClient) addToTeardown(hoyaClient)
+  }
 
   /**
    * Stop any running cluster that has been added
@@ -736,8 +740,7 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
     log.info("Freezing cluster $clustername")
     ActionFreezeArgs freezeArgs  = new ActionFreezeArgs();
     freezeArgs.waittime = CLUSTER_STOP_TIME
-    int exitCode = hoyaClient.actionFreeze(clustername
-                                           ,
+    int exitCode = hoyaClient.actionFreeze(clustername,
                                            freezeArgs);
     if (exitCode != 0) {
       log.warn("Cluster freeze failed with error code $exitCode")

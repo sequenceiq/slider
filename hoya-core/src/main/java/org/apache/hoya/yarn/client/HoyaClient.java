@@ -217,7 +217,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       exitCode = actionEmergencyForceKill(clusterName);
     } else if (HoyaActions.ACTION_EXISTS.equals(action)) {
       HoyaUtils.validateClusterName(clusterName);
-      exitCode = actionExists(clusterName);
+      exitCode = actionExists(clusterName,
+                              serviceArgs.getActionExistsArgs().live);
     } else if (HoyaActions.ACTION_FLEX.equals(action)) {
       HoyaUtils.validateClusterName(clusterName);
       exitCode = actionFlex(clusterName);
@@ -1239,29 +1240,46 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   }
 
   /**
-   * Implement the islive action: probe for a cluster of the given name existing
+   * Test for a cluster existing probe for a cluster of the given name existing
+   * in the filesystem. If the live param is set, it must be a live cluster
    * @return exit code
    */
   @VisibleForTesting
-  public int actionExists(String name) throws YarnException, IOException {
+  public int actionExists(String name, boolean live) throws YarnException, IOException {
     verifyManagerSet();
-    log.debug("actionExists({})", name);
-    ApplicationReport instance = findInstance(name);
-    if (instance == null) {
-      log.info("cluster {} not found");
+    log.debug("actionExists({}, {})", name, live);
+
+    //initial probe for a cluster in the filesystem
+    FileSystem fs = getClusterFS();
+    Path clusterDirectory = HoyaUtils.buildHoyaClusterDirPath(fs, name);
+    if (!fs.exists(clusterDirectory)) {
       throw unknownClusterException(name);
-    } else {
-      // the app exists, but it may be in a terminated state
-      HoyaUtils.OnDemandReportStringifier report =
-        new HoyaUtils.OnDemandReportStringifier(instance);
-      YarnApplicationState state =
-        instance.getYarnApplicationState();
-      if (state.ordinal() >= YarnApplicationState.FINISHED.ordinal()) {
-        log.info("Cluster {} found but is in state {}", state);
-        log.debug("State {}", report);
-        throw unknownClusterException(name);
+    }
+    
+    //test for liveness if desired
+
+    if (live) {
+      ApplicationReport instance = findInstance(name);
+      if (instance == null) {
+        log.info("cluster {} not running");
+        return EXIT_FALSE;
+      } else {
+        // the app exists, but it may be in a terminated state
+        HoyaUtils.OnDemandReportStringifier report =
+          new HoyaUtils.OnDemandReportStringifier(instance);
+        YarnApplicationState state =
+          instance.getYarnApplicationState();
+        if (state.ordinal() >= YarnApplicationState.FINISHED.ordinal()) {
+          //cluster in the list of apps but not running
+          log.info("Cluster {} found but is in state {}", state);
+          log.debug("State {}", report);
+          return EXIT_FALSE;
+        }
+        log.info("Cluster {} is running:\n{}", name, report);
       }
-      log.info("Cluster {} is running:\n{}", name, report);
+    } else {
+      log.info("Cluster {} exists but is not running", name);
+
     }
     return EXIT_SUCCESS;
   }

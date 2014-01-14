@@ -51,7 +51,7 @@ class TestKillMasterlessAM extends HBaseMiniClusterTestBase {
     lsJavaProcesses();
     describe("killing services")
     killServiceLaunchers(SIGTERM);
-    waitWhileClusterExists(hoyaClient, 30000);
+    waitWhileClusterLive(hoyaClient, 30000);
     //give yarn some time to notice
     sleep(2000)
     describe("final listing")

@@ -21,6 +21,7 @@ package org.apache.hoya.funtest.hbase
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.fs.Path
+import org.apache.hadoop.yarn.service.launcher.LauncherExitCodes
 import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.funtest.framework.HoyaCommandTestBase
@@ -125,7 +126,11 @@ public class TestClusterLifecycle extends HoyaCommandTestBase
           ARG_MESSAGE, "freeze-in-testHBaseCreateCluster"
       ])
 
-      exists(HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER, CLUSTER)
+      //cluster exists if you don't want it to be live
+      exists(0, CLUSTER, false)
+      // condition returns false if it is required to be live
+      exists(LauncherExitCodes.EXIT_FALSE, CLUSTER, true)
+
 
 
       hoya(0,
@@ -140,8 +145,16 @@ public class TestClusterLifecycle extends HoyaCommandTestBase
           ARG_WAIT, Integer.toString(FREEZE_WAIT_TIME),
           ARG_MESSAGE, "forced-freeze-in-test"
       ])
+      //cluster exists if you don't want it to be live
+      exists(0, CLUSTER, false)
+      // condition returns false if it is required to be live
+      exists(LauncherExitCodes.EXIT_FALSE, CLUSTER, true)
 
       destroy(0, CLUSTER)
+
+      //cluster now missing
+      exists(HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER, CLUSTER)
+
     } finally {
       jsonStatus.delete()
     }
