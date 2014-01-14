@@ -63,9 +63,18 @@ class HoyaShell extends Shell {
     String script = commandLine.join("\n")
     log.debug(script)
     super.exec(script);
+    signCorrectReturnCode()
     return ret;
   }
 
+  /**
+   * Fix up the return code so that a value of 255 is mapped back to -1
+   * @return twos complement return code from an unsigned byte
+   */
+   int signCorrectReturnCode() {
+     ret = signCorrect(ret)
+   }
+  
   int execute(int expectedExitCode) {
     execute()
     return assertExitCode(expectedExitCode)
@@ -83,6 +92,10 @@ class HoyaShell extends Shell {
     return shell
   }
 
+  public static int signCorrect(int u) {
+    return (u << 24) >> 24;
+  }
+  
   @Override
   public String toString() {
     return ret + " =>" + hoyaCommand
