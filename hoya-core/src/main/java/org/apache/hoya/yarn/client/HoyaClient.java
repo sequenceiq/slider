@@ -1261,8 +1261,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     if (live) {
       ApplicationReport instance = findInstance(name);
       if (instance == null) {
-        log.info("cluster {} not found");
-        throw unknownClusterException(name);
+        log.info("cluster {} not running");
+        return EXIT_FALSE;
       } else {
         // the app exists, but it may be in a terminated state
         HoyaUtils.OnDemandReportStringifier report =
@@ -1277,6 +1277,9 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
         }
         log.info("Cluster {} is running:\n{}", name, report);
       }
+    } else {
+      log.info("Cluster {} exists but is not running", name);
+
     }
     return EXIT_SUCCESS;
   }

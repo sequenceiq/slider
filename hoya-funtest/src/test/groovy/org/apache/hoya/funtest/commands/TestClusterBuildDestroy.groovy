@@ -80,7 +80,7 @@ public class TestClusterBuildDestroy extends HoyaCommandTestBase
 
     assert clusterFS.exists(new Path(clusterFS.homeDirectory, ".hoya/cluster/$CLUSTER"))
     //cluster exists if you don't want it to be live
-    exists(0,CLUSTER, false)
+    exists(0, CLUSTER, false)
     // condition returns false if it is required to be live
     exists(LauncherExitCodes.EXIT_FALSE, CLUSTER, true)
     destroy(CLUSTER)
