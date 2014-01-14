@@ -62,7 +62,7 @@ class TestAccLiveLocalArchive extends AccumuloTestBase {
     addToTeardown(hoyaClient);
 
 
-    waitWhileClusterExists(hoyaClient, 30000);
+    waitWhileClusterLive(hoyaClient, 30000);
     assert hoyaClient.applicationReport.yarnApplicationState == YarnApplicationState.RUNNING
     waitForRoleCount(hoyaClient, roles, ACCUMULO_CLUSTER_STARTUP_TO_LIVE_TIME)
     describe("Cluster status")

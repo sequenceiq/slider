@@ -72,7 +72,7 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
     describe("killing services")
     killServiceLaunchers(SIGKILL);
     killAllMasterServers();
-    waitWhileClusterExists(hoyaClient, 30000);
+    waitWhileClusterLive(hoyaClient, 30000);
     //give yarn some time to notice
     sleep(2000)
     ApplicationReport report = hoyaClient.applicationReport

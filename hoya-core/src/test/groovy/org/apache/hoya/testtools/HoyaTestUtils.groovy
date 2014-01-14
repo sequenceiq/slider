@@ -101,10 +101,10 @@ class HoyaTestUtils extends Assert {
     return converted;
   }
 
-  public static void waitWhileClusterExists(HoyaClient client, int timeout) {
+  public static void waitWhileClusterLive(HoyaClient client, int timeout) {
     Duration duration = new Duration(timeout);
     duration.start()
-    while (client.actionExists(client.deployedClusterName) &&
+    while (client.actionExists(client.deployedClusterName, true) &&
            !duration.limitExceeded) {
       sleep(1000);
     }

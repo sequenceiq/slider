@@ -18,6 +18,7 @@
 
 package org.apache.hoya.yarn.params;
 
+import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import org.apache.hoya.yarn.HoyaActions;
 
@@ -25,4 +26,8 @@ import org.apache.hoya.yarn.HoyaActions;
             commandDescription = HoyaActions.DESCRIBE_ACTION_EXISTS)
 
 public class ActionExistsArgs extends AbstractActionArgs {
+
+  @Parameter(names = {ARG_LIVE},
+             description = "verify that the cluster is running")
+  public boolean live;
 }

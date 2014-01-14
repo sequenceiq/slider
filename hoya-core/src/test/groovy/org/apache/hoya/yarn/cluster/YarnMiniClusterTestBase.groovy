@@ -736,8 +736,7 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
     log.info("Freezing cluster $clustername")
     ActionFreezeArgs freezeArgs  = new ActionFreezeArgs();
     freezeArgs.waittime = CLUSTER_STOP_TIME
-    int exitCode = hoyaClient.actionFreeze(clustername
-                                           ,
+    int exitCode = hoyaClient.actionFreeze(clustername,
                                            freezeArgs);
     if (exitCode != 0) {
       log.warn("Cluster freeze failed with error code $exitCode")
