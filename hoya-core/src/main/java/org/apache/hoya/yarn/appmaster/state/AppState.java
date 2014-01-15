@@ -28,6 +28,7 @@ import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.impl.pb.ContainerPBImpl;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.hoya.HoyaExitCodes;
 import org.apache.hoya.HoyaKeys;
@@ -202,6 +203,7 @@ public class AppState {
   private int containerMaxMemory;
   
   private RoleHistory roleHistory;
+  private Configuration siteConf;
   private long startTimeThreshold;
   
   private int failureThreshold = 10;
@@ -340,7 +342,7 @@ public class AppState {
                             FileSystem fs,
                             Path historyDir,
                             List<Container> liveContainers) {
-
+    this.siteConf = siteConf;
 
     // set the cluster specification
     setClusterSpec(cd);
@@ -901,6 +903,18 @@ public class AppState {
    * @return NodeCompletionResult
    */
   public synchronized NodeCompletionResult onCompletedNode(ContainerStatus status) {
+    return onCompletedNode(null, status);
+  }
+  
+  /**
+   * handle completed node in the CD -move something from the live
+   * server list to the completed server list
+   * @param amConf YarnConfiguration
+   * @param status the node that has just completed
+   * @return NodeCompletionResult
+   */
+  public synchronized NodeCompletionResult onCompletedNode(YarnConfiguration amConf,
+      ContainerStatus status) {
     ContainerId containerId = status.getContainerId();
     NodeCompletionResult result = new NodeCompletionResult();
     RoleInstance roleInstance;
@@ -940,11 +954,24 @@ public class AppState {
           boolean shortLived = isShortLived(roleInstance);
           String message;
           if (roleInstance.container != null) {
-            message = String.format("Failure %s on host %s",
-                                           roleInstance.getContainerId(),
-                                           roleInstance.container
-                                                       .getNodeId()
-                                                       .getHost());
+            String user = null;
+            try {
+              user = HoyaUtils.getCurrentUser().getShortUserName();
+            } catch (IOException ioe) {
+            }
+            String completedLogsUrl = null;
+            Container c = roleInstance.container;
+            String url = null;
+            if (amConf != null) {
+              url = amConf.get(YarnConfiguration.YARN_LOG_SERVER_URL);
+            }
+            if (user != null && url != null) {
+              completedLogsUrl = url
+                  + "/" + c.getNodeId() + "/" + roleInstance.getContainerId() + "/ctx/" + user;
+            }
+            message = String.format("Failure %s on host %s" +
+                (completedLogsUrl != null ? ", see %s" : ""), roleInstance.getContainerId(),
+                c.getNodeId().getHost(), completedLogsUrl);
           } else {
             message = String.format("Failure %s",
                                     containerId.toString());

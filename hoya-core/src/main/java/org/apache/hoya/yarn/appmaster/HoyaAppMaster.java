@@ -162,6 +162,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
   /** Handle to communicate with the Node Manager*/
   public NMClientAsync nmClientAsync;
   
+  YarnConfiguration conf;
   /**
    * token blob
    */
@@ -381,7 +382,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
         "Configuration directory %s doesn't exist", confDir);
     }
 
-    YarnConfiguration conf = new YarnConfiguration(getConfig());
+    conf = new YarnConfiguration(getConfig());
     //get our provider
     String providerType = clusterSpec.type;
     log.info("Cluster provider type is {}", providerType);
@@ -798,7 +799,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
 
       // non complete containers should not be here
       assert (status.getState() == ContainerState.COMPLETE);
-      AppState.NodeCompletionResult result = appState.onCompletedNode(status);
+      AppState.NodeCompletionResult result = appState.onCompletedNode(conf, status);
       if (result.containerFailed) {
         RoleInstance ri = result.roleInstance;
         log.error("Role instance {} failed ", ri);
