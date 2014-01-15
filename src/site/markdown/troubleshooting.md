@@ -61,7 +61,8 @@ If this happens on cluster startup, it means that the application is not working
 
      org.apache.hoya.exceptions.TriggerClusterTeardownException: Unstable Cluster: 
      - failed with role worker failing 4 times (4 in startup); threshold is 2
-     - last failure: Failure container_1386872971874_0001_01_000006 on host 192.168.1.86
+     - last failure: Failure container_1386872971874_0001_01_000006 on host 192.168.1.86,
+       see http://hor12n22.gq1.ygridcore.net:19888/jobhistory/logs/192.168.1.86:45454/container_1386872971874_0001_01_000006/ctx/yarn
 
 This message warns that a role -here worker- is failing to start and it has failed
 more than the configured failure threshold is. What it doesn't do is say why it failed,
@@ -75,6 +76,9 @@ In the example above the failure was in `container_1386872971874_0001_01_000006`
 on the host `192.168.1.86`. If you go to then node manager on that machine (the YARN
 RM web page will let you do this), and look for that container,
 you may be able to grab the logs from it. 
+
+A quicker way is to browse to the URL on the next line.
+Note: the URL depends on yarn.log.server.url being properly configured.
 
 It is from those logs that the cause of the problem -because they are the actual
 output of the actual application which Hoya is trying to deploy.
