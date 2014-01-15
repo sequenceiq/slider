@@ -19,6 +19,9 @@
 package org.apache.hoya.funtest.hbase
 
 import org.apache.hoya.funtest.framework.HoyaCommandTestBase
+import org.apache.hoya.funtest.framework.HoyaShell
+import org.apache.hoya.providers.hbase.HBaseKeys
+import org.apache.hoya.yarn.Arguments
 import org.junit.Before
 
 import static org.apache.hoya.funtest.framework.HoyaFuntestProperties.*
@@ -32,7 +35,44 @@ abstract class HBaseCommandTestBase extends HoyaCommandTestBase {
   @Before 
   public void verifyPreconditions() {
     assumeBoolOption(HOYA_CONFIG, KEY_HOYA_TEST_HBASE_ENABLED, true)
+    
+    
   }
-  
 
+  /**
+   * Create an hbase cluster -this patches in the relevant attributes
+   * for the HBase cluster
+   * @param name name
+   * @param masters no. of master nodes
+   * @param workers no. of region servers
+   * @param argsList list of arguments
+   * @param clusterOps map of cluster options
+   * @return the role map -for use when waiting for the cluster to go live
+   */
+  public Map<String, Integer> createHBaseCluster(
+      String name,
+      int masters,
+      int workers,
+      List<String> argsList,
+      Map<String, String> clusterOps) {
+    Map<String, Integer> roleMap = [
+        (HBaseKeys.ROLE_MASTER): masters,
+        (HBaseKeys.ROLE_WORKER): workers
+    ]
+
+    argsList << Arguments.ARG_IMAGE <<
+    HOYA_CONFIG.getTrimmed(KEY_HOYA_TEST_HBASE_TAR)
+
+    argsList << Arguments.ARG_CONFDIR <<
+    HOYA_CONFIG.getTrimmed(KEY_HOYA_TEST_HBASE_APPCONF)
+
+    HoyaShell shell = createHoyaCluster(
+        name,
+        roleMap,
+        argsList,
+        true,
+        clusterOps
+    )
+    return roleMap
+  }
 }

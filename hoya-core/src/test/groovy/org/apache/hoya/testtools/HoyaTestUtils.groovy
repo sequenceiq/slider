@@ -66,7 +66,7 @@ class HoyaTestUtils extends Assert {
   }
 
   public static void skip(String message) {
-    log.warn(message)
+    log.warn("Skipping test: " + message)
     Assume.assumeTrue(message, false);
   }
 
@@ -88,6 +88,18 @@ class HoyaTestUtils extends Assert {
       skip("Configuration key $key not set")
     }
   }
+  
+  
+  /**
+   * assert that a string option is set and not equal to ""
+   * @param conf configuration file
+   * @param key key to look for
+   */
+  public static void assertStringOptionSet(Configuration conf, String key) {
+    getRequiredConfOption(conf, key)
+  }
+  
+  
 
   /**
    * Assume that a boolean option is set and true.

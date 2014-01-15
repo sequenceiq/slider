@@ -61,21 +61,15 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
     describe "Create a working HBase cluster"
 
 
-    Map<String, Integer> roleMap = [
-        (ROLE_MASTER): 1,
-        (ROLE_WORKER): 1,
-    ]
-    
-    createHoyaCluster(
+    Map<String, Integer> roleMap = createHBaseCluster(
         CLUSTER,
-        roleMap,
+        1,1,
         [
             ARG_ROLEOPT, ROLE_MASTER, "app.infoport",
             Integer.toString(PortAssignments._testHBaseCreateCluster),
             ARG_ROLEOPT, ROLE_WORKER, "app.infoport",
             Integer.toString(PortAssignments._testHBaseCreateCluster2),
         ],
-        true,
         [:]
     )
 

@@ -20,13 +20,10 @@ package org.apache.hoya.funtest.hbase
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import org.apache.hadoop.fs.Path
 import org.apache.hadoop.yarn.service.launcher.LauncherExitCodes
 import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.api.ClusterDescription
-import org.apache.hoya.funtest.framework.HoyaCommandTestBase
 import org.apache.hoya.funtest.framework.HoyaFuntestProperties
-import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.HoyaActions
 import org.apache.hoya.yarn.client.HoyaClient
@@ -36,7 +33,7 @@ import org.junit.Test
 
 @CompileStatic
 @Slf4j
-public class TestClusterLifecycle extends HoyaCommandTestBase
+public class TestClusterLifecycle extends HBaseCommandTestBase
     implements HoyaFuntestProperties, Arguments, HoyaExitCodes {
 
 
@@ -58,19 +55,18 @@ public class TestClusterLifecycle extends HoyaCommandTestBase
 
     describe "Walk a 0-role Hoya cluster through its lifecycle"
 
-    Map<String, Integer> roleMap = [
-        (HBaseKeys.ROLE_MASTER): 0,
-        (HBaseKeys.ROLE_WORKER): 0,
-    ]
 
-    createHoyaCluster(
-        CLUSTER,
-        roleMap,
-        [],
-        true,
-        [:])
-    assert clusterFS.exists(
-        new Path(clusterFS.homeDirectory, ".hoya/cluster/$CLUSTER"))
+    def path = buildClusterPath(CLUSTER)
+    assert !clusterFS.exists(path)
+
+
+    Map<String, Integer> roleMap = createHBaseCluster(CLUSTER,
+                                         0,
+                                         0,
+                                         [],
+                                         [:])
+    
+    assert clusterFS.exists(path)
 
 // assert it exists
     exists(0, CLUSTER)

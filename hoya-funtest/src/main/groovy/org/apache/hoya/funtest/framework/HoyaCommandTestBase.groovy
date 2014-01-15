@@ -21,6 +21,7 @@ package org.apache.hoya.funtest.framework
 import groovy.transform.CompileStatic
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem as HadoopFS
+import org.apache.hadoop.fs.Path
 import org.apache.hadoop.util.ExitUtil
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
@@ -260,6 +261,8 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
       //cluster exists
       destroy(name)
     }
+    // and assert that it really isn't there
+    
   }
 
   /**
@@ -346,11 +349,6 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
     argsList << ARG_ZKHOSTS <<
     HOYA_CONFIG.getTrimmed(KEY_HOYA_TEST_ZK_HOSTS, DEFAULT_HOYA_ZK_HOSTS)
 
-    argsList << ARG_IMAGE <<
-    HOYA_CONFIG.getTrimmed(KEY_HOYA_TEST_HBASE_TAR)
-
-    argsList << ARG_CONFDIR <<
-    HOYA_CONFIG.getTrimmed(KEY_HOYA_TEST_HBASE_APPCONF)
 
     if (blockUntilRunning) {
       argsList << ARG_WAIT << Integer.toString(THAW_WAIT_TIME)
@@ -391,6 +389,10 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
         extraArgs,
         blockUntilRunning,
         clusterOps)
+  }
+
+  public Path buildClusterPath(String clustername) {
+    return new Path(clusterFS.homeDirectory, ".hoya/cluster/${clustername} ")
   }
 
 

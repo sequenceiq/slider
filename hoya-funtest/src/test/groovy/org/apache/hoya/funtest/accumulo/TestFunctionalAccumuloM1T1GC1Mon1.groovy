@@ -26,6 +26,7 @@ import org.apache.hoya.api.RoleKeys
 import org.apache.hoya.funtest.framework.HoyaFuntestProperties
 import org.apache.hoya.funtest.framework.PortAssignments
 import org.apache.hoya.providers.accumulo.AccumuloConfigFileOptions
+import org.apache.hoya.providers.accumulo.AccumuloKeys
 import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.client.HoyaClient
@@ -33,17 +34,18 @@ import org.junit.AfterClass
 import org.junit.BeforeClass
 import org.junit.Test
 
-import static org.apache.hoya.providers.accumulo.AccumuloKeys.ROLE_MONITOR
+import static org.apache.hoya.providers.accumulo.AccumuloKeys.*
+import static org.apache.hoya.providers.accumulo.AccumuloConfigFileOptions.*
 import static org.apache.hoya.testtools.HoyaTestUtils.describe
 import static org.apache.hoya.testtools.HoyaTestUtils.waitForRoleCount
 
 @CompileStatic
 @Slf4j
-public class TestFunctionalAccumuloCluster extends AccumuloCommandTestBase
+public class TestFunctionalAccumuloM1T1GC1Mon1 extends AccumuloCommandTestBase
     implements HoyaFuntestProperties, Arguments, HoyaExitCodes {
 
 
-  static String CLUSTER = "test_functional_hbase_cluster"
+  static String CLUSTER = "test_functional_accumulo_m1t1gc1mon1"
 
 
   @BeforeClass
@@ -57,17 +59,30 @@ public class TestFunctionalAccumuloCluster extends AccumuloCommandTestBase
   }
 
   @Test
-  public void testHBaseCreateCluster() throws Throwable {
+  public void test_functional_accumulo_m1t1gc1mon1() throws Throwable {
 
-    describe "Create a working HBase cluster"
+    describe "Create a working Accumulo cluster"
 
+    def path = buildClusterPath(CLUSTER)
+    assert !clusterFS.exists(path)
 
+    String clustername = "test_acc_m1t1gc1mon1"
+    int tablets = 1
+    int monitor = 1
+    int gc = 1
+    
     Map<String, Integer> roleMap = [
-        (HBaseKeys.ROLE_MASTER): 1,
-        (HBaseKeys.ROLE_WORKER): 1,
-    ]
+        (AccumuloKeys.ROLE_MASTER) : 1,
+        (AccumuloKeys.ROLE_TABLET) : tablets,
+        (AccumuloKeys.ROLE_MONITOR): monitor,
+        (AccumuloKeys.ROLE_GARBAGE_COLLECTOR): gc
+    ];
 
+    Map<String, String> clusterOps = [:]
+        clusterOps["site." + MONITOR_PORT_CLIENT]= PortAssignments._test_functional_accumulo_m1t1gc1mon1_mon
+        
     List<String> extraArgs = [
+/*        
         ARG_ROLEOPT, HBaseKeys.ROLE_MASTER, "app.infoport",
         Integer.toString(PortAssignments._testHBaseCreateCluster),
         ARG_ROLEOPT, HBaseKeys.ROLE_WORKER, "app.infoport",
@@ -75,26 +90,31 @@ public class TestFunctionalAccumuloCluster extends AccumuloCommandTestBase
         RoleKeys.APP_INFOPORT, AccumuloConfigFileOptions.MASTER_PORT_CLIENT_DEFAULT,
         ARG_ROLEOPT, ROLE_MONITOR, RoleKeys.APP_INFOPORT,
         AccumuloConfigFileOptions.MONITOR_PORT_CLIENT_DEFAULT
+        */
     ]
 
-    createHoyaCluster(
+    createAccumuloCluster(
         CLUSTER,
         roleMap,
         extraArgs,
         true,
-        [:]
+        clusterOps,
+        "256M"
     )
 
     //get a hoya client against the cluster
     HoyaClient hoyaClient = bondToCluster(HOYA_CONFIG, CLUSTER)
-    ClusterDescription cd2 = hoyaClient.getClusterDescription()
-    assert CLUSTER == cd2.name
+    ClusterDescription cd = hoyaClient.clusterDescription
+    assert CLUSTER == cd.name
 
     log.info("Connected via HoyaClient {}", hoyaClient.toString())
 
     //wait for the role counts to be reached
-    waitForRoleCount(hoyaClient, roleMap, HBASE_LAUNCH_WAIT_TIME)
+    waitForRoleCount(hoyaClient, roleMap, ACCUMULO_LAUNCH_WAIT_TIME)
 
+    cd = hoyaClient.clusterDescription
+
+//    fetchWebPage()
 
   }
 
