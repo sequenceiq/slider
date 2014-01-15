@@ -69,19 +69,19 @@ need to be changed
     </property>
        
     <property>
-      <name>hoya.test.thaw.wait.seconds/name>
+      <name>hoya.test.thaw.wait.seconds</name>
       <description>Time to wait in seconds for a thaw to result in a running AM</description>
       <value>60000</value>
     </property>
     
     <property>
-      <name>hoya.test.freeze.wait.seconds/name>
+      <name>hoya.test.freeze.wait.seconds</name>
       <description>Time to wait in seconds for a freeze to halt the cluster</description>
       <value>60000</value>
     </property>
             
      <property>
-      <name>hoya.test.timeout.seconds/name>
+      <name>hoya.test.timeout.seconds</name>
       <description>Time to in seconds before a test is considered to have failed.
       There are some maven properties which also define limits and may need adjusting</description>
       <value>180000</value>
@@ -101,7 +101,7 @@ during cluster creation.
 The HBase tests can be enabled or disabled
     
     <property>
-      <name>hoya.test.hbase.enabled/name>
+      <name>hoya.test.hbase.enabled</name>
       <description>Flag to enable/disable HBase tests</description>
       <value>true</value>
     </property>
@@ -124,7 +124,7 @@ Mandatory test parameters must be added to `hoya-client.xml`
 Optional parameters:  
   
      <property>
-      <name>hoya.test.hbase.launch.wait.seconds/name>
+      <name>hoya.test.hbase.launch.wait.seconds</name>
       <description>Time to wait in seconds for HBase to start</description>
       <value>180000</value>
     </property>  
@@ -135,7 +135,7 @@ Optional parameters:
 Enable/disable the tests
 
      <property>
-      <name>hoya.test.accumulo.enabled/name>
+      <name>hoya.test.accumulo.enabled</name>
       <description>Flag to enable/disable Accumulo tests</description>
       <value>true</value>
      </property>
@@ -144,7 +144,7 @@ Enable/disable the tests
 Optional parameters
          
      <property>
-      <name>hoya.test.accumulo.launch.wait.seconds/name>
+      <name>hoya.test.accumulo.launch.wait.seconds</name>
       <description>Time to wait in seconds for Accumulo to start</description>
       <value>180000</value>
      </property>

@@ -125,6 +125,7 @@ class HoyaTestUtils extends Assert {
     if (!val) {
       fail("Missing configuration option $key")
     }
+    return val;
   }
 
   /**
@@ -144,7 +145,9 @@ class HoyaTestUtils extends Assert {
   protected static String[] toArray(List<Object> args) {
     String[] converted = new String[args.size()];
     for (int i = 0; i < args.size(); i++) {
-      converted[i] = args.get(i).toString();
+      def elt = args.get(i)
+      assert args.get(i) != null
+      converted[i] = elt.toString();
     }
     return converted;
   }
@@ -371,6 +374,7 @@ class HoyaTestUtils extends Assert {
       String address,
       List args,
       Configuration conf) {
+    assert address != null
     log.info("Connecting to rm at ${address}")
     if (!args.contains(Arguments.ARG_MANAGER)) {
       args += [Arguments.ARG_MANAGER, address]

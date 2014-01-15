@@ -25,7 +25,7 @@ import org.apache.hadoop.yarn.service.launcher.LauncherExitCodes
 import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.funtest.framework.HoyaCommandTestBase
-import org.apache.hoya.funtest.framework.HoyaTestProperties
+import org.apache.hoya.funtest.framework.HoyaFuntestProperties
 import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.HoyaActions
@@ -37,7 +37,7 @@ import org.junit.Test
 @CompileStatic
 @Slf4j
 public class TestClusterLifecycle extends HoyaCommandTestBase
-    implements HoyaTestProperties, Arguments, HoyaExitCodes {
+    implements HoyaFuntestProperties, Arguments, HoyaExitCodes {
 
 
   static String CLUSTER = "test_cluster_lifecycle"

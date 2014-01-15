@@ -16,29 +16,30 @@
  * limitations under the License.
  */
 
-package org.apache.hoya.funtest.hbase
+package org.apache.hoya.funtest.accumulo
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import org.apache.hadoop.conf.Configuration
 import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.api.ClusterDescription
+import org.apache.hoya.api.RoleKeys
 import org.apache.hoya.funtest.framework.HoyaFuntestProperties
 import org.apache.hoya.funtest.framework.PortAssignments
-
-import static org.apache.hoya.testtools.HBaseTestUtils.*
-
+import org.apache.hoya.providers.accumulo.AccumuloConfigFileOptions
+import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.client.HoyaClient
 import org.junit.AfterClass
 import org.junit.BeforeClass
 import org.junit.Test
 
-import static org.apache.hoya.providers.hbase.HBaseKeys.*
+import static org.apache.hoya.providers.accumulo.AccumuloKeys.ROLE_MONITOR
+import static org.apache.hoya.testtools.HoyaTestUtils.describe
+import static org.apache.hoya.testtools.HoyaTestUtils.waitForRoleCount
 
 @CompileStatic
 @Slf4j
-public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
+public class TestFunctionalAccumuloCluster extends AccumuloCommandTestBase
     implements HoyaFuntestProperties, Arguments, HoyaExitCodes {
 
 
@@ -62,19 +63,24 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
 
 
     Map<String, Integer> roleMap = [
-        (ROLE_MASTER): 1,
-        (ROLE_WORKER): 1,
+        (HBaseKeys.ROLE_MASTER): 1,
+        (HBaseKeys.ROLE_WORKER): 1,
     ]
-    
+
+    List<String> extraArgs = [
+        ARG_ROLEOPT, HBaseKeys.ROLE_MASTER, "app.infoport",
+        Integer.toString(PortAssignments._testHBaseCreateCluster),
+        ARG_ROLEOPT, HBaseKeys.ROLE_WORKER, "app.infoport",
+        Integer.toString(PortAssignments._testHBaseCreateCluster2),
+        RoleKeys.APP_INFOPORT, AccumuloConfigFileOptions.MASTER_PORT_CLIENT_DEFAULT,
+        ARG_ROLEOPT, ROLE_MONITOR, RoleKeys.APP_INFOPORT,
+        AccumuloConfigFileOptions.MONITOR_PORT_CLIENT_DEFAULT
+    ]
+
     createHoyaCluster(
         CLUSTER,
         roleMap,
-        [
-            ARG_ROLEOPT, ROLE_MASTER, "app.infoport",
-            Integer.toString(PortAssignments._testHBaseCreateCluster),
-            ARG_ROLEOPT, ROLE_WORKER, "app.infoport",
-            Integer.toString(PortAssignments._testHBaseCreateCluster2),
-        ],
+        extraArgs,
         true,
         [:]
     )
@@ -89,10 +95,7 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
     //wait for the role counts to be reached
     waitForRoleCount(hoyaClient, roleMap, HBASE_LAUNCH_WAIT_TIME)
 
-    Configuration clientConf = createHBaseConfiguration(hoyaClient)
-    assertHBaseMasterFound(clientConf)
-    waitForHBaseRegionServerCount(hoyaClient,CLUSTER, 1, HBASE_LAUNCH_WAIT_TIME)
-    
+
   }
 
 }

@@ -16,15 +16,23 @@
  * limitations under the License.
  */
 
-package org.apache.hoya.funtest.framework
+package org.apache.hoya.funtest.hbase
+
+import org.apache.hoya.funtest.framework.HoyaCommandTestBase
+import org.junit.Before
+
+import static org.apache.hoya.funtest.framework.HoyaFuntestProperties.*
+import static org.apache.hoya.testtools.HoyaTestUtils.*
 
 /**
- * Here is where all port assignments should be booked, to ensure that no
- * other test suite is using the same ports
+ * Anything specific to HBase tests
  */
-interface PortAssignments {
+abstract class HBaseCommandTestBase extends HoyaCommandTestBase {
+
+  @Before 
+  public void verifyPreconditions() {
+    assumeBoolOption(HOYA_CONFIG, KEY_HOYA_TEST_HBASE_ENABLED, true)
+  }
   
-  int _testHBaseCreateCluster = 7000;
-  int _testHBaseCreateCluster2 = 7001;
 
 }

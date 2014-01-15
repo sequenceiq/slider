@@ -63,5 +63,10 @@
     <description>list of the zookeeper hosts</description>
     <value>sandbox</value>
   </property>
-
+  
+  <property>
+    <name>hoya.test.accumulo.enabled</name>
+    <description>Flag to enable/disable Accumulo tests</description>
+    <value>false</value>
+  </property>
 </configuration>
