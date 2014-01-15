@@ -21,8 +21,11 @@ package org.apache.hoya.funtest.accumulo
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hoya.funtest.framework.HoyaCommandTestBase
 import org.apache.hoya.funtest.framework.HoyaShell
+import org.apache.hoya.yarn.Arguments
 import org.junit.Before
 
+import static org.apache.hoya.HoyaXMLConfKeysForTesting.KEY_HOYA_TEST_HBASE_APPCONF
+import static org.apache.hoya.HoyaXMLConfKeysForTesting.KEY_HOYA_TEST_HBASE_TAR
 import static org.apache.hoya.api.RoleKeys.YARN_MEMORY
 import static org.apache.hoya.funtest.framework.HoyaFuntestProperties.KEY_HOYA_TEST_ACCUMULO_ENABLED
 import static org.apache.hoya.providers.accumulo.AccumuloKeys.*
@@ -49,38 +52,45 @@ abstract class AccumuloCommandTestBase extends HoyaCommandTestBase {
    *
    * @param clustername
    * @param roles
-   * @param extraArgs
+   * @param argsList
    * @param blockUntilRunning
    * @param containerMemory
    * @return
    */
   public HoyaShell createAccumuloCluster(String clustername,
                                          Map<String, Integer> roles,
-                                         List<String> extraArgs,
+                                         List<String> argsList,
                                          boolean blockUntilRunning,
                                          Map<String, String> clusterOps,
                                          String containerMemory) {
-    extraArgs << ARG_PROVIDER << PROVIDER_ACCUMULO;
+    argsList << ARG_PROVIDER << PROVIDER_ACCUMULO;
 
 
     YarnConfiguration conf = HOYA_CONFIG
-    clusterOps[OPTION_ZK_HOME] = conf.getTrimmed(OPTION_ZK_HOME)
-    clusterOps[OPTION_HADOOP_HOME] = conf.getTrimmed(OPTION_HADOOP_HOME)
+    clusterOps[OPTION_ZK_HOME] = getRequiredConfOption(
+        HOYA_CONFIG, OPTION_ZK_HOME)
+    clusterOps[OPTION_HADOOP_HOME] = getRequiredConfOption(
+        HOYA_CONFIG,
+        OPTION_HADOOP_HOME)
+    argsList << Arguments.ARG_IMAGE <<
+    getRequiredConfOption(HOYA_CONFIG, KEY_HOYA_TEST_HBASE_TAR)
 
-    extraArgs << ARG_ROLEOPT << ROLE_MASTER <<
+    argsList << Arguments.ARG_CONFDIR <<
+    getRequiredConfOption(HOYA_CONFIG, KEY_HOYA_TEST_HBASE_APPCONF)
+    argsList << ARG_ROLEOPT << ROLE_MASTER <<
 
-    extraArgs << ARG_ROLEOPT << ROLE_MASTER <<
+    argsList << ARG_ROLEOPT << ROLE_MASTER <<
     YARN_MEMORY << containerMemory
-    extraArgs << ARG_ROLEOPT << ROLE_TABLET <<
+    argsList << ARG_ROLEOPT << ROLE_TABLET <<
     YARN_MEMORY << containerMemory
-    extraArgs << ARG_ROLEOPT << ROLE_MONITOR <<
+    argsList << ARG_ROLEOPT << ROLE_MONITOR <<
     YARN_MEMORY << containerMemory
-    extraArgs << ARG_ROLEOPT << ROLE_GARBAGE_COLLECTOR <<
+    argsList << ARG_ROLEOPT << ROLE_GARBAGE_COLLECTOR <<
     YARN_MEMORY << containerMemory
 
     return createHoyaCluster(clustername,
                              roles,
-                             extraArgs,
+                             argsList,
                              blockUntilRunning,
                              clusterOps)
   }
