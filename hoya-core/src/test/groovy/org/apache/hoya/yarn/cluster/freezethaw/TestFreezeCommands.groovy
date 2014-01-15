@@ -20,10 +20,13 @@ package org.apache.hoya.yarn.cluster.freezethaw
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.apache.hadoop.yarn.service.launcher.LauncherExitCodes
+import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.exceptions.HoyaException
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.HoyaActions
 import org.apache.hoya.yarn.client.HoyaClient
+import org.apache.hoya.yarn.params.ArgOps
 import org.apache.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
@@ -78,12 +81,13 @@ class TestFreezeCommands extends HBaseMiniClusterTestBase {
           new YarnConfiguration(miniCluster.config),
           [
               HoyaActions.ACTION_EXISTS, clustername,
-              Arguments.ARG_FILESYSTEM, fsDefaultName
+              Arguments.ARG_FILESYSTEM, fsDefaultName,
+              Arguments.ARG_LIVE
           ],
           )
       assert 0 != exists1.serviceExitCode;
     } catch (HoyaException e) {
-      assertUnknownClusterException(e)
+      assert e.exitCode == LauncherExitCodes.EXIT_FALSE;
     }
 
     log.info("First Thaw");

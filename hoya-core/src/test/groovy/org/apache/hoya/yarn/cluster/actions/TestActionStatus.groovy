@@ -99,7 +99,7 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
     //now look for the explicit sevice
 
     int status = hoyaClient.actionStatus(clustername, null)
-    assert status == EXIT_SUCCESS
+    assert status == ErrorStrings.EXIT_SUCCESS
     
     
     //status to a file
