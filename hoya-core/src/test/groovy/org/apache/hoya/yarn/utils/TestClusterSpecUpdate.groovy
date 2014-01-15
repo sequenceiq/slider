@@ -46,7 +46,7 @@ class TestClusterSpecUpdate extends YarnMiniClusterTestBase {
     HoyaUtils.deleteDirectoryTree(testDir)
     testDirURI = testDir.toURI()
     testDirPath = new Path(testDirURI)
-    localFS = HadoopFS.get(testDirURI, createConfiguration())
+    localFS = HadoopFS.get(testDirURI, getConfiguration())
   }
 
   @Test

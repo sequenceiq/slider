@@ -25,6 +25,7 @@ import org.apache.commons.httpclient.HttpClient
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager
 import org.apache.commons.httpclient.methods.GetMethod
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLaunchException
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hoya.api.ClusterDescription
@@ -38,6 +39,8 @@ import org.apache.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.junit.Assert
 import org.junit.Assume
+
+import static org.apache.hoya.yarn.Arguments.ARG_OPTION
 
 /**
  * Static utils for tests in this package and in other test projects.
@@ -63,6 +66,7 @@ class HoyaTestUtils extends Assert {
   }
 
   public static void skip(String message) {
+    log.warn(message)
     Assume.assumeTrue(message, false);
   }
 
@@ -74,9 +78,53 @@ class HoyaTestUtils extends Assert {
     }
   }
 
+  /**
+   * Assume that a string option is set and not equal to ""
+   * @param conf configuration file
+   * @param key key to look for
+   */
+  public static void assumeStringOptionSet(Configuration conf, String key) {
+    if (!conf.getTrimmed(key)) {
+      skip("Configuration key $key not set")
+    }
+  }
 
-  public static void assumeConfOptionSet(Configuration conf, String key) {
-    Assume.assumeNotNull("not defined " + key, conf.get(key))
+  /**
+   * Assume that a boolean option is set and true.
+   * Unset or false triggers a test skip
+   * @param conf configuration file
+   * @param key key to look for
+   */
+  public static void assumeBoolOptionTrue(Configuration conf, String key) {
+    assumeBoolOption(conf, key, false)
+  }
+
+  /**
+   * Assume that a boolean option is true.
+   * False triggers a test skip
+   * @param conf configuration file
+   * @param key key to look for
+   * @param defval default value if the property is not defined
+   */
+  public static void assumeBoolOption(
+      Configuration conf, String key, boolean defval) {
+    if (!conf.getBoolean(key, defval)) {
+      skip("Configuration key $key is false")
+    }
+  }
+
+  /**
+   * Get a required config option (trimmed, incidentally).
+   * Test will fail if not set
+   * @param conf configuration
+   * @param key key
+   * @return the string
+   */
+  public static String getRequiredConfOption(Configuration conf, String key) {
+    String val = conf.getTrimmed(key)
+    if (!val) {
+      fail("Missing configuration option $key")
+    }
   }
 
   /**
@@ -303,8 +351,8 @@ class HoyaTestUtils extends Assert {
   public static void launchExpectingException(Class serviceClass,
                                               Configuration conf,
                                               String expectedText,
-                                              List args) throws
-      Throwable {
+                                              List args)
+      throws Throwable {
     try {
       ServiceLauncher launch = launch(serviceClass, conf, args);
       fail("Expected an exception with text containing " + expectedText
@@ -330,5 +378,21 @@ class HoyaTestUtils extends Assert {
     ServiceLauncher<HoyaClient> launcher = execHoyaCommand(conf, args)
     return launcher
   }
-  
+
+  /**
+   * Add a configuration parameter as a cluster configuration option
+   * @param extraArgs extra arguments
+   * @param conf config
+   * @param option option
+   */
+  public static void addClusterConfigOption(
+      List<String> extraArgs,
+      YarnConfiguration conf,
+      String option) {
+    
+    conf.getTrimmed(option);
+    extraArgs << ARG_OPTION << option << getRequiredConfOption(conf, option)
+    
+  }
+
 }

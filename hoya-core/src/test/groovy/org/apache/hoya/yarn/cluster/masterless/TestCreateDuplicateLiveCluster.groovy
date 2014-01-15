@@ -38,7 +38,7 @@ class TestCreateDuplicateLiveCluster extends HBaseMiniClusterTestBase {
     @Test
     public void testCreateClusterRunning() throws Throwable {
       String clustername = "test_create_duplicate_live_cluster"
-      createMiniCluster(clustername, createConfiguration(), 1, true)
+      createMiniCluster(clustername, getConfiguration(), 1, true)
 
       describe "create a masterless AM, while it is running, try to create" +
                "a second cluster with the same name"

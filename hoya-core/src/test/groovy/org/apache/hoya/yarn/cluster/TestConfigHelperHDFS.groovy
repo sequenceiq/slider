@@ -32,7 +32,7 @@ class TestConfigHelperHDFS extends YarnMiniClusterTestBase{
   //diabled for now; 
   @Test 
   public void testConfigHelperHDFS() throws Throwable {
-    YarnConfiguration config = createConfiguration()
+    YarnConfiguration config = getConfiguration()
     createMiniHDFSCluster("testConfigHelperHDFS", config)
     
     Configuration conf= new Configuration(false);

@@ -52,24 +52,14 @@ It can also be set in the (optional) file `hoya-funtest/build.properties`:
 
 This file is loaded whenever a hoya build or test run takes place
 
-### Configuration of `hoya-client.xml`
+## Configuration of `hoya-client.xml`
 
-Mandatory test options must be added to `hoya-client.xml`
+The `hoya-client.xml` must have extra configuration options for both the HBase and
+Accumulo tests, as well as a common set fr
 
-  
-    <property>
-      <name>hoya.test.hbase.tar</name>
-      <description>Path to the HBase Tar file in HDFS</description>
-      <value>hdfs://sandbox.hortonworks.com:8020/user/hoya/hbase.tar.gz</value>
-    </property>
-    
-    <property>
-      <name>hoya.test.hbase.appconf</name>
-      <description>Path to the directory containing the HBase application config</description>
-      <value>file://${user.dir}/src/test/configs/sandbox/hbase</value>
-    </property>
+### Non-mandatory options
 
-The following non-mandatory test options may be added to `hoya-client.xml` if the defaults
+The following test options may be added to `hoya-client.xml` if the defaults
 need to be changed
                    
     <property>
@@ -89,13 +79,7 @@ need to be changed
       <description>Time to wait in seconds for a freeze to halt the cluster</description>
       <value>60000</value>
     </property>
-    
-     <property>
-      <name>hoya.test.hbase.launch.wait.seconds/name>
-      <description>Time to wait in seconds for HBase to start</description>
-      <value>180000</value>
-    </property>
-        
+            
      <property>
       <name>hoya.test.timeout.seconds/name>
       <description>Time to in seconds before a test is considered to have failed.
@@ -104,12 +88,68 @@ need to be changed
     </property>
     
     
+    
 Note that while the same properties need to be set in
 `hoya-core/src/test/resources/hoya-client.xml`, those tests take a file in the local
 filesystem -here a URI to a path visible across all nodes in the cluster are required
 the tests do not copy the .tar/.tar.gz files over. The application configuration
 directories may be local or remote -they are copied into the `.hoya` directory
 during cluster creation.
+
+### HBase Parameters
+
+The HBase tests can be enabled or disabled
+    
+    <property>
+      <name>hoya.test.hbase.enabled/name>
+      <description>Flag to enable/disable HBase tests</description>
+      <value>true</value>
+    </property>
+        
+Mandatory test parameters must be added to `hoya-client.xml`
+
+  
+    <property>
+      <name>hoya.test.hbase.tar</name>
+      <description>Path to the HBase Tar file in HDFS</description>
+      <value>hdfs://sandbox.hortonworks.com:8020/user/hoya/hbase.tar.gz</value>
+    </property>
+    
+    <property>
+      <name>hoya.test.hbase.appconf</name>
+      <description>Path to the directory containing the HBase application config</description>
+      <value>file://${user.dir}/src/test/configs/sandbox/hbase</value>
+    </property>
+    
+Optional parameters:  
+  
+     <property>
+      <name>hoya.test.hbase.launch.wait.seconds/name>
+      <description>Time to wait in seconds for HBase to start</description>
+      <value>180000</value>
+    </property>  
+
+
+#### Accumulo configuration options
+
+Enable/disable the tests
+
+     <property>
+      <name>hoya.test.accumulo.enabled/name>
+      <description>Flag to enable/disable Accumulo tests</description>
+      <value>true</value>
+     </property>
+         
+         
+Optional parameters
+         
+     <property>
+      <name>hoya.test.accumulo.launch.wait.seconds/name>
+      <description>Time to wait in seconds for Accumulo to start</description>
+      <value>180000</value>
+     </property>
+
+
 
 ### Testing against a secure cluster
 

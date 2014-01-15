@@ -37,7 +37,7 @@ class TestTwoLiveClusters extends HBaseMiniClusterTestBase {
    */
   @Test
   public void testTwoLiveClusters() throws Throwable {
-    createMiniCluster("TestTwoLiveClusters", createConfiguration(), 1, true)
+    createMiniCluster("TestTwoLiveClusters", getConfiguration(), 1, true)
     String clustername1 = "testtwoliveclusters-a"
     //now launch the cluster
     int regionServerCount = 1

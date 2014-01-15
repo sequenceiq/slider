@@ -53,7 +53,7 @@ class TestCreateMiniClusterCreation extends HBaseMiniClusterTestBase {
   @Test
   public void testYARNClusterCreation() throws Throwable {
     describe "Create a mini cluster"
-    createMiniCluster("testYARNClusterCreation", createConfiguration(), 1, true)
+    createMiniCluster("testYARNClusterCreation", getConfiguration(), 1, true)
     String rmAddr = getRMAddr();
 
     log.info("RM address = $rmAddr")

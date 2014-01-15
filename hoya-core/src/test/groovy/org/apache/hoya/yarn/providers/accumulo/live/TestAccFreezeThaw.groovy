@@ -39,7 +39,7 @@ class TestAccFreezeThaw extends AccumuloTestBase {
     int tablets = 1
     int monitor = 1
     int gc = 1
-    createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, false)
+    createMiniCluster(clustername, getConfiguration(), 1, 1, 1, true, false)
     describe(" Create an accumulo cluster");
 
     //make sure that ZK is up and running at the binding string
@@ -61,7 +61,7 @@ class TestAccFreezeThaw extends AccumuloTestBase {
     //now give the cluster a bit of time to actually start work
 
     log.info("Sleeping for a while")
-    sleep(ACCUMULO_GO_LIVE_TIME);
+    sleepForAccumuloClusterLive();
     //verify that all is still there
     waitForRoleCount(hoyaClient, roles, 0, "extended cluster operation")
 
@@ -86,7 +86,8 @@ class TestAccFreezeThaw extends AccumuloTestBase {
     }
     //force kill any accumulo processes
     killAllAccumuloProcesses()
-    sleep(ACCUMULO_GO_LIVE_TIME);
+
+    sleepForAccumuloClusterLive();
 
     log.info("Thawing")
     
@@ -96,13 +97,17 @@ class TestAccFreezeThaw extends AccumuloTestBase {
     waitForRoleCount(hoyaClient, roles, ACCUMULO_CLUSTER_STARTUP_TO_LIVE_TIME, "thawing")
 
 
-    sleep(ACCUMULO_GO_LIVE_TIME);
+    sleepForAccumuloClusterLive();
     //verify that all is still there
     waitForRoleCount(hoyaClient, roles, 0, "extended cluster operation after thawing")
     page = fetchLocalPage(
         AccumuloConfigFileOptions.MONITOR_PORT_CLIENT_INT,
         AccumuloKeys.MONITOR_PAGE_JSON)
     log.info(page);
+  }
+
+  public void sleepForAccumuloClusterLive() {
+    sleep(ACCUMULO_GO_LIVE_TIME)
   }
 
 }

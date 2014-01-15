@@ -42,7 +42,7 @@ class TestKilledHBaseMaster extends HBaseMiniClusterTestBase {
   public void testKilledHBaseMaster() throws Throwable {
     String clustername = "test_killed_hbase_master"
     int regionServerCount = 1
-    createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
+    createMiniCluster(clustername, getConfiguration(), 1, 1, 1, true, true)
     describe("Kill the hbase master and expect a restart");
 
     //now launch the cluster

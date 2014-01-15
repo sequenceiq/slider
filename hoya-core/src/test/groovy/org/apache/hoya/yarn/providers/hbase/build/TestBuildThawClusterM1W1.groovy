@@ -36,7 +36,7 @@ class TestBuildThawClusterM1W1 extends HBaseMiniClusterTestBase {
   @Test
   public void testBuildCluster() throws Throwable {
     String clustername = "test_build_thaw_cluster_m1_w1"
-    createMiniCluster(clustername, createConfiguration(), 1, true)
+    createMiniCluster(clustername, getConfiguration(), 1, true)
 
     describe "verify that a built cluster can be thawed"
 

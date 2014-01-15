@@ -42,7 +42,7 @@ class TestCreateMasterlessAM extends HBaseMiniClusterTestBase {
 
   @Test
   public void testCreateMasterlessAM() throws Throwable {
-    createMiniCluster("TestCreateMasterlessAM", createConfiguration(), 1, true)
+    createMiniCluster("TestCreateMasterlessAM", getConfiguration(), 1, true)
 
     describe "create a masterless AM then get the service and look it up via the AM"
 

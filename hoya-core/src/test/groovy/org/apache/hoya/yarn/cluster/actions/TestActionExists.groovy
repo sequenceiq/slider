@@ -21,7 +21,6 @@ package org.apache.hoya.yarn.cluster.actions
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.yarn.service.launcher.LauncherExitCodes
-import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.exceptions.HoyaException
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.HoyaActions
@@ -44,7 +43,7 @@ class TestActionExists extends HBaseMiniClusterTestBase {
   @Before
   public void setup() {
     super.setup()
-    createMiniCluster("TestActionExists", createConfiguration(), 1, false)
+    createMiniCluster("TestActionExists", getConfiguration(), 1, false)
   }
   
   @Test

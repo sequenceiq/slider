@@ -16,29 +16,21 @@
  * limitations under the License.
  */
 
-package org.apache.hoya.yarn
+package org.apache.hoya.testtools
 
-import groovy.transform.CompileStatic;
-import groovy.util.logging.Slf4j;
-import org.apache.hoya.tools.HoyaUtils;
+import groovy.transform.CompileStatic
+import groovy.util.logging.Slf4j
 import org.apache.hadoop.yarn.conf.YarnConfiguration
-import org.apache.hoya.testtools.HoyaTestUtils
-import org.junit.Before;
+import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
+import org.apache.hoya.api.RoleKeys
+import org.apache.hoya.providers.accumulo.AccumuloConfigFileOptions
+import org.apache.hoya.providers.accumulo.AccumuloKeys
+import org.apache.hoya.yarn.Arguments
+import org.apache.hoya.yarn.client.HoyaClient
 
-/**
- * Base class for unit tests as well as ones starting mini clusters
- * -the foundational code and methods
- * 
- * 
- */
-
+@Slf4j
 @CompileStatic
-public abstract class HoyaTestBase extends HoyaTestUtils {
+public class AccumuloTestUtils extends HoyaTestUtils {
 
-  @Before
-  public void setup() {
-    //give our thread a name
-    Thread.currentThread().name = "JUnit"
-  }
 
 }

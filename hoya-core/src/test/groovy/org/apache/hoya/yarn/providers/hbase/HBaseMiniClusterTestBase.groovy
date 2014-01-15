@@ -23,25 +23,27 @@ import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hbase.client.HConnection
-import org.apache.hadoop.hbase.client.HTableUtil
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.ClusterNode
 import org.apache.hoya.api.RoleKeys
 import org.apache.hoya.providers.hbase.HBaseKeys
-import org.apache.hoya.testtools.HoyaTestUtils
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.client.HoyaClient
 import org.apache.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hoya.testtools.HBaseTestUtils
-
+import static org.apache.hoya.yarn.Arguments.*
+import static org.apache.hoya.yarn.HoyaActions.*;
+import static org.apache.hoya.testtools.HoyaTestUtils.*
+import static org.apache.hoya.HoyaXMLConfKeysForTesting.*
+import static org.apache.hoya.providers.hbase.HBaseKeys.*
 /**
  * test base for all hbase clusters
  */
 @CompileStatic
 @Slf4j
-public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
-  public static final int HBASE_CLUSTER_STARTUP_TIME = 3 * 60 * 1000
+public abstract class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
+  public static final int HBASE_CLUSTER_STARTUP_TIME = HBASE_LAUNCH_WAIT_TIME
 
   /**
    * The time to sleep before trying to talk to the HBase Master and
@@ -56,12 +58,13 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
 
   @Override
   public String getTestConfigurationPath() {
-    return "src/main/resources/" + HBaseKeys.HBASE_CONF_RESOURCE;
+    return "src/main/resources/" + HBASE_CONF_RESOURCE;
   }
 
   @Override
   void setup() {
     super.setup()
+    assumeBoolOption(HOYA_CONFIG, KEY_HOYA_TEST_HBASE_ENABLED, true)
     assumeArchiveDefined();
     assumeApplicationHome();
   }
@@ -75,7 +78,6 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
     killAllRegionServers();
     killAllMasterServers();
   }
-
 
   /**
    * Kill all the region servers
@@ -107,7 +109,7 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
 
   public static void assertHBaseMasterNotStopped(HoyaClient hoyaClient,
                                           String clustername) {
-    String[] nodes = hoyaClient.listNodeUUIDsByRole(HBaseKeys.ROLE_MASTER);
+    String[] nodes = hoyaClient.listNodeUUIDsByRole(ROLE_MASTER);
     int masterNodeCount = nodes.length;
     assert masterNodeCount > 0;
     ClusterNode node = hoyaClient.getNode(nodes[0]);
@@ -186,26 +188,25 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
       int flexTarget,
       boolean persist,
       boolean testHBaseAfter) {
-    createMiniCluster(clustername, createConfiguration(),
+    createMiniCluster(clustername, getConfiguration(),
                       1,
                       true);
     //now launch the cluster
     HoyaClient hoyaClient = null;
     ServiceLauncher<HoyaClient> launcher = createHoyaCluster(clustername,
                          [
-                             (HBaseKeys.ROLE_MASTER): masters,
-                             (HBaseKeys.ROLE_WORKER): workers,
+                             (ROLE_MASTER): masters,
+                             (ROLE_WORKER): workers,
                          ],
                          [
-                             Arguments.ARG_ROLEOPT ,
-                             HBaseKeys.ROLE_MASTER ,
+                             ARG_ROLEOPT ,
+                             ROLE_MASTER ,
                              RoleKeys.YARN_MEMORY ,
                              YRAM,
-                             Arguments.ARG_ROLEOPT ,
-                             HBaseKeys.ROLE_WORKER ,
+                             ARG_ROLEOPT ,
+                             ROLE_WORKER ,
                              RoleKeys.YARN_MEMORY ,
                              YRAM
-                             
                          ],
                          true,
                          true,
@@ -229,8 +230,8 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
       boolean flexed;
       flexed = 0 == hoyaClient.flex(clustername,
                                     [
-                                        (HBaseKeys.ROLE_WORKER): flexTarget,
-                                        (HBaseKeys.ROLE_MASTER): masterFlexTarget
+                                        (ROLE_WORKER): flexTarget,
+                                        (ROLE_MASTER): masterFlexTarget
                                     ],
                                     persist);
       waitForHoyaWorkerCount(hoyaClient, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME);
@@ -238,7 +239,8 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
                              HBASE_CLUSTER_STARTUP_TO_LIVE_TIME);
 
       if (testHBaseAfter) {
-        waitForHBaseRegionServerCount(hoyaClient, clustername, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME);
+        waitForHBaseRegionServerCount(hoyaClient, clustername, flexTarget,
+                                      HBASE_CLUSTER_STARTUP_TO_LIVE_TIME);
       }
       return flexed;
     } finally {
@@ -256,13 +258,13 @@ public class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
   public static ClusterDescription waitForHoyaWorkerCount(HoyaClient hoyaClient,
                                                    int desiredCount,
                                                    int timeout) {
-    return waitForRoleCount(hoyaClient, HBaseKeys.ROLE_WORKER, desiredCount, timeout)
+    return waitForRoleCount(hoyaClient, ROLE_WORKER, desiredCount, timeout)
   }
   
   public static ClusterDescription waitForHoyaMasterCount(HoyaClient hoyaClient,
                                                    int desiredCount,
                                                    int timeout) {
-    return waitForRoleCount(hoyaClient, HBaseKeys.ROLE_MASTER, desiredCount, timeout)
+    return waitForRoleCount(hoyaClient, ROLE_MASTER, desiredCount, timeout)
   }
 
 

@@ -41,7 +41,7 @@ class TestFreezeCommands extends HBaseMiniClusterTestBase {
   @Test
   public void testFreezeCommands() throws Throwable {
     String clustername = "test_freeze_commands"
-    YarnConfiguration conf = createConfiguration()
+    YarnConfiguration conf = getConfiguration()
     createMiniCluster(clustername, conf, 1, 1, 1, true, true)
 
     describe "create a masterless AM, freeze it, try to freeze again"
