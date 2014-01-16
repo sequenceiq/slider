@@ -21,6 +21,8 @@ package org.apache.hoya.funtest.hbase
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.hbase.util.test.LoadTestDataGenerator
+import org.apache.hadoop.hbase.util.LoadTestTool
 import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.funtest.framework.HoyaCommandTestBase
@@ -96,7 +98,8 @@ public class TestFunctionalHBaseCluster extends HoyaCommandTestBase
     waitForHBaseRegionServerCount(hoyaClient,CLUSTER, 1, HBASE_LAUNCH_WAIT_TIME)
     
 
-
+     String[] args = [""]
+     // LoadTestTool.main(args)
 
   }
 
