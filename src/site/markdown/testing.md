@@ -314,9 +314,11 @@ testing, you must build/install the hoya packages from the root assembly.
 
 ## Troubleshooting the functional tests
 
-1. If you are testing in a local VM and stops responding, reboot it -sometimes
-they just seem to get overloaded. If you can't do a clean shutdown, reboot it
-cleanly the second time around.
+1. If you are testing in a local VM and stops responding, it'll have been
+swapped out to RAM. Rebooting can help, but for a long term fix go through
+all the Hadoop configuratins (HDFS, YARN, Zookeeper) and set their heaps to
+smaller numbers, like 256M each. Also: turn off unused services (hcat, oozie,
+webHDFS)
 
 1. The YARN UI will list the cluster launches -look for the one
 with a name close to the test and view its logs
@@ -332,4 +334,6 @@ in ~/.hoya/cluster/$testname
 are synchronized, and that you have a current token -`klist` will
 tell you this. In a VM: install and enable `ntp`.
 
-1. 
+
+
+can we do 
