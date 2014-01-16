@@ -40,7 +40,7 @@ class TestInvalidMonitorAddress extends AccumuloTestBase {
   @Test
   public void testInvalidMonitorAddress() throws Throwable {
     String clustername = "test_invalid_monitor_address"
-    createMiniCluster(clustername, createConfiguration(), 1, true)
+    createMiniCluster(clustername, getConfiguration(), 1, true)
 
     describe "verify that bad Java heap options are picked up"
     

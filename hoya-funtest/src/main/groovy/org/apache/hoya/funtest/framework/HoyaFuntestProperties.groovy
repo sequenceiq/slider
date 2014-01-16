@@ -20,8 +20,12 @@ import org.apache.hoya.HoyaXMLConfKeysForTesting
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/**
+ * Properties unique to the functional tests
+ */
 @CompileStatic
-public interface HoyaTestProperties extends HoyaXMLConfKeysForTesting {
+public interface HoyaFuntestProperties extends HoyaXMLConfKeysForTesting {
 
   /**
    * Maven Property of location of hoya conf dir: {@value}
@@ -33,22 +37,10 @@ public interface HoyaTestProperties extends HoyaXMLConfKeysForTesting {
    */
   String HOYA_BIN_DIR_PROP = "hoya.bin.dir"
   
-  String KEY_HOYA_THAW_WAIT_TIME = "hoya.test.thaw.wait.seconds"
 
-  int DEFAULT_HOYA_THAW_WAIT_TIME = 60000
-  
-  String KEY_HOYA_HBASE_LAUNCH_TIME = "hoya.test.hbase.launch.wait.seconds"
-
-  int DEFAULT_HOYA_HBASE_LAUNCH_TIME = 60 * 3 * 1000
-
-  String KEY_HOYA_FREEZE_WAIT_TIME = "hoya.test.freeze.wait.seconds"
-
-  int DEFAULT_HOYA_FREEZE_WAIT_TIME = 60000
 
   String KEY_HOYA_TEST_ZK_HOSTS = "hoya.test.zkhosts";
   String DEFAULT_HOYA_ZK_HOSTS = "localhost";
   
-  String KEY_HOYA_TEST_TIMEOUT = "hoya.test.timeout.seconds"
 
-  int DEFAULT_HOYA_TEST_TIMEOUT = 600000
 }

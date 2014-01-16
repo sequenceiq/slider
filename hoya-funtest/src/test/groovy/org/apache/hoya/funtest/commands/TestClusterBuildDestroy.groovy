@@ -26,7 +26,7 @@ import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.HoyaActions
 import org.apache.hoya.funtest.framework.HoyaCommandTestBase
-import org.apache.hoya.funtest.framework.HoyaTestProperties
+import org.apache.hoya.funtest.framework.HoyaFuntestProperties
 import org.junit.AfterClass
 import org.junit.BeforeClass
 import org.junit.Test
@@ -34,7 +34,7 @@ import org.junit.Test
 @CompileStatic
 @Slf4j
 public class TestClusterBuildDestroy extends HoyaCommandTestBase
-    implements HoyaTestProperties, Arguments {
+    implements HoyaFuntestProperties, Arguments {
 
 
   static String CLUSTER = "test_cluster_build_destroy"

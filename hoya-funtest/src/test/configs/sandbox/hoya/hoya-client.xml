@@ -63,5 +63,40 @@
     <description>list of the zookeeper hosts</description>
     <value>sandbox</value>
   </property>
+  
+  <property>
+    <name>hoya.test.accumulo.enabled</name>
+    <description>Flag to enable/disable Accumulo tests</description>
+    <value>true</value>
+  </property>
+
+
+  <property>
+    <name>hoya.test.accumulo.tar</name>
+    <description>Path to the Accumulo Tar file in HDFS</description>
+    <value>hdfs://sandbox.hortonworks.com:8020/user/hoya/accumulo.tar</value>
+  </property>
+
+
+  <property>
+    <name>hoya.test.accumulo.appconf</name>
+    <description>Path to the directory containing the Accumulo application
+      config
+    </description>
+    <value>file://${user.dir}/src/test/configs/sandbox/accumulo</value>
+  </property>
+
+
+  <property>
+    <name>zk.home</name>
+    <value>/usr/lib/zookeeper</value>
+    <description>Zookeeper home dir on target systems</description>
+  </property>
+
+  <property>
+    <name>hadoop.home</name>
+    <value>/usr/lib/hadoop</value>
+    <description>Hadoop home dir on target systems</description>
+  </property>
 
 </configuration>

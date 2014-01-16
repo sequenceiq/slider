@@ -41,7 +41,7 @@ class TestAccLiveHDFSArchive extends AccumuloTestBase {
     int tablets = 1
     int monitor = 1
     int gc = 1
-    createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
+    createMiniCluster(clustername, getConfiguration(), 1, 1, 1, true, true)
     describe(" Create an accumulo cluster from an archive");
 
     enableTestRunAgainstUploadedArchive();

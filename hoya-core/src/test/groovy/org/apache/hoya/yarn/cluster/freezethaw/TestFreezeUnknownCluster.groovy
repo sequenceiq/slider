@@ -39,7 +39,7 @@ class TestFreezeUnknownCluster extends HBaseMiniClusterTestBase {
   @Test
   public void testFreezeUnknownCluster() throws Throwable {
     String clustername = "test_start_unknown_cluster"
-    YarnConfiguration conf = createConfiguration()
+    YarnConfiguration conf = getConfiguration()
     createMiniCluster(clustername, conf, 1, true)
 
     describe "try to freeze a cluster that isn't defined"

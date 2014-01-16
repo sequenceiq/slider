@@ -43,7 +43,7 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
   public void testKilledAM() throws Throwable {
     String clustername = "test_killed_am"
     int regionServerCount = 1
-    createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
+    createMiniCluster(clustername, getConfiguration(), 1, 1, 1, true, true)
     describe(" Kill the AM, expect cluster to die");
 
     //now launch the cluster

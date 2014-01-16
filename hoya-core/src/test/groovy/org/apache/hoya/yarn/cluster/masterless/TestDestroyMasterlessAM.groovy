@@ -40,13 +40,13 @@ class TestDestroyMasterlessAM extends HBaseMiniClusterTestBase {
   @Test
   public void testDestroyMasterlessAM() throws Throwable {
     String clustername = "test_destroy_masterless_am"
-    createMiniCluster(clustername, createConfiguration(), 1, true)
+    createMiniCluster(clustername, getConfiguration(), 1, true)
 
     describe "create a masterless AM, stop it, try to create" +
              "a second cluster with the same name, destroy it, try a third time"
 
     ServiceLauncher launcher1 = launchHoyaClientAgainstMiniMR(
-        createConfiguration(),
+        getConfiguration(),
         [
             CommonArgs.ACTION_DESTROY,
             "no-cluster-of-this-name",
@@ -70,7 +70,7 @@ class TestDestroyMasterlessAM extends HBaseMiniClusterTestBase {
       fail("expected a failure, got an AM")
     } catch (HoyaException e) {
       assertExceptionDetails(e,
-                             EXIT_CLUSTER_EXISTS,
+                             ErrorStrings.EXIT_CLUSTER_EXISTS,
                              ErrorStrings.E_ALREADY_EXISTS)
     }
 
@@ -85,7 +85,7 @@ class TestDestroyMasterlessAM extends HBaseMiniClusterTestBase {
     //expect thaw to now fail
     try {
       launcher = launch(HoyaClient,
-                        createConfiguration(),
+                        getConfiguration(),
                         [
                             CommonArgs.ACTION_THAW,
                             clustername,

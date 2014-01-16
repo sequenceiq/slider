@@ -39,7 +39,7 @@ class TestLiveRegionServiceOnHDFS extends HBaseMiniClusterTestBase {
   public void testLiveRegionServiceOnHDFS() throws Throwable {
     String clustername = "test_live_region_service_on_hdfs"
     int regionServerCount = 1
-    createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
+    createMiniCluster(clustername, getConfiguration(), 1, 1, 1, true, true)
     describe(" Create a single region service cluster");
 
     //make sure that ZK is up and running at the binding string

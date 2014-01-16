@@ -33,15 +33,7 @@ import org.junit.Before;
  */
 
 @CompileStatic
-@Slf4j
-
-public class HoyaTestBase extends HoyaTestUtils {
-
-
-  protected YarnConfiguration createConfiguration() {
-    return HoyaUtils.createConfiguration();
-  }
-
+public abstract class HoyaTestBase extends HoyaTestUtils {
 
   @Before
   public void setup() {

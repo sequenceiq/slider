@@ -21,27 +21,26 @@ package org.apache.hoya.funtest.hbase
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.hbase.util.test.LoadTestDataGenerator
-import org.apache.hadoop.hbase.util.LoadTestTool
+
 import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.api.ClusterDescription
-import org.apache.hoya.funtest.framework.HoyaCommandTestBase
-import org.apache.hoya.funtest.framework.HoyaTestProperties
+import org.apache.hoya.funtest.framework.HoyaFuntestProperties
 import org.apache.hoya.funtest.framework.PortAssignments
-import org.apache.hoya.providers.hbase.HBaseKeys
+
 import static org.apache.hoya.testtools.HBaseTestUtils.*
-import org.apache.hoya.testtools.HBaseTestUtils
+
 import org.apache.hoya.yarn.Arguments
-import org.apache.hoya.yarn.HoyaActions
 import org.apache.hoya.yarn.client.HoyaClient
 import org.junit.AfterClass
 import org.junit.BeforeClass
 import org.junit.Test
 
+import static org.apache.hoya.providers.hbase.HBaseKeys.*
+
 @CompileStatic
 @Slf4j
-public class TestFunctionalHBaseCluster extends HoyaCommandTestBase
-    implements HoyaTestProperties, Arguments, HoyaExitCodes {
+public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
+    implements HoyaFuntestProperties, Arguments, HoyaExitCodes {
 
 
   static String CLUSTER = "test_functional_hbase_cluster"
@@ -53,33 +52,25 @@ public class TestFunctionalHBaseCluster extends HoyaCommandTestBase
   }
 
   @AfterClass
-  public static void destroyCluster() {
-    ensureClusterDestroyed(CLUSTER)
+  public static void teardownCluster() {
+    teardown(CLUSTER)
   }
 
-  
-  
   @Test
   public void testHBaseCreateCluster() throws Throwable {
 
     describe "Create a working HBase cluster"
 
 
-    Map<String, Integer> roleMap = [
-        (HBaseKeys.ROLE_MASTER): 1,
-        (HBaseKeys.ROLE_WORKER): 1,
-    ]
-    
-    createHoyaCluster(
+    Map<String, Integer> roleMap = createHBaseCluster(
         CLUSTER,
-        roleMap,
+        1,1,
         [
-            ARG_ROLEOPT, HBaseKeys.ROLE_MASTER, "app.infoport",
+            ARG_ROLEOPT, ROLE_MASTER, "app.infoport",
             Integer.toString(PortAssignments._testHBaseCreateCluster),
-            ARG_ROLEOPT, HBaseKeys.ROLE_WORKER, "app.infoport",
+            ARG_ROLEOPT, ROLE_WORKER, "app.infoport",
             Integer.toString(PortAssignments._testHBaseCreateCluster2),
         ],
-        true,
         [:]
     )
 
@@ -93,15 +84,16 @@ public class TestFunctionalHBaseCluster extends HoyaCommandTestBase
     //wait for the role counts to be reached
     waitForRoleCount(hoyaClient, roleMap, HBASE_LAUNCH_WAIT_TIME)
 
-    Configuration clientConf = HBaseTestUtils.createHBaseConfiguration(hoyaClient)
+    Configuration clientConf = createHBaseConfiguration(hoyaClient)
     assertHBaseMasterFound(clientConf)
     waitForHBaseRegionServerCount(hoyaClient,CLUSTER, 1, HBASE_LAUNCH_WAIT_TIME)
-    
 
-     String[] args = [""]
-     // LoadTestTool.main(args)
+    clusterLoadOperations()
 
   }
 
+  public void clusterLoadOperations() {
+
+  }
 
 }

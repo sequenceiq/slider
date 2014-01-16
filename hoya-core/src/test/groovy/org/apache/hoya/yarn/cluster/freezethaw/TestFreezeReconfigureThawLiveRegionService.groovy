@@ -46,7 +46,7 @@ class TestFreezeReconfigureThawLiveRegionService extends HBaseMiniClusterTestBas
     String clustername = "test_freeze_reconfigure_thaw_live_regionservice"
     int regionServerCount = 4
     int nodemanagers = 3
-    YarnConfiguration conf = createConfiguration()
+    YarnConfiguration conf = getConfiguration()
     //one vcore per node
     conf.setInt("yarn.nodemanager.resource.cpu-vcores",1)
     createMiniCluster(clustername, conf, nodemanagers, true)

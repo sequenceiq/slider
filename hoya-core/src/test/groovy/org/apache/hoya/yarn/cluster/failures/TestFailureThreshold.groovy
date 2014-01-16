@@ -55,7 +55,7 @@ class TestFailureThreshold extends HBaseMiniClusterTestBase {
     String clustername = testName
     String action = toKill ? "kill" : "stop"
     int regionServerCount = 2
-    createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
+    createMiniCluster(clustername, getConfiguration(), 1, 1, 1, true, true)
     describe(
         "Create a single region service cluster then " + action + " the RS");
 

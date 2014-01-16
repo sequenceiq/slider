@@ -39,7 +39,7 @@ class TestBuildClusterM1W5 extends HBaseMiniClusterTestBase {
   @Test
   public void testBuildCluster() throws Throwable {
     String clustername = "test_build_cluster_m1_w5"
-    createMiniCluster(clustername, createConfiguration(), 1, true)
+    createMiniCluster(clustername, getConfiguration(), 1, true)
 
     describe "verify that a build cluster is created but not started"
 

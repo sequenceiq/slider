@@ -20,13 +20,11 @@ package org.apache.hoya.funtest.hbase
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import org.apache.hadoop.fs.Path
 import org.apache.hadoop.yarn.service.launcher.LauncherExitCodes
 import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.api.ClusterDescription
-import org.apache.hoya.funtest.framework.HoyaCommandTestBase
-import org.apache.hoya.funtest.framework.HoyaTestProperties
-import org.apache.hoya.providers.hbase.HBaseKeys
+import org.apache.hoya.funtest.framework.HoyaFuntestProperties
+import org.apache.hoya.tools.HoyaUtils
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.HoyaActions
 import org.apache.hoya.yarn.client.HoyaClient
@@ -36,8 +34,8 @@ import org.junit.Test
 
 @CompileStatic
 @Slf4j
-public class TestClusterLifecycle extends HoyaCommandTestBase
-    implements HoyaTestProperties, Arguments, HoyaExitCodes {
+public class TestClusterLifecycle extends HBaseCommandTestBase
+    implements HoyaFuntestProperties, Arguments, HoyaExitCodes {
 
 
   static String CLUSTER = "test_cluster_lifecycle"
@@ -50,7 +48,7 @@ public class TestClusterLifecycle extends HoyaCommandTestBase
 
   @AfterClass
   public static void destroyCluster() {
-    ensureClusterDestroyed(CLUSTER)
+    teardown(CLUSTER)
   }
 
   @Test
@@ -58,21 +56,24 @@ public class TestClusterLifecycle extends HoyaCommandTestBase
 
     describe "Walk a 0-role Hoya cluster through its lifecycle"
 
-    Map<String, Integer> roleMap = [
-        (HBaseKeys.ROLE_MASTER): 0,
-        (HBaseKeys.ROLE_WORKER): 0,
-    ]
 
-    createHoyaCluster(
-        CLUSTER,
-        roleMap,
-        [],
-        true,
-        [:])
-    assert clusterFS.exists(
-        new Path(clusterFS.homeDirectory, ".hoya/cluster/$CLUSTER"))
+    def clusterpath = buildClusterPath(CLUSTER)
+    assert !clusterFS.exists(clusterpath)
 
-// assert it exists
+
+    Map<String, Integer> roleMap = createHBaseCluster(CLUSTER,
+                                         0,
+                                         0,
+                                         [],
+                                         [:])
+    
+
+    //at this point the cluster should exist.
+    assertPathExists(clusterFS,"Cluster parent directory does not exist", clusterpath.parent)
+    
+    assertPathExists(clusterFS,"Cluster directory does not exist", clusterpath)
+
+    // assert it exists on the command line
     exists(0, CLUSTER)
 
     //destroy will fail in use
@@ -126,7 +127,7 @@ public class TestClusterLifecycle extends HoyaCommandTestBase
       //cluster exists if you don't want it to be live
       exists(0, CLUSTER, false)
       // condition returns false if it is required to be live
-      exists(LauncherExitCodes.EXIT_FALSE, CLUSTER, true)
+      exists(EXIT_FALSE, CLUSTER, true)
 
 
 
@@ -145,12 +146,12 @@ public class TestClusterLifecycle extends HoyaCommandTestBase
       //cluster exists if you don't want it to be live
       exists(0, CLUSTER, false)
       // condition returns false if it is required to be live
-      exists(LauncherExitCodes.EXIT_FALSE, CLUSTER, true)
+      exists(EXIT_FALSE, CLUSTER, true)
 
       destroy(0, CLUSTER)
 
       //cluster now missing
-      exists(HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER, CLUSTER)
+      exists(EXIT_UNKNOWN_HOYA_CLUSTER, CLUSTER)
 
     } finally {
       jsonStatus.delete()

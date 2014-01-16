@@ -41,7 +41,7 @@ class Test2Master2RS extends HBaseMiniClusterTestBase {
 
     String clustername = "test2master2rs"
     int regionServerCount = 2
-    createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, false)
+    createMiniCluster(clustername, getConfiguration(), 1, 1, 1, true, false)
 
     describe(" Create a two master, two region service cluster");
     //now launch the cluster

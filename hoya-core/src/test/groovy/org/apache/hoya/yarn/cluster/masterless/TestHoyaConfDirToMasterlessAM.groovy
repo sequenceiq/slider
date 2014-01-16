@@ -60,7 +60,7 @@ class TestHoyaConfDirToMasterlessAM extends HBaseMiniClusterTestBase {
   @Test
   public void testHoyaConfDirToMasterlessAM() throws Throwable {
     String clustername = "test_hoya_conf_dir_to_masterless_am"
-    YarnConfiguration conf = createConfiguration()
+    YarnConfiguration conf = getConfiguration()
     createMiniCluster(clustername, conf, 1, true)
 
     describe "kill a masterless AM and verify that it shuts down"

@@ -39,7 +39,7 @@ class TestLiveClusterFromArchive extends HBaseMiniClusterTestBase {
   public void testLiveClusterFromArchive() throws Throwable {
     String clustername = getTestClusterName()
     int regionServerCount = 1
-    createMiniCluster(clustername, createConfiguration(), regionServerCount + 1, 1, 1, true,
+    createMiniCluster(clustername, getConfiguration(), regionServerCount + 1, 1, 1, true,
                       startHDFS())
 
     //now launch the cluster

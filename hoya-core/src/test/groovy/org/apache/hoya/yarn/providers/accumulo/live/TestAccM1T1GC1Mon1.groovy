@@ -41,7 +41,7 @@ class TestAccM1T1GC1Mon1 extends AccumuloTestBase {
     int tablets = 1
     int monitor = 1
     int gc = 1
-    createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, false)
+    createMiniCluster(clustername, getConfiguration(), 1, 1, 1, true, false)
     describe(" Create an accumulo cluster");
 
     //make sure that ZK is up and running at the binding string
