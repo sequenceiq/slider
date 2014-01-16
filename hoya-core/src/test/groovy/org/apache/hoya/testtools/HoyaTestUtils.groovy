@@ -18,6 +18,7 @@
 
 package org.apache.hoya.testtools
 
+import org.apache.hadoop.fs.FileSystem as HadoopFS
 import groovy.json.JsonOutput
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
@@ -25,6 +26,8 @@ import org.apache.commons.httpclient.HttpClient
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager
 import org.apache.commons.httpclient.methods.GetMethod
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.FileStatus
+import org.apache.hadoop.fs.Path
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLaunchException
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
@@ -47,7 +50,10 @@ import static org.apache.hoya.yarn.Arguments.ARG_OPTION
  * 
  * It is designed to work with mini clusters as well as remote ones
  * 
- * This class is not final and may be extended for test cases
+ * This class is not final and may be extended for test cases.
+ * 
+ * Some of these methods are derived from the SwiftUtils and SwiftTestUtils
+ * classes -replicated here so that they are available in Hadoop-2.0 code
  */
 @Slf4j
 @CompileStatic
@@ -409,6 +415,133 @@ class HoyaTestUtils extends Assert {
     conf.getTrimmed(option);
     extraArgs << ARG_OPTION << option << getRequiredConfOption(conf, option)
     
+  }
+
+  /**
+   * Assert that a path refers to a directory
+   * @param fs filesystem
+   * @param path path of the directory
+   * @throws IOException on File IO problems
+   */
+  public static void assertIsDirectory(HadoopFS fs,
+                                       Path path) throws IOException {
+    FileStatus fileStatus = fs.getFileStatus(path);
+    assertIsDirectory(fileStatus);
+  }
+
+  /**
+   * Assert that a path refers to a directory
+   * @param fileStatus stats to check
+   */
+  public static void assertIsDirectory(FileStatus fileStatus) {
+    assertTrue("Should be a dir -but isn't: " + fileStatus,
+               fileStatus.isDirectory());
+  }
+
+  /**
+   * Assert that a path exists -but make no assertions as to the
+   * type of that entry
+   *
+   * @param fileSystem filesystem to examine
+   * @param message message to include in the assertion failure message
+   * @param path path in the filesystem
+   * @throws IOException IO problems
+   */
+  public static void assertPathExists(
+      HadoopFS fileSystem,
+      String message,
+      Path path) throws IOException {
+    if (!fileSystem.exists(path)) {
+      //failure, report it
+      fail(message + ": not found \"" + path + "\" in " + path.getParent() + "-" +
+        ls(fileSystem, path.getParent()));
+    }
+  }
+
+  /**
+   * Assert that a path does not exist
+   *
+   * @param fileSystem filesystem to examine
+   * @param message message to include in the assertion failure message
+   * @param path path in the filesystem
+   * @throws IOException IO problems
+   */
+  public static void assertPathDoesNotExist(
+      HadoopFS fileSystem,
+      String message,
+      Path path) throws IOException {
+    try {
+      FileStatus status = fileSystem.getFileStatus(path);
+      fail(message + ": unexpectedly found " + path + " as  " + status);
+    } catch (FileNotFoundException expected) {
+      //this is expected
+
+    }
+  }
+
+  /**
+   * Assert that a FileSystem.listStatus on a dir finds the subdir/child entry
+   * @param fs filesystem
+   * @param dir directory to scan
+   * @param subdir full path to look for
+   * @throws IOException IO probles
+   */
+  public static void assertListStatusFinds(HadoopFS fs,
+                                           Path dir,
+                                           Path subdir) throws IOException {
+    FileStatus[] stats = fs.listStatus(dir);
+    boolean found = false;
+    StringBuilder builder = new StringBuilder();
+    for (FileStatus stat : stats) {
+      builder.append(stat.toString()).append('\n');
+      if (stat.getPath().equals(subdir)) {
+        found = true;
+      }
+    }
+    assertTrue("Path " + subdir
+                   + " not found in directory " + dir + ":" + builder,
+               found);
+  }
+
+  /**
+   * List a a path to string
+   * @param fileSystem filesystem
+   * @param path directory
+   * @return a listing of the filestatuses of elements in the directory, one
+   * to a line, precedeed by the full path of the directory
+   * @throws IOException connectivity problems
+   */
+  public static String ls(HadoopFS fileSystem, Path path)
+  throws
+      IOException {
+    if (path == null) {
+      //surfaces when someone calls getParent() on something at the top of the path
+      return "/";
+    }
+    FileStatus[] stats;
+    String pathtext = "ls " + path;
+    try {
+      stats = fileSystem.listStatus(path);
+    } catch (FileNotFoundException e) {
+      return pathtext + " -file not found";
+    } catch (IOException e) {
+      return pathtext + " -failed: " + e;
+    }
+    return pathtext + fileStatsToString(stats, "\n");
+  }
+
+  /**
+   * Take an array of filestats and convert to a string (prefixed w/ a [01] counter
+   * @param stats array of stats
+   * @param separator separator after every entry
+   * @return a stringified set
+   */
+  public static String fileStatsToString(FileStatus[] stats, String separator) {
+    StringBuilder buf = new StringBuilder(stats.length * 128);
+    for (int i = 0; i < stats.length; i++) {
+      buf.append(String.format("[%02d] %s", i, stats[i])).append(separator);
+    }
+    return buf.toString();
   }
 
 }

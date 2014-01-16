@@ -55,7 +55,7 @@ public class TestFunctionalAccumuloM1T1GC1Mon1 extends AccumuloCommandTestBase
 
   @AfterClass
   public static void destroyCluster() {
-    ensureClusterDestroyed(CLUSTER)
+    teardown(CLUSTER)
   }
 
   @Test
@@ -72,14 +72,15 @@ public class TestFunctionalAccumuloM1T1GC1Mon1 extends AccumuloCommandTestBase
     int gc = 1
     
     Map<String, Integer> roleMap = [
-        (AccumuloKeys.ROLE_MASTER) : 1,
-        (AccumuloKeys.ROLE_TABLET) : tablets,
-        (AccumuloKeys.ROLE_MONITOR): monitor,
-        (AccumuloKeys.ROLE_GARBAGE_COLLECTOR): gc
+        (ROLE_MASTER) : 1,
+        (ROLE_TABLET) : tablets,
+        (ROLE_MONITOR): monitor,
+        (ROLE_GARBAGE_COLLECTOR): gc
     ];
 
     Map<String, String> clusterOps = [:]
-        clusterOps["site." + MONITOR_PORT_CLIENT] = PortAssignments._test_functional_accumulo_m1t1gc1mon1_mon
+        clusterOps["site." + MONITOR_PORT_CLIENT] =
+            Integer.toString (PortAssignments._test_functional_accumulo_m1t1gc1mon1_mon)
         
     List<String> extraArgs = [
 /*        

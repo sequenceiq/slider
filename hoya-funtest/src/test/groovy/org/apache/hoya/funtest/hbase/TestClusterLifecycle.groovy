@@ -24,6 +24,7 @@ import org.apache.hadoop.yarn.service.launcher.LauncherExitCodes
 import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.funtest.framework.HoyaFuntestProperties
+import org.apache.hoya.tools.HoyaUtils
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.HoyaActions
 import org.apache.hoya.yarn.client.HoyaClient
@@ -47,7 +48,7 @@ public class TestClusterLifecycle extends HBaseCommandTestBase
 
   @AfterClass
   public static void destroyCluster() {
-    ensureClusterDestroyed(CLUSTER)
+    teardown(CLUSTER)
   }
 
   @Test
@@ -56,8 +57,8 @@ public class TestClusterLifecycle extends HBaseCommandTestBase
     describe "Walk a 0-role Hoya cluster through its lifecycle"
 
 
-    def path = buildClusterPath(CLUSTER)
-    assert !clusterFS.exists(path)
+    def clusterpath = buildClusterPath(CLUSTER)
+    assert !clusterFS.exists(clusterpath)
 
 
     Map<String, Integer> roleMap = createHBaseCluster(CLUSTER,
@@ -66,9 +67,13 @@ public class TestClusterLifecycle extends HBaseCommandTestBase
                                          [],
                                          [:])
     
-    assert clusterFS.exists(path)
 
-// assert it exists
+    //at this point the cluster should exist.
+    assertPathExists(clusterFS,"Cluster parent directory does not exist", clusterpath.parent)
+    
+    assertPathExists(clusterFS,"Cluster directory does not exist", clusterpath)
+
+    // assert it exists on the command line
     exists(0, CLUSTER)
 
     //destroy will fail in use
@@ -122,7 +127,7 @@ public class TestClusterLifecycle extends HBaseCommandTestBase
       //cluster exists if you don't want it to be live
       exists(0, CLUSTER, false)
       // condition returns false if it is required to be live
-      exists(LauncherExitCodes.EXIT_FALSE, CLUSTER, true)
+      exists(EXIT_FALSE, CLUSTER, true)
 
 
 
@@ -141,12 +146,12 @@ public class TestClusterLifecycle extends HBaseCommandTestBase
       //cluster exists if you don't want it to be live
       exists(0, CLUSTER, false)
       // condition returns false if it is required to be live
-      exists(LauncherExitCodes.EXIT_FALSE, CLUSTER, true)
+      exists(EXIT_FALSE, CLUSTER, true)
 
       destroy(0, CLUSTER)
 
       //cluster now missing
-      exists(HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER, CLUSTER)
+      exists(EXIT_UNKNOWN_HOYA_CLUSTER, CLUSTER)
 
     } finally {
       jsonStatus.delete()

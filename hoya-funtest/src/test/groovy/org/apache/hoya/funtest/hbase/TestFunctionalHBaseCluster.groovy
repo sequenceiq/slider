@@ -51,8 +51,8 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
   }
 
   @AfterClass
-  public static void destroyCluster() {
-    ensureClusterDestroyed(CLUSTER)
+  public static void teardownCluster() {
+    teardown(CLUSTER)
   }
 
   @Test

@@ -24,6 +24,8 @@ import org.apache.hoya.funtest.framework.HoyaShell
 import org.apache.hoya.yarn.Arguments
 import org.junit.Before
 
+import static org.apache.hoya.HoyaXMLConfKeysForTesting.KEY_HOYA_TEST_ACCUMULO_APPCONF
+import static org.apache.hoya.HoyaXMLConfKeysForTesting.KEY_HOYA_TEST_ACCUMULO_TAR
 import static org.apache.hoya.HoyaXMLConfKeysForTesting.KEY_HOYA_TEST_HBASE_APPCONF
 import static org.apache.hoya.HoyaXMLConfKeysForTesting.KEY_HOYA_TEST_HBASE_TAR
 import static org.apache.hoya.api.RoleKeys.YARN_MEMORY
@@ -73,11 +75,10 @@ abstract class AccumuloCommandTestBase extends HoyaCommandTestBase {
         HOYA_CONFIG,
         OPTION_HADOOP_HOME)
     argsList << Arguments.ARG_IMAGE <<
-    getRequiredConfOption(HOYA_CONFIG, KEY_HOYA_TEST_HBASE_TAR)
+    getRequiredConfOption(HOYA_CONFIG, KEY_HOYA_TEST_ACCUMULO_TAR)
 
     argsList << Arguments.ARG_CONFDIR <<
-    getRequiredConfOption(HOYA_CONFIG, KEY_HOYA_TEST_HBASE_APPCONF)
-    argsList << ARG_ROLEOPT << ROLE_MASTER <<
+    getRequiredConfOption(HOYA_CONFIG, KEY_HOYA_TEST_ACCUMULO_APPCONF)
 
     argsList << ARG_ROLEOPT << ROLE_MASTER <<
     YARN_MEMORY << containerMemory

@@ -261,7 +261,16 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
       //cluster exists
       destroy(name)
     }
-    // and assert that it really isn't there
+    
+  }
+  
+  /**
+   * Teardown operation -freezes cluster, and may destroy it
+   * though for testing it is best if it is retained
+   * @param name
+   */
+  static void teardown(String name) {
+    freezeForce(name)
     
   }
 
@@ -358,7 +367,7 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
 
     //now inject any cluster options
     clusterOps.each { String opt, String val ->
-      argsList << ARG_OPTION << opt << val;
+      argsList << ARG_OPTION << opt.toString() << val.toString();
     }
 
     if (extraArgs != null) {
@@ -392,7 +401,7 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
   }
 
   public Path buildClusterPath(String clustername) {
-    return new Path(clusterFS.homeDirectory, ".hoya/cluster/${clustername} ")
+    return new Path(clusterFS.homeDirectory, ".hoya/cluster/${clustername}")
   }
 
 

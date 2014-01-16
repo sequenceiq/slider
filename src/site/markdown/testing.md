@@ -26,10 +26,92 @@ using Hadoop's `MiniDFSCluster` and `MiniYARNCluster` classes to create small,
 one-node test clusters. All the YARN/HDFS code runs in the JUnit process; the
 AM and spawned HBase and Accumulo processes run independently.
 
+Requirements
+* A copy of hbase.tar.gz in the local filesystem
+* A an expanded hbase.tar.gz in the local filesystem
+
+* A copy of accumulo.tar.gz in the local filesystem, 
+* An expanded accumulo.tar.gz in the local filesystem, 
+* an expanded Zookeeper installation
+
+All of these need to be defined in the file `hoya-core/src/test/resources/hoya-test.xml`
+
+Here's
+  
+    <configuration>
+    
+      <property>
+        <name>hoya.test.hbase.enabled</name>
+        <description>Flag to enable/disable HBase tests</description>
+        <value>true</value>
+      </property>
+      
+      <property>
+        <name>hoya.test.hbase.home</name>
+        <value>/home/hoya/hbase-0.96.0</value>
+        <description>HBASE Home</description>
+      </property>
+    
+      <property>
+        <name>hoya.test.hbase.tar</name>
+        <value>/home/hoya/Projects/hbase-0.96.0-bin.tar.gz</value>
+        <description>HBASE archive URI</description>
+      </property>
+    
+      <property>
+        <name>hoya.test.accumulo.enabled</name>
+        <description>Flag to enable/disable Accumulo tests</description>
+        <value>true</value>
+      </property>
+    
+      <property>
+        <name>hoya.test.accumulo.home</name>
+        <value>
+          /home/hoya/accumulo-1.6.0-SNAPSHOT/</value>
+        <description>Accumulo Home</description>
+      </property>
+    
+      <property>
+        <name>hoya.test.accumulo.tar</name>
+        <value>/home/hoya/accumulo-1.6.0-SNAPSHOT-bin.tar</value>
+        <description>Accumulo archive URI</description>
+      </property>
+    
+      <property>
+        <name>zk.home</name>
+        <value>/home/hoya/zookeeper</value>
+        <description>Zookeeper home dir on target systems</description>
+      </property>
+    
+      <property>
+        <name>hadoop.home</name>
+        <value>/home/hoya/hadoop-2.2.0</value>
+        <description>Hadoop home dir on target systems</description>
+      </property>
+      
+    </configuration>
+
+*Important:* For the local tests, a simple local filesystem path is used for
+all the values. 
+
+For the functional tests, the accumulo and hbase tar properties will
+need to be set to a URL of a tar file that is accessible to all the
+nodes in the cluster -which usually means HDFS, and so an `hdfs://` URL
+
+
+
 ## Functional Tests
 
 The functional test suite is designed to run the executables against
-a live cluster
+a live cluster. 
+
+For these to work you need
+1. A YARN Cluster -secure or insecure
+1. A `hoya-client.xml` file configured to interact with the cluster
+1. HBase .tar.gz uploaded to HDFS, and a local or remote accumulo conf 
+directory
+1. Accumulo .tar.gz uploaded to HDFS, and a local or remote accumulo conf 
+directory
 
 ## Configuration of functional tests
 
@@ -229,3 +311,25 @@ testing, you must build/install the hoya packages from the root assembly.
 
 1. All tests run from a single client -workload can't scale
 1. Output from failed AM and containers aren't collected
+
+## Troubleshooting the functional tests
+
+1. If you are testing in a local VM and stops responding, reboot it -sometimes
+they just seem to get overloaded. If you can't do a clean shutdown, reboot it
+cleanly the second time around.
+
+1. The YARN UI will list the cluster launches -look for the one
+with a name close to the test and view its logs
+
+1. Container logs will appear "elsewhere". The log lists
+the containers used -you may be able to track the logs
+down from the specific nodes.
+
+1. If you browse the filesystem, look for the specific test clusters
+in ~/.hoya/cluster/$testname
+
+1. If you are using a secure cluster, make sure that the clocks
+are synchronized, and that you have a current token -`klist` will
+tell you this. In a VM: install and enable `ntp`.
+
+1. 
