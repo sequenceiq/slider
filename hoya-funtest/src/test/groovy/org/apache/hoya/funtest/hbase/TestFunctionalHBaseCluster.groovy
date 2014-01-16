@@ -26,13 +26,13 @@ import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.funtest.framework.HoyaFuntestProperties
 import org.apache.hoya.funtest.framework.PortAssignments
+import org.junit.After
+import org.junit.Before
 
 import static org.apache.hoya.testtools.HBaseTestUtils.*
 
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.client.HoyaClient
-import org.junit.AfterClass
-import org.junit.BeforeClass
 import org.junit.Test
 
 import static org.apache.hoya.providers.hbase.HBaseKeys.*
@@ -43,17 +43,19 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
     implements HoyaFuntestProperties, Arguments, HoyaExitCodes {
 
 
-  static String CLUSTER = "test_functional_hbase_cluster"
 
-
-  @BeforeClass
-  public static void prepareCluster() {
-    ensureClusterDestroyed(CLUSTER)
+  public String getClusterName() {
+    return "test_functional_hbase_cluster"
   }
 
-  @AfterClass
-  public static void teardownCluster() {
-    teardown(CLUSTER)
+  @Before
+  public void prepareCluster() {
+    ensureClusterDestroyed(clusterName)
+  }
+
+  @After
+  public void teardownCluster() {
+    teardown(clusterName)
   }
 
   @Test
@@ -63,7 +65,7 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
 
 
     Map<String, Integer> roleMap = createHBaseCluster(
-        CLUSTER,
+        clusterName,
         1,1,
         [
             ARG_ROLEOPT, ROLE_MASTER, "app.infoport",
@@ -75,9 +77,9 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
     )
 
     //get a hoya client against the cluster
-    HoyaClient hoyaClient = bondToCluster(HOYA_CONFIG, CLUSTER)
+    HoyaClient hoyaClient = bondToCluster(HOYA_CONFIG, clusterName)
     ClusterDescription cd2 = hoyaClient.getClusterDescription()
-    assert CLUSTER == cd2.name
+    assert clusterName == cd2.name
 
     log.info("Connected via HoyaClient {}", hoyaClient.toString())
 
@@ -86,7 +88,7 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
 
     Configuration clientConf = createHBaseConfiguration(hoyaClient)
     assertHBaseMasterFound(clientConf)
-    waitForHBaseRegionServerCount(hoyaClient,CLUSTER, 1, HBASE_LAUNCH_WAIT_TIME)
+    waitForHBaseRegionServerCount(hoyaClient,clusterName, 1, HBASE_LAUNCH_WAIT_TIME)
 
     clusterLoadOperations()
 

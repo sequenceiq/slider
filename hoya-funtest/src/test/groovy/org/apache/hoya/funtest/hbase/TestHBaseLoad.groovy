@@ -25,6 +25,11 @@ import org.apache.hadoop.hbase.util.LoadTestTool
 class TestHBaseLoad extends TestFunctionalHBaseCluster {
 
   @Override
+  String getClusterName() {
+    return "test_hbase_load"
+  }
+
+  @Override
   void clusterLoadOperations() {
     String[] args = [""]
     // LoadTestTool.main(args)
