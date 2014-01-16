@@ -1,4 +1,3 @@
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,5 +18,15 @@
 
 package org.apache.hoya.funtest.hbase
 
+
+import org.apache.hadoop.hbase.util.test.LoadTestDataGenerator
+import org.apache.hadoop.hbase.util.LoadTestTool
+
 class TestHBaseLoad extends TestFunctionalHBaseCluster {
+
+  @Override
+  void clusterLoadOperations() {
+    String[] args = [""]
+    // LoadTestTool.main(args)
+  }
 }
