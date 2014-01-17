@@ -257,11 +257,8 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
    * @param name
    */
   static void ensureClusterDestroyed(String name) {
-    if (freezeForce(name).ret != EXIT_UNKNOWN_HOYA_CLUSTER) {
-      //cluster exists
-      destroy(name)
-    }
-    
+    freezeForce(name)
+    destroy(name)
   }
   
   /**
@@ -270,9 +267,8 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
    * @param name
    */
   static void teardown(String name) {
-    freezeForce(name)
-    
-  }
+    freeze(name)
+    }
 
   /**
    * Assert the exit code is that the cluster is unknown

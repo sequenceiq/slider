@@ -61,9 +61,10 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
   @Test
   public void testHBaseCreateCluster() throws Throwable {
 
-    describe "Create a working HBase cluster"
+    describe "Create a working HBase cluster $clusterName"
 
-
+    def clusterpath = buildClusterPath(clusterName)
+    assert !clusterFS.exists(clusterpath)
     Map<String, Integer> roleMap = createHBaseCluster(
         clusterName,
         1,1,
@@ -88,7 +89,7 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
 
     Configuration clientConf = createHBaseConfiguration(hoyaClient)
     assertHBaseMasterFound(clientConf)
-    waitForHBaseRegionServerCount(hoyaClient,clusterName, 1, HBASE_LAUNCH_WAIT_TIME)
+    waitForHBaseRegionServerCount(hoyaClient, clusterName, 1, HBASE_LAUNCH_WAIT_TIME)
 
     clusterLoadOperations()
 
