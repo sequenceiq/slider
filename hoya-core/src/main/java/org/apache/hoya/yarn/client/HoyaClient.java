@@ -204,12 +204,12 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       actionBuild(clusterName, serviceArgs.getActionBuildArgs());
       exitCode = EXIT_SUCCESS;
     } else if (HoyaActions.ACTION_CREATE.equals(action)) {
-      exitCode = actionCreate(clusterName);
+      exitCode = actionCreate(clusterName, serviceArgs.getActionCreateArgs());
     } else if (HoyaActions.ACTION_FREEZE.equals(action)) {
       exitCode = actionFreeze(clusterName,
                               serviceArgs.getActionFreezeArgs());
     } else if (HoyaActions.ACTION_THAW.equals(action)) {
-      exitCode = actionThaw(clusterName);
+      exitCode = actionThaw(clusterName, serviceArgs.getActionThawArgs());
     } else if (HoyaActions.ACTION_DESTROY.equals(action)) {
       HoyaUtils.validateClusterName(clusterName);
       exitCode = actionDestroy(clusterName);
@@ -221,9 +221,9 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                               serviceArgs.getActionExistsArgs().live);
     } else if (HoyaActions.ACTION_FLEX.equals(action)) {
       HoyaUtils.validateClusterName(clusterName);
-      exitCode = actionFlex(clusterName);
+      exitCode = actionFlex(clusterName, serviceArgs.getActionFlexArgs());
     } else if (HoyaActions.ACTION_GETCONF.equals(action)) {
-      exitCode = actionGetConf(clusterName);
+      exitCode = actionGetConf(clusterName, serviceArgs.getActionGetConfArgs());
     } else if (HoyaActions.ACTION_HELP.equals(action) ||
                HoyaActions.ACTION_USAGE.equals(action)) {
       log.info("HoyaClient {}", serviceArgs.usage());
@@ -332,11 +332,10 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * @throws IOException other problems
    * @throws BadCommandArgumentsException bad arguments.
    */
-  private int actionCreate(String clustername) throws
+  public int actionCreate(String clustername, ActionCreateArgs createArgs) throws
                                                YarnException,
                                                IOException {
 
-    ActionCreateArgs createArgs = serviceArgs.getActionCreateArgs();
     actionBuild(clustername, createArgs);
     return startCluster(clustername, createArgs);
   }
@@ -350,7 +349,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * @throws IOException other problems
    * @throws BadCommandArgumentsException bad arguments.
    */
-  private void actionBuild(String clustername,
+  public void actionBuild(String clustername,
                            AbstractClusterBuildingActionArgs buildInfo) throws
                                                YarnException,
                                                IOException {
@@ -1219,10 +1218,9 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * @return exit code
    */
   @VisibleForTesting
-  public int actionFlex(String name) throws YarnException, IOException {
+  public int actionFlex(String name, ActionFlexArgs args) throws YarnException, IOException {
     verifyManagerSet();
     log.debug("actionFlex({})", name);
-    ActionFlexArgs args = serviceArgs.getActionFlexArgs();
     Map<String, Integer> roleInstances = new HashMap<String, Integer>();
     Map<String, String> roleMap = args.getRoleMap();
     for (Map.Entry<String, String> roleEntry : roleMap.entrySet()) {
@@ -1520,12 +1518,12 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    */
 
   @SuppressWarnings("UseOfSystemOutOrSystemErr")
-  public int actionGetConf(String clustername) throws
+  public int actionGetConf(String clustername, ActionGetConfArgs confArgs) throws
                                                YarnException,
                                                IOException {
     int exitCode;
     File outfile = null;
-    ActionGetConfArgs confArgs = serviceArgs.getActionGetConfArgs();
+    
     if (confArgs.getOutput() != null) {
       outfile = new File(confArgs.getOutput());
     }
@@ -1571,9 +1569,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   /**
    * Restore a cluster
    */
-  public int actionThaw(String clustername) throws YarnException, IOException {
-    ActionThawArgs thaw = serviceArgs.getActionThawArgs();
-
+  public int actionThaw(String clustername, ActionThawArgs thaw) throws YarnException, IOException {
     HoyaUtils.validateClusterName(clustername);
     // see if it is actually running and bail out;
     verifyManagerSet();

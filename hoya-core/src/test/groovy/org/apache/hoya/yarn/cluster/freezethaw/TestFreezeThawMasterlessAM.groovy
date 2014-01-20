@@ -57,7 +57,7 @@ class TestFreezeThawMasterlessAM extends HBaseMiniClusterTestBase {
     //copy the confdir somewhere
     Path resConfPath = new Path(getResourceConfDirURI())
     Path tempConfPath = new Path(confDir)
-    HoyaUtils.copyDirectory(conf, resConfPath, tempConfPath)
+    HoyaUtils.copyDirectory(conf, resConfPath, tempConfPath, null)
 
 
     ServiceLauncher launcher = createMasterlessAM(clustername, 0, true, true)
