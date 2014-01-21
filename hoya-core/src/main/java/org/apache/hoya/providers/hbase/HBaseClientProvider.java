@@ -395,8 +395,6 @@ public class HBaseClientProvider extends AbstractProviderCore implements
 
     addHBaseDependencyJars(providerResources, clusterFS,libdir, tempPath);
 
-    //now set up the directory for writing by the user
-    providerUtils.createClusterDirecties(clusterSpec, getConf());
 /* TODO: anything else to set up node security
     if (UserGroupInformation.isSecurityEnabled()) {
       //secure mode

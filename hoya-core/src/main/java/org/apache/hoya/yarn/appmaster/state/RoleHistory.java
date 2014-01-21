@@ -257,7 +257,7 @@ public class RoleHistory {
     try {
       saveHistoryIfDirty();
     } catch (IOException e) {
-      log.error("Failed to save history file ", e);
+      log.warn("Failed to save history file ", e);
     }
   }
 

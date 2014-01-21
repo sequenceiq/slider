@@ -24,6 +24,7 @@ import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.net.NetUtils;
@@ -369,11 +370,12 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     Path clusterSpecPath =
       new Path(clusterDirectory, HoyaKeys.CLUSTER_SPECIFICATION_FILE);
 
-    if (fs.exists(clusterDirectory)) {
-      throw new HoyaException(EXIT_CLUSTER_EXISTS,
-                              PRINTF_E_ALREADY_EXISTS, clustername,
-                              clusterSpecPath);
-    }
+    //verify the directory is not there.
+    HoyaUtils.verifyClusterDirectoryNonexistent(fs, clustername,
+                                                clusterDirectory);
+
+    // actual creation takes place later, so that if the build files there
+    // isn't a half build cluster in the filesystem
     
     Configuration conf = getConfig();
     // build up the initial cluster specification
@@ -477,7 +479,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     if (buildInfo.getImage() != null) {
       if (!isUnset(buildInfo.getAppHomeDir())) {
         // both args have been set
-        throw new BadCommandArgumentsException("only one of "
+        throw new BadCommandArgumentsException("Only one of "
                                                + Arguments.ARG_IMAGE
                                                + " and " +
                                                Arguments.ARG_APP_HOME +
@@ -518,7 +520,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     clusterSpec.originConfigurationPath = snapshotConfPath.toUri().toASCIIString();
     clusterSpec.generatedConfigurationPath =
       generatedConfPath.toUri().toASCIIString();
-    HoyaUtils.createHoyaClusterDirPath(fs, clustername);
+    HoyaUtils.createClusterDirectories(fs, clustername, getConfig());
 
     // save the specification to get a lock on this cluster name
     try {
@@ -535,10 +537,14 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     }
 
     // bulk copy
+    String clusterDirPermsOct =
+      conf.get(HOYA_CLUSTER_DIRECTORY_PERMISSIONS,
+               DEFAULT_HOYA_CLUSTER_DIRECTORY_PERMISSIONS);
+    FsPermission clusterPerms = new FsPermission(clusterDirPermsOct);
     // first the original from wherever to the DFS
-    HoyaUtils.copyDirectory(conf, appconfdir, snapshotConfPath);
+    HoyaUtils.copyDirectory(conf, appconfdir, snapshotConfPath, clusterPerms);
     // then build up the generated path. This d
-    HoyaUtils.copyDirectory(conf, snapshotConfPath, generatedConfPath);
+    HoyaUtils.copyDirectory(conf, snapshotConfPath, generatedConfPath, clusterPerms);
 
     // Data Directory
     Path datapath = new Path(clusterDirectory, HoyaKeys.DATA_DIR_NAME);
@@ -557,6 +563,11 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
   }
 
+  /**
+   * Verify that the Resource MAnager is configured, if not fail
+   * with a useful error message
+   * @throws BadCommandArgumentsException the exception raised on an invalid config
+   */
   public void verifyManagerSet() throws BadCommandArgumentsException {
     InetSocketAddress rmAddr = HoyaUtils.getRmAddress(getConfig());
     if (!HoyaUtils.isAddressDefined(rmAddr)) {
@@ -670,7 +681,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       log.debug("Copying Hoya AM configuration data from {}", localConfDirPath);
       remoteHoyaConfPath = new Path(clusterDirectory,
                                    HoyaKeys.SUBMITTED_HOYA_CONF_DIR);
-      HoyaUtils.copyDirectory(config, localConfDirPath, remoteHoyaConfPath);
+      HoyaUtils.copyDirectory(config, localConfDirPath, remoteHoyaConfPath, null);
     }
 
     // the assumption here is that minimr cluster => this is a test run

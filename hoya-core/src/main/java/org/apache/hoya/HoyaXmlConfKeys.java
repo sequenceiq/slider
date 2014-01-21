@@ -86,4 +86,22 @@ public interface HoyaXmlConfKeys {
   int DEFAULT_HOYA_YARN_QUEUE_PRIORITY= 1;
 
 
+  /**
+   * Option for the permissions for the cluster directory itself: {@value}
+   */
+  String HOYA_CLUSTER_DIRECTORY_PERMISSIONS =
+    "hoya.cluster.directory.permissions";
+  /**
+   * Default value for the permissions :{@value}
+   */
+  String DEFAULT_HOYA_CLUSTER_DIRECTORY_PERMISSIONS =
+    "777";
+  /**: {@value}
+   * Option for the permissions for the data directory itself
+   */
+  String HOYA_DATA_DIRECTORY_PERMISSIONS = "hoya.data.directory.permissions";
+  /**
+   * Default value for the data directory permissions: {@value}
+   */
+  String DEFAULT_HOYA_DATA_DIRECTORY_PERMISSIONS = "777";
 }

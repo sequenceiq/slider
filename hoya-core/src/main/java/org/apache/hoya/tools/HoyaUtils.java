@@ -25,6 +25,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.SecurityUtil;
@@ -41,6 +42,7 @@ import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
+import org.apache.hoya.HoyaExitCodes;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.HoyaXmlConfKeys;
 import org.apache.hoya.api.ClusterDescription;
@@ -300,15 +302,19 @@ public final class HoyaUtils {
   }
 
   /**
-   * Copy a directory to a new FS -both paths must be qualified
+   * Copy a directory to a new FS -both paths must be qualified. If 
+   * a directory needs to be created, supplied permissions can override
+   * the default values. Existing directories are not touched
    * @param conf conf file
    * @param srcDirPath src dir
    * @param destDirPath dest dir
+   * @param permission permission for the dest directory; null means "default"
    * @return # of files copies
    */
   public static int copyDirectory(Configuration conf,
                                   Path srcDirPath,
-                                  Path destDirPath) throws IOException {
+                                  Path destDirPath,
+                                  FsPermission permission) throws IOException {
     FileSystem srcFS = FileSystem.get(srcDirPath.toUri(), conf);
     FileSystem destFS = FileSystem.get(destDirPath.toUri(), conf);
     //list all paths in the src.
@@ -323,8 +329,11 @@ public final class HoyaUtils {
     if (srcFileCount == 0) {
       return 0;
     }
+    if (permission == null) {
+      permission = FsPermission.getDirDefault();
+    }
     if (!destFS.exists(destDirPath)) {
-      destFS.mkdirs(destDirPath);
+      destFS.mkdirs(destDirPath, permission);
     }
     Path[] sourcePaths = new Path[srcFileCount];
     for (int i = 0; i < srcFileCount; i++) {
@@ -345,22 +354,6 @@ public final class HoyaUtils {
   }
 
   /**
-   * Create the Hoya cluster path for a named cluster.
-   * This is a directory; a mkdirs() operation is executed
-   * to ensure that it is there.
-   * @param fs filesystem
-   * @param clustername name of the cluster
-   * @return the path for persistent data
-   */
-  public static Path createHoyaClusterDirPath(FileSystem fs,
-                                              String clustername) throws
-                                                                  IOException {
-    Path instancePath = buildHoyaClusterDirPath(fs, clustername);
-    fs.mkdirs(instancePath);
-    return instancePath;
-  }
-
-  /**
    * Build up the path string for a cluster instance -no attempt to
    * create the directory is made
    * @param fs filesystem
@@ -371,6 +364,64 @@ public final class HoyaUtils {
                                               String clustername) {
     Path hoyaPath = getBaseHoyaPath(fs);
     return new Path(hoyaPath, HoyaKeys.CLUSTER_DIRECTORY +"/" + clustername);
+  }
+
+
+  /**
+   * Create the Hoya cluster path for a named cluster and all its subdirs
+   * This is a directory; a mkdirs() operation is executed
+   * to ensure that it is there.
+   * @param fs filesystem
+   * @param clustername name of the cluster
+   * @return the path to the cluster directory
+   * @throws IOException trouble
+   * @throws HoyaException hoya-specific exceptions
+   */
+  public static Path createClusterDirectories(FileSystem fs,
+                                     String clustername,
+                                     Configuration conf) throws
+                                                         IOException,
+                                                         HoyaException {
+    Path clusterDirectory = buildHoyaClusterDirPath(fs, clustername);
+    Path snapshotConfPath =
+      new Path(clusterDirectory, HoyaKeys.SNAPSHOT_CONF_DIR_NAME);
+    Path generatedConfPath =
+      new Path(clusterDirectory, HoyaKeys.GENERATED_CONF_DIR_NAME);
+    Path historyPath =
+      new Path(clusterDirectory, HoyaKeys.HISTORY_DIR_NAME);
+    String clusterDirPermsOct = conf.get(HoyaXmlConfKeys.HOYA_CLUSTER_DIRECTORY_PERMISSIONS,
+                    HoyaXmlConfKeys.DEFAULT_HOYA_CLUSTER_DIRECTORY_PERMISSIONS);
+    FsPermission clusterPerms = new FsPermission(clusterDirPermsOct);
+
+    verifyClusterDirectoryNonexistent(fs, clustername, clusterDirectory);
+
+
+    fs.mkdirs(clusterDirectory, clusterPerms);
+    fs.mkdirs(snapshotConfPath, clusterPerms);
+    fs.mkdirs(generatedConfPath, clusterPerms);
+    fs.mkdirs(historyPath, clusterPerms);
+
+    // Data Directory
+    Path datapath = new Path(clusterDirectory, HoyaKeys.DATA_DIR_NAME);
+    String dataOpts =
+      conf.get(HoyaXmlConfKeys.HOYA_DATA_DIRECTORY_PERMISSIONS,
+               HoyaXmlConfKeys.DEFAULT_HOYA_DATA_DIRECTORY_PERMISSIONS);
+    log.debug("Setting data directory permissions to {}", dataOpts);
+    fs.mkdirs(datapath, new FsPermission(dataOpts));
+    
+    return clusterDirectory;
+  }
+
+  public static void verifyClusterDirectoryNonexistent(FileSystem fs,
+                                                       String clustername,
+                                                       Path clusterDirectory) throws
+                                                                              IOException,
+                                                                              HoyaException {
+    if (fs.exists(clusterDirectory)) {
+      throw new HoyaException(HoyaExitCodes.EXIT_CLUSTER_EXISTS,
+                              ErrorStrings.PRINTF_E_ALREADY_EXISTS, clustername,
+                              clusterDirectory);
+    }
   }
 
   /**
