@@ -68,6 +68,7 @@ import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hoya.exceptions.TriggerClusterTeardownException;
+import org.apache.hoya.providers.ClientProvider;
 import org.apache.hoya.providers.HoyaProviderFactory;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderService;
@@ -374,7 +375,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
 
     ClusterDescription clusterSpec = ClusterDescription.load(fs, clusterSpecPath);
 
-    log.info("Deploying cluster from {}:",clusterSpecPath);
+    log.info("Deploying cluster from {}:", clusterSpecPath);
     log.info(clusterSpec.toString());
     File confDir = getLocalConfDir();
     if (!confDir.exists() || !confDir.isDirectory()) {
@@ -390,12 +391,34 @@ public class HoyaAppMaster extends CompoundLaunchedService
       HoyaProviderFactory.createHoyaProviderFactory(
         providerType);
     providerService = factory.createServerProvider();
+    ClientProvider providerClient = factory.createClientProvider();
     runChildService(providerService);
     //verify that the cluster specification is now valid
     providerService.validateClusterSpec(clusterSpec);
 
-    HoyaAMClientProvider clientProvider = new HoyaAMClientProvider(conf);
+    
+    
+    HoyaAMClientProvider amClientProvider = new HoyaAMClientProvider(conf);
 
+    //check with the Hoya and Cluster-specific providers that the cluster state
+    // looks good from the perspective of the AM
+    Path generatedConfDirPath =
+      new Path(clusterDirPath, HoyaKeys.GENERATED_CONF_DIR_NAME);
+    boolean clusterSecure = HoyaUtils.isClusterSecure(conf);
+    amClientProvider.preflightValidateClusterConfiguration(clusterSpec,
+                                                         fs,
+                                                         generatedConfDirPath,
+                                                         clusterSecure,
+                                                         clustername,
+                                                         conf);
+
+    providerClient.preflightValidateClusterConfiguration(clusterSpec,
+                                                   fs,
+                                                   generatedConfDirPath,
+                                                   clusterSecure,
+                                                   clustername,
+                                                   conf);
+    
     InetSocketAddress address = HoyaUtils.getRmSchedulerAddress(conf);
     log.info("RM is at {}", address);
     yarnRPC = YarnRPC.create(conf);
@@ -456,7 +479,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
     //build the role map
     List<ProviderRole> providerRoles =
       new ArrayList<ProviderRole>(providerService.getRoles());
-    providerRoles.addAll(clientProvider.getRoles());
+    providerRoles.addAll(amClientProvider.getRoles());
 
 
 /*  DISABLED 

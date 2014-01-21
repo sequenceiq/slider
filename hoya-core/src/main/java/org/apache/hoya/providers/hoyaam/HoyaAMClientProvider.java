@@ -155,9 +155,20 @@ public class HoyaAMClientProvider extends AbstractProviderCore implements
   public void preflightValidateClusterConfiguration(ClusterDescription clusterSpec,
                                                     FileSystem clusterFS,
                                                     Path generatedConfDirPath,
-                                                    boolean secure) throws
+                                                    boolean secure,
+                                                    String clustername,
+                                                    Configuration configuration) throws
                                                                     HoyaException,
                                                                     IOException {
+
+    //add a check for the directory being writeable by the current user
+    String dataPath = clusterSpec.dataPath;
+    Path path = new Path(dataPath);
+    HoyaUtils.verifyDirectoryWriteAccess(clusterFS, path);
+    Path clusterDirectory = HoyaUtils.buildHoyaClusterDirPath(clusterFS, clustername);
+    Path historyPath =
+      new Path(clusterDirectory, HoyaKeys.HISTORY_DIR_NAME);
+    HoyaUtils.verifyDirectoryWriteAccess(clusterFS, historyPath);
   }
 
   @Override
@@ -173,7 +184,6 @@ public class HoyaAMClientProvider extends AbstractProviderCore implements
                                     clusterSpec.getDesiredInstanceCount(
                                       ROLE_HOYA_AM,
                                       0), 1, 1);
-
 
   }
 

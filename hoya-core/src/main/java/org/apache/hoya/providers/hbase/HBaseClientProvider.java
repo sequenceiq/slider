@@ -194,7 +194,9 @@ public class HBaseClientProvider extends AbstractProviderCore implements
   public void preflightValidateClusterConfiguration(ClusterDescription clusterSpec,
                                                     FileSystem clusterFS,
                                                     Path generatedConfDirPath,
-                                                    boolean secure) throws
+                                                    boolean secure,
+                                                    String clustername,
+                                                    Configuration configuration) throws
                                                                     HoyaException,
                                                                     IOException {
     validateClusterSpec(clusterSpec);

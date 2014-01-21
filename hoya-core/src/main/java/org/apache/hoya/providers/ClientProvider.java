@@ -138,12 +138,16 @@ public interface ClientProvider extends ProviderCore {
    * @param clusterFS filesystem
    * @param generatedConfDirPath path to place generated artifacts
    * @param secure
+   * @param clustername
+   * @param configuration
    * @throws HoyaException
    */
   void preflightValidateClusterConfiguration(ClusterDescription clusterSpec,
                                              FileSystem clusterFS,
                                              Path generatedConfDirPath,
-                                             boolean secure) throws
+                                             boolean secure,
+                                             String clustername,
+                                             Configuration configuration) throws
                                                              HoyaException,
                                                              IOException;
 

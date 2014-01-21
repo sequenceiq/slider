@@ -94,8 +94,7 @@ public interface HoyaXmlConfKeys {
   /**
    * Default value for the permissions :{@value}
    */
-  String DEFAULT_HOYA_CLUSTER_DIRECTORY_PERMISSIONS =
-    "777";
+  String DEFAULT_HOYA_CLUSTER_DIRECTORY_PERMISSIONS = "777";
   /**: {@value}
    * Option for the permissions for the data directory itself
    */

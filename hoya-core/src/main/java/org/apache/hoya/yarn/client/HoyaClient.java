@@ -747,10 +747,19 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // to do a quick review of them.
     log.debug("Preflight validation of cluster configuration");
 
+    hoyaAM.preflightValidateClusterConfiguration(clusterSpec,
+                             fs,
+                             generatedConfDirPath,
+                             clusterSecure,
+                             clustername,
+                             config);
+
     provider.preflightValidateClusterConfiguration(clusterSpec,
                              fs,
                              generatedConfDirPath,
-                             clusterSecure);
+                             clusterSecure,
+                             clustername,
+                             config);
 
 
     // now add the image if it was set

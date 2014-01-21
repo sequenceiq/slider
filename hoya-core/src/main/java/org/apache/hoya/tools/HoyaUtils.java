@@ -18,7 +18,6 @@
 
 package org.apache.hoya.tools;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
@@ -27,6 +26,7 @@ import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
+import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -240,7 +240,7 @@ public final class HoyaUtils {
                             + ": " + e,
                             e);
     } finally {
-      IOUtils.closeQuietly(socket);
+      IOUtils.closeSocket(socket);
     }
   }
 
@@ -412,6 +412,15 @@ public final class HoyaUtils {
     return clusterDirectory;
   }
 
+  /**
+   * Verify that the cluster directory is not present
+   * @param fs filesystem
+   * @param clustername name of the cluster
+   * @param clusterDirectory actual directory to look for
+   * @return the path to the cluster directory
+   * @throws IOException trouble with FS
+   * @throws HoyaException If the directory exists
+   */
   public static void verifyClusterDirectoryNonexistent(FileSystem fs,
                                                        String clustername,
                                                        Path clusterDirectory) throws
@@ -421,6 +430,34 @@ public final class HoyaUtils {
       throw new HoyaException(HoyaExitCodes.EXIT_CLUSTER_EXISTS,
                               ErrorStrings.PRINTF_E_ALREADY_EXISTS, clustername,
                               clusterDirectory);
+    }
+  }
+
+  /**
+   * Verify that a user has write access to a directory.
+   * It does this by creating then deleting a temp file
+   * @param fs filesystem
+   * @param dirPath actual directory to look for
+   * @throws IOException trouble with FS
+   * @throws BadClusterStateException if the directory is not writeable
+   */
+  public static void verifyDirectoryWriteAccess(FileSystem fs,
+                                         Path dirPath) throws
+                                                                IOException,
+                                                                HoyaException {
+    if (!fs.exists(dirPath)) {
+      throw new FileNotFoundException(dirPath.toString());
+    }
+    Path tempFile = new Path(dirPath, "tmp-file-for-checks");
+    try {
+      FSDataOutputStream out = null;
+      out = fs.create(tempFile, true);
+      IOUtils.closeStream(out);
+      fs.delete(tempFile, false);
+    } catch (IOException e) {
+      log.warn("Failed to create file {}: {}", tempFile, e);
+      throw new BadClusterStateException(e,
+           "Unable to write to directory %s : %s", dirPath, e.toString());
     }
   }
 
