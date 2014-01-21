@@ -19,6 +19,7 @@
 package org.apache.hoya.yarn.cluster.masterless
 
 import groovy.util.logging.Slf4j
+import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.exceptions.ErrorStrings
 import org.apache.hoya.exceptions.HoyaException
 import org.apache.hoya.yarn.Arguments
@@ -70,7 +71,7 @@ class TestDestroyMasterlessAM extends HBaseMiniClusterTestBase {
       fail("expected a failure, got an AM")
     } catch (HoyaException e) {
       assertExceptionDetails(e,
-                             ErrorStrings.EXIT_CLUSTER_EXISTS,
+                             HoyaExitCodes.EXIT_CLUSTER_EXISTS,
                              ErrorStrings.E_ALREADY_EXISTS)
     }
 
@@ -85,7 +86,7 @@ class TestDestroyMasterlessAM extends HBaseMiniClusterTestBase {
     //expect thaw to now fail
     try {
       launcher = launch(HoyaClient,
-                        getConfiguration(),
+                        configuration,
                         [
                             CommonArgs.ACTION_THAW,
                             clustername,
