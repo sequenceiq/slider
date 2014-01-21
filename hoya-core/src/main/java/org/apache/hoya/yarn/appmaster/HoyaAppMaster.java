@@ -405,19 +405,19 @@ public class HoyaAppMaster extends CompoundLaunchedService
     Path generatedConfDirPath =
       new Path(clusterDirPath, HoyaKeys.GENERATED_CONF_DIR_NAME);
     boolean clusterSecure = HoyaUtils.isClusterSecure(conf);
-    amClientProvider.preflightValidateClusterConfiguration(clusterSpec,
-                                                         fs,
-                                                         generatedConfDirPath,
-                                                         clusterSecure,
-                                                         clustername,
-                                                         conf);
+    amClientProvider.preflightValidateClusterConfiguration(fs, clustername,
+                                                           conf, clusterSpec,
+                                                           clusterDirPath,
+                                                           generatedConfDirPath,
+                                                         clusterSecure
+                                                          );
 
-    providerClient.preflightValidateClusterConfiguration(clusterSpec,
-                                                   fs,
-                                                   generatedConfDirPath,
-                                                   clusterSecure,
-                                                   clustername,
-                                                   conf);
+    providerClient.preflightValidateClusterConfiguration(fs, clustername, conf,
+                                                         clusterSpec,
+                                                         clusterDirPath,
+                                                         generatedConfDirPath,
+                                                   clusterSecure
+                                                        );
     
     InetSocketAddress address = HoyaUtils.getRmSchedulerAddress(conf);
     log.info("RM is at {}", address);

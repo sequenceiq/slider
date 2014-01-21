@@ -548,8 +548,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     // Data Directory
     Path datapath = new Path(clusterDirectory, HoyaKeys.DATA_DIR_NAME);
-    // create the data dir
-    fs.mkdirs(datapath);
 
     log.debug("datapath={}", datapath);
     clusterSpec.dataPath = datapath.toUri().toString();
@@ -608,7 +606,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     Path generatedConfDirPath =
       createPathThatMustExist(clusterSpec.generatedConfigurationPath);
-    Path origConfPath =
+    Path snapshotConfPath =
       createPathThatMustExist(clusterSpec.originConfigurationPath);
 
     // now build up the image path
@@ -725,7 +723,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     providerResources = hoyaAM.prepareAMAndConfigForLaunch(fs,
                                                          config,
                                                          clusterSpec,
-                                                         origConfPath,
+                                                         snapshotConfPath,
                                                          generatedConfDirPath,
                                                          clientConfExtras,
                                                          libdir,
@@ -735,7 +733,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     providerResources = provider.prepareAMAndConfigForLaunch(fs,
                                                          config,
                                                          clusterSpec,
-                                                         origConfPath,
+                                                         snapshotConfPath,
                                                          generatedConfDirPath,
                                                          clientConfExtras,
                                                          libdir,
@@ -747,19 +745,19 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // to do a quick review of them.
     log.debug("Preflight validation of cluster configuration");
 
-    hoyaAM.preflightValidateClusterConfiguration(clusterSpec,
-                             fs,
-                             generatedConfDirPath,
-                             clusterSecure,
-                             clustername,
-                             config);
+    hoyaAM.preflightValidateClusterConfiguration(fs, clustername, config,
+                                                 clusterSpec,
+                                                 clusterDirectory,
+                                                 generatedConfDirPath,
+                                                 clusterSecure
+                                                );
 
-    provider.preflightValidateClusterConfiguration(clusterSpec,
-                             fs,
-                             generatedConfDirPath,
-                             clusterSecure,
-                             clustername,
-                             config);
+    provider.preflightValidateClusterConfiguration(fs, clustername, config,
+                                                   clusterSpec,
+                                                   clusterDirectory,
+                                                   generatedConfDirPath,
+                             clusterSecure
+                                                  );
 
 
     // now add the image if it was set

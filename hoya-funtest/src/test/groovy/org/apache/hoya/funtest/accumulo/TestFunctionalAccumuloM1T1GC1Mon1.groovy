@@ -99,7 +99,7 @@ public class TestFunctionalAccumuloM1T1GC1Mon1 extends AccumuloCommandTestBase
         extraArgs,
         true,
         clusterOps,
-        "256M"
+        "256"
     )
 
     //get a hoya client against the cluster

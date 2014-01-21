@@ -152,12 +152,13 @@ public class HoyaAMClientProvider extends AbstractProviderCore implements
 
 
   @Override //Client
-  public void preflightValidateClusterConfiguration(ClusterDescription clusterSpec,
-                                                    FileSystem clusterFS,
-                                                    Path generatedConfDirPath,
-                                                    boolean secure,
+  public void preflightValidateClusterConfiguration(FileSystem clusterFS,
                                                     String clustername,
-                                                    Configuration configuration) throws
+                                                    Configuration configuration,
+                                                    ClusterDescription clusterSpec,
+                                                    Path clusterDirPath,
+                                                    Path generatedConfDirPath,
+                                                    boolean secure) throws
                                                                     HoyaException,
                                                                     IOException {
 
@@ -165,9 +166,7 @@ public class HoyaAMClientProvider extends AbstractProviderCore implements
     String dataPath = clusterSpec.dataPath;
     Path path = new Path(dataPath);
     HoyaUtils.verifyDirectoryWriteAccess(clusterFS, path);
-    Path clusterDirectory = HoyaUtils.buildHoyaClusterDirPath(clusterFS, clustername);
-    Path historyPath =
-      new Path(clusterDirectory, HoyaKeys.HISTORY_DIR_NAME);
+    Path historyPath = new Path(clusterDirPath, HoyaKeys.HISTORY_DIR_NAME);
     HoyaUtils.verifyDirectoryWriteAccess(clusterFS, historyPath);
   }
 
@@ -180,6 +179,8 @@ public class HoyaAMClientProvider extends AbstractProviderCore implements
       throw new BadCommandArgumentsException("No Hoya Application master declared" 
                                              + " in cluster specification");
     }
+    super.validateClusterSpec(clusterSpec);
+
     providerUtils.validateNodeCount(ROLE_HOYA_AM,
                                     clusterSpec.getDesiredInstanceCount(
                                       ROLE_HOYA_AM,

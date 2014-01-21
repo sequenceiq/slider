@@ -19,6 +19,7 @@
 package org.apache.hoya.tools;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -314,7 +315,9 @@ public final class HoyaUtils {
   public static int copyDirectory(Configuration conf,
                                   Path srcDirPath,
                                   Path destDirPath,
-                                  FsPermission permission) throws IOException {
+                                  FsPermission permission) throws
+                                                           IOException,
+                                                           BadClusterStateException {
     FileSystem srcFS = FileSystem.get(srcDirPath.toUri(), conf);
     FileSystem destFS = FileSystem.get(destDirPath.toUri(), conf);
     //list all paths in the src.
@@ -333,7 +336,7 @@ public final class HoyaUtils {
       permission = FsPermission.getDirDefault();
     }
     if (!destFS.exists(destDirPath)) {
-      destFS.mkdirs(destDirPath, permission);
+      createWithPermissions(destFS, destDirPath, permission);
     }
     Path[] sourcePaths = new Path[srcFileCount];
     for (int i = 0; i < srcFileCount; i++) {
@@ -367,6 +370,8 @@ public final class HoyaUtils {
   }
 
 
+  
+  
   /**
    * Create the Hoya cluster path for a named cluster and all its subdirs
    * This is a directory; a mkdirs() operation is executed
@@ -396,10 +401,10 @@ public final class HoyaUtils {
     verifyClusterDirectoryNonexistent(fs, clustername, clusterDirectory);
 
 
-    fs.mkdirs(clusterDirectory, clusterPerms);
-    fs.mkdirs(snapshotConfPath, clusterPerms);
-    fs.mkdirs(generatedConfPath, clusterPerms);
-    fs.mkdirs(historyPath, clusterPerms);
+    createWithPermissions(fs, clusterDirectory, clusterPerms);
+    createWithPermissions(fs, snapshotConfPath, clusterPerms);
+    createWithPermissions(fs, generatedConfPath, clusterPerms);
+    createWithPermissions(fs, historyPath, clusterPerms);
 
     // Data Directory
     Path datapath = new Path(clusterDirectory, HoyaKeys.DATA_DIR_NAME);
@@ -407,9 +412,48 @@ public final class HoyaUtils {
       conf.get(HoyaXmlConfKeys.HOYA_DATA_DIRECTORY_PERMISSIONS,
                HoyaXmlConfKeys.DEFAULT_HOYA_DATA_DIRECTORY_PERMISSIONS);
     log.debug("Setting data directory permissions to {}", dataOpts);
-    fs.mkdirs(datapath, new FsPermission(dataOpts));
-    
+    createWithPermissions(fs, datapath, new FsPermission(dataOpts));
+
     return clusterDirectory;
+  }
+
+  public static void createWithPermissions(FileSystem fs,
+                                           Path dir,
+                                           FsPermission clusterPerms) throws
+                                                                      IOException,
+                                                                      BadClusterStateException {
+    if (fs.isFile(dir)) {
+      // HADOOP-9361 shows some filesystems don't correctly fail here
+      throw new BadClusterStateException(
+        "Cannot create a directory over a file %s", dir);
+    }
+    log.debug("mkdir {} with perms {}", dir, clusterPerms);
+    //no mask whatoever
+    fs.getConf().set(CommonConfigurationKeys.FS_PERMISSIONS_UMASK_KEY, "000");
+    fs.mkdirs(dir, clusterPerms);
+    //now check permissions
+    FsPermission actualPerms = getPathPermissions(fs, dir);
+    if (!clusterPerms.equals(actualPerms)) {
+      
+      log.warn("Dir permissions wrong: %s", actualPerms);
+      fs.setPermission(dir, clusterPerms);
+      //now check again
+      actualPerms = getPathPermissions(fs, dir);
+      if (!clusterPerms.equals(actualPerms)) {
+        throw new BadClusterStateException(
+          "Permissions on directory %s are %s -wanted %s",
+          dir,
+          actualPerms,
+          clusterPerms);
+      }
+
+    }
+  }
+
+  public static FsPermission getPathPermissions(FileSystem fs, Path dir) throws
+                                                                         IOException {
+    FileStatus status = fs.getFileStatus(dir);
+    return status.getPermission();
   }
 
   /**

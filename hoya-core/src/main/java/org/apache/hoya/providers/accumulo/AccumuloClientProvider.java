@@ -214,12 +214,13 @@ public class AccumuloClientProvider extends AbstractProviderCore implements
   }
 
   @Override //Client
-  public void preflightValidateClusterConfiguration(ClusterDescription clusterSpec,
-                                                    FileSystem clusterFS,
-                                                    Path generatedConfDirPath,
-                                                    boolean secure,
+  public void preflightValidateClusterConfiguration(FileSystem clusterFS,
                                                     String clustername,
-                                                    Configuration configuration) throws
+                                                    Configuration configuration,
+                                                    ClusterDescription clusterSpec,
+                                                    Path clusterDirPath,
+                                                    Path generatedConfDirPath,
+                                                    boolean secure) throws
                                                                     HoyaException,
                                                                     IOException {
     validateClusterSpec(clusterSpec);
@@ -364,6 +365,7 @@ public class AccumuloClientProvider extends AbstractProviderCore implements
   @Override // Client and Server
   public void validateClusterSpec(ClusterDescription clusterSpec) throws
                                                                   HoyaException {
+    super.validateClusterSpec(clusterSpec);
     Set<String> unknownRoles = clusterSpec.getRoleNames();
     unknownRoles.removeAll(knownRoleNames);
     if (!unknownRoles.isEmpty()) {
