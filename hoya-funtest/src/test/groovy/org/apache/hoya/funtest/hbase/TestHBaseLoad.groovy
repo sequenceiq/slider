@@ -33,6 +33,9 @@ class TestHBaseLoad extends TestFunctionalHBaseCluster {
   void clusterLoadOperations(Configuration clientConf) {
     String[] args = ["-tn", "test", "-write", "4:100", "-num_keys", "4000", "-zk",
          clientConf.get("hbase.zookeeper.quorum"), "-zk_root", "/yarnapps_hoya_yarn_"+getClusterName()]
-    LoadTestTool.main(args)
+    LoadTestTool loadTool = new LoadTestTool();
+    loadTool.setConf(clientConf)
+    int ret = loadTool.run(args);
+    assert ret == 0;
   }
 }
