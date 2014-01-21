@@ -417,6 +417,14 @@ public final class HoyaUtils {
     return clusterDirectory;
   }
 
+  /**
+   * Create a directory with the given permissions. 
+   * @param fs filesystem
+   * @param dir directory
+   * @param clusterPerms cluster permissions
+   * @throws IOException IO problem
+   * @throws BadClusterStateException any cluster state problem
+   */
   public static void createWithPermissions(FileSystem fs,
                                            Path dir,
                                            FsPermission clusterPerms) throws
@@ -431,28 +439,20 @@ public final class HoyaUtils {
     //no mask whatoever
     fs.getConf().set(CommonConfigurationKeys.FS_PERMISSIONS_UMASK_KEY, "000");
     fs.mkdirs(dir, clusterPerms);
-    //now check permissions
-    FsPermission actualPerms = getPathPermissions(fs, dir);
-    if (!clusterPerms.equals(actualPerms)) {
-      
-      log.warn("Dir permissions wrong: %s", actualPerms);
-      fs.setPermission(dir, clusterPerms);
-      //now check again
-      actualPerms = getPathPermissions(fs, dir);
-      if (!clusterPerms.equals(actualPerms)) {
-        throw new BadClusterStateException(
-          "Permissions on directory %s are %s -wanted %s",
-          dir,
-          actualPerms,
-          clusterPerms);
-      }
-
-    }
+    //and force set it anyway just to make sure
+    fs.setPermission(dir, clusterPerms);
   }
 
-  public static FsPermission getPathPermissions(FileSystem fs, Path dir) throws
+  /**
+   * Get the permissions of a path
+   * @param fs filesystem
+   * @param path path to check
+   * @return the permissions
+   * @throws IOException any IO problem (including file not found)
+   */
+  public static FsPermission getPathPermissions(FileSystem fs, Path path) throws
                                                                          IOException {
-    FileStatus status = fs.getFileStatus(dir);
+    FileStatus status = fs.getFileStatus(path);
     return status.getPermission();
   }
 
