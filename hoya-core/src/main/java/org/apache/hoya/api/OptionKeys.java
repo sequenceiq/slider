@@ -35,19 +35,6 @@ public interface OptionKeys {
    */
   String APPLICATION_IMAGE_PATH = "cluster.application.image.path";
 
-  
-  /**
-   * Option for the permissions for the cluster directory itself: {@value}
-   */
-  String HOYA_CLUSTER_DIRECTORY_PERMISSIONS =
-    "hoya.cluster.directory.permissions";
-
-  /**
-   * Default value for the permissions :{@value}
-   */
-  String DEFAULT_HOYA_CLUSTER_DIRECTORY_PERMISSIONS =
-    "0750";
-
   /**
    * Time in milliseconds to wait after forking any in-AM 
    * process before attempting to start up the containers: {@value}
@@ -58,7 +45,6 @@ public interface OptionKeys {
    * up
    */
   String CONTAINER_STARTUP_DELAY = "hoya.container.startup.delay";
-  
 
   /**
    * Time in milliseconds before a container is considered long-lived.
@@ -87,19 +73,8 @@ public interface OptionKeys {
    * delay for container startup:{@value}
    */
   int DEFAULT_CONTAINER_STARTUP_DELAY = 5000;
-  
-  
-  /**: {@value}
-   * Option for the permissions for the data directory itself
-   */
-  String HOYA_DATA_DIRECTORY_PERMISSIONS = "hoya.data.directory.permissions";
 
 
-  /**
-   * Default value for the data directory permissions: {@value}
-   */
-  String DEFAULT_HOYA_DATA_DIRECTORY_PERMISSIONS = "0750";
-  
   /**
    * option used to set the test flag
    * {@value}

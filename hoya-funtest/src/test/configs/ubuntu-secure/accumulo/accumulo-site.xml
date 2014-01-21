@@ -133,7 +133,6 @@
       /usr/lib/hadoop-hdfs/.*.jar,
       /usr/lib/hadoop-mapreduce/.*.jar,
       /usr/lib/hadoop-yarn/.*.jar,
-      /etc/hadoop/conf
     </value>
     <description>Classpaths that accumulo checks for updates and class files.
       When using the Security Manager, please remove the ".../target/classes/"

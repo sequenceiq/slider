@@ -211,6 +211,27 @@ Default value: `1`.
 
 
 
+#### `hoya.cluster.directory.permissions`
+
+An octal-format (`chmod`-style) permissions mask for the directory
+that contains the cluster specification `${user.home}/.hoya/clusters/${clustername}`
+
+    <property>
+      <name>hoya.cluster.directory.permissions</name>
+      <value>775</value>
+    </property>
+
+#### `hoya.data.directory.permissions`
+
+An octal-format (`chmod`-style) permissions mask for the directory
+that contains the application data `${user.home}/.hoya/clusters/${clustername}/database`
+
+    <property>
+      <name>hoya.data.directory.permissions</name>
+      <value>775</value>
+    </property>
+
+
 ## Debugging configuration issues
 
 If the hoya packages are set to log at debug level in the log4j configuration

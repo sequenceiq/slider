@@ -191,8 +191,11 @@ public class HBaseClientProvider extends AbstractProviderCore implements
 
 
   @Override //Client
-  public void preflightValidateClusterConfiguration(ClusterDescription clusterSpec,
-                                                    FileSystem clusterFS,
+  public void preflightValidateClusterConfiguration(FileSystem clusterFS,
+                                                    String clustername,
+                                                    Configuration configuration,
+                                                    ClusterDescription clusterSpec,
+                                                    Path clusterDirPath,
                                                     Path generatedConfDirPath,
                                                     boolean secure) throws
                                                                     HoyaException,
@@ -272,6 +275,7 @@ public class HBaseClientProvider extends AbstractProviderCore implements
   @Override // Client and Server
   public void validateClusterSpec(ClusterDescription clusterSpec) throws
                                                                   HoyaException {
+    super.validateClusterSpec(clusterSpec);
     Set<String> unknownRoles = clusterSpec.getRoleNames();
     unknownRoles.removeAll(knownRoleNames);
     if (!unknownRoles.isEmpty()) {
@@ -395,8 +399,6 @@ public class HBaseClientProvider extends AbstractProviderCore implements
 
     addHBaseDependencyJars(providerResources, clusterFS,libdir, tempPath);
 
-    //now set up the directory for writing by the user
-    providerUtils.createClusterDirecties(clusterSpec, getConf());
 /* TODO: anything else to set up node security
     if (UserGroupInformation.isSecurityEnabled()) {
       //secure mode

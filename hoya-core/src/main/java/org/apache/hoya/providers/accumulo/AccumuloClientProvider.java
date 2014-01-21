@@ -64,6 +64,8 @@ public class AccumuloClientProvider extends AbstractProviderCore implements
   protected static final Logger log =
     LoggerFactory.getLogger(AccumuloClientProvider.class);
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
+  public static final String TEMPLATE_PATH =
+    "org/apache/hoya/providers/accumulo/";
 
   protected AccumuloClientProvider(Configuration conf) {
     super(conf);
@@ -126,24 +128,24 @@ public class AccumuloClientProvider extends AbstractProviderCore implements
     if (rolename.equals(AccumuloKeys.ROLE_MASTER)) {
       // master role
       Configuration conf = ConfigHelper.loadMandatoryResource(
-        "org/apache/hoya/providers/accumulo/role-accumulo-master.xml");
+        TEMPLATE_PATH +"role-accumulo-master.xml");
       HoyaUtils.mergeEntries(rolemap, conf);
     } else if (rolename.equals(AccumuloKeys.ROLE_TABLET)) {
       // worker settings
       Configuration conf = ConfigHelper.loadMandatoryResource(
-        "org/apache/hoya/providers/accumulo/role-accumulo-tablet.xml");
+        TEMPLATE_PATH +"role-accumulo-tablet.xml");
       HoyaUtils.mergeEntries(rolemap, conf);
     } else if (rolename.equals(AccumuloKeys.ROLE_GARBAGE_COLLECTOR)) {
       Configuration conf = ConfigHelper.loadMandatoryResource(
-        "org/apache/hoya/providers/accumulo/role-accumulo-gc.xml");
+        TEMPLATE_PATH +"role-accumulo-gc.xml");
       HoyaUtils.mergeEntries(rolemap, conf);
     } else if (rolename.equals(AccumuloKeys.ROLE_TRACER)) {
       Configuration conf = ConfigHelper.loadMandatoryResource(
-        "org/apache/hoya/providers/accumulo/role-accumulo-tracer.xml");
+        TEMPLATE_PATH +"role-accumulo-tracer.xml");
       HoyaUtils.mergeEntries(rolemap, conf);
     } else if (rolename.equals(AccumuloKeys.ROLE_MONITOR)) {
       Configuration conf = ConfigHelper.loadMandatoryResource(
-        "org/apache/hoya/providers/accumulo/role-accumulo-monitor.xml");
+        TEMPLATE_PATH +"role-accumulo-monitor.xml");
       HoyaUtils.mergeEntries(rolemap, conf);
     }
     return rolemap;
@@ -212,8 +214,11 @@ public class AccumuloClientProvider extends AbstractProviderCore implements
   }
 
   @Override //Client
-  public void preflightValidateClusterConfiguration(ClusterDescription clusterSpec,
-                                                    FileSystem clusterFS,
+  public void preflightValidateClusterConfiguration(FileSystem clusterFS,
+                                                    String clustername,
+                                                    Configuration configuration,
+                                                    ClusterDescription clusterSpec,
+                                                    Path clusterDirPath,
                                                     Path generatedConfDirPath,
                                                     boolean secure) throws
                                                                     HoyaException,
@@ -360,6 +365,7 @@ public class AccumuloClientProvider extends AbstractProviderCore implements
   @Override // Client and Server
   public void validateClusterSpec(ClusterDescription clusterSpec) throws
                                                                   HoyaException {
+    super.validateClusterSpec(clusterSpec);
     Set<String> unknownRoles = clusterSpec.getRoleNames();
     unknownRoles.removeAll(knownRoleNames);
     if (!unknownRoles.isEmpty()) {

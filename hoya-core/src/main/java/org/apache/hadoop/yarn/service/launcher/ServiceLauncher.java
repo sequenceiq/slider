@@ -431,11 +431,10 @@ public class ServiceLauncher<S extends Service>
         }
       } else {
         //not any of the service launcher exceptions -assume something worse
-        LOG.info(" Exception:" + thrown, thrown);
+        LOG.error(" Exception:" + message, thrown);
         exitCode = EXIT_EXCEPTION_THROWN;
-        
-      }
-      exitException = new ExitUtil.ExitException(exitCode, thrown.toString());
+        }
+      exitException = new ExitUtil.ExitException(exitCode, message);
       exitException.initCause(thrown);
     }
     return exitException;

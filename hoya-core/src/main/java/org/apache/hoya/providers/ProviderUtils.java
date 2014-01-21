@@ -288,41 +288,6 @@ public class ProviderUtils implements RoleKeys {
   }
 
   /**
-   * Create a data directory, using the path and any options related to
-   * permissions
-   * @param cd cluster spec
-   * @param conf configuration 
-   * @return the path to the directory
-   * @throws IOException trouble
-   */
-  public Path createClusterDirecties(ClusterDescription cd,
-                                     Configuration conf) throws IOException {
-    Path path = new Path(cd.dataPath);
-    FileSystem fs = FileSystem.get(path.toUri(), conf);
-    if (!fs.exists(path)) {
-      log.info("Creating data directory {}", path);
-      String parentOpts =
-        cd.getOption(OptionKeys.HOYA_CLUSTER_DIRECTORY_PERMISSIONS,
-                     OptionKeys.DEFAULT_HOYA_CLUSTER_DIRECTORY_PERMISSIONS);
-      Path clusterDirPath = path.getParent();
-      log.debug("Setting cluster dir {} permissions to {}", 
-                clusterDirPath,
-                parentOpts);
-
-      fs.mkdirs(clusterDirPath, new FsPermission(parentOpts));
-      
-      String dataOpts =
-        cd.getOption(OptionKeys.HOYA_DATA_DIRECTORY_PERMISSIONS,
-                     OptionKeys.DEFAULT_HOYA_DATA_DIRECTORY_PERMISSIONS);
-      log.debug("Setting data directory permissions to {}", dataOpts);
-      fs.mkdirs(path,new FsPermission(dataOpts));
-      Path historyDir = new Path(clusterDirPath, HoyaKeys.HISTORY_DIR_NAME);
-      fs.mkdirs(historyDir, new FsPermission(dataOpts));
-    }
-    return path;
-  }
-
-  /**
    * get the user name
    * @return the user name
    */

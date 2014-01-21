@@ -23,6 +23,7 @@ import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hbase.HBaseConfiguration
+import org.apache.hadoop.hbase.HConstants
 import org.apache.hadoop.hbase.ServerName
 import org.apache.hadoop.hbase.client.HBaseAdmin
 import org.apache.hadoop.hbase.client.HConnection
@@ -105,6 +106,13 @@ class HBaseTestUtils extends HoyaTestUtils {
   public static Configuration createHBaseConfiguration(HoyaClient hoyaClient) {
     Configuration siteConf = fetchClientSiteConfig(hoyaClient);
     Configuration conf = HBaseConfiguration.create(siteConf);
+    // patch in some timeouts
+    conf.setInt(HConstants.HBASE_CLIENT_RETRIES_NUMBER, 10)
+    conf.setInt(HConstants.HBASE_RPC_TIMEOUT_KEY, 5000)
+    
+    //fixed time of 1 s per attempt, not any multiplicative pause
+    conf.setInt(HConstants.HBASE_CLIENT_PAUSE, 100)
+    conf.setInt("hbase.client.retries.longer.multiplier", 1)
     return conf
   }
 
