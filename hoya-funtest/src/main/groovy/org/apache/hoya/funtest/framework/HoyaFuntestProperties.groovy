@@ -37,7 +37,8 @@ public interface HoyaFuntestProperties extends HoyaXMLConfKeysForTesting {
    */
   String HOYA_BIN_DIR_PROP = "hoya.bin.dir"
   
-
+  String KEY_HOYA_TEST_NUM_WORKERS = "hoya.test.cluster.size"
+  int DEFAULT_HOYA_NUM_WORKERS = 1
 
   String KEY_HOYA_TEST_ZK_HOSTS = "hoya.test.zkhosts";
   String DEFAULT_HOYA_ZK_HOSTS = "localhost";

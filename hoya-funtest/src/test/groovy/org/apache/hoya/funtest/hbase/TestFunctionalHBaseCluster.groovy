@@ -63,10 +63,11 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
 
     describe "Create a working HBase cluster"
 
-
+    int numWorkers = HOYA_CONFIG.getInt(KEY_HOYA_TEST_NUM_WORKERS, 
+        DEFAULT_HOYA_NUM_WORKERS);
     Map<String, Integer> roleMap = createHBaseCluster(
         clusterName,
-        1,1,
+        1, numWorkers,
         [
             ARG_ROLEOPT, ROLE_MASTER, "app.infoport",
             Integer.toString(PortAssignments._testHBaseCreateCluster),
