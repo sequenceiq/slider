@@ -66,7 +66,6 @@ public class TestFunctionalAccumuloM1T1GC1Mon1 extends AccumuloCommandTestBase
     def path = buildClusterPath(CLUSTER)
     assert !clusterFS.exists(path)
 
-    String clustername = "test_acc_m1t1gc1mon1"
     int tablets = 1
     int monitor = 1
     int gc = 1

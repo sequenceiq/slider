@@ -104,6 +104,8 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
     if (HoyaUtils.maybeInitSecurity(conf)) {
       log.debug("Security enabled")
       HoyaUtils.forceLogin()
+    } else {
+      log.info "Security off, making cluster dirs broadly accessible"
     }
     HoyaShell.hoyaConfDir = HOYA_CONF_DIRECTORY
     HoyaShell.hoyaScript = HOYA_SCRIPT
@@ -257,8 +259,13 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
    * @param name
    */
   static void ensureClusterDestroyed(String name) {
-    freezeForce(name)
-    destroy(name)
+    def froze = freezeForce(name)
+
+    def result = froze.ret
+    if (result != 0 && result != EXIT_UNKNOWN_HOYA_CLUSTER) {
+      froze.assertExitCode(0)
+    }
+    destroy(0, name)
   }
   
   /**
@@ -268,7 +275,7 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
    */
   static void teardown(String name) {
     freeze(name)
-    }
+  }
 
   /**
    * Assert the exit code is that the cluster is unknown

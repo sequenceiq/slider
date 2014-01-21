@@ -47,6 +47,7 @@
     </description>
   </property>
 
+
   <property>
     <name>tserver.memory.maps.max</name>
     <value>80M</value>
@@ -89,25 +90,33 @@
   </property>
 
   <property>
-    <name>general.maven.project.basedir</name>
-    <value></value>
-  </property>
-
-  <property>
     <name>general.classpaths</name>
     <!--
-       Add the following for hadoop-2.0
+       Add the following for Hadoop2, actual needs depend on Hadoop installation details.
+       This list may be excessive, but this should cause no issues. Append these values
+       after the $HADOOP_PREFIX entries
+
        $HADOOP_PREFIX/share/hadoop/common/.*.jar,
        $HADOOP_PREFIX/share/hadoop/common/lib/.*.jar,
        $HADOOP_PREFIX/share/hadoop/hdfs/.*.jar,
        $HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,
        $HADOOP_PREFIX/share/hadoop/yarn/.*.jar,
+       /usr/lib/hadoop/.*.jar,
+       /usr/lib/hadoop/lib/.*.jar,
+       /usr/lib/hadoop-hdfs/.*.jar,
+       /usr/lib/hadoop-mapreduce/.*.jar,
+       /usr/lib/hadoop-yarn/.*.jar,
     -->
     <value>
+      $ACCUMULO_HOME/server/target/classes/,
       $ACCUMULO_HOME/lib/accumulo-server.jar,
+      $ACCUMULO_HOME/core/target/classes/,
       $ACCUMULO_HOME/lib/accumulo-core.jar,
+      $ACCUMULO_HOME/start/target/classes/,
       $ACCUMULO_HOME/lib/accumulo-start.jar,
+      $ACCUMULO_HOME/fate/target/classes/,
       $ACCUMULO_HOME/lib/accumulo-fate.jar,
+      $ACCUMULO_HOME/proxy/target/classes/,
       $ACCUMULO_HOME/lib/accumulo-proxy.jar,
       $ACCUMULO_HOME/lib/[^.].*.jar,
       $ZOOKEEPER_HOME/zookeeper[^.].*.jar,
@@ -119,7 +128,16 @@
       $HADOOP_PREFIX/share/hadoop/hdfs/.*.jar,
       $HADOOP_PREFIX/share/hadoop/mapreduce/.*.jar,
       $HADOOP_PREFIX/share/hadoop/yarn/.*.jar,
+      /usr/lib/hadoop/.*.jar,
+      /usr/lib/hadoop/lib/.*.jar,
+      /usr/lib/hadoop-hdfs/.*.jar,
+      /usr/lib/hadoop-mapreduce/.*.jar,
+      /usr/lib/hadoop-yarn/.*.jar,
+      /etc/hadoop/conf
     </value>
-    <description>Classpaths that accumulo checks for updates and class files.</description>
+    <description>Classpaths that accumulo checks for updates and class files.
+      When using the Security Manager, please remove the ".../target/classes/"
+      values.
+    </description>
   </property>
 </configuration>
