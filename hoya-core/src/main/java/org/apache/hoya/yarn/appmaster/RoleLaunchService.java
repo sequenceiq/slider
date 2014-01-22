@@ -94,21 +94,27 @@ public class RoleLaunchService extends AbstractService {
    */
   private final ThreadGroup launcherThreadGroup = new ThreadGroup("launcher");
 
+  private Map<String, String> envVars;
+
   /**
    * Construct an instance of the launcher
    * @param startOperation the callback to start the opreation
    * @param provider the provider
    * @param fs filesystem
    * @param generatedConfDirPath path in the FS for the generated dir
+   * @param envVars
    */
   public RoleLaunchService(ContainerStartOperation startOperation,
-                           ProviderService provider, FileSystem fs,
-                           Path generatedConfDirPath) {
-    super("ThreadPoolService");
+                           ProviderService provider,
+                           FileSystem fs,
+                           Path generatedConfDirPath,
+                           Map<String, String> envVars) {
+    super("RoleLaunchService");
     containerStarter = startOperation;
     this.fs = fs;
     this.generatedConfDirPath = generatedConfDirPath;
     this.provider = provider;
+    this.envVars = envVars;
   }
 
   @Override
@@ -123,7 +129,8 @@ public class RoleLaunchService extends AbstractService {
    * @param role role
    * @param clusterSpec cluster spec to use for template
    */
-  public void launchRole(Container container, RoleStatus role,
+  public void launchRole(Container container,
+                         RoleStatus role,
                          ClusterDescription clusterSpec) {
     String roleName = role.getName();
     //emergency step: verify that this role is handled by the provider
@@ -281,8 +288,10 @@ public class RoleLaunchService extends AbstractService {
             log.debug(envElt);
           }
         }
-        //log the env
+        
+        // complete setting up the environment
         Map<String, String> environment = ctx.getEnvironment();
+        environment.putAll(envVars);
         log.debug("{} env variables: ", environment.size());
 
         for (Map.Entry<String, String> env : environment.entrySet()) {

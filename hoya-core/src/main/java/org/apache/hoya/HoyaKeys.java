@@ -150,4 +150,8 @@ public interface HoyaKeys extends HoyaXmlConfKeys {
   String STDOUT_HOYAAM = "hoyaam.txt";
   String STDERR_HOYAAM = "hoyaam-err.txt";
   String DEFAULT_GC_OPTS = "";
+
+  String HADOOP_USER_NAME = "HADOOP_USER_NAME";
+  String HADOOP_PROXY_USER = "HADOOP_PROXY_USER";
+  
 }
