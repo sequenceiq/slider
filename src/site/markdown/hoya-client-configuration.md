@@ -218,7 +218,7 @@ that contains the cluster specification `${user.home}/.hoya/clusters/${clusterna
 
     <property>
       <name>hoya.cluster.directory.permissions</name>
-      <value>775</value>
+      <value>750</value>
     </property>
 
 #### `hoya.data.directory.permissions`
@@ -228,7 +228,7 @@ that contains the application data `${user.home}/.hoya/clusters/${clustername}/d
 
     <property>
       <name>hoya.data.directory.permissions</name>
-      <value>775</value>
+      <value>750</value>
     </property>
 
 
