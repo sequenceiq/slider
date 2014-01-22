@@ -88,7 +88,6 @@ message GetJSONClusterStatusRequestProto {
  */
 message GetJSONClusterStatusResponseProto {
   required string clusterSpec = 1;
-
 }
 
 /**
@@ -134,5 +133,32 @@ message GetClusterNodesResponseProto {
   repeated RoleInstanceState clusterNode = 1 ;
 }
 
+/**
+ * Echo
+ */
+message EchoRequestProto {
+  required string text = 1;
+}
 
+/**
+ * Echo reply
+ */
+message EchoResponseProto {
+  required string text = 1;
+}
+
+
+/**
+ * Kill a container
+ */
+message KillContainerRequestProto {
+  required string id = 1;
+}
+
+/**
+ * Kill reply
+ */
+message KillContainerResponseProto {
+  required bool success = 1;
+}
 

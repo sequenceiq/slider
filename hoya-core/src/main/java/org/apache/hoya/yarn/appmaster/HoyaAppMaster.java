@@ -1065,7 +1065,20 @@ public class HoyaAppMaster extends CompoundLaunchedService
     return builder.build();
   }
 
-  
+  @Override
+  public Messages.EchoResponseProto echo(Messages.EchoRequestProto request) throws
+                                                                            IOException,
+                                                                            YarnException {
+    return null;
+  }
+
+  @Override
+  public Messages.KillContainerResponseProto killContainer(Messages.KillContainerRequestProto request) throws
+                                                                                                       IOException,
+                                                                                                       YarnException {
+    return null;
+  }
+
 /* =================================================================== */
 /* END */
 /* =================================================================== */
