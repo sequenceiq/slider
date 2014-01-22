@@ -159,12 +159,9 @@ the same TCP port.
 
 #### JVM Heapsize `jvm.heapsize`
 
-* Not yet implemented * 
-
-
 Heapsize as a JVM option string, such as `"256M"` or `"2G"`
 
---roleopt worker jvm.heapsize 8G
+    --roleopt worker jvm.heapsize 8G
 
 This is not correlated with the YARN memory -changes in the YARN memory allocation
 are not reflected in the JVM heapsize -and vice versa.

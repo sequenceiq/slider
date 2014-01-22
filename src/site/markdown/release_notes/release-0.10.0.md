@@ -14,7 +14,7 @@
   
 # Hoya Release 0.10.0
 
-January 2014
+| 2014
 
 This release is built against the Apache Hadoop 2.2.0 and hbase 0.96.1.1-hadoop2
 artifacts. 
@@ -47,6 +47,19 @@ or on the command line via the `-D` option:
 
 
     bin/hoya freeze cl1  --message "shutdown for maintenance"
+  
+### the `freeze` command now supports a `--force` parameter
+
+A forced freeze bypasses the Hoya Application Master for a forced shutdown,
+irrespective of the state of the application. The client will communicate
+directly with the YARN infrastructure to kill the application.
+
+    bin/hoya freeze cl1  --force 
+
+As Hoya is designed for clusters to be killed without warning (as are HBase
+and Accumulo), a forced freeze should not be significantly different from
+a normal freeze -an operation which issues an RPC request to the Hoya Application
+Master to terminate all allocated containers.
 
 ### `exists` command behavior changed
 
@@ -75,3 +88,32 @@ This is in preparation for incubating the project in the Apache Incubator.
 be ignored by Hoya; these files are a hint to the location in
 a YARN cluster of the data used previously. If there is any problem, 
 delete the directory `~/.hoya/cluster/${cluster}/history/`
+
+
+### Configuration options for cluster directory permissions now set in `hoya-client.xml`
+
+As part of (ongoing) work to ensure data access in non-Kerberized clusters,
+directory permissions for a hoya cluster are set when the cluster is
+created, using permissions set in `hoya.cluster.directory.permissions`
+and `hoya.data.directory.permissions`
+
+Expect more improvements in operations in "insecure" YARN clusters in future
+releases.
+
+### Methods in `HoyaClient` class made visible and more directly programmable
+
+To aid in using the `HoyaClient` class as a library for working with Hoya clusters,
+the `actionBuild` and `actionCreate` operations are now public. All `action` methods
+now take their parsed command line arguments as parameters along with -where appropriate-
+the cluster name.
+
+Note that this is is not a stable API -having a public library with clean separation
+of concerns is preferable. The changes in this release are an interim step.
+
+### JVM heap size is passed down to HBase and Accumulo.
+
+The role option `jvm.heapsize` is now passed down to HBase and Accumulo
+
+    --roleopt worker jvm.heapsize 1G
+    --roleopt master jvm.heapsize 256M
+    
