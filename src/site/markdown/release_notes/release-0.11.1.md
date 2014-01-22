@@ -21,3 +21,18 @@ artifacts.
 
 
 ## Key changes
+
+
+### client user name used for HDFS operations in insecure clusters
+
+In a non-Kerberos cluster, the client's username is now propagated
+to the Application Master and all containers -and is used to 
+identify the cluster for HDFS access. 
+
+As a result, the created databases will correctly belong to the owner
+of the cluster, not the identity of the account which yarn applications
+run under. 
+
+We've reverted the default cluster security permissions on created directories
+to 0750 as appropriate. 
+
