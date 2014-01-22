@@ -71,6 +71,7 @@ class TestCreateMasterlessAM extends HBaseMiniClusterTestBase {
     assert uuids.length == 1;
     nodes = hoyaClient.listClusterNodes(uuids);
     assert nodes.size() == 1;
+    describe "AM Node UUID=${uuids[0]}"
 
     nodes = listNodesInRole(hoyaClient, HoyaKeys.ROLE_HOYA_AM)
     assert nodes.size() == 1;
