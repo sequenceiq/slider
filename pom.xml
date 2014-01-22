@@ -562,11 +562,15 @@
         <version>${accumulo.version}</version>
         <exclusions>
           <exclusion>
-            <groupId>org.apache.maven</groupId>
+            <groupId>org.apache.maven.scm</groupId>
             <artifactId>maven-scm-api</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>org.apache.maven</groupId>
+            <groupId>org.apache.maven.scm</groupId>
+            <artifactId>maven-scm-api</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.apache.maven.scm</groupId>
             <artifactId>maven-scm-provider-svnexe</artifactId>
           </exclusion>
         </exclusions>
