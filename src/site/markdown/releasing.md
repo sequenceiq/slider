@@ -151,6 +151,11 @@ Create a new release on the site by following the instructions
 Using the web GUI for your particular distribution network, upload the
 `.tar.gz` artifact
 
+After doing this, edit the release notes on github to point to the
+tar file's URL.
+
+Example: 
+    [Download hoya-0.10.1-all.tar.gz](http://dffeaef8882d088c28ff-185c1feb8a981dddd593a05bb55b67aa.r18.cf1.rackcdn.com/hoya-0.10.1-all.tar.gz)
 
 **Step #15:** Announce the release 
 
