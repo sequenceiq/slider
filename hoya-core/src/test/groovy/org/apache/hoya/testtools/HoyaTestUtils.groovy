@@ -219,8 +219,8 @@ class HoyaTestUtils extends Assert {
       for (Map.Entry<String, Integer> entry : roles.entrySet()) {
         String role = entry.key
         int desiredCount = entry.value
-        Integer instances = status.instances[role];
-        int instanceCount = instances != null ? instances.intValue() : 0;
+        List<String> instances = status.instances[role]
+        int instanceCount = instances != null ? instances.size() : 0;
         if (instanceCount != desiredCount) {
           roleCountFound = false;
         }

@@ -583,7 +583,7 @@ public class AppState {
    * Get the details on a list of instaces referred to by UUID.
    * Unknown nodes are not returned
    * <i>Important: the order of the results are undefined</i>
-   * @param uuid the UUIDs
+   * @param uuids the UUIDs
    * @return list of instances
    * @throws IOException IO problems
    */
@@ -596,9 +596,8 @@ public class AppState {
    * Get the details on a list of instaces referred to by UUID.
    * Unknown nodes are not returned
    * <i>Important: the order of the results are undefined</i>
-   * @param uuid the UUIDs
+   * @param uuids the UUIDs
    * @return list of instances
-   * @throws IOException IO problems
    */
   public List<RoleInstance> getLiveContainerInfosByUUID(Collection<String> uuids) {
     //first, a hashmap of those uuids is built up
@@ -634,15 +633,18 @@ public class AppState {
 
   /**
    * Build an instance map.
-   * @return the map of RoleId to count
+   * @return the map of Role name to list of role instances
    */
-  private synchronized Map<String, Integer> createRoleToInstanceMap() {
-    Map<String, Integer> map = new HashMap<String, Integer>();
+  private synchronized Map<String, List<String>> createRoleToInstanceMap() {
+    Map<String, List<String>> map = new HashMap<String, List<String>>();
+    
     for (RoleInstance node : getLiveNodes().values()) {
-      Integer entry = map.get(node.role);
-      int current = entry != null ? entry : 0;
-      current++;
-      map.put(node.role, current);
+      List<String> containers = map.get(node.role);
+      if (containers == null) {
+        containers = new ArrayList<String>();
+        map.put(node.role, containers);
+      }
+      containers.add(node.uuid);
     }
     return map;
   }
@@ -699,7 +701,7 @@ public class AppState {
    * then create the container request itself.
    * @param role role to ask an instance of
    * @param capability a resource to set up
-   * @return
+   * @return the request for a new container
    */
   public AMRMClient.ContainerRequest buildContainerResourceAndRequest(
         RoleStatus role,
@@ -1028,7 +1030,7 @@ public class AppState {
    * @return an number from 0 to 100
    */
   public synchronized float getApplicationProgressPercentage() {
-    float percentage = 0;
+    float percentage;
     int desired = 0;
     float actual = 0;
     for (RoleStatus role : getRoleStatusMap().values()) {
@@ -1045,7 +1047,7 @@ public class AppState {
 
   /**
    * Update the cluster description with anything interesting
-   * @param providerStatus status from the provider
+   * @param providerStatus status from the provider for the cluster info section
    */
   public void refreshClusterStatus(Map<String, String> providerStatus) {
     ClusterDescription cd = getClusterDescription();
@@ -1063,22 +1065,16 @@ public class AppState {
     cd.setInfo(RoleKeys.YARN_MEMORY, Integer.toString(containerMaxMemory));
     HoyaUtils.addBuildInfo(cd,"status");
     cd.statistics = new HashMap<String, Map<String, Integer>>();
-    Map<String, Integer> instanceMap = createRoleToInstanceMap();
-    if (log.isDebugEnabled()) {
-      for (Map.Entry<String, Integer> entry : instanceMap.entrySet()) {
-        log.debug("[{}]: {}", entry.getKey(), entry.getValue());
-      }
-    }
+
+    // build the map of node -> container IDs
+    Map<String, List<String>> instanceMap = createRoleToInstanceMap();
     cd.instances = instanceMap;
     
     for (RoleStatus role : getRoleStatusMap().values()) {
       String rolename = role.getName();
-      Integer count = instanceMap.get(rolename);
-      if (count == null) {
-        count = 0;
-      } 
-      int nodeCount = count;
-      cd.setDesiredInstanceCount(rolename,role.getDesired());
+      List<String> instances = instanceMap.get(rolename);
+      int nodeCount = instances != null ? instances.size(): 0;
+      cd.setDesiredInstanceCount(rolename, role.getDesired());
       cd.setActualInstanceCount(rolename, nodeCount);
       cd.setRoleOpt(rolename, ROLE_REQUESTED_INSTANCES, role.getRequested());
       cd.setRoleOpt(rolename, ROLE_RELEASING_INSTANCES, role.getReleasing());
@@ -1086,6 +1082,7 @@ public class AppState {
       cd.setRoleOpt(rolename, ROLE_FAILED_STARTING_INSTANCES, role.getStartFailed());
       Map<String, Integer> stats = role.buildStatistics();
       cd.statistics.put(rolename, stats);
+      
     }
 
     Map<String, Integer> hoyastats = new HashMap<String, Integer>();

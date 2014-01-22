@@ -46,6 +46,7 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -185,8 +186,8 @@ public class ClusterDescription {
   /**
    * Instances: role->count
    */
-  public Map<String, Integer> instances =
-    new HashMap<String, Integer>();
+  public Map<String, List<String>> instances =
+    new HashMap<String, List<String>>();
 
   /**
    * Role options, 

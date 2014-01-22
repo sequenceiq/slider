@@ -59,6 +59,9 @@ class TestLiveTwoNodeRegionService extends HBaseMiniClusterTestBase {
     //get the hbase status
     waitForHBaseRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
+    //now log the final status
+    status = hoyaClient.getClusterDescription(clustername)
+    log.info("${status.toJsonString()}")
 
   }
 
