@@ -1043,7 +1043,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
   /**
    * ask if the client is using a mini MR cluster
-   * @return
+   * @return true if they are
    */
   private boolean getUsingMiniMRCluster() {
     return getConfig().getBoolean(YarnConfiguration.IS_MINI_YARN_CLUSTER,
@@ -1121,7 +1121,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * Monitor the submitted application for reaching the requested state.
    * Will also report if the app reaches a later state (failed, killed, etc)
    * Kill application if duration!= null & time expires. 
-   * @param appId Application Id of application to be monitored
    * @param duration how long to wait -must be more than 0
    * @param desiredState desired state.
    * @return the application report -null on a timeout
@@ -1225,7 +1224,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
   /**
    * Log the application report at INFO
-   * @param report
+   * @param report report to log
    */
   public void logAppReport(ApplicationReport report) {
     log.info(HoyaUtils.appReportToString(report, "\n"));
@@ -1414,12 +1413,10 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   }
 
   /**
-   * Stop the cluster
-   *
-   *
+   * Freeze the cluster
    *
    * @param clustername cluster name
-   * @param freezeArgs
+   * @param freezeArgs arguments to the freeze
    * @return EXIT_SUCCESS if the cluster was not running by the end of the operation
    */
   public int actionFreeze(String clustername,
@@ -1624,7 +1621,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
   /**
    * get the path of a cluster
-   * @param clustername
+   * @param clustername name of the cluster
    * @return the path to the cluster specification
    * @throws HoyaException if the specification is not there
    */
