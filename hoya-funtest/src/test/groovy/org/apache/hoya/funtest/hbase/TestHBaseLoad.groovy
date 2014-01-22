@@ -30,8 +30,9 @@ class TestHBaseLoad extends TestFunctionalHBaseCluster {
   }
 
   @Override
-  void clusterLoadOperations(Configuration clientConf) {
-    String[] args = ["-tn", "test", "-write", "4:100", "-num_keys", "4000", "-zk",
+  void clusterLoadOperations(Configuration clientConf, int numWorkers) {
+    int numKeys = 4000 * numWorkers
+    String[] args = ["-tn", "test", "-write", "4:100", "-num_keys", numKeys, "-zk",
          clientConf.get("hbase.zookeeper.quorum"), "-zk_root", "/yarnapps_hoya_yarn_"+getClusterName()]
     LoadTestTool loadTool = new LoadTestTool();
     loadTool.setConf(clientConf)

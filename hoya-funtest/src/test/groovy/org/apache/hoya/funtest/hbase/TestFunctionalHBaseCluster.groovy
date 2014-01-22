@@ -95,10 +95,10 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
     assertHBaseMasterFound(clientConf)
     waitForHBaseRegionServerCount(hoyaClient, clusterName, 1, HBASE_LAUNCH_WAIT_TIME)
 
-    clusterLoadOperations(clientConf)
+    clusterLoadOperations(clientConf, numWorkers)
   }
 
-  public void clusterLoadOperations(Configuration clientConf) {
+  public void clusterLoadOperations(Configuration clientConf, int numWorkers) {
 
   }
 
