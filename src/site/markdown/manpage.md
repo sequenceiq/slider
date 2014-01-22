@@ -237,20 +237,43 @@ Example
 
     hoya destroy cluster1
 
-### `exists \<cluster>`
+### `exists \<cluster> [--live]`
 
-Probe the existence of a running instance of the named Hoya cluster
+Probe the existence of the named Hoya cluster. If the `--live` flag is set, the cluster
+must be running
 
 If not, an error code is returned.
 
+When the --live` flag is unset, the command looks for the cluster to be
+defined in the filesystem -its operation state is not checked.
+
+Return codes
+
+     0 : cluster is defined in the filesystem
+    70 : cluster is unknown
+
+Example:
+
+    hoya exists cluster4
+
+### Live Tests
+
+When the --live` flag is set, the cluster must be running for the command
+to succeed
+
 1. The probe does not check the status of any Hoya-deployed services, merely that a cluster has been deployed
-1. A cluster that is finished or failed is not considered to exist -this is to be consistent
-with the rule that a new Hoya cluster can be created if an existing cluster exists in any
-of the YARN termination states.
+1. A cluster that is finished or failed is not considered to be live.
 
-Example
+Return codes
 
-    hoya destroy cluster1
+     0 : cluster is running
+    -1 : cluster exists but is not running
+    70 : cluster is unknown
+
+
+Example:
+
+    hoya exists cluster4 --live
 
 ### `flex <cluster> [--role rolename count]* [--persist true|false]`
 
@@ -267,17 +290,25 @@ Example
     hoya flex cluster1 --role master 2 --persist false --filesystem hdfs://host:port
     
 
-### `freeze <cluster>  [--wait time]`
+### `freeze <cluster>  [--force] [--wait time] [--message text]`
 
 freeze the cluster. The HBase cluster is scheduled to be destroyed. The cluster settings are retained in HDFS.
 
 The `--wait` argument can specify a time in seconds to wait for the cluster to be frozen.
 
+The `--force` flag causes the HoyaAM to be bypassed, and YARN asked directly
+to terminate the application. This will freeze a cluster that has hung or
+is otherwise not responding.
+
+The `--message` argument supplies an optional text message to be used in
+the request: this will appear in the application's diagnostics in the YARN RM UI.
+
 If an unknown (or already frozen) cluster is named, no error is returned.
 
-Example
+Examples
 
     hoya freeze cluster1 --wait 30
+    hoya freeze cluster2 --force --message "maintenance session"
 
 
 ### `getconf <cluster>  [--out file] [--format xml|properties]`

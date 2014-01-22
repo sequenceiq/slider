@@ -14,7 +14,7 @@
   
 # Hoya Release 0.9.0
 
-January 2013
+January 2014
 
 This release is built against the Apache Hadoop 2.2.0 and hbase 0.96.0-hadoop2
 artifacts. 

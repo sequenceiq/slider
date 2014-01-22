@@ -121,7 +121,7 @@ shortcut commands to aid their use
 If these shortcuts are used and the options are also defined via `-D`
 declarations, the order of assignment is undefined.
     
-# Defining Hadoop and Hoya Options in the hoya-client.xml file.
+# Defining Hadoop and Hoya Options in the `hoya-client.xml` file.
 
 In the Hoya installation, alongside the `bin/hoya` script is
 a configuration directory `conf`. This contains the files:
@@ -166,6 +166,70 @@ definition. (this holds even if the value is declared with `<final>true</final>`
 The environment variable `HOYA_CONF_DIR` can be used to declare an alternate
 configuration directory. If set, the directory it identifies will be used
 as the source of the `log4j.properties` and `hoya-client.xml` files.
+
+## Hoya Client Configuration options
+
+As well as standard YARN and Hadoop configuration options, Hoya supports
+a limited number of hoya-specific configuration parameters.
+
+    <property>
+      <name>hoya.yarn.security</name>
+      <value>false</value>
+    </property>
+    
+    <property>
+      <name>hoya.yarn.queue</name>
+      <value>default</value>
+    </property>
+
+    <property>
+      <name>hoya.yarn.queue</name>
+      <value>1</value>
+    </property>
+
+
+### `hoya.security.enabled` - enable security.
+
+This turns security on; consult [Security](security.html) for more information.
+
+### `hoya.yarn.queue` - the name of the YARN queue for the cluster.
+
+This identifies the queue submit the application creation request to, which can
+define the priority, resource limits and other values of an application. All
+containers created in the Hoya cluster will share this same queue.
+
+Default value: `default`.
+
+### `hoya.yarn.queue.priority` - the name of the YARN queue for the cluster.
+
+This identifies the priority within the queue. The lower the value, the higher the
+priority
+
+Default value: `1`.
+
+    bin/hoya thaw cl1 -D hoya.yarn.queue.priority=5
+
+
+
+#### `hoya.cluster.directory.permissions`
+
+An octal-format (`chmod`-style) permissions mask for the directory
+that contains the cluster specification `${user.home}/.hoya/clusters/${clustername}`
+
+    <property>
+      <name>hoya.cluster.directory.permissions</name>
+      <value>775</value>
+    </property>
+
+#### `hoya.data.directory.permissions`
+
+An octal-format (`chmod`-style) permissions mask for the directory
+that contains the application data `${user.home}/.hoya/clusters/${clustername}/database`
+
+    <property>
+      <name>hoya.data.directory.permissions</name>
+      <value>775</value>
+    </property>
 
 
 ## Debugging configuration issues

@@ -1,0 +1,186 @@
+<!--
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~   you may not use this file except in compliance with the License.
+  ~   You may obtain a copy of the License at
+  ~   
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~   
+  ~   Unless required by applicable law or agreed to in writing, software
+  ~   distributed under the License is distributed on an "AS IS" BASIS,
+  ~   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~   See the License for the specific language governing permissions and
+  ~   limitations under the License. See accompanying LICENSE file.
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <artifactId>hoya-funtest</artifactId>
+  <version>0.10.1</version>
+  <name>Hoya Functional Tests</name>
+  <packaging>jar</packaging>
+  <description>
+    Functional testing for hoya: testing is always fun
+  </description>
+  <parent>
+    <groupId>org.apache.hoya</groupId>
+    <artifactId>hoya</artifactId>
+    <version>0.10.1</version>
+  </parent>
+
+  <build>
+
+    <!-- resources are filtered for dynamic updates. This gets build info in-->
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>true</filtering>
+      </resource>
+    </resources>
+
+    <plugins>
+
+      <!--read in a build.properties file if defined-->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>properties-maven-plugin</artifactId>
+        <version>${maven.properties.version}</version>
+        <executions>
+          <execution>
+            <phase>initialize</phase>
+            <goals>
+              <goal>read-project-properties</goal>
+            </goals>
+            <configuration>
+              <quiet>true</quiet>
+              <files>
+                <file>build.properties</file>
+                <file>../build.properties</file>
+              </files>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>${maven-compiler-plugin.version}</version>
+        <configuration>
+          <compilerId>groovy-eclipse-compiler</compilerId>
+          <!-- set verbose to be true if you want lots of uninteresting messages -->
+          <!-- <verbose>true</verbose> -->
+          <source>${project.java.src.version}</source>
+          <target>${project.java.src.version}</target>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy-eclipse-compiler</artifactId>
+            <version>${groovy-eclipse-compiler.version}</version>
+          </dependency>
+          <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy-eclipse-batch</artifactId>
+            <version>${groovy-eclipse-batch.version}</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+
+
+      <!-- test -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${maven-surefire-plugin.version}</version>
+        <configuration>
+          <!--mvn process fork options-->
+          <reuseForks>true</reuseForks>
+          <forkCount>1</forkCount>
+          <forkedProcessTimeoutInSeconds>600</forkedProcessTimeoutInSeconds>
+          <threadCount>1</threadCount>
+          <argLine>-Xmx1024m -XX:+HeapDumpOnOutOfMemoryError</argLine>
+          <failIfNoTests>true</failIfNoTests>
+          <trimStackTrace>false</trimStackTrace>
+          <redirectTestOutputToFile>${build.redirect.test.output.to.file}</redirectTestOutputToFile>
+          <systemPropertyVariables>
+            <java.net.preferIPv4Stack>true</java.net.preferIPv4Stack>
+            <java.awt.headless>true</java.awt.headless>
+            <java.security.krb5.realm>${hoya.test.java.security.krb5.realm}</java.security.krb5.realm>
+            <java.security.krb5.kdc>${hoya.test.java.security.krb5.kdc}</java.security.krb5.kdc>
+            <!-- this property must be supplied-->
+            <hoya.conf.dir>${hoya.conf.dir}</hoya.conf.dir>
+            <hoya.bin.dir>../hoya-assembly/target/hoya-${project.version}-all/hoya-${project.version}</hoya.bin.dir>
+          </systemPropertyVariables>
+          <includes>
+            <include>**/Test*.java</include>
+          </includes>
+          <excludes>
+            <exclude>**/Test*$*.java</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+  
+ 
+    </plugins>
+  </build>
+
+  <reporting>
+    <plugins>
+ 
+
+
+    </plugins>
+  </reporting>
+
+  <dependencies>
+
+    <dependency>
+      <groupId>org.apache.hoya</groupId>
+      <artifactId>hoya-core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.hoya</groupId>
+      <artifactId>hoya-core</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.hoya</groupId>
+      <artifactId>hoya-assembly</artifactId>
+      <version>${project.version}</version>
+      <classifier>all</classifier>
+      <type>tar.gz</type>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+       <groupId>org.apache.hbase</groupId>
+       <artifactId>hbase-client</artifactId>
+    </dependency>
+
+      <dependency>
+        <groupId>org.apache.hbase</groupId>
+        <artifactId>hbase-server</artifactId>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hbase</groupId>
+        <artifactId>hbase-common</artifactId>
+        <classifier>tests</classifier>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hbase</groupId>
+        <artifactId>hbase-server</artifactId>
+        <classifier>tests</classifier>
+      </dependency>
+    <dependency>
+      <groupId>org.apache.bigtop.itest</groupId>
+      <artifactId>itest-common</artifactId>
+      <version>${bigtop.version}</version>
+    </dependency>
+
+  </dependencies>
+
+
+</project>
