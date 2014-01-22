@@ -790,7 +790,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       log.debug("Environment Map:\n{}", HoyaUtils.stringifyMap(env));
       log.debug("Files in lib path\n{}", HoyaUtils.listFSDir(fs, libPath));
     }
-    amContainer.setEnvironment(env);
 
     String rmAddr = launchArgs.getRmAddress();
     // spec out the RM address
@@ -865,6 +864,11 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       credentials.writeTokenStorageToStream(dob);
       ByteBuffer fsTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
       amContainer.setTokens(fsTokens);
+    } else {
+      //insecure cluster: propagate user name via env variable
+      String userName = UserGroupInformation.getCurrentUser().getUserName();
+      log.debug(HADOOP_USER_NAME + "='{}'", userName);
+      env.put(HADOOP_USER_NAME, userName);
     }
     // write out the path output
     commands.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/"+
@@ -876,6 +880,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     log.info("Completed setting up app master command {}", cmdStr);
 
     amContainer.setCommands(commands);
+    //fix the env variables
+    amContainer.setEnvironment(env);
     // Set up resource type requirements
     Resource capability = Records.newRecord(Resource.class);
     // Amt. of memory resource to request for to run the App Master

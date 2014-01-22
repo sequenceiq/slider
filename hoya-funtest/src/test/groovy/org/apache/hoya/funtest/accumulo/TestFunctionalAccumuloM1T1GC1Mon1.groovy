@@ -29,6 +29,7 @@ import org.apache.hoya.providers.accumulo.AccumuloConfigFileOptions
 import org.apache.hoya.providers.accumulo.AccumuloKeys
 import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.hoya.yarn.Arguments
+import org.apache.hoya.yarn.HoyaActions
 import org.apache.hoya.yarn.client.HoyaClient
 import org.junit.AfterClass
 import org.junit.BeforeClass
@@ -115,6 +116,16 @@ public class TestFunctionalAccumuloM1T1GC1Mon1 extends AccumuloCommandTestBase
     cd = hoyaClient.clusterDescription
 
 //    fetchWebPage()
+
+    hoya(0, [
+        HoyaActions.ACTION_FREEZE, CLUSTER,
+        ARG_WAIT, Integer.toString(FREEZE_WAIT_TIME),
+        ARG_MESSAGE, "freeze-in-test-AccumuloCluster"
+    ])
+
+    //destroy the cluster. This only works if the permissions allow it
+    destroy(0, CLUSTER)
+    
 
   }
 

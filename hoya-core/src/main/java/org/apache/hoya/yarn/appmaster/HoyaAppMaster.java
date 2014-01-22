@@ -249,6 +249,9 @@ public class HoyaAppMaster extends CompoundLaunchedService
   private String amCompletionReason;
 
   private RoleLaunchService launchService;
+  
+  //username -null if it is not known/not to be set
+  private String hoyaUsername;
 
 
   /**
@@ -431,8 +434,9 @@ public class HoyaAppMaster extends CompoundLaunchedService
     ApplicationId appid = appAttemptID.getApplicationId();
     log.info("Hoya AM for ID {}", appid.getId());
 
+    UserGroupInformation currentUser = UserGroupInformation.getCurrentUser();
     Credentials credentials =
-      UserGroupInformation.getCurrentUser().getCredentials();
+      currentUser.getCredentials();
     DataOutputBuffer dob = new DataOutputBuffer();
     credentials.writeTokenStorageToStream(dob);
     dob.close();
@@ -450,10 +454,17 @@ public class HoyaAppMaster extends CompoundLaunchedService
     // set up secret manager
     secretManager = new ClientToAMTokenSecretManager(appAttemptID, null);
 
+    // if not a secure cluster, extract the username -it will be
+    // propagated to workers
+    if (!UserGroupInformation.isSecurityEnabled()) {
+      hoyaUsername = System.getenv(HADOOP_USER_NAME);
+      log.info(HADOOP_USER_NAME + "='{}'", hoyaUsername);
+    }
+    
     int heartbeatInterval = HEARTBEAT_INTERVAL;
 
     //add the RM client -this brings the callbacks in
-    asyncRMClient = AMRMClientAsync.createAMRMClientAsync(HEARTBEAT_INTERVAL,
+    asyncRMClient = AMRMClientAsync.createAMRMClientAsync(heartbeatInterval,
                                                           this);
     addService(asyncRMClient);
     //wrap it for the app state model
@@ -571,11 +582,18 @@ public class HoyaAppMaster extends CompoundLaunchedService
 
     appState.buildAppMasterNode(appMasterContainerID);
 
+    // build up environment variables that the AM wants set in every container
+    // irrespective of provider and role.
+    Map<String, String> envVars = new HashMap<String, String>();
+    if (hoyaUsername != null) {
+      envVars.put(HADOOP_USER_NAME, hoyaUsername);
+    }
     //launcher service
     launchService = new RoleLaunchService(this,
                                           providerService,
                                           getClusterFS(),
-                                          new Path(getDFSConfDir()));
+                                          new Path(getDFSConfDir()), 
+                                          envVars);
     runChildService(launchService);
 
     appState.noteAMLaunched();
@@ -1351,6 +1369,13 @@ public class HoyaAppMaster extends CompoundLaunchedService
     return providerService;
   }
 
+  /**
+   * Get the username for the hoya cluster as set in the environment
+   * @return the username or null if none was set/it is a secure cluster
+   */
+  public String getHoyaUsername() {
+    return hoyaUsername;
+  }
 
   /**
    * This is the main entry point for the service launcher.
