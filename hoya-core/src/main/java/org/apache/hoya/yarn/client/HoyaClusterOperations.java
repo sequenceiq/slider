@@ -76,6 +76,26 @@ public class HoyaClusterOperations {
     return nodeList;
   }
 
+  /**
+   * Echo text (debug action)
+   * @param text text
+   * @return the text, echoed back
+   * @throws YarnException
+   * @throws IOException
+   */
+  public String echo(String text) throws
+                                          YarnException,
+                                          IOException {
+    Messages.EchoRequestProto.Builder builder =
+      Messages.EchoRequestProto.newBuilder();
+    builder.setText(text);
+    Messages.EchoRequestProto req =
+      builder.build();
+    Messages.EchoResponseProto response =
+      appMaster.echo(req);
+    return response.getText();
+  }
+
 
   /**
    * Connect to a live cluster and get its current state
@@ -98,6 +118,26 @@ public class HoyaClusterOperations {
         e);
       throw e;
     }
+  }
+
+  /**
+   * Kill a container
+   * @param id container ID
+   * @return a success flag
+   * @throws YarnException
+   * @throws IOException
+   */
+  public boolean killContainer(String id) throws
+                                          YarnException,
+                                          IOException {
+    Messages.KillContainerRequestProto.Builder builder =
+      Messages.KillContainerRequestProto.newBuilder();
+    builder.setId(id);
+    Messages.KillContainerRequestProto req =
+      builder.build();
+    Messages.KillContainerResponseProto response =
+      appMaster.killContainer(req);
+    return response.getSuccess();
   }
 
   /**

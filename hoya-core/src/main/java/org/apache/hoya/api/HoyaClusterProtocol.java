@@ -90,4 +90,8 @@ public interface HoyaClusterProtocol extends VersionedProtocol {
    */
   Messages.GetClusterNodesResponseProto getClusterNodes(Messages.GetClusterNodesRequestProto request) throws IOException, YarnException;
 
+  Messages.EchoResponseProto echo(Messages.EchoRequestProto request) throws IOException, YarnException;
+
+  Messages.KillContainerResponseProto killContainer(Messages.KillContainerRequestProto request) throws IOException, YarnException;
+  
 }

@@ -33,6 +33,7 @@ public interface HoyaActions {
   String ACTION_FREEZE = "freeze";
   String ACTION_GETCONF = "getconf";
   String ACTION_HELP = "help";
+  String ACTION_KILL_CONTAINER = "killcontainer";
   String ACTION_LIST = "list";
   String ACTION_MIGRATE = "migrate";
   String ACTION_MONITOR = "monitor";
@@ -55,9 +56,11 @@ public interface HoyaActions {
             "Probe for a cluster running";
   String DESCRIBE_ACTION_FLEX = "Flex a Hoya cluster";
   String DESCRIBE_ACTION_FREEZE =
-              "freeze/suspend a running cluster";
+              "Freeze/suspend a running cluster";
   String DESCRIBE_ACTION_GETCONF =
                 "Get the configuration of a cluster";
+  String DESCRIBE_ACTION_KILL_CONTAINER =
+    "Kill a container in the cluster";
   String DESCRIBE_ACTION_HELP = "Print help information";
   String DESCRIBE_ACTION_LIST =
                   "List running Hoya clusters";
@@ -66,7 +69,7 @@ public interface HoyaActions {
   String DESCRIBE_ACTION_STATUS =
                       "Get the status of a cluster";
   String DESCRIBE_ACTION_THAW =
-                        "thaw/start a frozen cluster";
+                        "Thaw a frozen cluster";
   String DESCRIBE_ACTION_VERSION =
-                        "get version information";
+                        "Print the Hoya version information";
 }

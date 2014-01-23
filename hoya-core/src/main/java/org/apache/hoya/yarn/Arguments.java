@@ -50,9 +50,10 @@ public interface Arguments {
   String ARG_FILESYSTEM_LONG = "--filesystem";
   String ARG_FORMAT = "--format";
   String ARG_FORCE = "--force";
-  String ARG_LIVE = "--live";
-  String ARG_HELP = "--help";
+  String ARG_ID = "--id";
   String ARG_IMAGE = "--image";
+  String ARG_HELP = "--help";
+  String ARG_LIVE = "--live";
   String ARG_MANAGER = "--manager";
   String ARG_MESSAGE = "--message";
 //  String ARG_NAME = "--name";

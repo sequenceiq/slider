@@ -43,19 +43,22 @@ public class ClientArgs extends CommonArgs {
    * after the construction to point to the relevant
    * entry
    */
-  AbstractClusterBuildingActionArgs buildingActionArgs;
-  ActionBuildArgs actionBuildArgs = new ActionBuildArgs();
-  ActionCreateArgs actionCreateArgs = new ActionCreateArgs();
-  ActionDestroyArgs actionDestroyArgs = new ActionDestroyArgs();
-  ActionExistsArgs actionExistsArgs = new ActionExistsArgs();
-  ActionFlexArgs actionFlexArgs = new ActionFlexArgs();
-  ActionForceKillArgs actionForceKillArgs = new ActionForceKillArgs();
-  ActionFreezeArgs actionFreezeArgs = new ActionFreezeArgs();
-  ActionGetConfArgs actionGetConfArgs = new ActionGetConfArgs();
-  ActionListArgs actionListArgs = new ActionListArgs();
-  ActionStatusArgs actionStatusArgs = new ActionStatusArgs();
-  ActionThawArgs actionThawArgs = new ActionThawArgs();
-  ActionVersionArgs actionVersionArgs = new ActionVersionArgs();
+  private AbstractClusterBuildingActionArgs buildingActionArgs;
+  private final ActionBuildArgs actionBuildArgs = new ActionBuildArgs();
+  private final ActionCreateArgs actionCreateArgs = new ActionCreateArgs();
+  private final ActionDestroyArgs actionDestroyArgs = new ActionDestroyArgs();
+  private final ActionExistsArgs actionExistsArgs = new ActionExistsArgs();
+  private final ActionFlexArgs actionFlexArgs = new ActionFlexArgs();
+  private final ActionForceKillArgs actionForceKillArgs =
+    new ActionForceKillArgs();
+  private final ActionFreezeArgs actionFreezeArgs = new ActionFreezeArgs();
+  private final ActionGetConfArgs actionGetConfArgs = new ActionGetConfArgs();
+  private final ActionKillContainerArgs actionKillContainerArgs =
+    new ActionKillContainerArgs();
+  private final ActionListArgs actionListArgs = new ActionListArgs();
+  private final ActionStatusArgs actionStatusArgs = new ActionStatusArgs();
+  private final ActionThawArgs actionThawArgs = new ActionThawArgs();
+  private final ActionVersionArgs actionVersionArgs = new ActionVersionArgs();
   private final ActionHelpArgs actionHelpArgs = new ActionHelpArgs();
 
 
@@ -79,12 +82,13 @@ public class ClientArgs extends CommonArgs {
       actionForceKillArgs,
       actionFreezeArgs,
       actionGetConfArgs,
+      actionKillContainerArgs,
       actionListArgs,
       actionStatusArgs,
       actionThawArgs,
       actionHelpArgs,
       actionVersionArgs
-      );
+              );
   }
 
   @Override
@@ -134,6 +138,10 @@ public class ClientArgs extends CommonArgs {
     return actionGetConfArgs;
   }
 
+  public ActionKillContainerArgs getActionKillContainerArgs() {
+    return actionKillContainerArgs;
+  }
+
   public ActionListArgs getActionListArgs() {
     return actionListArgs;
   }
@@ -147,15 +155,12 @@ public class ClientArgs extends CommonArgs {
   }
 
   /**
-   * Get the wait time -provided the bonded arg implements 
-   * {@link WaitTimeAccessor}
-   * @return the wait time in seconds
-   * @throws ClassCastException if the action is of a wrong type
+   * Look at the chosen action and bind it as the core action for the operation.
+   * In theory this could be done by introspecting on the list of actions and 
+   * choosing it without the switch statement. In practise this switch, while
+   * verbose, is easier to debug.
+   * @throws HoyaException bad argument or similar
    */
-  public int getWaittime() {
-    return ((WaitTimeAccessor) getCoreAction()).getWaittime();
-  }
-
   @Override
   public void applyAction() throws HoyaException {
     String action = getAction();
@@ -193,6 +198,9 @@ public class ClientArgs extends CommonArgs {
     } else if (HoyaActions.ACTION_HELP.equals(action) ||
                HoyaActions.ACTION_USAGE.equals(action)) {
       bindCoreAction(actionHelpArgs);
+
+    } else if (HoyaActions.ACTION_KILL_CONTAINER.equals(action)) {
+      bindCoreAction(actionKillContainerArgs);
 
     } else if (HoyaActions.ACTION_LIST.equals(action)) {
       bindCoreAction(actionListArgs);

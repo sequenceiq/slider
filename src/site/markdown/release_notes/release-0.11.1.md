@@ -23,7 +23,7 @@ artifacts.
 ## Key changes
 
 
-### client user name used for HDFS operations in insecure clusters
+### Client user name used for HDFS operations in insecure clusters
 
 In a non-Kerberos cluster, the client's username is now propagated
 to the Application Master and all containers -and is used to 
@@ -36,3 +36,15 @@ run under.
 We've reverted the default cluster security permissions on created directories
 to 0750 as appropriate. 
 
+### Cluster status request lists container IDs
+
+The container IDs of running containers are now listed in the output of
+the `status` operation:
+
+      "instances" : {
+        "worker" : [ "container_1390413725233_0001_01_000003", "container_1390413725233_0001_01_000002" ],
+        "hoya" : [ "container_1390413725233_0001_01_000001" ],
+        "master" : [ "container_1390413725233_0001_01_000004" ]
+      },
+      
+These can be used in debugging cluster behavior.

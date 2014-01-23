@@ -92,6 +92,11 @@ class TestFailedRegionService extends HBaseMiniClusterTestBase {
 
     log.info("Updated cluster status : ${hbaseStatusToString(hbaseStat)}");
     
+    //now attempt it by container kill command
+    def workers = status.instances[HBaseKeys.ROLE_WORKER]
+    assert workers.size() == 2
+    def worker1 = workers[0]
+    
     
     
   }
