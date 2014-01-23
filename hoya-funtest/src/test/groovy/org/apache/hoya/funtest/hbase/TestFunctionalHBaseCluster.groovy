@@ -42,12 +42,10 @@ import static org.apache.hoya.providers.hbase.HBaseKeys.*
 public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
     implements HoyaFuntestProperties, Arguments, HoyaExitCodes {
 
-
-
   public String getClusterName() {
     return "test_functional_hbase_cluster"
   }
-
+  
   @Before
   public void prepareCluster() {
     ensureClusterDestroyed(clusterName)
@@ -61,8 +59,7 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
   @Test
   public void testHBaseCreateCluster() throws Throwable {
 
-    describe "Create a working HBase cluster $clusterName"
-    describe "Create a working HBase cluster"
+    describe description
 
     int numWorkers = HOYA_CONFIG.getInt(KEY_HOYA_TEST_NUM_WORKERS, 
         DEFAULT_HOYA_NUM_WORKERS);
@@ -74,9 +71,9 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
         1, numWorkers,
         [
             ARG_ROLEOPT, ROLE_MASTER, "app.infoport",
-            Integer.toString(PortAssignments._testHBaseCreateCluster),
+            Integer.toString(masterPortAssignment),
             ARG_ROLEOPT, ROLE_WORKER, "app.infoport",
-            Integer.toString(PortAssignments._testHBaseCreateCluster2),
+            Integer.toString(workerPortAssignment),
         ],
         [:]
     )
@@ -93,11 +90,30 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
 
     Configuration clientConf = createHBaseConfiguration(hoyaClient)
     assertHBaseMasterFound(clientConf)
-    waitForHBaseRegionServerCount(hoyaClient, clusterName, 1, HBASE_LAUNCH_WAIT_TIME)
+    waitForHBaseRegionServerCount(hoyaClient, clusterName,
+                                  numWorkers, HBASE_LAUNCH_WAIT_TIME)
 
     clusterLoadOperations(clientConf, numWorkers)
   }
 
+
+  public String getDescription() {
+    return "Create a working HBase cluster $clusterName"
+  }
+
+  public int getWorkerPortAssignment() {
+    return PortAssignments._testHBaseCreateCluster2
+  }
+
+  public int getMasterPortAssignment() {
+    return PortAssignments._testHBaseCreateCluster
+  }
+
+  /**
+   * Override point for any cluster load operations
+   * @param clientConf
+   * @param numWorkers
+   */
   public void clusterLoadOperations(Configuration clientConf, int numWorkers) {
 
   }

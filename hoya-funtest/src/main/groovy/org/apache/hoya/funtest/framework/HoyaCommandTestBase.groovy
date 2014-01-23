@@ -202,6 +202,15 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
          ])
   }
 
+  static HoyaShell killContainer(String name, String containerID) {
+    hoya(0,
+         [
+             ACTION_KILL_CONTAINER,
+             name,
+             containerID
+         ])
+  }
+  
   static HoyaShell freezeForce(String name) {
     hoya([
         ACTION_FREEZE, ARG_FORCE, name
