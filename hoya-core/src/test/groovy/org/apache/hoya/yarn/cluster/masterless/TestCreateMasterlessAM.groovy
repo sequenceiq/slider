@@ -24,6 +24,7 @@ import org.apache.hoya.HoyaKeys
 import org.apache.hoya.api.ClusterNode
 import org.apache.hoya.exceptions.HoyaException
 import org.apache.hoya.yarn.client.HoyaClient
+import org.apache.hoya.yarn.params.ActionEchoArgs
 import org.apache.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.api.records.ApplicationId
 import org.apache.hadoop.yarn.api.records.ApplicationReport
@@ -115,6 +116,21 @@ class TestCreateMasterlessAM extends HBaseMiniClusterTestBase {
     //but when we look up an instance, we get the new App ID
     ApplicationReport instance2 = hoyaClient.findInstance(username, clustername)
     assert i2AppID == instance2.applicationId
+    
+    
+    
+    // do an echo here of a large string
+    // Hadoop RPC couldn't handle strings > 32K chars, this
+    // check here allows us to be confident that large JSON Reports are handled
+    StringBuilder sb = new StringBuilder()
+    for (int i = 0; i < 65536; i++) {
+      sb.append(Integer.toString(i, 16))
+    }
+    ActionEchoArgs args = new ActionEchoArgs();
+    args.message = sb.toString();
+    def echoed = hoyaClient.actionEcho(clustername, args)
+    assert echoed == args.message
+    log.info("Successful echo of a text document ${echoed.size()} characters long")
 
     describe("Creating instance #3")
     //now try to create instance #3, and expect an in-use failure

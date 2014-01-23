@@ -89,6 +89,7 @@ import org.apache.hoya.yarn.appmaster.rpc.RpcBinder;
 import org.apache.hoya.yarn.appmaster.state.AbstractRMOperation;
 import org.apache.hoya.yarn.appmaster.state.AppState;
 import org.apache.hoya.yarn.appmaster.state.ContainerAssignment;
+import org.apache.hoya.yarn.appmaster.state.ContainerReleaseOperation;
 import org.apache.hoya.yarn.appmaster.state.RMOperationHandler;
 import org.apache.hoya.yarn.appmaster.state.RoleInstance;
 import org.apache.hoya.yarn.appmaster.state.RoleStatus;
@@ -110,6 +111,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -1069,14 +1071,36 @@ public class HoyaAppMaster extends CompoundLaunchedService
   public Messages.EchoResponseProto echo(Messages.EchoRequestProto request) throws
                                                                             IOException,
                                                                             YarnException {
-    return null;
+    Messages.EchoResponseProto.Builder builder =
+      Messages.EchoResponseProto.newBuilder();
+    String text = request.getText();
+    log.info("Echo request size ={}", text.length());
+    log.info(text);
+    //now return it
+    builder.setText(text);
+    return builder.build();
   }
 
   @Override
   public Messages.KillContainerResponseProto killContainer(Messages.KillContainerRequestProto request) throws
                                                                                                        IOException,
                                                                                                        YarnException {
-    return null;
+    String containerID = request.getId();
+    log.info("Kill Container {}", containerID);
+    //throws NoSuchNodeException if it is missing
+    RoleInstance instance =
+      appState.getLiveInstanceByUUID(containerID);
+    List<AbstractRMOperation> opsList =
+      new LinkedList<AbstractRMOperation>();
+    ContainerReleaseOperation release =
+      new ContainerReleaseOperation(instance.getId());
+    opsList.add(release);
+    //now apply the operations
+    rmOperationHandler.execute(opsList);
+    Messages.KillContainerResponseProto.Builder builder =
+      Messages.KillContainerResponseProto.newBuilder();
+    builder.setSuccess(true);
+    return builder.build();
   }
 
 /* =================================================================== */

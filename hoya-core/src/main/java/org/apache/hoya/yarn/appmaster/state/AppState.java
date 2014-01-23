@@ -565,10 +565,9 @@ public class AppState {
    * @param uuid the UUID
    * @return null if there is no such node
    * @throws NoSuchNodeException if the node cannot be found
-   * @throws IOException IO problems
    */
   public synchronized RoleInstance getLiveInstanceByUUID(String uuid)
-    throws IOException, NoSuchNodeException {
+    throws NoSuchNodeException {
     Collection<RoleInstance> nodes = getLiveNodes().values();
     for (RoleInstance node : nodes) {
       if (uuid.equals(node.uuid)) {

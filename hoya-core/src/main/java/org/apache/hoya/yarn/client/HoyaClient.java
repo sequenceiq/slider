@@ -77,9 +77,11 @@ import org.apache.hoya.yarn.HoyaActions;
 import org.apache.hoya.yarn.appmaster.rpc.RpcBinder;
 import org.apache.hoya.yarn.params.AbstractClusterBuildingActionArgs;
 import org.apache.hoya.yarn.params.ActionCreateArgs;
+import org.apache.hoya.yarn.params.ActionEchoArgs;
 import org.apache.hoya.yarn.params.ActionFlexArgs;
 import org.apache.hoya.yarn.params.ActionFreezeArgs;
 import org.apache.hoya.yarn.params.ActionGetConfArgs;
+import org.apache.hoya.yarn.params.ActionKillContainerArgs;
 import org.apache.hoya.yarn.params.ActionThawArgs;
 import org.apache.hoya.yarn.params.ClientArgs;
 import org.apache.hoya.yarn.params.HoyaAMArgs;
@@ -229,6 +231,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                HoyaActions.ACTION_USAGE.equals(action)) {
       log.info("HoyaClient {}", serviceArgs.usage());
 
+    } else if (HoyaActions.ACTION_KILL_CONTAINER.equals(action)) {
+      exitCode = actionGetConf(clusterName, serviceArgs.getActionGetConfArgs());
     } else if (HoyaActions.ACTION_LIST.equals(action)) {
       if (!isUnset(clusterName)) {
         HoyaUtils.validateClusterName(clusterName);
@@ -1307,6 +1311,54 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
 
   /**
+   * Kill a specific container of the cluster
+   * @param name cluster name
+   * @param args arguments
+   * @return exit code
+   * @throws YarnException
+   * @throws IOException
+   */
+  public int actionKillContainer(String name,
+                                 ActionKillContainerArgs args) throws
+                                                               YarnException,
+                                                               IOException {
+    String id = args.id;
+    if (HoyaUtils.isUnset(id)) {
+      throw new BadCommandArgumentsException("Missing container id");
+    }
+    log.info("killingContainer {}:{}", name, id);
+    HoyaClusterOperations clusterOps =
+      new HoyaClusterOperations(bondToCluster(name));
+    try {
+      clusterOps.killContainer(id);
+    } catch (NoSuchNodeException e) {
+      throw new BadClusterStateException("Container %s not found in cluster %s",
+                                         id, name);
+    }
+    return EXIT_SUCCESS;
+  }
+
+  /**
+   * Echo operation (not currently wired up to command line)
+   * @param name cluster name
+   * @param args arguments
+   * @return the echoed text
+   * @throws YarnException
+   * @throws IOException
+   */
+  public String actionEcho(String name, ActionEchoArgs args) throws
+                                                             YarnException,
+                                                             IOException {
+    String message = args.message;
+    if (message == null) {
+      throw new BadCommandArgumentsException("missing message");
+    }
+    HoyaClusterOperations clusterOps =
+      new HoyaClusterOperations(bondToCluster(name));
+    return clusterOps.echo(message);
+  }
+
+  /**
    * Find an instance of a hoya application belong to the current user
    * @param appname application name
    * @return the app report or null if none is found
@@ -1538,7 +1590,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * @return the cluster name
    */
 
-  @SuppressWarnings("UseOfSystemOutOrSystemErr")
+  @SuppressWarnings(
+    {"UseOfSystemOutOrSystemErr", "IOResourceOpenedButNotSafelyClosed"})
   public int actionGetConf(String clustername, ActionGetConfArgs confArgs) throws
                                                YarnException,
                                                IOException {

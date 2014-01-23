@@ -16,29 +16,19 @@
  * limitations under the License.
  */
 
-package org.apache.hoya.yarn.appmaster.state;
+package org.apache.hoya.yarn.params;
 
-import org.apache.hadoop.yarn.api.records.ContainerId;
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
+import org.apache.hoya.yarn.HoyaActions;
 
-public class ContainerReleaseOperation extends AbstractRMOperation {
+@Parameters(commandNames = {HoyaActions.ACTION_KILL_CONTAINER},
+            commandDescription = HoyaActions.DESCRIBE_ACTION_KILL_CONTAINER)
 
-  private final ContainerId containerId;
+public class ActionKillContainerArgs extends AbstractActionArgs {
 
-  public ContainerReleaseOperation(ContainerId containerId) {
-    this.containerId = containerId;
-  }
+  @Parameter(names = {ARG_ID},
+             description = "ID of the container")
+  public String id;
 
-  public ContainerId getContainerId() {
-    return containerId;
-  }
-
-  @Override
-  public void execute(RMOperationHandler handler) {
-    handler.releaseAssignedContainer(containerId);
-  }
-
-  @Override
-  public String toString() {
-    return "release container " + containerId;
-  }
 }
