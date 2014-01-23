@@ -41,4 +41,13 @@ class TestHBaseLoad extends TestFunctionalHBaseCluster {
     int ret = loadTool.run(args);
     assert ret == 0;
   }
+
+
+  public int getWorkerPortAssignment() {
+    return 0
+  }
+
+  public int getMasterPortAssignment() {
+    return 0
+  }
 }

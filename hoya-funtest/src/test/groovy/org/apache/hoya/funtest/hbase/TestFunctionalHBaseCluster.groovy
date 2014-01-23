@@ -101,14 +101,6 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
     return "Create a working HBase cluster $clusterName"
   }
 
-  public int getWorkerPortAssignment() {
-    return PortAssignments._testHBaseCreateCluster2
-  }
-
-  public int getMasterPortAssignment() {
-    return PortAssignments._testHBaseCreateCluster
-  }
-
   /**
    * Override point for any cluster load operations
    * @param clientConf

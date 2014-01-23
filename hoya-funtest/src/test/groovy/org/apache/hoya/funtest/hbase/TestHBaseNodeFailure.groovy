@@ -21,6 +21,7 @@ package org.apache.hoya.funtest.hbase
 import org.apache.hadoop.conf.Configuration
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.RoleKeys
+import org.apache.hoya.funtest.framework.PortAssignments
 import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.hoya.yarn.client.HoyaClient
 import org.apache.hoya.yarn.params.ActionKillContainerArgs
@@ -113,5 +114,14 @@ class TestHBaseNodeFailure extends TestFunctionalHBaseCluster {
     args.id = id
     hoyaClient.actionKillContainer(clusterName, args)
     return id;
+  }
+
+
+  public int getWorkerPortAssignment() {
+    return 0
+  }
+
+  public int getMasterPortAssignment() {
+    return 0
   }
 }
