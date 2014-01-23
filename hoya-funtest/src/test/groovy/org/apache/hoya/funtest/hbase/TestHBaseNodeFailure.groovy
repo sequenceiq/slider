@@ -29,7 +29,10 @@ import static org.apache.hoya.testtools.HBaseTestUtils.waitForHBaseRegionServerC
 
 
 class TestHBaseNodeFailure extends TestFunctionalHBaseCluster {
-  
+
+
+  public static final int RESTART_SLEEP_TIME = 5000
+
   @Override
   String getClusterName() {
     return "test_hbase_node_failure"
@@ -41,23 +44,53 @@ class TestHBaseNodeFailure extends TestFunctionalHBaseCluster {
   }
 
   @Override
-  void clusterLoadOperations(Configuration clientConf, int numWorkers) {
+  void clusterLoadOperations(
+      Configuration clientConf,
+      int numWorkers,
+      Map<String, Integer> roleMap) {
     HoyaClient hoyaClient = bondToCluster(HOYA_CONFIG, clusterName)
     ClusterDescription c
 
 
     killInstanceOfRole(hoyaClient, HBaseKeys.ROLE_WORKER)
     // let it take
-    sleep(5000)
+    sleep(RESTART_SLEEP_TIME)
+
+    //wait for the role counts to be reached
+    def cd = waitForRoleCount(hoyaClient, roleMap, HBASE_LAUNCH_WAIT_TIME)
     // then expect a restart
     waitForHBaseRegionServerCount(
         hoyaClient,
         clusterName,
         numWorkers,
         HBASE_LAUNCH_WAIT_TIME)
+    assert cd.roles[HBaseKeys.ROLE_WORKER][RoleKeys.ROLE_FAILED_INSTANCES] == "1"
+    killInstanceOfRole(hoyaClient, HBaseKeys.ROLE_WORKER)
+    // let it take
+    sleep(RESTART_SLEEP_TIME)
+    // then expect a restart
 
-    def cd = hoyaClient.getClusterDescription()
+    //wait for the role counts to be reached
+    cd = waitForRoleCount(hoyaClient, roleMap, HBASE_LAUNCH_WAIT_TIME)
+    
+    waitForHBaseRegionServerCount(
+        hoyaClient,
+        clusterName,
+        numWorkers,
+        HBASE_LAUNCH_WAIT_TIME)
     assert cd.roles[HBaseKeys.ROLE_WORKER][RoleKeys.ROLE_FAILED_INSTANCES] == "2"
+
+    killInstanceOfRole(hoyaClient, HBaseKeys.ROLE_MASTER)
+    // let it take
+    sleep(RESTART_SLEEP_TIME)
+//wait for the role counts to be reached
+    cd = waitForRoleCount(hoyaClient, roleMap, HBASE_LAUNCH_WAIT_TIME)
+    waitForHBaseRegionServerCount(
+        hoyaClient,
+        clusterName,
+        numWorkers,
+        HBASE_LAUNCH_WAIT_TIME)
+    assert cd.roles[HBaseKeys.ROLE_MASTER][RoleKeys.ROLE_FAILED_INSTANCES] == "1"
 
   }
 
@@ -71,15 +104,14 @@ class TestHBaseNodeFailure extends TestFunctionalHBaseCluster {
       HoyaClient hoyaClient, String role) {
     ClusterDescription cd = hoyaClient.getClusterDescription()
     def instances = cd.instances[role]
-    int size = instances.size()
-    if (size) {
-      String id = instances[new Random().nextInt(size)]
-      ActionKillContainerArgs args = new ActionKillContainerArgs()
-      args.id = id
-      hoyaClient.actionKillContainer(clusterName, args)
-      return id;
-    } else {
+    if (instances == null || instances.size() == 0) {
+      log.info("No instances of role $role to kill")
       return null;
     }
+    String id = instances[new Random().nextInt(instances.size())]
+    ActionKillContainerArgs args = new ActionKillContainerArgs()
+    args.id = id
+    hoyaClient.actionKillContainer(clusterName, args)
+    return id;
   }
 }
