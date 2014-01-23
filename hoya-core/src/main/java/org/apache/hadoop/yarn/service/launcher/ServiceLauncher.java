@@ -231,7 +231,12 @@ public class ServiceLauncher<S extends Service>
    * @throws IOException on a failure to add the handler
    */
   protected void registerInterruptHandler() throws IOException {
-    interruptHandlers.add(new IrqHandler(IrqHandler.CONTROL_C, this));
+    try {
+      interruptHandlers.add(new IrqHandler(IrqHandler.CONTROL_C, this));
+      interruptHandlers.add(new IrqHandler(IrqHandler.SIGTERM, this));
+    } catch (IOException e) {
+      LOG.warn("Signal handler setup failed : {}" , e);
+    }
   }
 
   /**
@@ -250,7 +255,6 @@ public class ServiceLauncher<S extends Service>
       // halt and so bypass any blocking shutdown hooks.
       ExitUtil.halt(EXIT_INTERRUPTED, message);
     }
-    boolean controlC = IrqHandler.CONTROL_C.equals(interruptData.name);
     int shutdownTimeMillis = SHUTDOWN_TIME_ON_INTERRUPT;
     //start an async shutdown thread with a timeout
     ServiceForcedShutdown forcedShutdown =
