@@ -180,7 +180,7 @@ class HBaseTestUtils extends HoyaTestUtils {
     while (true) {
       clustat = getHBaseClusterStatus(clientConf);
       int workerCount = clustat.servers.size();
-      if (workerCount == regionServerCount) {
+      if (workerCount >= regionServerCount) {
         break;
       }
       if (duration.limitExceeded) {
