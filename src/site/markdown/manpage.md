@@ -316,7 +316,12 @@ Examples
 Get the configuration properties needed for hbase clients to connect to the cluster. Hadoop XML format files (the default) and Java properties files can be generated.
 The output can be streamed to the console in `stdout`, or it can be saved to a file via the `--out` parameter
 
+### `killcontainer <cluster> --id container-id`
 
+Kill a container in the cluster. This is useful primarily for testing the cluster's
+resilience to failures.
+
+Container IDs can be determined from the cluster status JSON document.
 
 ### `list <cluster>`
 

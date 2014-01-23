@@ -85,7 +85,7 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
 
   public static final int SIGTERM = -15
   public static final int SIGKILL = -9
-  public static final int SIGSTOP = -19
+  public static final int SIGSTOP = -17
   public static final String SERVICE_LAUNCHER = "ServiceLauncher"
   public static
   final String NO_ARCHIVE_DEFINED = "Archive configuration option not set: "

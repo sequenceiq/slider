@@ -485,14 +485,10 @@ The cluster directory and all its children do not exist
     not is-dir(HDFS', cluster-path(HDFS', clustername))
   
 
-## Action: Dtatus
+## Action: Status
 
-    status clustername
+    status clustername [--out outfile]
     
-BUG-11364 proposes adding an `--outfile` operation to output this to a named file,
-this is to aid testing. Currently it goes to stdout.
-
-
 #### Preconditions
 
     if not hoya-app-running(YARN, clustername) : raise HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER)
@@ -502,15 +498,23 @@ this is to aid testing. Currently it goes to stdout.
 The status of the application has been successfully queried and printed out:
 
     let status = hoya-app-live-instances(YARN).rpcPort.getJSONClusterStatus()
-    status.toString() in STDOUT'
+    
+if the `outfile` value is not defined then the status appears part of stdout
+    
+    status in STDOUT'
+
+otherwise, the outfile exists in the local filesystem
+
+    (outfile != "") ==>  data(LocalFS', outfile) == body
+    (outfile != "") ==>  body in STDOUT'
 
 ## Action: Exists
 
 This probes for a named cluster being defined or actually being in the running
 state.
 
- in the running state; it is essentially the status
-operation with the exit code only returned.
+In the running state; it is essentially the status
+operation with only the exit code returned
 
 #### Preconditions
 
@@ -533,7 +537,7 @@ status.
 This returns the live client configuration of the cluster -the
 site-xml file.
 
-    getconf --format (xml|properties) --outfile [filename]
+    getconf --format (xml|properties) --out [outfile]
 
 *We may want to think hard about whether this is needed*
 
@@ -610,3 +614,49 @@ If `all` was requested, then no applications of the user should be running:
 If an appId was provided, that application should be in a finished state
 
     YARN'.Apps'[appId].report.State >= FINISHED
+
+## Action: killcontainer
+
+This is an operation added for testing. It will kill a container in the cluster
+*without flexing the cluster size*. As a result, the cluster will detect the
+failure and attempt to recover from the failure by instantiating a new instance
+of the cluster
+
+    killcontainer cluster --id container-id
+    
+
+
+#### Preconditions
+
+    if not hoya-app-running(YARN, clustername) : raise HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER)
+
+    exists c in hoya-app-containers(YARN, clustername, user) where c.id == container-id 
+    
+    let status := AM.getJSONClusterStatus() 
+    exists role = status.instances where container-id in status.instances[role].values
+
+
+#### Postconditions
+
+The container is not in the list of containers in the cluster
+
+    not exists c in containers(YARN) where c.id == container-id 
+
+And implicitly, not in the running containers of that application
+
+    not exists c in hoya-app-containers(YARN', clustername, user) where c.id == container-id 
+
+At some time `t1 > t`, the status of the application (`AM'`) will be updated to reflect
+that YARN has notified the AM of the loss of the container
+
+     
+    let status' = AM'.getJSONClusterStatus() 
+    len(status'.instances[role]) < len(status.instances[role]) 
+    status'.roles[role]["role.failed.instances"] == status'.roles[role]["role.failed.instances"]+1
+
+
+At some time `t2 > t1` in the future, the size of the containers of the application
+in the YARN cluster `YARN''` will be as before 
+
+    let status'' = AM''.getJSONClusterStatus() 
+    len(status''.instances[r] == len(status.instances[r]) 

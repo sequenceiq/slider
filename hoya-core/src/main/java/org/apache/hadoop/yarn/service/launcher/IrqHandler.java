@@ -32,6 +32,7 @@ import java.io.IOException;
 public final class IrqHandler implements SignalHandler {
 
   public static final String CONTROL_C = "INT";
+  public static final String SIGTERM = "TERM";
 
   private final String name;
   private final Interrupted handler;
