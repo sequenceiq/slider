@@ -48,3 +48,12 @@ the `status` operation:
       },
       
 These can be used in debugging cluster behavior.
+
+### A killcontainer command will kill a container in a cluster
+
+    killcontainer cl1 container_1390413725233_0001_01_000004
+
+This does not update the desired state of the cluster, and so will trigger
+the Hoya AM to request a replacement container.
+
+This command exists for failure injection in functional tests. 
