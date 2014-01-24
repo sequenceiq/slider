@@ -19,8 +19,18 @@
 package org.apache.hoya.funtest.hbase
 
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.hbase.IntegrationTestsDriver
+import org.apache.hadoop.hbase.IntegrationTestIngest
+import org.apache.hadoop.hbase.trace.IntegrationTestSendTraceRequests
+import org.apache.hadoop.hbase.test.MetricsAssertHelper
+import org.apache.hadoop.hbase.test.MetricsAssertHelperImpl
+import org.apache.hadoop.net.StaticMapping
+import org.apache.hadoop.util.ToolRunner;
 
+/* Runs IntegrationTestIngest on cluster
+ *
+ * Note: this test runs for about 20 minutes
+ * please set hoya.test.timeout.seconds accordingly
+ */
 class TestHBaseIntegration extends TestFunctionalHBaseCluster {
 
   @Override
@@ -33,12 +43,13 @@ class TestHBaseIntegration extends TestFunctionalHBaseCluster {
       Configuration clientConf,
       int numWorkers,
       Map<String, Integer> roleMap) {
-    int numKeys = 4000 * numWorkers
-    String[] args = ["-r", "IntegrationTestManyRegions", "-zk",
-       clientConf.get("hbase.zookeeper.quorum"), "-zk_root", "/yarnapps_hoya_yarn_"+getClusterName()]
-    IntegrationTestsDriver driver = new IntegrationTestsDriver();
-    driver.setConf(clientConf)
-    int ret = driver.run(args);
+    String parent = "/yarnapps_hoya_yarn_"+getClusterName()
+    clientConf.set("zookeeper.znode.parent", parent)
+
+    String[] args = []
+    IntegrationTestIngest test = new IntegrationTestIngest();
+    test.setConf(clientConf)
+    int ret = ToolRunner.run(clientConf, test, args);
     assert ret == 0;
   }
 
