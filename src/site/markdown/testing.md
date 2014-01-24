@@ -163,8 +163,8 @@ need to be changed
     </property>
             
      <property>
-      <name>hoya.test.timeout.seconds</name>
-      <description>Time to in seconds before a test is considered to have failed.
+      <name>hoya.test.timeout.millisec</name>
+      <description>Time out in milliseconds before a test is considered to have failed.
       There are some maven properties which also define limits and may need adjusting</description>
       <value>180000</value>
     </property>

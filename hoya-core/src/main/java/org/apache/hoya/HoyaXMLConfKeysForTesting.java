@@ -39,7 +39,7 @@ public interface HoyaXMLConfKeysForTesting {
 
   int DEFAULT_HOYA_FREEZE_WAIT_TIME = 60000;
 
-  String KEY_HOYA_TEST_TIMEOUT = "hoya.test.timeout.seconds";
+  String KEY_HOYA_TEST_TIMEOUT = "hoya.test.timeout.millisec";
 
   int DEFAULT_HOYA_TEST_TIMEOUT = 10 * 60 * 1000;
 
