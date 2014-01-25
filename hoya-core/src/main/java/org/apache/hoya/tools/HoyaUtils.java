@@ -166,7 +166,9 @@ public final class HoyaUtils {
           log.info("deleting {}", file);
           file.delete();
         }
-        dir.delete();
+        if (!dir.delete()) {
+          log.warn("Unable to delete " + dir);
+        }
       } else {
         throw new IOException("Not a directory " + dir);
       }

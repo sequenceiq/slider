@@ -428,6 +428,7 @@ public class RunLongLivedApp implements Runnable {
         }
 
       } catch (Exception ignored) {
+        LOG.warn("encountered ", ignored);
         //process connection has been torn down
       } finally {
         IOUtils.closeStream(errReader);

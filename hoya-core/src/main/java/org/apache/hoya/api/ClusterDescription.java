@@ -284,7 +284,9 @@ public class ClusterDescription {
    */
   public void save(File file) throws IOException {
     log.debug("Saving to {}", file.getAbsolutePath());
-    file.getParentFile().mkdirs();
+    if (!file.getParentFile().mkdirs()) {
+      log.warn("Failed to mkdirs for " + file.getParentFile());
+    }
     DataOutputStream dataOutputStream = new DataOutputStream(new FileOutputStream(file));
     writeJsonAsBytes(dataOutputStream);
   }

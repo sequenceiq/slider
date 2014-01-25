@@ -518,7 +518,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
 
     // Register self with ResourceManager
     // This will start heartbeating to the RM
-    address = HoyaUtils.getRmSchedulerAddress(asyncRMClient.getConfig());
+    // address = HoyaUtils.getRmSchedulerAddress(asyncRMClient.getConfig());
     log.info("Connecting to RM at {},address tracking URL={}",
              appMasterRpcPort, appMasterTrackingUrl);
     RegisterApplicationMasterResponse response = asyncRMClient
