@@ -130,7 +130,7 @@ public class RoleHistory {
   /**
    * Clear the lists of available nodes
    */
-  private void resetAvailableNodeLists() {
+  private synchronized void resetAvailableNodeLists() {
     for (int i = 0; i < roleSize; i++) {
       availableNodes[i] = new LinkedList<NodeInstance>();
     }
@@ -171,7 +171,7 @@ public class RoleHistory {
     this.thawedDataTime = thawedDataTime;
   }
 
-  public int getRoleSize() {
+  public synchronized int getRoleSize() {
     return roleSize;
   }
 
@@ -506,7 +506,7 @@ public class RoleHistory {
    * @param allocatedContainers list of allocated containers
    * @return list of containers potentially reordered
    */
-  public List<Container> prepareAllocationList(List<Container> allocatedContainers) {
+  public synchronized List<Container> prepareAllocationList(List<Container> allocatedContainers) {
     
     //partition into requested and unrequested
     List<Container> requested =
