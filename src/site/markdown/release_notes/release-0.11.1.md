@@ -71,3 +71,11 @@ be built locally, as described in the `building Hoya` document.
 *Important* this does not imply that Hoya can no longer deploy HBase 0.96
 --only that Hoya needs it to build, and it includes the hbase-0.98.0
 JAR files in its `lib/` directory.
+
+### New client configuration option, `hoya.yarn.restart.limit`
+
+This places a limit on how many times the Hoya Application Master can be
+started before the application is considered to have failed.
+
+On long-lived applications, a high value ensures that the application master will
+be robust against failures of the underlying servers.

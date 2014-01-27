@@ -66,6 +66,18 @@ public interface HoyaXmlConfKeys {
    * {@value}
    */
   String KEY_HOYA_PROTOCOL_ACL = "security.hoya.protocol.acl";
+  
+  /**
+   * Limit on restarts for the AM
+   * {@value}
+   */
+  String KEY_HOYA_RESTART_LIMIT = "hoya.yarn.restart.limit";
+
+  /**
+   * Default Limit on restarts for the AM
+   * {@value}
+   */
+  int DEFAULT_HOYA_RESTART_LIMIT = 3;
 
   /**
    * Flag which is set to indicate that security should be enabled

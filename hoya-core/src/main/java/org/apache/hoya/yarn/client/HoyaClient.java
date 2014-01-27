@@ -636,18 +636,16 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     }
 
     YarnClientApplication application = yarnClient.createApplication();
-    ApplicationSubmissionContext appContext =
+    ApplicationSubmissionContext submissionContext =
       application.getApplicationSubmissionContext();
-    ApplicationId appId = appContext.getApplicationId();
+    ApplicationId appId = submissionContext.getApplicationId();
     // set the application name;
-    appContext.setApplicationName(clustername);
+    submissionContext.setApplicationName(clustername);
     // app type used in service enum;
-    appContext.setApplicationType(HoyaKeys.APP_TYPE);
+    submissionContext.setApplicationType(HoyaKeys.APP_TYPE);
 
-    if (clusterSpec.getOptionBool(OptionKeys.HOYA_TEST_FLAG, false)) {
-      // test flag set
-      appContext.setMaxAppAttempts(1);
-    }
+    submissionContext.setMaxAppAttempts(config.getInt(KEY_HOYA_RESTART_LIMIT,
+                                                      DEFAULT_HOYA_RESTART_LIMIT));
 
     FileSystem fs = getClusterFS();
     HoyaUtils.purgeHoyaAppInstanceTempFiles(fs, clustername);
@@ -893,7 +891,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     capability.setVirtualCores(RoleKeys.DEFAULT_AM_V_CORES);
     // the Hoya AM gets to configure the AM requirements, not the custom provider
     hoyaAM.prepareAMResourceRequirements(clusterSpec, capability);
-    appContext.setResource(capability);
+    submissionContext.setResource(capability);
     Map<String, ByteBuffer> serviceData = new HashMap<String, ByteBuffer>();
     // Service data is a binary blob that can be passed to the application
     // Not needed in this scenario
@@ -903,7 +901,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // The following are not required for launching an application master
     // amContainer.setContainerId(containerId);
 
-    appContext.setAMContainerSpec(amContainer);
+    submissionContext.setAMContainerSpec(amContainer);
 
     // Set the priority for the application master
     
@@ -912,13 +910,13 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     Priority pri = Records.newRecord(Priority.class);
     pri.setPriority(amPriority);
-    appContext.setPriority(pri);
+    submissionContext.setPriority(pri);
 
     // Set the queue to which this application is to be submitted in the RM
     // Queue for App master
     String amQueue = config.get(KEY_HOYA_YARN_QUEUE, DEFAULT_HOYA_YARN_QUEUE);
 
-    appContext.setQueue(amQueue);
+    submissionContext.setQueue(amQueue);
 
     // Submit the application to the applications manager
     // SubmitApplicationResponse submitResp = applicationsManager.submitApplication(appRequest);
@@ -927,7 +925,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     log.info("Submitting application to Resource Manager");
 
     // submit the application
-    applicationId = yarnClient.submitApplication(appContext);
+    applicationId = yarnClient.submitApplication(submissionContext);
 
     int exitCode;
     // wait for the submit state to be reached
