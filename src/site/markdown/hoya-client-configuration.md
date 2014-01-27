@@ -187,10 +187,28 @@ a limited number of hoya-specific configuration parameters.
       <value>1</value>
     </property>
 
+    <property>
+      <name>hoya.yarn.restart.limit</name>
+      <value>5</value>
+      <description>How many times to start/restart the Hoya AM</description>
+    </property>
+
 
 ### `hoya.security.enabled` - enable security.
 
 This turns security on; consult [Security](security.html) for more information.
+
+
+### `hoya.yarn.restart.limit` - set limit on Application Master Restarts
+
+This limits how many times YARN should start a failed application master.
+
+A short restart limit is useful when initially creating a cluster, as it
+ensures that YARN does not repeatedly try to restart a failing application.
+
+In production, however, a large number prevents YARN from halting a Hoya
+application merely because failures in the underlying YARN cluster have
+triggered restarts.
 
 ### `hoya.yarn.queue` - the name of the YARN queue for the cluster.
 
