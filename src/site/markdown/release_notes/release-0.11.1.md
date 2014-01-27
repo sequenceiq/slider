@@ -49,7 +49,7 @@ the `status` operation:
       
 These can be used in debugging cluster behavior.
 
-### A killcontainer command will kill a container in a cluster
+### The `killcontainer` command will kill a container in a cluster
 
     killcontainer cl1 container_1390413725233_0001_01_000004
 
@@ -57,3 +57,17 @@ This does not update the desired state of the cluster, and so will trigger
 the Hoya AM to request a replacement container.
 
 This command exists for failure injection in functional tests. 
+
+### Hoya builds against HBase-0.98.0
+
+Hoya has switched to HBase version 0.98.0, as we required some minor
+changes in the HBase load test framework in order to use it against
+Hoya-managed HBase clusters.
+
+If/when the final HBase 0.98.0 release is made, hoya will build directly
+against the public maven artifacts. Until then, HBase 0.98.0 must
+be built locally, as described in the `building Hoya` document.
+
+*Important* this does not imply that Hoya can no longer deploy HBase 0.96
+--only that Hoya needs it to build, and it includes the hbase-0.98.0
+JAR files in its `lib/` directory.

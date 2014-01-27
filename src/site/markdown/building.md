@@ -83,6 +83,9 @@ the Apache Hadoop 2.2 package or Hortownworks HDP-2.0.
 
 ## building a compatible HBase version
 
+If you need to build a version of HBase -rather than use a released version,
+here are the instructions (for the hbase-0.98 release branch)
+
 Checkout the HBase `trunk` branch from apache svn/github.  
 
     
@@ -97,7 +100,8 @@ The maven command for building hbase artifacts against this hadoop version is
 
     mvn clean install assembly:single -DskipTests -Dmaven.javadoc.skip=true
 
-To use a different version of Hadoop:
+To use a different version of Hadoop from that defined in the `hadoop-two.version`
+property of`/pom.xml`:
 
     mvn clean install assembly:single -DskipTests -Dmaven.javadoc.skip=true -Dhadoop-two.version=$HADOOP_VERSION
 
