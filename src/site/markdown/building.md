@@ -105,10 +105,10 @@ property of`/pom.xml`:
 
     mvn clean install assembly:single -DskipTests -Dmaven.javadoc.skip=true -Dhadoop-two.version=$HADOOP_VERSION
 
-This will create `hbase-0.98.0-SNAPSHOT.tar.gz` in the directory `hbase-assembly/target/` in
+This will create `hbase-0.98.0.tar.gz` in the directory `hbase-assembly/target/` in
 the hbase source tree. 
 
-    export HBASE_VERSION=0.98.0-SNAPSHOT
+    export HBASE_VERSION=0.98.0
     
     pushd hbase-assembly/target
     gunzip -k hbase-$HBASE_VERSION-bin.tar.gz 
