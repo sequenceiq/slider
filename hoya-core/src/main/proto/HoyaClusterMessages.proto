@@ -162,3 +162,20 @@ message KillContainerResponseProto {
   required bool success = 1;
 }
 
+/**
+ * AM suicide
+ */
+message AMSuicideRequestProto {
+  required string text = 1;
+  required int32 signal = 2;
+  required int32 delay = 3;
+}
+
+/**
+ * AM suicide reply. For this to be returned implies
+ * a failure of the AM to kill itself
+ */
+message AMSuicideResponseProto {
+
+}
+

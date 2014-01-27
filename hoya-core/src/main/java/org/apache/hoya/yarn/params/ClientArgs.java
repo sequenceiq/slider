@@ -44,6 +44,7 @@ public class ClientArgs extends CommonArgs {
    * entry
    */
   private AbstractClusterBuildingActionArgs buildingActionArgs;
+  private final ActionAMSuicideArgs actionAMSuicideArgs = new ActionAMSuicideArgs();
   private final ActionBuildArgs actionBuildArgs = new ActionBuildArgs();
   private final ActionCreateArgs actionCreateArgs = new ActionCreateArgs();
   private final ActionDestroyArgs actionDestroyArgs = new ActionDestroyArgs();
@@ -74,6 +75,7 @@ public class ClientArgs extends CommonArgs {
   protected void addActionArguments() {
 
     addActions(
+      actionAMSuicideArgs,
       actionBuildArgs,
       actionCreateArgs,
       actionDestroyArgs,
@@ -104,6 +106,10 @@ public class ClientArgs extends CommonArgs {
 
   public AbstractClusterBuildingActionArgs getBuildingActionArgs() {
     return buildingActionArgs;
+  }
+
+  public ActionAMSuicideArgs getActionAMSuicideArgs() {
+    return actionAMSuicideArgs;
   }
 
   public ActionBuildArgs getActionBuildArgs() {
@@ -168,7 +174,6 @@ public class ClientArgs extends CommonArgs {
       bindCoreAction(actionBuildArgs);
       //its a builder, so set those actions too
       buildingActionArgs = actionBuildArgs;
-
     } else if (HoyaActions.ACTION_CREATE.equals(action)) {
       bindCoreAction(actionCreateArgs);
       //its a builder, so set those actions too
@@ -179,6 +184,9 @@ public class ClientArgs extends CommonArgs {
 
     } else if (HoyaActions.ACTION_THAW.equals(action)) {
       bindCoreAction(actionThawArgs);
+
+    } else if (HoyaActions.ACTION_AM_SUICIDE.equals(action)) {
+      bindCoreAction(actionAMSuicideArgs);
 
     } else if (HoyaActions.ACTION_DESTROY.equals(action)) {
       bindCoreAction(actionDestroyArgs);

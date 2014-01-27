@@ -1103,6 +1103,20 @@ public class HoyaAppMaster extends CompoundLaunchedService
     return builder.build();
   }
 
+  @Override
+  public Messages.AMSuicideResponseProto amSuicide(Messages.AMSuicideRequestProto request) throws
+                                                                                           IOException,
+                                                                                           YarnException {
+    int signal = request.getSignal();
+    String text = request.getText();
+    int delay = request.getDelay();
+    log.info("AM Suicide with signal {}, message {} delay = {}", signal, text, delay);
+    HoyaUtils.haltAM(signal, text, delay);
+    Messages.AMSuicideResponseProto.Builder builder =
+      Messages.AMSuicideResponseProto.newBuilder();
+    return builder.build();
+  }
+
 /* =================================================================== */
 /* END */
 /* =================================================================== */

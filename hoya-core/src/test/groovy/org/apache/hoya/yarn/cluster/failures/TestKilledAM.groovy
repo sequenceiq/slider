@@ -24,8 +24,11 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hbase.HConstants
 import org.apache.hadoop.hbase.client.HConnection
+import org.apache.hadoop.yarn.conf.YarnConfiguration
+import org.apache.hoya.HoyaXmlConfKeys
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.yarn.client.HoyaClient
+import org.apache.hoya.yarn.params.ActionAMSuicideArgs
 import org.apache.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.api.records.YarnApplicationState
@@ -43,12 +46,17 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
   public void testKilledAM() throws Throwable {
     String clustername = "test_killed_am"
     int regionServerCount = 1
-    createMiniCluster(clustername, getConfiguration(), 1, 1, 1, true, true)
+
+    
+    def conf = getConfiguration()
+    //patch the configuration
+    conf.setInt(HoyaXmlConfKeys.KEY_HOYA_RESTART_LIMIT, 3)
+    createMiniCluster(clustername, conf, 1, 1, 1, true, true)
     describe(" Kill the AM, expect cluster to die");
 
     //now launch the cluster
-    ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount, [], true, true)
-    HoyaClient hoyaClient = (HoyaClient) launcher.service
+    ServiceLauncher<HoyaClient> launcher = createHBaseCluster(clustername, regionServerCount, [], true, true)
+    HoyaClient hoyaClient = launcher.service
     addToTeardown(hoyaClient);
     ClusterDescription status = hoyaClient.getClusterDescription(clustername)
 
@@ -61,7 +69,7 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
 
     log.info("Initial cluster status : ${hbaseStatusToString(hbaseStat)}");
     Configuration clientConf = createHBaseConfiguration(hoyaClient)
-    clientConf.setInt(HConstants.HBASE_CLIENT_RETRIES_NUMBER,1);
+    clientConf.setInt(HConstants.HBASE_CLIENT_RETRIES_NUMBER, 1);
     HConnection hbaseConnection
     hbaseConnection = createHConnection(clientConf)
 
@@ -69,20 +77,30 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
 
     describe("running processes")
     lsJavaProcesses()
-    describe("killing services")
-    killServiceLaunchers(SIGKILL);
+    describe("killing AM")
+
+    ActionAMSuicideArgs args = new ActionAMSuicideArgs()
+    args.message = "test AM"
+    args.waittime = 1000
+    args.exitcode = 1
+    hoyaClient.actionAmSuicide(clustername, args)
+    
     killAllMasterServers();
     waitWhileClusterLive(hoyaClient, 30000);
     //give yarn some time to notice
     sleep(2000)
-    ApplicationReport report = hoyaClient.applicationReport
-    assert report.yarnApplicationState == YarnApplicationState.FAILED;
-    describe("final listing")
-    lsJavaProcesses();
     //expect hbase connection to have failed
-
     assertNoHBaseMaster(clientConf)
 
+    ApplicationReport report = hoyaClient.applicationReport
+    assert report.yarnApplicationState != YarnApplicationState.FAILED;
+    waitUntilClusterLive(hoyaClient, 30000);
+    hbaseStat = waitForHBaseRegionServerCount(
+        hoyaClient,
+        clustername,
+        regionServerCount,
+        HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+    createHConnection(clientConf)
   }
 
 }

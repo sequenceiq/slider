@@ -90,8 +90,35 @@ public interface HoyaClusterProtocol extends VersionedProtocol {
    */
   Messages.GetClusterNodesResponseProto getClusterNodes(Messages.GetClusterNodesRequestProto request) throws IOException, YarnException;
 
+  /**
+   * Echo back the submitted text (after logging it).
+   * Useful for adding information to the log, and for testing round trip
+   * operations of the protocol
+   * @param request request
+   * @return response
+   * @throws IOException
+   * @throws YarnException
+   */
   Messages.EchoResponseProto echo(Messages.EchoRequestProto request) throws IOException, YarnException;
 
+  /**
+   * Kill an identified container
+   * @param request request containing the container to kill
+   * @return the response
+   * @throws IOException
+   * @throws YarnException
+   */
   Messages.KillContainerResponseProto killContainer(Messages.KillContainerRequestProto request) throws IOException, YarnException;
-  
+
+  /**
+   * AM to commit suicide. If the Hadoop halt entry point has not been disabled,
+   * this will fail rather than return with a response.
+   * @param request request
+   * @return response (this is not the expected outcome)
+   * @throws IOException
+   * @throws YarnException
+   */
+  Messages.AMSuicideResponseProto amSuicide(Messages.AMSuicideRequestProto request) throws
+                                                                                    IOException,
+                                                                                    YarnException;
 }

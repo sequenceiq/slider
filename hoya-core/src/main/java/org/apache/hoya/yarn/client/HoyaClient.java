@@ -76,6 +76,7 @@ import org.apache.hoya.yarn.Arguments;
 import org.apache.hoya.yarn.HoyaActions;
 import org.apache.hoya.yarn.appmaster.rpc.RpcBinder;
 import org.apache.hoya.yarn.params.AbstractClusterBuildingActionArgs;
+import org.apache.hoya.yarn.params.ActionAMSuicideArgs;
 import org.apache.hoya.yarn.params.ActionCreateArgs;
 import org.apache.hoya.yarn.params.ActionEchoArgs;
 import org.apache.hoya.yarn.params.ActionFlexArgs;
@@ -204,8 +205,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     String clusterName = serviceArgs.getClusterName();
     // actions
     if (HoyaActions.ACTION_BUILD.equals(action)) {
-      actionBuild(clusterName, serviceArgs.getActionBuildArgs());
-      exitCode = EXIT_SUCCESS;
+      exitCode = actionBuild(clusterName, serviceArgs.getActionBuildArgs());
     } else if (HoyaActions.ACTION_CREATE.equals(action)) {
       exitCode = actionCreate(clusterName, serviceArgs.getActionCreateArgs());
     } else if (HoyaActions.ACTION_FREEZE.equals(action)) {
@@ -233,6 +233,11 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     } else if (HoyaActions.ACTION_KILL_CONTAINER.equals(action)) {
       exitCode = actionGetConf(clusterName, serviceArgs.getActionGetConfArgs());
+
+    } else if (HoyaActions.ACTION_AM_SUICIDE.equals(action)) {
+      exitCode = actionAmSuicide(clusterName,
+                                 serviceArgs.getActionAMSuicideArgs());
+
     } else if (HoyaActions.ACTION_LIST.equals(action)) {
       if (!isUnset(clusterName)) {
         HoyaUtils.validateClusterName(clusterName);
@@ -302,6 +307,22 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     yarnClient.emergencyForceKill(appId);
     return EXIT_SUCCESS;
   }
+  
+  
+  /**
+   * AM to commit an asynchronous suicide
+   */
+  public int actionAmSuicide(String clustername,
+                                 ActionAMSuicideArgs args) throws
+                                                              YarnException,
+                                                              IOException {
+    HoyaClusterOperations clusterOperations =
+      createClusterOperations(clustername);
+    clusterOperations.amSuicide(args.message, args.exitcode, args.waittime);
+    return EXIT_SUCCESS;
+  }
+  
+  
 
   /**
    * Get the provider for this cluster
@@ -354,7 +375,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * @throws IOException other problems
    * @throws BadCommandArgumentsException bad arguments.
    */
-  public void actionBuild(String clustername,
+  public int actionBuild(String clustername,
                            AbstractClusterBuildingActionArgs buildInfo) throws
                                                YarnException,
                                                IOException {
@@ -562,7 +583,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // here the configuration is set up. Mark it
     clusterSpec.state = ClusterDescription.STATE_CREATED;
     clusterSpec.save(fs, clusterSpecPath, true);
-
+    return EXIT_SUCCESS;
   }
 
   /**

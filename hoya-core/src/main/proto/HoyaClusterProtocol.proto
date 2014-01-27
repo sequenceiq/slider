@@ -91,4 +91,9 @@ service HoyaClusterProtocolPB {
     */
    rpc killContainer(KillContainerRequestProto)
      returns(KillContainerResponseProto); 
+   /**
+    * kill a container
+    */
+   rpc amSuicide(AMSuicideRequestProto)
+     returns(AMSuicideResponseProto); 
 }
