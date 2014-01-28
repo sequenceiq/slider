@@ -153,7 +153,7 @@ public class HoyaAMClientProvider extends AbstractProviderCore implements
 
 
   @Override //Client
-  public void preflightValidateClusterConfiguration(FileSystem clusterFS,
+  public void preflightValidateClusterConfiguration(HoyaFileSystem hoyaFileSystem,
                                                     String clustername,
                                                     Configuration configuration,
                                                     ClusterDescription clusterSpec,
@@ -166,9 +166,9 @@ public class HoyaAMClientProvider extends AbstractProviderCore implements
     //add a check for the directory being writeable by the current user
     String dataPath = clusterSpec.dataPath;
     Path path = new Path(dataPath);
-    new HoyaFileSystem(clusterFS).verifyDirectoryWriteAccess(path);
+    hoyaFileSystem.verifyDirectoryWriteAccess(path);
     Path historyPath = new Path(clusterDirPath, HoyaKeys.HISTORY_DIR_NAME);
-    new HoyaFileSystem(clusterFS).verifyDirectoryWriteAccess(historyPath);
+    hoyaFileSystem.verifyDirectoryWriteAccess(historyPath);
   }
 
   @Override
@@ -195,7 +195,7 @@ public class HoyaAMClientProvider extends AbstractProviderCore implements
    * {@inheritDoc}
    */
   @Override
-  public Map<String, LocalResource> prepareAMAndConfigForLaunch(FileSystem clusterFS,
+  public Map<String, LocalResource> prepareAMAndConfigForLaunch(HoyaFileSystem hoyaFileSystem,
                                                                 Configuration serviceConf,
                                                                 ClusterDescription clusterSpec,
                                                                 Path originConfDirPath,
@@ -208,7 +208,7 @@ public class HoyaAMClientProvider extends AbstractProviderCore implements
     Map<String, LocalResource> providerResources =
       new HashMap<String, LocalResource>();
     HoyaUtils.putJar(providerResources,
-                     clusterFS,
+                     hoyaFileSystem,
                      JCommander.class,
                      tempPath,
                      libdir,

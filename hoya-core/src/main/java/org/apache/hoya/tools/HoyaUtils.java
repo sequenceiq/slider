@@ -907,7 +907,7 @@ public final class HoyaUtils {
     /**
    * Submit a JAR containing a specific class and map it
    * @param providerResources provider map to build up
-   * @param clusterFS remote fs
+   * @param hoyaFileSystem remote fs
    * @param clazz class to look for
    * @param libdir lib directory
    * @param jarName <i>At the destination</i>
@@ -915,14 +915,14 @@ public final class HoyaUtils {
    * @throws IOException trouble copying to HDFS
    */
   public static LocalResource putJar(Map<String, LocalResource> providerResources,
-                              FileSystem clusterFS,
+                              HoyaFileSystem hoyaFileSystem,
                               Class clazz,
                               Path tempPath,
                               String libdir,
                               String jarName
                              )
     throws IOException, HoyaException {
-    LocalResource res = new HoyaFileSystem(clusterFS).submitJarWithClass(
+    LocalResource res = hoyaFileSystem.submitJarWithClass(
 
             clazz,
             tempPath,

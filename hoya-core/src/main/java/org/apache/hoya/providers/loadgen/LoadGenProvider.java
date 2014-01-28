@@ -149,7 +149,7 @@ public class LoadGenProvider extends AbstractProviderCore implements
   }
 
   @Override //Client
-  public void preflightValidateClusterConfiguration(FileSystem clusterFS,
+  public void preflightValidateClusterConfiguration(HoyaFileSystem hoyaFileSystem,
                                                     String clustername,
                                                     Configuration configuration,
                                                     ClusterDescription clusterSpec,
@@ -174,7 +174,7 @@ public class LoadGenProvider extends AbstractProviderCore implements
    *
    *
    *
-   * @param clusterFS filesystem
+   * @param hoyaFileSystem filesystem
    * @param serviceConf conf used by the service
    * @param clusterSpec cluster specification
    * @param originConfDirPath the original config dir -treat as read only
@@ -185,7 +185,7 @@ public class LoadGenProvider extends AbstractProviderCore implements
    * @return a map of name to local resource to add to the AM launcher
    */
   @Override
-  public Map<String, LocalResource> prepareAMAndConfigForLaunch(FileSystem clusterFS,
+  public Map<String, LocalResource> prepareAMAndConfigForLaunch(HoyaFileSystem hoyaFileSystem,
                                                                 Configuration serviceConf,
                                                                 ClusterDescription clusterSpec,
                                                                 Path originConfDirPath,
@@ -219,7 +219,7 @@ public class LoadGenProvider extends AbstractProviderCore implements
 
     log.debug("Saving the config to {}", sitePath);
     Map<String, LocalResource> confResources;
-    confResources = new HoyaFileSystem(clusterFS).submitDirectory(
+    confResources = hoyaFileSystem.submitDirectory(
             generatedConfDirPath,
             HoyaKeys.PROPAGATED_CONF_DIR_NAME);
     return confResources;
@@ -249,7 +249,7 @@ public class LoadGenProvider extends AbstractProviderCore implements
 
   //  @Override
   public void buildContainerLaunchContext(ContainerLaunchContext ctx,
-                                          FileSystem fs,
+                                          HoyaFileSystem hoyaFileSystem,
                                           Path generatedConfPath,
                                           String role,
                                           ClusterDescription clusterSpec,
@@ -267,16 +267,14 @@ public class LoadGenProvider extends AbstractProviderCore implements
 
     //add the configuration resources
     Map<String, LocalResource> confResources;
-    confResources = new HoyaFileSystem(fs).submitDirectory(
-            generatedConfPath,
-            HoyaKeys.PROPAGATED_CONF_DIR_NAME);
+    confResources = hoyaFileSystem.submitDirectory(generatedConfPath, HoyaKeys.PROPAGATED_CONF_DIR_NAME);
     localResources.putAll(confResources);
     //Add binaries
     //now add the image if it was set
     if (clusterSpec.isImagePathSet()) {
       Path imagePath = new Path(clusterSpec.getImagePath());
       log.info("using image path {}", imagePath);
-      new HoyaFileSystem(fs).maybeAddImagePath(localResources, imagePath);
+      hoyaFileSystem.maybeAddImagePath(localResources, imagePath);
     }
     ctx.setLocalResources(localResources);
 

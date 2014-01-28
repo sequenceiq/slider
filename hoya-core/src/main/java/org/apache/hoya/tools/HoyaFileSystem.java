@@ -43,6 +43,15 @@ public class HoyaFileSystem {
   }
 
   /**
+   * Returns the underlying FileSystem for this object.
+   *
+   * @return filesystem
+   */
+  public FileSystem getFileSystem() {
+    return fileSystem;
+  }
+
+  /**
    * Build up the path string for a cluster instance -no attempt to
    * create the directory is made
    *

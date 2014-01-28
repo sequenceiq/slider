@@ -81,6 +81,7 @@ import org.apache.hoya.servicemonitor.ProbeReportHandler;
 import org.apache.hoya.servicemonitor.ProbeStatus;
 import org.apache.hoya.servicemonitor.ReportingLoop;
 import org.apache.hoya.tools.ConfigHelper;
+import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
 import org.apache.hoya.tools.HoyaVersionInfo;
 import org.apache.hoya.yarn.HoyaActions;
@@ -376,12 +377,12 @@ public class HoyaAppMaster extends CompoundLaunchedService
     Path clusterDirPath = new Path(hoyaClusterURI);
     Path clusterSpecPath =
       new Path(clusterDirPath, HoyaKeys.CLUSTER_SPECIFICATION_FILE);
-    FileSystem fs = getClusterFS();
+    HoyaFileSystem fs = getClusterFS();
     ClusterDescription.verifyClusterSpecExists(clustername,
-                                               fs,
+                                               fs.getFileSystem(),
                                                clusterSpecPath);
 
-    ClusterDescription clusterSpec = ClusterDescription.load(fs, clusterSpecPath);
+    ClusterDescription clusterSpec = ClusterDescription.load(fs.getFileSystem(), clusterSpecPath);
 
     log.info("Deploying cluster from {}:", clusterSpecPath);
     log.info(clusterSpec.toString());
@@ -602,7 +603,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
       appState.buildInstance(clusterSpec,
                              siteConf,
                              providerRoles,
-                             fs,
+                             fs.getFileSystem(),
                              historyDir,
                              liveContainers);
 
@@ -623,9 +624,10 @@ public class HoyaAppMaster extends CompoundLaunchedService
     //launcher service
     launchService = new RoleLaunchService(this,
                                           providerService,
-                                          getClusterFS(),
-                                          new Path(getDFSConfDir()), 
+                                          fs,
+                                          new Path(getDFSConfDir()),
                                           envVars);
+
     runChildService(launchService);
 
     appState.noteAMLaunched();
@@ -690,8 +692,8 @@ public class HoyaAppMaster extends CompoundLaunchedService
    * Get the filesystem of this cluster
    * @return the FS of the config
    */
-  public FileSystem getClusterFS() throws IOException {
-    return FileSystem.get(getConfig());
+  public HoyaFileSystem getClusterFS() throws IOException {
+    return new HoyaFileSystem(FileSystem.get(getConfig()));
   }
 
   /**

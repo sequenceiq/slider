@@ -142,7 +142,7 @@ public class HBaseProviderService extends AbstractProviderService implements
   
   @Override  // server
   public void buildContainerLaunchContext(ContainerLaunchContext ctx,
-                                          FileSystem fs,
+                                          HoyaFileSystem hoyaFileSystem,
                                           Path generatedConfPath,
                                           String role,
                                           ClusterDescription clusterSpec,
@@ -165,7 +165,7 @@ public class HBaseProviderService extends AbstractProviderService implements
 
     //add the configuration resources
     Map<String, LocalResource> confResources;
-    confResources = new HoyaFileSystem(fs).submitDirectory(
+    confResources = hoyaFileSystem.submitDirectory(
             generatedConfPath,
             HoyaKeys.PROPAGATED_CONF_DIR_NAME);
     localResources.putAll(confResources);
@@ -174,7 +174,7 @@ public class HBaseProviderService extends AbstractProviderService implements
     if (clusterSpec.isImagePathSet()) {
       Path imagePath = new Path(clusterSpec.getImagePath());
       log.info("using image path {}", imagePath);
-      new HoyaFileSystem(fs).maybeAddImagePath(localResources, imagePath);
+      hoyaFileSystem.maybeAddImagePath(localResources, imagePath);
     }
     ctx.setLocalResources(localResources);
     List<String> commands = new ArrayList<String>();

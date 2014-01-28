@@ -27,6 +27,7 @@ import org.apache.hadoop.yarn.service.launcher.ExitCodeProvider;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.servicemonitor.Probe;
+import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.yarn.service.EventCallback;
 
 import java.io.File;
@@ -40,12 +41,12 @@ public interface ProviderService extends ProviderCore, Service,
   /**
    * Set up the entire container launch context
    * @param ctx
-   * @param fs
+   * @param hoyaFileSystem
    * @param generatedConfPath
    * @param role
    */
   void buildContainerLaunchContext(ContainerLaunchContext ctx,
-                                   FileSystem fs,
+                                   HoyaFileSystem hoyaFileSystem,
                                    Path generatedConfPath, String role,
                                    ClusterDescription clusterSpec,
                                    Map<String, String> roleOptions) throws

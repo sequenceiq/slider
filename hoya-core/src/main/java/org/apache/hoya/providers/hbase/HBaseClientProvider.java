@@ -192,7 +192,7 @@ public class HBaseClientProvider extends AbstractProviderCore implements
 
 
   @Override //Client
-  public void preflightValidateClusterConfiguration(FileSystem clusterFS,
+  public void preflightValidateClusterConfiguration(HoyaFileSystem hoyaFileSystem,
                                                     String clustername,
                                                     Configuration configuration,
                                                     ClusterDescription clusterSpec,
@@ -204,7 +204,7 @@ public class HBaseClientProvider extends AbstractProviderCore implements
     validateClusterSpec(clusterSpec);
     Path templatePath = new Path(generatedConfDirPath, HBaseKeys.SITE_XML);
     //load the HBase site file or fail
-    Configuration siteConf = ConfigHelper.loadConfiguration(clusterFS,
+    Configuration siteConf = ConfigHelper.loadConfiguration(hoyaFileSystem.getFileSystem(),
                                                             templatePath);
 
     //core customizations
@@ -310,14 +310,14 @@ public class HBaseClientProvider extends AbstractProviderCore implements
    * @see <a href="https://issues.apache.org/;jira/browse/PIG-3285">PIG-3285</a>
    *
    * @param providerResources provider resources to add resource to
-   * @param clusterFS filesystem
+   * @param hoyaFileSystem filesystem
    * @param libdir relative directory to place resources
    * @param tempPath path in the cluster FS for temp files
    * @throws IOException IO problems
    * @throws HoyaException Hoya-specific issues
    */
   public static void addHBaseDependencyJars(Map<String, LocalResource> providerResources,
-                                            FileSystem clusterFS,
+                                            HoyaFileSystem hoyaFileSystem,
                                             String libdir,
                                             Path tempPath) throws
                                                            IOException,
@@ -339,13 +339,13 @@ public class HBaseClientProvider extends AbstractProviderCore implements
       //zk
       org.apache.zookeeper.ClientCnxn.class
     };
-    ProviderUtils.addDependencyJars(providerResources, clusterFS, tempPath,
+    ProviderUtils.addDependencyJars(providerResources, hoyaFileSystem, tempPath,
                                     libdir, jars,
                                     classes);
   }
 
   @Override
-  public Map<String, LocalResource> prepareAMAndConfigForLaunch(FileSystem clusterFS,
+  public Map<String, LocalResource> prepareAMAndConfigForLaunch(HoyaFileSystem hoyaFileSystem,
                                                                 Configuration serviceConf,
                                                                 ClusterDescription clusterSpec,
                                                                 Path originConfDirPath,
@@ -394,11 +394,9 @@ public class HBaseClientProvider extends AbstractProviderCore implements
 
     log.debug("Saving the config to {}", sitePath);
     Map<String, LocalResource> providerResources;
-    providerResources = new HoyaFileSystem(clusterFS).submitDirectory(
-            generatedConfDirPath,
-            HoyaKeys.PROPAGATED_CONF_DIR_NAME);
+    providerResources = hoyaFileSystem.submitDirectory(generatedConfDirPath, HoyaKeys.PROPAGATED_CONF_DIR_NAME);
 
-    addHBaseDependencyJars(providerResources, clusterFS,libdir, tempPath);
+    addHBaseDependencyJars(providerResources, hoyaFileSystem,libdir, tempPath);
 
 /* TODO: anything else to set up node security
     if (UserGroupInformation.isSecurityEnabled()) {

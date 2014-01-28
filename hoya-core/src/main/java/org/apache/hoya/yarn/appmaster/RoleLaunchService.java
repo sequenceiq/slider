@@ -33,6 +33,7 @@ import org.apache.hadoop.yarn.util.Records;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderService;
+import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
 import org.apache.hoya.yarn.appmaster.state.RoleInstance;
 import org.apache.hoya.yarn.appmaster.state.RoleStatus;
@@ -80,7 +81,7 @@ public class RoleLaunchService extends AbstractService {
   /**
    * Filesystem to use for the launch
    */
-  private final FileSystem fs;
+  private final HoyaFileSystem fs;
 
   /**
    * Path in the launch filesystem that refers to a configuration directory
@@ -106,7 +107,7 @@ public class RoleLaunchService extends AbstractService {
    */
   public RoleLaunchService(ContainerStartOperation startOperation,
                            ProviderService provider,
-                           FileSystem fs,
+                           HoyaFileSystem fs,
                            Path generatedConfDirPath,
                            Map<String, String> envVars) {
     super("RoleLaunchService");
