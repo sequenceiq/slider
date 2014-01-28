@@ -45,7 +45,8 @@ public interface ErrorStrings {
   String ERROR_TOO_MANY_ARGUMENTS =
     "Too many arguments";
   String ERROR_DUPLICATE_ENTRY = "Duplicate entry for ";
-  String E_FINISHED_APPLICATION = "Finished application: ";
+  String E_APPLICATION_NOT_RUNNING = "Application not running";
+  String E_FINISHED_APPLICATION = E_APPLICATION_NOT_RUNNING+": %s state=%s ";
   String NO_IMAGE_OR_HOME_DIR_SPECIFIED =
     "Neither an image path nor binary home directory were specified";
   String HOYA_CONFIGURATION_DIRECTORY_NOT_FOUND =

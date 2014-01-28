@@ -164,6 +164,7 @@ public class RpcBinder {
    * @throws InterruptedException if a sleep operation waiting for
    * the cluster to respond is interrupted.
    */
+  @SuppressWarnings("NestedAssignment")
   public static HoyaClusterProtocol getProxy(final Configuration conf,
                                       final ApplicationClientProtocol rmClient,
                                       ApplicationReport application,
@@ -173,12 +174,14 @@ public class RpcBinder {
                                                             IOException,
                                                             YarnException,
                                                             InterruptedException {
-    ApplicationId appId = application.getApplicationId();
+    ApplicationId appId;
+    appId = application.getApplicationId();
     Duration timeout = new Duration(connectTimeout);
     timeout.start();
     Exception exception = null;
+    YarnApplicationState state = null;
     while (application != null && 
-           application.getYarnApplicationState().equals(
+           (state= application.getYarnApplicationState()).equals(
              YarnApplicationState.RUNNING)) {
 
       try {
@@ -203,13 +206,12 @@ public class RpcBinder {
       application =
         rmClient.getApplicationReport(GetApplicationReportRequest.newInstance(
           appId)).getApplicationReport();
-      
     }
     //get here if the app is no longer running. Raise a specific
     //exception but init it with the previous failure
     throw new BadClusterStateException(
                             exception,
-                            ErrorStrings.E_FINISHED_APPLICATION + appId);
+                            ErrorStrings.E_FINISHED_APPLICATION, appId, state );
   }
 
   public static HoyaClusterProtocol getProxy(final Configuration conf,
