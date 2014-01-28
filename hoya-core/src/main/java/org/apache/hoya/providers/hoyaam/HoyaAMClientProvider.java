@@ -37,6 +37,7 @@ import org.apache.hoya.providers.PlacementPolicy;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderUtils;
 import org.apache.hoya.tools.ConfigHelper;
+import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -165,9 +166,9 @@ public class HoyaAMClientProvider extends AbstractProviderCore implements
     //add a check for the directory being writeable by the current user
     String dataPath = clusterSpec.dataPath;
     Path path = new Path(dataPath);
-    HoyaUtils.verifyDirectoryWriteAccess(clusterFS, path);
+    new HoyaFileSystem(clusterFS).verifyDirectoryWriteAccess(path);
     Path historyPath = new Path(clusterDirPath, HoyaKeys.HISTORY_DIR_NAME);
-    HoyaUtils.verifyDirectoryWriteAccess(clusterFS, historyPath);
+    new HoyaFileSystem(clusterFS).verifyDirectoryWriteAccess(historyPath);
   }
 
   @Override

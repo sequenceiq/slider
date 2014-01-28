@@ -19,7 +19,6 @@
 package org.apache.hoya.yarn.cluster
 
 import groovy.transform.CompileStatic
-import groovy.util.logging.Slf4j
 import org.apache.commons.logging.Log
 import org.apache.commons.logging.LogFactory
 import org.apache.hadoop.conf.Configuration
@@ -27,25 +26,6 @@ import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.FileUtil
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hdfs.MiniDFSCluster
-import org.apache.hoya.HoyaExitCodes
-import org.apache.hoya.HoyaXmlConfKeys
-import org.apache.hoya.api.ClusterNode
-import org.apache.hoya.api.OptionKeys
-import org.apache.hoya.api.RoleKeys
-import org.apache.hoya.exceptions.ErrorStrings
-import org.apache.hoya.exceptions.HoyaException
-import org.apache.hoya.providers.hbase.HBaseConfigFileOptions
-import org.apache.hoya.providers.hbase.HBaseKeys
-import org.apache.hoya.tools.BlockingZKWatcher
-import org.apache.hoya.tools.Duration
-import org.apache.hoya.tools.HoyaUtils
-import org.apache.hoya.tools.ZKIntegration
-import org.apache.hoya.yarn.Arguments
-import org.apache.hoya.yarn.HoyaActions
-import org.apache.hoya.yarn.MicroZKCluster
-import org.apache.hoya.yarn.appmaster.HoyaAppMaster
-import org.apache.hoya.yarn.client.HoyaClient
-import org.apache.hoya.yarn.params.ActionFreezeArgs
 import org.apache.hadoop.service.ServiceOperations
 import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.api.records.YarnApplicationState
@@ -55,20 +35,35 @@ import org.apache.hadoop.yarn.server.resourcemanager.scheduler.ResourceScheduler
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fifo.FifoScheduler
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
-import org.apache.hoya.testtools.KeysForTests
+import org.apache.hoya.HoyaExitCodes
+import org.apache.hoya.HoyaXmlConfKeys
+import org.apache.hoya.api.ClusterNode
+import org.apache.hoya.api.OptionKeys
+import org.apache.hoya.api.RoleKeys
+import org.apache.hoya.exceptions.ErrorStrings
+import org.apache.hoya.exceptions.HoyaException
+import org.apache.hoya.providers.hbase.HBaseConfigFileOptions
+import org.apache.hoya.providers.hbase.HBaseKeys
+import org.apache.hoya.tools.*
+import org.apache.hoya.yarn.Arguments
+import org.apache.hoya.yarn.HoyaActions
+import org.apache.hoya.yarn.MicroZKCluster
+import org.apache.hoya.yarn.appmaster.HoyaAppMaster
+import org.apache.hoya.yarn.client.HoyaClient
+import org.apache.hoya.yarn.params.ActionFreezeArgs
 import org.junit.After
 import org.junit.Assume
 import org.junit.Rule
 import org.junit.rules.Timeout
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import static org.apache.hoya.yarn.Arguments.*
-import static org.apache.hoya.yarn.HoyaActions.*;
-import static org.apache.hoya.testtools.HoyaTestUtils.*
-import static org.apache.hoya.HoyaXMLConfKeysForTesting.*
-import static org.apache.hoya.testtools.KeysForTests.*
 
 import java.util.concurrent.atomic.AtomicBoolean
+
+import static org.apache.hoya.HoyaXMLConfKeysForTesting.*
+import static org.apache.hoya.testtools.HoyaTestUtils.*
+import static org.apache.hoya.testtools.KeysForTests.*
+import static org.junit.Assert.fail
 
 /**
  * Base class for mini cluster tests -creates a field for the
@@ -516,7 +511,7 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
     assert miniCluster != null
     if (deleteExistingData) {
       HadoopFS dfs = HadoopFS.get(new URI(fsDefaultName), miniCluster.config)
-      Path clusterDir = HoyaUtils.buildHoyaClusterDirPath(dfs, clustername)
+      Path clusterDir = new HoyaFileSystem(dfs).buildHoyaClusterDirPath(clustername)
       log.info("deleting customer data at $clusterDir")
       //this is a safety check to stop us doing something stupid like deleting /
       assert clusterDir.toString().contains("/.hoya/")

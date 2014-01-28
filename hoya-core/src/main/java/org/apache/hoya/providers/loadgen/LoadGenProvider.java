@@ -37,6 +37,7 @@ import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderUtils;
 import org.apache.hoya.providers.hbase.HBaseKeys;
 import org.apache.hoya.tools.ConfigHelper;
+import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -218,9 +219,9 @@ public class LoadGenProvider extends AbstractProviderCore implements
 
     log.debug("Saving the config to {}", sitePath);
     Map<String, LocalResource> confResources;
-    confResources = HoyaUtils.submitDirectory(clusterFS,
-                                              generatedConfDirPath,
-                                              HoyaKeys.PROPAGATED_CONF_DIR_NAME);
+    confResources = new HoyaFileSystem(clusterFS).submitDirectory(
+            generatedConfDirPath,
+            HoyaKeys.PROPAGATED_CONF_DIR_NAME);
     return confResources;
   }
 
@@ -266,16 +267,16 @@ public class LoadGenProvider extends AbstractProviderCore implements
 
     //add the configuration resources
     Map<String, LocalResource> confResources;
-    confResources = HoyaUtils.submitDirectory(fs,
-                                              generatedConfPath,
-                                              HoyaKeys.PROPAGATED_CONF_DIR_NAME);
+    confResources = new HoyaFileSystem(fs).submitDirectory(
+            generatedConfPath,
+            HoyaKeys.PROPAGATED_CONF_DIR_NAME);
     localResources.putAll(confResources);
     //Add binaries
     //now add the image if it was set
     if (clusterSpec.isImagePathSet()) {
       Path imagePath = new Path(clusterSpec.getImagePath());
       log.info("using image path {}", imagePath);
-      HoyaUtils.maybeAddImagePath(fs, localResources, imagePath);
+      new HoyaFileSystem(fs).maybeAddImagePath(localResources, imagePath);
     }
     ctx.setLocalResources(localResources);
 

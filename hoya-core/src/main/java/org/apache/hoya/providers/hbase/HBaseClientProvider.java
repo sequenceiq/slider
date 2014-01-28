@@ -37,6 +37,7 @@ import org.apache.hoya.providers.ClientProvider;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderUtils;
 import org.apache.hoya.tools.ConfigHelper;
+import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -393,9 +394,9 @@ public class HBaseClientProvider extends AbstractProviderCore implements
 
     log.debug("Saving the config to {}", sitePath);
     Map<String, LocalResource> providerResources;
-    providerResources = HoyaUtils.submitDirectory(clusterFS,
-                                              generatedConfDirPath,
-                                              HoyaKeys.PROPAGATED_CONF_DIR_NAME);
+    providerResources = new HoyaFileSystem(clusterFS).submitDirectory(
+            generatedConfDirPath,
+            HoyaKeys.PROPAGATED_CONF_DIR_NAME);
 
     addHBaseDependencyJars(providerResources, clusterFS,libdir, tempPath);
 

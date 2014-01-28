@@ -68,10 +68,7 @@ import org.apache.hoya.providers.ClientProvider;
 import org.apache.hoya.providers.HoyaProviderFactory;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.hoyaam.HoyaAMClientProvider;
-import org.apache.hoya.tools.ConfigHelper;
-import org.apache.hoya.tools.Duration;
-import org.apache.hoya.tools.HoyaUtils;
-import org.apache.hoya.tools.HoyaVersionInfo;
+import org.apache.hoya.tools.*;
 import org.apache.hoya.yarn.Arguments;
 import org.apache.hoya.yarn.HoyaActions;
 import org.apache.hoya.yarn.appmaster.rpc.RpcBinder;
@@ -276,7 +273,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     // create the directory path
     FileSystem fs = getClusterFS();
-    Path clusterDirectory = HoyaUtils.buildHoyaClusterDirPath(fs, clustername);
+    Path clusterDirectory = new HoyaFileSystem(fs).buildHoyaClusterDirPath(clustername);
     // delete the directory;
     boolean exists = fs.exists(clusterDirectory);
     if (exists) {
@@ -390,7 +387,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // build up the paths in the DFS
 
     FileSystem fs = getClusterFS();
-    Path clusterDirectory = HoyaUtils.buildHoyaClusterDirPath(fs, clustername); 
+    Path clusterDirectory = new HoyaFileSystem(fs).buildHoyaClusterDirPath(clustername);
     Path snapshotConfPath = new Path(clusterDirectory, HoyaKeys.SNAPSHOT_CONF_DIR_NAME);
     Path generatedConfPath =
       new Path(clusterDirectory, HoyaKeys.GENERATED_CONF_DIR_NAME);
@@ -398,8 +395,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       new Path(clusterDirectory, HoyaKeys.CLUSTER_SPECIFICATION_FILE);
 
     //verify the directory is not there.
-    HoyaUtils.verifyClusterDirectoryNonexistent(fs, clustername,
-                                                clusterDirectory);
+    new HoyaFileSystem(fs).verifyClusterDirectoryNonexistent(clustername,
+            clusterDirectory);
 
     // actual creation takes place later, so that if the build files there
     // isn't a half build cluster in the filesystem
@@ -547,7 +544,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     clusterSpec.originConfigurationPath = snapshotConfPath.toUri().toASCIIString();
     clusterSpec.generatedConfigurationPath =
       generatedConfPath.toUri().toASCIIString();
-    HoyaUtils.createClusterDirectories(fs, clustername, getConfig());
+    new HoyaFileSystem(fs).createClusterDirectories(clustername, getConfig());
 
     // save the specification to get a lock on this cluster name
     try {
@@ -694,10 +691,10 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     }
 
     FileSystem fs = getClusterFS();
-    HoyaUtils.purgeHoyaAppInstanceTempFiles(fs, clustername);
-    Path tempPath = HoyaUtils.createHoyaAppInstanceTempPath(fs,
-                                                            clustername,
-                                                            appId.toString());
+    new HoyaFileSystem(fs).purgeHoyaAppInstanceTempFiles(clustername);
+    Path tempPath = new HoyaFileSystem(fs).createHoyaAppInstanceTempPath(
+            clustername,
+            appId.toString());
     String libdir = "lib";
     Path libPath = new Path(tempPath, libdir);
     fs.mkdirs(libPath);
@@ -741,7 +738,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       if (remoteHoyaConfPath != null) {
         relativeHoyaConfDir = HoyaKeys.SUBMITTED_HOYA_CONF_DIR;
         Map<String, LocalResource> submittedConfDir =
-          HoyaUtils.submitDirectory(fs, remoteHoyaConfPath, relativeHoyaConfDir);
+          new HoyaFileSystem(fs).submitDirectory(remoteHoyaConfPath, relativeHoyaConfDir);
         HoyaUtils.mergeMaps(localResources, submittedConfDir);
       }
 
@@ -809,7 +806,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
 
     // now add the image if it was set
-    if (HoyaUtils.maybeAddImagePath(fs, localResources, imagePath)) {
+    if (new HoyaFileSystem(fs).maybeAddImagePath(localResources, imagePath)) {
       log.debug("Registered image path {}", imagePath);
     }
 
@@ -836,7 +833,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     if (log.isDebugEnabled()) {
       log.debug("AM classpath={}", classpath);
       log.debug("Environment Map:\n{}", HoyaUtils.stringifyMap(env));
-      log.debug("Files in lib path\n{}", HoyaUtils.listFSDir(fs, libPath));
+      log.debug("Files in lib path\n{}", new HoyaFileSystem(fs).listFSDir(libPath));
     }
 
     String rmAddr = launchArgs.getRmAddress();
@@ -1320,7 +1317,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     //initial probe for a cluster in the filesystem
     FileSystem fs = getClusterFS();
-    Path clusterDirectory = HoyaUtils.buildHoyaClusterDirPath(fs, name);
+    Path clusterDirectory = new HoyaFileSystem(fs).buildHoyaClusterDirPath(name);
     if (!fs.exists(clusterDirectory)) {
       throw unknownClusterException(name);
     }
@@ -1715,9 +1712,9 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     Path clusterSpecPath = locateClusterSpecification(clustername);
 
     ClusterDescription clusterSpec =
-      HoyaUtils.loadAndValidateClusterSpec(getClusterFS(), clusterSpecPath);
+      new HoyaFileSystem(getClusterFS()).loadAndValidateClusterSpec(clusterSpecPath);
     Path clusterDirectory =
-      HoyaUtils.buildHoyaClusterDirPath(getClusterFS(), clustername);
+      new HoyaFileSystem(getClusterFS()).buildHoyaClusterDirPath(clustername);
 
     return executeClusterStart(clusterDirectory, clusterSpec, launchArgs);
   }
@@ -1732,7 +1729,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                              YarnException,
                                                              IOException {
     FileSystem fs = getClusterFS();
-    return HoyaUtils.locateClusterSpecification(fs, clustername);
+    return new HoyaFileSystem(fs).locateClusterSpecification(clustername);
   }
 
   /**
@@ -1752,7 +1749,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     Path clusterSpecPath = locateClusterSpecification(clustername);
     FileSystem fs = getClusterFS();
     ClusterDescription clusterSpec =
-      HoyaUtils.loadAndValidateClusterSpec(fs, clusterSpecPath);
+      new HoyaFileSystem(fs).loadAndValidateClusterSpec(clusterSpecPath);
 
     HoyaUtils.addBuildInfo(clusterSpec, "flex");
     clusterSpec.setInfoTime(StatusKeys.INFO_FLEX_TIME_HUMAN,
@@ -1775,13 +1772,13 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     }
     if (persist) {
       Path clusterDirectory =
-        HoyaUtils.buildHoyaClusterDirPath(getClusterFS(), clustername);
+        new HoyaFileSystem(getClusterFS()).buildHoyaClusterDirPath(clustername);
       log.debug("Saving the cluster specification to {}", clusterSpecPath);
       // save the specification
-      if (!HoyaUtils.updateClusterSpecification(getClusterFS(),
-                                                clusterDirectory,
-                                                clusterSpecPath,
-                                                clusterSpec)) {
+      if (!new HoyaFileSystem(getClusterFS()).updateClusterSpecification(
+              clusterDirectory,
+              clusterSpecPath,
+              clusterSpec)) {
         log.warn("Failed to save new cluster size to {}", clusterSpecPath);
       } else {
         log.debug("New cluster size: persisted");
