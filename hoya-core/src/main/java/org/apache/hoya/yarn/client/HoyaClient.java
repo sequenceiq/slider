@@ -668,6 +668,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     submissionContext.setMaxAppAttempts(config.getInt(KEY_HOYA_RESTART_LIMIT,
                                                       DEFAULT_HOYA_RESTART_LIMIT));
 
+    // AM wants its old containers back on a restart
+    submissionContext.setKeepContainersAcrossApplicationAttempts(true);
     FileSystem fs = getClusterFS();
     HoyaUtils.purgeHoyaAppInstanceTempFiles(fs, clustername);
     Path tempPath = HoyaUtils.createHoyaAppInstanceTempPath(fs,
@@ -1794,7 +1796,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                                  IOException {
     HoyaClusterOperations clusterOperations =
       createClusterOperations(clustername);
-    return clusterOperations.getClusterDescription(clustername);
+    return clusterOperations.getClusterDescription();
   }
 
   /**

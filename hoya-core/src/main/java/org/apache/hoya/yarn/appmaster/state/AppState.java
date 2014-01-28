@@ -725,7 +725,8 @@ public class AppState {
     
     
     AMRMClient.ContainerRequest request;
-    request = roleHistory.requestNode(role.getKey(), resource);
+    int key = role.getKey();
+    request = roleHistory.requestNode(key, resource);
     role.incRequested();
 
     return request;
@@ -993,8 +994,8 @@ public class AppState {
       } else {
         //this isn't a known container.
         
-        log.error("Notified of completed container that is not in the list" +
-                  " of active or failed containers");
+        log.error("Notified of completed container {} that is not in the list" +
+                  " of active or failed containers", containerId);
         completionOfUnknownContainerEvent.incrementAndGet();
       }
     }
@@ -1009,7 +1010,7 @@ public class AppState {
     ContainerId id = status.getContainerId();
     RoleInstance node = getLiveNodes().remove(id);
     if (node == null) {
-      log.warn("Received notification of completion of unknown node");
+      log.warn("Received notification of completion of unknown node {}", id);
       completionOfNodeNotInLiveListEvent.incrementAndGet();
 
     } else {
