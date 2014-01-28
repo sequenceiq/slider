@@ -768,9 +768,10 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
    * @return the exit code
    */
   public int clusterActionFreeze(HoyaClient hoyaClient, String clustername, String message = "action freeze") {
-    log.info("Freezing cluster $clustername")
+    log.info("Freezing cluster $clustername: $message")
     ActionFreezeArgs freezeArgs  = new ActionFreezeArgs();
     freezeArgs.waittime = CLUSTER_STOP_TIME
+    freezeArgs.message = message
     int exitCode = hoyaClient.actionFreeze(clustername,
                                            freezeArgs);
     if (exitCode != 0) {
