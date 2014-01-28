@@ -43,6 +43,7 @@ public interface Arguments {
   String ARG_CONFDIR = "--appconf";
   String ARG_DEBUG = "--debug";
   String ARG_DEFINE = "-D";
+  String ARG_EXITCODE = "--exitcode";
   /**
    filesystem-uri: {@value}
    */

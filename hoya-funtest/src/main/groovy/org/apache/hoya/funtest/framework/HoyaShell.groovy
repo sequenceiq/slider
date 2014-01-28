@@ -20,6 +20,7 @@ package org.apache.hoya.funtest.framework
 
 import groovy.util.logging.Slf4j
 import org.apache.bigtop.itest.shell.Shell
+import org.apache.hoya.exceptions.HoyaException
 
 @Slf4j
 
@@ -126,13 +127,16 @@ class HoyaShell extends Shell {
    * if not the output is printed and an assertion is raised
    * @param shell shell
    * @param errorCode expected error code
+   * @throws HoyaException if the exit code is wrong (the value in the exception
+   * is the exit code received)
    */
-  public static int assertExitCode(HoyaShell shell, int errorCode) {
+  public static int assertExitCode(HoyaShell shell, int errorCode) throws
+      HoyaException {
     assert shell != null
     if (shell.ret != errorCode) {
       shell.dump()
+      throw new HoyaException(shell.ret,"Expected exit code %d - actual=%d", errorCode, shell.ret)
     }
-    assert errorCode == shell.ret
     return errorCode
   }
 }

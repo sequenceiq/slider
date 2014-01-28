@@ -132,4 +132,15 @@ public class HoyaClusterProtocolPBImpl implements HoyaClusterProtocolPB {
       throw wrap(e);
     }
   }
+
+  @Override
+  public Messages.AMSuicideResponseProto amSuicide(RpcController controller,
+                                                   Messages.AMSuicideRequestProto request) throws
+                                                                                           ServiceException {
+    try {
+      return real.amSuicide(request);
+    } catch (Exception e) {
+      throw wrap(e);
+    }
+  }
 }

@@ -80,6 +80,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.Callable;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -1669,6 +1673,44 @@ public final class HoyaUtils {
     
     cd.setInfo(prefix + "." + HoyaVersionInfo.HADOOP_DEPLOYED_INFO,
                VersionInfo.getBranch() + " @" + VersionInfo.getSrcChecksum());
+  }
+
+  /**
+   * trigger a  JVM halt with no clean shutdown at all
+   * @param status status code for exit
+   * @param text text message
+   * @param delay delay in millis
+   * @return the timer (assuming the JVM hasn't halted yet)
+   * 
+   */
+  public static Timer haltAM(int status, String text, int delay) {
+
+    Timer timer = new Timer("halt timer", false);
+    timer.schedule(new DelayedHalt(status, text), delay);
+    return timer;
+  }
+
+  /**
+   * Callable for async/scheduled halt
+   */
+  public static class DelayedHalt extends TimerTask {
+    private final int status;
+    private final String text;
+
+    public DelayedHalt(int status, String text) {
+      this.status = status;
+      this.text = text;
+    }
+
+    @Override
+    public void run() {
+      try {
+        ExitUtil.halt(status, text);
+        //this should never be reached
+      } catch (ExitUtil.HaltException e) {
+        log.info("Halt failed");
+      }
+    }
   }
 
   /**

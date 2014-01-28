@@ -396,6 +396,19 @@ Example
 
     hoya emergency-force-kill application_1386596138212_0001
 
+### `am-suicide <cluster> [--exitcode code] [--message message] [--wait time]`
+
+This operation is purely for testing Hoya Application Master restart;
+it triggers an asynchronous self-destruct operation in the AM -an 
+operation that does not make any attempt to cleanly shut down the process. 
+
+If the application has not exceeded its restart limit (as set by
+`hoya.yarn.restart.limit`), YARN will attempt to restart the failed application.
+
+Example
+
+    hoya am-suicide --exitcode 1 --wait 5000 -message "test"
+
 <!--- ======================================================================= -->
 
 

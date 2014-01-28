@@ -179,6 +179,15 @@ class HoyaTestUtils extends Assert {
     }
   }
 
+  public static void waitUntilClusterLive(HoyaClient client, int timeout) {
+    Duration duration = new Duration(timeout);
+    duration.start()
+    while (!client.actionExists(client.deployedClusterName, true) &&
+           !duration.limitExceeded) {
+      sleep(1000);
+    }
+  }
+
   /**
    * Spin waiting for the Hoya role count to match expected
    * @param hoyaClient client

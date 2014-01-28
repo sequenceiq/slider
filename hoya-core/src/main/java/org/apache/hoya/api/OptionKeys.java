@@ -74,13 +74,6 @@ public interface OptionKeys {
    */
   int DEFAULT_CONTAINER_STARTUP_DELAY = 5000;
 
-
-  /**
-   * option used to set the test flag
-   * {@value}
-   */
-  String HOYA_TEST_FLAG = "hoya.test";
-  
   /**
    * Version of the app: {@value}
    */

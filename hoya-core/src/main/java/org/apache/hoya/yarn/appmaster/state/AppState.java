@@ -1328,19 +1328,22 @@ public class AppState {
   }
 
   /**
-   * Event handler for the list of active containers on restart
+   * Event handler for the list of active containers on restart.
+   * Sets the info key {@link StatusKeys#INFO_CONTAINERS_AM_RESTART}
+   * to the size of the list passed down (and does not set it if none were)
    * @param liveContainers the containers allocated
    * @return true if a rebuild took place (even if size 0)
    * @throws HoyaRuntimeException on problems
    */
   private boolean rebuildModelFromRestart(List<Container> liveContainers) {
-
     if (liveContainers == null) {
       return false;
     }
     for (Container container : liveContainers) {
       addRestartedContainer(container);
     }
+    clusterDescription.setInfo(StatusKeys.INFO_CONTAINERS_AM_RESTART,
+                               Integer.toString(liveContainers.size()));
     return true;
   }
 

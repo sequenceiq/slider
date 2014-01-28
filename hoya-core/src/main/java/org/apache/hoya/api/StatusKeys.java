@@ -50,6 +50,10 @@ public interface StatusKeys {
       "containers.surplus";
   String STATISTICS_CONTAINERS_UNKNOWN_COMPLETED =
       "containers.unknown.completed";
+  /**
+   * No of containers provided on AM restart
+   */
+  String INFO_CONTAINERS_AM_RESTART = "containers.am-restart";
 
   String INFO_CREATE_TIME_MILLIS = "create.time";
   String INFO_CREATE_TIME_HUMAN = "create.time";
@@ -57,6 +61,8 @@ public interface StatusKeys {
   String INFO_LIVE_TIME_HUMAN = "live.time";
   String INFO_FLEX_TIME_MILLIS = "flex.time.millis";
   String INFO_FLEX_TIME_HUMAN = "flex.time";
+
+  String INFO_MASTER_ADDRESS = "master.address";
 
   /**
    * System time in millis when the status report was generated
@@ -68,5 +74,5 @@ public interface StatusKeys {
    */
   String INFO_STATUS_TIME_HUMAN = "status.time";
 
-  String INFO_MASTER_ADDRESS = "master.address";
+  
 }

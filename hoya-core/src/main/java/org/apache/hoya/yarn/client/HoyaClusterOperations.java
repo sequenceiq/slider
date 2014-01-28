@@ -277,4 +277,29 @@ public class HoyaClusterOperations {
       appMaster.flexCluster(request);
     return response.getResponse();
   }
+
+
+  /**
+   * Commit (possibly delayed) AM suicide
+   *
+   * @param signal exit code
+   * @param text text text to log
+   * @param delay delay in millis
+   * @throws YarnException
+   * @throws IOException
+   */
+  public void amSuicide(String text, int signal, int delay) throws
+                                  YarnException,
+                                  IOException {
+    Messages.AMSuicideRequestProto.Builder builder =
+      Messages.AMSuicideRequestProto.newBuilder();
+    builder.setText(text);
+    builder.setSignal(signal);
+    builder.setDelay(delay);
+    Messages.AMSuicideRequestProto req =
+      builder.build();
+    Messages.AMSuicideResponseProto response =
+      appMaster.amSuicide(req);
+  }
+
 }

@@ -76,6 +76,7 @@ import org.apache.hoya.yarn.Arguments;
 import org.apache.hoya.yarn.HoyaActions;
 import org.apache.hoya.yarn.appmaster.rpc.RpcBinder;
 import org.apache.hoya.yarn.params.AbstractClusterBuildingActionArgs;
+import org.apache.hoya.yarn.params.ActionAMSuicideArgs;
 import org.apache.hoya.yarn.params.ActionCreateArgs;
 import org.apache.hoya.yarn.params.ActionEchoArgs;
 import org.apache.hoya.yarn.params.ActionFlexArgs;
@@ -204,8 +205,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     String clusterName = serviceArgs.getClusterName();
     // actions
     if (HoyaActions.ACTION_BUILD.equals(action)) {
-      actionBuild(clusterName, serviceArgs.getActionBuildArgs());
-      exitCode = EXIT_SUCCESS;
+      exitCode = actionBuild(clusterName, serviceArgs.getActionBuildArgs());
     } else if (HoyaActions.ACTION_CREATE.equals(action)) {
       exitCode = actionCreate(clusterName, serviceArgs.getActionCreateArgs());
     } else if (HoyaActions.ACTION_FREEZE.equals(action)) {
@@ -233,6 +233,11 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     } else if (HoyaActions.ACTION_KILL_CONTAINER.equals(action)) {
       exitCode = actionGetConf(clusterName, serviceArgs.getActionGetConfArgs());
+
+    } else if (HoyaActions.ACTION_AM_SUICIDE.equals(action)) {
+      exitCode = actionAmSuicide(clusterName,
+                                 serviceArgs.getActionAMSuicideArgs());
+
     } else if (HoyaActions.ACTION_LIST.equals(action)) {
       if (!isUnset(clusterName)) {
         HoyaUtils.validateClusterName(clusterName);
@@ -302,6 +307,22 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     yarnClient.emergencyForceKill(appId);
     return EXIT_SUCCESS;
   }
+  
+  
+  /**
+   * AM to commit an asynchronous suicide
+   */
+  public int actionAmSuicide(String clustername,
+                                 ActionAMSuicideArgs args) throws
+                                                              YarnException,
+                                                              IOException {
+    HoyaClusterOperations clusterOperations =
+      createClusterOperations(clustername);
+    clusterOperations.amSuicide(args.message, args.exitcode, args.waittime);
+    return EXIT_SUCCESS;
+  }
+  
+  
 
   /**
    * Get the provider for this cluster
@@ -354,7 +375,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * @throws IOException other problems
    * @throws BadCommandArgumentsException bad arguments.
    */
-  public void actionBuild(String clustername,
+  public int actionBuild(String clustername,
                            AbstractClusterBuildingActionArgs buildInfo) throws
                                                YarnException,
                                                IOException {
@@ -562,7 +583,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // here the configuration is set up. Mark it
     clusterSpec.state = ClusterDescription.STATE_CREATED;
     clusterSpec.save(fs, clusterSpecPath, true);
-
+    return EXIT_SUCCESS;
   }
 
   /**
@@ -636,18 +657,16 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     }
 
     YarnClientApplication application = yarnClient.createApplication();
-    ApplicationSubmissionContext appContext =
+    ApplicationSubmissionContext submissionContext =
       application.getApplicationSubmissionContext();
-    ApplicationId appId = appContext.getApplicationId();
+    ApplicationId appId = submissionContext.getApplicationId();
     // set the application name;
-    appContext.setApplicationName(clustername);
+    submissionContext.setApplicationName(clustername);
     // app type used in service enum;
-    appContext.setApplicationType(HoyaKeys.APP_TYPE);
+    submissionContext.setApplicationType(HoyaKeys.APP_TYPE);
 
-    if (clusterSpec.getOptionBool(OptionKeys.HOYA_TEST_FLAG, false)) {
-      // test flag set
-      appContext.setMaxAppAttempts(1);
-    }
+    submissionContext.setMaxAppAttempts(config.getInt(KEY_HOYA_RESTART_LIMIT,
+                                                      DEFAULT_HOYA_RESTART_LIMIT));
 
     FileSystem fs = getClusterFS();
     HoyaUtils.purgeHoyaAppInstanceTempFiles(fs, clustername);
@@ -893,7 +912,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     capability.setVirtualCores(RoleKeys.DEFAULT_AM_V_CORES);
     // the Hoya AM gets to configure the AM requirements, not the custom provider
     hoyaAM.prepareAMResourceRequirements(clusterSpec, capability);
-    appContext.setResource(capability);
+    submissionContext.setResource(capability);
     Map<String, ByteBuffer> serviceData = new HashMap<String, ByteBuffer>();
     // Service data is a binary blob that can be passed to the application
     // Not needed in this scenario
@@ -903,7 +922,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // The following are not required for launching an application master
     // amContainer.setContainerId(containerId);
 
-    appContext.setAMContainerSpec(amContainer);
+    submissionContext.setAMContainerSpec(amContainer);
 
     // Set the priority for the application master
     
@@ -912,13 +931,13 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     Priority pri = Records.newRecord(Priority.class);
     pri.setPriority(amPriority);
-    appContext.setPriority(pri);
+    submissionContext.setPriority(pri);
 
     // Set the queue to which this application is to be submitted in the RM
     // Queue for App master
     String amQueue = config.get(KEY_HOYA_YARN_QUEUE, DEFAULT_HOYA_YARN_QUEUE);
 
-    appContext.setQueue(amQueue);
+    submissionContext.setQueue(amQueue);
 
     // Submit the application to the applications manager
     // SubmitApplicationResponse submitResp = applicationsManager.submitApplication(appRequest);
@@ -927,7 +946,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     log.info("Submitting application to Resource Manager");
 
     // submit the application
-    applicationId = yarnClient.submitApplication(appContext);
+    applicationId = yarnClient.submitApplication(submissionContext);
 
     int exitCode;
     // wait for the submit state to be reached
