@@ -493,10 +493,10 @@ class TestCommonArgParsing implements HoyaActions, Arguments {
 
     def roleOpts = createArgs.roleOptionMap
 
-    def clusterRoleMap = [
+    def clusterRoleMap = Collections.unmodifiableMap([
         "master":["cheese":"french"],
         "worker":["env.CHEESE":"french"]
-    ];
+    ])
     HoyaUtils.applyCommandLineOptsToRoleMap(clusterRoleMap, roleOpts);
 
     def masterOpts = clusterRoleMap["master"];
@@ -512,13 +512,13 @@ class TestCommonArgParsing implements HoyaActions, Arguments {
 
     
     def roleOpts = createArgs.roleOptionMap
-    def clusterRoleMap = [
+    Map<String, Map<String, String>> clusterRoleMap = Collections.unmodifiableMap([
         "master": ["cheese": "french"],
         "worker": ["env.CHEESE": "french"]
-    ];
+    ])
     HoyaUtils.applyCommandLineOptsToRoleMap(clusterRoleMap, roleOpts);
 
-    def workerOpts = clusterRoleMap["worker"];
+    def workerOpts = Collections.unmodifiableMap(clusterRoleMap["worker"])
     assert workerOpts["env.CHEESE"] == "stilton";
 
     Map<String, String> envmap = HoyaUtils.buildEnvMap(workerOpts);

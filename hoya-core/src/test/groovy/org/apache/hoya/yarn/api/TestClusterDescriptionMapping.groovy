@@ -46,11 +46,11 @@ class TestClusterDescriptionMapping extends YarnMiniClusterTestBase {
     ClusterDescription cd = new ClusterDescription();
     cd.name = "test"
     cd.state = ClusterDescription.STATE_LIVE;
-    cd.roles = [
+    cd.roles = Collections.unmodifiableMap([
         (HBaseKeys.ROLE_MASTER): [
             (RoleKeys.ROLE_INSTANCES): "1"
         ]
-    ]
+    ])
     ClusterNode node = new ClusterNode()
     node.name = "masternode"
     cd.createTime = System.currentTimeMillis()
