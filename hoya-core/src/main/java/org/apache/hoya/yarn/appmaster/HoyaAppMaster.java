@@ -541,8 +541,8 @@ public class HoyaAppMaster extends CompoundLaunchedService
       rpcService.getServer().refreshServiceAcl(conf, new HoyaAMPolicyProvider());
     }
     
-    //TODO: build from response once it is coming back
-    List<Container> liveContainers = null;
+    // extract container list
+    List<Container> liveContainers = response.getContainersFromPreviousAttempt();
 
     //now validate the dir by loading in a hadoop-site.xml file from it
 
