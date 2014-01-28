@@ -26,6 +26,10 @@ import org.apache.hadoop.hbase.HConstants
 import org.apache.hadoop.hbase.client.HConnection
 import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.api.records.YarnApplicationState
+import org.apache.hadoop.yarn.conf.YarnConfiguration
+import org.apache.hadoop.yarn.server.resourcemanager.scheduler.ResourceScheduler
+import org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacityScheduler
+import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fifo.FifoScheduler
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hoya.HoyaXMLConfKeysForTesting
 import org.apache.hoya.HoyaXmlConfKeys
@@ -52,6 +56,9 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
     def conf = configuration
     // patch the configuration for AM restart
     conf.setInt(HoyaXmlConfKeys.KEY_HOYA_RESTART_LIMIT, 3)
+
+    conf.setClass(YarnConfiguration.RM_SCHEDULER,
+                  FifoScheduler, ResourceScheduler);
     createMiniCluster(clustername, conf, 1, 1, 1, true, true)
     describe(" Kill the AM, expect cluster to die");
 
@@ -101,7 +108,7 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
     killAllMasterServers();
     waitWhileClusterLive(hoyaClient, 30000);
     // give yarn some time to notice
-    sleep(2000)
+    sleep(5000)
 
     // policy here depends on YARN behavior
     if (!HoyaXMLConfKeysForTesting.YARN_AM_SUPPORTS_RESTART) {
