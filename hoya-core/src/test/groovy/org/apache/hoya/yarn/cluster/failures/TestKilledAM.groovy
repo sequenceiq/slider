@@ -105,10 +105,10 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
     args.exitcode = 1
     hoyaClient.actionAmSuicide(clustername, args)
 
-    killAllMasterServers();
+    killAllRegionServers();
     waitWhileClusterLive(hoyaClient, 30000);
     // give yarn some time to notice
-    sleep(5000)
+    sleep(10000)
 
     // policy here depends on YARN behavior
     if (!HoyaXMLConfKeysForTesting.YARN_AM_SUPPORTS_RESTART) {
@@ -118,7 +118,6 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
     // await cluster startup
     ApplicationReport report = hoyaClient.applicationReport
     assert report.yarnApplicationState != YarnApplicationState.FAILED;
-    waitUntilClusterLive(hoyaClient, 30000);
 
     status = waitForHoyaWorkerCount(
         hoyaClient,
@@ -127,12 +126,14 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
 
     if (HoyaXMLConfKeysForTesting.YARN_AM_SUPPORTS_RESTART) {
 
+      dumpClusterDescription("post-restart status", status)
       // verify the AM restart container count was set
       String restarted = status.getInfo(
           StatusKeys.INFO_CONTAINERS_AM_RESTART)
       assert restarted != null;
-      //and that the count == 1 master + the region servers
-      assert Integer.parseInt(restarted) == 1 + regionServerCount
+      //and that the count == 1 master (the region servers were killed)
+      assert Integer.parseInt(restarted) == 1 
+
     }
 
     waitForHBaseRegionServerCount(
@@ -140,7 +141,6 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
         clustername,
         regionServerCount,
         HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-
 
   }
 
