@@ -56,4 +56,11 @@ public interface HoyaXMLConfKeysForTesting {
     "hoya.test.accumulo.launch.wait.seconds";
 
   int DEFAULT_HOYA_ACCUMULO_LAUNCH_TIME = 60 * 3 * 1000;
+
+
+  /**
+   * Flag to indicate whether or not YARN supports container rebind
+   * on restart. It is for testing
+   */
+  boolean YARN_AM_SUPPORTS_RESTART = false;
 }

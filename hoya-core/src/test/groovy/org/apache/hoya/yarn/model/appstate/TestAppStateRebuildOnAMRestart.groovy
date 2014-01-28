@@ -21,6 +21,7 @@ package org.apache.hoya.yarn.model.appstate
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
+import org.apache.hoya.api.StatusKeys
 import org.apache.hoya.yarn.appmaster.state.AbstractRMOperation
 import org.apache.hoya.yarn.appmaster.state.AppState
 import org.apache.hoya.yarn.appmaster.state.NodeEntry
@@ -111,8 +112,15 @@ class TestAppStateRebuildOnAMRestart extends BaseMockAppStateTest
         assert newRE.starting == 0
       }
     }
-
     List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
     assert ops.size() == 0
+
+    def status = appState.getClusterDescription()
+    // verify the AM restart container count was set
+    String restarted = status.getInfo(
+        StatusKeys.INFO_CONTAINERS_AM_RESTART)
+    assert restarted != null;
+    //and that the count == 1 master + the region servers
+    assert Integer.parseInt(restarted) == containers.size()
   }
 }

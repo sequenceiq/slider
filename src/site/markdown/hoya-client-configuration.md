@@ -210,6 +210,11 @@ In production, however, a large number prevents YARN from halting a Hoya
 application merely because failures in the underlying YARN cluster have
 triggered restarts.
 
+*Important:* The cluster-wide limit of `yarn.resourcemanager.am.max-attempts`
+places an upper limit on the number of retries that any application can request.
+If the application fails after less restarts than requested, check this cluster
+setting.
+
 ### `hoya.yarn.queue` - the name of the YARN queue for the cluster.
 
 This identifies the queue submit the application creation request to, which can
