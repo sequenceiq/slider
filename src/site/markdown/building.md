@@ -56,10 +56,15 @@ and create a branch off that tag
 For the scripts below, set the `HADOOP_VERSION` variable to the version
 
     export HADOOP_VERSION=2.2.0
+    
+or, for building against a pre-release version of Hadoop 2.4
+ 
+    git checkout branch-2
+    export HADOOP_VERSION=2.4.0-SNAPSHOT
 
 To build and install it locally, skipping the tests:
 
-    mvn install -DskipTests
+    mvn clean install -DskipTests
 
 To make a tarball for use in test runs:
 
