@@ -35,6 +35,7 @@ import org.apache.hoya.HoyaXMLConfKeysForTesting
 import org.apache.hoya.HoyaXmlConfKeys
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.StatusKeys
+import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.hoya.yarn.client.HoyaClient
 import org.apache.hoya.yarn.params.ActionAMSuicideArgs
 import org.apache.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
@@ -88,6 +89,9 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
         HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
     log.info("Initial cluster status : ${hbaseStatusToString(hbaseStat)}");
+
+    String hbaseMasterContainer = status.instances[HBaseKeys.ROLE_MASTER][0]
+
     Configuration clientConf = createHBaseConfiguration(hoyaClient)
     clientConf.setInt(HConstants.HBASE_CLIENT_RETRIES_NUMBER, 1);
     HConnection hbaseConnection
@@ -132,7 +136,16 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
           StatusKeys.INFO_CONTAINERS_AM_RESTART)
       assert restarted != null;
       //and that the count == 1 master (the region servers were killed)
-      assert Integer.parseInt(restarted) == 1 
+      assert Integer.parseInt(restarted) == 1
+
+
+      // now verify the master container is as before (with strict checks for incomplete data)
+  
+      assert null != status.instances[HBaseKeys.ROLE_MASTER];
+      assert 1 == status.instances[HBaseKeys.ROLE_MASTER].size();
+      assert hbaseMasterContainer == status.instances[HBaseKeys.ROLE_MASTER][0]
+      
+
 
     }
 

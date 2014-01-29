@@ -36,6 +36,7 @@ import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.api.StatusKeys;
+import org.apache.hoya.exceptions.BadClusterStateException;
 import org.apache.hoya.exceptions.ErrorStrings;
 import org.apache.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hoya.exceptions.HoyaRuntimeException;
@@ -341,7 +342,8 @@ public class AppState {
                             List<ProviderRole> providerRoles,
                             FileSystem fs,
                             Path historyDir,
-                            List<Container> liveContainers) {
+                            List<Container> liveContainers) throws
+                                                            BadClusterStateException {
     this.siteConf = siteConf;
 
     // set the cluster specification
@@ -457,7 +459,6 @@ public class AppState {
     
     RoleInstance am = new RoleInstance(container);
     am.role = HoyaKeys.ROLE_HOYA_AM;
-    am.buildUUID();
     appMasterNode = am;
     //it is also added to the set of live nodes
     getLiveNodes().put(containerId, am);
@@ -762,8 +763,8 @@ public class AppState {
   private void addLaunchedContainer(Container container, RoleInstance node) {
     node.container = container;
     if (node.role == null) {
-      log.warn("Unknown role for node {}", node);
-      node.role = ROLE_UNKNOWN;
+      throw new HoyaRuntimeException(
+        "Unknown role for node %s", node);
     }
     getLiveNodes().put(node.getContainerId(), node);
     //tell role history
@@ -1336,7 +1337,8 @@ public class AppState {
    * @return true if a rebuild took place (even if size 0)
    * @throws HoyaRuntimeException on problems
    */
-  private boolean rebuildModelFromRestart(List<Container> liveContainers) {
+  private boolean rebuildModelFromRestart(List<Container> liveContainers) throws
+                                                                          BadClusterStateException {
     if (liveContainers == null) {
       return false;
     }
@@ -1354,7 +1356,8 @@ public class AppState {
    * @param container container that was running before the AM restarted
    * @throws HoyaRuntimeException on problems
    */
-  private void addRestartedContainer(Container container) {
+  private void addRestartedContainer(Container container) throws
+                                                          BadClusterStateException {
     String containerHostInfo = container.getNodeId().getHost()
                                + ":" +
                                container.getNodeId().getPort();
@@ -1368,6 +1371,7 @@ public class AppState {
     // increment its count
     role.incActual();
     String roleName = role.getName();
+    
     log.info("Rebuilding container {} in role {} on {},",
              cid,
              roleName,

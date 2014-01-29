@@ -80,6 +80,7 @@ public final class RoleInstance implements Cloneable {
 
   public RoleInstance(Container container) {
     this.container = container;
+    buildUUID();
   }
 
   public ContainerId getId() {
@@ -111,7 +112,7 @@ public final class RoleInstance implements Cloneable {
     return sb.toString();
   }
 
-  public void buildUUID() {
+  private void buildUUID() {
     if (container == null) {
       throw new NullPointerException("Null container");
     }
