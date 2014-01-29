@@ -693,7 +693,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
    * @return the FS of the config
    */
   public HoyaFileSystem getClusterFS() throws IOException {
-    return new HoyaFileSystem(FileSystem.get(getConfig()));
+    return new HoyaFileSystem(getConfig());
   }
 
   /**

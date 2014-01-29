@@ -57,7 +57,7 @@ class TestClusterSpecUpdate extends YarnMiniClusterTestBase {
     Path specPath = new Path(testDirPath,"testUpdateClusterSpec.json")
     clusterSpec.save(localFS, specPath, true)
     clusterSpec.name = "updated"
-    assert new HoyaFileSystem(localFS).updateClusterSpecification(testDirPath, specPath, clusterSpec)
+    assert new HoyaFileSystem(localFS, getConfiguration()).updateClusterSpecification(testDirPath, specPath, clusterSpec)
     ClusterDescription updatedSpec = ClusterDescription.load(localFS, specPath)
     assert "updated" == updatedSpec.name
   }
@@ -67,7 +67,7 @@ class TestClusterSpecUpdate extends YarnMiniClusterTestBase {
     ClusterDescription clusterSpec = new ClusterDescription()
     clusterSpec.name = "nonexistent";
     Path specPath = new Path(testDirPath,"testUpdateNonexistentClusterSpec.json")
-    assert new HoyaFileSystem(localFS).updateClusterSpecification(testDirPath, specPath, clusterSpec)
+    assert new HoyaFileSystem(localFS, getConfiguration()).updateClusterSpecification(testDirPath, specPath, clusterSpec)
     ClusterDescription updatedSpec = ClusterDescription.load(localFS, specPath)
     assert "nonexistent" == updatedSpec.name
   }

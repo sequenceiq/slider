@@ -335,7 +335,7 @@ public final class HoyaUtils {
       permission = FsPermission.getDirDefault();
     }
     if (!destFS.exists(destDirPath)) {
-      new HoyaFileSystem(destFS).createWithPermissions(destDirPath, permission);
+      new HoyaFileSystem(destFS, conf).createWithPermissions(destDirPath, permission);
     }
     Path[] sourcePaths = new Path[srcFileCount];
     for (int i = 0; i < srcFileCount; i++) {

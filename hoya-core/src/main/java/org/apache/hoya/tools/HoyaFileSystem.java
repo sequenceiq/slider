@@ -1,6 +1,7 @@
 package org.apache.hoya.tools;
 
 import com.google.common.base.Preconditions;
+import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -36,10 +37,19 @@ public class HoyaFileSystem {
   private static final Logger log = LoggerFactory.getLogger(HoyaFileSystem.class);
 
   private final FileSystem fileSystem;
+  private final Configuration configuration;
 
-  public HoyaFileSystem(FileSystem fileSystem) {
+  public HoyaFileSystem(FileSystem fileSystem, Configuration configuration) {
     Preconditions.checkNotNull(fileSystem, "Cannot create a HoyaFileSystem with a null FileSystem");
+    Preconditions.checkNotNull(configuration, "Cannot create a HoyaFileSystem with a null Configuration");
     this.fileSystem = fileSystem;
+    this.configuration = configuration;
+  }
+
+  public HoyaFileSystem(Configuration configuration) throws IOException {
+    Preconditions.checkNotNull(configuration, "Cannot create a HoyaFileSystem with a null Configuration");
+    this.fileSystem = FileSystem.get(configuration);
+    this.configuration = fileSystem.getConf();
   }
 
   /**
@@ -223,10 +233,11 @@ public class HoyaFileSystem {
   /**
    * Get the base path for hoya
    *
-   * @return
+   * @return the base path optionally configured by {@value HoyaXmlConfKeys#KEY_BASE_HOYA_PATH}
    */
   public Path getBaseHoyaPath() {
-    return new Path(fileSystem.getHomeDirectory(), ".hoya");
+    String configuredHoyaBasePath = configuration.get(HoyaXmlConfKeys.KEY_BASE_HOYA_PATH);
+    return configuredHoyaBasePath != null ? new Path(configuredHoyaBasePath) : new Path(fileSystem.getHomeDirectory(), ".hoya");
   }
 
   /**

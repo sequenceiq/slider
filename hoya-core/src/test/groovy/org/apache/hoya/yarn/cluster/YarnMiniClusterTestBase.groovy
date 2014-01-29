@@ -511,7 +511,7 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
     assert miniCluster != null
     if (deleteExistingData) {
       HadoopFS dfs = HadoopFS.get(new URI(fsDefaultName), miniCluster.config)
-      Path clusterDir = new HoyaFileSystem(dfs).buildHoyaClusterDirPath(clustername)
+      Path clusterDir = new HoyaFileSystem(dfs, miniCluster.config).buildHoyaClusterDirPath(clustername)
       log.info("deleting customer data at $clusterDir")
       //this is a safety check to stop us doing something stupid like deleting /
       assert clusterDir.toString().contains("/.hoya/")

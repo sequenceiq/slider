@@ -186,7 +186,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     
     //here the superclass is inited; getConfig returns a non-null value
     filesystemURL = FileSystem.getDefaultUri(conf);
-    hoyaFileSystem = new HoyaFileSystem(FileSystem.get(conf));
+    hoyaFileSystem = new HoyaFileSystem(conf);
 
   }
 

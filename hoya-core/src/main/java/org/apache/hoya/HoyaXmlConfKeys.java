@@ -99,6 +99,13 @@ public interface HoyaXmlConfKeys {
 
 
   /**
+   * The hoya base path: {@value}
+   * Defaults to HomeDir/.hoya
+   */
+  String KEY_BASE_HOYA_PATH = "hoya.base.path";
+
+
+  /**
    * Option for the permissions for the cluster directory itself: {@value}
    */
   String HOYA_CLUSTER_DIRECTORY_PERMISSIONS =

@@ -84,7 +84,7 @@ class TestHoyaConfDirToMasterlessAM extends HBaseMiniClusterTestBase {
       ClusterDescription cd = waitForRoleCount(hoyaClient,HoyaKeys.ROLE_HOYA_AM,1, HBASE_CLUSTER_STARTUP_TIME)
       HadoopFS fs = HadoopFS.getLocal(conf);
       
-      Path clusterDir = new HoyaFileSystem(fs).buildHoyaClusterDirPath(clustername)
+      Path clusterDir = new HoyaFileSystem(fs, conf).buildHoyaClusterDirPath(clustername)
       assert fs.exists(clusterDir);
       Path hoyaConfDir = new Path(clusterDir, HoyaKeys.SUBMITTED_HOYA_CONF_DIR)
       assert fs.exists(hoyaConfDir);
