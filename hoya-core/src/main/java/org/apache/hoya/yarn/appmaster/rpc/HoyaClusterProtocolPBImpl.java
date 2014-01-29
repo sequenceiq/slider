@@ -110,4 +110,37 @@ public class HoyaClusterProtocolPBImpl implements HoyaClusterProtocolPB {
       throw wrap(e);
     }
   }
+
+  @Override
+  public Messages.EchoResponseProto echo(RpcController controller,
+                                         Messages.EchoRequestProto request) throws
+                                                                            ServiceException {
+    try {
+      return real.echo(request);
+    } catch (Exception e) {
+      throw wrap(e);
+    }
+  }
+
+  @Override
+  public Messages.KillContainerResponseProto killContainer(RpcController controller,
+                                                           Messages.KillContainerRequestProto request) throws
+                                                                                                       ServiceException {
+    try {
+      return real.killContainer(request);
+    } catch (Exception e) {
+      throw wrap(e);
+    }
+  }
+
+  @Override
+  public Messages.AMSuicideResponseProto amSuicide(RpcController controller,
+                                                   Messages.AMSuicideRequestProto request) throws
+                                                                                           ServiceException {
+    try {
+      return real.amSuicide(request);
+    } catch (Exception e) {
+      throw wrap(e);
+    }
+  }
 }

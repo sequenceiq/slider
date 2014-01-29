@@ -63,7 +63,7 @@ public interface RoleKeys {
    * Extra arguments (non-JVM) to use when starting this role
    */
   String ROLE_ADDITIONAL_ARGS = "role.additional.args";
-  
+
   /**
    *  Amount of memory to ask YARN for in MB.
    *  <i>Important:</i> this may be a hard limit on the

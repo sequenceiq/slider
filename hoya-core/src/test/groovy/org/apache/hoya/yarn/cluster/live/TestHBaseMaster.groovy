@@ -44,7 +44,7 @@ class TestHBaseMaster extends HBaseMiniClusterTestBase {
   @Test
   public void testHBaseMaster() throws Throwable {
     String clustername = "test_hbase_master"
-    createMiniCluster(clustername, createConfiguration(), 1, true)
+    createMiniCluster(clustername, getConfiguration(), 1, true)
     //make sure that ZK is up and running at the binding string
     ZKIntegration zki = createZKIntegrationInstance(ZKBinding, clustername, false, false, 5000)
     //now launch the cluster with 1 region server
@@ -79,7 +79,7 @@ class TestHBaseMaster extends HBaseMiniClusterTestBase {
   @Test
   public void testHBaseMasterWithBadHeap() throws Throwable {
     String clustername = "test_hbase_master_with_bad_heap"
-    createMiniCluster(clustername, createConfiguration(), 1, true)
+    createMiniCluster(clustername, getConfiguration(), 1, true)
 
     describe "verify that bad Java heap options are picked up"
     //now launch the cluster with 1 region server

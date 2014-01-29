@@ -39,6 +39,6 @@ public class ContainerReleaseOperation extends AbstractRMOperation {
 
   @Override
   public String toString() {
-    return "release container";
+    return "release container " + containerId;
   }
 }

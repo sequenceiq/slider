@@ -21,24 +21,24 @@ package org.apache.hoya.funtest.basic
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
-import org.apache.hoya.tools.HoyaUtils
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.hadoop.yarn.conf.YarnConfiguration
-import org.apache.hoya.funtest.framework.HoyaTestProperties
+import org.apache.hoya.funtest.framework.HoyaFuntestProperties
 import org.apache.hoya.testtools.HoyaTestUtils
+import org.apache.hoya.tools.HoyaUtils
 import org.junit.Test
 
 /**
  * Simple tests to verify that the build has been set up: if these
  * fail then the arguments to the test run are incomplete.
- * 
+ *
  * This deliberately doesn't depend on HoyaCommandTestBase,
  * so that individual tests fail with more diagnostics
  * than the @BeforeClass failing
  */
 @CompileStatic
 @Slf4j
-class TestBuildSetup extends HoyaTestUtils implements HoyaTestProperties {
+class TestBuildSetup extends HoyaTestUtils implements HoyaFuntestProperties {
 
 /*
   String HOYA_BIN_DIR = System.getProperty(
@@ -65,7 +65,7 @@ class TestBuildSetup extends HoyaTestUtils implements HoyaTestProperties {
     String val = System.getProperty(name)
     if (!val) {
       fail("System property not set : $name")
-      
+
     }
     return val;
   }
@@ -93,9 +93,9 @@ class TestBuildSetup extends HoyaTestUtils implements HoyaTestProperties {
 
   public File getHoyaConfXML() {
     new File(hoyaConfDirectory,
-                             "hoya-client.xml").canonicalFile
+             "hoya-client.xml").canonicalFile
   }
-  
+
   public File getHoyaScript() {
     new File(hoyaBinDirectory, "bin/hoya").canonicalFile
   }
@@ -115,13 +115,13 @@ class TestBuildSetup extends HoyaTestUtils implements HoyaTestProperties {
     assert hoyaConfDirectory.exists()
   }
 
-  
 
   @Test
   public void testConfDirHasHoyaClientXML() throws Throwable {
     File hoyaClientXMLFile = hoyaConfXML
     assert hoyaClientXMLFile.exists()
-    hoyaClientXMLFile.toString()}
+    hoyaClientXMLFile.toString()
+  }
 
 
   @Test
@@ -152,7 +152,7 @@ class TestBuildSetup extends HoyaTestUtils implements HoyaTestProperties {
     assert val != YarnConfiguration.DEFAULT_RM_ADDRESS
   }
 
-@Test
+  @Test
   public void testSecuritySettingsValid() throws Throwable {
     Configuration conf = loadHoyaConf();
     if (HoyaUtils.maybeInitSecurity(conf)) {
@@ -161,4 +161,23 @@ class TestBuildSetup extends HoyaTestUtils implements HoyaTestProperties {
     }
     log.info("Login User = ${UserGroupInformation.getLoginUser()}")
   }
+
+  @Test
+  public void testHBaseBuildsHavePathsDefined() throws Throwable {
+    Configuration conf = loadHoyaConf();
+    assumeBoolOption(conf, KEY_HOYA_TEST_HBASE_ENABLED, true)
+
+    assertStringOptionSet(conf, KEY_HOYA_TEST_HBASE_APPCONF)
+    assertStringOptionSet(conf, KEY_HOYA_TEST_HBASE_TAR)
+  }
+  
+  @Test
+  public void testAccumuloBuildsHavePathsDefined() throws Throwable {
+    Configuration conf = loadHoyaConf();
+    assumeBoolOption(conf, KEY_HOYA_TEST_ACCUMULO_ENABLED, true)
+
+    assertStringOptionSet(conf, KEY_HOYA_TEST_ACCUMULO_APPCONF)
+    assertStringOptionSet(conf, KEY_HOYA_TEST_ACCUMULO_TAR)
+  }
+  
 }

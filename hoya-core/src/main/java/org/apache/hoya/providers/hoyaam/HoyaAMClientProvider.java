@@ -152,12 +152,22 @@ public class HoyaAMClientProvider extends AbstractProviderCore implements
 
 
   @Override //Client
-  public void preflightValidateClusterConfiguration(ClusterDescription clusterSpec,
-                                                    FileSystem clusterFS,
+  public void preflightValidateClusterConfiguration(FileSystem clusterFS,
+                                                    String clustername,
+                                                    Configuration configuration,
+                                                    ClusterDescription clusterSpec,
+                                                    Path clusterDirPath,
                                                     Path generatedConfDirPath,
                                                     boolean secure) throws
                                                                     HoyaException,
                                                                     IOException {
+
+    //add a check for the directory being writeable by the current user
+    String dataPath = clusterSpec.dataPath;
+    Path path = new Path(dataPath);
+    HoyaUtils.verifyDirectoryWriteAccess(clusterFS, path);
+    Path historyPath = new Path(clusterDirPath, HoyaKeys.HISTORY_DIR_NAME);
+    HoyaUtils.verifyDirectoryWriteAccess(clusterFS, historyPath);
   }
 
   @Override
@@ -169,11 +179,12 @@ public class HoyaAMClientProvider extends AbstractProviderCore implements
       throw new BadCommandArgumentsException("No Hoya Application master declared" 
                                              + " in cluster specification");
     }
+    super.validateClusterSpec(clusterSpec);
+
     providerUtils.validateNodeCount(ROLE_HOYA_AM,
                                     clusterSpec.getDesiredInstanceCount(
                                       ROLE_HOYA_AM,
                                       0), 1, 1);
-
 
   }
 

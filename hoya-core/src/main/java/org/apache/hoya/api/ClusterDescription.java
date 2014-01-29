@@ -46,6 +46,7 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -67,7 +68,7 @@ import static org.apache.hoya.api.OptionKeys.ZOOKEEPER_PORT;
  * the code paths are simplified.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ClusterDescription {
+public class ClusterDescription implements Cloneable {
   protected static final Logger
     log = LoggerFactory.getLogger(ClusterDescription.class);
 
@@ -185,8 +186,8 @@ public class ClusterDescription {
   /**
    * Instances: role->count
    */
-  public Map<String, Integer> instances =
-    new HashMap<String, Integer>();
+  public Map<String, List<String>> instances =
+    new HashMap<String, List<String>>();
 
   /**
    * Role options, 
@@ -283,7 +284,9 @@ public class ClusterDescription {
    */
   public void save(File file) throws IOException {
     log.debug("Saving to {}", file.getAbsolutePath());
-    file.getParentFile().mkdirs();
+    if (!file.getParentFile().mkdirs()) {
+      log.warn("Failed to mkdirs for " + file.getParentFile());
+    }
     DataOutputStream dataOutputStream = new DataOutputStream(new FileOutputStream(file));
     writeJsonAsBytes(dataOutputStream);
   }

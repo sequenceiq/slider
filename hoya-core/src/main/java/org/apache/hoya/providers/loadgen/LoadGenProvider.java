@@ -148,8 +148,11 @@ public class LoadGenProvider extends AbstractProviderCore implements
   }
 
   @Override //Client
-  public void preflightValidateClusterConfiguration(ClusterDescription clusterSpec,
-                                                    FileSystem clusterFS,
+  public void preflightValidateClusterConfiguration(FileSystem clusterFS,
+                                                    String clustername,
+                                                    Configuration configuration,
+                                                    ClusterDescription clusterSpec,
+                                                    Path clusterDirPath,
                                                     Path generatedConfDirPath,
                                                     boolean secure) throws
                                                                     HoyaException,

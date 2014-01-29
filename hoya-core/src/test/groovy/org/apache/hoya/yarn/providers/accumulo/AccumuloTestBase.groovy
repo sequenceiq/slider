@@ -24,22 +24,24 @@ import org.apache.hoya.HoyaXMLConfKeysForTesting
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.RoleKeys
 import org.apache.hoya.providers.accumulo.AccumuloConfigFileOptions
-import org.apache.hoya.providers.accumulo.AccumuloKeys
-import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.client.HoyaClient
 import org.apache.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-
+import static org.apache.hoya.yarn.Arguments.*
+import static org.apache.hoya.yarn.HoyaActions.*;
+import static org.apache.hoya.testtools.HoyaTestUtils.*
+import static org.apache.hoya.HoyaXMLConfKeysForTesting.*
+import static org.apache.hoya.providers.accumulo.AccumuloKeys.*
 /**
  * test base for all hbase clusters
  */
 @CompileStatic
 @Slf4j
-public class AccumuloTestBase extends YarnMiniClusterTestBase {
+public abstract class AccumuloTestBase extends YarnMiniClusterTestBase {
 
-  public static final int ACCUMULO_CLUSTER_STARTUP_TIME = 3 * 60 * 1000
+  public static final int ACCUMULO_CLUSTER_STARTUP_TIME = ACCUMULO_LAUNCH_WAIT_TIME
   public static final int ACCUMULO_CLUSTER_STOP_TIME = 1 * 60 * 1000
 
   /**
@@ -52,12 +54,13 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
 
   @Override
   public String getTestConfigurationPath() {
-    return "src/main/resources/" + AccumuloKeys.CONF_RESOURCE; 
+    return "src/main/resources/" + CONF_RESOURCE; 
   }
 
   @Override
   void setup() {
     super.setup()
+    assumeBoolOption(HOYA_CONFIG, KEY_HOYA_TEST_ACCUMULO_ENABLED, true)
     assumeArchiveDefined();
     assumeApplicationHome();
     YarnConfiguration conf = testConfiguration
@@ -79,7 +82,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
 
   @Override
   public String getArchiveKey() {
-    return  HoyaXMLConfKeysForTesting.KEY_HOYA_TEST_ACCUMULO_TAR
+    return KEY_HOYA_TEST_ACCUMULO_TAR
   }
 
   /**
@@ -88,7 +91,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
    */
   @Override
   public String getApplicationHomeKey() {
-    return HoyaXMLConfKeysForTesting.KEY_HOYA_TEST_ACCUMULO_HOME
+    return KEY_HOYA_TEST_ACCUMULO_HOME
   }
 
   /**
@@ -98,7 +101,7 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
    */
   
   public void assumeOtherSettings(YarnConfiguration conf) {
-    assumeConfOptionSet(conf, AccumuloKeys.OPTION_ZK_HOME)
+    assumeStringOptionSet(conf, OPTION_ZK_HOME)
   }
 
   /**
@@ -113,12 +116,11 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
    */
   public ServiceLauncher<HoyaClient> createAccCluster(String clustername, int tablets, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
     Map<String, Integer> roles = [
-        (AccumuloKeys.ROLE_MASTER): 1,
-        (AccumuloKeys.ROLE_TABLET): tablets,
+        (ROLE_MASTER): 1,
+        (ROLE_TABLET): tablets,
     ];
     return createAccCluster(clustername, roles, extraArgs, deleteExistingData, blockUntilRunning);
-
-  }
+}
 
   /**
    * Create an accumulo cluster
@@ -130,29 +132,29 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
    * @return the cluster launcher
    */
   public ServiceLauncher<HoyaClient> createAccCluster(String clustername, Map<String, Integer> roles, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
-    extraArgs << Arguments.ARG_PROVIDER << AccumuloKeys.PROVIDER_ACCUMULO;
+    extraArgs << ARG_PROVIDER << PROVIDER_ACCUMULO;
 
     YarnConfiguration conf = testConfiguration
 
     def clusterOps = [
-        (AccumuloKeys.OPTION_ZK_HOME): conf.getTrimmed(AccumuloKeys.OPTION_ZK_HOME),
-        (AccumuloKeys.OPTION_HADOOP_HOME): conf.getTrimmed(AccumuloKeys.OPTION_HADOOP_HOME),
+        (OPTION_ZK_HOME): conf.getTrimmed(OPTION_ZK_HOME),
+        (OPTION_HADOOP_HOME): conf.getTrimmed(OPTION_HADOOP_HOME),
     ]
 
-    extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_MASTER <<
+    extraArgs << ARG_ROLEOPT << ROLE_MASTER <<
       RoleKeys.APP_INFOPORT <<
       AccumuloConfigFileOptions.MASTER_PORT_CLIENT_DEFAULT
-    extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_MONITOR <<
+    extraArgs << ARG_ROLEOPT << ROLE_MONITOR <<
       RoleKeys.APP_INFOPORT <<
       AccumuloConfigFileOptions.MONITOR_PORT_CLIENT_DEFAULT
 
-    extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_MASTER <<
+    extraArgs << ARG_ROLEOPT << ROLE_MASTER <<
       RoleKeys.YARN_MEMORY << YRAM
-    extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_TABLET <<
+    extraArgs << ARG_ROLEOPT << ROLE_TABLET <<
       RoleKeys.YARN_MEMORY << YRAM
-    extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_MONITOR <<
+    extraArgs << ARG_ROLEOPT << ROLE_MONITOR <<
       RoleKeys.YARN_MEMORY << YRAM
-    extraArgs << Arguments.ARG_ROLEOPT << AccumuloKeys.ROLE_GARBAGE_COLLECTOR <<
+    extraArgs << ARG_ROLEOPT << ROLE_GARBAGE_COLLECTOR <<
      RoleKeys.YARN_MEMORY << YRAM
 
     return createHoyaCluster(clustername,
@@ -163,18 +165,11 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
                              clusterOps)
   }
 
-  public void addOption(List<String> extraArgs, YarnConfiguration conf, String option) {
-    assert conf.getTrimmed(option);
-    extraArgs << Arguments.ARG_OPTION << option << conf.getTrimmed(option)
-  }
-  
-
   def getAccClusterStatus() {
     ZooKeeperInstance instance = new ZooKeeperInstance("", "localhost:4");
     instance.getConnector("user", "pass").instanceOperations().tabletServers;
   }
 
-  
   
   public def fetchLocalPage(int port, String page) {
     String url = "http://localhost:" + AccumuloConfigFileOptions.MONITOR_PORT_CLIENT_DEFAULT + page
@@ -182,14 +177,13 @@ public class AccumuloTestBase extends YarnMiniClusterTestBase {
     
   }
 
-
   public ClusterDescription flexAccClusterTestRun(
       String clustername,
       List<Map<String,Integer>> plan,
       boolean persist) {
     int planCount = plan.size()
     assert planCount > 0
-    createMiniCluster(clustername, createConfiguration(),
+    createMiniCluster(clustername, getConfiguration(),
                       1,
                       true);
     //now launch the cluster

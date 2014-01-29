@@ -86,8 +86,9 @@ public class ArgOps {
 
   public static void applyDefinitions(Map<String, String> definitionMap,
                                       Configuration conf) {
-    for (String key : definitionMap.keySet()) {
-      String val = definitionMap.get(key);
+    for (Map.Entry<String, String> entry : definitionMap.entrySet()) {
+      String key = entry.getKey();
+      String val = entry.getValue();
       log.debug("configuration[{}]=\"{}\"", key, val);
       conf.set(key, val, "command line");
     }

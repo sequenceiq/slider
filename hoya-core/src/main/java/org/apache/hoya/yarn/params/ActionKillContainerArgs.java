@@ -1,7 +1,3 @@
-package org.apache.hoya.funtest.framework
-
-import org.apache.hoya.HoyaXMLConfKeysForTesting
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,27 +16,19 @@ import org.apache.hoya.HoyaXMLConfKeysForTesting
  * limitations under the License.
  */
 
-public interface HoyaTestProperties extends HoyaXMLConfKeysForTesting {
+package org.apache.hoya.yarn.params;
 
-  /**
-   * Maven Property of location of hoya conf dir: {@value}
-   */
-  String HOYA_CONF_DIR_PROP = "hoya.conf.dir"
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
+import org.apache.hoya.yarn.HoyaActions;
 
-  /**
-   * Maven Property of location of hoya binary image dir: {@value}
-   */
-  String HOYA_BIN_DIR_PROP = "hoya.bin.dir"
-  
-  String KEY_HOYA_THAW_WAIT_TIME = "hoya.test.thaw.wait.seconds"
+@Parameters(commandNames = {HoyaActions.ACTION_KILL_CONTAINER},
+            commandDescription = HoyaActions.DESCRIBE_ACTION_KILL_CONTAINER)
 
-  int DEFAULT_HOYA_THAW_WAIT_TIME = 60000
+public class ActionKillContainerArgs extends AbstractActionArgs {
 
-  String KEY_HOYA_FREEZE_WAIT_TIME = "hoya.test.freeze.wait.seconds"
-
-  int DEFAULT_HOYA_FREEZE_WAIT_TIME = 60000
-
-  String KEY_HOYA_TEST_ZK_HOSTS = "hoya.test.zkhosts";
-  String DEFAULT_HOYA_ZK_HOSTS = "localhost";
+  @Parameter(names = {ARG_ID},
+             description = "ID of the container")
+  public String id;
 
 }

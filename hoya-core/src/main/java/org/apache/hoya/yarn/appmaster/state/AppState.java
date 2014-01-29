@@ -28,6 +28,7 @@ import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.impl.pb.ContainerPBImpl;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.hoya.HoyaExitCodes;
 import org.apache.hoya.HoyaKeys;
@@ -202,6 +203,7 @@ public class AppState {
   private int containerMaxMemory;
   
   private RoleHistory roleHistory;
+  private Configuration siteConf;
   private long startTimeThreshold;
   
   private int failureThreshold = 10;
@@ -340,7 +342,7 @@ public class AppState {
                             FileSystem fs,
                             Path historyDir,
                             List<Container> liveContainers) {
-
+    this.siteConf = siteConf;
 
     // set the cluster specification
     setClusterSpec(cd);
@@ -563,10 +565,9 @@ public class AppState {
    * @param uuid the UUID
    * @return null if there is no such node
    * @throws NoSuchNodeException if the node cannot be found
-   * @throws IOException IO problems
    */
   public synchronized RoleInstance getLiveInstanceByUUID(String uuid)
-    throws IOException, NoSuchNodeException {
+    throws NoSuchNodeException {
     Collection<RoleInstance> nodes = getLiveNodes().values();
     for (RoleInstance node : nodes) {
       if (uuid.equals(node.uuid)) {
@@ -581,7 +582,7 @@ public class AppState {
    * Get the details on a list of instaces referred to by UUID.
    * Unknown nodes are not returned
    * <i>Important: the order of the results are undefined</i>
-   * @param uuid the UUIDs
+   * @param uuids the UUIDs
    * @return list of instances
    * @throws IOException IO problems
    */
@@ -594,9 +595,8 @@ public class AppState {
    * Get the details on a list of instaces referred to by UUID.
    * Unknown nodes are not returned
    * <i>Important: the order of the results are undefined</i>
-   * @param uuid the UUIDs
+   * @param uuids the UUIDs
    * @return list of instances
-   * @throws IOException IO problems
    */
   public List<RoleInstance> getLiveContainerInfosByUUID(Collection<String> uuids) {
     //first, a hashmap of those uuids is built up
@@ -632,15 +632,18 @@ public class AppState {
 
   /**
    * Build an instance map.
-   * @return the map of RoleId to count
+   * @return the map of Role name to list of role instances
    */
-  private synchronized Map<String, Integer> createRoleToInstanceMap() {
-    Map<String, Integer> map = new HashMap<String, Integer>();
+  private synchronized Map<String, List<String>> createRoleToInstanceMap() {
+    Map<String, List<String>> map = new HashMap<String, List<String>>();
+    
     for (RoleInstance node : getLiveNodes().values()) {
-      Integer entry = map.get(node.role);
-      int current = entry != null ? entry : 0;
-      current++;
-      map.put(node.role, current);
+      List<String> containers = map.get(node.role);
+      if (containers == null) {
+        containers = new ArrayList<String>();
+        map.put(node.role, containers);
+      }
+      containers.add(node.uuid);
     }
     return map;
   }
@@ -697,7 +700,7 @@ public class AppState {
    * then create the container request itself.
    * @param role role to ask an instance of
    * @param capability a resource to set up
-   * @return
+   * @return the request for a new container
    */
   public AMRMClient.ContainerRequest buildContainerResourceAndRequest(
         RoleStatus role,
@@ -901,6 +904,18 @@ public class AppState {
    * @return NodeCompletionResult
    */
   public synchronized NodeCompletionResult onCompletedNode(ContainerStatus status) {
+    return onCompletedNode(null, status);
+  }
+  
+  /**
+   * handle completed node in the CD -move something from the live
+   * server list to the completed server list
+   * @param amConf YarnConfiguration
+   * @param status the node that has just completed
+   * @return NodeCompletionResult
+   */
+  public synchronized NodeCompletionResult onCompletedNode(YarnConfiguration amConf,
+      ContainerStatus status) {
     ContainerId containerId = status.getContainerId();
     NodeCompletionResult result = new NodeCompletionResult();
     RoleInstance roleInstance;
@@ -940,11 +955,24 @@ public class AppState {
           boolean shortLived = isShortLived(roleInstance);
           String message;
           if (roleInstance.container != null) {
-            message = String.format("Failure %s on host %s",
-                                           roleInstance.getContainerId(),
-                                           roleInstance.container
-                                                       .getNodeId()
-                                                       .getHost());
+            String user = null;
+            try {
+              user = HoyaUtils.getCurrentUser().getShortUserName();
+            } catch (IOException ioe) {
+            }
+            String completedLogsUrl = null;
+            Container c = roleInstance.container;
+            String url = null;
+            if (amConf != null) {
+              url = amConf.get(YarnConfiguration.YARN_LOG_SERVER_URL);
+            }
+            if (user != null && url != null) {
+              completedLogsUrl = url
+                  + "/" + c.getNodeId() + "/" + roleInstance.getContainerId() + "/ctx/" + user;
+            }
+            message = String.format("Failure %s on host %s" +
+                (completedLogsUrl != null ? ", see %s" : ""), roleInstance.getContainerId(),
+                c.getNodeId().getHost(), completedLogsUrl);
           } else {
             message = String.format("Failure %s",
                                     containerId.toString());
@@ -1001,7 +1029,7 @@ public class AppState {
    * @return an number from 0 to 100
    */
   public synchronized float getApplicationProgressPercentage() {
-    float percentage = 0;
+    float percentage;
     int desired = 0;
     float actual = 0;
     for (RoleStatus role : getRoleStatusMap().values()) {
@@ -1018,7 +1046,7 @@ public class AppState {
 
   /**
    * Update the cluster description with anything interesting
-   * @param providerStatus status from the provider
+   * @param providerStatus status from the provider for the cluster info section
    */
   public void refreshClusterStatus(Map<String, String> providerStatus) {
     ClusterDescription cd = getClusterDescription();
@@ -1036,22 +1064,16 @@ public class AppState {
     cd.setInfo(RoleKeys.YARN_MEMORY, Integer.toString(containerMaxMemory));
     HoyaUtils.addBuildInfo(cd,"status");
     cd.statistics = new HashMap<String, Map<String, Integer>>();
-    Map<String, Integer> instanceMap = createRoleToInstanceMap();
-    if (log.isDebugEnabled()) {
-      for (Map.Entry<String, Integer> entry : instanceMap.entrySet()) {
-        log.debug("[{}]: {}", entry.getKey(), entry.getValue());
-      }
-    }
+
+    // build the map of node -> container IDs
+    Map<String, List<String>> instanceMap = createRoleToInstanceMap();
     cd.instances = instanceMap;
     
     for (RoleStatus role : getRoleStatusMap().values()) {
       String rolename = role.getName();
-      Integer count = instanceMap.get(rolename);
-      if (count == null) {
-        count = 0;
-      } 
-      int nodeCount = count;
-      cd.setDesiredInstanceCount(rolename,role.getDesired());
+      List<String> instances = instanceMap.get(rolename);
+      int nodeCount = instances != null ? instances.size(): 0;
+      cd.setDesiredInstanceCount(rolename, role.getDesired());
       cd.setActualInstanceCount(rolename, nodeCount);
       cd.setRoleOpt(rolename, ROLE_REQUESTED_INSTANCES, role.getRequested());
       cd.setRoleOpt(rolename, ROLE_RELEASING_INSTANCES, role.getReleasing());
@@ -1059,6 +1081,7 @@ public class AppState {
       cd.setRoleOpt(rolename, ROLE_FAILED_STARTING_INSTANCES, role.getStartFailed());
       Map<String, Integer> stats = role.buildStatistics();
       cd.statistics.put(rolename, stats);
+      
     }
 
     Map<String, Integer> hoyastats = new HashMap<String, Integer>();
@@ -1305,19 +1328,22 @@ public class AppState {
   }
 
   /**
-   * Event handler for the list of active containers on restart
+   * Event handler for the list of active containers on restart.
+   * Sets the info key {@link StatusKeys#INFO_CONTAINERS_AM_RESTART}
+   * to the size of the list passed down (and does not set it if none were)
    * @param liveContainers the containers allocated
    * @return true if a rebuild took place (even if size 0)
    * @throws HoyaRuntimeException on problems
    */
   private boolean rebuildModelFromRestart(List<Container> liveContainers) {
-
     if (liveContainers == null) {
       return false;
     }
     for (Container container : liveContainers) {
       addRestartedContainer(container);
     }
+    clusterDescription.setInfo(StatusKeys.INFO_CONTAINERS_AM_RESTART,
+                               Integer.toString(liveContainers.size()));
     return true;
   }
 

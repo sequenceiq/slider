@@ -145,7 +145,11 @@ public class ServiceLauncher<S extends Service>
   public int launchService(Configuration conf,
                            String[] processedArgs,
                            boolean addShutdownHook)
-    throws Throwable {
+    throws Throwable,
+           ClassNotFoundException,
+           InstantiationException,
+           IllegalAccessException,
+           ExitUtil.ExitException {
 
     instantiateService(conf);
 
@@ -214,7 +218,7 @@ public class ServiceLauncher<S extends Service>
     if (!(instance instanceof Service)) {
       //not a service
       throw new ExitUtil.ExitException(EXIT_BAD_CONFIGURATION,
-                                       "Not a Service: " + serviceClassName);
+                                       "Not a Service class: " + serviceClassName);
     }
 
     service = (S) instance;
@@ -227,7 +231,12 @@ public class ServiceLauncher<S extends Service>
    * @throws IOException on a failure to add the handler
    */
   protected void registerInterruptHandler() throws IOException {
-    interruptHandlers.add(new IrqHandler(IrqHandler.CONTROL_C, this));
+    try {
+      interruptHandlers.add(new IrqHandler(IrqHandler.CONTROL_C, this));
+      interruptHandlers.add(new IrqHandler(IrqHandler.SIGTERM, this));
+    } catch (IOException e) {
+      LOG.warn("Signal handler setup failed : {}" , e);
+    }
   }
 
   /**
@@ -236,7 +245,7 @@ public class ServiceLauncher<S extends Service>
    * Give the service time to do this before the exit operation is called 
    * @param interruptData the interrupted data.
    */
-//  @Override
+  @Override
   public void interrupted(IrqHandler.InterruptData interruptData) {
     String message = "Service interrupted by " + interruptData.toString();
     LOG.info(message);
@@ -246,7 +255,6 @@ public class ServiceLauncher<S extends Service>
       // halt and so bypass any blocking shutdown hooks.
       ExitUtil.halt(EXIT_INTERRUPTED, message);
     }
-    boolean controlC = IrqHandler.CONTROL_C.equals(interruptData.name);
     int shutdownTimeMillis = SHUTDOWN_TIME_ON_INTERRUPT;
     //start an async shutdown thread with a timeout
     ServiceForcedShutdown forcedShutdown =
@@ -380,7 +388,7 @@ public class ServiceLauncher<S extends Service>
   }
 
   /**
-   * Launch a service catching all excpetions and downgrading them to exit codes
+   * Launch a service catching all exceptions and downgrading them to exit codes
    * after logging.
    * @param conf configuration to use
    * @param processedArgs command line after the launcher-specific arguments have
@@ -427,11 +435,10 @@ public class ServiceLauncher<S extends Service>
         }
       } else {
         //not any of the service launcher exceptions -assume something worse
-        LOG.info(" Exception:" + thrown, thrown);
+        LOG.error(" Exception:" + message, thrown);
         exitCode = EXIT_EXCEPTION_THROWN;
-        
-      }
-      exitException = new ExitUtil.ExitException(exitCode, thrown.toString());
+        }
+      exitException = new ExitUtil.ExitException(exitCode, message);
       exitException.initCause(thrown);
     }
     return exitException;

@@ -36,7 +36,7 @@ class TestBadClusterName extends HBaseMiniClusterTestBase {
   @Test
   public void testBadClusterName() throws Throwable {
     String clustername = "TestBadClusterName"
-    createMiniCluster(clustername, createConfiguration(), 1, true)
+    createMiniCluster(clustername, getConfiguration(), 1, true)
 
     describe "verify that bad cluster are picked up"
 

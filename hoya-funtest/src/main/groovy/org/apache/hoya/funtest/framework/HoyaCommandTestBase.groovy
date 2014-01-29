@@ -18,52 +18,84 @@
 
 package org.apache.hoya.funtest.framework
 
-import groovy.util.logging.Slf4j
+import groovy.transform.CompileStatic
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.yarn.api.records.ApplicationReport
-import org.apache.hoya.HoyaExitCodes
+import org.apache.hadoop.fs.FileSystem as HadoopFS
+import org.apache.hadoop.fs.Path
+import org.apache.hadoop.util.ExitUtil
+import org.apache.hadoop.yarn.conf.YarnConfiguration
+import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
+import org.apache.hoya.testtools.HoyaTestUtils
 import org.apache.hoya.tools.HoyaUtils
 import org.apache.hoya.yarn.Arguments
-import org.apache.hoya.yarn.HoyaActions
-import org.apache.hoya.testtools.HoyaTestUtils
 import org.apache.hoya.yarn.client.HoyaClient
 import org.junit.BeforeClass
-import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.junit.Rule
-import org.junit.rules.Timeout;
+import org.junit.rules.Timeout
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import static org.apache.hoya.HoyaExitCodes.*
+import static HoyaFuntestProperties.*
+import static org.apache.hoya.yarn.Arguments.*
+import static org.apache.hoya.yarn.HoyaActions.*;
+import static org.apache.hoya.testtools.HoyaTestUtils.*
+import static org.apache.hoya.HoyaXMLConfKeysForTesting.*
 
-//@CompileStatic
-@Slf4j
-class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
+@CompileStatic
+abstract class HoyaCommandTestBase extends HoyaTestUtils {
+  private static final Logger log =
+      LoggerFactory.getLogger(HoyaCommandTestBase.class);
+  
   public static final String BASH = '/bin/bash -s'
   public static final String HOYA_CONF_DIR = System.getProperty(
-      HoyaTestProperties.HOYA_CONF_DIR_PROP)
+      HOYA_CONF_DIR_PROP)
   public static final String HOYA_BIN_DIR = System.getProperty(
-      HoyaTestProperties.HOYA_BIN_DIR_PROP)
-  public static final File HOYA_BIN_DIRECTORY = new File(HOYA_BIN_DIR).canonicalFile
-  public static final File HOYA_SCRIPT = new File(HOYA_BIN_DIRECTORY, "bin/hoya").canonicalFile
+      HOYA_BIN_DIR_PROP)
+  public static final File HOYA_BIN_DIRECTORY = new File(
+      HOYA_BIN_DIR).canonicalFile
+  public static final File HOYA_SCRIPT = new File(
+      HOYA_BIN_DIRECTORY,
+      "bin/hoya").canonicalFile
   public static final File HOYA_CONF_DIRECTORY = new File(
       HOYA_CONF_DIR).canonicalFile
   public static final File HOYA_CONF_XML = new File(HOYA_CONF_DIRECTORY,
                                                     "hoya-client.xml").canonicalFile
 
-  public static final Configuration HOYA_CONFIG
+  public static final YarnConfiguration HOYA_CONFIG
   public static final int THAW_WAIT_TIME
   public static final int FREEZE_WAIT_TIME
+  public static final int HBASE_LAUNCH_WAIT_TIME
+  public static final int ACCUMULO_LAUNCH_WAIT_TIME
+  public static final int HOYA_TEST_TIMEOUT
+  public static final boolean ACCUMULO_TESTS_ENABLED
+  public static final boolean HBASE_TESTS_ENABLED
 
   static {
-    HOYA_CONFIG = new Configuration(true)
+    HOYA_CONFIG = new YarnConfiguration()
     HOYA_CONFIG.addResource(HOYA_CONF_XML.toURI().toURL())
     THAW_WAIT_TIME = HOYA_CONFIG.getInt(
-        HoyaTestProperties.KEY_HOYA_THAW_WAIT_TIME,
-        HoyaTestProperties.DEFAULT_HOYA_THAW_WAIT_TIME)
+        KEY_HOYA_THAW_WAIT_TIME,
+        DEFAULT_HOYA_THAW_WAIT_TIME)
     FREEZE_WAIT_TIME = HOYA_CONFIG.getInt(
-        HoyaTestProperties.KEY_HOYA_FREEZE_WAIT_TIME,
-        HoyaTestProperties.DEFAULT_HOYA_FREEZE_WAIT_TIME)
-  }
+        KEY_HOYA_FREEZE_WAIT_TIME,
+        DEFAULT_HOYA_FREEZE_WAIT_TIME)
+    HBASE_LAUNCH_WAIT_TIME = HOYA_CONFIG.getInt(
+        KEY_HOYA_HBASE_LAUNCH_TIME,
+        DEFAULT_HOYA_HBASE_LAUNCH_TIME)
+    HOYA_TEST_TIMEOUT = HOYA_CONFIG.getInt(
+        KEY_HOYA_TEST_TIMEOUT,
+        DEFAULT_HOYA_TEST_TIMEOUT)
+    ACCUMULO_LAUNCH_WAIT_TIME = HOYA_CONFIG.getInt(
+        KEY_HOYA_ACCUMULO_LAUNCH_TIME,
+        DEFAULT_HOYA_ACCUMULO_LAUNCH_TIME)
+    ACCUMULO_TESTS_ENABLED =
+        HOYA_CONFIG.getBoolean(KEY_HOYA_TEST_ACCUMULO_ENABLED, true)
+    HBASE_TESTS_ENABLED =
+        HOYA_CONFIG.getBoolean(KEY_HOYA_TEST_HBASE_ENABLED, true)
+ }
 
   @Rule
-  public final Timeout testTimeout = new Timeout(10 * 60 * 1000);
+  public final Timeout testTimeout = new Timeout(HOYA_TEST_TIMEOUT);
 
 
   @BeforeClass
@@ -72,10 +104,14 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
     if (HoyaUtils.maybeInitSecurity(conf)) {
       log.debug("Security enabled")
       HoyaUtils.forceLogin()
-      }
+    } else {
+      log.info "Security off, making cluster dirs broadly accessible"
+    }
     HoyaShell.hoyaConfDir = HOYA_CONF_DIRECTORY
     HoyaShell.hoyaScript = HOYA_SCRIPT
-    }
+    log.info("Test using ${HadoopFS.getDefaultUri(HOYA_CONFIG)} " +
+             "and YARN RM @ ${HOYA_CONFIG.get(YarnConfiguration.RM_ADDRESS)}")
+  }
 
   /**
    * Exec any hoya command 
@@ -100,48 +136,15 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
   }
 
   /**
-   * get the hoya conf dir
-   * @return the absolute file of the configuration dir
-   */
-  public static File getHoyaConfDirectory() {
-    assert HOYA_CONF_DIR
-    return HOYA_CONF_DIRECTORY
-  }
-
-  /**
-   * Get the directory defined in the hoya.bin.dir syprop
-   * @return the directory as a file
-   */
-  public static File getHoyaBinDirectory() {
-    String binDirProp = HOYA_BIN_DIR
-    File dir = new File(binDirProp).canonicalFile
-    return dir
-  }
-
-  /**
-   * Get a file referring to the hoya script
-   * @return
-   */
-  public static File getHoyaScript() {
-    return new File(HOYA_BIN_DIRECTORY, "bin/hoya")
-  }
-
-  public static File getHoyaClientXMLFile() {
-    File hoyaClientXMLFile = HOYA_CONF_XML
-    assert hoyaClientXMLFile.exists()
-    return hoyaClientXMLFile
-  }
-
-  /**
    * Load the client XML file
    * @return
    */
   public static Configuration loadHoyaConf() {
     Configuration conf = new Configuration(true)
-    conf.addResource(hoyaClientXMLFile.toURI().toURL())
+    conf.addResource(HOYA_CONF_XML.toURI().toURL())
     return conf
   }
-  
+
   public static HadoopFS getClusterFS() {
     return HadoopFS.get(HOYA_CONFIG)
   }
@@ -149,56 +152,74 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
 
   static HoyaShell destroy(String name) {
     hoya([
-        HoyaActions.ACTION_DESTROY, name
+        ACTION_DESTROY, name
     ])
   }
-  
+
   static HoyaShell destroy(int result, String name) {
     hoya(result, [
-        HoyaActions.ACTION_DESTROY, name
+        ACTION_DESTROY, name
     ])
   }
 
-  static HoyaShell exists(String name) {
-    hoya([
-        HoyaActions.ACTION_EXISTS, name
-    ])
+  static HoyaShell exists(String name, boolean live = true) {
+
+    List<String> args = [
+        ACTION_EXISTS, name
+    ]
+    if (live) {
+      args << Arguments.ARG_LIVE
+    }
+    hoya(args)
   }
 
-  static HoyaShell exists(int result, String name) {
-    hoya(result, [
-        HoyaActions.ACTION_EXISTS, name
-    ])
+  static HoyaShell exists(int result, String name, boolean live = true) {
+    List<String> args = [
+        ACTION_EXISTS, name
+    ]
+    if (live) {
+      args << ARG_LIVE
+    }
+    hoya(result, args)
   }
 
   static HoyaShell freeze(String name) {
     hoya([
-        HoyaActions.ACTION_FREEZE, name
+        ACTION_FREEZE, name
     ])
   }
 
   static HoyaShell getConf(String name) {
     hoya([
-        HoyaActions.ACTION_GETCONF, name
+        ACTION_GETCONF, name
     ])
   }
 
   static HoyaShell getConf(int result, String name) {
     hoya(result,
-      [
-        HoyaActions.ACTION_GETCONF, name
-      ])
+         [
+             ACTION_GETCONF, name
+         ])
   }
 
+  static HoyaShell killContainer(String name, String containerID) {
+    hoya(0,
+         [
+             ACTION_KILL_CONTAINER,
+             name,
+             containerID
+         ])
+  }
+  
   static HoyaShell freezeForce(String name) {
     hoya([
-        HoyaActions.ACTION_FREEZE, Arguments.ARG_FORCE, name
+        ACTION_FREEZE, ARG_FORCE, name
     ])
   }
 
   static HoyaShell list(String name) {
     List<String> cmd = [
-        HoyaActions.ACTION_LIST
+        ACTION_LIST
     ]
     if (name != null) {
       cmd << name
@@ -208,7 +229,7 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
 
   static HoyaShell list(int result, String name) {
     List<String> cmd = [
-        HoyaActions.ACTION_LIST
+        ACTION_LIST
     ]
     if (name != null) {
       cmd << name
@@ -218,27 +239,28 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
 
   static HoyaShell status(String name) {
     hoya([
-        HoyaActions.ACTION_STATUS, name
+        ACTION_STATUS, name
     ])
   }
-  
+
   static HoyaShell status(int result, String name) {
     hoya(result,
-    [
-        HoyaActions.ACTION_STATUS, name
-    ])
+         [
+             ACTION_STATUS, name
+         ])
   }
 
   static HoyaShell thaw(String name) {
     hoya([
-        HoyaActions.ACTION_THAW, name
+        ACTION_THAW, name
     ])
   }
+
   static HoyaShell thaw(int result, String name) {
-    hoya(result, 
+    hoya(result,
          [
-        HoyaActions.ACTION_THAW, name
-    ])
+             ACTION_THAW, name
+         ])
   }
 
   /**
@@ -246,10 +268,22 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
    * @param name
    */
   static void ensureClusterDestroyed(String name) {
-    if (freezeForce(name).ret != EXIT_UNKNOWN_HOYA_CLUSTER) {
-      //cluster exists
-      destroy(name)
+    def froze = freezeForce(name)
+
+    def result = froze.ret
+    if (result != 0 && result != EXIT_UNKNOWN_HOYA_CLUSTER) {
+      froze.assertExitCode(0)
     }
+    destroy(0, name)
+  }
+  
+  /**
+   * Teardown operation -freezes cluster, and may destroy it
+   * though for testing it is best if it is retained
+   * @param name
+   */
+  static void teardown(String name) {
+    freeze(name)
   }
 
   /**
@@ -264,9 +298,9 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
    * @param shell shell
    */
   public static void assertUnknownCluster(HoyaShell shell) {
-    assertExitCode(shell, HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER)
+    assertExitCode(shell, EXIT_UNKNOWN_HOYA_CLUSTER)
   }
-  
+
   /**
    * Assert a shell exited with a given error code
    * if not the output is printed and an assertion is raised
@@ -279,13 +313,108 @@ class HoyaCommandTestBase extends HoyaTestUtils implements HoyaExitCodes {
 
   /**
    * Create a connection to the cluster by execing the status command
-   * 
+   *
    * @param clustername
    * @return
    */
-  HoyaClient bondToCluster(String clustername) {
+  HoyaClient bondToCluster(Configuration conf, String clustername) {
 
-//    HoyaClient hoyaClient = 
-    
+    String address = getRequiredConfOption(conf, YarnConfiguration.RM_ADDRESS)
+
+    ServiceLauncher<HoyaClient> launcher = launchHoyaClientAgainstRM(
+        address,
+        ["exists", clustername],
+        conf)
+
+    int exitCode = launcher.serviceExitCode
+    if (exitCode) {
+      throw new ExitUtil.ExitException(exitCode, "exit code = $exitCode")
+    }
+    HoyaClient hoyaClient = launcher.service
+    hoyaClient.deployedClusterName = clustername
+    return hoyaClient;
   }
+
+  /**
+   * Create or build a hoya cluster (the action is set by the first verb)
+   * @param action operation to invoke: ACTION_CREATE or ACTION_BUILD
+   * @param clustername cluster name
+   * @param roles map of rolename to count
+   * @param extraArgs list of extra args to add to the creation command
+   * @param deleteExistingData should the data of any existing cluster
+   * of this name be deleted
+   * @param blockUntilRunning block until the AM is running
+   * @param clusterOps map of key=value cluster options to set with the --option arg
+   * @return shell which will have executed the command.
+   */
+  public HoyaShell createOrBuildHoyaCluster(
+      String action,
+      String clustername,
+      Map<String, Integer> roles,
+      List<String> extraArgs,
+      boolean blockUntilRunning,
+      Map<String, String> clusterOps) {
+    assert action != null
+    assert clustername != null
+
+
+
+    List<String> roleList = [];
+    roles.each { String role, Integer val ->
+      log.info("Role $role := $val")
+      roleList << ARG_ROLE << role << Integer.toString(val)
+    }
+
+    List<String> argsList = [action, clustername]
+
+    argsList << ARG_ZKHOSTS <<
+    HOYA_CONFIG.getTrimmed(KEY_HOYA_TEST_ZK_HOSTS, DEFAULT_HOYA_ZK_HOSTS)
+
+
+    if (blockUntilRunning) {
+      argsList << ARG_WAIT << Integer.toString(THAW_WAIT_TIME)
+    }
+
+    argsList += roleList;
+
+    //now inject any cluster options
+    clusterOps.each { String opt, String val ->
+      argsList << ARG_OPTION << opt.toString() << val.toString();
+    }
+
+    if (extraArgs != null) {
+      argsList += extraArgs;
+    }
+    hoya(0, argsList)
+  }
+
+  /**
+   * Create a hoya cluster
+   * @param clustername cluster name
+   * @param roles map of rolename to count
+   * @param extraArgs list of extra args to add to the creation command
+   * @param blockUntilRunning block until the AM is running
+   * @param clusterOps map of key=value cluster options to set with the --option arg
+   * @return launcher which will have executed the command.
+   */
+  public HoyaShell createHoyaCluster(
+      String clustername,
+      Map<String, Integer> roles,
+      List<String> extraArgs,
+      boolean blockUntilRunning,
+      Map<String, String> clusterOps) {
+    return createOrBuildHoyaCluster(
+        ACTION_CREATE,
+        clustername,
+        roles,
+        extraArgs,
+        blockUntilRunning,
+        clusterOps)
+  }
+
+  public Path buildClusterPath(String clustername) {
+    return new Path(clusterFS.homeDirectory, ".hoya/cluster/${clustername}")
+  }
+
+
 }

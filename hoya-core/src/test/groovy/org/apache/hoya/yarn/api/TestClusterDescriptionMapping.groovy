@@ -30,6 +30,8 @@ import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.hoya.tools.HoyaUtils
 import org.apache.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.junit.Test
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 /**
  test CD serialization/deserialization to and from JSON

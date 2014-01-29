@@ -40,7 +40,7 @@ class TestRecreateMasterlessAM extends HBaseMiniClusterTestBase {
   @Test
   public void testRecreateMasterlessAM() throws Throwable {
     String clustername = "test_recreate_masterless_am"
-    createMiniCluster(clustername, createConfiguration(), 1, true)
+    createMiniCluster(clustername, getConfiguration(), 1, true)
 
     describe "create a masterless AM, stop it, try to create" +
              "a second cluster with the same name"

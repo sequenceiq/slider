@@ -19,13 +19,13 @@
 package org.apache.hoya.funtest.basic
 
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.Path
 import org.apache.hoya.funtest.framework.HoyaCommandTestBase
-import org.apache.hoya.funtest.framework.HoyaTestProperties
+import org.apache.hoya.funtest.framework.HoyaFuntestProperties
 import org.junit.Test
-import org.apache.hadoop.fs.FileSystem as HadoopFS;
 
-class TestImages extends HoyaCommandTestBase implements HoyaTestProperties {
+class TestImages extends HoyaCommandTestBase implements HoyaFuntestProperties {
 
   @Test
   public void testImageExists() throws Throwable {

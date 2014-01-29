@@ -21,11 +21,12 @@ package org.apache.hoya.funtest.commands
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.fs.Path
+import org.apache.hadoop.yarn.service.launcher.LauncherExitCodes
 import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.HoyaActions
 import org.apache.hoya.funtest.framework.HoyaCommandTestBase
-import org.apache.hoya.funtest.framework.HoyaTestProperties
+import org.apache.hoya.funtest.framework.HoyaFuntestProperties
 import org.junit.AfterClass
 import org.junit.BeforeClass
 import org.junit.Test
@@ -33,7 +34,7 @@ import org.junit.Test
 @CompileStatic
 @Slf4j
 public class TestClusterBuildDestroy extends HoyaCommandTestBase
-    implements HoyaTestProperties, Arguments {
+    implements HoyaFuntestProperties, Arguments {
 
 
   static String CLUSTER = "test_cluster_build_destroy"
@@ -78,6 +79,10 @@ public class TestClusterBuildDestroy extends HoyaCommandTestBase
         ])
 
     assert clusterFS.exists(new Path(clusterFS.homeDirectory, ".hoya/cluster/$CLUSTER"))
+    //cluster exists if you don't want it to be live
+    exists(0, CLUSTER, false)
+    // condition returns false if it is required to be live
+    exists(LauncherExitCodes.EXIT_FALSE, CLUSTER, true)
     destroy(CLUSTER)
 
   }

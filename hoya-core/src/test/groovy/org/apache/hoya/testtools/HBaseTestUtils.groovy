@@ -23,6 +23,7 @@ import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hbase.HBaseConfiguration
+import org.apache.hadoop.hbase.HConstants
 import org.apache.hadoop.hbase.ServerName
 import org.apache.hadoop.hbase.client.HBaseAdmin
 import org.apache.hadoop.hbase.client.HConnection
@@ -79,9 +80,13 @@ class HBaseTestUtils extends HoyaTestUtils {
   }
 
   public static ClusterStatus getHBaseClusterStatus(HoyaClient hoyaClient) {
+    Configuration clientConf = createHBaseConfiguration(hoyaClient)
+    return getHBaseClusterStatus(clientConf)
+  }
+
+  public static ClusterStatus getHBaseClusterStatus(Configuration clientConf) {
     try {
-      Configuration clientConf1 = createHBaseConfiguration(hoyaClient)
-      HConnection hbaseConnection1 = createHConnection(clientConf1)
+      HConnection hbaseConnection1 = createHConnection(clientConf)
       HConnection hbaseConnection = hbaseConnection1;
       HBaseAdmin hBaseAdmin = new HBaseAdmin(hbaseConnection);
       ClusterStatus hBaseClusterStatus = hBaseAdmin.clusterStatus;
@@ -101,6 +106,13 @@ class HBaseTestUtils extends HoyaTestUtils {
   public static Configuration createHBaseConfiguration(HoyaClient hoyaClient) {
     Configuration siteConf = fetchClientSiteConfig(hoyaClient);
     Configuration conf = HBaseConfiguration.create(siteConf);
+    // patch in some timeouts
+    conf.setInt(HConstants.HBASE_CLIENT_RETRIES_NUMBER, 10)
+    conf.setInt(HConstants.HBASE_RPC_TIMEOUT_KEY, 5000)
+    
+    //fixed time of 1 s per attempt, not any multiplicative pause
+    conf.setInt(HConstants.HBASE_CLIENT_PAUSE, 100)
+    conf.setInt("hbase.client.retries.longer.multiplier", 1)
     return conf
   }
 
@@ -164,10 +176,11 @@ class HBaseTestUtils extends HoyaTestUtils {
     Duration duration = new Duration(timeout);
     duration.start();
     ClusterStatus clustat = null;
+    Configuration clientConf = createHBaseConfiguration(hoyaClient)
     while (true) {
-      clustat = getHBaseClusterStatus(hoyaClient);
+      clustat = getHBaseClusterStatus(clientConf);
       int workerCount = clustat.servers.size();
-      if (workerCount == regionServerCount) {
+      if (workerCount >= regionServerCount) {
         break;
       }
       if (duration.limitExceeded) {
@@ -204,4 +217,27 @@ class HBaseTestUtils extends HoyaTestUtils {
     }
     return masterFound
   }
+
+  /**
+   * attempt to talk to the hbase master; expect a failure
+   * @param clientConf client config
+   */
+  public static void assertNoHBaseMaster(Configuration clientConf) {
+    boolean masterFound = isHBaseMasterFound(clientConf)
+    if (masterFound) {
+      fail("HBase master running")
+    }
+  }
+
+  /**
+   * attempt to talk to the hbase master; expect success
+   * @param clientConf client config
+   */
+  public static void assertHBaseMasterFound(Configuration clientConf) {
+    boolean masterFound = isHBaseMasterFound(clientConf)
+    if (!masterFound) {
+      fail("HBase master not running")
+    }
+  }
+  
 }

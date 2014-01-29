@@ -20,6 +20,7 @@ package org.apache.hoya.yarn.cluster.actions
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.apache.hadoop.yarn.service.launcher.LauncherExitCodes
 import org.apache.hoya.exceptions.HoyaException
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.HoyaActions
@@ -42,7 +43,7 @@ class TestActionExists extends HBaseMiniClusterTestBase {
   @Before
   public void setup() {
     super.setup()
-    createMiniCluster("TestActionExists", createConfiguration(), 1, false)
+    createMiniCluster("TestActionExists", getConfiguration(), 1, false)
   }
   
   @Test
@@ -70,8 +71,11 @@ class TestActionExists extends HBaseMiniClusterTestBase {
     //launch the cluster
     String clustername = "testExistsLiveCluster"
     ServiceLauncher launcher = createMasterlessAM(clustername, 0, true, false)
+    HoyaClient hoyaClient = launcher.service
+    addToTeardown(launcher)
     ApplicationReport report = waitForClusterLive((HoyaClient) launcher.service)
 
+    // exists holds when cluster is running
     launcher = launchHoyaClientAgainstMiniMR(
           //config includes RM binding info
           new YarnConfiguration(miniCluster.config),
@@ -82,7 +86,37 @@ class TestActionExists extends HBaseMiniClusterTestBase {
           Arguments.ARG_MANAGER, RMAddr
           ],
       )
-    assert launcher.serviceExitCode == 0
+    assertSucceeded(launcher)
+
+    //and when cluster is running
+    launcher = launchHoyaClientAgainstMiniMR(
+          //config includes RM binding info
+          new YarnConfiguration(miniCluster.config),
+          //varargs list of command line params
+          [
+          HoyaActions.ACTION_EXISTS,
+          clustername,
+          Arguments.ARG_LIVE,
+          Arguments.ARG_MANAGER, RMAddr
+          ],
+      )
+
+    assertSucceeded(launcher)
+    
+    // assert that the cluster exists
+
+    assert 0 == hoyaClient.actionExists(clustername, true)
+    
+    // freeze the cluster
+    clusterActionFreeze(hoyaClient, clustername)
+
+    //verify that exists(live) is now false
+    assert LauncherExitCodes.EXIT_FALSE == hoyaClient.actionExists(clustername, true)
+
+    //but the cluster is still there for the default
+    assert 0 == hoyaClient.actionExists(clustername, false)
+
+
   }
   
 

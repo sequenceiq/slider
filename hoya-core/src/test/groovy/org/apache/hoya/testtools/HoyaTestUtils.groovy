@@ -18,6 +18,7 @@
 
 package org.apache.hoya.testtools
 
+import org.apache.hadoop.fs.FileSystem as HadoopFS
 import groovy.json.JsonOutput
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
@@ -25,6 +26,9 @@ import org.apache.commons.httpclient.HttpClient
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager
 import org.apache.commons.httpclient.methods.GetMethod
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.FileStatus
+import org.apache.hadoop.fs.Path
+import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLaunchException
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hoya.api.ClusterDescription
@@ -39,12 +43,17 @@ import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.junit.Assert
 import org.junit.Assume
 
+import static org.apache.hoya.yarn.Arguments.ARG_OPTION
+
 /**
  * Static utils for tests in this package and in other test projects.
  * 
  * It is designed to work with mini clusters as well as remote ones
  * 
- * This class is not final and may be extended for test cases
+ * This class is not final and may be extended for test cases.
+ * 
+ * Some of these methods are derived from the SwiftUtils and SwiftTestUtils
+ * classes -replicated here so that they are available in Hadoop-2.0 code
  */
 @Slf4j
 @CompileStatic
@@ -63,6 +72,7 @@ class HoyaTestUtils extends Assert {
   }
 
   public static void skip(String message) {
+    log.warn("Skipping test: " + message)
     Assume.assumeTrue(message, false);
   }
 
@@ -74,9 +84,66 @@ class HoyaTestUtils extends Assert {
     }
   }
 
+  /**
+   * Assume that a string option is set and not equal to ""
+   * @param conf configuration file
+   * @param key key to look for
+   */
+  public static void assumeStringOptionSet(Configuration conf, String key) {
+    if (!conf.getTrimmed(key)) {
+      skip("Configuration key $key not set")
+    }
+  }
+  
+  
+  /**
+   * assert that a string option is set and not equal to ""
+   * @param conf configuration file
+   * @param key key to look for
+   */
+  public static void assertStringOptionSet(Configuration conf, String key) {
+    getRequiredConfOption(conf, key)
+  }
+  
+  
 
-  public static void assumeConfOptionSet(Configuration conf, String key) {
-    Assume.assumeNotNull("not defined " + key, conf.get(key))
+  /**
+   * Assume that a boolean option is set and true.
+   * Unset or false triggers a test skip
+   * @param conf configuration file
+   * @param key key to look for
+   */
+  public static void assumeBoolOptionTrue(Configuration conf, String key) {
+    assumeBoolOption(conf, key, false)
+  }
+
+  /**
+   * Assume that a boolean option is true.
+   * False triggers a test skip
+   * @param conf configuration file
+   * @param key key to look for
+   * @param defval default value if the property is not defined
+   */
+  public static void assumeBoolOption(
+      Configuration conf, String key, boolean defval) {
+    if (!conf.getBoolean(key, defval)) {
+      skip("Configuration key $key is false")
+    }
+  }
+
+  /**
+   * Get a required config option (trimmed, incidentally).
+   * Test will fail if not set
+   * @param conf configuration
+   * @param key key
+   * @return the string
+   */
+  public static String getRequiredConfOption(Configuration conf, String key) {
+    String val = conf.getTrimmed(key)
+    if (!val) {
+      fail("Missing configuration option $key")
+    }
+    return val;
   }
 
   /**
@@ -96,15 +163,26 @@ class HoyaTestUtils extends Assert {
   protected static String[] toArray(List<Object> args) {
     String[] converted = new String[args.size()];
     for (int i = 0; i < args.size(); i++) {
-      converted[i] = args.get(i).toString();
+      def elt = args.get(i)
+      assert args.get(i) != null
+      converted[i] = elt.toString();
     }
     return converted;
   }
 
-  public static void waitWhileClusterExists(HoyaClient client, int timeout) {
+  public static void waitWhileClusterLive(HoyaClient client, int timeout) {
     Duration duration = new Duration(timeout);
     duration.start()
-    while (client.actionExists(client.deployedClusterName) &&
+    while (client.actionExists(client.deployedClusterName, true) &&
+           !duration.limitExceeded) {
+      sleep(1000);
+    }
+  }
+
+  public static void waitUntilClusterLive(HoyaClient client, int timeout) {
+    Duration duration = new Duration(timeout);
+    duration.start()
+    while (!client.actionExists(client.deployedClusterName, true) &&
            !duration.limitExceeded) {
       sleep(1000);
     }
@@ -150,8 +228,8 @@ class HoyaTestUtils extends Assert {
       for (Map.Entry<String, Integer> entry : roles.entrySet()) {
         String role = entry.key
         int desiredCount = entry.value
-        Integer instances = status.instances[role];
-        int instanceCount = instances != null ? instances.intValue() : 0;
+        List<String> instances = status.instances[role]
+        int instanceCount = instances != null ? instances.size() : 0;
         if (instanceCount != desiredCount) {
           roleCountFound = false;
         }
@@ -255,7 +333,7 @@ class HoyaTestUtils extends Assert {
   static void assertExceptionDetails(
       ServiceLaunchException ex,
       int exitCode,
-      String text) {
+      String text = "") {
     if (exitCode != ex.exitCode) {
       log.warn(
           "Wrong exit code, expected $exitCode but got $ex.exitCode in $ex",
@@ -280,9 +358,8 @@ class HoyaTestUtils extends Assert {
   protected static ServiceLauncher<HoyaClient> execHoyaCommand(
       Configuration conf,
       List args) {
-    String clientname = HoyaClient.name
     ServiceLauncher<HoyaClient> serviceLauncher =
-        new ServiceLauncher<HoyaClient>(clientname);
+        new ServiceLauncher<HoyaClient>(HoyaClient.name);
     serviceLauncher.launchService(conf,
                                   toArray(args),
                                   false);
@@ -304,8 +381,8 @@ class HoyaTestUtils extends Assert {
   public static void launchExpectingException(Class serviceClass,
                                               Configuration conf,
                                               String expectedText,
-                                              List args) throws
-      Throwable {
+                                              List args)
+      throws Throwable {
     try {
       ServiceLauncher launch = launch(serviceClass, conf, args);
       fail("Expected an exception with text containing " + expectedText
@@ -324,6 +401,7 @@ class HoyaTestUtils extends Assert {
       String address,
       List args,
       Configuration conf) {
+    assert address != null
     log.info("Connecting to rm at ${address}")
     if (!args.contains(Arguments.ARG_MANAGER)) {
       args += [Arguments.ARG_MANAGER, address]
@@ -331,5 +409,148 @@ class HoyaTestUtils extends Assert {
     ServiceLauncher<HoyaClient> launcher = execHoyaCommand(conf, args)
     return launcher
   }
-  
+
+  /**
+   * Add a configuration parameter as a cluster configuration option
+   * @param extraArgs extra arguments
+   * @param conf config
+   * @param option option
+   */
+  public static void addClusterConfigOption(
+      List<String> extraArgs,
+      YarnConfiguration conf,
+      String option) {
+    
+    conf.getTrimmed(option);
+    extraArgs << ARG_OPTION << option << getRequiredConfOption(conf, option)
+    
+  }
+
+  /**
+   * Assert that a path refers to a directory
+   * @param fs filesystem
+   * @param path path of the directory
+   * @throws IOException on File IO problems
+   */
+  public static void assertIsDirectory(HadoopFS fs,
+                                       Path path) throws IOException {
+    FileStatus fileStatus = fs.getFileStatus(path);
+    assertIsDirectory(fileStatus);
+  }
+
+  /**
+   * Assert that a path refers to a directory
+   * @param fileStatus stats to check
+   */
+  public static void assertIsDirectory(FileStatus fileStatus) {
+    assertTrue("Should be a dir -but isn't: " + fileStatus,
+               fileStatus.isDirectory());
+  }
+
+  /**
+   * Assert that a path exists -but make no assertions as to the
+   * type of that entry
+   *
+   * @param fileSystem filesystem to examine
+   * @param message message to include in the assertion failure message
+   * @param path path in the filesystem
+   * @throws IOException IO problems
+   */
+  public static void assertPathExists(
+      HadoopFS fileSystem,
+      String message,
+      Path path) throws IOException {
+    if (!fileSystem.exists(path)) {
+      //failure, report it
+      fail(message + ": not found \"" + path + "\" in " + path.getParent() + "-" +
+        ls(fileSystem, path.getParent()));
+    }
+  }
+
+  /**
+   * Assert that a path does not exist
+   *
+   * @param fileSystem filesystem to examine
+   * @param message message to include in the assertion failure message
+   * @param path path in the filesystem
+   * @throws IOException IO problems
+   */
+  public static void assertPathDoesNotExist(
+      HadoopFS fileSystem,
+      String message,
+      Path path) throws IOException {
+    try {
+      FileStatus status = fileSystem.getFileStatus(path);
+      fail(message + ": unexpectedly found " + path + " as  " + status);
+    } catch (FileNotFoundException expected) {
+      //this is expected
+
+    }
+  }
+
+  /**
+   * Assert that a FileSystem.listStatus on a dir finds the subdir/child entry
+   * @param fs filesystem
+   * @param dir directory to scan
+   * @param subdir full path to look for
+   * @throws IOException IO probles
+   */
+  public static void assertListStatusFinds(HadoopFS fs,
+                                           Path dir,
+                                           Path subdir) throws IOException {
+    FileStatus[] stats = fs.listStatus(dir);
+    boolean found = false;
+    StringBuilder builder = new StringBuilder();
+    for (FileStatus stat : stats) {
+      builder.append(stat.toString()).append('\n');
+      if (stat.getPath().equals(subdir)) {
+        found = true;
+      }
+    }
+    assertTrue("Path " + subdir
+                   + " not found in directory " + dir + ":" + builder,
+               found);
+  }
+
+  /**
+   * List a a path to string
+   * @param fileSystem filesystem
+   * @param path directory
+   * @return a listing of the filestatuses of elements in the directory, one
+   * to a line, precedeed by the full path of the directory
+   * @throws IOException connectivity problems
+   */
+  public static String ls(HadoopFS fileSystem, Path path)
+  throws
+      IOException {
+    if (path == null) {
+      //surfaces when someone calls getParent() on something at the top of the path
+      return "/";
+    }
+    FileStatus[] stats;
+    String pathtext = "ls " + path;
+    try {
+      stats = fileSystem.listStatus(path);
+    } catch (FileNotFoundException e) {
+      return pathtext + " -file not found";
+    } catch (IOException e) {
+      return pathtext + " -failed: " + e;
+    }
+    return pathtext + fileStatsToString(stats, "\n");
+  }
+
+  /**
+   * Take an array of filestats and convert to a string (prefixed w/ a [01] counter
+   * @param stats array of stats
+   * @param separator separator after every entry
+   * @return a stringified set
+   */
+  public static String fileStatsToString(FileStatus[] stats, String separator) {
+    StringBuilder buf = new StringBuilder(stats.length * 128);
+    for (int i = 0; i < stats.length; i++) {
+      buf.append(String.format("[%02d] %s", i, stats[i])).append(separator);
+    }
+    return buf.toString();
+  }
+
 }

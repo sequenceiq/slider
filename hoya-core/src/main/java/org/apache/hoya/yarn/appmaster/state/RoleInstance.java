@@ -112,7 +112,13 @@ public final class RoleInstance implements Cloneable {
   }
 
   public void buildUUID() {
-    uuid = UUID.randomUUID().toString();
+    if (container == null) {
+      throw new NullPointerException("Null container");
+    }
+    if (container.getId() == null) {
+      throw new NullPointerException("Null container ID");
+    }
+    uuid = container.getId().toString();
   }
 
   public ContainerId getContainerId() {

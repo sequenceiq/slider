@@ -288,9 +288,11 @@ class TestCommonArgParsing implements HoyaActions, Arguments {
     ClientArgs ca = createClientArgs([
         ACTION_EXISTS,
         CLUSTERNAME,
+        ARG_LIVE
     ])
     assert ca.clusterName == CLUSTERNAME
     assert ca.coreAction instanceof ActionExistsArgs
+    assert ca.actionExistsArgs.live
   }  
 
   @Test

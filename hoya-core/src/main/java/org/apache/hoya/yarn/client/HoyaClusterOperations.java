@@ -76,6 +76,26 @@ public class HoyaClusterOperations {
     return nodeList;
   }
 
+  /**
+   * Echo text (debug action)
+   * @param text text
+   * @return the text, echoed back
+   * @throws YarnException
+   * @throws IOException
+   */
+  public String echo(String text) throws
+                                          YarnException,
+                                          IOException {
+    Messages.EchoRequestProto.Builder builder =
+      Messages.EchoRequestProto.newBuilder();
+    builder.setText(text);
+    Messages.EchoRequestProto req =
+      builder.build();
+    Messages.EchoResponseProto response =
+      appMaster.echo(req);
+    return response.getText();
+  }
+
 
   /**
    * Connect to a live cluster and get its current state
@@ -98,6 +118,26 @@ public class HoyaClusterOperations {
         e);
       throw e;
     }
+  }
+
+  /**
+   * Kill a container
+   * @param id container ID
+   * @return a success flag
+   * @throws YarnException
+   * @throws IOException
+   */
+  public boolean killContainer(String id) throws
+                                          YarnException,
+                                          IOException {
+    Messages.KillContainerRequestProto.Builder builder =
+      Messages.KillContainerRequestProto.newBuilder();
+    builder.setId(id);
+    Messages.KillContainerRequestProto req =
+      builder.build();
+    Messages.KillContainerResponseProto response =
+      appMaster.killContainer(req);
+    return response.getSuccess();
   }
 
   /**
@@ -237,4 +277,29 @@ public class HoyaClusterOperations {
       appMaster.flexCluster(request);
     return response.getResponse();
   }
+
+
+  /**
+   * Commit (possibly delayed) AM suicide
+   *
+   * @param signal exit code
+   * @param text text text to log
+   * @param delay delay in millis
+   * @throws YarnException
+   * @throws IOException
+   */
+  public void amSuicide(String text, int signal, int delay) throws
+                                  YarnException,
+                                  IOException {
+    Messages.AMSuicideRequestProto.Builder builder =
+      Messages.AMSuicideRequestProto.newBuilder();
+    builder.setText(text);
+    builder.setSignal(signal);
+    builder.setDelay(delay);
+    Messages.AMSuicideRequestProto req =
+      builder.build();
+    Messages.AMSuicideResponseProto response =
+      appMaster.amSuicide(req);
+  }
+
 }

@@ -40,7 +40,7 @@ class TestActionList extends HBaseMiniClusterTestBase {
   @Before
   public void setup() {
     super.setup()
-    createMiniCluster("testActionList", createConfiguration(), 1, false)
+    createMiniCluster("testActionList", getConfiguration(), 1, false)
   }
   
   @Test

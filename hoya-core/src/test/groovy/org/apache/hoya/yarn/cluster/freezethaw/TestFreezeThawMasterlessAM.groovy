@@ -50,14 +50,14 @@ class TestFreezeThawMasterlessAM extends HBaseMiniClusterTestBase {
   @Test
   public void testFreezeThawMasterlessAM() throws Throwable {
     String clustername = "test_freeze_thaw_masterless_am"
-    YarnConfiguration conf = createConfiguration()
+    YarnConfiguration conf = getConfiguration()
     createMiniCluster(clustername, conf, 1, 1, 1, true, true)
     
     describe "create a masterless AM, freeze it, thaw it"
     //copy the confdir somewhere
     Path resConfPath = new Path(getResourceConfDirURI())
     Path tempConfPath = new Path(confDir)
-    HoyaUtils.copyDirectory(conf, resConfPath, tempConfPath)
+    HoyaUtils.copyDirectory(conf, resConfPath, tempConfPath, null)
 
 
     ServiceLauncher launcher = createMasterlessAM(clustername, 0, true, true)

@@ -40,7 +40,7 @@ class TestLiveTwoNodeRegionService extends HBaseMiniClusterTestBase {
     
     String clustername = "test_live_two_node_regionservice"
     int regionServerCount = 2
-    createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, false)
+    createMiniCluster(clustername, getConfiguration(), 1, 1, 1, true, false)
 
     describe(" Create a two node region service cluster");
 
@@ -59,6 +59,9 @@ class TestLiveTwoNodeRegionService extends HBaseMiniClusterTestBase {
     //get the hbase status
     waitForHBaseRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
+    //now log the final status
+    status = hoyaClient.getClusterDescription(clustername)
+    log.info("${status.toJsonString()}")
 
   }
 

@@ -20,6 +20,7 @@ package org.apache.hoya.funtest.framework
 
 import groovy.util.logging.Slf4j
 import org.apache.bigtop.itest.shell.Shell
+import org.apache.hoya.exceptions.HoyaException
 
 @Slf4j
 
@@ -63,9 +64,18 @@ class HoyaShell extends Shell {
     String script = commandLine.join("\n")
     log.debug(script)
     super.exec(script);
+    signCorrectReturnCode()
     return ret;
   }
 
+  /**
+   * Fix up the return code so that a value of 255 is mapped back to -1
+   * @return twos complement return code from an unsigned byte
+   */
+   int signCorrectReturnCode() {
+     ret = signCorrect(ret)
+   }
+  
   int execute(int expectedExitCode) {
     execute()
     return assertExitCode(expectedExitCode)
@@ -83,6 +93,10 @@ class HoyaShell extends Shell {
     return shell
   }
 
+  public static int signCorrect(int u) {
+    return (u << 24) >> 24;
+  }
+  
   @Override
   public String toString() {
     return ret + " =>" + hoyaCommand
@@ -113,13 +127,16 @@ class HoyaShell extends Shell {
    * if not the output is printed and an assertion is raised
    * @param shell shell
    * @param errorCode expected error code
+   * @throws HoyaException if the exit code is wrong (the value in the exception
+   * is the exit code received)
    */
-  public static int assertExitCode(HoyaShell shell, int errorCode) {
+  public static int assertExitCode(HoyaShell shell, int errorCode) throws
+      HoyaException {
     assert shell != null
     if (shell.ret != errorCode) {
       shell.dump()
+      throw new HoyaException(shell.ret,"Expected exit code %d - actual=%d", errorCode, shell.ret)
     }
-    assert errorCode == shell.ret
     return errorCode
   }
 }

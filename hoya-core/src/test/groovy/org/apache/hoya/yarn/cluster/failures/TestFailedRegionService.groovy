@@ -20,11 +20,13 @@ package org.apache.hoya.yarn.cluster.failures
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.apache.hadoop.SleepJob
 import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.RoleKeys
 import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.hoya.yarn.client.HoyaClient
+import org.apache.hoya.yarn.params.ActionKillContainerArgs
 import org.apache.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
@@ -50,7 +52,7 @@ class TestFailedRegionService extends HBaseMiniClusterTestBase {
     String clustername = testName
     String action = toKill ? "kill" : "stop"
     int regionServerCount = 2
-    createMiniCluster(clustername, createConfiguration(), 1, 1, 1, true, true)
+    createMiniCluster(clustername, getConfiguration(), 1, 1, 1, true, true)
     describe("Create a single region service cluster then " + action + " the RS");
 
     //now launch the cluster
@@ -69,11 +71,14 @@ class TestFailedRegionService extends HBaseMiniClusterTestBase {
     describe("running processes")
     lsJavaProcesses()
     describe("about to " + action + " servers")
-    if (toKill) killAllRegionServers()
-    else stopAllRegionServers()
+    if (toKill) {
+      killAllRegionServers()
+    } else {
+      stopAllRegionServers()
+    }
 
     //sleep a bit
-    sleep(toKill ? 15000 : 25000);
+    sleep(toKill ? 15000 : 30000);
     lsJavaProcesses()
 
     describe("waiting for recovery")
@@ -87,15 +92,24 @@ class TestFailedRegionService extends HBaseMiniClusterTestBase {
     hbaseStat = waitForHBaseRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
     status = hoyaClient.getClusterDescription()
-    assert status.roles[HBaseKeys.ROLE_WORKER]
-               [RoleKeys.ROLE_FAILED_INSTANCES] == "2"
+    assert status.roles[HBaseKeys.ROLE_WORKER][RoleKeys.ROLE_FAILED_INSTANCES] == "2"
 
     log.info("Updated cluster status : ${hbaseStatusToString(hbaseStat)}");
     
-    
-    
+    //now attempt it by container kill command
+    def workers = status.instances[HBaseKeys.ROLE_WORKER]
+    assert workers.size() == 2
+    def worker1 = workers[0]
+    ActionKillContainerArgs args = new ActionKillContainerArgs();
+    args.id = worker1
+    assert 0 == hoyaClient.actionKillContainer(clustername, args)
+    sleep(15000)
+    waitForHoyaWorkerCount(
+        hoyaClient,
+        regionServerCount,
+        HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+    status = hoyaClient.getClusterDescription()
+    assert status.roles[HBaseKeys.ROLE_WORKER][RoleKeys.ROLE_FAILED_INSTANCES] == "3"
   }
-
-
 
 }

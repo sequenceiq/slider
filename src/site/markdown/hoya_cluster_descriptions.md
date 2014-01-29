@@ -81,27 +81,6 @@ A boolean flag to indicate whether application-specific health monitoring
 should take place. Until this monitoring is completed the option
 is ignored -it is added as `false` by default on clusters created.
 
-#### `hoya.cluster.directory.permissions`
-
-An octal-format (`chmod`-style) permissions mask for the directory
-that contains the cluster specification `${user.home}/.hoya/clusters/${clustername}`
-
-Default: `0750`
-
-Other users in the same group are given write permissions so that
-in an insecure cluster, the user running yarn applications, (such as the user `yarn`)
-has the permissions needed to write to this
-
-#### `hoya.data.directory.permissions`
-
-An octal-format (`chmod`-style) permissions mask for the directory
-that contains the application data `${user.home}/.hoya/clusters/${clustername}/database`
-
-Default: `0770`
-
-Other users in the same group are given write permissions so that
-in an insecure cluster
-
 
 ## Roles
 
@@ -180,12 +159,9 @@ the same TCP port.
 
 #### JVM Heapsize `jvm.heapsize`
 
-* Not yet implemented * 
-
-
 Heapsize as a JVM option string, such as `"256M"` or `"2G"`
 
---roleopt worker jvm.heapsize 8G
+    --roleopt worker jvm.heapsize 8G
 
 This is not correlated with the YARN memory -changes in the YARN memory allocation
 are not reflected in the JVM heapsize -and vice versa.

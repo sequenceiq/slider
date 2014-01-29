@@ -19,6 +19,7 @@
 package org.apache.hoya.yarn.cluster.actions
 
 import groovy.util.logging.Slf4j
+import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.exceptions.BadClusterStateException
 import org.apache.hoya.exceptions.ErrorStrings
@@ -43,7 +44,7 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
   @Before
   public void setup() {
     super.setup()
-    createMiniCluster("TestActionStatus", createConfiguration(), 1, false)
+    createMiniCluster("TestActionStatus", getConfiguration(), 1, false)
   }
 
   @Test
@@ -99,7 +100,7 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
     //now look for the explicit sevice
 
     int status = hoyaClient.actionStatus(clustername, null)
-    assert status == EXIT_SUCCESS
+    assert status == HoyaExitCodes.EXIT_SUCCESS
     
     
     //status to a file

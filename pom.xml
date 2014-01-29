@@ -3,7 +3,7 @@
   <groupId>org.apache.hoya</groupId>
   <artifactId>hoya</artifactId>
   <name>Hoya: HBase on YARN</name>
-  <version>0.10.0-SNAPSHOT</version>
+  <version>0.11.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <description>
@@ -94,7 +94,7 @@
     core artifacts
     -->
     <hadoop.version>2.2.0</hadoop.version>
-    <hbase.version>0.96.1.1-hadoop2</hbase.version>
+    <hbase.version>0.98.0-hadoop2</hbase.version>
     <accumulo.version>1.5.0</accumulo.version>
     
     <!--
@@ -459,6 +459,36 @@
 
       <dependency>
         <groupId>org.apache.hbase</groupId>
+        <artifactId>hbase-common</artifactId>
+        <version>${hbase.version}</version>
+        <classifier>tests</classifier>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hbase</groupId>
+        <artifactId>hbase-it</artifactId>
+        <version>${hbase.version}</version>
+        <classifier>tests</classifier>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hbase</groupId>
+        <artifactId>hbase-hadoop-compat</artifactId>
+        <version>${hbase.version}</version>
+        <classifier>tests</classifier>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hbase</groupId>
+        <artifactId>hbase-hadoop2-compat</artifactId>
+        <version>${hbase.version}</version>
+        <classifier>tests</classifier>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hbase</groupId>
+        <artifactId>hbase-server</artifactId>
+        <version>${hbase.version}</version>
+        <classifier>tests</classifier>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hbase</groupId>
         <artifactId>hbase-server</artifactId>
         <version>${hbase.version}</version>
         <exclusions>
@@ -550,11 +580,15 @@
         <version>${accumulo.version}</version>
         <exclusions>
           <exclusion>
-            <groupId>org.apache.maven</groupId>
+            <groupId>org.apache.maven.scm</groupId>
             <artifactId>maven-scm-api</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>org.apache.maven</groupId>
+            <groupId>org.apache.maven.scm</groupId>
+            <artifactId>maven-scm-api</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.apache.maven.scm</groupId>
             <artifactId>maven-scm-provider-svnexe</artifactId>
           </exclusion>
         </exclusions>

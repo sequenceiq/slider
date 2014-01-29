@@ -125,6 +125,40 @@ public class HoyaClusterProtocolProxy implements HoyaClusterProtocol {
 
 
   @Override
+  public Messages.EchoResponseProto echo(Messages.EchoRequestProto request) throws
+                                                                                                             IOException,
+                                                                                                             YarnException {
+    try {
+      return endpoint.echo(NULL_CONTROLLER, request);
+    } catch (ServiceException e) {
+      throw convert(e);
+    }
+  }
+
+
+  @Override
+  public Messages.KillContainerResponseProto killContainer(Messages.KillContainerRequestProto request) throws
+                                                                                                             IOException,
+                                                                                                             YarnException {
+    try {
+      return endpoint.killContainer(NULL_CONTROLLER, request);
+    } catch (ServiceException e) {
+      throw convert(e);
+    }
+  }
+
+  @Override
+  public Messages.AMSuicideResponseProto amSuicide(Messages.AMSuicideRequestProto request) throws
+                                                                                           IOException,
+                                                                                           YarnException {
+    try {
+      return endpoint.amSuicide(NULL_CONTROLLER, request);
+    } catch (ServiceException e) {
+      throw convert(e);
+    }
+  }
+
+  @Override
   public ProtocolSignature getProtocolSignature(String protocol,
                                                 long clientVersion,
                                                 int clientMethodsHash) throws

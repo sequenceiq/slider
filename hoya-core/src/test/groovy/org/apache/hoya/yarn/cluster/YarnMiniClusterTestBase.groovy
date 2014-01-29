@@ -28,7 +28,7 @@ import org.apache.hadoop.fs.FileUtil
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hdfs.MiniDFSCluster
 import org.apache.hoya.HoyaExitCodes
-import org.apache.hoya.HoyaXMLConfKeysForTesting
+import org.apache.hoya.HoyaXmlConfKeys
 import org.apache.hoya.api.ClusterNode
 import org.apache.hoya.api.OptionKeys
 import org.apache.hoya.api.RoleKeys
@@ -36,7 +36,6 @@ import org.apache.hoya.exceptions.ErrorStrings
 import org.apache.hoya.exceptions.HoyaException
 import org.apache.hoya.providers.hbase.HBaseConfigFileOptions
 import org.apache.hoya.providers.hbase.HBaseKeys
-import org.apache.hoya.testtools.HoyaTestUtils
 import org.apache.hoya.tools.BlockingZKWatcher
 import org.apache.hoya.tools.Duration
 import org.apache.hoya.tools.HoyaUtils
@@ -52,10 +51,8 @@ import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.server.MiniYARNCluster
-import org.apache.hadoop.yarn.server.resourcemanager.ResourceManager
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.ResourceScheduler
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fifo.FifoScheduler
-import org.apache.hadoop.yarn.service.launcher.ServiceLaunchException
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
 import org.apache.hoya.testtools.KeysForTests
@@ -63,11 +60,14 @@ import org.junit.After
 import org.junit.Assume
 import org.junit.Rule
 import org.junit.rules.Timeout
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import static org.apache.hoya.yarn.Arguments.*
+import static org.apache.hoya.yarn.HoyaActions.*;
+import static org.apache.hoya.testtools.HoyaTestUtils.*
+import static org.apache.hoya.HoyaXMLConfKeysForTesting.*
+import static org.apache.hoya.testtools.KeysForTests.*
 
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.SynchronousQueue
-import java.util.concurrent.ThreadPoolExecutor
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -75,10 +75,9 @@ import java.util.concurrent.atomic.AtomicBoolean
  * mini yarn cluster
  */
 @CompileStatic
-@Slf4j
-public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest
-implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
-
+public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
+  private static final Logger log =
+      LoggerFactory.getLogger(YarnMiniClusterTestBase.class);
   /**
    * Mini YARN cluster only
    */
@@ -87,11 +86,48 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
 
   public static final int SIGTERM = -15
   public static final int SIGKILL = -9
-  public static final int SIGSTOP = -19
+  public static final int SIGSTOP = -17
   public static final String SERVICE_LAUNCHER = "ServiceLauncher"
   public static
   final String NO_ARCHIVE_DEFINED = "Archive configuration option not set: "
   public static final String YRAM = "256"
+
+
+  public static final YarnConfiguration HOYA_CONFIG = HoyaUtils.createConfiguration(); 
+  static {
+    HOYA_CONFIG.setInt(HoyaXmlConfKeys.KEY_HOYA_RESTART_LIMIT, 1)
+  }
+
+
+  public static final int THAW_WAIT_TIME
+  public static final int FREEZE_WAIT_TIME
+  public static final int HBASE_LAUNCH_WAIT_TIME
+  public static final int ACCUMULO_LAUNCH_WAIT_TIME
+  public static final int HOYA_TEST_TIMEOUT
+  public static final boolean ACCUMULO_TESTS_ENABLED
+  public static final boolean HBASE_TESTS_ENABLED
+  static {
+    THAW_WAIT_TIME = HOYA_CONFIG.getInt(
+        KEY_HOYA_THAW_WAIT_TIME,
+        DEFAULT_HOYA_THAW_WAIT_TIME)
+    FREEZE_WAIT_TIME = HOYA_CONFIG.getInt(
+        KEY_HOYA_FREEZE_WAIT_TIME,
+        DEFAULT_HOYA_FREEZE_WAIT_TIME)
+    HBASE_LAUNCH_WAIT_TIME = HOYA_CONFIG.getInt(
+        KEY_HOYA_HBASE_LAUNCH_TIME,
+        DEFAULT_HOYA_HBASE_LAUNCH_TIME)
+    HOYA_TEST_TIMEOUT = HOYA_CONFIG.getInt(
+        KEY_HOYA_TEST_TIMEOUT,
+        DEFAULT_HOYA_TEST_TIMEOUT)
+    ACCUMULO_LAUNCH_WAIT_TIME = HOYA_CONFIG.getInt(
+        KEY_HOYA_ACCUMULO_LAUNCH_TIME,
+        DEFAULT_HOYA_ACCUMULO_LAUNCH_TIME)
+    ACCUMULO_TESTS_ENABLED =
+        HOYA_CONFIG.getBoolean(KEY_HOYA_TEST_ACCUMULO_ENABLED, true)
+    HBASE_TESTS_ENABLED =
+        HOYA_CONFIG.getBoolean(KEY_HOYA_TEST_HBASE_ENABLED, true)
+
+  }
 
   protected MiniDFSCluster hdfsCluster
   protected MiniYARNCluster miniCluster;
@@ -104,7 +140,7 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
 
 
   @Rule
-  public final Timeout testTimeout = new Timeout(10*60*1000);
+  public final Timeout testTimeout = new Timeout(HOYA_TEST_TIMEOUT);
 
 
   @After
@@ -116,6 +152,15 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
 
   protected void addToTeardown(HoyaClient client) {
     clustersToTeardown << client;
+  }
+  protected void addToTeardown(ServiceLauncher<HoyaClient> launcher) {
+    HoyaClient hoyaClient = launcher.service
+    if (hoyaClient) addToTeardown(hoyaClient)
+  }
+
+
+  protected YarnConfiguration getConfiguration() {
+    return HOYA_CONFIG;
   }
 
   /**
@@ -322,7 +367,7 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
   }
 
   public YarnConfiguration getTestConfiguration() {
-    YarnConfiguration conf = createConfiguration()
+    YarnConfiguration conf = getConfiguration()
 
     conf.addResource(HOYA_TEST)
     return conf
@@ -490,7 +535,6 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
         Arguments.ARG_ZKHOSTS, ZKHosts,
         Arguments.ARG_ZKPORT, ZKPort.toString(),
         Arguments.ARG_FILESYSTEM, fsDefaultName,
-        Arguments.ARG_OPTION, OptionKeys.HOYA_TEST_FLAG, "true",
         Arguments.ARG_DEBUG,
         Arguments.ARG_CONFDIR, confDir
     ]
@@ -682,11 +726,11 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
    * @return the app report of the live cluster
    */
   public ApplicationReport waitForClusterLive(HoyaClient hoyaClient) {
-    return waitForClusterLive(hoyaClient,CLUSTER_GO_LIVE_TIME)
+    return waitForClusterLive(hoyaClient, CLUSTER_GO_LIVE_TIME)
   }
 
   /**
-   * force kill the application after waiting {@link #WAIT_TIME} for
+   * force kill the application after waiting for
    * it to shut down cleanly
    * @param hoyaClient client to talk to
    */
@@ -715,16 +759,6 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
     return report;
   }
 
-  public ExecutorService createExecutorService() {
-    ThreadPoolExecutor pool = new ThreadPoolExecutor(1, 1,
-                                                     1000L,
-                                                     TimeUnit.SECONDS,
-                                                     new SynchronousQueue<Runnable>());
-    pool.allowCoreThreadTimeOut(true);
-    return pool;
-  }
-
-
   /**
    * stop the cluster via the stop action -and wait for {@link #CLUSTER_STOP_TIME}
    * for the cluster to stop. If it doesn't
@@ -736,8 +770,7 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
     log.info("Freezing cluster $clustername")
     ActionFreezeArgs freezeArgs  = new ActionFreezeArgs();
     freezeArgs.waittime = CLUSTER_STOP_TIME
-    int exitCode = hoyaClient.actionFreeze(clustername
-                                           ,
+    int exitCode = hoyaClient.actionFreeze(clustername,
                                            freezeArgs);
     if (exitCode != 0) {
       log.warn("Cluster freeze failed with error code $exitCode")
@@ -766,16 +799,6 @@ implements KeysForTests, HoyaExitCodes, HoyaXMLConfKeysForTesting {
       }
     }
     return 0;
-  }
-
-  /**
-   * Make an assertion about the exit code of an exception
-   * @param ex exception
-   * @param exitCode exit code
-   * @param text error text to look for in the exception (optional)
-   */
-  static void assertExceptionDetails(ServiceLaunchException ex, int exitCode, String text = ""){
-    HoyaTestUtils.assertExceptionDetails(ex, exitCode, text)
   }
 
 

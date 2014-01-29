@@ -343,7 +343,7 @@ public class ConfigHelper {
                                                         Path templatePath,
                                                         String fallbackResource) throws
                                                                                  IOException {
-    Configuration conf = new Configuration(false);
+    Configuration conf = null;
     String origin;
     if (fs.exists(templatePath)) {
       log.debug("Loading template configuration {}", templatePath);

@@ -23,8 +23,15 @@ import org.apache.hadoop.conf.Configured;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.exceptions.BadConfigException;
+import org.apache.hoya.exceptions.HoyaException;
 
+import java.util.List;
 import java.util.Map;
+
+import static org.apache.hoya.api.RoleKeys.DEF_YARN_CORES;
+import static org.apache.hoya.api.RoleKeys.DEF_YARN_MEMORY;
+import static org.apache.hoya.api.RoleKeys.YARN_CORES;
+import static org.apache.hoya.api.RoleKeys.YARN_MEMORY;
 
 /**
  * An optional base class for providers
@@ -70,6 +77,28 @@ public abstract class AbstractProviderCore extends Configured implements
     String value = map.get(key);
     if (value != null) {
       sitexml.put(prop, value);
+    }
+  }
+
+  /**
+   * Validation common to all roles
+   * @param clusterSpec
+   * @throws HoyaException
+   */
+  @Override
+  public void validateClusterSpec(ClusterDescription clusterSpec) throws
+                                                                  HoyaException {
+    List<ProviderRole> roles = getRoles();
+    for (ProviderRole role : roles) {
+      String name = role.name;
+      clusterSpec.getRoleResourceRequirement(name, 
+                                             YARN_MEMORY,
+                                             DEF_YARN_MEMORY,
+                                             Integer.MAX_VALUE);
+      clusterSpec.getRoleResourceRequirement(name,
+                                             YARN_CORES,
+                                             DEF_YARN_CORES,
+                                             Integer.MAX_VALUE);
     }
   }
 }

@@ -66,6 +66,18 @@ public interface HoyaXmlConfKeys {
    * {@value}
    */
   String KEY_HOYA_PROTOCOL_ACL = "security.hoya.protocol.acl";
+  
+  /**
+   * Limit on restarts for the AM
+   * {@value}
+   */
+  String KEY_HOYA_RESTART_LIMIT = "hoya.yarn.restart.limit";
+
+  /**
+   * Default Limit on restarts for the AM
+   * {@value}
+   */
+  int DEFAULT_HOYA_RESTART_LIMIT = 3;
 
   /**
    * Flag which is set to indicate that security should be enabled
@@ -86,4 +98,21 @@ public interface HoyaXmlConfKeys {
   int DEFAULT_HOYA_YARN_QUEUE_PRIORITY= 1;
 
 
+  /**
+   * Option for the permissions for the cluster directory itself: {@value}
+   */
+  String HOYA_CLUSTER_DIRECTORY_PERMISSIONS =
+    "hoya.cluster.directory.permissions";
+  /**
+   * Default value for the permissions :{@value}
+   */
+  String DEFAULT_HOYA_CLUSTER_DIRECTORY_PERMISSIONS = "750";
+  /**: {@value}
+   * Option for the permissions for the data directory itself
+   */
+  String HOYA_DATA_DIRECTORY_PERMISSIONS = "hoya.data.directory.permissions";
+  /**
+   * Default value for the data directory permissions: {@value}
+   */
+  String DEFAULT_HOYA_DATA_DIRECTORY_PERMISSIONS = "750";
 }

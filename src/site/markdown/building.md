@@ -83,28 +83,36 @@ the Apache Hadoop 2.2 package or Hortownworks HDP-2.0.
 
 ## building a compatible HBase version
 
+If you need to build a version of HBase -rather than use a released version,
+here are the instructions (for the hbase-0.98 release branch)
+
 Checkout the HBase `trunk` branch from apache svn/github.  
 
+    
     git clone git://git.apache.org/hbase.git
     git remote rename origin apache
     git fetch --tags apache
-    git checkout hbase-0.96.0 --
-    git checkout -b hbase-0.96.0
+    git checkout 0.98 --
+    git checkout -b 0.98
     
     
 The maven command for building hbase artifacts against this hadoop version is 
 
-    mvn clean install assembly:single -DskipTests -Dmaven.javadoc.skip=true -Dhadoop.profile=2.0 -Dhadoop-two.version=$HADOOP_VERSION
+    mvn clean install assembly:single -DskipTests -Dmaven.javadoc.skip=true
 
-This will create `hbase-0.96.0.tar.gz` in the directory `hbase-assembly/target/` in
+To use a different version of Hadoop from that defined in the `hadoop-two.version`
+property of`/pom.xml`:
+
+    mvn clean install assembly:single -DskipTests -Dmaven.javadoc.skip=true -Dhadoop-two.version=$HADOOP_VERSION
+
+This will create `hbase-0.98.0.tar.gz` in the directory `hbase-assembly/target/` in
 the hbase source tree. 
 
-    export HBASE_VERSION=0.96.0
+    export HBASE_VERSION=0.98.0
     
     pushd hbase-assembly/target
-    gunzip hbase-$HBASE_VERSION-bin.tar.gz 
+    gunzip -k hbase-$HBASE_VERSION-bin.tar.gz 
     tar -xvf hbase-$HBASE_VERSION-bin.tar
-    gzip hbase-$HBASE_VERSION-bin.tar
     popd
 
 This will create an untarred directory containing
@@ -128,28 +136,34 @@ For building just the JAR files:
 
 ## Building Accumulo
 
-Clone accumulo from apache; check out trunk
+Clone accumulo from apache;
 
     git clone http://git-wip-us.apache.org/repos/asf/accumulo.git
 
-If needed, patch the POM file to depend on the version of Hadoop you are building
-locally, by changing the `hadoop.version` property
+
+Check out branch 1.5.1-SNAPSHOT
 
 
 
-In the accumulo project directory:
+In the accumulo project directory, build it
 
     mvn clean install -Passemble -DskipTests -Dmaven.javadoc.skip=true \
-     -Dhadoop.profile=2.0  -Dhadoop.version=$HADOOP_VERSION
+     -Dhadoop.profile=2 
+     
+The default Hadoop version for accumulo-1.5.1 is hadoop 2.2.0; to build
+against a different version use the command
+     
+    mvn clean install -Passemble -DskipTests -Dmaven.javadoc.skip=true \
+     -Dhadoop.profile=2  -Dhadoop.version=$HADOOP_VERSION
 
 This creates an accumulo tar.gz file in `assemble/target/`. Unzip then untar
 this, to create a .tar file and an expanded directory
 
-    accumulo/assemble/target/accumulo-1.6.0-SNAPSHOT-bin.tar
+    accumulo/assemble/target/accumulo-1.5.1-SNAPSHOT-bin.tar
     
  This can be done with the command sequence
     
-    export ACCUMULO_VERSION=1.6.0-SNAPSHOT
+    export ACCUMULO_VERSION=1.5.1-SNAPSHOT
     
     pushd assemble/target/
     gunzip -f accumulo-$ACCUMULO_VERSION-bin.tar.gz 
@@ -172,25 +186,25 @@ is ignored by git), declaring where HBase, accumulo, Hadoop and zookeeper are:
     
       <property>
         <name>hoya.test.hbase.home</name>
-        <value>/home/hoya/hbase/hbase-assembly/target/hbase-0.96.0</value>
+        <value>/home/hoya/hbase/hbase-assembly/target/hbase-0.98.0-SNAPSHOT</value>
         <description>HBASE Home</description>
       </property>
     
       <property>
         <name>hoya.test.hbase.tar</name>
-        <value>/home/hoya/hbase/hbase-assembly/target/hbase-0.96.0-bin.tar.gz</value>
+        <value>/home/hoya/hbase/hbase-assembly/target/hbase-0.98.0-SNAPSHOT-bin.tar.gz</value>
         <description>HBASE archive URI</description>
       </property> 
          
       <property>
         <name>hoya.test.accumulo.home</name>
-        <value>/home/hoya/accumulo/assemble/target/accumulo-1.6.0-SNAPSHOT/</value>
+        <value>/home/hoya/accumulo/assemble/target/accumulo-1.5.1-SNAPSHOT/</value>
         <description>Accumulo Home</description>
       </property>
     
       <property>
         <name>hoya.test.accumulo.tar</name>
-        <value>/home/hoya/accumulo/assemble/target/accumulo-1.6.0-SNAPSHOT-bin.tar.gz</value>
+        <value>/home/hoya/accumulo/assemble/target/accumulo-1.5.1-SNAPSHOT-bin.tar.gz</value>
         <description>Accumulo archive URI</description>
       </property>
       

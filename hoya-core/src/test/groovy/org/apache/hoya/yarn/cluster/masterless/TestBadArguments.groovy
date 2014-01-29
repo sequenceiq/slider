@@ -42,7 +42,7 @@ class TestBadArguments extends HBaseMiniClusterTestBase {
   @Test
   public void testBadAMHeap() throws Throwable {
     String clustername = "test_bad_am_heap"
-    createMiniCluster(clustername, createConfiguration(), 1, true)
+    createMiniCluster(clustername, getConfiguration(), 1, true)
 
     describe "verify that bad Java heap options are picked up"
 
@@ -76,7 +76,7 @@ class TestBadArguments extends HBaseMiniClusterTestBase {
    */
   public void DisabledtestBadYarnQueue() throws Throwable {
     String clustername = "test_bad_yarn_queue"
-    createMiniCluster(clustername, createConfiguration(), 1, true)
+    createMiniCluster(clustername, getConfiguration(), 1, true)
 
     describe "verify that bad Java heap options are picked up"
 
