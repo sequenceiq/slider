@@ -49,6 +49,7 @@ public interface Arguments {
    */
   String ARG_FILESYSTEM = "--fs";
   String ARG_FILESYSTEM_LONG = "--filesystem";
+  String ARG_BASE_PATH = "--basepath";
   String ARG_FORMAT = "--format";
   String ARG_FORCE = "--force";
   String ARG_ID = "--id";
