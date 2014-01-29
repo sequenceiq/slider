@@ -68,12 +68,35 @@
     <value>yarn/ubuntu@COTHAM</value>
   </property>
   <property>
+    <name>yarn.resourcemanager.webapp.spnego-principal</name>
+    <value>yarn/ubuntu@COTHAM</value>
+  </property>
+  <property>
+    <name>yarn.resourcemanager.webapp.spnego-keytab-file</name>
+    <value>${yarn.resourcemanager.keytab}</value>
+  </property>
+
+  <property>
     <name>yarn.nodemanager.keytab</name>
     <value>/home/stevel/conf/yarn.keytab</value>
   </property>
   <property>
     <name>yarn.nodemanager.principal</name>
     <value>yarn/ubuntu@COTHAM</value>
+  </property>
+  <property>
+    <name>yarn.nodemanager.webapp.spnego-principal</name>
+    <value>yarn/ubuntu@COTHAM</value>
+  </property>
+  <property>
+    <name>yarn.nodemanager.webapp.spnego-keytab-file</name>
+    <value>${yarn.resourcemanager.keytab}</value>
+  </property>
+
+
+  <property>
+    <name>yarn.namenode.kerberos.internal.spnego.principal</name>
+    <value>HTTP/ubuntu@COTHAM</value>
   </property>
 
 </configuration>
