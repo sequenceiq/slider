@@ -25,9 +25,13 @@ import org.apache.hadoop.fs.Path
 import org.apache.hadoop.util.ExitUtil
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
+import org.apache.hoya.HoyaExitCodes
+import org.apache.hoya.api.ClusterDescription
+import org.apache.hoya.exceptions.HoyaException
 import org.apache.hoya.testtools.HoyaTestUtils
 import org.apache.hoya.tools.HoyaUtils
 import org.apache.hoya.yarn.Arguments
+import org.apache.hoya.yarn.HoyaActions
 import org.apache.hoya.yarn.client.HoyaClient
 import org.junit.BeforeClass
 import org.junit.Rule
@@ -417,4 +421,29 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
   }
 
 
+  public ClusterDescription killAmAndWaitForRestart(
+      HoyaClient hoyaClient, String clustername) {
+    hoya(0, [HoyaActions.ACTION_AM_SUICIDE, clustername,
+        ARG_EXITCODE, "1",
+        ARG_WAIT, "1000",
+        ARG_MESSAGE, "suicide"])
+
+    sleep(AM_RESTART_SLEEP_TIME)
+    ClusterDescription status
+
+    try {
+      // am should have restarted it by now
+      // cluster is live
+      exists(0, clustername, true)
+
+      status = hoyaClient.getClusterDescription()
+    } catch (HoyaException e) {
+      if (e.exitCode == HoyaExitCodes.EXIT_BAD_CLUSTER_STATE) {
+        log.error(
+            "Property $YarnConfiguration.RM_AM_MAX_ATTEMPTS may be too low")
+      }
+      throw e;
+    }
+    return status
+  }
 }

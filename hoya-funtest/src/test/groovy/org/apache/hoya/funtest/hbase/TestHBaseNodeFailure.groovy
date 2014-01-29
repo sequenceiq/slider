@@ -19,8 +19,10 @@
 package org.apache.hoya.funtest.hbase
 
 import org.apache.hadoop.conf.Configuration
+import org.apache.hoya.HoyaXMLConfKeysForTesting
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.RoleKeys
+import org.apache.hoya.api.StatusKeys
 import org.apache.hoya.funtest.framework.PortAssignments
 import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.hoya.yarn.client.HoyaClient
@@ -84,7 +86,8 @@ class TestHBaseNodeFailure extends TestFunctionalHBaseCluster {
     killInstanceOfRole(hoyaClient, HBaseKeys.ROLE_MASTER)
     // let it take
     sleep(RESTART_SLEEP_TIME)
-//wait for the role counts to be reached
+    
+    // wait for the role counts to be reached
     cd = waitForRoleCount(hoyaClient, roleMap, HBASE_LAUNCH_WAIT_TIME)
     waitForHBaseRegionServerCount(
         hoyaClient,
@@ -92,6 +95,19 @@ class TestHBaseNodeFailure extends TestFunctionalHBaseCluster {
         numWorkers,
         HBASE_LAUNCH_WAIT_TIME)
     assert cd.roles[HBaseKeys.ROLE_MASTER][RoleKeys.ROLE_FAILED_INSTANCES] == "1"
+
+    // now trigger AM failure
+    ClusterDescription status = killAmAndWaitForRestart(hoyaClient, CLUSTER)
+
+    if (HoyaXMLConfKeysForTesting.YARN_AM_SUPPORTS_RESTART) {
+
+      // verify the AM restart container count was set
+      def restarted = status.getInfo(
+          StatusKeys.INFO_CONTAINERS_AM_RESTART)
+      assert restarted != null;
+
+      assert Integer.parseInt(restarted) == 1 + numWorkers
+    }
 
   }
 

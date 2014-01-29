@@ -42,6 +42,7 @@ public interface HoyaFuntestProperties extends HoyaXMLConfKeysForTesting {
 
   String KEY_HOYA_TEST_ZK_HOSTS = "hoya.test.zkhosts";
   String DEFAULT_HOYA_ZK_HOSTS = "localhost";
-  
 
+
+  int AM_RESTART_SLEEP_TIME = 10000
 }
