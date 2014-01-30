@@ -23,7 +23,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Abortable;
 import org.apache.hadoop.hbase.ClusterStatus;
-import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HConnection;
@@ -367,7 +366,7 @@ public class HBaseProviderService extends AbstractProviderService implements
     if (masterTracker != null) {
       ServerName sn = masterTracker.getMasterAddress();
       log.debug("getMasterAddress " + sn + ", quorum="
-                + getConf().get(HConstants.ZOOKEEPER_QUORUM));
+                + getConf().get(HBaseConfigFileOptions.KEY_ZOOKEEPER_QUORUM));
       if (sn == null) {
         return null;
       }
