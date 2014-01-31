@@ -422,8 +422,9 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
 
 
   public ClusterDescription killAmAndWaitForRestart(
-      HoyaClient hoyaClient, String clustername) {
-    hoya(0, [HoyaActions.ACTION_AM_SUICIDE, clustername,
+      HoyaClient hoyaClient, String cluster) {
+    assert cluster
+    hoya(0, [ACTION_AM_SUICIDE, cluster,
         ARG_EXITCODE, "1",
         ARG_WAIT, "1000",
         ARG_MESSAGE, "suicide"])
@@ -434,9 +435,9 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
     try {
       // am should have restarted it by now
       // cluster is live
-      exists(0, clustername, true)
+      exists(0, cluster, true)
 
-      status = hoyaClient.getClusterDescription()
+      status = hoyaClient.clusterDescription
     } catch (HoyaException e) {
       if (e.exitCode == HoyaExitCodes.EXIT_BAD_CLUSTER_STATE) {
         log.error(

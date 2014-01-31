@@ -97,7 +97,7 @@ class TestHBaseNodeFailure extends TestFunctionalHBaseCluster {
     assert cd.roles[HBaseKeys.ROLE_MASTER][RoleKeys.ROLE_FAILED_INSTANCES] == "1"
 
     // now trigger AM failure
-    ClusterDescription status = killAmAndWaitForRestart(hoyaClient, CLUSTER)
+    ClusterDescription status = killAmAndWaitForRestart(hoyaClient, clusterName)
 
     if (HoyaXMLConfKeysForTesting.YARN_AM_SUPPORTS_RESTART) {
 

@@ -100,7 +100,7 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
     waitForHBaseRegionServerCount(hoyaClient, clusterName,
                                   numWorkers, HBASE_LAUNCH_WAIT_TIME)
 
-    clusterLoadOperations("", clientConf, numWorkers, roleMap, cd2)
+    clusterLoadOperations(clusterName, clientConf, numWorkers, roleMap, cd2)
   }
 
 

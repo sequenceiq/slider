@@ -37,7 +37,7 @@ class TestHBaseLoad extends TestFunctionalHBaseCluster {
       int numWorkers,
       Map<String, Integer> roleMap,
       ClusterDescription cd) {
-    
+    assert clustername
     int numKeys = 4000 * numWorkers
     String[] args = ["-tn", "test", "-write", "4:100",
         "-num_keys", numKeys,
