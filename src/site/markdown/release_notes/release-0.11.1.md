@@ -101,6 +101,6 @@ AM failure as a source of a (transient) outage of the running application.
 
 This feature is disabled, as enabling it prevents Hoya from running on a
 Hadoop 2.2 cluster. There is a branch in the source repository 
-[which enables this feature](). Anyone wishing to explore the feature must
+[which enables this feature](https://github.com/hortonworks/hoya/tree/feature/BUG-12943-hadoop-2.4-support). Anyone wishing to explore the feature must
 check out this branch, and build and test it against locally built
 versions of Hadoop 2.4.
