@@ -20,11 +20,8 @@ package org.apache.hoya.funtest.hbase
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.IntegrationTestIngest
-import org.apache.hadoop.hbase.trace.IntegrationTestSendTraceRequests
-import org.apache.hadoop.hbase.test.MetricsAssertHelper
-import org.apache.hadoop.hbase.test.MetricsAssertHelperImpl
-import org.apache.hadoop.net.StaticMapping
-import org.apache.hadoop.util.ToolRunner;
+import org.apache.hadoop.util.ToolRunner
+import org.apache.hoya.api.ClusterDescription;
 
 /* Runs IntegrationTestIngest on cluster
  *
@@ -40,10 +37,12 @@ class TestHBaseIntegration extends TestFunctionalHBaseCluster {
 
   @Override
   void clusterLoadOperations(
+      String clustername,
       Configuration clientConf,
       int numWorkers,
-      Map<String, Integer> roleMap) {
-    String parent = "/yarnapps_hoya_yarn_"+getClusterName()
+      Map<String, Integer> roleMap,
+      ClusterDescription cd) {
+    String parent = "/yarnapps_hoya_yarn_"+clustername
     clientConf.set("zookeeper.znode.parent", parent)
 
     String[] args = []

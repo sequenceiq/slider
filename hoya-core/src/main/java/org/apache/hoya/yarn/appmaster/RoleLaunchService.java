@@ -273,7 +273,6 @@ public class RoleLaunchService extends AbstractService {
 
         String commandLine = ctx.getCommands().get(0);
         RoleInstance instance = new RoleInstance(container);
-        instance.buildUUID();
         log.info("Starting container with command: {}", 
                  HoyaUtils.join(ctx.getCommands(),"\n"));
         Map<String, LocalResource> lr = ctx.getLocalResources();

@@ -68,11 +68,11 @@ hosts the HDFS NameNode and the YARN Resource Manager
 NN up on [http://master:50070/dfshealth.jsp](http://master:50070/dfshealth.jsp)
 RM yarn-daemon.sh --config $HADOOP_CONF_DIR start nodemanager
 
-    zookeeper/bin/zkServer.sh start
+    ~/zookeeper/bin/zkServer.sh start
 
 
     # shutdown
-    ./zookeeper/bin/zkServer.sh stop
+    ~/zookeeper/bin/zkServer.sh stop
 
 
 Tip: after a successful run on a local cluster, do a quick `rm -rf $HADOOP_HOME/logs`
@@ -141,7 +141,7 @@ This is for demos only, otherwise you lose the clusters and their databases.
     hoya list cl1 \
     --manager master:8032 --filesystem hdfs://master:9090
     
-    hoya flex cl1 \
+    hoya flex cl1 --role worker 2
     --manager master:8032 --filesystem hdfs://master:9090 \
     --role worker 5
     

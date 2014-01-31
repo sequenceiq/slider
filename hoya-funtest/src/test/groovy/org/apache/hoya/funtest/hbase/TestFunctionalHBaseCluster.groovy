@@ -24,8 +24,9 @@ import org.apache.hadoop.conf.Configuration
 
 import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.api.ClusterDescription
+import org.apache.hoya.api.RoleKeys
 import org.apache.hoya.funtest.framework.HoyaFuntestProperties
-import org.apache.hoya.funtest.framework.PortAssignments
+import org.apache.hoya.tools.ConfigHelper
 import org.junit.After
 import org.junit.Before
 
@@ -41,6 +42,9 @@ import static org.apache.hoya.providers.hbase.HBaseKeys.*
 @Slf4j
 public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
     implements HoyaFuntestProperties, Arguments, HoyaExitCodes {
+
+
+  public static final String HBASE_HEAP = "256m"
 
   public String getClusterName() {
     return "test_functional_hbase_cluster"
@@ -70,10 +74,12 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
         clusterName,
         1, numWorkers,
         [
-            ARG_ROLEOPT, ROLE_MASTER, "app.infoport",
-            Integer.toString(masterPortAssignment),
-            ARG_ROLEOPT, ROLE_WORKER, "app.infoport",
-            Integer.toString(workerPortAssignment),
+            ARG_ROLEOPT, ROLE_MASTER, RoleKeys.APP_INFOPORT,
+              Integer.toString(masterPortAssignment),
+            ARG_ROLEOPT, ROLE_MASTER, RoleKeys.JVM_HEAP, HBASE_HEAP,
+            ARG_ROLEOPT, ROLE_WORKER, RoleKeys.APP_INFOPORT,
+              Integer.toString(workerPortAssignment),
+            ARG_ROLEOPT, ROLE_WORKER, RoleKeys.JVM_HEAP, HBASE_HEAP,
         ],
         [:]
     )
@@ -94,7 +100,7 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
     waitForHBaseRegionServerCount(hoyaClient, clusterName,
                                   numWorkers, HBASE_LAUNCH_WAIT_TIME)
 
-    clusterLoadOperations(clientConf, numWorkers, roleMap)
+    clusterLoadOperations(clusterName, clientConf, numWorkers, roleMap, cd2)
   }
 
 
@@ -108,10 +114,13 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
    * @param numWorkers
    */
   public void clusterLoadOperations(
+      String clustername,
       Configuration clientConf,
       int numWorkers,
-      Map<String, Integer> roleMap) {
+      Map<String, Integer> roleMap,
+      ClusterDescription cd) {
 
+    log.info("Client Configuration = " + ConfigHelper.dumpConfigToString(clientConf))
   }
 
 }

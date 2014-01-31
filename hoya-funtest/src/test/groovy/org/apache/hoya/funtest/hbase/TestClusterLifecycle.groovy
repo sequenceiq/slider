@@ -20,13 +20,11 @@ package org.apache.hoya.funtest.hbase
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.HoyaXMLConfKeysForTesting
 import org.apache.hoya.HoyaXmlConfKeys
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.StatusKeys
-import org.apache.hoya.exceptions.HoyaException
 import org.apache.hoya.funtest.framework.HoyaFuntestProperties
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.HoyaActions
@@ -164,27 +162,9 @@ public class TestClusterLifecycle extends HBaseCommandTestBase
                ARG_DEFINE, HoyaXmlConfKeys.KEY_HOYA_RESTART_LIMIT + "=3"
            ])
 
-      
-      hoya(0,[ HoyaActions.ACTION_AM_SUICIDE, CLUSTER,
-              ARG_EXITCODE, "1",
-              ARG_WAIT, "1000",
-              ARG_MESSAGE, "suicide"])
-      
-      sleep(10000)
-      def status
 
-      try {
-        // am should have restarted it by now
-        // cluster is live
-        exists(0, CLUSTER, true)
 
-        status = hoyaClient.getClusterDescription()
-      } catch (HoyaException e) {
-        if (e.exitCode == HoyaExitCodes.EXIT_BAD_CLUSTER_STATE) {
-          log.error("Property $YarnConfiguration.RM_AM_MAX_ATTEMPTS may be too low")
-        }
-        throw e;
-      }
+      ClusterDescription status = killAmAndWaitForRestart(hoyaClient, CLUSTER)
 
       if (HoyaXMLConfKeysForTesting.YARN_AM_SUPPORTS_RESTART) {
 
@@ -192,7 +172,7 @@ public class TestClusterLifecycle extends HBaseCommandTestBase
         def restarted = status.getInfo(
             StatusKeys.INFO_CONTAINERS_AM_RESTART)
         assert restarted != null;
-        //and that the count == 1 master + the region servers
+        
         assert Integer.parseInt(restarted) == 0
       }
 

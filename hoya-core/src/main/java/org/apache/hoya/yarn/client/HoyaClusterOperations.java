@@ -99,10 +99,9 @@ public class HoyaClusterOperations {
 
   /**
    * Connect to a live cluster and get its current state
-   * @param clustername the cluster name
    * @return its description
    */
-  public ClusterDescription getClusterDescription(String clustername) throws
+  public ClusterDescription getClusterDescription() throws
                                                                       YarnException,
                                                                       IOException {
     Messages.GetJSONClusterStatusRequestProto req =

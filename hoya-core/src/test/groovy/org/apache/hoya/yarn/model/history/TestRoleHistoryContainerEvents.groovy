@@ -96,7 +96,6 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
     assert roleEntry.starting == 1
     assert !roleEntry.available
     RoleInstance ri = new RoleInstance(container);
-    ri.buildUUID();
     //start it
     roleHistory.onContainerStartSubmitted(container, ri)
     //later, declare that it started
@@ -135,7 +134,6 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
     assert roleEntry.starting == 1
     assert !roleEntry.available
     RoleInstance ri = new RoleInstance(container);
-    ri.buildUUID();
     //start it
     roleHistory.onContainerStartSubmitted(container, ri)
     //later, declare that it started
@@ -194,7 +192,6 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
     NodeEntry roleEntry = allocated.get(role)
 
     RoleInstance ri = new RoleInstance(container);
-    ri.buildUUID();
     //tell RH that it started
     roleHistory.onContainerStarted(container)
     assert roleEntry.starting == 0
@@ -224,7 +221,6 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
     assert roleEntry.starting == 1
     assert !roleEntry.available
     RoleInstance ri = new RoleInstance(container);
-    ri.buildUUID();
     //start it
     roleHistory.onContainerStartSubmitted(container, ri)
     //later, declare that it failed on startup
@@ -287,7 +283,6 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
     assert roleEntry.starting == 1
     assert !roleEntry.available
     RoleInstance ri = new RoleInstance(container);
-    ri.buildUUID();
     //start it
     roleHistory.onContainerStartSubmitted(container, ri)
     roleHistory.onContainerStarted(container)

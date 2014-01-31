@@ -136,7 +136,7 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
       status = hoyaClient.actionStatus(clustername, null)
       fail("expected an exception, but got the status $status")
     } catch (BadClusterStateException e) {
-      assert e.toString().contains(ErrorStrings.E_FINISHED_APPLICATION)
+      assert e.toString().contains(ErrorStrings.E_APPLICATION_NOT_RUNNING)
     }
   }
 

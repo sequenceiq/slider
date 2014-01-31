@@ -26,7 +26,6 @@ import org.apache.hoya.api.proto.Messages;
 import org.apache.hoya.tools.HoyaUtils;
 
 import java.util.Arrays;
-import java.util.UUID;
 
 /**
  * Info about a continer to keep around when deciding which container to release
@@ -35,9 +34,10 @@ public final class RoleInstance implements Cloneable {
 
   public Container container;
   /**
-   * UUID of container used in Hoya RPC to refer to instances
+   * UUID of container used in Hoya RPC to refer to instances. 
+   * The string value of the container ID is used here.
    */
-  public String uuid;
+  public final String uuid;
   public long createTime;
   public long startTime;
   /**
@@ -80,6 +80,13 @@ public final class RoleInstance implements Cloneable {
 
   public RoleInstance(Container container) {
     this.container = container;
+    if (container == null) {
+      throw new NullPointerException("Null container");
+    }
+    if (container.getId() == null) {
+      throw new NullPointerException("Null container ID");
+    }
+    uuid = container.getId().toString();
   }
 
   public ContainerId getId() {
@@ -109,16 +116,6 @@ public final class RoleInstance implements Cloneable {
     sb.append(", environment=").append(Arrays.toString(environment));
     sb.append('}');
     return sb.toString();
-  }
-
-  public void buildUUID() {
-    if (container == null) {
-      throw new NullPointerException("Null container");
-    }
-    if (container.getId() == null) {
-      throw new NullPointerException("Null container ID");
-    }
-    uuid = container.getId().toString();
   }
 
   public ContainerId getContainerId() {

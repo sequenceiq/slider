@@ -59,6 +59,7 @@ public interface HoyaXMLConfKeysForTesting {
 
 
   /**
+   * AM-RESTART-SUPPORT
    * Flag to indicate whether or not YARN supports container rebind
    * on restart. It is for testing
    */
