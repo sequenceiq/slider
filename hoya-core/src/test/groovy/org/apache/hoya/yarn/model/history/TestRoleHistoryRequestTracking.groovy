@@ -18,9 +18,11 @@
 
 package org.apache.hoya.yarn.model.history
 
+import org.apache.hoya.providers.ProviderRole
 import org.apache.hoya.yarn.appmaster.state.NodeInstance
 import org.apache.hoya.yarn.appmaster.state.OutstandingRequest
 import org.apache.hoya.yarn.appmaster.state.RoleHistory
+import org.apache.hoya.yarn.appmaster.state.RoleStatus
 import org.apache.hoya.yarn.model.mock.BaseMockAppStateTest
 import org.apache.hoya.yarn.model.mock.MockContainer
 import org.apache.hoya.yarn.model.mock.MockFactory
@@ -35,7 +37,8 @@ import org.junit.Test
  */
 class TestRoleHistoryRequestTracking extends BaseMockAppStateTest {
 
-
+  String roleName = "test"
+  
   NodeInstance age1Active4 = nodeInstance(1, 4, 0, 0)
   NodeInstance age2Active2 = nodeInstance(2, 2, 0, 1)
   NodeInstance age3Active0 = nodeInstance(3, 0, 0, 0)
@@ -47,6 +50,9 @@ class TestRoleHistoryRequestTracking extends BaseMockAppStateTest {
   RoleHistory roleHistory = new RoleHistory(MockFactory.ROLES)
   Resource resource = Resource.newInstance(1, 1)
 
+  ProviderRole provRole = new ProviderRole(roleName, 0)
+  RoleStatus roleStatus = new RoleStatus(provRole)
+  
   @Override
   String getTestName() {
     return "TestRoleHistoryAvailableList"
@@ -67,10 +73,10 @@ class TestRoleHistoryRequestTracking extends BaseMockAppStateTest {
   @Test
   public void testRequestedNodeOffList() throws Throwable {
     List<NodeInstance> available0 = roleHistory.cloneAvailableList(0)
-    NodeInstance ni = roleHistory.findNodeForNewInstance(0)
+    NodeInstance ni = roleHistory.findNodeForNewInstance(roleStatus)
     assert age3Active0 == ni
     AMRMClient.ContainerRequest req = roleHistory.requestInstanceOnNode(ni,
-                                                                        0,
+                                                                        roleStatus,
                                                                         resource)
     List<NodeInstance> a2 = roleHistory.cloneAvailableList(0)
     assertListEquals([age2Active0], a2)
@@ -78,7 +84,7 @@ class TestRoleHistoryRequestTracking extends BaseMockAppStateTest {
   
   @Test
   public void testFindAndRequestNode() throws Throwable {
-    AMRMClient.ContainerRequest req = roleHistory.requestNode(0, resource)
+    AMRMClient.ContainerRequest req = roleHistory.requestNode(roleStatus, resource)
 
     assert age3Active0.hostname == req.nodes[0]
     List<NodeInstance> a2 = roleHistory.cloneAvailableList(0)
@@ -87,7 +93,7 @@ class TestRoleHistoryRequestTracking extends BaseMockAppStateTest {
   
   @Test
   public void testRequestedNodeIntoReqList() throws Throwable {
-    AMRMClient.ContainerRequest req = roleHistory.requestNode(0, resource)
+    AMRMClient.ContainerRequest req = roleHistory.requestNode(roleStatus, resource)
     List<OutstandingRequest> requests = roleHistory.outstandingRequestList
     assert requests.size() == 1
     assert age3Active0.hostname == requests[0].hostname
@@ -95,7 +101,7 @@ class TestRoleHistoryRequestTracking extends BaseMockAppStateTest {
   
   @Test
   public void testCompletedRequestDropsNode() throws Throwable {
-    AMRMClient.ContainerRequest req = roleHistory.requestNode(0, resource)
+    AMRMClient.ContainerRequest req = roleHistory.requestNode(roleStatus, resource)
     List<OutstandingRequest> requests = roleHistory.outstandingRequestList
     assert requests.size() == 1
     String hostname = requests[0].hostname
@@ -108,8 +114,8 @@ class TestRoleHistoryRequestTracking extends BaseMockAppStateTest {
   
   @Test
   public void testTwoRequests() throws Throwable {
-    AMRMClient.ContainerRequest req = roleHistory.requestNode(0, resource)
-    AMRMClient.ContainerRequest req2 = roleHistory.requestNode(0, resource)
+    AMRMClient.ContainerRequest req = roleHistory.requestNode(roleStatus, resource)
+    AMRMClient.ContainerRequest req2 = roleHistory.requestNode(roleStatus, resource)
     List<OutstandingRequest> requests = roleHistory.outstandingRequestList
     assert requests.size() == 2
     MockContainer container = factory.newContainer(req, req.nodes[0])
@@ -123,9 +129,9 @@ class TestRoleHistoryRequestTracking extends BaseMockAppStateTest {
     
   @Test
   public void testThreeRequestsOneUnsatisified() throws Throwable {
-    AMRMClient.ContainerRequest req = roleHistory.requestNode(0, resource)
-    AMRMClient.ContainerRequest req2 = roleHistory.requestNode(0, resource)
-    AMRMClient.ContainerRequest req3 = roleHistory.requestNode(0, resource)
+    AMRMClient.ContainerRequest req = roleHistory.requestNode(roleStatus, resource)
+    AMRMClient.ContainerRequest req2 = roleHistory.requestNode(roleStatus, resource)
+    AMRMClient.ContainerRequest req3 = roleHistory.requestNode(roleStatus, resource)
     List<OutstandingRequest> requests = roleHistory.outstandingRequestList
     assert requests.size() == 2
     MockContainer container = factory.newContainer(req, req.nodes[0])
@@ -152,9 +158,9 @@ class TestRoleHistoryRequestTracking extends BaseMockAppStateTest {
   
   @Test
   public void testThreeRequests() throws Throwable {
-    AMRMClient.ContainerRequest req = roleHistory.requestNode(0, resource)
-    AMRMClient.ContainerRequest req2 = roleHistory.requestNode(0, resource)
-    AMRMClient.ContainerRequest req3 = roleHistory.requestNode(0, resource)
+    AMRMClient.ContainerRequest req = roleHistory.requestNode(roleStatus, resource)
+    AMRMClient.ContainerRequest req2 = roleHistory.requestNode(roleStatus, resource)
+    AMRMClient.ContainerRequest req3 = roleHistory.requestNode(roleStatus, resource)
     assert roleHistory.outstandingRequestList.size() == 2
     assert req3.nodes == null
     MockContainer container = factory.newContainer(req, req.nodes[0])

@@ -19,6 +19,7 @@
 package org.apache.hoya.providers.hbase;
 
 import org.apache.hoya.HoyaKeys;
+import org.apache.hoya.providers.PlacementPolicy;
 import org.apache.hoya.providers.ProviderRole;
 
 import java.util.ArrayList;
@@ -41,7 +42,8 @@ public class HBaseRoles {
    */
   static {
     ROLES.add(new ProviderRole(HBaseKeys.ROLE_WORKER, KEY_WORKER));
-    ROLES.add(new ProviderRole(HBaseKeys.ROLE_MASTER, KEY_MASTER));
+    // Master doesn't need data locality
+    ROLES.add(new ProviderRole(HBaseKeys.ROLE_MASTER, KEY_MASTER,PlacementPolicy.NO_DATA_LOCALITY));
   }
 
 

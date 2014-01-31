@@ -727,7 +727,7 @@ public class AppState {
     
     AMRMClient.ContainerRequest request;
     int key = role.getKey();
-    request = roleHistory.requestNode(key, resource);
+    request = roleHistory.requestNode(role, resource);
     role.incRequested();
 
     return request;

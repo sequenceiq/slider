@@ -21,12 +21,15 @@ package org.apache.hoya.yarn.model.history
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hoya.api.RoleKeys
+import org.apache.hoya.providers.PlacementPolicy;
+import org.apache.hoya.providers.ProviderRole
 import org.apache.hoya.yarn.appmaster.state.ContainerPriority
 import org.apache.hoya.yarn.appmaster.state.NodeEntry
 import org.apache.hoya.yarn.appmaster.state.NodeInstance
 import org.apache.hoya.yarn.appmaster.state.NodeMap
 import org.apache.hoya.yarn.appmaster.state.RoleHistory
 import org.apache.hoya.yarn.appmaster.state.RoleInstance
+import org.apache.hoya.yarn.appmaster.state.RoleStatus
 import org.apache.hoya.yarn.model.mock.BaseMockAppStateTest
 import org.apache.hoya.yarn.model.mock.MockContainer
 import org.apache.hoya.yarn.model.mock.MockFactory
@@ -57,6 +60,8 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
   NodeInstance age4Active1 = nodeInstance(4, 1, 0, 0)
   NodeInstance age2Active0 = nodeInstance(2, 0, 0, 0)
   NodeInstance empty = new NodeInstance("empty", MockFactory.ROLE_COUNT)
+  
+  String roleName = "test"
 
   List<NodeInstance> nodes = [age2Active2, age2Active0, age4Active1, age1Active4, age3Active0]
   RoleHistory roleHistory = new RoleHistory(MockFactory.ROLES)
@@ -75,8 +80,11 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
   @Test
   public void testFindAndCreate() throws Throwable {
     int role = 0
+    ProviderRole provRole = new ProviderRole(roleName, role)
+    RoleStatus roleStatus = new RoleStatus(provRole)
+
     AMRMClient.ContainerRequest request =
-        roleHistory.requestNode(role, resource);
+        roleHistory.requestNode(roleStatus, resource);
 
     List<String> nodes = request.getNodes()
     assert nodes != null
@@ -109,12 +117,14 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
   @Test
   public void testCreateAndRelease() throws Throwable {
     int role = 1
+    ProviderRole provRole = new ProviderRole(roleName, role)
+    RoleStatus roleStatus = new RoleStatus(provRole)
 
     //verify it is empty
     assert roleHistory.findNodesForRelease(role, 1).isEmpty()
 
     AMRMClient.ContainerRequest request =
-        roleHistory.requestNode(role, resource);
+        roleHistory.requestNode(roleStatus, resource);
 
     List<String> nodes = request.getNodes()
     assert nodes == null
@@ -165,7 +175,7 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
 
     // ask for a container and expect to get the recently released one
     AMRMClient.ContainerRequest request2 =
-        roleHistory.requestNode(role, resource);
+        roleHistory.requestNode(roleStatus, resource);
 
     List<String> nodes2 = request2.getNodes()
     assert nodes2 != null
@@ -178,7 +188,6 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
 
   @Test
   public void testStartWithoutWarning() throws Throwable {
-
     int role = 0
     //pick an idle host
     String hostname = age3Active0.hostname;
@@ -203,8 +212,11 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
   @Test
   public void testStartFailed() throws Throwable {
     int role = 0
+    ProviderRole provRole = new ProviderRole(roleName, role)
+    RoleStatus roleStatus = new RoleStatus(provRole)
+
     AMRMClient.ContainerRequest request =
-        roleHistory.requestNode(role, resource);
+        roleHistory.requestNode(roleStatus, resource);
 
     String hostname = request.getNodes()[0]
     assert hostname == age3Active0.hostname
@@ -236,8 +248,10 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
   @Test
   public void testStartFailedWithoutWarning() throws Throwable {
     int role = 0
+    ProviderRole provRole = new ProviderRole(roleName, role)
+    RoleStatus roleStatus = new RoleStatus(provRole)
     AMRMClient.ContainerRequest request =
-        roleHistory.requestNode(role, resource);
+        roleHistory.requestNode(roleStatus, resource);
 
     String hostname = request.getNodes()[0]
     assert hostname == age3Active0.hostname
@@ -265,8 +279,10 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
     describe("fail a container without declaring it as starting")
 
     int role = 0
+    ProviderRole provRole = new ProviderRole(roleName, role)
+    RoleStatus roleStatus = new RoleStatus(provRole)
     AMRMClient.ContainerRequest request =
-        roleHistory.requestNode(role, resource);
+        roleHistory.requestNode(roleStatus, resource);
 
     String hostname = request.getNodes()[0]
     assert hostname == age3Active0.hostname
@@ -299,8 +315,10 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
   public void testContainerFailedWithoutWarning() throws Throwable {
     describe( "fail a container without declaring it as starting")
     int role = 0
+    ProviderRole provRole = new ProviderRole(roleName, role)
+    RoleStatus roleStatus = new RoleStatus(provRole)
     AMRMClient.ContainerRequest request =
-        roleHistory.requestNode(role, resource);
+        roleHistory.requestNode(roleStatus, resource);
 
     String hostname = request.getNodes()[0]
     assert hostname == age3Active0.hostname
@@ -327,8 +345,10 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
   public void testAllocationListPrep() throws Throwable {
     describe("test prepareAllocationList")
     int role = 0
+    ProviderRole provRole = new ProviderRole(roleName, role)
+    RoleStatus roleStatus = new RoleStatus(provRole)
     AMRMClient.ContainerRequest request =
-        roleHistory.requestNode(role, resource);
+        roleHistory.requestNode(roleStatus, resource);
 
     String hostname = request.getNodes()[0]
     assert hostname == age3Active0.hostname

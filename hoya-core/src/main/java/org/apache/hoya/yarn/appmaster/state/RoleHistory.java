@@ -409,15 +409,17 @@ public class RoleHistory {
    * @return the instance, or null for none
    */
   @VisibleForTesting
-  public synchronized NodeInstance findNodeForNewInstance(int role) {
-    assert role < roleSize;
+  public synchronized NodeInstance findNodeForNewInstance(RoleStatus role) {
+    if (role.getNoDataLocality()) return null;
+    int roleKey = role.getKey();
+    assert role.getKey() < roleSize;
     NodeInstance nodeInstance = null;
     
-    List<NodeInstance> targets = availableNodes[role];
+    List<NodeInstance> targets = availableNodes[roleKey];
     while (!targets.isEmpty() && nodeInstance == null) {
       NodeInstance head = targets.remove(0);
       ;
-      if (head.getActiveRoleInstances(role) == 0) {
+      if (head.getActiveRoleInstances(roleKey) == 0) {
         nodeInstance = head;
       }
     }
@@ -440,19 +442,19 @@ public class RoleHistory {
    * @return the container priority
    */
   public synchronized AMRMClient.ContainerRequest requestInstanceOnNode(
-    NodeInstance node, int role, Resource resource) {
-    OutstandingRequest outstanding = outstandingRequests.addRequest(node, role);
-    return outstanding.buildContainerRequest(resource, now());
+    NodeInstance node, RoleStatus role, Resource resource) {
+    OutstandingRequest outstanding = outstandingRequests.addRequest(node, role.getKey());
+    return outstanding.buildContainerRequest(resource, role, now());
   }
 
   /**
    * Find a node for a role and request an instance on that (or a location-less
    * instance)
-   * @param role role index
+   * @param role role status
    * @param resource resource capabilities
    * @return a request ready to go
    */
-  public synchronized AMRMClient.ContainerRequest requestNode(int role,
+  public synchronized AMRMClient.ContainerRequest requestNode(RoleStatus role,
                                                               Resource resource) {
     NodeInstance node = findNodeForNewInstance(role);
     return requestInstanceOnNode(node, role, resource);
