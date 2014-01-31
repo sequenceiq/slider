@@ -538,7 +538,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
         secretManager.setMasterKey(
           response.getClientToAMTokenMasterKey().array());
         applicationACLs = response.getApplicationACLs();
-  
+
         //tell the server what the ACLs are 
         rpcService.getServer().refreshServiceAcl(conf, new HoyaAMPolicyProvider());
       }
@@ -557,7 +557,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
             "Configuration directory %s doesn't contain %s - listing is %s",
             confDir, siteXMLFilename, HoyaUtils.listDir(confDir));
         }
-  
+
         //now read it in
         siteConf = ConfigHelper.loadConfFromFile(siteXML);
         log.info("{} file is at {}", siteXMLFilename, siteXML);
@@ -593,7 +593,6 @@ public class HoyaAppMaster extends CompoundLaunchedService
         envVars.put(HADOOP_USER_NAME, hoyaUsername);
       }
     }
-
 
     //launcher service
     launchService = new RoleLaunchService(this,
