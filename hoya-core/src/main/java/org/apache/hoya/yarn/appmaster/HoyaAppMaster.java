@@ -544,8 +544,11 @@ public class HoyaAppMaster extends CompoundLaunchedService
       }
 
       // extract container list
-      List<Container> liveContainers = response.getContainersFromPreviousAttempt();
-
+      List<Container> liveContainers = null;
+/* 
+      // AM-RESTART-SUPPORT
+      liveContainers = response.getContainersFromPreviousAttempt();
+*/
       //now validate the dir by loading in a hadoop-site.xml file from it
 
       Configuration siteConf;
