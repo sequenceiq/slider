@@ -439,7 +439,7 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
 
       status = hoyaClient.clusterDescription
     } catch (HoyaException e) {
-      if (e.exitCode == HoyaExitCodes.EXIT_BAD_CLUSTER_STATE) {
+      if (e.exitCode == EXIT_BAD_CLUSTER_STATE) {
         log.error(
             "Property $YarnConfiguration.RM_AM_MAX_ATTEMPTS may be too low")
       }
