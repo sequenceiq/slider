@@ -20,6 +20,8 @@ package org.apache.hoya.funtest.hbase
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.util.LoadTestTool
+import org.apache.hoya.api.ClusterDescription
+import org.apache.hoya.providers.hbase.HBaseConfigFileOptions
 
 class TestHBaseLoad extends TestFunctionalHBaseCluster {
 
@@ -30,12 +32,19 @@ class TestHBaseLoad extends TestFunctionalHBaseCluster {
 
   @Override
   void clusterLoadOperations(
+      String clustername,
       Configuration clientConf,
       int numWorkers,
-      Map<String, Integer> roleMap) {
+      Map<String, Integer> roleMap,
+      ClusterDescription cd) {
+    
     int numKeys = 4000 * numWorkers
-    String[] args = ["-tn", "test", "-write", "4:100", "-num_keys", numKeys, "-zk",
-         clientConf.get("hbase.zookeeper.quorum"), "-zk_root", "/yarnapps_hoya_yarn_"+getClusterName()]
+    String[] args = ["-tn", "test", "-write", "4:100",
+        "-num_keys", numKeys,
+        "-zk", clientConf.get(HBaseConfigFileOptions.KEY_ZOOKEEPER_QUORUM),
+        "-zk_root", clientConf.get(HBaseConfigFileOptions.KEY_ZNODE_PARENT),
+
+    ]
     LoadTestTool loadTool = new LoadTestTool();
     loadTool.setConf(clientConf)
     int ret = loadTool.run(args);
