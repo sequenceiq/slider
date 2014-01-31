@@ -23,7 +23,6 @@ import org.apache.hoya.HoyaXMLConfKeysForTesting
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.RoleKeys
 import org.apache.hoya.api.StatusKeys
-import org.apache.hoya.funtest.framework.PortAssignments
 import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.hoya.yarn.client.HoyaClient
 import org.apache.hoya.yarn.params.ActionKillContainerArgs
@@ -48,11 +47,12 @@ class TestHBaseNodeFailure extends TestFunctionalHBaseCluster {
 
   @Override
   void clusterLoadOperations(
+      String clustername,
       Configuration clientConf,
       int numWorkers,
-      Map<String, Integer> roleMap) {
+      Map<String, Integer> roleMap,
+      ClusterDescription cd) {
     HoyaClient hoyaClient = bondToCluster(HOYA_CONFIG, clusterName)
-    ClusterDescription c
 
 
     killInstanceOfRole(hoyaClient, HBaseKeys.ROLE_WORKER)
@@ -60,7 +60,7 @@ class TestHBaseNodeFailure extends TestFunctionalHBaseCluster {
     sleep(RESTART_SLEEP_TIME)
 
     //wait for the role counts to be reached
-    def cd = waitForRoleCount(hoyaClient, roleMap, HBASE_LAUNCH_WAIT_TIME)
+    cd = waitForRoleCount(hoyaClient, roleMap, HBASE_LAUNCH_WAIT_TIME)
     // then expect a restart
     waitForHBaseRegionServerCount(
         hoyaClient,
