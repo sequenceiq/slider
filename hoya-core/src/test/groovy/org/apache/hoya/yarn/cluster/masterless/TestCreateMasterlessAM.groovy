@@ -43,12 +43,13 @@ class TestCreateMasterlessAM extends HBaseMiniClusterTestBase {
 
   @Test
   public void testCreateMasterlessAM() throws Throwable {
-    createMiniCluster("TestCreateMasterlessAM", getConfiguration(), 1, true)
+    
 
     describe "create a masterless AM then get the service and look it up via the AM"
 
     //launch fake master
     String clustername = "test_create_masterless_am"
+    createMiniCluster(clustername, getConfiguration(), 1, true)
     ServiceLauncher launcher
     launcher = createMasterlessAM(clustername, 0, true, false)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
