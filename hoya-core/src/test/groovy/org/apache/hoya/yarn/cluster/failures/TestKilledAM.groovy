@@ -28,7 +28,6 @@ import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.ResourceScheduler
-import org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacityScheduler
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fifo.FifoScheduler
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hoya.HoyaXMLConfKeysForTesting
@@ -116,8 +115,10 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
 
     // policy here depends on YARN behavior
     if (!HoyaXMLConfKeysForTesting.YARN_AM_SUPPORTS_RESTART) {
+      // kill hbase masters for OS/X tests to pass
+      killAllMasterServers();
       // expect hbase connection to have failed
-      assertNoHBaseMaster(clientConf)
+      assertNoHBaseMaster(hoyaClient, clientConf)
     }
     // await cluster startup
     ApplicationReport report = hoyaClient.applicationReport
@@ -138,15 +139,11 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
       //and that the count == 1 master (the region servers were killed)
       assert Integer.parseInt(restarted) == 1
 
-
       // now verify the master container is as before (with strict checks for incomplete data)
   
       assert null != status.instances[HBaseKeys.ROLE_MASTER];
       assert 1 == status.instances[HBaseKeys.ROLE_MASTER].size();
       assert hbaseMasterContainer == status.instances[HBaseKeys.ROLE_MASTER][0]
-      
-
-
     }
 
     waitForHBaseRegionServerCount(
