@@ -76,7 +76,13 @@ Here's
         <value>/home/hoya/accumulo-1.6.0-SNAPSHOT-bin.tar</value>
         <description>Accumulo archive URI</description>
       </property>
-    
+
+      <property>
+        <name>hoya.test.am.restart.time</name>
+        <description>Time in millis to await an AM restart</description>
+        <value>30000</value>
+      </property>
+
       <property>
         <name>zk.home</name>
         <value>/home/hoya/zookeeper</value>
