@@ -49,15 +49,6 @@ the `status` operation:
       
 These can be used in debugging cluster behavior.
 
-### The `killcontainer` command will kill a container in a cluster
-
-    killcontainer cl1 container_1390413725233_0001_01_000004
-
-This does not update the desired state of the cluster, and so will trigger
-the Hoya AM to request a replacement container.
-
-This command exists for failure injection in functional tests. 
-
 ### Hoya builds against HBase-0.98.0
 
 Hoya has switched to HBase version 0.98.0, as we required some minor
@@ -79,3 +70,37 @@ started before the application is considered to have failed.
 
 On long-lived applications, a high value ensures that the application master will
 be robust against failures of the underlying servers.
+
+
+### The `killcontainer` command will kill a container in a cluster
+
+    killcontainer cl1 container_1390413725233_0001_01_000004
+
+This does not update the desired state of the cluster, and so will trigger
+the Hoya AM to request a replacement container.
+
+This command exists for failure injection in functional tests. 
+
+### the `am-suicide` command will cause the Hoya Application master to exit
+
+This command instructs the Hoya Application Master to exit, and so trigger
+YARN's response to such a failure.
+
+This command exists for failure injection in functional tests. 
+
+### Hoya has (disabled at compile time) support for Hadoop 2.4 AM restarts
+
+Hadoop 2.4 addss a feature [YARN-1489](https://issues.apache.org/jira/browse/YARN-1489),
+in which an Application Master ("AM") can request that YARN preserve all running
+containers in the event of an AM failure -and supply this list to the replacement
+instance of the AM for it to manage.
+
+Hoya uses this feature to allow the HBase or Accumulo cluster to keep running
+*even when the Application Master has failed*. As such, it removes the
+AM failure as a source of a (transient) outage of the running application.
+
+This feature is disabled, as enabling it prevents Hoya from running on a
+Hadoop 2.2 cluster. There is a branch in the source repository 
+[which enables this feature](https://github.com/hortonworks/hoya/tree/feature/BUG-12943-hadoop-2.4-support). Anyone wishing to explore the feature must
+check out this branch, and build and test it against locally built
+versions of Hadoop 2.4.
