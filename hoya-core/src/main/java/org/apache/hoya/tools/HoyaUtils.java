@@ -168,7 +168,9 @@ public final class HoyaUtils {
         }
         for (File file : files) {
           log.info("deleting {}", file);
-          file.delete();
+          if (!file.delete()) {
+            log.warn("Unable to delete " + file);
+          }
         }
         if (!dir.delete()) {
           log.warn("Unable to delete " + dir);

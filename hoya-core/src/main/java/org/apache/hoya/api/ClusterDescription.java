@@ -68,7 +68,7 @@ import static org.apache.hoya.api.OptionKeys.ZOOKEEPER_PORT;
  * the code paths are simplified.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ClusterDescription {
+public class ClusterDescription implements Cloneable {
   protected static final Logger
     log = LoggerFactory.getLogger(ClusterDescription.class);
 
