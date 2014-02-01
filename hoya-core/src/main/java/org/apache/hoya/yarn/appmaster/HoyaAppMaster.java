@@ -37,6 +37,7 @@ import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterRespo
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
@@ -104,6 +105,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.ByteBuffer;
@@ -545,10 +548,30 @@ public class HoyaAppMaster extends CompoundLaunchedService
 
       // extract container list
       List<Container> liveContainers = null;
-/* 
       // AM-RESTART-SUPPORT
-      liveContainers = response.getContainersFromPreviousAttempt();
-*/
+      Method m = null;
+      String methName = "RegisterApplicationMasterResponse.getContainersFromPreviousAttempt()";
+      Class<? extends RegisterApplicationMasterResponse> cls = response.getClass();
+      try {
+        m = cls.getDeclaredMethod("getContainersFromPreviousAttempt", new Class<?>[] { });
+        m.setAccessible(true);
+      } catch (NoSuchMethodException e) {
+        log.warn(methName + " not found");
+      } catch (SecurityException e) {
+        log.warn("No access to " + methName);
+      }
+      if (m != null) {
+        try {
+          Object obj = m.invoke(response, true);
+          if (obj instanceof List) {
+            liveContainers = (List<Container>) obj;
+          }
+        } catch (InvocationTargetException ite) {
+          log.error(methName + " got", ite);
+        } catch (IllegalAccessException iae) {
+          log.error(methName + " got", iae);
+        }
+      }
       //now validate the dir by loading in a hadoop-site.xml file from it
 
       Configuration siteConf;
