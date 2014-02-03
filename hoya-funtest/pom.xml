@@ -150,12 +150,6 @@
       <artifactId>hoya-core</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>
-        <exclusions>
-          <exclusion>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-client</artifactId>
-          </exclusion>
-        </exclusions>
     </dependency>
 
     <dependency>
