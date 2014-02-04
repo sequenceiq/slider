@@ -26,6 +26,7 @@ import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.RoleKeys
 import org.apache.hoya.funtest.framework.HoyaFuntestProperties
+import static org.apache.hoya.funtest.framework.HoyaFuntestProperties.KEY_HOYA_TEST_HBASE_ENABLED
 import org.apache.hoya.tools.ConfigHelper
 import org.junit.After
 import org.junit.Before
@@ -50,6 +51,12 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
     return "test_functional_hbase_cluster"
   }
   
+  @Before
+  public void verifyPreconditions() {
+    //if tests are not enabled: skip tests
+    assumeBoolOption(HOYA_CONFIG, KEY_HOYA_TEST_HBASE_ENABLED, true)
+  }
+
   @Before
   public void prepareCluster() {
     ensureClusterDestroyed(clusterName)
