@@ -50,12 +50,6 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
   public String getClusterName() {
     return "test_functional_hbase_cluster"
   }
-  
-  @Before
-  public void verifyPreconditions() {
-    //if tests are not enabled: skip tests
-    assumeBoolOption(HOYA_CONFIG, KEY_HOYA_TEST_HBASE_ENABLED, true)
-  }
 
   @Before
   public void prepareCluster() {
