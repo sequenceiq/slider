@@ -21,25 +21,25 @@ package org.apache.hoya.funtest.commands
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.bigtop.itest.shell.Shell
-import org.apache.hoya.yarn.HoyaActions
 import org.apache.hoya.funtest.framework.HoyaCommandTestBase
 import org.apache.hoya.funtest.framework.HoyaShell
+import org.apache.hoya.yarn.HoyaActions
+import org.junit.AfterClass
+import org.junit.BeforeClass
 import org.junit.Test
 
 @CompileStatic
 @Slf4j
-public class TestSimpleCommands extends HoyaCommandTestBase {
+public class TestListCommand extends HoyaCommandTestBase {
 
-  @Test
-  public void testHoyaVersion() throws Throwable {
-    Shell shell = hoya([HoyaActions.ACTION_VERSION])
-    assertSuccess(shell)
-  }
-
-  @Test
-  public void testHoyaUsage() throws Throwable {
-    HoyaShell shell = hoya(0, [HoyaActions.ACTION_USAGE])
-    assertSuccess(shell)
+  @BeforeClass
+  public static void prepareCluster() {
+    assumeFunctionalTestsEnabled();
   }
   
+  @Test
+  public void testListAll() throws Throwable {
+    assertSuccess(list(null))
+  }
+
 }

@@ -25,6 +25,8 @@ import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.HoyaActions
 import org.apache.hoya.funtest.framework.HoyaCommandTestBase
 import org.apache.hoya.funtest.framework.HoyaShell
+import org.junit.AfterClass
+import org.junit.BeforeClass
 import org.junit.Test
 
 /**
@@ -35,6 +37,11 @@ import org.junit.Test
 public class TestUnknownClusterOperations extends HoyaCommandTestBase {
 
   public static final String UNKNOWN = "unknown_cluster"
+
+  @BeforeClass
+  public static void prepareCluster() {
+    assumeFunctionalTestsEnabled();
+  }
 
   @Test
   public void testFreezeUnknownCluster() throws Throwable {

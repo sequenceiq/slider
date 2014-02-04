@@ -44,7 +44,7 @@ public class TestClusterLifecycle extends HBaseCommandTestBase
 
   @BeforeClass
   public static void prepareCluster() {
-    ensureClusterDestroyed(CLUSTER)
+    setupCluster(CLUSTER)
   }
 
   @AfterClass

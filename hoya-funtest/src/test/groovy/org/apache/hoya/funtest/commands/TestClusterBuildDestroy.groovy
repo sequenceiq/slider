@@ -42,15 +42,14 @@ public class TestClusterBuildDestroy extends HoyaCommandTestBase
 
   @BeforeClass
   public static void prepareCluster() {
-    ensureClusterDestroyed(CLUSTER)
-
+    assumeFunctionalTestsEnabled();
+    setupCluster(CLUSTER)
   }
 
   @AfterClass
   public static void destroyCluster() {
-    destroy(CLUSTER)
+    teardown(CLUSTER)
   }
-  
   
   @Test
   public void testBuildAndDestroyCluster() throws Throwable {

@@ -77,6 +77,13 @@ class HoyaTestUtils extends Assert {
     Assume.assumeTrue(message, false);
   }
 
+  public static void assume(boolean condition, String message) {
+    if (!condition) {
+      log.warn("Skipping test: " + message)
+      Assume.assumeTrue(message, false);
+    }
+  }
+
 
   public static void assertListEquals(List left, List right) {
     assert left.size() == right.size();
@@ -127,9 +134,8 @@ class HoyaTestUtils extends Assert {
    */
   public static void assumeBoolOption(
       Configuration conf, String key, boolean defval) {
-    if (!conf.getBoolean(key, defval)) {
-      skip("Configuration key $key is false")
-    }
+    assume(conf.getBoolean(key, defval), 
+      "Configuration key $key is false")
   }
 
   /**

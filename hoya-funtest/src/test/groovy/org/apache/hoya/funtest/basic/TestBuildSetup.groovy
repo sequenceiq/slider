@@ -92,8 +92,7 @@ class TestBuildSetup extends HoyaTestUtils implements HoyaFuntestProperties {
   }
 
   public File getHoyaConfXML() {
-    new File(hoyaConfDirectory,
-             "hoya-client.xml").canonicalFile
+    new File(hoyaConfDirectory, "hoya-client.xml").canonicalFile
   }
 
   public File getHoyaScript() {
@@ -138,6 +137,12 @@ class TestBuildSetup extends HoyaTestUtils implements HoyaFuntestProperties {
   @Test
   public void testConfLoad() throws Throwable {
     Configuration conf = loadHoyaConf()
+  }
+
+  @Test
+  public void testConfHasDefaultFS() throws Throwable {
+    Configuration conf = loadHoyaConf()
+    assumeBoolOption(conf, KEY_HOYA_FUNTESTS_ENABLED, true)
     String fs = conf.get("fs.defaultFS")
     log.info("Test Filesystem $fs")
     assert fs != null
@@ -146,7 +151,9 @@ class TestBuildSetup extends HoyaTestUtils implements HoyaFuntestProperties {
 
   @Test
   public void testConfHasRM() throws Throwable {
+
     Configuration conf = loadHoyaConf()
+    assumeBoolOption(conf, KEY_HOYA_FUNTESTS_ENABLED, true)
     String val = conf.get(YarnConfiguration.RM_ADDRESS)
     log.info("$YarnConfiguration.RM_ADDRESS = $val")
     assert val != YarnConfiguration.DEFAULT_RM_ADDRESS
@@ -165,6 +172,8 @@ class TestBuildSetup extends HoyaTestUtils implements HoyaFuntestProperties {
   @Test
   public void testHBaseBuildsHavePathsDefined() throws Throwable {
     Configuration conf = loadHoyaConf();
+    assumeBoolOption(conf, KEY_HOYA_FUNTESTS_ENABLED, true)
+
     assumeBoolOption(conf, KEY_HOYA_TEST_HBASE_ENABLED, true)
 
     assertStringOptionSet(conf, KEY_HOYA_TEST_HBASE_APPCONF)
@@ -174,6 +183,8 @@ class TestBuildSetup extends HoyaTestUtils implements HoyaFuntestProperties {
   @Test
   public void testAccumuloBuildsHavePathsDefined() throws Throwable {
     Configuration conf = loadHoyaConf();
+    assumeBoolOption(conf, KEY_HOYA_FUNTESTS_ENABLED, true)
+
     assumeBoolOption(conf, KEY_HOYA_TEST_ACCUMULO_ENABLED, true)
 
     assertStringOptionSet(conf, KEY_HOYA_TEST_ACCUMULO_APPCONF)

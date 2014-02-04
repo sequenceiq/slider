@@ -51,7 +51,7 @@ public class TestFunctionalAccumuloM1T1GC1Mon1 extends AccumuloCommandTestBase
 
   @BeforeClass
   public static void prepareCluster() {
-    ensureClusterDestroyed(CLUSTER)
+    setupCluster(CLUSTER)
   }
 
   @AfterClass

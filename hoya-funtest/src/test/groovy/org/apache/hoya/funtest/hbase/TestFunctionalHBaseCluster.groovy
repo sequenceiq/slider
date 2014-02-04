@@ -52,7 +52,7 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
   
   @Before
   public void prepareCluster() {
-    ensureClusterDestroyed(clusterName)
+    setupCluster(clusterName)
   }
 
   @After

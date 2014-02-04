@@ -34,7 +34,10 @@ abstract class HBaseCommandTestBase extends HoyaCommandTestBase {
 
   @Before 
   public void verifyPreconditions() {
-    assumeBoolOption(HOYA_CONFIG, KEY_HOYA_TEST_HBASE_ENABLED, true)
+    assumeHBaseTestsEnabled()
+    getRequiredConfOption(HOYA_CONFIG, KEY_HOYA_TEST_HBASE_TAR)
+    getRequiredConfOption(HOYA_CONFIG, KEY_HOYA_TEST_HBASE_APPCONF)
+
   }
 
   /**

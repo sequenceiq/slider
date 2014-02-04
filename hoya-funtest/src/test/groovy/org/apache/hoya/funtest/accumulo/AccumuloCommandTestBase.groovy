@@ -26,10 +26,7 @@ import org.junit.Before
 
 import static org.apache.hoya.HoyaXMLConfKeysForTesting.KEY_HOYA_TEST_ACCUMULO_APPCONF
 import static org.apache.hoya.HoyaXMLConfKeysForTesting.KEY_HOYA_TEST_ACCUMULO_TAR
-import static org.apache.hoya.HoyaXMLConfKeysForTesting.KEY_HOYA_TEST_HBASE_APPCONF
-import static org.apache.hoya.HoyaXMLConfKeysForTesting.KEY_HOYA_TEST_HBASE_TAR
 import static org.apache.hoya.api.RoleKeys.YARN_MEMORY
-import static org.apache.hoya.funtest.framework.HoyaFuntestProperties.KEY_HOYA_TEST_ACCUMULO_ENABLED
 import static org.apache.hoya.providers.accumulo.AccumuloKeys.*
 import static org.apache.hoya.yarn.Arguments.ARG_PROVIDER
 import static org.apache.hoya.yarn.Arguments.ARG_ROLEOPT
@@ -43,7 +40,7 @@ abstract class AccumuloCommandTestBase extends HoyaCommandTestBase {
   public void verifyPreconditions() {
 
     //if tests are not enabled: skip tests
-    assumeBoolOption(HOYA_CONFIG, KEY_HOYA_TEST_ACCUMULO_ENABLED, true)
+    assumeAccumuloTestsEnabled()
     // but if they are -fail if the values are missing
     getRequiredConfOption(HOYA_CONFIG, OPTION_ZK_HOME)
     getRequiredConfOption(HOYA_CONFIG, OPTION_HADOOP_HOME)

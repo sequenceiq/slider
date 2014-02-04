@@ -36,7 +36,7 @@ public interface HoyaFuntestProperties extends HoyaXMLConfKeysForTesting {
    * Maven Property of location of hoya binary image dir: {@value}
    */
   String HOYA_BIN_DIR_PROP = "hoya.bin.dir"
-  
+
   String KEY_HOYA_TEST_NUM_WORKERS = "hoya.test.cluster.size"
   int DEFAULT_HOYA_NUM_WORKERS = 1
 
@@ -48,4 +48,7 @@ public interface HoyaFuntestProperties extends HoyaXMLConfKeysForTesting {
    */
   String KEY_AM_RESTART_SLEEP_TIME = "hoya.test.am.restart.time"
   int DEFAULT_AM_RESTART_SLEEP_TIME = 30000
+
+  String KEY_HOYA_FUNTESTS_ENABLED = "hoya.funtest.enabled"
+  
 }

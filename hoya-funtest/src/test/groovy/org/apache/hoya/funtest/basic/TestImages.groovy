@@ -23,13 +23,20 @@ import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.Path
 import org.apache.hoya.funtest.framework.HoyaCommandTestBase
 import org.apache.hoya.funtest.framework.HoyaFuntestProperties
+import org.junit.Before
 import org.junit.Test
 
 class TestImages extends HoyaCommandTestBase implements HoyaFuntestProperties {
 
+
+  @Before
+  public void verifyPreconditions() {
+    assumeBoolOption(HOYA_CONFIG, KEY_HOYA_FUNTESTS_ENABLED, true)
+    assumeBoolOption(HOYA_CONFIG, KEY_HOYA_TEST_HBASE_ENABLED, true)
+  }
+  
   @Test
   public void testImageExists() throws Throwable {
-
 
     Configuration conf = loadHoyaConf()
     String testImage = conf.get(KEY_HOYA_TEST_HBASE_TAR)

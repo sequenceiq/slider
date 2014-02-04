@@ -38,6 +38,8 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import static org.apache.hoya.HoyaExitCodes.*
 import static HoyaFuntestProperties.*
+import static org.apache.hoya.providers.accumulo.AccumuloKeys.OPTION_HADOOP_HOME
+import static org.apache.hoya.providers.accumulo.AccumuloKeys.OPTION_ZK_HOME
 import static org.apache.hoya.yarn.Arguments.*
 import static org.apache.hoya.yarn.HoyaActions.*;
 import static org.apache.hoya.testtools.HoyaTestUtils.*
@@ -71,6 +73,8 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
   public static final int HOYA_TEST_TIMEOUT
   public static final boolean ACCUMULO_TESTS_ENABLED
   public static final boolean HBASE_TESTS_ENABLED
+  public static final boolean FUNTESTS_ENABLED
+  
 
   static {
     HOYA_CONFIG = new YarnConfiguration()
@@ -90,6 +94,8 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
     ACCUMULO_LAUNCH_WAIT_TIME = HOYA_CONFIG.getInt(
         KEY_HOYA_ACCUMULO_LAUNCH_TIME,
         DEFAULT_HOYA_ACCUMULO_LAUNCH_TIME)
+    FUNTESTS_ENABLED =
+        HOYA_CONFIG.getBoolean(KEY_HOYA_FUNTESTS_ENABLED, true)
     ACCUMULO_TESTS_ENABLED =
         HOYA_CONFIG.getBoolean(KEY_HOYA_TEST_ACCUMULO_ENABLED, true)
     HBASE_TESTS_ENABLED =
@@ -278,14 +284,27 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
     }
     destroy(0, name)
   }
-  
+
+  /**
+   * If the functional tests are enabled, set up the cluster
+   * 
+   * @param cluster
+   */
+  static void setupCluster(String cluster) {
+    if (FUNTESTS_ENABLED) {
+      ensureClusterDestroyed(cluster)
+    }
+  }
+
   /**
    * Teardown operation -freezes cluster, and may destroy it
    * though for testing it is best if it is retained
-   * @param name
+   * @param name cluster name
    */
   static void teardown(String name) {
-    freeze(name)
+    if (FUNTESTS_ENABLED) {
+      freeze(name)
+    }
   }
 
   /**
@@ -450,4 +469,22 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
     }
     return status
   }
+
+  /**
+   * if tests are not enabled: skip them  
+   */
+  public static void assumeFunctionalTestsEnabled() {
+    assume(FUNTESTS_ENABLED, "Functional tests disabled")
+  }
+
+  public static void assumeAccumuloTestsEnabled() {
+    assumeFunctionalTestsEnabled()
+    assume(ACCUMULO_TESTS_ENABLED, "Accumulo tests disabled")
+  }
+
+  public void assumeHBaseTestsEnabled() {
+    assumeFunctionalTestsEnabled()
+    assume(HBASE_TESTS_ENABLED, "HBase tests disabled")
+  }
+
 }
