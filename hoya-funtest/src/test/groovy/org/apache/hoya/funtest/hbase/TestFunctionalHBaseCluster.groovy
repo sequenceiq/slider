@@ -23,6 +23,7 @@ import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.zookeeper.ZKConfig
 import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.KeeperException;
 
@@ -70,7 +71,7 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
       }
     }, false)
     try {
-      monitor.delete(getClusterZNode(), -1)
+      ZKUtil.deleteRecursive(monitor, getClusterZNode())
     } catch (KeeperException.NoNodeException ignored) {
       log.info(getClusterZNode() + " not there")
     }
