@@ -14,9 +14,9 @@
   
 # Hoya Release 0.11.1
 
-January 2014
+February 2014
 
-This release is built against the Apache Hadoop 2.2.0 and hbase 0.96.1.1-hadoop2
+This release is built against the Apache Hadoop 2.2.0 and hbase HBase-0.98.0
 artifacts. 
 
 
@@ -88,9 +88,9 @@ YARN's response to such a failure.
 
 This command exists for failure injection in functional tests. 
 
-### Hoya has (disabled at compile time) support for Hadoop 2.4 AM restarts
+### Hoya has (disabled at compile time) support for Hadoop 2.3 AM restarts
 
-Hadoop 2.4 addss a feature [YARN-1489](https://issues.apache.org/jira/browse/YARN-1489),
+Hadoop 2.4 adds a feature [YARN-1489](https://issues.apache.org/jira/browse/YARN-1489),
 in which an Application Master ("AM") can request that YARN preserve all running
 containers in the event of an AM failure -and supply this list to the replacement
 instance of the AM for it to manage.
@@ -103,4 +103,4 @@ This feature is disabled, as enabling it prevents Hoya from running on a
 Hadoop 2.2 cluster. There is a branch in the source repository 
 [which enables this feature](https://github.com/hortonworks/hoya/tree/feature/BUG-12943-hadoop-2.4-support). Anyone wishing to explore the feature must
 check out this branch, and build and test it against locally built
-versions of Hadoop 2.4.
+versions of Hadoop 2.3.
