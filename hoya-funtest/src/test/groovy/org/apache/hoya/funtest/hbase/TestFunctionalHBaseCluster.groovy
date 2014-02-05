@@ -21,6 +21,11 @@ package org.apache.hoya.funtest.hbase
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.hbase.zookeeper.ZKConfig
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.ZKUtil;
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.KeeperException;
 
 import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.api.ClusterDescription
@@ -51,8 +56,25 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
     return "test_functional_hbase_cluster"
   }
 
+  public String getClusterZNode() {
+    return "/yarnapps_hoya_yarn_" + getClusterName();
+  }
+
   @Before
   public void prepareCluster() {
+    HOYA_CONFIG.set("hbase.zookeeper.quorum", HOYA_CONFIG.get("hoya.test.zkhosts"))
+    String quorumServers = ZKConfig.getZKQuorumServersString(HOYA_CONFIG);
+    ZooKeeper monitor = new ZooKeeper(quorumServers,
+      1000, new org.apache.zookeeper.Watcher(){
+      @Override
+      public void process(WatchedEvent watchedEvent) {
+      }
+    }, false)
+    try {
+      ZKUtil.deleteRecursive(monitor, getClusterZNode())
+    } catch (KeeperException.NoNodeException ignored) {
+      log.info(getClusterZNode() + " not there")
+    }
     setupCluster(clusterName)
   }
 
