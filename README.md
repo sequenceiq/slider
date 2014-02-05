@@ -12,19 +12,30 @@
   limitations under the License. See accompanying LICENSE file.
 -->
 
-# Hoya: HBase on YARN
+# Hoya
 
 
-Hoya is a YARN an application that can deploy HBase cluster on YARN, 
+Hoya is a YARN application to deploy existing distributed applications on YARN, 
 monitor them and make them larger or smaller as desired -even while 
 the cluster is running.
-Clusters can be stopped, "frozen" and restarted, "thawed" later.
 
-It works on an Apache Hadoop 2.2 YARN cluster with Hbase 0.96.0 or later.
 
-It also has some initial support for Apache Accumulo, though that
-code has not been tested at any scale. 
+Hoya has a plug-in *provider* architecture to support different applications,
+and currently supports Apache HBase and Apache Accumulo.
 
+Clusters can be stopped, "frozen" and restarted, "thawed" later; the distribution
+of the deployed application across the YARN cluster is persisted -enabling
+a best-effort placement close to the previous locations on a cluster thaw.
+Applications which remember the previous placement of data (such as HBase)
+can exhibit fast start-up times from this feature.
+
+YARN itself monitors the health of 'YARN containers" hosting parts of 
+the deployed application -it notifies the Hoya manager application of container
+failure. Hoya then asks YARN for a new container, into which Hoya deploys
+a replacement for the failed component. As a result, Hoya can keep the
+size of managed applications consistent with the specified configuration, even
+in the face of failures of servers in the cluster -as well as parts of the
+application itself
 
 ## Using Hoya
 

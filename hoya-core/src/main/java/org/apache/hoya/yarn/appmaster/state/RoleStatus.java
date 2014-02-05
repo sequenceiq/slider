@@ -79,6 +79,10 @@ public final class RoleStatus implements Cloneable {
   public boolean getExcludeFromFlexing() {
     return 0 != (getPlacementPolicy() & PlacementPolicy.EXCLUDE_FROM_FLEXING);
   }
+  
+  public boolean getNoDataLocality() {
+    return 0 != (getPlacementPolicy() & PlacementPolicy.NO_DATA_LOCALITY);
+  }
 
   public int getDesired() {
     return desired;

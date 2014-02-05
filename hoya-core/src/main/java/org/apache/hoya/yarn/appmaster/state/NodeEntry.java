@@ -198,7 +198,7 @@ public class NodeEntry {
     return startFailed;
   }
 
-  public int getFailed() {
+  public synchronized int getFailed() {
     return failed;
   }
 

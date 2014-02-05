@@ -187,10 +187,33 @@ a limited number of hoya-specific configuration parameters.
       <value>1</value>
     </property>
 
+    <property>
+      <name>hoya.yarn.restart.limit</name>
+      <value>5</value>
+      <description>How many times to start/restart the Hoya AM</description>
+    </property>
+
 
 ### `hoya.security.enabled` - enable security.
 
 This turns security on; consult [Security](security.html) for more information.
+
+
+### `hoya.yarn.restart.limit` - set limit on Application Master Restarts
+
+This limits how many times YARN should start a failed application master.
+
+A short restart limit is useful when initially creating a cluster, as it
+ensures that YARN does not repeatedly try to restart a failing application.
+
+In production, however, a large number prevents YARN from halting a Hoya
+application merely because failures in the underlying YARN cluster have
+triggered restarts.
+
+*Important:* The cluster-wide limit of `yarn.resourcemanager.am.max-attempts`
+places an upper limit on the number of retries that any application can request.
+If the application fails after less restarts than requested, check this cluster
+setting.
 
 ### `hoya.yarn.queue` - the name of the YARN queue for the cluster.
 
@@ -218,7 +241,7 @@ that contains the cluster specification `${user.home}/.hoya/clusters/${clusterna
 
     <property>
       <name>hoya.cluster.directory.permissions</name>
-      <value>775</value>
+      <value>750</value>
     </property>
 
 #### `hoya.data.directory.permissions`
@@ -228,7 +251,7 @@ that contains the application data `${user.home}/.hoya/clusters/${clustername}/d
 
     <property>
       <name>hoya.data.directory.permissions</name>
-      <value>775</value>
+      <value>750</value>
     </property>
 
 

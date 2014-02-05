@@ -37,6 +37,7 @@ import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterRespo
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
@@ -89,6 +90,7 @@ import org.apache.hoya.yarn.appmaster.rpc.RpcBinder;
 import org.apache.hoya.yarn.appmaster.state.AbstractRMOperation;
 import org.apache.hoya.yarn.appmaster.state.AppState;
 import org.apache.hoya.yarn.appmaster.state.ContainerAssignment;
+import org.apache.hoya.yarn.appmaster.state.ContainerReleaseOperation;
 import org.apache.hoya.yarn.appmaster.state.RMOperationHandler;
 import org.apache.hoya.yarn.appmaster.state.RoleInstance;
 import org.apache.hoya.yarn.appmaster.state.RoleStatus;
@@ -103,6 +105,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.ByteBuffer;
@@ -110,6 +114,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -249,6 +254,9 @@ public class HoyaAppMaster extends CompoundLaunchedService
   private String amCompletionReason;
 
   private RoleLaunchService launchService;
+  
+  //username -null if it is not known/not to be set
+  private String hoyaUsername;
 
 
   /**
@@ -431,8 +439,9 @@ public class HoyaAppMaster extends CompoundLaunchedService
     ApplicationId appid = appAttemptID.getApplicationId();
     log.info("Hoya AM for ID {}", appid.getId());
 
+    UserGroupInformation currentUser = UserGroupInformation.getCurrentUser();
     Credentials credentials =
-      UserGroupInformation.getCurrentUser().getCredentials();
+      currentUser.getCredentials();
     DataOutputBuffer dob = new DataOutputBuffer();
     credentials.writeTokenStorageToStream(dob);
     dob.close();
@@ -450,36 +459,45 @@ public class HoyaAppMaster extends CompoundLaunchedService
     // set up secret manager
     secretManager = new ClientToAMTokenSecretManager(appAttemptID, null);
 
-    int heartbeatInterval = HEARTBEAT_INTERVAL;
+    // if not a secure cluster, extract the username -it will be
+    // propagated to workers
+    if (!UserGroupInformation.isSecurityEnabled()) {
+      hoyaUsername = System.getenv(HADOOP_USER_NAME);
+      log.info(HADOOP_USER_NAME + "='{}'", hoyaUsername);
+    }
 
-    //add the RM client -this brings the callbacks in
-    asyncRMClient = AMRMClientAsync.createAMRMClientAsync(HEARTBEAT_INTERVAL,
-                                                          this);
-    addService(asyncRMClient);
-    //wrap it for the app state model
-    rmOperationHandler = new AsyncRMOperationHandler(asyncRMClient);
-    //now bring it up
-    runChildService(asyncRMClient);
+    Map<String, String> envVars;
+    synchronized (appState) {
+      int heartbeatInterval = HEARTBEAT_INTERVAL;
+
+      //add the RM client -this brings the callbacks in
+      asyncRMClient = AMRMClientAsync.createAMRMClientAsync(heartbeatInterval,
+                                                            this);
+      addService(asyncRMClient);
+      //wrap it for the app state model
+      rmOperationHandler = new AsyncRMOperationHandler(asyncRMClient);
+      //now bring it up
+      runChildService(asyncRMClient);
 
 
-    //nmclient relays callbacks back to this class
-    nmClientAsync = new NMClientAsyncImpl("hoya", this);
-    runChildService(nmClientAsync);
+      //nmclient relays callbacks back to this class
+      nmClientAsync = new NMClientAsyncImpl("hoya", this);
+      runChildService(nmClientAsync);
 
-    //bring up the Hoya RPC service
-    startHoyaRPCServer();
+      //bring up the Hoya RPC service
+      startHoyaRPCServer();
 
-    InetSocketAddress rpcServiceAddr = rpcService.getConnectAddress();
-    appMasterHostname = rpcServiceAddr.getHostName();
-    appMasterRpcPort = rpcServiceAddr.getPort();
-    appMasterTrackingUrl = null;
-    log.info("HoyaAM Server is listening at {}:{}", appMasterHostname,
-             appMasterRpcPort);
+      InetSocketAddress rpcServiceAddr = rpcService.getConnectAddress();
+      appMasterHostname = rpcServiceAddr.getHostName();
+      appMasterRpcPort = rpcServiceAddr.getPort();
+      appMasterTrackingUrl = null;
+      log.info("HoyaAM Server is listening at {}:{}", appMasterHostname,
+               appMasterRpcPort);
 
-    //build the role map
-    List<ProviderRole> providerRoles =
-      new ArrayList<ProviderRole>(providerService.getRoles());
-    providerRoles.addAll(amClientProvider.getRoles());
+      //build the role map
+      List<ProviderRole> providerRoles =
+        new ArrayList<ProviderRole>(providerService.getRoles());
+      providerRoles.addAll(amClientProvider.getRoles());
 
 
 /*  DISABLED 
@@ -500,82 +518,114 @@ public class HoyaAppMaster extends CompoundLaunchedService
     appMasterTrackingUrl = "http://" + appMasterHostname + ":" + infoport;
 
     */
-    appMasterTrackingUrl = null;
+      appMasterTrackingUrl = null;
 
 
-    // Register self with ResourceManager
-    // This will start heartbeating to the RM
-    address = HoyaUtils.getRmSchedulerAddress(asyncRMClient.getConfig());
-    log.info("Connecting to RM at {},address tracking URL={}",
-             appMasterRpcPort, appMasterTrackingUrl);
-    RegisterApplicationMasterResponse response = asyncRMClient
-      .registerApplicationMaster(appMasterHostname,
-                                 appMasterRpcPort,
-                                 appMasterTrackingUrl);
-    Resource maxResources =
-      response.getMaximumResourceCapability();
-    containerMaxMemory = maxResources.getMemory();
-    containerMaxCores = maxResources.getVirtualCores();
-    appState.setContainerLimits(maxResources.getMemory(),
-                                maxResources.getVirtualCores());
-    boolean securityEnabled = UserGroupInformation.isSecurityEnabled();
-    if (securityEnabled) {
-      secretManager.setMasterKey(
-        response.getClientToAMTokenMasterKey().array());
-      applicationACLs = response.getApplicationACLs();
+      // Register self with ResourceManager
+      // This will start heartbeating to the RM
+      // address = HoyaUtils.getRmSchedulerAddress(asyncRMClient.getConfig());
+      log.info("Connecting to RM at {},address tracking URL={}",
+               appMasterRpcPort, appMasterTrackingUrl);
+      RegisterApplicationMasterResponse response = asyncRMClient
+        .registerApplicationMaster(appMasterHostname,
+                                   appMasterRpcPort,
+                                   appMasterTrackingUrl);
+      Resource maxResources =
+        response.getMaximumResourceCapability();
+      containerMaxMemory = maxResources.getMemory();
+      containerMaxCores = maxResources.getVirtualCores();
+      appState.setContainerLimits(maxResources.getMemory(),
+                                  maxResources.getVirtualCores());
+      boolean securityEnabled = UserGroupInformation.isSecurityEnabled();
+      if (securityEnabled) {
+        secretManager.setMasterKey(
+          response.getClientToAMTokenMasterKey().array());
+        applicationACLs = response.getApplicationACLs();
 
-      //tell the server what the ACLs are 
-      rpcService.getServer().refreshServiceAcl(conf, new HoyaAMPolicyProvider());
-    }
-    
-    //TODO: build from response once it is coming back
-    List<Container> liveContainers = null;
-
-    //now validate the dir by loading in a hadoop-site.xml file from it
-
-    Configuration siteConf;
-    String siteXMLFilename = providerService.getSiteXMLFilename();
-    if (siteXMLFilename != null) {
-      File siteXML = new File(confDir, siteXMLFilename);
-      if (!siteXML.exists()) {
-        throw new BadCommandArgumentsException(
-          "Configuration directory %s doesn't contain %s - listing is %s",
-          confDir, siteXMLFilename, HoyaUtils.listDir(confDir));
+        //tell the server what the ACLs are 
+        rpcService.getServer().refreshServiceAcl(conf, new HoyaAMPolicyProvider());
       }
 
-      //now read it in
-      siteConf = ConfigHelper.loadConfFromFile(siteXML);
-      log.info("{} file is at {}", siteXMLFilename, siteXML);
-      log.info(ConfigHelper.dumpConfigToString(siteConf));
-    } else {
-      //no site configuration: have an empty one
-      siteConf = new Configuration(false);
+      // extract container list
+      List<Container> liveContainers = null;
+      // AM-RESTART-SUPPORT
+      Method m = null;
+      String methName = "RegisterApplicationMasterResponse.getContainersFromPreviousAttempt()";
+      Class<? extends RegisterApplicationMasterResponse> cls = response.getClass();
+      try {
+        m = cls.getDeclaredMethod("getContainersFromPreviousAttempt", new Class<?>[] { });
+        m.setAccessible(true);
+      } catch (NoSuchMethodException e) {
+        log.warn(methName + " not found");
+      } catch (SecurityException e) {
+        log.warn("No access to " + methName);
+      }
+      if (m != null) {
+        try {
+          Object obj = m.invoke(response, true);
+          if (obj instanceof List) {
+            liveContainers = (List<Container>) obj;
+          }
+        } catch (InvocationTargetException ite) {
+          log.error(methName + " got", ite);
+        } catch (IllegalAccessException iae) {
+          log.error(methName + " got", iae);
+        }
+      }
+      //now validate the dir by loading in a hadoop-site.xml file from it
+
+      Configuration siteConf;
+      String siteXMLFilename = providerService.getSiteXMLFilename();
+      if (siteXMLFilename != null) {
+        File siteXML = new File(confDir, siteXMLFilename);
+        if (!siteXML.exists()) {
+          throw new BadCommandArgumentsException(
+            "Configuration directory %s doesn't contain %s - listing is %s",
+            confDir, siteXMLFilename, HoyaUtils.listDir(confDir));
+        }
+
+        //now read it in
+        siteConf = ConfigHelper.loadConfFromFile(siteXML);
+        log.info("{} file is at {}", siteXMLFilename, siteXML);
+        log.info(ConfigHelper.dumpConfigToString(siteConf));
+      } else {
+        //no site configuration: have an empty one
+        siteConf = new Configuration(false);
+      }
+
+      providerService.validateApplicationConfiguration(clusterSpec, confDir, securityEnabled);
+
+      //determine the location for the role history data
+      Path historyDir = new Path(clusterDirPath, HISTORY_DIR_NAME);
+
+      //build the instance
+      appState.buildInstance(clusterSpec,
+                             siteConf,
+                             providerRoles,
+                             fs,
+                             historyDir,
+                             liveContainers);
+
+      //before bothering to start the containers, bring up the master.
+      //This ensures that if the master doesn't come up, less
+      //cluster resources get wasted
+
+      appState.buildAppMasterNode(appMasterContainerID);
+
+      // build up environment variables that the AM wants set in every container
+      // irrespective of provider and role.
+      envVars = new HashMap<String, String>();
+      if (hoyaUsername != null) {
+        envVars.put(HADOOP_USER_NAME, hoyaUsername);
+      }
     }
-
-    providerService.validateApplicationConfiguration(clusterSpec, confDir, securityEnabled);
-
-    //determine the location for the role history data
-    Path historyDir = new Path(clusterDirPath, HISTORY_DIR_NAME);
-    
-    //build the instance
-    appState.buildInstance(clusterSpec,
-                           siteConf,
-                           providerRoles,
-                           fs,
-                           historyDir,
-                           liveContainers);
-
-    //before bothering to start the containers, bring up the master.
-    //This ensures that if the master doesn't come up, less
-    //cluster resources get wasted
-
-    appState.buildAppMasterNode(appMasterContainerID);
 
     //launcher service
     launchService = new RoleLaunchService(this,
                                           providerService,
                                           getClusterFS(),
-                                          new Path(getDFSConfDir()));
+                                          new Path(getDFSConfDir()), 
+                                          envVars);
     runChildService(launchService);
 
     appState.noteAMLaunched();
@@ -1047,7 +1097,56 @@ public class HoyaAppMaster extends CompoundLaunchedService
     return builder.build();
   }
 
-  
+  @Override
+  public Messages.EchoResponseProto echo(Messages.EchoRequestProto request) throws
+                                                                            IOException,
+                                                                            YarnException {
+    Messages.EchoResponseProto.Builder builder =
+      Messages.EchoResponseProto.newBuilder();
+    String text = request.getText();
+    log.info("Echo request size ={}", text.length());
+    log.info(text);
+    //now return it
+    builder.setText(text);
+    return builder.build();
+  }
+
+  @Override
+  public Messages.KillContainerResponseProto killContainer(Messages.KillContainerRequestProto request) throws
+                                                                                                       IOException,
+                                                                                                       YarnException {
+    String containerID = request.getId();
+    log.info("Kill Container {}", containerID);
+    //throws NoSuchNodeException if it is missing
+    RoleInstance instance =
+      appState.getLiveInstanceByUUID(containerID);
+    List<AbstractRMOperation> opsList =
+      new LinkedList<AbstractRMOperation>();
+    ContainerReleaseOperation release =
+      new ContainerReleaseOperation(instance.getId());
+    opsList.add(release);
+    //now apply the operations
+    rmOperationHandler.execute(opsList);
+    Messages.KillContainerResponseProto.Builder builder =
+      Messages.KillContainerResponseProto.newBuilder();
+    builder.setSuccess(true);
+    return builder.build();
+  }
+
+  @Override
+  public Messages.AMSuicideResponseProto amSuicide(Messages.AMSuicideRequestProto request) throws
+                                                                                           IOException,
+                                                                                           YarnException {
+    int signal = request.getSignal();
+    String text = request.getText();
+    int delay = request.getDelay();
+    log.info("AM Suicide with signal {}, message {} delay = {}", signal, text, delay);
+    HoyaUtils.haltAM(signal, text, delay);
+    Messages.AMSuicideResponseProto.Builder builder =
+      Messages.AMSuicideResponseProto.newBuilder();
+    return builder.build();
+  }
+
 /* =================================================================== */
 /* END */
 /* =================================================================== */
@@ -1351,6 +1450,13 @@ public class HoyaAppMaster extends CompoundLaunchedService
     return providerService;
   }
 
+  /**
+   * Get the username for the hoya cluster as set in the environment
+   * @return the username or null if none was set/it is a secure cluster
+   */
+  public String getHoyaUsername() {
+    return hoyaUsername;
+  }
 
   /**
    * This is the main entry point for the service launcher.

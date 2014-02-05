@@ -20,11 +20,12 @@ package org.apache.hoya.funtest.hbase
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import org.apache.hadoop.yarn.service.launcher.LauncherExitCodes
 import org.apache.hoya.HoyaExitCodes
+import org.apache.hoya.HoyaXMLConfKeysForTesting
+import org.apache.hoya.HoyaXmlConfKeys
 import org.apache.hoya.api.ClusterDescription
+import org.apache.hoya.api.StatusKeys
 import org.apache.hoya.funtest.framework.HoyaFuntestProperties
-import org.apache.hoya.tools.HoyaUtils
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.HoyaActions
 import org.apache.hoya.yarn.client.HoyaClient
@@ -43,7 +44,7 @@ public class TestClusterLifecycle extends HBaseCommandTestBase
 
   @BeforeClass
   public static void prepareCluster() {
-    ensureClusterDestroyed(CLUSTER)
+    setupCluster(CLUSTER)
   }
 
   @AfterClass
@@ -130,11 +131,12 @@ public class TestClusterLifecycle extends HBaseCommandTestBase
       exists(EXIT_FALSE, CLUSTER, true)
 
 
+      // thaw then freeze the cluster
 
       hoya(0,
            [
                HoyaActions.ACTION_THAW, CLUSTER,
-               ARG_WAIT, Integer.toString(THAW_WAIT_TIME)
+               ARG_WAIT, Integer.toString(THAW_WAIT_TIME),
            ])
       exists(0, CLUSTER)
       hoya(0, [
@@ -143,10 +145,39 @@ public class TestClusterLifecycle extends HBaseCommandTestBase
           ARG_WAIT, Integer.toString(FREEZE_WAIT_TIME),
           ARG_MESSAGE, "forced-freeze-in-test"
       ])
-      //cluster exists if you don't want it to be live
+
+      //cluster is no longer live
       exists(0, CLUSTER, false)
+      
       // condition returns false if it is required to be live
       exists(EXIT_FALSE, CLUSTER, true)
+
+      // thaw with a restart count set to enable restart
+
+      describe "the kill/restart phase may fail if yarn.resourcemanager.am.max-attempts is too low"
+      hoya(0,
+           [
+               HoyaActions.ACTION_THAW, CLUSTER,
+               ARG_WAIT, Integer.toString(THAW_WAIT_TIME),
+               ARG_DEFINE, HoyaXmlConfKeys.KEY_HOYA_RESTART_LIMIT + "=3"
+           ])
+
+
+
+      ClusterDescription status = killAmAndWaitForRestart(hoyaClient, CLUSTER)
+
+      if (HoyaXMLConfKeysForTesting.YARN_AM_SUPPORTS_RESTART) {
+
+        // verify the AM restart container count was set
+        def restarted = status.getInfo(
+            StatusKeys.INFO_CONTAINERS_AM_RESTART)
+        assert restarted != null;
+        
+        assert Integer.parseInt(restarted) == 0
+      }
+
+      
+      freeze(CLUSTER)
 
       destroy(0, CLUSTER)
 

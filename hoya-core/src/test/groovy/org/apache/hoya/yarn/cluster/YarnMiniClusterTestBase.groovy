@@ -28,6 +28,7 @@ import org.apache.hadoop.fs.FileUtil
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hdfs.MiniDFSCluster
 import org.apache.hoya.HoyaExitCodes
+import org.apache.hoya.HoyaXmlConfKeys
 import org.apache.hoya.api.ClusterNode
 import org.apache.hoya.api.OptionKeys
 import org.apache.hoya.api.RoleKeys
@@ -85,14 +86,18 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
 
   public static final int SIGTERM = -15
   public static final int SIGKILL = -9
-  public static final int SIGSTOP = -19
+  public static final int SIGSTOP = -17
   public static final String SERVICE_LAUNCHER = "ServiceLauncher"
   public static
   final String NO_ARCHIVE_DEFINED = "Archive configuration option not set: "
   public static final String YRAM = "256"
 
 
-  public static final YarnConfiguration HOYA_CONFIG = HoyaUtils.createConfiguration();
+  public static final YarnConfiguration HOYA_CONFIG = HoyaUtils.createConfiguration(); 
+  static {
+    HOYA_CONFIG.setInt(HoyaXmlConfKeys.KEY_HOYA_RESTART_LIMIT, 1)
+    HOYA_CONFIG.setInt(YarnConfiguration.RM_AM_MAX_ATTEMPTS, 100)
+  }
 
 
   public static final int THAW_WAIT_TIME
@@ -531,7 +536,6 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
         Arguments.ARG_ZKHOSTS, ZKHosts,
         Arguments.ARG_ZKPORT, ZKPort.toString(),
         Arguments.ARG_FILESYSTEM, fsDefaultName,
-        Arguments.ARG_OPTION, OptionKeys.HOYA_TEST_FLAG, "true",
         Arguments.ARG_DEBUG,
         Arguments.ARG_CONFDIR, confDir
     ]
@@ -764,9 +768,10 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
    * @return the exit code
    */
   public int clusterActionFreeze(HoyaClient hoyaClient, String clustername, String message = "action freeze") {
-    log.info("Freezing cluster $clustername")
+    log.info("Freezing cluster $clustername: $message")
     ActionFreezeArgs freezeArgs  = new ActionFreezeArgs();
     freezeArgs.waittime = CLUSTER_STOP_TIME
+    freezeArgs.message = message
     int exitCode = hoyaClient.actionFreeze(clustername,
                                            freezeArgs);
     if (exitCode != 0) {

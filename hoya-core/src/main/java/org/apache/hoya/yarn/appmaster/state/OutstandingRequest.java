@@ -95,10 +95,12 @@ public final class OutstandingRequest {
    * If the request has an address, it is set in the container request
    * (with a flag to enable relaxed priorities)
    * @param resource resource
+   * @param role role
    * @param time: time to record
    * @return the request to raise
    */
-  public AMRMClient.ContainerRequest buildContainerRequest(Resource resource, long time) {
+  public AMRMClient.ContainerRequest buildContainerRequest(Resource resource,
+      RoleStatus role, long time) {
     String[] hosts;
     boolean relaxLocality;
     boolean locationSpecified;

@@ -42,10 +42,4 @@ public class TestSimpleCommands extends HoyaCommandTestBase {
     assertSuccess(shell)
   }
   
-  @Test
-  public void testListAll() throws Throwable {
-    assertSuccess(list(null))
-  }
-
-
 }

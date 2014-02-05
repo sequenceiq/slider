@@ -36,6 +36,7 @@ import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.api.StatusKeys;
+import org.apache.hoya.exceptions.BadClusterStateException;
 import org.apache.hoya.exceptions.ErrorStrings;
 import org.apache.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hoya.exceptions.HoyaRuntimeException;
@@ -341,7 +342,8 @@ public class AppState {
                             List<ProviderRole> providerRoles,
                             FileSystem fs,
                             Path historyDir,
-                            List<Container> liveContainers) {
+                            List<Container> liveContainers) throws
+                                                            BadClusterStateException {
     this.siteConf = siteConf;
 
     // set the cluster specification
@@ -457,7 +459,6 @@ public class AppState {
     
     RoleInstance am = new RoleInstance(container);
     am.role = HoyaKeys.ROLE_HOYA_AM;
-    am.buildUUID();
     appMasterNode = am;
     //it is also added to the set of live nodes
     getLiveNodes().put(containerId, am);
@@ -565,10 +566,9 @@ public class AppState {
    * @param uuid the UUID
    * @return null if there is no such node
    * @throws NoSuchNodeException if the node cannot be found
-   * @throws IOException IO problems
    */
   public synchronized RoleInstance getLiveInstanceByUUID(String uuid)
-    throws IOException, NoSuchNodeException {
+    throws NoSuchNodeException {
     Collection<RoleInstance> nodes = getLiveNodes().values();
     for (RoleInstance node : nodes) {
       if (uuid.equals(node.uuid)) {
@@ -583,7 +583,7 @@ public class AppState {
    * Get the details on a list of instaces referred to by UUID.
    * Unknown nodes are not returned
    * <i>Important: the order of the results are undefined</i>
-   * @param uuid the UUIDs
+   * @param uuids the UUIDs
    * @return list of instances
    * @throws IOException IO problems
    */
@@ -596,9 +596,8 @@ public class AppState {
    * Get the details on a list of instaces referred to by UUID.
    * Unknown nodes are not returned
    * <i>Important: the order of the results are undefined</i>
-   * @param uuid the UUIDs
+   * @param uuids the UUIDs
    * @return list of instances
-   * @throws IOException IO problems
    */
   public List<RoleInstance> getLiveContainerInfosByUUID(Collection<String> uuids) {
     //first, a hashmap of those uuids is built up
@@ -634,15 +633,18 @@ public class AppState {
 
   /**
    * Build an instance map.
-   * @return the map of RoleId to count
+   * @return the map of Role name to list of role instances
    */
-  private synchronized Map<String, Integer> createRoleToInstanceMap() {
-    Map<String, Integer> map = new HashMap<String, Integer>();
+  private synchronized Map<String, List<String>> createRoleToInstanceMap() {
+    Map<String, List<String>> map = new HashMap<String, List<String>>();
+    
     for (RoleInstance node : getLiveNodes().values()) {
-      Integer entry = map.get(node.role);
-      int current = entry != null ? entry : 0;
-      current++;
-      map.put(node.role, current);
+      List<String> containers = map.get(node.role);
+      if (containers == null) {
+        containers = new ArrayList<String>();
+        map.put(node.role, containers);
+      }
+      containers.add(node.uuid);
     }
     return map;
   }
@@ -699,7 +701,7 @@ public class AppState {
    * then create the container request itself.
    * @param role role to ask an instance of
    * @param capability a resource to set up
-   * @return
+   * @return the request for a new container
    */
   public AMRMClient.ContainerRequest buildContainerResourceAndRequest(
         RoleStatus role,
@@ -724,7 +726,8 @@ public class AppState {
     
     
     AMRMClient.ContainerRequest request;
-    request = roleHistory.requestNode(role.getKey(), resource);
+    int key = role.getKey();
+    request = roleHistory.requestNode(role, resource);
     role.incRequested();
 
     return request;
@@ -760,8 +763,8 @@ public class AppState {
   private void addLaunchedContainer(Container container, RoleInstance node) {
     node.container = container;
     if (node.role == null) {
-      log.warn("Unknown role for node {}", node);
-      node.role = ROLE_UNKNOWN;
+      throw new HoyaRuntimeException(
+        "Unknown role for node %s", node);
     }
     getLiveNodes().put(node.getContainerId(), node);
     //tell role history
@@ -992,8 +995,8 @@ public class AppState {
       } else {
         //this isn't a known container.
         
-        log.error("Notified of completed container that is not in the list" +
-                  " of active or failed containers");
+        log.error("Notified of completed container {} that is not in the list" +
+                  " of active or failed containers", containerId);
         completionOfUnknownContainerEvent.incrementAndGet();
       }
     }
@@ -1008,7 +1011,7 @@ public class AppState {
     ContainerId id = status.getContainerId();
     RoleInstance node = getLiveNodes().remove(id);
     if (node == null) {
-      log.warn("Received notification of completion of unknown node");
+      log.warn("Received notification of completion of unknown node {}", id);
       completionOfNodeNotInLiveListEvent.incrementAndGet();
 
     } else {
@@ -1028,7 +1031,7 @@ public class AppState {
    * @return an number from 0 to 100
    */
   public synchronized float getApplicationProgressPercentage() {
-    float percentage = 0;
+    float percentage;
     int desired = 0;
     float actual = 0;
     for (RoleStatus role : getRoleStatusMap().values()) {
@@ -1045,7 +1048,7 @@ public class AppState {
 
   /**
    * Update the cluster description with anything interesting
-   * @param providerStatus status from the provider
+   * @param providerStatus status from the provider for the cluster info section
    */
   public void refreshClusterStatus(Map<String, String> providerStatus) {
     ClusterDescription cd = getClusterDescription();
@@ -1063,22 +1066,16 @@ public class AppState {
     cd.setInfo(RoleKeys.YARN_MEMORY, Integer.toString(containerMaxMemory));
     HoyaUtils.addBuildInfo(cd,"status");
     cd.statistics = new HashMap<String, Map<String, Integer>>();
-    Map<String, Integer> instanceMap = createRoleToInstanceMap();
-    if (log.isDebugEnabled()) {
-      for (Map.Entry<String, Integer> entry : instanceMap.entrySet()) {
-        log.debug("[{}]: {}", entry.getKey(), entry.getValue());
-      }
-    }
+
+    // build the map of node -> container IDs
+    Map<String, List<String>> instanceMap = createRoleToInstanceMap();
     cd.instances = instanceMap;
     
     for (RoleStatus role : getRoleStatusMap().values()) {
       String rolename = role.getName();
-      Integer count = instanceMap.get(rolename);
-      if (count == null) {
-        count = 0;
-      } 
-      int nodeCount = count;
-      cd.setDesiredInstanceCount(rolename,role.getDesired());
+      List<String> instances = instanceMap.get(rolename);
+      int nodeCount = instances != null ? instances.size(): 0;
+      cd.setDesiredInstanceCount(rolename, role.getDesired());
       cd.setActualInstanceCount(rolename, nodeCount);
       cd.setRoleOpt(rolename, ROLE_REQUESTED_INSTANCES, role.getRequested());
       cd.setRoleOpt(rolename, ROLE_RELEASING_INSTANCES, role.getReleasing());
@@ -1086,6 +1083,7 @@ public class AppState {
       cd.setRoleOpt(rolename, ROLE_FAILED_STARTING_INSTANCES, role.getStartFailed());
       Map<String, Integer> stats = role.buildStatistics();
       cd.statistics.put(rolename, stats);
+      
     }
 
     Map<String, Integer> hoyastats = new HashMap<String, Integer>();
@@ -1332,19 +1330,23 @@ public class AppState {
   }
 
   /**
-   * Event handler for the list of active containers on restart
+   * Event handler for the list of active containers on restart.
+   * Sets the info key {@link StatusKeys#INFO_CONTAINERS_AM_RESTART}
+   * to the size of the list passed down (and does not set it if none were)
    * @param liveContainers the containers allocated
    * @return true if a rebuild took place (even if size 0)
    * @throws HoyaRuntimeException on problems
    */
-  private boolean rebuildModelFromRestart(List<Container> liveContainers) {
-
+  private boolean rebuildModelFromRestart(List<Container> liveContainers) throws
+                                                                          BadClusterStateException {
     if (liveContainers == null) {
       return false;
     }
     for (Container container : liveContainers) {
       addRestartedContainer(container);
     }
+    clusterDescription.setInfo(StatusKeys.INFO_CONTAINERS_AM_RESTART,
+                               Integer.toString(liveContainers.size()));
     return true;
   }
 
@@ -1354,7 +1356,8 @@ public class AppState {
    * @param container container that was running before the AM restarted
    * @throws HoyaRuntimeException on problems
    */
-  private void addRestartedContainer(Container container) {
+  private void addRestartedContainer(Container container) throws
+                                                          BadClusterStateException {
     String containerHostInfo = container.getNodeId().getHost()
                                + ":" +
                                container.getNodeId().getPort();
@@ -1368,6 +1371,7 @@ public class AppState {
     // increment its count
     role.incActual();
     String roleName = role.getName();
+    
     log.info("Rebuilding container {} in role {} on {},",
              cid,
              roleName,

@@ -56,10 +56,15 @@ and create a branch off that tag
 For the scripts below, set the `HADOOP_VERSION` variable to the version
 
     export HADOOP_VERSION=2.2.0
+    
+or, for building against a pre-release version of Hadoop 2.4
+ 
+    git checkout branch-2
+    export HADOOP_VERSION=2.4.0-SNAPSHOT
 
 To build and install it locally, skipping the tests:
 
-    mvn install -DskipTests
+    mvn clean install -DskipTests
 
 To make a tarball for use in test runs:
 
@@ -83,6 +88,9 @@ the Apache Hadoop 2.2 package or Hortownworks HDP-2.0.
 
 ## building a compatible HBase version
 
+If you need to build a version of HBase -rather than use a released version,
+here are the instructions (for the hbase-0.98 release branch)
+
 Checkout the HBase `trunk` branch from apache svn/github.  
 
     
@@ -97,14 +105,15 @@ The maven command for building hbase artifacts against this hadoop version is
 
     mvn clean install assembly:single -DskipTests -Dmaven.javadoc.skip=true
 
-To use a different version of Hadoop:
+To use a different version of Hadoop from that defined in the `hadoop-two.version`
+property of`/pom.xml`:
 
     mvn clean install assembly:single -DskipTests -Dmaven.javadoc.skip=true -Dhadoop-two.version=$HADOOP_VERSION
 
-This will create `hbase-0.98.0-SNAPSHOT.tar.gz` in the directory `hbase-assembly/target/` in
+This will create `hbase-0.98.0.tar.gz` in the directory `hbase-assembly/target/` in
 the hbase source tree. 
 
-    export HBASE_VERSION=0.98.0-SNAPSHOT
+    export HBASE_VERSION=0.98.0
     
     pushd hbase-assembly/target
     gunzip -k hbase-$HBASE_VERSION-bin.tar.gz 

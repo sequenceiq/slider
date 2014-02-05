@@ -76,7 +76,13 @@ Here's
         <value>/home/hoya/accumulo-1.6.0-SNAPSHOT-bin.tar</value>
         <description>Accumulo archive URI</description>
       </property>
-    
+
+      <property>
+        <name>hoya.test.am.restart.time</name>
+        <description>Time in millis to await an AM restart</description>
+        <value>30000</value>
+      </property>
+
       <property>
         <name>zk.home</name>
         <value>/home/hoya/zookeeper</value>
@@ -137,7 +143,25 @@ This file is loaded whenever a hoya build or test run takes place
 ## Configuration of `hoya-client.xml`
 
 The `hoya-client.xml` must have extra configuration options for both the HBase and
-Accumulo tests, as well as a common set fr
+Accumulo tests, as well as a common set for actually talking to a YARN cluster.
+
+## Disabling the functional tests entirely
+
+All functional tests which require a live YARN cluster
+can be disabled through the property `hoya.funtest.enabled`
+  
+    <property>
+      <name>hoya.funtest.enabled</name>
+      <value>false</value>
+    </property>
+
+There is a configuration do do exactly this in
+`src/test/configs/offline/hoya`:
+
+    hoya.conf.dir=src/test/configs/offline/hoya
+
+Tests which do not require a live YARN cluster will still run;
+these verify that the `bin\hoya` script works.
 
 ### Non-mandatory options
 
@@ -163,8 +187,8 @@ need to be changed
     </property>
             
      <property>
-      <name>hoya.test.timeout.seconds</name>
-      <description>Time to in seconds before a test is considered to have failed.
+      <name>hoya.test.timeout.millisec</name>
+      <description>Time out in milliseconds before a test is considered to have failed.
       There are some maven properties which also define limits and may need adjusting</description>
       <value>180000</value>
     </property>
@@ -281,6 +305,8 @@ Hoya-deployed cluster
 classname.
 1. This cluster should be deployed in an `@BeforeClass` method.
 1. The `@AfterClass` method MUST tear this cluster down.
+1. Tests must skip their execution if functional tests -or the 
+specific hbase or accumulo categories- are disabled.
 1. Tests within the suite (i.e. class) must be designed to be independent
 -to work irrespectively of the ordering of other tests.
 
@@ -333,7 +359,3 @@ in ~/.hoya/cluster/$testname
 1. If you are using a secure cluster, make sure that the clocks
 are synchronized, and that you have a current token -`klist` will
 tell you this. In a VM: install and enable `ntp`.
-
-
-
-can we do 

@@ -78,9 +78,9 @@ Hoya runs in secure clusters, but with restrictions
 *  Kerberos is running and that HDFS and YARN are running Kerberized.
 *  LDAP cannot be assumed. 
 *  Credentials needed for HBase can be pushed out into the local filesystems of 
-the of the worker nodes via some external mechanism (e.g. scp), and protected by
-the access permissions of the native filesystem. Any user with access to these
-credentials is considered to have been granted such rights.
+  the of the worker nodes via some external mechanism (e.g. scp), and protected by
+  the access permissions of the native filesystem. Any user with access to these
+  credentials is considered to have been granted such rights.
 *  These credentials can  outlive the duration of the HBase containers
 *  The user running HBase has the same identity as that of the HBase cluster.
 
@@ -88,13 +88,13 @@ credentials is considered to have been granted such rights.
 
 
 1. The Hoya user is expected to have their own Kerberos principal, and have used `kinit`
- or equivalent to authenticate with Kerberos and gain a (time-bounded) TGT
+  or equivalent to authenticate with Kerberos and gain a (time-bounded) TGT
 1. The Hoya user is expected to have their own principals for every host in the cluster of the form
   username/hostname@REALM
 1. A keytab must be generated which contains all these principals -and distributed
-to all the nodes in the cluster with read access permissions to the user.
+  to all the nodes in the cluster with read access permissions to the user.
 1. When the user creates a secure cluster, they provide the standard HBase kerberos options
-to identify the principals to use and the keytab location.
+  to identify the principals to use and the keytab location.
 
 The Hoya Client will talk to HDFS and YARN authenticating itself with the TGT,
 talking to the YARN and HDFS principals which it has been configured to expect.
@@ -290,10 +290,10 @@ code in the client still tries to verify that this principal is set
 -a check done to ensure that operations fail early with a meaningful message,
 rather than later with a more obscure one. 
 
-### Example: setting  hoya-client.xml up
+### Example: setting `hoya-client.xml` up
 
 
-The file 'conf/hoya-client.xml' can be set up with the details of the filesystem,
+The file `conf/hoya-client.xml` can be set up with the details of the filesystem,
 YARN RM and the relevant security options, allowing them to be dropped from the
 command line
 
@@ -323,7 +323,7 @@ command line
     </property>
     
 
-### Example : listing the clusters with hoya-client.xml set up
+### Example : listing the clusters with `hoya-client.xml` set up
 
 
 With the `hoya-client.xml' file set up, configuration is much simpler:

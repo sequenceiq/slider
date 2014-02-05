@@ -34,9 +34,10 @@ abstract class HBaseCommandTestBase extends HoyaCommandTestBase {
 
   @Before 
   public void verifyPreconditions() {
-    assumeBoolOption(HOYA_CONFIG, KEY_HOYA_TEST_HBASE_ENABLED, true)
-    
-    
+    assumeHBaseTestsEnabled()
+    getRequiredConfOption(HOYA_CONFIG, KEY_HOYA_TEST_HBASE_TAR)
+    getRequiredConfOption(HOYA_CONFIG, KEY_HOYA_TEST_HBASE_APPCONF)
+
   }
 
   /**
@@ -75,4 +76,18 @@ abstract class HBaseCommandTestBase extends HoyaCommandTestBase {
     )
     return roleMap
   }
+
+
+  public String getDescription() {
+    return "Create an HBase"
+  }
+
+  public int getWorkerPortAssignment() {
+    return 0
+  }
+
+  public int getMasterPortAssignment() {
+    return 0
+  }
+
 }

@@ -316,7 +316,12 @@ Examples
 Get the configuration properties needed for hbase clients to connect to the cluster. Hadoop XML format files (the default) and Java properties files can be generated.
 The output can be streamed to the console in `stdout`, or it can be saved to a file via the `--out` parameter
 
+### `killcontainer <cluster> --id container-id`
 
+Kill a container in the cluster. This is useful primarily for testing the cluster's
+resilience to failures.
+
+Container IDs can be determined from the cluster status JSON document.
 
 ### `list <cluster>`
 
@@ -390,6 +395,19 @@ These are clearly abnormal operations; they are here primarily for testing
 Example
 
     hoya emergency-force-kill application_1386596138212_0001
+
+### `am-suicide <cluster> [--exitcode code] [--message message] [--wait time]`
+
+This operation is purely for testing Hoya Application Master restart;
+it triggers an asynchronous self-destruct operation in the AM -an 
+operation that does not make any attempt to cleanly shut down the process. 
+
+If the application has not exceeded its restart limit (as set by
+`hoya.yarn.restart.limit`), YARN will attempt to restart the failed application.
+
+Example
+
+    hoya am-suicide --exitcode 1 --wait 5000 -message "test"
 
 <!--- ======================================================================= -->
 

@@ -72,7 +72,7 @@ Job queues are named queues of job requests; there is always a queue called `"de
 This is doesn't completely model the cluster from the AM perspective -there's no
 notion of node operations (launching code in a container) or events coming from YARN.
 
-The nodes models the nodes in a cluster
+The `Nodes` structure models the nodes in a cluster
 
     Nodes:  Map[nodeID,(name, containers:List[Container])] 
 
@@ -89,7 +89,7 @@ all nodes
 
 The containers of an application are all containers that are considered owned by it,
 
-    def app-containers(YARN, appId) =
+    def app-containers(YARN, appId: AppId) =
         [c in containers(YARN) where c.appId == appId ]
 
 ### Operations & predicates used the specifications
@@ -163,7 +163,6 @@ A cluster is considered `running` if there is a Hoya application type belonging 
 
     def final-yarn-states = {FINISHED, FAILED, KILLED }
 
-
     def hoya-app-instances(YARN, clustername, user) =
         [a in user-applications(YARN, "hoya", user) where:
              and a.Name == clustername]
@@ -181,7 +180,32 @@ A cluster is considered `running` if there is a Hoya application type belonging 
              
     def hoya-app-live(YARN, clustername, user) =
        [] != hoya-app-live-instances(YARN, clustername, user) 
+
+### Invariant: there must never be more than one running instance of a named Hoya cluster
+
+
+There must never be more than one instance of the same Hoya cluster running:
+
+    forall a in user-applications(YARN, "hoya", user):
+        len(hoya-app-running-instances(YARN, a.Name, user)) <= 1
+
+There may be multiple instances in a finished state, and one running instance alongside multiple finished instances -the applications
+that work with Hoya MUST select a running cluster ahead of any terminated clusters.
+
+### Containers of an application 
+
      
+The containers of a hoya application are the set of containers of that application
+
+    def hoya-app-containers(YARN, clustername, user) =
+      app-containers(YARN, appid where
+        appid = hoya-app-running-instances(YARN, clustername, user)[0])
+
+
+
+
+### RPC Access to a hoya cluster
+
 
  An application is accepting RPC requests for a given protocol if there is a port binding
  defined and it is possible to authenticate a connection using the specified protocol
@@ -193,17 +217,6 @@ A cluster is considered `running` if there is a Hoya application type belonging 
 
  Being able to open an RPC port is the strongest definition of liveness possible
  to make: if the AM responds to RPC operations, it is doing useful work.
-
-### Invariant: there must never be more than one running instance of a named Hoya cluster
-
-
-There must never be more than one instance of the same Hoya cluster running:
-
-    forall a in user-applications(YARN, "hoya", user):
-        len(hoya-app-running(YARN, a.Name, user)) <= 1
-
-There may be multiple instances in a finished state, and one running instance alongside multiple finished instances -the applications
-that work with Hoya MUST select a running cluster ahead of any terminated clusters.
 
 ### Valid Cluster Description
 

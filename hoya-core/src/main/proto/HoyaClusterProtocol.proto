@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -79,4 +79,21 @@ service HoyaClusterProtocolPB {
    */
   rpc getClusterNodes(GetClusterNodesRequestProto)
     returns(GetClusterNodesResponseProto);
+    
+   /**
+    * echo some text
+    */
+   rpc echo(EchoRequestProto)
+     returns(EchoResponseProto); 
+
+   /**
+    * kill a container
+    */
+   rpc killContainer(KillContainerRequestProto)
+     returns(KillContainerResponseProto); 
+   /**
+    * kill a container
+    */
+   rpc amSuicide(AMSuicideRequestProto)
+     returns(AMSuicideResponseProto); 
 }

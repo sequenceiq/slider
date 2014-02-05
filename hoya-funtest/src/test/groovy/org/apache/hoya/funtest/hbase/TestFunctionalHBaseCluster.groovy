@@ -21,11 +21,18 @@ package org.apache.hoya.funtest.hbase
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.hbase.zookeeper.ZKConfig
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.ZKUtil;
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.KeeperException;
 
 import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.api.ClusterDescription
+import org.apache.hoya.api.RoleKeys
 import org.apache.hoya.funtest.framework.HoyaFuntestProperties
-import org.apache.hoya.funtest.framework.PortAssignments
+import static org.apache.hoya.funtest.framework.HoyaFuntestProperties.KEY_HOYA_TEST_HBASE_ENABLED
+import org.apache.hoya.tools.ConfigHelper
 import org.junit.After
 import org.junit.Before
 
@@ -43,14 +50,32 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
     implements HoyaFuntestProperties, Arguments, HoyaExitCodes {
 
 
+  public static final String HBASE_HEAP = "256m"
 
   public String getClusterName() {
     return "test_functional_hbase_cluster"
   }
 
+  public String getClusterZNode() {
+    return "/yarnapps_hoya_yarn_" + getClusterName();
+  }
+
   @Before
   public void prepareCluster() {
-    ensureClusterDestroyed(clusterName)
+    HOYA_CONFIG.set("hbase.zookeeper.quorum", HOYA_CONFIG.get("hoya.test.zkhosts"))
+    String quorumServers = ZKConfig.getZKQuorumServersString(HOYA_CONFIG);
+    ZooKeeper monitor = new ZooKeeper(quorumServers,
+      1000, new org.apache.zookeeper.Watcher(){
+      @Override
+      public void process(WatchedEvent watchedEvent) {
+      }
+    }, false)
+    try {
+      ZKUtil.deleteRecursive(monitor, getClusterZNode())
+    } catch (KeeperException.NoNodeException ignored) {
+      log.info(getClusterZNode() + " not there")
+    }
+    setupCluster(clusterName)
   }
 
   @After
@@ -61,8 +86,7 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
   @Test
   public void testHBaseCreateCluster() throws Throwable {
 
-    describe "Create a working HBase cluster $clusterName"
-    describe "Create a working HBase cluster"
+    describe description
 
     int numWorkers = HOYA_CONFIG.getInt(KEY_HOYA_TEST_NUM_WORKERS, 
         DEFAULT_HOYA_NUM_WORKERS);
@@ -73,10 +97,12 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
         clusterName,
         1, numWorkers,
         [
-            ARG_ROLEOPT, ROLE_MASTER, "app.infoport",
-            Integer.toString(PortAssignments._testHBaseCreateCluster),
-            ARG_ROLEOPT, ROLE_WORKER, "app.infoport",
-            Integer.toString(PortAssignments._testHBaseCreateCluster2),
+            ARG_ROLEOPT, ROLE_MASTER, RoleKeys.APP_INFOPORT,
+              Integer.toString(masterPortAssignment),
+            ARG_ROLEOPT, ROLE_MASTER, RoleKeys.JVM_HEAP, HBASE_HEAP,
+            ARG_ROLEOPT, ROLE_WORKER, RoleKeys.APP_INFOPORT,
+              Integer.toString(workerPortAssignment),
+            ARG_ROLEOPT, ROLE_WORKER, RoleKeys.JVM_HEAP, HBASE_HEAP,
         ],
         [:]
     )
@@ -86,20 +112,38 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
     ClusterDescription cd2 = hoyaClient.getClusterDescription()
     assert clusterName == cd2.name
 
-    log.info("Connected via HoyaClient {}", hoyaClient.toString())
+    log.info("Connected via HoyaClient {} with {} workers", hoyaClient.toString(),
+        numWorkers)
 
     //wait for the role counts to be reached
     waitForRoleCount(hoyaClient, roleMap, HBASE_LAUNCH_WAIT_TIME)
 
     Configuration clientConf = createHBaseConfiguration(hoyaClient)
     assertHBaseMasterFound(clientConf)
-    waitForHBaseRegionServerCount(hoyaClient, clusterName, 1, HBASE_LAUNCH_WAIT_TIME)
+    waitForHBaseRegionServerCount(hoyaClient, clusterName,
+                                  numWorkers, HBASE_LAUNCH_WAIT_TIME)
 
-    clusterLoadOperations(clientConf)
+    clusterLoadOperations(clusterName, clientConf, numWorkers, roleMap, cd2)
   }
 
-  public void clusterLoadOperations(Configuration clientConf) {
 
+  public String getDescription() {
+    return "Create a working HBase cluster $clusterName"
+  }
+
+  /**
+   * Override point for any cluster load operations
+   * @param clientConf
+   * @param numWorkers
+   */
+  public void clusterLoadOperations(
+      String clustername,
+      Configuration clientConf,
+      int numWorkers,
+      Map<String, Integer> roleMap,
+      ClusterDescription cd) {
+
+    log.info("Client Configuration = " + ConfigHelper.dumpConfigToString(clientConf))
   }
 
 }

@@ -39,7 +39,7 @@ public interface HoyaXMLConfKeysForTesting {
 
   int DEFAULT_HOYA_FREEZE_WAIT_TIME = 60000;
 
-  String KEY_HOYA_TEST_TIMEOUT = "hoya.test.timeout.seconds";
+  String KEY_HOYA_TEST_TIMEOUT = "hoya.test.timeout.millisec";
 
   int DEFAULT_HOYA_TEST_TIMEOUT = 10 * 60 * 1000;
 
@@ -56,4 +56,12 @@ public interface HoyaXMLConfKeysForTesting {
     "hoya.test.accumulo.launch.wait.seconds";
 
   int DEFAULT_HOYA_ACCUMULO_LAUNCH_TIME = 60 * 3 * 1000;
+
+
+  /**
+   * AM-RESTART-SUPPORT
+   * Flag to indicate whether or not YARN supports container rebind
+   * on restart. It is for testing
+   */
+  boolean YARN_AM_SUPPORTS_RESTART = false;
 }

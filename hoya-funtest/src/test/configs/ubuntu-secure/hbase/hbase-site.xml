@@ -41,11 +41,6 @@
    <value>1</value>
    
  </property>
-  <!--just here to verify propagation of properties all the way to the AM-->
-  <property>
-    <name>hoya.unused.option</name>
-    <value>1</value>
-  </property>
 
   <property>
     <name>hbase.regionserver.kerberos.principal</name>
@@ -65,27 +60,6 @@
     <name>hbase.master.keytab.file</name>
     <value>/home/stevel/conf/stevel.keytab</value>
   </property>
-  
-<!--
-  <property>
-    <name>hbase.regionserver.kerberos.principal</name>
-    <value>hbase/ubuntu@COTHAM</value>
-  </property>
-  
-  <property>
-    <name>hbase.regionserver.keytab.file</name>
-    <value>/home/stevel/conf/hbase.keytab</value>
-  </property>
-
-  <property>
-    <name>hbase.master.kerberos.principal</name>
-    <value>hbase/ubuntu@COTHAM</value>
-  </property>
-  <property>
-    <name>hbase.master.keytab.file</name>
-    <value>/home/stevel/conf/hbase.keytab</value>
-  </property>
--->
 
   
 </configuration>

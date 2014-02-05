@@ -20,8 +20,10 @@ package org.apache.hoya.yarn.model.history
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.apache.hoya.providers.ProviderRole
 import org.apache.hoya.yarn.appmaster.state.NodeInstance
 import org.apache.hoya.yarn.appmaster.state.RoleHistory
+import org.apache.hoya.yarn.appmaster.state.RoleStatus
 import org.apache.hoya.yarn.model.mock.BaseMockAppStateTest
 import org.apache.hoya.yarn.model.mock.MockFactory
 import org.junit.Before
@@ -38,7 +40,6 @@ import org.junit.Test
 @CompileStatic
 class TestFindNodesForNewInstances extends BaseMockAppStateTest {
 
-
   @Override
   String getTestName() {
     return "TestFindNodesForNewInstances"
@@ -54,6 +55,10 @@ class TestFindNodesForNewInstances extends BaseMockAppStateTest {
   List<NodeInstance> nodes = [age2Active2, age2Active0, age4Active1, age1Active4, age3Active0]
   RoleHistory roleHistory = new RoleHistory(MockFactory.ROLES)
 
+  String roleName = "test"
+  RoleStatus roleStat = new RoleStatus(new ProviderRole(roleName, 0))
+  RoleStatus roleStat2 = new RoleStatus(new ProviderRole(roleName, 2))
+  
   @Before
   public void setupNodeMap() {
     roleHistory.insert(nodes)
@@ -61,10 +66,10 @@ class TestFindNodesForNewInstances extends BaseMockAppStateTest {
   }
 
 
-  public List<NodeInstance> findNodes(int count, int role = 0) {
+  public List<NodeInstance> findNodes(int count, RoleStatus roleStatus = roleStat) {
     List < NodeInstance > found = [];
     for (int i = 0; i < count; i++) {
-      NodeInstance f = roleHistory.findNodeForNewInstance(role)
+      NodeInstance f = roleHistory.findNodeForNewInstance(roleStatus)
       if (f) {
         found << f
       };
@@ -74,17 +79,17 @@ class TestFindNodesForNewInstances extends BaseMockAppStateTest {
 
   @Test
   public void testFind1NodeR0() throws Throwable {
-    NodeInstance found = roleHistory.findNodeForNewInstance(0)
+    NodeInstance found = roleHistory.findNodeForNewInstance(roleStat)
     log.info("found: $found")
     assert [age3Active0].contains(found)
   }
 
   @Test
   public void testFind2NodeR0() throws Throwable {
-    NodeInstance found = roleHistory.findNodeForNewInstance(0)
+    NodeInstance found = roleHistory.findNodeForNewInstance(roleStat)
     log.info("found: $found")
     assert [age2Active0, age3Active0].contains(found)
-    NodeInstance found2 = roleHistory.findNodeForNewInstance(0)
+    NodeInstance found2 = roleHistory.findNodeForNewInstance(roleStat)
     log.info("found: $found2")
     assert [age2Active0, age3Active0].contains(found2)
     assert found != found2;
@@ -92,13 +97,13 @@ class TestFindNodesForNewInstances extends BaseMockAppStateTest {
   @Test
   public void testFind3NodeR0ReturnsNull() throws Throwable {
     assert 2== findNodes(2).size()
-    NodeInstance found = roleHistory.findNodeForNewInstance(0)
+    NodeInstance found = roleHistory.findNodeForNewInstance(roleStat)
     assert found == null;
   }
 
   @Test
   public void testFindNodesOneEntry() throws Throwable {
-    List<NodeInstance> nodes = findNodes(4, 2)
+    List<NodeInstance> nodes = findNodes(4, roleStat2)
     assert 0 == nodes.size()
   }
 
@@ -106,7 +111,7 @@ class TestFindNodesForNewInstances extends BaseMockAppStateTest {
   public void testFindNodesIndependent() throws Throwable {
     assert 2 == findNodes(2).size()
     roleHistory.dump()
-    assert 0 == findNodes(3, 2).size()
+    assert 0 == findNodes(3, roleStat2).size()
   }
 
   @Test
@@ -116,7 +121,7 @@ class TestFindNodesForNewInstances extends BaseMockAppStateTest {
     assert age2Active0.getActiveRoleInstances(0) != 0
     age3Active0.get(0).onStartCompleted()
     assert age3Active0.getActiveRoleInstances(0) != 0
-    NodeInstance found = roleHistory.findNodeForNewInstance(0)
+    NodeInstance found = roleHistory.findNodeForNewInstance(roleStat)
     log.info(found ?.toFullString())
     assert found == null
   }

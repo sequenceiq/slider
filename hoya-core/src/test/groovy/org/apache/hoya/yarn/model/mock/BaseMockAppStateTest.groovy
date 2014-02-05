@@ -112,7 +112,6 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
   RoleInstance roleInstance(ContainerAssignment assigned) {
     Container target = assigned.container
     RoleInstance ri = new RoleInstance(target)
-    ri.buildUUID();
     ri.roleId = assigned.role.priority
     ri.role = assigned.role
     return ri

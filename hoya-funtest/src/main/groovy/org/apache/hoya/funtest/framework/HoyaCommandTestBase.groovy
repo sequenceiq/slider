@@ -25,6 +25,8 @@ import org.apache.hadoop.fs.Path
 import org.apache.hadoop.util.ExitUtil
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
+import org.apache.hoya.api.ClusterDescription
+import org.apache.hoya.exceptions.HoyaException
 import org.apache.hoya.testtools.HoyaTestUtils
 import org.apache.hoya.tools.HoyaUtils
 import org.apache.hoya.yarn.Arguments
@@ -36,6 +38,8 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import static org.apache.hoya.HoyaExitCodes.*
 import static HoyaFuntestProperties.*
+import static org.apache.hoya.providers.accumulo.AccumuloKeys.OPTION_HADOOP_HOME
+import static org.apache.hoya.providers.accumulo.AccumuloKeys.OPTION_ZK_HOME
 import static org.apache.hoya.yarn.Arguments.*
 import static org.apache.hoya.yarn.HoyaActions.*;
 import static org.apache.hoya.testtools.HoyaTestUtils.*
@@ -69,6 +73,8 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
   public static final int HOYA_TEST_TIMEOUT
   public static final boolean ACCUMULO_TESTS_ENABLED
   public static final boolean HBASE_TESTS_ENABLED
+  public static final boolean FUNTESTS_ENABLED
+  
 
   static {
     HOYA_CONFIG = new YarnConfiguration()
@@ -88,6 +94,8 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
     ACCUMULO_LAUNCH_WAIT_TIME = HOYA_CONFIG.getInt(
         KEY_HOYA_ACCUMULO_LAUNCH_TIME,
         DEFAULT_HOYA_ACCUMULO_LAUNCH_TIME)
+    FUNTESTS_ENABLED =
+        HOYA_CONFIG.getBoolean(KEY_HOYA_FUNTESTS_ENABLED, true)
     ACCUMULO_TESTS_ENABLED =
         HOYA_CONFIG.getBoolean(KEY_HOYA_TEST_ACCUMULO_ENABLED, true)
     HBASE_TESTS_ENABLED =
@@ -202,6 +210,15 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
          ])
   }
 
+  static HoyaShell killContainer(String name, String containerID) {
+    hoya(0,
+         [
+             ACTION_KILL_CONTAINER,
+             name,
+             containerID
+         ])
+  }
+  
   static HoyaShell freezeForce(String name) {
     hoya([
         ACTION_FREEZE, ARG_FORCE, name
@@ -267,14 +284,27 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
     }
     destroy(0, name)
   }
-  
+
+  /**
+   * If the functional tests are enabled, set up the cluster
+   * 
+   * @param cluster
+   */
+  static void setupCluster(String cluster) {
+    if (FUNTESTS_ENABLED) {
+      ensureClusterDestroyed(cluster)
+    }
+  }
+
   /**
    * Teardown operation -freezes cluster, and may destroy it
    * though for testing it is best if it is retained
-   * @param name
+   * @param name cluster name
    */
   static void teardown(String name) {
-    freeze(name)
+    if (FUNTESTS_ENABLED) {
+      freeze(name)
+    }
   }
 
   /**
@@ -407,5 +437,54 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
     return new Path(clusterFS.homeDirectory, ".hoya/cluster/${clustername}")
   }
 
+
+  public ClusterDescription killAmAndWaitForRestart(
+      HoyaClient hoyaClient, String cluster) {
+    
+    assert cluster
+    hoya(0, [ACTION_AM_SUICIDE, cluster,
+        ARG_EXITCODE, "1",
+        ARG_WAIT, "1000",
+        ARG_MESSAGE, "suicide"])
+
+
+
+    def sleeptime = HOYA_CONFIG.getInt( KEY_AM_RESTART_SLEEP_TIME,
+                                        DEFAULT_AM_RESTART_SLEEP_TIME)
+    sleep(sleeptime)
+    ClusterDescription status
+
+    try {
+      // am should have restarted it by now
+      // cluster is live
+      exists(0, cluster, true)
+
+      status = hoyaClient.clusterDescription
+    } catch (HoyaException e) {
+      if (e.exitCode == EXIT_BAD_CLUSTER_STATE) {
+        log.error(
+            "Property $YarnConfiguration.RM_AM_MAX_ATTEMPTS may be too low")
+      }
+      throw e;
+    }
+    return status
+  }
+
+  /**
+   * if tests are not enabled: skip them  
+   */
+  public static void assumeFunctionalTestsEnabled() {
+    assume(FUNTESTS_ENABLED, "Functional tests disabled")
+  }
+
+  public static void assumeAccumuloTestsEnabled() {
+    assumeFunctionalTestsEnabled()
+    assume(ACCUMULO_TESTS_ENABLED, "Accumulo tests disabled")
+  }
+
+  public void assumeHBaseTestsEnabled() {
+    assumeFunctionalTestsEnabled()
+    assume(HBASE_TESTS_ENABLED, "HBase tests disabled")
+  }
 
 }

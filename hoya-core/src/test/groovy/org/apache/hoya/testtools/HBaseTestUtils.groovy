@@ -180,7 +180,7 @@ class HBaseTestUtils extends HoyaTestUtils {
     while (true) {
       clustat = getHBaseClusterStatus(clientConf);
       int workerCount = clustat.servers.size();
-      if (workerCount == regionServerCount) {
+      if (workerCount >= regionServerCount) {
         break;
       }
       if (duration.limitExceeded) {
@@ -222,10 +222,14 @@ class HBaseTestUtils extends HoyaTestUtils {
    * attempt to talk to the hbase master; expect a failure
    * @param clientConf client config
    */
-  public static void assertNoHBaseMaster(Configuration clientConf) {
+  public static void assertNoHBaseMaster(
+      HoyaClient hoyaClient,
+      Configuration clientConf) {
     boolean masterFound = isHBaseMasterFound(clientConf)
     if (masterFound) {
-      fail("HBase master running")
+      def text = "HBase master is unexpectedly running"
+      dumpClusterStatus(hoyaClient, text);
+      fail(text)
     }
   }
 

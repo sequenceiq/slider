@@ -76,10 +76,13 @@ import org.apache.hoya.yarn.Arguments;
 import org.apache.hoya.yarn.HoyaActions;
 import org.apache.hoya.yarn.appmaster.rpc.RpcBinder;
 import org.apache.hoya.yarn.params.AbstractClusterBuildingActionArgs;
+import org.apache.hoya.yarn.params.ActionAMSuicideArgs;
 import org.apache.hoya.yarn.params.ActionCreateArgs;
+import org.apache.hoya.yarn.params.ActionEchoArgs;
 import org.apache.hoya.yarn.params.ActionFlexArgs;
 import org.apache.hoya.yarn.params.ActionFreezeArgs;
 import org.apache.hoya.yarn.params.ActionGetConfArgs;
+import org.apache.hoya.yarn.params.ActionKillContainerArgs;
 import org.apache.hoya.yarn.params.ActionThawArgs;
 import org.apache.hoya.yarn.params.ClientArgs;
 import org.apache.hoya.yarn.params.HoyaAMArgs;
@@ -94,6 +97,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.ByteBuffer;
@@ -202,8 +207,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     String clusterName = serviceArgs.getClusterName();
     // actions
     if (HoyaActions.ACTION_BUILD.equals(action)) {
-      actionBuild(clusterName, serviceArgs.getActionBuildArgs());
-      exitCode = EXIT_SUCCESS;
+      exitCode = actionBuild(clusterName, serviceArgs.getActionBuildArgs());
     } else if (HoyaActions.ACTION_CREATE.equals(action)) {
       exitCode = actionCreate(clusterName, serviceArgs.getActionCreateArgs());
     } else if (HoyaActions.ACTION_FREEZE.equals(action)) {
@@ -228,6 +232,13 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     } else if (HoyaActions.ACTION_HELP.equals(action) ||
                HoyaActions.ACTION_USAGE.equals(action)) {
       log.info("HoyaClient {}", serviceArgs.usage());
+
+    } else if (HoyaActions.ACTION_KILL_CONTAINER.equals(action)) {
+      exitCode = actionGetConf(clusterName, serviceArgs.getActionGetConfArgs());
+
+    } else if (HoyaActions.ACTION_AM_SUICIDE.equals(action)) {
+      exitCode = actionAmSuicide(clusterName,
+                                 serviceArgs.getActionAMSuicideArgs());
 
     } else if (HoyaActions.ACTION_LIST.equals(action)) {
       if (!isUnset(clusterName)) {
@@ -298,6 +309,22 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     yarnClient.emergencyForceKill(appId);
     return EXIT_SUCCESS;
   }
+  
+  
+  /**
+   * AM to commit an asynchronous suicide
+   */
+  public int actionAmSuicide(String clustername,
+                                 ActionAMSuicideArgs args) throws
+                                                              YarnException,
+                                                              IOException {
+    HoyaClusterOperations clusterOperations =
+      createClusterOperations(clustername);
+    clusterOperations.amSuicide(args.message, args.exitcode, args.waittime);
+    return EXIT_SUCCESS;
+  }
+  
+  
 
   /**
    * Get the provider for this cluster
@@ -350,7 +377,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * @throws IOException other problems
    * @throws BadCommandArgumentsException bad arguments.
    */
-  public void actionBuild(String clustername,
+  public int actionBuild(String clustername,
                            AbstractClusterBuildingActionArgs buildInfo) throws
                                                YarnException,
                                                IOException {
@@ -558,7 +585,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // here the configuration is set up. Mark it
     clusterSpec.state = ClusterDescription.STATE_CREATED;
     clusterSpec.save(fs, clusterSpecPath, true);
-
+    return EXIT_SUCCESS;
   }
 
   /**
@@ -632,17 +659,38 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     }
 
     YarnClientApplication application = yarnClient.createApplication();
-    ApplicationSubmissionContext appContext =
+    ApplicationSubmissionContext submissionContext =
       application.getApplicationSubmissionContext();
-    ApplicationId appId = appContext.getApplicationId();
+    ApplicationId appId = submissionContext.getApplicationId();
     // set the application name;
-    appContext.setApplicationName(clustername);
+    submissionContext.setApplicationName(clustername);
     // app type used in service enum;
-    appContext.setApplicationType(HoyaKeys.APP_TYPE);
+    submissionContext.setApplicationType(HoyaKeys.APP_TYPE);
 
-    if (clusterSpec.getOptionBool(OptionKeys.HOYA_TEST_FLAG, false)) {
-      // test flag set
-      appContext.setMaxAppAttempts(1);
+    submissionContext.setMaxAppAttempts(config.getInt(KEY_HOYA_RESTART_LIMIT,
+                                                      DEFAULT_HOYA_RESTART_LIMIT));
+
+    Method m = null;
+    String methName = "ApplicationSubmissionContext.setKeepContainersAcrossApplicationAttempts()";
+    Class<? extends ApplicationSubmissionContext> cls = submissionContext.getClass();
+    try {
+      m = cls.getDeclaredMethod("setKeepContainersAcrossApplicationAttempts",
+        new Class<?>[] { boolean.class });
+      m.setAccessible(true);
+    } catch (NoSuchMethodException e) {
+      log.warn(methName + " not found");
+    } catch (SecurityException e) {
+      log.warn("No access to " + methName);
+    }
+    // AM-RESTART-SUPPORT: AM wants its old containers back on a restart
+    if (m != null) {
+      try {
+        m.invoke(submissionContext, true);
+      } catch (InvocationTargetException ite) {
+        log.error(methName + " got", ite);
+      } catch (IllegalAccessException iae) {
+        log.error(methName + " got", iae);
+      }
     }
 
     FileSystem fs = getClusterFS();
@@ -790,7 +838,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       log.debug("Environment Map:\n{}", HoyaUtils.stringifyMap(env));
       log.debug("Files in lib path\n{}", HoyaUtils.listFSDir(fs, libPath));
     }
-    amContainer.setEnvironment(env);
 
     String rmAddr = launchArgs.getRmAddress();
     // spec out the RM address
@@ -865,6 +912,11 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       credentials.writeTokenStorageToStream(dob);
       ByteBuffer fsTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
       amContainer.setTokens(fsTokens);
+    } else {
+      //insecure cluster: propagate user name via env variable
+      String userName = UserGroupInformation.getCurrentUser().getUserName();
+      log.debug(HADOOP_USER_NAME + "='{}'", userName);
+      env.put(HADOOP_USER_NAME, userName);
     }
     // write out the path output
     commands.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/"+
@@ -876,6 +928,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     log.info("Completed setting up app master command {}", cmdStr);
 
     amContainer.setCommands(commands);
+    //fix the env variables
+    amContainer.setEnvironment(env);
     // Set up resource type requirements
     Resource capability = Records.newRecord(Resource.class);
     // Amt. of memory resource to request for to run the App Master
@@ -883,7 +937,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     capability.setVirtualCores(RoleKeys.DEFAULT_AM_V_CORES);
     // the Hoya AM gets to configure the AM requirements, not the custom provider
     hoyaAM.prepareAMResourceRequirements(clusterSpec, capability);
-    appContext.setResource(capability);
+    submissionContext.setResource(capability);
     Map<String, ByteBuffer> serviceData = new HashMap<String, ByteBuffer>();
     // Service data is a binary blob that can be passed to the application
     // Not needed in this scenario
@@ -893,7 +947,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // The following are not required for launching an application master
     // amContainer.setContainerId(containerId);
 
-    appContext.setAMContainerSpec(amContainer);
+    submissionContext.setAMContainerSpec(amContainer);
 
     // Set the priority for the application master
     
@@ -902,13 +956,13 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     Priority pri = Records.newRecord(Priority.class);
     pri.setPriority(amPriority);
-    appContext.setPriority(pri);
+    submissionContext.setPriority(pri);
 
     // Set the queue to which this application is to be submitted in the RM
     // Queue for App master
     String amQueue = config.get(KEY_HOYA_YARN_QUEUE, DEFAULT_HOYA_YARN_QUEUE);
 
-    appContext.setQueue(amQueue);
+    submissionContext.setQueue(amQueue);
 
     // Submit the application to the applications manager
     // SubmitApplicationResponse submitResp = applicationsManager.submitApplication(appRequest);
@@ -917,7 +971,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     log.info("Submitting application to Resource Manager");
 
     // submit the application
-    applicationId = yarnClient.submitApplication(appContext);
+    applicationId = yarnClient.submitApplication(submissionContext);
 
     int exitCode;
     // wait for the submit state to be reached
@@ -1043,7 +1097,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
   /**
    * ask if the client is using a mini MR cluster
-   * @return
+   * @return true if they are
    */
   private boolean getUsingMiniMRCluster() {
     return getConfig().getBoolean(YarnConfiguration.IS_MINI_YARN_CLUSTER,
@@ -1121,7 +1175,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * Monitor the submitted application for reaching the requested state.
    * Will also report if the app reaches a later state (failed, killed, etc)
    * Kill application if duration!= null & time expires. 
-   * @param appId Application Id of application to be monitored
    * @param duration how long to wait -must be more than 0
    * @param desiredState desired state.
    * @return the application report -null on a timeout
@@ -1225,7 +1278,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
   /**
    * Log the application report at INFO
-   * @param report
+   * @param report report to log
    */
   public void logAppReport(ApplicationReport report) {
     log.info(HoyaUtils.appReportToString(report, "\n"));
@@ -1300,6 +1353,54 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     return EXIT_SUCCESS;
   }
 
+
+  /**
+   * Kill a specific container of the cluster
+   * @param name cluster name
+   * @param args arguments
+   * @return exit code
+   * @throws YarnException
+   * @throws IOException
+   */
+  public int actionKillContainer(String name,
+                                 ActionKillContainerArgs args) throws
+                                                               YarnException,
+                                                               IOException {
+    String id = args.id;
+    if (HoyaUtils.isUnset(id)) {
+      throw new BadCommandArgumentsException("Missing container id");
+    }
+    log.info("killingContainer {}:{}", name, id);
+    HoyaClusterOperations clusterOps =
+      new HoyaClusterOperations(bondToCluster(name));
+    try {
+      clusterOps.killContainer(id);
+    } catch (NoSuchNodeException e) {
+      throw new BadClusterStateException("Container %s not found in cluster %s",
+                                         id, name);
+    }
+    return EXIT_SUCCESS;
+  }
+
+  /**
+   * Echo operation (not currently wired up to command line)
+   * @param name cluster name
+   * @param args arguments
+   * @return the echoed text
+   * @throws YarnException
+   * @throws IOException
+   */
+  public String actionEcho(String name, ActionEchoArgs args) throws
+                                                             YarnException,
+                                                             IOException {
+    String message = args.message;
+    if (message == null) {
+      throw new BadCommandArgumentsException("missing message");
+    }
+    HoyaClusterOperations clusterOps =
+      new HoyaClusterOperations(bondToCluster(name));
+    return clusterOps.echo(message);
+  }
 
   /**
    * Find an instance of a hoya application belong to the current user
@@ -1414,12 +1515,10 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   }
 
   /**
-   * Stop the cluster
-   *
-   *
+   * Freeze the cluster
    *
    * @param clustername cluster name
-   * @param freezeArgs
+   * @param freezeArgs arguments to the freeze
    * @return EXIT_SUCCESS if the cluster was not running by the end of the operation
    */
   public int actionFreeze(String clustername,
@@ -1535,7 +1634,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * @return the cluster name
    */
 
-  @SuppressWarnings("UseOfSystemOutOrSystemErr")
+  @SuppressWarnings(
+    {"UseOfSystemOutOrSystemErr", "IOResourceOpenedButNotSafelyClosed"})
   public int actionGetConf(String clustername, ActionGetConfArgs confArgs) throws
                                                YarnException,
                                                IOException {
@@ -1624,7 +1724,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
   /**
    * get the path of a cluster
-   * @param clustername
+   * @param clustername name of the cluster
    * @return the path to the cluster specification
    * @throws HoyaException if the specification is not there
    */
@@ -1719,7 +1819,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                                  IOException {
     HoyaClusterOperations clusterOperations =
       createClusterOperations(clustername);
-    return clusterOperations.getClusterDescription(clustername);
+    return clusterOperations.getClusterDescription();
   }
 
   /**

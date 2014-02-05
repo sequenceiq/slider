@@ -33,6 +33,7 @@ import org.apache.hadoop.yarn.service.launcher.ServiceLaunchException
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.ClusterNode
+import org.apache.hoya.exceptions.BadClusterStateException
 import org.apache.hoya.exceptions.HoyaException
 import org.apache.hoya.exceptions.WaitTimeoutException
 import org.apache.hoya.providers.hbase.HBaseKeys
@@ -74,6 +75,13 @@ class HoyaTestUtils extends Assert {
   public static void skip(String message) {
     log.warn("Skipping test: " + message)
     Assume.assumeTrue(message, false);
+  }
+
+  public static void assume(boolean condition, String message) {
+    if (!condition) {
+      log.warn("Skipping test: " + message)
+      Assume.assumeTrue(message, false);
+    }
   }
 
 
@@ -126,9 +134,8 @@ class HoyaTestUtils extends Assert {
    */
   public static void assumeBoolOption(
       Configuration conf, String key, boolean defval) {
-    if (!conf.getBoolean(key, defval)) {
-      skip("Configuration key $key is false")
-    }
+    assume(conf.getBoolean(key, defval), 
+      "Configuration key $key is false")
   }
 
   /**
@@ -177,6 +184,21 @@ class HoyaTestUtils extends Assert {
            !duration.limitExceeded) {
       sleep(1000);
     }
+    if (duration.limitExceeded) {
+      fail("Cluster ${client.deployedClusterName} still live after $timeout ms")
+    }
+  }
+
+  public static void waitUntilClusterLive(HoyaClient client, int timeout) {
+    Duration duration = new Duration(timeout);
+    duration.start()
+    while (!client.actionExists(client.deployedClusterName, true) &&
+           !duration.limitExceeded) {
+      sleep(1000);
+    }
+    if (duration.limitExceeded) {
+      fail("Cluster ${client.deployedClusterName} not live after $timeout ms")
+    }
   }
 
   /**
@@ -213,34 +235,41 @@ class HoyaTestUtils extends Assert {
     boolean roleCountFound = false;
     while (!roleCountFound) {
       StringBuilder details = new StringBuilder()
-      roleCountFound = true;
-      status = hoyaClient.getClusterDescription(clustername)
 
-      for (Map.Entry<String, Integer> entry : roles.entrySet()) {
-        String role = entry.key
-        int desiredCount = entry.value
-        Integer instances = status.instances[role];
-        int instanceCount = instances != null ? instances.intValue() : 0;
-        if (instanceCount != desiredCount) {
-          roleCountFound = false;
+      boolean timedOut = duration.limitExceeded
+      try {
+        status = hoyaClient.getClusterDescription(clustername)
+        roleCountFound = true;
+        for (Map.Entry<String, Integer> entry : roles.entrySet()) {
+          String role = entry.key
+          int desiredCount = entry.value
+          List<String> instances = status.instances[role]
+          int instanceCount = instances != null ? instances.size() : 0;
+          if (instanceCount != desiredCount) {
+            roleCountFound = false;
+          }
+          details.append("[$role]: $instanceCount of $desiredCount; ")
         }
-        details.append("[$role]: $instanceCount of $desiredCount; ")
+        if (roleCountFound) {
+          //successful
+          log.info("$operation: role count as desired: $details")
+          break;
+        }
+      } catch (BadClusterStateException e) {
+        // cluster not live yet; ignore or rethrow
+        if (timedOut) {
+          throw e;
+        }
+        details.append(e.toString());
       }
-      if (roleCountFound) {
-        //successful
-        log.info("$operation: role count as desired: $details")
-
-        break;
-      }
-
-      if (duration.limitExceeded) {
+      if (timedOut) {
         duration.finish();
         describe("$operation: role count not met after $duration: $details")
         log.info(prettyPrint(status.toJsonString()))
         fail(
             "$operation: role counts not met  after $duration: $details in \n$status ")
       }
-      log.info("Waiting: " + details)
+      log.debug("Waiting: " + details)
       Thread.sleep(1000)
     }
     return status
