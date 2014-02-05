@@ -16,8 +16,8 @@
 
 February 2014
 
-This release is built against the Apache Hadoop 2.2.0 and hbase HBase-0.98.0
-artifacts. 
+This release is built against the Apache Hadoop 2.2.0, HBase-0.98.0
+and Accumulo 1.5.0 artifacts. 
 
 
 ## Key changes

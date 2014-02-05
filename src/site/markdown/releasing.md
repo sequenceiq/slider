@@ -71,8 +71,7 @@ This will run the functional tests as well as the `hoya-core` tests
 
 **Step #7:** Build the release package
 
-These two stages can be merged into one, which will result in the 
-test results being included as a project report for each module.
+Run
     
     mvn clean site:site site:stage package 
 
@@ -90,18 +89,9 @@ look good too: there must be no `-SNAPSHOT` dependencies.
 And a multi-line markdown release note, which will be used for artifacts.
 
 
-Release of Hoya against hadoop 2.2.0 and hbase 0.96.1.1-hadoop2
+Release of Hoya against hadoop 2.2.0 and 2.2.0, HBase-0.98.0 and Accumulo 1.5.0 artifacts. 
 
-This release of Hoya:
-
-* Is built against the (ASF staged) hadoop 2.2.0 and hbase 0.96.1.1-hadoop2 artifacts. 
-* Supports Apache HBase cluster creation, flexing, freezing and thawing.
-* Contains the initial support of Apache Accumulo: all accumulo roles
-can be created, though its testing is currently very minimal.
-* Has moved `log4j.properties` out of the JAR file and into the directory
-`conf/`, where it will be picked up both client-side and server-side.
-Enjoy!
-
+The multi-line release not should go into `hoya/src/site/markdown/release_notes`.
 
 **Step #10:** Finish the git flow release, either in the SourceTree GUI or
 the command line:
