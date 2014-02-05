@@ -76,7 +76,7 @@ public class AbstractClusterBuildingActionArgs extends AbstractActionArgs {
   public String provider = HoyaProviderFactory.DEFAULT_CLUSTER_TYPE;
 
   /**
-   * This is a listing of the roles to create
+   * Options key value
    */
   @Parameter(names = {ARG_OPTION, ARG_OPTION_SHORT}, arity = 2,
              description = "option <name> <value>")
