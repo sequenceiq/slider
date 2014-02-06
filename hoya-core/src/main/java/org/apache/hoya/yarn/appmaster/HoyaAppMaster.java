@@ -554,7 +554,6 @@ public class HoyaAppMaster extends CompoundLaunchedService
       Class<? extends RegisterApplicationMasterResponse> cls = response.getClass();
       try {
         m = cls.getDeclaredMethod("getContainersFromPreviousAttempt", new Class<?>[] { });
-        m.setAccessible(true);
       } catch (NoSuchMethodException e) {
         log.warn(methName + " not found");
       } catch (SecurityException e) {
@@ -562,8 +561,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
       }
       if (m != null) {
         try {
-          Object obj = m.invoke(response, true);
-          log.info(methName + " got " + obj);
+          Object obj = m.invoke(response, new Object []{});
           if (obj instanceof List) {
             liveContainers = (List<Container>) obj;
           }
