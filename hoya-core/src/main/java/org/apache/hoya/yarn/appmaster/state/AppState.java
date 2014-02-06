@@ -197,7 +197,6 @@ public class AppState {
    */
   private int containerMaxCores;
 
-
   /**
    * limit container memory
    */
@@ -326,6 +325,14 @@ public class AppState {
   public void setContainerLimits(int maxMemory, int maxCores) {
     containerMaxCores = maxCores;
     containerMaxMemory = maxMemory;
+  }
+
+  /*
+   * Sets whether AM restart is supported
+   * @param supported
+   */
+  public void setAMRestartSupported(boolean supported) {
+    clusterDescription.AMRestartSupported = supported;
   }
   
   /**

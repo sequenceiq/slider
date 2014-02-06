@@ -166,7 +166,7 @@ public class TestClusterLifecycle extends HBaseCommandTestBase
 
       ClusterDescription status = killAmAndWaitForRestart(hoyaClient, CLUSTER)
 
-      if (HoyaXMLConfKeysForTesting.YARN_AM_SUPPORTS_RESTART) {
+      if (status.AMRestartSupported) {
 
         // verify the AM restart container count was set
         def restarted = status.getInfo(

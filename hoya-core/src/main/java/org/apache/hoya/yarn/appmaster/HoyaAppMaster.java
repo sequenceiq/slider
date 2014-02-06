@@ -215,6 +215,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
   private final Condition isAMCompleted = AMExecutionStateLock.newCondition();
 
   private int amExitCode =  0;
+  
   /**
    * Flag set if the AM is to be shutdown
    */
@@ -564,6 +565,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
           Object obj = m.invoke(response, new Object []{});
           if (obj instanceof List) {
             liveContainers = (List<Container>) obj;
+            appState.setAMRestartSupported(true);
           }
         } catch (InvocationTargetException ite) {
           log.error(methName + " got", ite);
@@ -1047,9 +1049,8 @@ public class HoyaAppMaster extends CompoundLaunchedService
       updateClusterStatus();
       result = getClusterDescription().toJsonString();
     }
-    String stat = result;
     return Messages.GetJSONClusterStatusResponseProto.newBuilder()
-      .setClusterSpec(stat)
+      .setClusterSpec(result)
       .build();
   }
 

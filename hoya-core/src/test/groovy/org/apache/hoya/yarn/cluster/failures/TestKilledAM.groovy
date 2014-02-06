@@ -114,7 +114,7 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
     sleep(10000)
 
     // policy here depends on YARN behavior
-    if (!HoyaXMLConfKeysForTesting.YARN_AM_SUPPORTS_RESTART) {
+    if (!status.AMRestartSupported) {
       // kill hbase masters for OS/X tests to pass
       killAllMasterServers();
       // expect hbase connection to have failed
@@ -129,7 +129,7 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
         regionServerCount,
         HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
-    if (HoyaXMLConfKeysForTesting.YARN_AM_SUPPORTS_RESTART) {
+    if (status.AMRestartSupported) {
 
       dumpClusterDescription("post-restart status", status)
       // verify the AM restart container count was set
