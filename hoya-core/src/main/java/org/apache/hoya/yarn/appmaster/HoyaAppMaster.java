@@ -563,6 +563,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
       if (m != null) {
         try {
           Object obj = m.invoke(response, true);
+          log.info(methName + " got " + obj);
           if (obj instanceof List) {
             liveContainers = (List<Container>) obj;
           }
@@ -744,7 +745,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
     String appMessage = amCompletionReason;
     //stop the daemon & grab its exit code
     int exitCode = amExitCode;
-    success = exitCode == 0;
+    success = exitCode == 0 || exitCode == 3;
 
     appStatus = success ? FinalApplicationStatus.SUCCEEDED:
                 FinalApplicationStatus.FAILED;
