@@ -20,6 +20,7 @@ package org.apache.hoya.yarn.client
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import com.google.common.collect.Maps
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hdfs.DFSConfigKeys
@@ -526,7 +527,7 @@ class TestCommonArgParsing implements HoyaActions, Arguments {
 
     def roleOpts = createArgs.roleOptionMap
 
-    def clusterRoleMap = Collections.unmodifiableMap([
+    def clusterRoleMap = Maps.newHashMap([
         "master":["cheese":"french"],
         "worker":["env.CHEESE":"french"]
     ])
@@ -545,13 +546,13 @@ class TestCommonArgParsing implements HoyaActions, Arguments {
 
     
     def roleOpts = createArgs.roleOptionMap
-    Map<String, Map<String, String>> clusterRoleMap = Collections.unmodifiableMap([
+    Map<String, Map<String, String>> clusterRoleMap = Maps.newHashMap([
         "master": ["cheese": "french"],
         "worker": ["env.CHEESE": "french"]
     ])
     HoyaUtils.applyCommandLineOptsToRoleMap(clusterRoleMap, roleOpts);
 
-    def workerOpts = Collections.unmodifiableMap(clusterRoleMap["worker"])
+    def workerOpts = Maps.newHashMap(clusterRoleMap["worker"])
     assert workerOpts["env.CHEESE"] == "stilton";
 
     Map<String, String> envmap = HoyaUtils.buildEnvMap(workerOpts);

@@ -20,6 +20,7 @@ package org.apache.hoya.yarn.model.mock
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import com.google.common.collect.Maps
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.RoleKeys
 import org.apache.hoya.providers.ProviderRole
@@ -123,7 +124,7 @@ class MockFactory implements  MockRoles {
    */
   ClusterDescription newClusterSpec(int r1, int r2, int r3) {
     ClusterDescription cd = new ClusterDescription()
-    cd.roles = Collections.unmodifiableMap([
+    cd.roles = Maps.newHashMap([
         (ROLE0): roleMap(r1),
         (ROLE1): roleMap(r2),
         (ROLE2): roleMap(r3),
