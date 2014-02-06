@@ -34,10 +34,13 @@ class TestMiscHoyaUtils extends HoyaTestBase {
   public void testPurgeTempDir() throws Throwable {
     //HoyaUtils. //
 
-    HadoopFS fs = HadoopFS.get(new URI("file:///"), new Configuration())
-    Path inst = HoyaFileSystem.createHoyaAppInstanceTempPath(fs, CLUSTER1, "001")
+    Configuration configuration = new Configuration()
+    HadoopFS fs = HadoopFS.get(new URI("file:///"), configuration)
+    HoyaFileSystem hoyaFileSystem = new HoyaFileSystem(fs, configuration)
+    Path inst = hoyaFileSystem.createHoyaAppInstanceTempPath(CLUSTER1, "001")
+
     assert fs.exists(inst)
-      HoyaFileSystem.purgeHoyaAppInstanceTempFiles(fs, CLUSTER1)
+    hoyaFileSystem.purgeHoyaAppInstanceTempFiles(CLUSTER1)
     assert !fs.exists(inst)
   }
 }
