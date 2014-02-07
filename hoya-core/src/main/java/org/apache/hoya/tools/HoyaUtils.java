@@ -85,7 +85,7 @@ public final class HoyaUtils {
   private static final Logger log = LoggerFactory.getLogger(HoyaUtils.class);
 
   /**
-   * Atomic bool to track whether or not process security has already been 
+   * Atomic bool to track whether or not process security has already been
    * turned on (prevents re-entrancy)
    */
   private static final AtomicBoolean processSecurityAlreadyInitialized =
@@ -106,7 +106,7 @@ public final class HoyaUtils {
   public static boolean isSet(String s) {
     return !isUnset(s);
   }
-  
+
   /*
    * Validates whether num is an integer
    * @param num
@@ -119,7 +119,7 @@ public final class HoyaUtils {
       throw new BadConfigException(msg + num);
     }
   }
-  
+
   /*
    * Translates the trailing JVM heapsize unit: g, G, m, M
    * This assumes designated unit of 'm'
@@ -179,7 +179,7 @@ public final class HoyaUtils {
    * Find a containing JAR
    * @param my_class class to find
    * @return the file or null if it is not found
-   * @throws IOException any IO problem, including the class not having a 
+   * @throws IOException any IO problem, including the class not having a
    * classloader
    */
   public static File findContainingJar(Class my_class) throws IOException {
@@ -288,8 +288,8 @@ public final class HoyaUtils {
     for (int i = 0; i < name.length(); i++) {
       int elt = (int) name.charAt(i);
       int t = Character.getType(elt);
-      if (0 == (t & Character.LOWERCASE_LETTER) 
-          && 0 == (t & Character.DECIMAL_DIGIT_NUMBER) 
+      if (0 == (t & Character.LOWERCASE_LETTER)
+          && 0 == (t & Character.DECIMAL_DIGIT_NUMBER)
           && elt != '-'
           && elt != '_') {
         return false;
@@ -302,7 +302,7 @@ public final class HoyaUtils {
   }
 
   /**
-   * Copy a directory to a new FS -both paths must be qualified. If 
+   * Copy a directory to a new FS -both paths must be qualified. If
    * a directory needs to be created, supplied permissions can override
    * the default values. Existing directories are not touched
    * @param conf conf file
@@ -385,7 +385,7 @@ public final class HoyaUtils {
    * @param conf configuration
    * @return the patched configuration
    */
-  
+
   public static Configuration patchConfiguration(Configuration conf) {
 
     //if the fallback option is NOT set, enable it.
@@ -467,7 +467,7 @@ public final class HoyaUtils {
     }
     return v;
   }
-  
+
   public static String appReportToString(ApplicationReport r, String separator) {
     StringBuilder builder = new StringBuilder(512);
     builder.append("application ").append(
@@ -532,7 +532,7 @@ public final class HoyaUtils {
     return first;
   }
 
-  
+
   /**
    * Convert a map to a multi-line string for printing
    * @param map map to stringify
@@ -545,7 +545,7 @@ public final class HoyaUtils {
              .append("=\"")
              .append(entry.getValue())
              .append("\"\n");
-      
+
     }
     return builder.toString();
   }
@@ -989,7 +989,7 @@ public final class HoyaUtils {
       throw e;
     }
   }
- 
+
   public static String getKerberosRealm() {
     try {
       return KerberosUtil.getDefaultRealm();
@@ -999,12 +999,12 @@ public final class HoyaUtils {
 
     }
   }
-  
+
   /**
-   * Register the client resource in 
+   * Register the client resource in
    * {@link HoyaKeys#HOYA_CLIENT_RESOURCE}
    * for Configuration instances.
-   * 
+   *
    * @return true if the resource could be loaded
    */
   public static URL registerHoyaClientResource() {
@@ -1033,7 +1033,7 @@ public final class HoyaUtils {
   }
 
   /**
-   * Build up the classpath for execution 
+   * Build up the classpath for execution
    * -behaves very differently on a mini test cluster vs a production
    * production one.
    *
@@ -1174,7 +1174,7 @@ public final class HoyaUtils {
    * Convert an epoch time to a GMT time. This
    * uses the deprecated Date.toString() operation,
    * so is in one place to reduce the number of deprecation warnings.
-   * @param time timestamp 
+   * @param time timestamp
    * @return string value as ISO-9601
    */
   @SuppressWarnings({"CallToDateToString", "deprecation"})
@@ -1194,7 +1194,7 @@ public final class HoyaUtils {
       HoyaVersionInfo.APP_BUILD_INFO));
     cd.setInfo(prefix + "." + HoyaVersionInfo.HADOOP_BUILD_INFO,
                props.getProperty(HoyaVersionInfo.HADOOP_BUILD_INFO));
-    
+
     cd.setInfo(prefix + "." + HoyaVersionInfo.HADOOP_DEPLOYED_INFO,
                VersionInfo.getBranch() + " @" + VersionInfo.getSrcChecksum());
   }
@@ -1205,7 +1205,7 @@ public final class HoyaUtils {
    * @param text text message
    * @param delay delay in millis
    * @return the timer (assuming the JVM hasn't halted yet)
-   * 
+   *
    */
   public static Timer haltAM(int status, String text, int delay) {
 
