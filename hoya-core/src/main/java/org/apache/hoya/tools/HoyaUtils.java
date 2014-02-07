@@ -356,11 +356,11 @@ public final class HoyaUtils {
   }
 
 
-    public static Path getTempPathForCluster(String clustername, Path hoyaPath) {
+  public static Path getTempPathForCluster(String clustername, Path hoyaPath) {
     return new Path(hoyaPath, "tmp/" + clustername + "/");
   }
 
-    public static String stringify(Throwable t) {
+  public static String stringify(Throwable t) {
     StringWriter sw = new StringWriter();
     sw.append(t.toString()).append('\n');
     t.printStackTrace(new PrintWriter(sw));
@@ -385,7 +385,6 @@ public final class HoyaUtils {
    * @param conf configuration
    * @return the patched configuration
    */
-
   public static Configuration patchConfiguration(Configuration conf) {
 
     //if the fallback option is NOT set, enable it.
@@ -396,7 +395,7 @@ public final class HoyaUtils {
     return conf;
   }
 
-    /**
+  /**
    * Take a collection, return a list containing the string value of every
    * element in the collection.
    * @param c collection
@@ -458,7 +457,6 @@ public final class HoyaUtils {
     }
     return b.toString();
   }
-
 
   public static String mandatoryEnvVariable(String key) {
     String v = System.getenv(key);
@@ -532,7 +530,6 @@ public final class HoyaUtils {
     return first;
   }
 
-
   /**
    * Convert a map to a multi-line string for printing
    * @param map map to stringify
@@ -549,7 +546,6 @@ public final class HoyaUtils {
     }
     return builder.toString();
   }
-
 
   /**
    * Get the int value of a role
@@ -612,7 +608,7 @@ public final class HoyaUtils {
     return val;
   }
 
-    public static InetSocketAddress getRmAddress(Configuration conf) {
+  public static InetSocketAddress getRmAddress(Configuration conf) {
     return conf.getSocketAddr(YarnConfiguration.RM_ADDRESS,
                               YarnConfiguration.DEFAULT_RM_ADDRESS,
                               YarnConfiguration.DEFAULT_RM_PORT);
@@ -688,7 +684,7 @@ public final class HoyaUtils {
            "RPC: " + report.getHost() + ":" + report.getRpcPort();
   }
 
-    /**
+  /**
    * Convert a YARN URL into a string value of a normal URL
    * @param url URL
    * @return string representatin
@@ -783,7 +779,7 @@ public final class HoyaUtils {
     }
   }
 
-    /**
+  /**
    * verify that the supplied cluster name is valid
    * @param clustername cluster name
    * @throws BadCommandArgumentsException if it is invalid
@@ -904,7 +900,7 @@ public final class HoyaUtils {
     }
   }
 
-    /**
+  /**
    * Submit a JAR containing a specific class and map it
    * @param providerResources provider map to build up
    * @param hoyaFileSystem remote fs
@@ -963,7 +959,7 @@ public final class HoyaUtils {
     return builder.toString();
   }
 
-    /**
+  /**
    * Create a file:// path from a local file
    * @param file file to point the path
    * @return a new Path
@@ -972,7 +968,7 @@ public final class HoyaUtils {
     return new Path(file.toURI());
   }
 
-    /**
+  /**
    * Get the current user -relays to
    * {@link UserGroupInformation#getCurrentUser()}
    * with any Hoya-specific post processing and exception handling
