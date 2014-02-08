@@ -20,8 +20,10 @@ package org.apache.hoya.funtest.hbase
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.IntegrationTestIngest
+import org.apache.hadoop.hbase.IntegrationTestingUtility
 import org.apache.hadoop.util.ToolRunner
-import org.apache.hoya.api.ClusterDescription;
+import org.apache.hoya.api.ClusterDescription
+import org.apache.hoya.providers.hbase.HBaseConfigFileOptions;
 
 /* Runs IntegrationTestIngest on cluster
  *
@@ -43,8 +45,10 @@ class TestHBaseIntegration extends TestFunctionalHBaseCluster {
       Map<String, Integer> roleMap,
       ClusterDescription cd) {
     String parent = "/yarnapps_hoya_yarn_"+clustername
-    clientConf.set("zookeeper.znode.parent", parent)
+    clientConf.set(HBaseConfigFileOptions.KEY_ZNODE_PARENT, parent)
 
+    clientConf.set(IntegrationTestingUtility.IS_DISTRIBUTED_CLUSTER, "true")
+    
     String[] args = []
     IntegrationTestIngest test = new IntegrationTestIngest();
     test.setConf(clientConf)

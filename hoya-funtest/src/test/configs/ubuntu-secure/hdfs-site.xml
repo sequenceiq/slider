@@ -50,7 +50,7 @@
   </property>
   <property>
     <name>dfs.web.authentication.kerberos.principal</name>
-    <value>hdfs/ubuntu@COTHAM</value>
+    <value>HTTP/ubuntu@COTHAM</value>
   </property>
 
 

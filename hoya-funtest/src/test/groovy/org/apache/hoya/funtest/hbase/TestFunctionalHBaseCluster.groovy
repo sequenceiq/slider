@@ -22,7 +22,10 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.zookeeper.ZKConfig
-import org.apache.zookeeper.WatchedEvent;
+import org.apache.hoya.providers.hbase.HBaseConfigFileOptions
+import org.apache.hoya.providers.hbase.HBaseKeys
+import org.apache.zookeeper.WatchedEvent
+import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.KeeperException;
@@ -62,10 +65,11 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
 
   @Before
   public void prepareCluster() {
-    HOYA_CONFIG.set("hbase.zookeeper.quorum", HOYA_CONFIG.get("hoya.test.zkhosts"))
+    HOYA_CONFIG.set(HBaseConfigFileOptions.KEY_ZOOKEEPER_QUORUM, HOYA_CONFIG.get(
+        KEY_HOYA_TEST_ZK_HOSTS))
     String quorumServers = ZKConfig.getZKQuorumServersString(HOYA_CONFIG);
     ZooKeeper monitor = new ZooKeeper(quorumServers,
-      1000, new org.apache.zookeeper.Watcher(){
+      1000, new Watcher(){
       @Override
       public void process(WatchedEvent watchedEvent) {
       }
