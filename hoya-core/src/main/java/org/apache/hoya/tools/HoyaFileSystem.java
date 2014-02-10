@@ -300,7 +300,9 @@ public class HoyaFileSystem {
         return false;
       }
     } finally {
-      fileSystem.delete(specOrigPath, false);
+      if (!fileSystem.delete(specOrigPath, false)) {
+        return false;
+      }
     }
     return true;
   }
