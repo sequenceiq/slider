@@ -31,6 +31,11 @@
     <name>role.instances</name>
     <value>1</value>
   </property>
+  
+  <property>
+    <name>role.additional.args</name>
+    <value>--address 0.0.0.0</value>
+  </property>
 
   <property>
     <name>yarn.vcores</name>
