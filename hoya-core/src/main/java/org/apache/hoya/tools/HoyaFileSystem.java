@@ -362,7 +362,7 @@ public class HoyaFileSystem {
    *
    * @param srcDir          src dir
    * @param destRelativeDir dest dir (no trailing /)
-   * @return the list of entries
+   * @return the map of entries
    */
   public Map<String, LocalResource> submitDirectory(Path srcDir, String destRelativeDir) throws IOException {
     //now register each of the files in the directory to be
