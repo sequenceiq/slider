@@ -26,6 +26,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
+import org.apache.hoya.tools.HoyaFileSystem;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -58,7 +59,7 @@ public interface ClientProvider extends ProviderCore {
    *
    *
    *
-   * @param clusterFS filesystem
+   * @param hoyaFileSystem filesystem
    * @param serviceConf conf used by the service
    * @param clusterSpec cluster specification
    * @param originConfDirPath the original config dir -treat as read only
@@ -70,7 +71,7 @@ public interface ClientProvider extends ProviderCore {
    * @throws IOException IO problems
    * @throws HoyaException Hoya-specific issues
    */
-  Map<String, LocalResource> prepareAMAndConfigForLaunch(FileSystem clusterFS,
+  Map<String, LocalResource> prepareAMAndConfigForLaunch(HoyaFileSystem hoyaFileSystem,
                                                          Configuration serviceConf,
                                                          ClusterDescription clusterSpec,
                                                          Path originConfDirPath,
@@ -134,7 +135,7 @@ public interface ClientProvider extends ProviderCore {
    * purely a pre-launch validation of options.
    *
    *
-   * @param clusterFS filesystem
+   * @param hoyaFileSystem filesystem
    * @param clustername name of the cluster
    * @param configuration cluster configuration
    * @param clusterSpec cluster specification
@@ -144,7 +145,7 @@ public interface ClientProvider extends ProviderCore {
    * @throws HoyaException on any validation issue
    * @throws IOException on any IO problem
    */
-  void preflightValidateClusterConfiguration(FileSystem clusterFS,
+  void preflightValidateClusterConfiguration(HoyaFileSystem hoyaFileSystem,
                                              String clustername,
                                              Configuration configuration,
                                              ClusterDescription clusterSpec,

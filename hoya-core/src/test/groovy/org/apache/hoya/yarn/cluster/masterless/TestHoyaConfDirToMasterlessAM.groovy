@@ -37,6 +37,7 @@ import groovy.util.logging.Slf4j
 import org.apache.hadoop.fs.Path
 import org.apache.hoya.HoyaKeys
 import org.apache.hoya.api.ClusterDescription
+import org.apache.hoya.tools.HoyaFileSystem
 import org.apache.hoya.tools.HoyaUtils
 import org.apache.hoya.yarn.client.HoyaClient
 import org.apache.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
@@ -83,7 +84,7 @@ class TestHoyaConfDirToMasterlessAM extends HBaseMiniClusterTestBase {
       ClusterDescription cd = waitForRoleCount(hoyaClient,HoyaKeys.ROLE_HOYA_AM,1, HBASE_CLUSTER_STARTUP_TIME)
       HadoopFS fs = HadoopFS.getLocal(conf);
       
-      Path clusterDir = HoyaUtils.buildHoyaClusterDirPath(fs, clustername)
+      Path clusterDir = new HoyaFileSystem(fs, conf).buildHoyaClusterDirPath(clustername)
       assert fs.exists(clusterDir);
       Path hoyaConfDir = new Path(clusterDir, HoyaKeys.SUBMITTED_HOYA_CONF_DIR)
       assert fs.exists(hoyaConfDir);

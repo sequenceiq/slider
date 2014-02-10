@@ -22,6 +22,7 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
+import org.apache.hoya.tools.HoyaFileSystem
 import org.apache.hoya.tools.HoyaUtils
 import org.apache.hoya.yarn.HoyaTestBase
 import org.apache.hoya.yarn.appmaster.state.AbstractRMOperation
@@ -48,6 +49,7 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
   AppState appState
   MockYarnEngine engine
   protected HadoopFS fs
+  protected HoyaFileSystem hoyaFileSystem
   protected File historyWorkDir
   protected Path historyPath;
 
@@ -56,6 +58,7 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
     super.setup()
     YarnConfiguration conf = HoyaUtils.createConfiguration()
     fs = HadoopFS.get(new URI("file:///"), conf)
+    hoyaFileSystem = new HoyaFileSystem(fs, conf)
     engine = createYarnEngine()
   }
 

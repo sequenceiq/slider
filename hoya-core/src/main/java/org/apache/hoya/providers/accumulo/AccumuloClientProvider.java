@@ -37,6 +37,7 @@ import org.apache.hoya.providers.ClientProvider;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderUtils;
 import org.apache.hoya.tools.ConfigHelper;
+import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -214,7 +215,7 @@ public class AccumuloClientProvider extends AbstractProviderCore implements
   }
 
   @Override //Client
-  public void preflightValidateClusterConfiguration(FileSystem clusterFS,
+  public void preflightValidateClusterConfiguration(HoyaFileSystem hoyaFileSystem,
                                                     String clustername,
                                                     Configuration configuration,
                                                     ClusterDescription clusterSpec,
@@ -239,14 +240,14 @@ public class AccumuloClientProvider extends AbstractProviderCore implements
    * @see <a href="https://issues.apache.org/;jira/browse/PIG-3285">PIG-3285</a>
    *
    * @param providerResources provider resources to add resource to
-   * @param clusterFS filesystem
+   * @param hoyaFileSystem filesystem
    * @param libdir relative directory to place resources
    * @param tempPath path in the cluster FS for temp files
    * @throws IOException IO problems
    * @throws HoyaException Hoya-specific issues
    */
   public static void addAccumuloDependencyJars(Map<String, LocalResource> providerResources,
-                                            FileSystem clusterFS,
+                                            HoyaFileSystem hoyaFileSystem,
                                             String libdir,
                                             Path tempPath) throws
                                                            IOException,
@@ -262,7 +263,7 @@ public class AccumuloClientProvider extends AbstractProviderCore implements
       //zk
       org.apache.zookeeper.ClientCnxn.class
     };
-    ProviderUtils.addDependencyJars(providerResources, clusterFS, tempPath,
+    ProviderUtils.addDependencyJars(providerResources, hoyaFileSystem, tempPath,
                                     libdir, jars,
                                     classes);
   }
@@ -275,7 +276,7 @@ public class AccumuloClientProvider extends AbstractProviderCore implements
    *
    *
    *
-   * @param clusterFS filesystem
+   * @param hoyaFileSystem filesystem
    * @param serviceConf conf used by the service
    * @param clusterSpec cluster specification
    * @param originConfDirPath the original config dir -treat as read only
@@ -286,7 +287,7 @@ public class AccumuloClientProvider extends AbstractProviderCore implements
    * @return a map of name to local resource to add to the AM launcher
    */
   @Override //client
-  public Map<String, LocalResource> prepareAMAndConfigForLaunch(FileSystem clusterFS,
+  public Map<String, LocalResource> prepareAMAndConfigForLaunch(HoyaFileSystem hoyaFileSystem,
                                                                 Configuration serviceConf,
                                                                 ClusterDescription clusterSpec,
                                                                 Path originConfDirPath,
@@ -319,11 +320,9 @@ public class AccumuloClientProvider extends AbstractProviderCore implements
 
     log.debug("Saving the config to {}", sitePath);
     Map<String, LocalResource> confResources;
-    confResources = HoyaUtils.submitDirectory(clusterFS,
-                                              generatedConfDirPath,
-                                              HoyaKeys.PROPAGATED_CONF_DIR_NAME);
-    
-    addAccumuloDependencyJars(confResources, clusterFS, libdir, tempPath);
+    confResources = hoyaFileSystem.submitDirectory(generatedConfDirPath, HoyaKeys.PROPAGATED_CONF_DIR_NAME);
+
+    addAccumuloDependencyJars(confResources, hoyaFileSystem, libdir, tempPath);
     
     return confResources;
   }

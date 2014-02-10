@@ -20,6 +20,7 @@ package org.apache.hoya.yarn.api
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import com.google.common.collect.Maps
 import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.Path
 import org.apache.hoya.api.ClusterDescription
@@ -46,11 +47,11 @@ class TestClusterDescriptionMapping extends YarnMiniClusterTestBase {
     ClusterDescription cd = new ClusterDescription();
     cd.name = "test"
     cd.state = ClusterDescription.STATE_LIVE;
-    cd.roles = [
+    cd.roles = Maps.newHashMap([
         (HBaseKeys.ROLE_MASTER): [
             (RoleKeys.ROLE_INSTANCES): "1"
         ]
-    ]
+    ])
     ClusterNode node = new ClusterNode()
     node.name = "masternode"
     cd.createTime = System.currentTimeMillis()

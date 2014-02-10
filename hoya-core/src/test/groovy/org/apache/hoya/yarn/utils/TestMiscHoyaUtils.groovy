@@ -20,7 +20,7 @@ package org.apache.hoya.yarn.utils
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
-import org.apache.hoya.tools.HoyaUtils
+import org.apache.hoya.tools.HoyaFileSystem
 import org.apache.hoya.yarn.HoyaTestBase
 import org.junit.Test
 import org.apache.hadoop.fs.FileSystem as HadoopFS
@@ -34,10 +34,13 @@ class TestMiscHoyaUtils extends HoyaTestBase {
   public void testPurgeTempDir() throws Throwable {
     //HoyaUtils. //
 
-    HadoopFS fs = HadoopFS.get(new URI("file:///"), new Configuration())
-    Path inst = HoyaUtils.createHoyaAppInstanceTempPath(fs, CLUSTER1, "001")
+    Configuration configuration = new Configuration()
+    HadoopFS fs = HadoopFS.get(new URI("file:///"), configuration)
+    HoyaFileSystem hoyaFileSystem = new HoyaFileSystem(fs, configuration)
+    Path inst = hoyaFileSystem.createHoyaAppInstanceTempPath(CLUSTER1, "001")
+
     assert fs.exists(inst)
-    HoyaUtils.purgeHoyaAppInstanceTempFiles(fs, CLUSTER1)
+    hoyaFileSystem.purgeHoyaAppInstanceTempFiles(CLUSTER1)
     assert !fs.exists(inst)
   }
 }

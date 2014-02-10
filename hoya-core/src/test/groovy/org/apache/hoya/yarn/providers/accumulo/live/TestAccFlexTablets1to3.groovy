@@ -31,33 +31,23 @@ class TestAccFlexTablets1to3 extends AccumuloTestBase {
 
   @Test
   public void testAccFlexTablets1to3() throws Throwable {
+    Map<String, Integer> plan1 = (Map<String, Integer>) [
+        (AccumuloKeys.ROLE_MASTER): 1,
+        (AccumuloKeys.ROLE_TABLET): 1,
+        (AccumuloKeys.ROLE_MONITOR): 1,
+        (AccumuloKeys.ROLE_GARBAGE_COLLECTOR): 1]
+
+    Map<String, Integer> plan2 = (Map<String, Integer>) [
+        (AccumuloKeys.ROLE_MASTER): 1,
+        (AccumuloKeys.ROLE_TABLET): 3,
+        (AccumuloKeys.ROLE_MONITOR): 1,
+        (AccumuloKeys.ROLE_GARBAGE_COLLECTOR): 1]
+
     ClusterDescription cd = flexAccClusterTestRun(
         "test_acc_flex_tablets1to3",
-        [
-            [
-                (AccumuloKeys.ROLE_MASTER): 1,
-                (AccumuloKeys.ROLE_TABLET): 1,
-                (AccumuloKeys.ROLE_MONITOR): 1,
-                (AccumuloKeys.ROLE_GARBAGE_COLLECTOR): 1
-            ],
-            [
-                (AccumuloKeys.ROLE_MASTER): 1,
-                (AccumuloKeys.ROLE_TABLET): 3,
-                (AccumuloKeys.ROLE_MONITOR): 1,
-                (AccumuloKeys.ROLE_GARBAGE_COLLECTOR): 1
-            ],
-/*
-            [
-                (AccumuloKeys.ROLE_MASTER): 3,
-                (AccumuloKeys.ROLE_TABLET): 3,
-                (AccumuloKeys.ROLE_MONITOR): 1,
-                (AccumuloKeys.ROLE_GARBAGE_COLLECTOR): 1
-            ],
-*/
-
-        ],
+        [plan1, plan2],
         true)
-    
+
     log.info("Final CD \n{}", cd)
   }
 

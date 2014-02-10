@@ -19,8 +19,6 @@
 package org.apache.hoya.tools;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.CommonConfigurationKeys;
-import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
@@ -37,13 +35,8 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.LocalResourceType;
-import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
-import org.apache.hadoop.yarn.util.ConverterUtils;
-import org.apache.hadoop.yarn.util.Records;
-import org.apache.hoya.HoyaExitCodes;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.HoyaXmlConfKeys;
 import org.apache.hoya.api.ClusterDescription;
@@ -51,7 +44,6 @@ import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.exceptions.BadClusterStateException;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.BadConfigException;
-import org.apache.hoya.exceptions.ErrorStrings;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.exceptions.MissingArgException;
 import org.apache.hoya.providers.hbase.HBaseConfigFileOptions;
@@ -69,7 +61,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
 import java.net.URLDecoder;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -94,7 +85,7 @@ public final class HoyaUtils {
   private static final Logger log = LoggerFactory.getLogger(HoyaUtils.class);
 
   /**
-   * Atomic bool to track whether or not process security has already been 
+   * Atomic bool to track whether or not process security has already been
    * turned on (prevents re-entrancy)
    */
   private static final AtomicBoolean processSecurityAlreadyInitialized =
@@ -115,7 +106,7 @@ public final class HoyaUtils {
   public static boolean isSet(String s) {
     return !isUnset(s);
   }
-  
+
   /*
    * Validates whether num is an integer
    * @param num
@@ -128,7 +119,7 @@ public final class HoyaUtils {
       throw new BadConfigException(msg + num);
     }
   }
-  
+
   /*
    * Translates the trailing JVM heapsize unit: g, G, m, M
    * This assumes designated unit of 'm'
@@ -188,7 +179,7 @@ public final class HoyaUtils {
    * Find a containing JAR
    * @param my_class class to find
    * @return the file or null if it is not found
-   * @throws IOException any IO problem, including the class not having a 
+   * @throws IOException any IO problem, including the class not having a
    * classloader
    */
   public static File findContainingJar(Class my_class) throws IOException {
@@ -297,8 +288,8 @@ public final class HoyaUtils {
     for (int i = 0; i < name.length(); i++) {
       int elt = (int) name.charAt(i);
       int t = Character.getType(elt);
-      if (0 == (t & Character.LOWERCASE_LETTER) 
-          && 0 == (t & Character.DECIMAL_DIGIT_NUMBER) 
+      if (0 == (t & Character.LOWERCASE_LETTER)
+          && 0 == (t & Character.DECIMAL_DIGIT_NUMBER)
           && elt != '-'
           && elt != '_') {
         return false;
@@ -311,7 +302,7 @@ public final class HoyaUtils {
   }
 
   /**
-   * Copy a directory to a new FS -both paths must be qualified. If 
+   * Copy a directory to a new FS -both paths must be qualified. If
    * a directory needs to be created, supplied permissions can override
    * the default values. Existing directories are not touched
    * @param conf conf file
@@ -344,7 +335,7 @@ public final class HoyaUtils {
       permission = FsPermission.getDirDefault();
     }
     if (!destFS.exists(destDirPath)) {
-      createWithPermissions(destFS, destDirPath, permission);
+      new HoyaFileSystem(destFS, conf).createWithPermissions(destDirPath, permission);
     }
     Path[] sourcePaths = new Path[srcFileCount];
     for (int i = 0; i < srcFileCount; i++) {
@@ -364,201 +355,9 @@ public final class HoyaUtils {
     return srcFileCount;
   }
 
-  /**
-   * Build up the path string for a cluster instance -no attempt to
-   * create the directory is made
-   * @param fs filesystem
-   * @param clustername name of the cluster
-   * @return the path for persistent data
-   */
-  public static Path buildHoyaClusterDirPath(FileSystem fs,
-                                              String clustername) {
-    Path hoyaPath = getBaseHoyaPath(fs);
-    return new Path(hoyaPath, HoyaKeys.CLUSTER_DIRECTORY +"/" + clustername);
-  }
-
-
-  
-  
-  /**
-   * Create the Hoya cluster path for a named cluster and all its subdirs
-   * This is a directory; a mkdirs() operation is executed
-   * to ensure that it is there.
-   * @param fs filesystem
-   * @param clustername name of the cluster
-   * @return the path to the cluster directory
-   * @throws IOException trouble
-   * @throws HoyaException hoya-specific exceptions
-   */
-  public static Path createClusterDirectories(FileSystem fs,
-                                     String clustername,
-                                     Configuration conf) throws
-                                                         IOException,
-                                                         HoyaException {
-    Path clusterDirectory = buildHoyaClusterDirPath(fs, clustername);
-    Path snapshotConfPath =
-      new Path(clusterDirectory, HoyaKeys.SNAPSHOT_CONF_DIR_NAME);
-    Path generatedConfPath =
-      new Path(clusterDirectory, HoyaKeys.GENERATED_CONF_DIR_NAME);
-    Path historyPath =
-      new Path(clusterDirectory, HoyaKeys.HISTORY_DIR_NAME);
-    String clusterDirPermsOct = conf.get(HoyaXmlConfKeys.HOYA_CLUSTER_DIRECTORY_PERMISSIONS,
-                    HoyaXmlConfKeys.DEFAULT_HOYA_CLUSTER_DIRECTORY_PERMISSIONS);
-    FsPermission clusterPerms = new FsPermission(clusterDirPermsOct);
-
-    verifyClusterDirectoryNonexistent(fs, clustername, clusterDirectory);
-
-
-    createWithPermissions(fs, clusterDirectory, clusterPerms);
-    createWithPermissions(fs, snapshotConfPath, clusterPerms);
-    createWithPermissions(fs, generatedConfPath, clusterPerms);
-    createWithPermissions(fs, historyPath, clusterPerms);
-
-    // Data Directory
-    Path datapath = new Path(clusterDirectory, HoyaKeys.DATA_DIR_NAME);
-    String dataOpts =
-      conf.get(HoyaXmlConfKeys.HOYA_DATA_DIRECTORY_PERMISSIONS,
-               HoyaXmlConfKeys.DEFAULT_HOYA_DATA_DIRECTORY_PERMISSIONS);
-    log.debug("Setting data directory permissions to {}", dataOpts);
-    createWithPermissions(fs, datapath, new FsPermission(dataOpts));
-
-    return clusterDirectory;
-  }
-
-  /**
-   * Create a directory with the given permissions. 
-   * @param fs filesystem
-   * @param dir directory
-   * @param clusterPerms cluster permissions
-   * @throws IOException IO problem
-   * @throws BadClusterStateException any cluster state problem
-   */
-  public static void createWithPermissions(FileSystem fs,
-                                           Path dir,
-                                           FsPermission clusterPerms) throws
-                                                                      IOException,
-                                                                      BadClusterStateException {
-    if (fs.isFile(dir)) {
-      // HADOOP-9361 shows some filesystems don't correctly fail here
-      throw new BadClusterStateException(
-        "Cannot create a directory over a file %s", dir);
-    }
-    log.debug("mkdir {} with perms {}", dir, clusterPerms);
-    //no mask whatoever
-    fs.getConf().set(CommonConfigurationKeys.FS_PERMISSIONS_UMASK_KEY, "000");
-    fs.mkdirs(dir, clusterPerms);
-    //and force set it anyway just to make sure
-    fs.setPermission(dir, clusterPerms);
-  }
-
-  /**
-   * Get the permissions of a path
-   * @param fs filesystem
-   * @param path path to check
-   * @return the permissions
-   * @throws IOException any IO problem (including file not found)
-   */
-  public static FsPermission getPathPermissions(FileSystem fs, Path path) throws
-                                                                         IOException {
-    FileStatus status = fs.getFileStatus(path);
-    return status.getPermission();
-  }
-
-  /**
-   * Verify that the cluster directory is not present
-   * @param fs filesystem
-   * @param clustername name of the cluster
-   * @param clusterDirectory actual directory to look for
-   * @return the path to the cluster directory
-   * @throws IOException trouble with FS
-   * @throws HoyaException If the directory exists
-   */
-  public static void verifyClusterDirectoryNonexistent(FileSystem fs,
-                                                       String clustername,
-                                                       Path clusterDirectory) throws
-                                                                              IOException,
-                                                                              HoyaException {
-    if (fs.exists(clusterDirectory)) {
-      throw new HoyaException(HoyaExitCodes.EXIT_CLUSTER_EXISTS,
-                              ErrorStrings.PRINTF_E_ALREADY_EXISTS, clustername,
-                              clusterDirectory);
-    }
-  }
-
-  /**
-   * Verify that a user has write access to a directory.
-   * It does this by creating then deleting a temp file
-   * @param fs filesystem
-   * @param dirPath actual directory to look for
-   * @throws IOException trouble with FS
-   * @throws BadClusterStateException if the directory is not writeable
-   */
-  public static void verifyDirectoryWriteAccess(FileSystem fs,
-                                         Path dirPath) throws
-                                                                IOException,
-                                                                HoyaException {
-    if (!fs.exists(dirPath)) {
-      throw new FileNotFoundException(dirPath.toString());
-    }
-    Path tempFile = new Path(dirPath, "tmp-file-for-checks");
-    try {
-      FSDataOutputStream out = null;
-      out = fs.create(tempFile, true);
-      IOUtils.closeStream(out);
-      fs.delete(tempFile, false);
-    } catch (IOException e) {
-      log.warn("Failed to create file {}: {}", tempFile, e);
-      throw new BadClusterStateException(e,
-           "Unable to write to directory %s : %s", dirPath, e.toString());
-    }
-  }
-
-  /**
-   * Create the application-instance specific temporary directory
-   * in the DFS
-   * @param fs filesystem
-   * @param clustername name of the cluster
-   * @param appID appliation ID
-   * @return the path; this directory will already have been created
-   */
-  public static Path createHoyaAppInstanceTempPath(FileSystem fs,
-                                                   String clustername,
-                                                   String appID) throws
-                                                                 IOException {
-    Path hoyaPath = getBaseHoyaPath(fs);
-    Path tmp = getTempPathForCluster(clustername, hoyaPath);
-    Path instancePath = new Path(tmp, appID);
-    fs.mkdirs(instancePath);
-    return instancePath;
-  }
-  /**
-   * Create the application-instance specific temporary directory
-   * in the DFS
-   * @param fs filesystem
-   * @param clustername name of the cluster
-   * @param appID appliation ID
-   * @return the path; this directory will already have been deleted
-   */
-  public static Path purgeHoyaAppInstanceTempFiles(FileSystem fs,
-                                                   String clustername) throws
-                                                                 IOException {
-    Path hoyaPath = getBaseHoyaPath(fs);
-    Path tmp = getTempPathForCluster(clustername, hoyaPath);
-    fs.delete(tmp, true);
-    return tmp;
-  }
 
   public static Path getTempPathForCluster(String clustername, Path hoyaPath) {
     return new Path(hoyaPath, "tmp/" + clustername + "/");
-  }
-
-  /**
-   * Get the base path for hoya
-   * @param fs
-   * @return
-   */
-  public static Path getBaseHoyaPath(FileSystem fs) {
-    return new Path(fs.getHomeDirectory(), ".hoya");
   }
 
   public static String stringify(Throwable t) {
@@ -586,7 +385,6 @@ public final class HoyaUtils {
    * @param conf configuration
    * @return the patched configuration
    */
-  
   public static Configuration patchConfiguration(Configuration conf) {
 
     //if the fallback option is NOT set, enable it.
@@ -595,82 +393,6 @@ public final class HoyaUtils {
       conf.set(HBaseConfigFileOptions.IPC_CLIENT_FALLBACK_TO_SIMPLE_AUTH, "true");
     }
     return conf;
-  }
-
-  /**
-   * Overwrite a cluster specification. This code
-   * attempts to do this atomically by writing the updated specification
-   * to a new file, renaming the original and then updating the original.
-   * There's special handling for one case: the original file doesn't exist
-   * @param clusterFS
-   * @param clusterSpec
-   * @param clusterDirectory
-   * @param clusterSpecPath
-   * @return true if the original cluster specification was updated.
-   */
-  public static boolean updateClusterSpecification(FileSystem clusterFS,
-                                                   Path clusterDirectory,
-                                                   Path clusterSpecPath,
-                                                   ClusterDescription clusterSpec) throws
-                                                                                   IOException {
-
-    //it is not currently there -do a write with overwrite disabled, so that if
-    //it appears at this point this is picked up
-    if (!clusterFS.exists(clusterSpecPath) &&
-        writeSpecWithoutOverwriting(clusterFS, clusterSpecPath, clusterSpec)) {
-      return true;
-    }
-
-    //save to a renamed version
-    String specTimestampedFilename = "spec-" + System.currentTimeMillis();
-    Path specSavePath =
-      new Path(clusterDirectory, specTimestampedFilename + ".json");
-    Path specOrigPath =
-      new Path(clusterDirectory, specTimestampedFilename + "-orig.json");
-
-    //roll the specification. The (atomic) rename may fail if there is 
-    //an overwrite, which is how we catch re-entrant calls to this
-    if (!writeSpecWithoutOverwriting(clusterFS, specSavePath, clusterSpec)) {
-      return false;
-    }
-    if (!clusterFS.rename(clusterSpecPath, specOrigPath)) {
-      return false;
-    }
-    try {
-      if (!clusterFS.rename(specSavePath, clusterSpecPath)) {
-        return false;
-      }
-    } finally {
-      clusterFS.delete(specOrigPath, false);
-    }
-    return true;
-  }
-
-  public static boolean writeSpecWithoutOverwriting(FileSystem clusterFS,
-                                                    Path clusterSpecPath,
-                                                    ClusterDescription clusterSpec) {
-    try {
-      clusterSpec.save(clusterFS, clusterSpecPath, false);
-    } catch (IOException e) {
-      log.debug("Failed to save cluster specification -race condition? " + e,
-                e);
-      return false;
-    }
-    return true;
-  }
-
-  public static boolean maybeAddImagePath(FileSystem clusterFS,
-                                          Map<String, LocalResource> localResources,
-                                          Path imagePath) throws IOException {
-    if (imagePath != null) {
-      LocalResource resource = createAmResource(clusterFS,
-                                                imagePath,
-                                                LocalResourceType.ARCHIVE);
-      localResources.put(HoyaKeys.LOCAL_TARBALL_INSTALL_SUBDIR, resource);
-      return true;
-    } else {
-      return false;
-    }
   }
 
   /**
@@ -736,7 +458,6 @@ public final class HoyaUtils {
     return b.toString();
   }
 
-
   public static String mandatoryEnvVariable(String key) {
     String v = System.getenv(key);
     if (v == null) {
@@ -744,7 +465,7 @@ public final class HoyaUtils {
     }
     return v;
   }
-  
+
   public static String appReportToString(ApplicationReport r, String separator) {
     StringBuilder builder = new StringBuilder(512);
     builder.append("application ").append(
@@ -809,7 +530,6 @@ public final class HoyaUtils {
     return first;
   }
 
-  
   /**
    * Convert a map to a multi-line string for printing
    * @param map map to stringify
@@ -822,11 +542,10 @@ public final class HoyaUtils {
              .append("=\"")
              .append(entry.getValue())
              .append("\"\n");
-      
+
     }
     return builder.toString();
   }
-
 
   /**
    * Get the int value of a role
@@ -887,35 +606,6 @@ public final class HoyaUtils {
 
     }
     return val;
-  }
-
-  /**
-   * Create an AM resource from the 
-   * @param hdfs HDFS or other filesystem in use
-   * @param destPath dest path in filesystem
-   * @param resourceType resource type
-   * @return the resource set up wih application-level visibility and the
-   * timestamp & size set from the file stats.
-   */
-  public static LocalResource createAmResource(FileSystem hdfs,
-                                               Path destPath,
-                                               LocalResourceType resourceType) throws
-                                                                               IOException {
-    FileStatus destStatus = hdfs.getFileStatus(destPath);
-    LocalResource amResource = Records.newRecord(LocalResource.class);
-    amResource.setType(resourceType);
-    // Set visibility of the resource 
-    // Setting to most private option
-    amResource.setVisibility(LocalResourceVisibility.APPLICATION);
-    // Set the resource to be copied over
-    amResource.setResource(ConverterUtils.getYarnUrlFromPath(destPath));
-    // Set timestamp and length of file so that the framework 
-    // can do basic sanity checks for the local resource 
-    // after it has been copied over to ensure it is the same 
-    // resource the client intended to use with the application
-    amResource.setTimestamp(destStatus.getModificationTime());
-    amResource.setSize(destStatus.getLen());
-    return amResource;
   }
 
   public static InetSocketAddress getRmAddress(Configuration conf) {
@@ -992,33 +682,6 @@ public final class HoyaUtils {
            report.getApplicationId() + " user " + report.getUser() +
            " is in state " + report.getYarnApplicationState() +
            "RPC: " + report.getHost() + ":" + report.getRpcPort();
-  }
-
-  /**
-   * Register all files under a fs path as a directory to push out 
-   * @param clusterFS cluster filesystem
-   * @param srcDir src dir
-   * @param destRelativeDir dest dir (no trailing /)
-   * @return the list of entries
-   */
-  public static Map<String, LocalResource> submitDirectory(FileSystem clusterFS,
-                                                           Path srcDir,
-                                                           String destRelativeDir) throws
-                                                                                   IOException {
-    //now register each of the files in the directory to be
-    //copied to the destination
-    FileStatus[] fileset = clusterFS.listStatus(srcDir);
-    Map<String, LocalResource> localResources =
-      new HashMap<String, LocalResource>(fileset.length);
-    for (FileStatus entry : fileset) {
-
-      LocalResource resource = createAmResource(clusterFS,
-                                                entry.getPath(),
-                                                LocalResourceType.FILE);
-      String relativePath = destRelativeDir + "/" + entry.getPath().getName();
-      localResources.put(relativePath, resource);
-    }
-    return localResources;
   }
 
   /**
@@ -1114,61 +777,6 @@ public final class HoyaUtils {
       //set or overwrite the role
       clusterRoleMap.put(key, existingMap);
     }
-  }
-
-  /**
-   * Perform any post-load cluster validation. This may include loading
-   * a provider and having it check it
-   * @param fileSystem FS
-   * @param clusterSpecPath path to cspec
-   * @param clusterSpec the cluster spec to validate
-   */
-  public static void verifySpecificationValidity(FileSystem fileSystem,
-                                                 Path clusterSpecPath,
-                                                 ClusterDescription clusterSpec) throws
-                                                                          HoyaException {
-    if (clusterSpec.state == ClusterDescription.STATE_INCOMPLETE) {
-      throw new BadClusterStateException(ErrorStrings.E_INCOMPLETE_CLUSTER_SPEC + clusterSpecPath);
-    }
-  }
-
-  /**
-   * Load a cluster spec then validate it
-   * @param fileSystem FS
-   * @param clusterSpecPath path to cspec
-   * @return the cluster spec
-   * @throws IOException IO problems
-   * @throws HoyaException cluster location, spec problems
-   */
-  public static ClusterDescription loadAndValidateClusterSpec(FileSystem filesystem,
-                      Path clusterSpecPath) throws IOException, HoyaException {
-    ClusterDescription clusterSpec =
-      ClusterDescription.load(filesystem, clusterSpecPath);
-    //spec is loaded, just look at its state;
-    verifySpecificationValidity(filesystem, clusterSpecPath, clusterSpec);
-    return clusterSpec;
-  }
-
-  /**
-   * Locate a cluster specification in the FS. This includes a check to verify
-   * that the file is there.
-   * @param filesystem filesystem
-   * @param clustername name of the cluster
-   * @return the path to the spec.
-   * @throws IOException IO problems
-   * @throws HoyaException if the path isn't there
-   */
-  public static Path locateClusterSpecification(FileSystem filesystem,
-                                                String clustername) throws
-                                                                    IOException,
-                                                                    HoyaException {
-    Path clusterDirectory =
-      buildHoyaClusterDirPath(filesystem, clustername);
-    Path clusterSpecPath =
-      new Path(clusterDirectory, HoyaKeys.CLUSTER_SPECIFICATION_FILE);
-    ClusterDescription.verifyClusterSpecExists(clustername, filesystem,
-                                               clusterSpecPath);
-    return clusterSpecPath;
   }
 
   /**
@@ -1291,38 +899,11 @@ public final class HoyaUtils {
       }
     }
   }
-  
-  /**
-   * Submit a JAR containing a specific class, returning
-   * the resource to be mapped in
-   *
-   * @param clusterFS remote fs
-   * @param clazz class to look for
-   * @param subdir subdirectory (expected to end in a "/")
-   * @param jarName <i>At the destination</i>
-   * @return the local resource ref
-   * @throws IOException trouble copying to HDFS
-   */
-  public static LocalResource submitJarWithClass(FileSystem clusterFS,
-                                                 Class clazz,
-                                                 Path tempPath,
-                                                 String subdir,
-                                                 String jarName)
-      throws IOException, HoyaException {
-    File localFile = findContainingJar(clazz);
-    if (null == localFile) {
-      throw new FileNotFoundException("Could not find JAR containing " + clazz);
-    }
-    
-    LocalResource resource = submitFile(clusterFS, localFile, tempPath, subdir,
-                                        jarName);
-    return resource;
-  }
 
   /**
    * Submit a JAR containing a specific class and map it
    * @param providerResources provider map to build up
-   * @param clusterFS remote fs
+   * @param hoyaFileSystem remote fs
    * @param clazz class to look for
    * @param libdir lib directory
    * @param jarName <i>At the destination</i>
@@ -1330,55 +911,24 @@ public final class HoyaUtils {
    * @throws IOException trouble copying to HDFS
    */
   public static LocalResource putJar(Map<String, LocalResource> providerResources,
-                              FileSystem clusterFS,
+                              HoyaFileSystem hoyaFileSystem,
                               Class clazz,
                               Path tempPath,
                               String libdir,
                               String jarName
                              )
     throws IOException, HoyaException {
-    LocalResource res = HoyaUtils.submitJarWithClass(
-      clusterFS,
-      clazz,
-      tempPath,
-      libdir,
-      jarName);
+    LocalResource res = hoyaFileSystem.submitJarWithClass(
+
+            clazz,
+            tempPath,
+            libdir,
+            jarName);
     providerResources.put(libdir + "/"+ jarName, res);
     return res;
   }
 
-  /**
-   * Submit a local file to the filesystem references by the instance's cluster
-   * filesystem
-   *
-   * @param clusterFS remote fs
-   * @param localFile filename
-   * @param subdir subdirectory (expected to end in a "/")
-   * @param destFileName destination filename
-   * @return the local resource ref
-   * @throws IOException trouble copying to HDFS
-   */
-  private static LocalResource submitFile(FileSystem clusterFS,
-                                          File localFile,
-                                          Path tempPath,
-                                          String subdir,
-                                          String destFileName) throws IOException {
-    Path src = new Path(localFile.toString());
-    Path subdirPath = new Path(tempPath, subdir);
-    clusterFS.mkdirs(subdirPath);
-    Path destPath = new Path(subdirPath, destFileName);
-
-    clusterFS.copyFromLocalFile(false, true, src, destPath);
-
-    // Set the type of resource - file or archive
-    // archives are untarred at destination
-    // we don't need the jar file to be untarred for now
-    return createAmResource(clusterFS,
-                                      destPath,
-                                      LocalResourceType.FILE);
-  }
-
-  public static Map<String, Map<String, String>> deepClone(Map<String, Map<String, String>> src) {
+    public static Map<String, Map<String, String>> deepClone(Map<String, Map<String, String>> src) {
     Map<String, Map<String, String>> dest =
       new HashMap<String, Map<String, String>>();
     for (Map.Entry<String, Map<String, String>> entry : src.entrySet()) {
@@ -1408,25 +958,6 @@ public final class HoyaUtils {
     }
     return builder.toString();
   }
-  
-  /**
-   * list entries in a filesystem directory
-   * @param fs FS
-   * @param path directory
-   * @return a listing, one to a line
-   * @throws IOException
-   */
-  public static String listFSDir(FileSystem fs, Path path) throws IOException {
-    FileStatus[] stats = fs.listStatus(path);
-    StringBuilder builder = new StringBuilder();
-    for (FileStatus stat : stats) {
-      builder.append(stat.getPath().toString())
-             .append("\t")
-             .append(stat.getLen())
-             .append("\n");
-    }
-    return builder.toString();
-  }
 
   /**
    * Create a file:// path from a local file
@@ -1437,19 +968,6 @@ public final class HoyaUtils {
     return new Path(file.toURI());
   }
 
-  public static void touch(FileSystem fs, Path path) throws IOException {
-    FSDataOutputStream out = fs.create(path);
-    out.close();
-  }
-  
-  public static void cat(FileSystem fs, Path path, String data) throws
-                                                                IOException {
-    FSDataOutputStream out = fs.create(path);
-    byte[] bytes = data.getBytes(Charset.forName("UTF-8"));
-    out.write(bytes);  
-    out.close();
-  }
-  
   /**
    * Get the current user -relays to
    * {@link UserGroupInformation#getCurrentUser()}
@@ -1467,7 +985,7 @@ public final class HoyaUtils {
       throw e;
     }
   }
- 
+
   public static String getKerberosRealm() {
     try {
       return KerberosUtil.getDefaultRealm();
@@ -1477,12 +995,12 @@ public final class HoyaUtils {
 
     }
   }
-  
+
   /**
-   * Register the client resource in 
+   * Register the client resource in
    * {@link HoyaKeys#HOYA_CLIENT_RESOURCE}
    * for Configuration instances.
-   * 
+   *
    * @return true if the resource could be loaded
    */
   public static URL registerHoyaClientResource() {
@@ -1511,7 +1029,7 @@ public final class HoyaUtils {
   }
 
   /**
-   * Build up the classpath for execution 
+   * Build up the classpath for execution
    * -behaves very differently on a mini test cluster vs a production
    * production one.
    *
@@ -1652,7 +1170,7 @@ public final class HoyaUtils {
    * Convert an epoch time to a GMT time. This
    * uses the deprecated Date.toString() operation,
    * so is in one place to reduce the number of deprecation warnings.
-   * @param time timestamp 
+   * @param time timestamp
    * @return string value as ISO-9601
    */
   @SuppressWarnings({"CallToDateToString", "deprecation"})
@@ -1672,7 +1190,7 @@ public final class HoyaUtils {
       HoyaVersionInfo.APP_BUILD_INFO));
     cd.setInfo(prefix + "." + HoyaVersionInfo.HADOOP_BUILD_INFO,
                props.getProperty(HoyaVersionInfo.HADOOP_BUILD_INFO));
-    
+
     cd.setInfo(prefix + "." + HoyaVersionInfo.HADOOP_DEPLOYED_INFO,
                VersionInfo.getBranch() + " @" + VersionInfo.getSrcChecksum());
   }
@@ -1683,7 +1201,7 @@ public final class HoyaUtils {
    * @param text text message
    * @param delay delay in millis
    * @return the timer (assuming the JVM hasn't halted yet)
-   * 
+   *
    */
   public static Timer haltAM(int status, String text, int delay) {
 

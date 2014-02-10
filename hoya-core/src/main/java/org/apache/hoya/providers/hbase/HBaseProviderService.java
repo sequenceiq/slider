@@ -50,6 +50,7 @@ import org.apache.hoya.servicemonitor.HttpProbe;
 import org.apache.hoya.servicemonitor.MonitorKeys;
 import org.apache.hoya.servicemonitor.Probe;
 import org.apache.hoya.tools.ConfigHelper;
+import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
 import org.apache.hoya.yarn.service.EventCallback;
 import org.slf4j.Logger;
@@ -141,7 +142,7 @@ public class HBaseProviderService extends AbstractProviderService implements
   
   @Override  // server
   public void buildContainerLaunchContext(ContainerLaunchContext ctx,
-                                          FileSystem fs,
+                                          HoyaFileSystem hoyaFileSystem,
                                           Path generatedConfPath,
                                           String role,
                                           ClusterDescription clusterSpec,
@@ -164,16 +165,16 @@ public class HBaseProviderService extends AbstractProviderService implements
 
     //add the configuration resources
     Map<String, LocalResource> confResources;
-    confResources = HoyaUtils.submitDirectory(fs,
-                                              generatedConfPath,
-                                              HoyaKeys.PROPAGATED_CONF_DIR_NAME);
+    confResources = hoyaFileSystem.submitDirectory(
+            generatedConfPath,
+            HoyaKeys.PROPAGATED_CONF_DIR_NAME);
     localResources.putAll(confResources);
     //Add binaries
     //now add the image if it was set
     if (clusterSpec.isImagePathSet()) {
       Path imagePath = new Path(clusterSpec.getImagePath());
       log.info("using image path {}", imagePath);
-      HoyaUtils.maybeAddImagePath(fs, localResources, imagePath);
+      hoyaFileSystem.maybeAddImagePath(localResources, imagePath);
     }
     ctx.setLocalResources(localResources);
     List<String> commands = new ArrayList<String>();

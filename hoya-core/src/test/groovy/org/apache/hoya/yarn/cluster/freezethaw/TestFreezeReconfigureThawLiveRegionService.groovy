@@ -27,6 +27,7 @@ import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.hoya.tools.ConfigHelper
+import org.apache.hoya.tools.HoyaFileSystem
 import org.apache.hoya.tools.HoyaUtils
 import org.apache.hoya.yarn.client.HoyaClient
 import org.apache.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
@@ -74,9 +75,10 @@ class TestFreezeReconfigureThawLiveRegionService extends HBaseMiniClusterTestBas
     
     //get the location of the cluster
     HadoopFS dfs = HadoopFS.get(new URI(fsDefaultName), miniCluster.config)
-    Path clusterDir = HoyaUtils.buildHoyaClusterDirPath(dfs, clustername);
-    Path specPath = HoyaUtils.locateClusterSpecification(dfs, clustername);
-    ClusterDescription persistedSpec = HoyaUtils.loadAndValidateClusterSpec(dfs, specPath);
+    HoyaFileSystem hoyaFileSystem = new HoyaFileSystem(dfs, miniCluster.config)
+    Path clusterDir = hoyaFileSystem.buildHoyaClusterDirPath(clustername);
+    Path specPath = hoyaFileSystem.locateClusterSpecification(clustername);
+    ClusterDescription persistedSpec = hoyaFileSystem.loadAndValidateClusterSpec(specPath);
     Path confdir = new Path(persistedSpec.originConfigurationPath);
     Path hbaseSiteXML = new Path(confdir, HBaseKeys.SITE_XML)
     Configuration originalConf = ConfigHelper.loadTemplateConfiguration(dfs, hbaseSiteXML, "");

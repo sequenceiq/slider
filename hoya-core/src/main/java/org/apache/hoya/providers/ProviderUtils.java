@@ -33,6 +33,7 @@ import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.exceptions.HoyaInternalStateException;
+import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
 import org.slf4j.Logger;
 
@@ -65,7 +66,7 @@ public class ProviderUtils implements RoleKeys {
    * by copying them from the local classpath to the remote one, then
    * registering them
    * @param providerResources map of provider resources to add these entries to
-   * @param clusterFS target filesystem
+   * @param hoyaFileSystem target filesystem
    * @param tempPath path in the cluster FS for temp files
    * @param libdir relative directory to place resources
    * @param resources list of resource names (e.g. "hbase.jar"
@@ -75,8 +76,7 @@ public class ProviderUtils implements RoleKeys {
    * @throws HoyaException any Hoya problem
    */
   public static void addDependencyJars(Map<String, LocalResource> providerResources,
-                                       FileSystem clusterFS,
-                                       
+                                       HoyaFileSystem hoyaFileSystem,
                                        Path tempPath,
                                        String libdir,
                                        String[] resources,
@@ -95,7 +95,7 @@ public class ProviderUtils implements RoleKeys {
       String jarName = resources[i];
       Class clazz = classes[i];
       HoyaUtils.putJar(providerResources,
-                       clusterFS,
+                       hoyaFileSystem,
                        clazz,
                        tempPath,
                        libdir,

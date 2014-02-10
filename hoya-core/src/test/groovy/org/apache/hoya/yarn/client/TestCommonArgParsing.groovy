@@ -20,8 +20,11 @@ package org.apache.hoya.yarn.client
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import com.google.common.collect.Maps
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hdfs.DFSConfigKeys
+import org.apache.hoya.HoyaXmlConfKeys
 import org.apache.hoya.api.RoleKeys
 import org.apache.hoya.exceptions.BadCommandArgumentsException
 import org.apache.hoya.exceptions.ErrorStrings
@@ -85,6 +88,18 @@ class TestCommonArgParsing implements HoyaActions, Arguments {
   }
 
   @Test
+  public void testHoyaBasePath() throws Throwable {
+    ClientArgs clientArgs = createClientArgs([ACTION_LIST, "--basepath", "/projects/hoya/clusters"])
+    assert clientArgs.basePath == new Path("/projects/hoya/clusters")
+  }
+
+  @Test
+  public void testNoHoyaBasePath() throws Throwable {
+    ClientArgs clientArgs = createClientArgs([ACTION_LIST])
+    assert clientArgs.basePath == null
+  }
+
+  @Test
   public void testListNoClusternames() throws Throwable {
     ClientArgs clientArgs = createClientArgs([ACTION_LIST])
     assert clientArgs.clusterName == null
@@ -127,10 +142,29 @@ class TestCommonArgParsing implements HoyaActions, Arguments {
     Configuration conf = new Configuration(false)
     ca.applyDefinitions(conf)
     assert ca.clusterName == CLUSTERNAME
+    assert conf.get(HoyaXmlConfKeys.KEY_BASE_HOYA_PATH) == null
     HoyaUtils.verifyPrincipalSet(conf, YarnConfiguration.RM_PRINCIPAL);
     HoyaUtils.verifyPrincipalSet(
         conf,
         DFSConfigKeys.DFS_DATANODE_USER_NAME_KEY);
+
+  }
+
+  @Test
+  public void testDefinitionsSettingBaseHoyaDir() throws Throwable {
+    ClientArgs ca = createClientArgs([
+        ACTION_CREATE,
+        CLUSTERNAME,
+        "--basepath", "/projects/hoya/clusters",
+        "-D","yarn.resourcemanager.principal=yarn/server@LOCAL",
+        "-D","dfs.datanode.kerberos.principal=hdfs/server@LOCAL",
+    ])
+    Configuration conf = new Configuration(false)
+    ca.applyDefinitions(conf)
+    assert ca.clusterName == CLUSTERNAME
+    assert conf.get(HoyaXmlConfKeys.KEY_BASE_HOYA_PATH) == "/projects/hoya/clusters"
+    HoyaUtils.verifyPrincipalSet(conf, YarnConfiguration.RM_PRINCIPAL);
+    HoyaUtils.verifyPrincipalSet(conf, DFSConfigKeys.DFS_DATANODE_USER_NAME_KEY);
 
   }
 
@@ -493,10 +527,10 @@ class TestCommonArgParsing implements HoyaActions, Arguments {
 
     def roleOpts = createArgs.roleOptionMap
 
-    def clusterRoleMap = [
+    def clusterRoleMap = Maps.newHashMap([
         "master":["cheese":"french"],
         "worker":["env.CHEESE":"french"]
-    ];
+    ])
     HoyaUtils.applyCommandLineOptsToRoleMap(clusterRoleMap, roleOpts);
 
     def masterOpts = clusterRoleMap["master"];
@@ -512,13 +546,13 @@ class TestCommonArgParsing implements HoyaActions, Arguments {
 
     
     def roleOpts = createArgs.roleOptionMap
-    def clusterRoleMap = [
+    Map<String, Map<String, String>> clusterRoleMap = Maps.newHashMap([
         "master": ["cheese": "french"],
         "worker": ["env.CHEESE": "french"]
-    ];
+    ])
     HoyaUtils.applyCommandLineOptsToRoleMap(clusterRoleMap, roleOpts);
 
-    def workerOpts = clusterRoleMap["worker"];
+    def workerOpts = Maps.newHashMap(clusterRoleMap["worker"])
     assert workerOpts["env.CHEESE"] == "stilton";
 
     Map<String, String> envmap = HoyaUtils.buildEnvMap(workerOpts);

@@ -23,6 +23,7 @@ import groovy.util.logging.Slf4j
 import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.Path
 import org.apache.hoya.api.ClusterDescription
+import org.apache.hoya.tools.HoyaFileSystem
 import org.apache.hoya.tools.HoyaUtils
 import org.apache.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.junit.Before
@@ -56,7 +57,7 @@ class TestClusterSpecUpdate extends YarnMiniClusterTestBase {
     Path specPath = new Path(testDirPath,"testUpdateClusterSpec.json")
     clusterSpec.save(localFS, specPath, true)
     clusterSpec.name = "updated"
-    assert HoyaUtils.updateClusterSpecification(localFS, testDirPath, specPath, clusterSpec)
+    assert new HoyaFileSystem(localFS, getConfiguration()).updateClusterSpecification(testDirPath, specPath, clusterSpec)
     ClusterDescription updatedSpec = ClusterDescription.load(localFS, specPath)
     assert "updated" == updatedSpec.name
   }
@@ -66,7 +67,7 @@ class TestClusterSpecUpdate extends YarnMiniClusterTestBase {
     ClusterDescription clusterSpec = new ClusterDescription()
     clusterSpec.name = "nonexistent";
     Path specPath = new Path(testDirPath,"testUpdateNonexistentClusterSpec.json")
-    assert HoyaUtils.updateClusterSpecification(localFS, testDirPath, specPath, clusterSpec)
+    assert new HoyaFileSystem(localFS, getConfiguration()).updateClusterSpecification(testDirPath, specPath, clusterSpec)
     ClusterDescription updatedSpec = ClusterDescription.load(localFS, specPath)
     assert "nonexistent" == updatedSpec.name
   }
