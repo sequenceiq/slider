@@ -44,10 +44,10 @@
     <value>false</value>
   </property>
   
-  <!-- 10 minutes after a failure to see what is left in the directory-->
+  <!-- how long after a failure to see what is left in the directory-->
   <property>
     <name>yarn.nodemanager.delete.debug-delay-sec</name>
-    <value>600</value>
+    <value>6000</value>
   </property>
 
   <!--ten seconds before the process gets a -9 -->
