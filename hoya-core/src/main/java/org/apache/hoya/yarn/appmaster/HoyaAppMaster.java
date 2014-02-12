@@ -37,7 +37,6 @@ import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterRespo
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
@@ -576,24 +575,8 @@ public class HoyaAppMaster extends CompoundLaunchedService
       }
       //now validate the dir by loading in a hadoop-site.xml file from it
 
-      Configuration siteConf;
-      String siteXMLFilename = providerService.getSiteXMLFilename();
-      if (siteXMLFilename != null) {
-        File siteXML = new File(confDir, siteXMLFilename);
-        if (!siteXML.exists()) {
-          throw new BadCommandArgumentsException(
-            "Configuration directory %s doesn't contain %s - listing is %s",
-            confDir, siteXMLFilename, HoyaUtils.listDir(confDir));
-        }
-
-        //now read it in
-        siteConf = ConfigHelper.loadConfFromFile(siteXML);
-        log.info("{} file is at {}", siteXMLFilename, siteXML);
-        log.info(ConfigHelper.dumpConfigToString(siteConf));
-      } else {
-        //no site configuration: have an empty one
-        siteConf = new Configuration(false);
-      }
+      Configuration providerConf =
+        providerService.loadProviderConfigurationInformation(confDir);
 
       providerService.validateApplicationConfiguration(clusterSpec, confDir, securityEnabled);
 
@@ -602,7 +585,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
 
       //build the instance
       appState.buildInstance(clusterSpec,
-                             siteConf,
+                             providerConf,
                              providerRoles,
                              fs.getFileSystem(),
                              historyDir,

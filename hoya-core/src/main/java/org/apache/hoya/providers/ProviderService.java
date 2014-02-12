@@ -25,6 +25,7 @@ import org.apache.hadoop.service.Service;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.service.launcher.ExitCodeProvider;
 import org.apache.hoya.api.ClusterDescription;
+import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.servicemonitor.Probe;
 import org.apache.hoya.tools.HoyaFileSystem;
@@ -55,10 +56,6 @@ public interface ProviderService extends ProviderCore, Service,
 
   int getDefaultMasterInfoPort();
 
-  String getSiteXMLFilename();
-
-  ClientProvider getClientProvider();
-
   /**
    * Execute a process in the AM
    * @param cd cluster description
@@ -82,6 +79,17 @@ public interface ProviderService extends ProviderCore, Service,
    * that a launcher thread can be deployed to launch it
    */
   boolean isSupportedRole(String role);
+
+  /**
+   * Load a specific XML configuration file for the provider config
+   * @param confDir configuration directory
+   * @param siteXMLFilename provider-specific filename
+   * @return a configuration to be included in status
+   * @throws BadCommandArgumentsException
+   * @throws IOException
+   */
+  Configuration loadProviderConfigurationInformation(File confDir)
+    throws BadCommandArgumentsException, IOException;
 
   /**
    * This is a validation of the application configuration on the AM.

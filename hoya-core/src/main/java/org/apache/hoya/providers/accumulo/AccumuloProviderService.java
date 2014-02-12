@@ -30,6 +30,7 @@ import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.exceptions.BadClusterStateException;
+import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.providers.AbstractProviderService;
@@ -92,14 +93,16 @@ public class AccumuloProviderService extends AbstractProviderService implements
   }
 
   @Override
-  public String getSiteXMLFilename() {
-    return SITE_XML;
-  }
-
-  @Override
   public void validateClusterSpec(ClusterDescription clusterSpec) throws
                                                                   HoyaException {
     clientProvider.validateClusterSpec(clusterSpec);
+  }
+
+  @Override
+  public Configuration loadProviderConfigurationInformation(File confDir)
+    throws BadCommandArgumentsException, IOException {
+
+    return loadProviderConfigurationInformation(confDir, SITE_XML);
   }
 
   /*

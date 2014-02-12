@@ -24,7 +24,9 @@ import org.apache.hadoop.service.Service;
 import org.apache.hadoop.yarn.service.launcher.ExitCodeProvider;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
+import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.HoyaException;
+import org.apache.hoya.tools.ConfigHelper;
 import org.apache.hoya.tools.HoyaUtils;
 import org.apache.hoya.yarn.service.ForkedProcessService;
 import org.apache.hoya.yarn.service.Parent;
@@ -76,11 +78,32 @@ public abstract class AbstractProviderService
     return getConfig();
   }
 
-  @Override
-  public ClientProvider getClientProvider() {
-    return null;
+  /**
+   * Load a specific XML configuration file for the provider config
+   * @param confDir configuration directory
+   * @param siteXMLFilename provider-specific filename
+   * @return a configuration to be included in status
+   * @throws BadCommandArgumentsException argument problems
+   * @throws IOException IO problems
+   */
+  protected Configuration loadProviderConfigurationInformation(File confDir,
+                                                               String siteXMLFilename)
+    throws BadCommandArgumentsException, IOException {
+    Configuration siteConf;
+    File siteXML = new File(confDir, siteXMLFilename);
+    if (!siteXML.exists()) {
+      throw new BadCommandArgumentsException(
+        "Configuration directory %s doesn't contain %s - listing is %s",
+        confDir, siteXMLFilename, HoyaUtils.listDir(confDir));
+    }
+
+    //now read it in
+    siteConf = ConfigHelper.loadConfFromFile(siteXML);
+    log.info("{} file is at {}", siteXMLFilename, siteXML);
+    log.info(ConfigHelper.dumpConfigToString(siteConf));
+    return siteConf;
   }
-  
+
   /**
    * No-op implementation of this method.
    * 
@@ -227,7 +250,7 @@ public abstract class AbstractProviderService
   public Map<String, String> buildProviderStatus() {
     return new HashMap<String, String>();
   }
-  
+
   public static class ProviderAbortable implements Abortable {
     @Override
     public void abort(String why, Throwable e) {

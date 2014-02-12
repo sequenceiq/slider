@@ -19,7 +19,6 @@
 package org.apache.hoya.providers.hbase;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Abortable;
 import org.apache.hadoop.hbase.ClusterStatus;
@@ -42,7 +41,6 @@ import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hoya.providers.AbstractProviderService;
-import org.apache.hoya.providers.ClientProvider;
 import org.apache.hoya.providers.ProviderCore;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderUtils;
@@ -103,20 +101,16 @@ public class HBaseProviderService extends AbstractProviderService implements
   }
 
   @Override
-  public ClientProvider getClientProvider() {
-    return clientProvider;
-  }
-  
-  @Override
   public int getDefaultMasterInfoPort() {
     return HBaseConfigFileOptions.DEFAULT_MASTER_INFO_PORT;
   }
 
   @Override
-  public String getSiteXMLFilename() {
-    return SITE_XML;
-  }
+  public Configuration loadProviderConfigurationInformation(File confDir)
+    throws BadCommandArgumentsException, IOException {
 
+    return loadProviderConfigurationInformation(confDir, SITE_XML);
+  }
 
   /**
    * Validate the cluster specification. This can be invoked on both
@@ -269,7 +263,7 @@ public class HBaseProviderService extends AbstractProviderService implements
                                                File confDir,
                                                boolean secure
                                               ) throws IOException, HoyaException {
-    String siteXMLFilename = getSiteXMLFilename();
+    String siteXMLFilename = SITE_XML;
     File siteXML = new File(confDir, siteXMLFilename);
     if (!siteXML.exists()) {
       throw new BadCommandArgumentsException(

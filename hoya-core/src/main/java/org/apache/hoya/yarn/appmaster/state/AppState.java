@@ -203,7 +203,7 @@ public class AppState {
   private int containerMaxMemory;
   
   private RoleHistory roleHistory;
-  private Configuration siteConf;
+  private Configuration publishedProviderConf;
   private long startTimeThreshold;
   
   private int failureThreshold = 10;
@@ -338,20 +338,20 @@ public class AppState {
   /**
    * Build up the application state
    * @param cd cluster specification
-   * @param siteConf site configuration
+   * @param publishedProviderConf any configuration info to be published by a provider
    * @param providerRoles roles offered by a provider
    * @param fs filesystem
    * @param historyDir directory containing history files
-   * @param liveContainers
+   * @param liveContainers list of live containers supplied on an AM restart
    */
   public void buildInstance(ClusterDescription cd,
-                            Configuration siteConf,
+                            Configuration publishedProviderConf,
                             List<ProviderRole> providerRoles,
                             FileSystem fs,
                             Path historyDir,
                             List<Container> liveContainers) throws
                                                             BadClusterStateException {
-    this.siteConf = siteConf;
+    this.publishedProviderConf = publishedProviderConf;
 
     // set the cluster specification
     setClusterSpec(cd);
@@ -366,11 +366,11 @@ public class AppState {
 
     //copy into cluster status. 
     ClusterDescription clusterStatus = ClusterDescription.copy(cd);
-    Set<String> confKeys = ConfigHelper.sortedConfigKeys(siteConf);
+    Set<String> confKeys = ConfigHelper.sortedConfigKeys(publishedProviderConf);
 
 //     Add the -site configuration properties
     for (String key : confKeys) {
-      String val = siteConf.get(key);
+      String val = publishedProviderConf.get(key);
       clusterStatus.clientProperties.put(key, val);
     }
 
