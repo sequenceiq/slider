@@ -31,6 +31,8 @@ due to server and process failures.
 
 * Install and run from a tarball -and be run from a user that is not root. 
 
+* Be self contained or have all dependencies pre-installed.
+
 * Support dynamic discovery of nodes -such as via ZK.
  
 * Nodes to rebind themselves dynamically -so if nodes are moved, the application

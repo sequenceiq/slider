@@ -21,7 +21,9 @@ Here's how to set this up.
 
 ## Before you begin
 
-You will need a version of Maven 3.0, set up with enough memory
+### Maven
+
+You will need a version of Maven 3.0+, set up with enough memory
 
     MAVEN_OPTS=-Xms256m -Xmx512m -Djava.awt.headless=true
 
@@ -29,12 +31,21 @@ You will need a version of Maven 3.0, set up with enough memory
 *Important*: As of October 6, 2013, Maven 3.1 is not supported due to
 [version issues](https://cwiki.apache.org/confluence/display/MAVEN/AetherClassNotFound).
 
+### Protoc
+
+You need a copy of the `protoc`  compile
+
+1. OS/X: `brew install protobuf`
+1. Others: consult (Building Hadoop documentation)[http://wiki.apache.org/hadoop/HowToContribute].
+
+The version of protoc installed must be the same as that used by Hadoop itself.
+This is absolutely critical to prevent JAR version problems.
+
 ## Building a compatible Hadoop version
 
 
-Hoya is built against Hadoop release 2.2.0 -you can download and install
+Hoya is built against Hadoop 2 -you can download and install
 a copy from the [Apache Hadoop Web Site](http://hadoop.apache.org).
-
 
 
 During development, its convenient (but not mandatory)
