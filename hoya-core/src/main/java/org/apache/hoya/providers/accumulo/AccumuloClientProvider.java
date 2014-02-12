@@ -154,13 +154,10 @@ public class AccumuloClientProvider extends AbstractProviderCore implements
 
 
   /**
-   * Build the conf dir from the service arguments, adding the hbase root
-   * to the FS root dir.
-   * This the configuration used by HBase directly
+   * Build the accumulo-site.xml file
    * @param clusterSpec this is the cluster specification used to define this
    * @return a map of the dynamic bindings for this Hoya instance
    */
-  @Override // ProviderCore
   public Map<String, String> buildSiteConfFromSpec(ClusterDescription clusterSpec)
     throws BadConfigException {
 

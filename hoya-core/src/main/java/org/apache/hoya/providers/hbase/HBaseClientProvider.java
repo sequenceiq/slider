@@ -131,8 +131,7 @@ public class HBaseClientProvider extends AbstractProviderCore implements
   }
 
   /**
-   * Build the conf dir from the service arguments, adding the hbase root
-   * to the FS root dir.
+   * Build the hdfs-site.xml file
    * This the configuration used by HBase directly
    * @param clusterSpec this is the cluster specification used to define this
    * @return a map of the dynamic bindings for this Hoya instance

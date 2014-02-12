@@ -89,14 +89,6 @@ public interface ClientProvider extends ProviderCore {
    */
   Configuration getDefaultClusterConfiguration() throws FileNotFoundException;
 
-  /**
-   * Build the conf dir from the service arguments
-   * This the configuration used by HBase directly
-   * @param clusterSpec this is the cluster specification used to define this
-   * @return a map of the dynamic bindings for this Hoya instance
-   */
-  Map<String, String> buildSiteConfFromSpec(ClusterDescription clusterSpec)
-    throws BadConfigException;
 
   /**
    * Update the AM resource with any local needs
