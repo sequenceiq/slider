@@ -23,7 +23,7 @@ First pass:
 1. assume stack and hbase are installed.
 
 1. support >1 role in AM with same launcher operation (just role
-   name passed down.
+   name passed down).
    
 1. Agent client to build up any params needed for agent
 

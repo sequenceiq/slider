@@ -56,5 +56,11 @@ public interface HoyaXMLConfKeysForTesting {
     "hoya.test.accumulo.launch.wait.seconds";
 
   int DEFAULT_HOYA_ACCUMULO_LAUNCH_TIME = 60 * 3 * 1000;
+  String KEY_HOYA_TEST_AGENT_ENABLED = "hoya.test.agent.enabled";
+
+  int DEFAULT_HOYA_AGENT_LAUNCH_TIME = 60 * 3 * 1000;
+
+  String KEY_HOYA_TEST_AGENT_HOME = "hoya.test.agent.home";
+  String KEY_HOYA_TEST_AGENT_TAR = "hoya.test.agent.tar";
 
 }

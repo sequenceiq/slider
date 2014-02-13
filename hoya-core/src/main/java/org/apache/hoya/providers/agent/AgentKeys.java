@@ -23,6 +23,8 @@ package org.apache.hoya.providers.agent;
  */
 public interface AgentKeys {
 
+  String PROVIDER_AGENT = "agent";
+
   String ROLE_NODE = "node";
   
 
@@ -47,7 +49,7 @@ public interface AgentKeys {
    * no site-specific template
    *  {@value}
    */
-  String HBASE_CONF_RESOURCE = "org/apache/hoya/providers/agent/conf/";
+  String CONF_RESOURCE = "org/apache/hoya/providers/agent/conf/";
   
 
 
