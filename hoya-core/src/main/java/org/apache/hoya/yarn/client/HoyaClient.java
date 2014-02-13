@@ -488,8 +488,9 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       clusterRoleMap.put(roleName, clusterRole);
     }
 
-    //finally, any roles that came in the list  but aren't in the map
-    // and overwrite any entries the role option map with command line overrides
+    // finally, insert any roles that are implicitly defined
+    // in the command line but for which we don't have any standard
+    // templates
     Map<String, Map<String, String>> commandOptions =
       buildInfo.getRoleOptionMap();
     HoyaUtils.applyCommandLineOptsToRoleMap(clusterRoleMap, commandOptions);
@@ -797,7 +798,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                    clusterSpec,
                                                    clusterDirectory,
                                                    generatedConfDirPath,
-                             clusterSecure
+                                                   clusterSecure
                                                   );
 
 

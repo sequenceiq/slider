@@ -21,7 +21,6 @@ package org.apache.hoya.yarn.appmaster;
 import com.google.protobuf.BlockingService;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -401,7 +400,9 @@ public class HoyaAppMaster extends CompoundLaunchedService
         providerType);
     providerService = factory.createServerProvider();
     ClientProvider providerClient = factory.createClientProvider();
-    runChildService(providerService);
+    // init the provider BUT DO NOT START IT YET
+    providerService.init(getConfig());
+    addService(providerService);
     //verify that the cluster specification is now valid
     providerService.validateClusterSpec(clusterSpec);
 
@@ -591,9 +592,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
                              historyDir,
                              liveContainers);
 
-      //before bothering to start the containers, bring up the master.
-      //This ensures that if the master doesn't come up, less
-      //cluster resources get wasted
+      // add the AM to the list of nodes in the cluster
 
       appState.buildAppMasterNode(appMasterContainerID);
 
@@ -830,7 +829,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
     //app state makes all the decisions
     appState.onContainersAllocated(allocatedContainers, assignments, operations);
 
-    //for each assignment: launch a thread to instantiate that role
+    //for each assignment: instantiate that role
     for (ContainerAssignment assignment : assignments) {
       RoleStatus role = assignment.role;
       Container container = assignment.container;

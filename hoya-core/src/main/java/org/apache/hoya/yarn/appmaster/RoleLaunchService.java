@@ -135,7 +135,7 @@ public class RoleLaunchService extends AbstractService {
                          ClusterDescription clusterSpec) {
     String roleName = role.getName();
     //emergency step: verify that this role is handled by the provider
-    assert provider.isSupportedRole(roleName);
+    assert provider.isSupportedRole(roleName) : "unsupported role";
     RoleLaunchService.RoleLauncher launcher =
       new RoleLaunchService.RoleLauncher(container,
                                          role.getProviderRole(),
@@ -272,7 +272,6 @@ public class RoleLaunchService extends AbstractService {
                                              clusterSpec,
                                              roleOptions);
 
-        String commandLine = ctx.getCommands().get(0);
         RoleInstance instance = new RoleInstance(container);
         log.info("Starting container with command: {}", 
                  HoyaUtils.join(ctx.getCommands(),"\n"));
