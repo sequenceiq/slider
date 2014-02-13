@@ -65,7 +65,6 @@ public class AgentProviderService extends AbstractProviderService implements
                                                                   HoyaKeys {
 
 
-  public static final String ERROR_UNKNOWN_ROLE = "Unknown role ";
   protected static final Logger log =
     LoggerFactory.getLogger(AgentProviderService.class);
   protected static final String NAME = "hbase";
@@ -100,12 +99,8 @@ public class AgentProviderService extends AbstractProviderService implements
     return new Configuration(false);
   }
 
-  /**
-   * Validate the cluster specification. This can be invoked on both
-   * server and client
-   * @param clusterSpec
-   */
-  @Override // Client and Server
+
+  @Override 
   public void validateClusterSpec(ClusterDescription clusterSpec) throws
                                                                   HoyaException {
     clientProvider.validateClusterSpec(clusterSpec);
@@ -151,19 +146,6 @@ public class AgentProviderService extends AbstractProviderService implements
 
     List<String> command = new ArrayList<String>();
 
-    String heap = clusterSpec.getRoleOpt(role, RoleKeys.JVM_HEAP, DEFAULT_JVM_HEAP);
-    if (HoyaUtils.isSet(heap)) {
-      String adjustedHeap = HoyaUtils.translateTrailingHeapUnit(heap);
-      command.add("HBASE_HEAPSIZE=" + adjustedHeap);
-      env.put("HBASE_HEAPSIZE", adjustedHeap);
-    }
-    
-    String gcOpts = clusterSpec.getRoleOpt(role, RoleKeys.GC_OPTS, DEFAULT_GC_OPTS);
-    if (HoyaUtils.isSet(gcOpts)) {
-      command.add("SERVER_GC_OPTS=" + gcOpts);
-      env.put("SERVER_GC_OPTS", gcOpts);
-    }
-    
     //this must stay relative if it is an image
     command.add("bin/ambari");
     //config dir is relative to the generated file
@@ -177,7 +159,7 @@ public class AgentProviderService extends AbstractProviderService implements
       command.add(ACTION_START);
       //log details
       command.add(
-        "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/region-server.txt");
+        "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/agent-server.txt");
       command.add("2>&1");
     } else {
       throw new HoyaInternalStateException("Cannot start role %s", role);

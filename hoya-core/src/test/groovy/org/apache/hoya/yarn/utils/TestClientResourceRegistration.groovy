@@ -32,6 +32,7 @@
 
 package org.apache.hoya.yarn.utils
 
+import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
 import org.apache.hoya.tools.ConfigHelper
@@ -92,6 +93,7 @@ class TestClientResourceRegistration {
     ConfigHelper.mergeConfigurations(yc, conf, "hoya-client")
     InetSocketAddress addr = HoyaUtils.getRmAddress(yc)
     assert HoyaUtils.isAddressDefined(addr)
+    conf.unknown()
 
 
   }

@@ -157,7 +157,7 @@ public class AgentClientProvider extends AbstractProviderCore implements
     providerUtils.validateNodeCount(AgentKeys.ROLE_NODE,
                                     clusterSpec.getDesiredInstanceCount(
                                       AgentKeys.ROLE_NODE,
-                                      0), 0, -1);
+                                      1), 1, -1);
 
 
   }
