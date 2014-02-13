@@ -1024,6 +1024,14 @@
         <accumulo.version>1.6.0-SNAPSHOT</accumulo.version>
       </properties>
     </profile>
+    
+    <profile>
+      <!-- hadoop 2.4 builds of everything -->
+      <id>branch-2</id>
+      <properties>
+        <hadoop.version>2.4.0-SNAPSHOT</hadoop.version>
+      </properties>
+    </profile>
 
 
     <profile>
