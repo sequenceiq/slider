@@ -28,7 +28,9 @@ public interface AgentKeys {
   String ROLE_NODE = "node";
   
 
-  /** {@value */
+  /** {@value} */
+  String CONF_FILE = "agent.conf";
+  /** {@value} */
   String REGION_SERVER = "regionserver";
 
   /**
