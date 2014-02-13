@@ -23,13 +23,13 @@ First pass:
 1. assume stack and hbase are installed.
 
 1. support >1 role in AM with same launcher operation (just role
-   name passed down).
+   name passed down). -SL
    
 1. Agent client to build up any params needed for agent
 
-Site
-   * URL to talk back to Agent Controller
-   * path to package
+Site AgentKeys
+   * URL to talk back to Agent Controller, `controller.url`
+   * path to package `package.root`
    * path to hbase directory e.g `/share/hbase` or `~/apps/hbase-0.98.0/`
    key point: bin/hbase is underneath it.
    * path to agent (can be existing `app.home` property)
@@ -38,7 +38,7 @@ Role
    * name of role
    * path to .py file
 
-1. Generate conf JSON file (client side for now)
+1. Generate conf JSON file (client side for now) -SM
    * load template
    * patch via code: load in JSON, edit, save.
    
