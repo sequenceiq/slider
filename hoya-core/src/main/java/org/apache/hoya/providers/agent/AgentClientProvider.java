@@ -20,7 +20,6 @@ package org.apache.hoya.providers.agent;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hoya.HoyaKeys;
@@ -61,7 +60,8 @@ public class AgentClientProvider extends AbstractProviderCore implements
   
   protected static final Logger log =
     LoggerFactory.getLogger(AgentClientProvider.class);
-  protected static final String NAME = "hbase";
+  protected static final String NAME = "agent";
+  
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
 
 
@@ -78,10 +78,8 @@ public class AgentClientProvider extends AbstractProviderCore implements
 
   @Override
   public Configuration create(Configuration conf) {
-    return HBaseConfiguration.create(conf);
+    return conf;
   }
-
-
 
   @Override
   public List<ProviderRole> getRoles() {
@@ -98,7 +96,7 @@ public class AgentClientProvider extends AbstractProviderCore implements
   public Configuration getDefaultClusterConfiguration() throws
                                                         FileNotFoundException {
     return ConfigHelper.loadMandatoryResource(
-      "org/apache/hoya/providers/hbase/hbase.xml");
+      "org/apache/hoya/providers/agent/agent.xml");
   }
   
   /**
@@ -112,9 +110,9 @@ public class AgentClientProvider extends AbstractProviderCore implements
   public Map<String, String> createDefaultClusterRole(String rolename) throws
                                                                        HoyaException, IOException {
     Map<String, String> rolemap = new HashMap<String, String>();
-      // worker settings
+      // node settings
       Configuration conf = ConfigHelper.loadMandatoryResource(
-        "org/apache/hoya/providers/agent/role-agent.xml");
+        "org/apache/hoya/providers/agent/role-node.xml");
       HoyaUtils.mergeEntries(rolemap, conf);
     return rolemap;
   }
@@ -180,7 +178,8 @@ public class AgentClientProvider extends AbstractProviderCore implements
 
 
     Map<String, LocalResource> providerResources;
-    providerResources = hoyaFileSystem.submitDirectory(generatedConfDirPath, HoyaKeys.PROPAGATED_CONF_DIR_NAME);
+    providerResources = hoyaFileSystem.submitDirectory(generatedConfDirPath,
+                                                       HoyaKeys.PROPAGATED_CONF_DIR_NAME);
 
     return providerResources;
   }
