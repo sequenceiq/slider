@@ -19,39 +19,20 @@
   -->
 
   <!--
-  These are the default cluster options for a Hoya cluster
+  These are the default cluster options for an agent
   -->
 <configuration>
+
   <property>
-    <name>role.name</name>
-    <value>agent</value>
+    <name>agent.controller.url</name>
+    <value>http://localhost:8080/</value>
   </property>
-  
+
+
   <property>
-    <name>role.instances</name>
-    <value>1</value>
+    <name>agent.cache.path</name>
+    <value>/var/lib/ambariagent/cache/HDP-2.0.6/</value>
   </property>
-  
-  <property>
-    <name>yarn.memory</name>
-    <value>256</value>
-  </property>
-  
-  
-  <property>
-    <name>yarn.vcores</name>
-    <value>1</value>
-  </property>
-  
-  
-  <property>
-    <name>jvm.heapsize</name>
-    <value>256M</value>
-  </property>
-  
-  <property>
-    <name>env.MALLOC_ARENA_MAX</name>
-    <value>4</value>
-  </property>
+
 
 </configuration>

@@ -18,21 +18,40 @@
   ~  limitations under the License.
   -->
 
+  <!--
+  Role options for an agent-managed node
+  -->
 <configuration>
   <property>
-    <name>hoya.config.loaded</name>
-    <value>true</value>
+    <name>role.name</name>
+    <value>node</value>
   </property>
+  
   <property>
-    <name>hoya.provider.hbase</name>
-    <value>org.apache.hoya.providers.hbase.HBaseProviderFactory</value>
+    <name>role.instances</name>
+    <value>1</value>
   </property>
+  
   <property>
-    <name>hoya.provider.accumulo</name>
-    <value>org.apache.hoya.providers.accumulo.AccumuloProviderFactory</value>
+    <name>yarn.memory</name>
+    <value>256</value>
   </property>
+  
+  
   <property>
-    <name>hoya.provider.agent</name>
-    <value>org.apache.hoya.providers.agent.AgentProviderFactory</value>
+    <name>yarn.vcores</name>
+    <value>1</value>
   </property>
+  
+  
+  <property>
+    <name>jvm.heapsize</name>
+    <value>256M</value>
+  </property>
+  
+  <property>
+    <name>env.MALLOC_ARENA_MAX</name>
+    <value>4</value>
+  </property>
+
 </configuration>
