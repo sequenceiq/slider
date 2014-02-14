@@ -38,6 +38,7 @@ import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.api.StatusKeys;
 import org.apache.hoya.exceptions.BadClusterStateException;
+import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.ErrorStrings;
 import org.apache.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hoya.exceptions.HoyaRuntimeException;
@@ -351,7 +352,8 @@ public class AppState {
                             FileSystem fs,
                             Path historyDir,
                             List<Container> liveContainers) throws
-                                                            BadClusterStateException {
+                                                            BadClusterStateException,
+                                                            BadConfigException {
     this.publishedProviderConf = publishedProviderConf;
 
     // set the cluster specification
@@ -362,7 +364,26 @@ public class AppState {
     for (ProviderRole providerRole : providerRoles) {
       buildRole(providerRole);
     }
-    
+
+    Set<String> roleNames = cd.getRoleNames();
+    for (String name : roleNames) {
+      if (!roles.containsKey(name)) {
+        // this is a new value
+        log.info("Adding new role {}", name);
+        String priOpt =
+          cd.getMandatoryRoleOpt(name, RoleKeys.ROLE_PRIORITY);
+        int pri = HoyaUtils.parseAndValidate("value of " + name + " " +
+                                             RoleKeys.ROLE_PRIORITY,
+                                             priOpt, 0, 1, -1);
+        String placementOpt = cd.getRoleOpt(name,
+                                            RoleKeys.ROLE_PLACEMENT_POLICY, "0");
+        int placement = HoyaUtils.parseAndValidate("value of " + name + " " +
+                                             RoleKeys.ROLE_PLACEMENT_POLICY,
+                                             priOpt, 0, 0, -1);
+        ProviderRole providerRole = new ProviderRole(name, pri, placement);
+        buildRole(providerRole);
+      }
+    }
     //then pick up the requirements
     buildRoleRequirementsFromClusterSpec();
 
@@ -453,9 +474,15 @@ public class AppState {
    * requests.
    * @param providerRole role to add
    */
-  public void buildRole(ProviderRole providerRole) {
+  public void buildRole(ProviderRole providerRole) throws BadConfigException {
     //build role status map
-    roleStatusMap.put(providerRole.id,
+    int priority = providerRole.id;
+    if (roleStatusMap.containsKey(priority)) {
+      throw new BadConfigException("Duplicate Provider Key: %s and %s",
+                                   providerRole,
+                                   roleStatusMap.get(priority));
+    }
+    roleStatusMap.put(priority,
                       new RoleStatus(providerRole));
     roles.put(providerRole.name, providerRole);
   }
