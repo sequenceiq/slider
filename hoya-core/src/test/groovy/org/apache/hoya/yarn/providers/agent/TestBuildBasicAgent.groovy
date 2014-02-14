@@ -20,6 +20,7 @@ package org.apache.hoya.yarn.providers.agent
 
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hoya.api.RoleKeys
+import org.apache.hoya.exceptions.BadConfigException
 import org.apache.hoya.providers.agent.AgentKeys
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.client.HoyaClient
@@ -27,17 +28,6 @@ import org.junit.Test
 
 class TestBuildBasicAgent extends AgentTestBase {
 
-
-  @Test
-  public void testBuildNodeOnly() throws Throwable {
-    def clustername = "test_build_basic_agent_node_only"
-    createMiniCluster(clustername, getConfiguration(), 1, 1, 1, true, false)
-    buildAgentCluster(clustername,
-                      [(AgentKeys.ROLE_NODE): 5],
-                      [],
-                      true,
-                      false)
-  }
 
   @Test
   public void testBuildMultipleRoles() throws Throwable {
@@ -51,7 +41,11 @@ class TestBuildBasicAgent extends AgentTestBase {
         1,
         true,
         false)
-
+    buildAgentCluster("test_build_basic_agent_node_only",
+                      [(AgentKeys.ROLE_NODE): 5],
+                      [],
+                      true,
+                      false)
     def master = "hbase-master"
 
     def rs = "hbase-rs"
@@ -70,6 +64,37 @@ class TestBuildBasicAgent extends AgentTestBase {
     cd.getMandatoryRoleOpt(AgentKeys.ROLE_NODE, RoleKeys.ROLE_PRIORITY)
     assert "2" == cd.getMandatoryRoleOpt(master, RoleKeys.ROLE_PRIORITY)
     assert "5" == cd.getMandatoryRoleOpt(rs, RoleKeys.ROLE_INSTANCES)
+    
+    // now create an instance with no role priority for the rs
+    try {
+      buildAgentCluster(clustername+"-2",
+                                   [
+                                       (AgentKeys.ROLE_NODE): 5,
+                                       (master): 1,
+                                       (rs): 5
+                                   ],
+                                   [Arguments.ARG_ROLEOPT, master, RoleKeys.ROLE_PRIORITY, "2",
+                                   ],
+                                   true,
+                                   false)
+      fail("Expected an exception")
+    } catch (BadConfigException expected) {
+    } 
+    try {
+      buildAgentCluster(clustername+"-3",
+                                   [
+                                       (AgentKeys.ROLE_NODE): 5,
+                                       (master): 1,
+                                       (rs): 5
+                                   ],
+                                   [Arguments.ARG_ROLEOPT, master, RoleKeys.ROLE_PRIORITY, "2",
+                                    Arguments.ARG_ROLEOPT, rs, RoleKeys.ROLE_PRIORITY, "2"],
+
+                                   true,
+                                   false)
+      fail("Expected an exception")
+    } catch (BadConfigException expected) {
+    }
   }
 
 }
