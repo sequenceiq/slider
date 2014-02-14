@@ -19,6 +19,7 @@
 package org.apache.hoya.yarn.appmaster.state;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSortedSet;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -357,10 +358,11 @@ public class AppState {
     setClusterSpec(cd);
 
 
-    //build the role list
+    //build the initial role list
     for (ProviderRole providerRole : providerRoles) {
       buildRole(providerRole);
     }
+    
     //then pick up the requirements
     buildRoleRequirementsFromClusterSpec();
 
@@ -428,6 +430,9 @@ public class AppState {
   private void buildRoleRequirementsFromClusterSpec() {
     //now update every role's desired count.
     //if there are no instance values, that role count goes to zero
+
+    // This is where we add extra roles
+    Set<String> roleNames = getClusterSpec().getRoleNames();
     for (RoleStatus roleStatus : getRoleStatusMap().values()) {
       int currentDesired = roleStatus.getDesired();
       String role = roleStatus.getName();

@@ -28,6 +28,4 @@ public class PlacementPolicy {
   public static final int NO_DATA_LOCALITY = 2;
   public static final int ANTI_AFFINITY_REQUIRED = 4;
 
-
-
 }

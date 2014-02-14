@@ -597,13 +597,11 @@ public final class HoyaUtils {
       throw new BadConfigException("Value of "
                                    + errorKey + ": " + val + ""
                                    + "is less than the minimum of " + min);
-
     }
     if (max >= 0 && val > max) {
       throw new BadConfigException("Value of "
                                    + errorKey + ": " + val + ""
                                    + "is more than the maximum of " + max);
-
     }
     return val;
   }

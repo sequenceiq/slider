@@ -86,6 +86,7 @@ import org.apache.hoya.yarn.params.HoyaAMArgs;
 import org.apache.hoya.yarn.params.LaunchArgsAccessor;
 import org.apache.hoya.yarn.service.CompoundLaunchedService;
 import org.apache.hoya.yarn.service.SecurityCheckerService;
+import org.codehaus.jackson.JsonParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -466,7 +467,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       Map<String, String> clusterRole =
         provider.createDefaultClusterRole(roleName);
       // get the command line instance count
-      String instanceCount = argsRoleMap.get(roleName);
+      String instanceCount = argsRoleMap.remove(roleName);
       // this is here in case we want to extract from the provider
       // the min #of instances
       int defInstances =
@@ -476,7 +477,21 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       clusterRole.put(RoleKeys.ROLE_INSTANCES, instanceCount);
       clusterRoleMap.put(roleName, clusterRole);
     }
-    
+
+
+    // any roles for counts which aren't in there, special
+    // creation option
+    for (Map.Entry<String, String> roleAndCount : argsRoleMap.entrySet()) {
+      String name = roleAndCount.getKey();
+      String count = roleAndCount.getValue();
+      log.debug("Creating non-standard role {} of size {}", name, count);
+      HashMap<String, String> newRole =
+        new HashMap<String, String>();
+      newRole.put(RoleKeys.ROLE_NAME, name);
+      newRole.put(RoleKeys.ROLE_INSTANCES, count);
+      clusterRoleMap.put(name, newRole);
+    }
+
     //AM roles are special
     // add in the Hoya AM role(s)
     Collection<ProviderRole> amRoles = hoyaAM.getRoles();
@@ -487,7 +502,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       // get the command line instance count
       clusterRoleMap.put(roleName, clusterRole);
     }
-
+    
     // finally, insert any roles that are implicitly defined
     // in the command line but for which we don't have any standard
     // templates
@@ -1788,11 +1803,37 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     return exitCode;
   }
 
+
   /**
-   * Connect to a live cluster and get its current state
-   * @param clustername the cluster name
-   * @return its description
+   * Load the persistent cluster description
+   * @param clustername name of the cluster
+   * @return the description in the filesystem
+   * @throws IOException any problems loading -including a missing file
    */
+  @VisibleForTesting
+  public ClusterDescription loadPersistedClusterDescription(String clustername) throws
+                                                                                IOException {
+    Path clusterDirectory = hoyaFileSystem.buildHoyaClusterDirPath(clustername);
+    Path clusterSpecPath =
+      new Path(clusterDirectory, HoyaKeys.CLUSTER_SPECIFICATION_FILE);
+    return ClusterDescription.load(hoyaFileSystem.getFileSystem(), clusterSpecPath);
+  }
+
+  /**
+   * Load the persistent cluster description
+   * @return the description in the filesystem
+   * @throws IOException any problems loading -including a missing file
+   */
+  @VisibleForTesting
+  public ClusterDescription loadPersistedClusterDescription() throws IOException {
+    return loadPersistedClusterDescription(deployedClusterName);
+  }
+
+    /**
+     * Connect to a live cluster and get its current state
+     * @param clustername the cluster name
+     * @return its description
+     */
   @VisibleForTesting
   public ClusterDescription getClusterDescription(String clustername) throws
                                                                  YarnException,

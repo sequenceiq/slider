@@ -26,7 +26,7 @@ public interface AgentKeys {
   String PROVIDER_AGENT = "agent";
 
   String ROLE_NODE = "node";
-  
+
 
   /** {@value */
   String REGION_SERVER = "regionserver";
@@ -51,8 +51,6 @@ public interface AgentKeys {
    */
   String CONF_RESOURCE = "org/apache/hoya/providers/agent/conf/";
   
-
-
 }
 
 

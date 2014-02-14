@@ -23,9 +23,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hoya.HoyaKeys;
-import org.apache.hoya.HoyaXmlConfKeys;
 import org.apache.hoya.api.ClusterDescription;
-import org.apache.hoya.exceptions.BadCommandArgumentsException;
+import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.providers.AbstractProviderCore;
@@ -42,7 +41,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -52,16 +50,15 @@ import java.util.Set;
  * of the agent deployer
  */
 public class AgentClientProvider extends AbstractProviderCore implements
-                                                              AgentKeys, HoyaKeys,
-                                                          ClientProvider{
+                                                              AgentKeys,
+                                                              HoyaKeys,
+                                                              ClientProvider {
 
 
-
-  
   protected static final Logger log =
     LoggerFactory.getLogger(AgentClientProvider.class);
   protected static final String NAME = "agent";
-  
+
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
 
 
@@ -73,7 +70,6 @@ public class AgentClientProvider extends AbstractProviderCore implements
   public String getName() {
     return NAME;
   }
-
 
 
   @Override
@@ -98,7 +94,7 @@ public class AgentClientProvider extends AbstractProviderCore implements
     return ConfigHelper.loadMandatoryResource(
       "org/apache/hoya/providers/agent/agent.xml");
   }
-  
+
   /**
    * Create the default cluster role instance for a named
    * cluster role; 
@@ -108,12 +104,13 @@ public class AgentClientProvider extends AbstractProviderCore implements
    */
   @Override
   public Map<String, String> createDefaultClusterRole(String rolename) throws
-                                                                       HoyaException, IOException {
+                                                                       HoyaException,
+                                                                       IOException {
     Map<String, String> rolemap = new HashMap<String, String>();
-      // node settings
-      Configuration conf = ConfigHelper.loadMandatoryResource(
-        "org/apache/hoya/providers/agent/role-node.xml");
-      HoyaUtils.mergeEntries(rolemap, conf);
+    // node settings
+    Configuration conf = ConfigHelper.loadMandatoryResource(
+      "org/apache/hoya/providers/agent/role-node.xml");
+    HoyaUtils.mergeEntries(rolemap, conf);
     return rolemap;
   }
 
@@ -123,7 +120,7 @@ public class AgentClientProvider extends AbstractProviderCore implements
    */
   @Override // Client
   public void reviewAndUpdateClusterSpec(ClusterDescription clusterSpec) throws
-                                                                         HoyaException{
+                                                                         HoyaException {
 
     validateClusterSpec(clusterSpec);
   }
@@ -144,7 +141,7 @@ public class AgentClientProvider extends AbstractProviderCore implements
     //core customizations
 
   }
-  
+
   /**
    * Validate the cluster specification. This can be invoked on both
    * server and client
@@ -154,11 +151,35 @@ public class AgentClientProvider extends AbstractProviderCore implements
   public void validateClusterSpec(ClusterDescription clusterSpec) throws
                                                                   HoyaException {
     super.validateClusterSpec(clusterSpec);
-    providerUtils.validateNodeCount(AgentKeys.ROLE_NODE,
+    providerUtils.validateNodeCount(ROLE_NODE,
                                     clusterSpec.getDesiredInstanceCount(
-                                      AgentKeys.ROLE_NODE,
-                                      1), 1, -1);
+                                      ROLE_NODE,
+                                      1), 0, -1);
+    Set<String> roleNames = clusterSpec.getRoleNames();
+    roleNames.remove(HoyaKeys.ROLE_HOYA_AM);
+    Map<Integer, String> priorityMap = new HashMap<Integer, String>();
+    for (String roleName : roleNames) {
+      clusterSpec.getMandatoryRoleOpt(roleName, RoleKeys.ROLE_PRIORITY);
+      int priority =
+        clusterSpec.getRoleOptInt(roleName, RoleKeys.ROLE_PRIORITY, 0);
+      if (priority <= 0) {
+        throw new BadConfigException("role %s %s value out of range %d",
+                                     roleName,
+                                     RoleKeys.ROLE_PRIORITY,
+                                     priority);
+      }
 
+      String existing = priorityMap.get(priority);
+      if (existing != null) {
+        throw new BadConfigException(
+          "role %s has a %s value %d which duplicates that of %s",
+          roleName,
+          RoleKeys.ROLE_PRIORITY,
+          priority,
+          existing);
+      }
+      priorityMap.put(priority, roleName);
+    }
 
   }
 
@@ -203,9 +224,8 @@ public class AgentClientProvider extends AbstractProviderCore implements
   @Override  //Client
   public void prepareAMServiceData(ClusterDescription clusterSpec,
                                    Map<String, ByteBuffer> serviceData) {
-    
-  }
 
+  }
 
 
 }

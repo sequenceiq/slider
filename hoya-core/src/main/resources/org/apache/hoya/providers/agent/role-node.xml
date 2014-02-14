@@ -31,18 +31,26 @@
     <name>role.instances</name>
     <value>1</value>
   </property>
+    
+  <property>
+    <name>role.priority</name>
+    <value>1</value>
+  </property>
+      
+  <property>
+    <name>role.placement.policy</name>
+    <value>2</value>
+  </property>
   
   <property>
     <name>yarn.memory</name>
     <value>256</value>
   </property>
   
-  
   <property>
     <name>yarn.vcores</name>
     <value>1</value>
   </property>
-  
   
   <property>
     <name>jvm.heapsize</name>

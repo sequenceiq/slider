@@ -60,9 +60,9 @@ public abstract class AgentTestBase extends YarnMiniClusterTestBase {
   @Override
   void setup() {
     super.setup()
-    assumeBoolOption(HOYA_CONFIG, KEY_HOYA_TEST_AGENT_ENABLED, true)
+//    assumeBoolOption(HOYA_CONFIG, KEY_HOYA_TEST_AGENT_ENABLED, true)
 //    assumeArchiveDefined();
-    assumeApplicationHome();
+//    assumeApplicationHome();
     YarnConfiguration conf = testConfiguration
     assumeOtherSettings(conf)
   }
@@ -128,4 +128,7 @@ public abstract class AgentTestBase extends YarnMiniClusterTestBase {
         clusterOps)
   }
 
+  public String getApplicationHome() {
+    return "/"
+  }
 }

@@ -87,6 +87,9 @@ public class HoyaFileSystem {
    * @return the path for persistent data
    */
   public Path buildHoyaClusterDirPath(String clustername) {
+    if (clustername == null) {
+      throw new NullPointerException();
+    }
     Path hoyaPath = getBaseHoyaPath();
     return new Path(hoyaPath, HoyaKeys.CLUSTER_DIRECTORY + "/" + clustername);
   }

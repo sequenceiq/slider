@@ -24,6 +24,8 @@ First pass:
 
 1. support >1 role in AM with same launcher operation (just role
    name passed down). -SL
+   * every role needs to have an "index" value > 2 so that we can have
+   a persistent priority across a cluster instance (even if restarted)
    
 1. Agent client to build up any params needed for agent
 
