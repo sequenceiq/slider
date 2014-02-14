@@ -67,7 +67,7 @@ public class AgentProviderService extends AbstractProviderService implements
 
   protected static final Logger log =
     LoggerFactory.getLogger(AgentProviderService.class);
-  protected static final String NAME = "hbase";
+  protected static final String NAME = "agent";
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
   private AgentClientProvider clientProvider;
 

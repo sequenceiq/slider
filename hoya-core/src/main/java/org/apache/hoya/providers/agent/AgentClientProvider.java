@@ -31,6 +31,7 @@ import org.apache.hoya.providers.AbstractProviderCore;
 import org.apache.hoya.providers.ClientProvider;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderUtils;
+import org.apache.hoya.providers.hbase.HBaseKeys;
 import org.apache.hoya.tools.ConfigHelper;
 import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
@@ -125,7 +126,15 @@ public class AgentClientProvider extends AbstractProviderCore implements
     validateClusterSpec(clusterSpec);
   }
 
-
+  // URL to talk back to Agent Controller
+  String CONTROLLER_URL = "controller.url";
+  // path to package
+  String PACKAGE_PATH = "package.root";
+  // path to bin directory where script of starting/stopping is located
+  String BIN_DIR = "bin.directory";
+  // path to agent
+  String AGENT_PATH = "app.home";
+  
   @Override //Client
   public void preflightValidateClusterConfiguration(HoyaFileSystem hoyaFileSystem,
                                                     String clustername,
@@ -137,9 +146,24 @@ public class AgentClientProvider extends AbstractProviderCore implements
                                                                     HoyaException,
                                                                     IOException {
     validateClusterSpec(clusterSpec);
-
+    Path templatePath = new Path(generatedConfDirPath, AgentKeys.CONF_FILE);
+    //load the HBase site file or fail
+    Configuration siteConf = ConfigHelper.loadConfiguration(hoyaFileSystem.getFileSystem(),
+                                                            templatePath);
+    validateSiteXML(siteConf);
+  }
+  
+  /**
+   * Validate the site.xml values
+   * @param siteConf site config
+   * @throws BadConfigException if a config is missing/invalid
+   */
+  void validateSiteXML(Configuration siteConf) throws BadConfigException {
     //core customizations
-
+    HoyaUtils.verifyOptionSet(siteConf, CONTROLLER_URL, false);
+    HoyaUtils.verifyOptionSet(siteConf, PACKAGE_PATH, false);
+    HoyaUtils.verifyOptionSet(siteConf, BIN_DIR, false);
+    HoyaUtils.verifyOptionSet(siteConf, AGENT_PATH, false);
   }
 
   /**
