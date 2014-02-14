@@ -485,8 +485,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       String name = roleAndCount.getKey();
       String count = roleAndCount.getValue();
       log.debug("Creating non-standard role {} of size {}", name, count);
-      HashMap<String, String> newRole =
-        new HashMap<String, String>();
+      HashMap<String, String> newRole = new HashMap<String, String>();
       newRole.put(RoleKeys.ROLE_NAME, name);
       newRole.put(RoleKeys.ROLE_INSTANCES, count);
       clusterRoleMap.put(name, newRole);
