@@ -153,13 +153,20 @@ public class AgentClientProvider extends AbstractProviderCore implements
     //load the HBase site file or fail
     Configuration siteConf = ConfigHelper.loadConfiguration(hoyaFileSystem.getFileSystem(),
                                                             templatePath);
-
+    validateSiteXML(siteConf);
+  }
+  
+  /**
+   * Validate the site.xml values
+   * @param siteConf site config
+   * @throws BadConfigException if a config is missing/invalid
+   */
+  void validateSiteXML(Configuration siteConf) throws BadConfigException {
     //core customizations
     HoyaUtils.verifyOptionSet(siteConf, CONTROLLER_URL, false);
     HoyaUtils.verifyOptionSet(siteConf, PACKAGE_PATH, false);
     HoyaUtils.verifyOptionSet(siteConf, BIN_DIR, false);
     HoyaUtils.verifyOptionSet(siteConf, AGENT_PATH, false);
-
   }
   
   /**
