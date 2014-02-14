@@ -285,10 +285,10 @@ You can create the JAR file and set up its directories with
 ## Git branch model
 
 The git branch model uses is
-(Git Flow)[http://nvie.com/posts/a-successful-git-branching-model/].
+[Git Flow](http://nvie.com/posts/a-successful-git-branching-model/).
 
 This is a common workflow model for Git, and built in to
-(Atlassian Source Tree)[http://sourcetreeapp.com/].
+[Atlassian Source Tree](http://sourcetreeapp.com/).
  
 The command line `git-flow` tool is easy to install 
  
