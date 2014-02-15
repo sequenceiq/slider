@@ -31,7 +31,6 @@ import org.apache.hoya.providers.AbstractProviderCore;
 import org.apache.hoya.providers.ClientProvider;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderUtils;
-import org.apache.hoya.providers.hbase.HBaseKeys;
 import org.apache.hoya.tools.ConfigHelper;
 import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
@@ -109,9 +108,13 @@ public class AgentClientProvider extends AbstractProviderCore implements
                                                                        IOException {
     Map<String, String> rolemap = new HashMap<String, String>();
     // node settings
+/*
+
     Configuration conf = ConfigHelper.loadMandatoryResource(
       "org/apache/hoya/providers/agent/role-node.xml");
     HoyaUtils.mergeEntries(rolemap, conf);
+    
+*/
     return rolemap;
   }
 
@@ -126,15 +129,6 @@ public class AgentClientProvider extends AbstractProviderCore implements
     validateClusterSpec(clusterSpec);
   }
 
-  // URL to talk back to Agent Controller
-  String CONTROLLER_URL = "controller.url";
-  // path to package
-  String PACKAGE_PATH = "package.root";
-  // path to bin directory where script of starting/stopping is located
-  String BIN_DIR = "bin.directory";
-  // path to agent
-  String AGENT_PATH = "app.home";
-  
   @Override //Client
   public void preflightValidateClusterConfiguration(HoyaFileSystem hoyaFileSystem,
                                                     String clustername,
@@ -147,10 +141,9 @@ public class AgentClientProvider extends AbstractProviderCore implements
                                                                     IOException {
     validateClusterSpec(clusterSpec);
     Path templatePath = new Path(generatedConfDirPath, AgentKeys.CONF_FILE);
-    //load the HBase site file or fail
-    Configuration siteConf = ConfigHelper.loadConfiguration(hoyaFileSystem.getFileSystem(),
+/*    Configuration siteConf = ConfigHelper.loadConfiguration(hoyaFileSystem.getFileSystem(),
                                                             templatePath);
-    validateSiteXML(siteConf);
+    validateSiteXML(siteConf);*/
   }
   
   /**
@@ -160,10 +153,7 @@ public class AgentClientProvider extends AbstractProviderCore implements
    */
   void validateSiteXML(Configuration siteConf) throws BadConfigException {
     //core customizations
-    HoyaUtils.verifyOptionSet(siteConf, CONTROLLER_URL, false);
-    HoyaUtils.verifyOptionSet(siteConf, PACKAGE_PATH, false);
-    HoyaUtils.verifyOptionSet(siteConf, BIN_DIR, false);
-    HoyaUtils.verifyOptionSet(siteConf, AGENT_PATH, false);
+
   }
 
   /**
@@ -174,7 +164,12 @@ public class AgentClientProvider extends AbstractProviderCore implements
   @Override // Client and Server
   public void validateClusterSpec(ClusterDescription clusterSpec) throws
                                                                   HoyaException {
+    log.debug(clusterSpec.toString());
     super.validateClusterSpec(clusterSpec);
+    clusterSpec.getMandatoryOption(CONTROLLER_URL);
+    clusterSpec.getMandatoryOption(PACKAGE_PATH);
+//    clusterSpec.getMandatoryOption(AGENT_PATH);
+
     providerUtils.validateNodeCount(ROLE_NODE,
                                     clusterSpec.getDesiredInstanceCount(
                                       ROLE_NODE,
@@ -183,9 +178,12 @@ public class AgentClientProvider extends AbstractProviderCore implements
     roleNames.remove(HoyaKeys.ROLE_HOYA_AM);
     Map<Integer, String> priorityMap = new HashMap<Integer, String>();
     for (String roleName : roleNames) {
-      clusterSpec.getMandatoryRoleOpt(roleName, RoleKeys.ROLE_PRIORITY);
+      int count =
+        clusterSpec.getMandatoryRoleOptInt(roleName, RoleKeys.ROLE_INSTANCES);
+      clusterSpec.getMandatoryRoleOpt(roleName, SCRIPT);
+
       int priority =
-        clusterSpec.getRoleOptInt(roleName, RoleKeys.ROLE_PRIORITY, 0);
+        clusterSpec.getMandatoryRoleOptInt(roleName, RoleKeys.ROLE_PRIORITY);
       if (priority <= 0) {
         throw new BadConfigException("role %s %s value out of range %d",
                                      roleName,
@@ -204,7 +202,6 @@ public class AgentClientProvider extends AbstractProviderCore implements
       }
       priorityMap.put(priority, roleName);
     }
-
   }
 
   @Override

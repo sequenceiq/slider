@@ -37,9 +37,11 @@ public class AgentRoles {
     /**
      * Initialize role list
      */
+/*
     static {
       ROLES.add(new ProviderRole(AgentKeys.ROLE_NODE, KEY_NODE));
   }
+*/
 
 
   public static List<ProviderRole> getRoles() {

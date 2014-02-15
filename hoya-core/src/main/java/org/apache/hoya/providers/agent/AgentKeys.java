@@ -52,7 +52,15 @@ public interface AgentKeys {
    *  {@value}
    */
   String CONF_RESOURCE = "org/apache/hoya/providers/agent/conf/";
-  
+
+  /*  URL to talk back to Agent Controller*/
+  String CONTROLLER_URL = "agent.controller.url";
+  /*  path to package*/
+  String PACKAGE_PATH = "agent.package.root";
+  /*  path to bin directory where script of starting/stopping is located*/
+  String SCRIPT = "agent.script";
+  /* path to agent */
+  String AGENT_PATH = "app.home";
 }
 
 

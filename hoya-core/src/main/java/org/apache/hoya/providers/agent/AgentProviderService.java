@@ -242,4 +242,8 @@ public class AgentProviderService extends AbstractProviderService implements
     return stats;
   }
 
+  @Override
+  public boolean isSupportedRole(String role) {
+    return true;
+  }
 }

@@ -380,8 +380,9 @@ public class AppState {
         int placement = HoyaUtils.parseAndValidate("value of " + name + " " +
                                              RoleKeys.ROLE_PLACEMENT_POLICY,
                                              priOpt, 0, 0, -1);
-        ProviderRole providerRole = new ProviderRole(name, pri, placement);
-        buildRole(providerRole);
+        ProviderRole dynamicRole = new ProviderRole(name, pri, placement);
+        buildRole(dynamicRole);
+        providerRoles.add(dynamicRole);
       }
     }
     //then pick up the requirements

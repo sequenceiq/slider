@@ -56,3 +56,10 @@ or
 1. provide a test config to work
 
 1. write a test
+
+Issues
+
+ -How to handle a cluster flex that adds new roles
+  -read blueprint metadata to choose
+  -provider service should take received
+   .json, to validate and perhaps change

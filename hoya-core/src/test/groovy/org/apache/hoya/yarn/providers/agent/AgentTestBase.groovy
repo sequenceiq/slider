@@ -20,6 +20,7 @@ package org.apache.hoya.yarn.providers.agent
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.apache.hadoop.ha.HAAdmin
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hoya.api.RoleKeys
@@ -106,6 +107,7 @@ public abstract class AgentTestBase extends YarnMiniClusterTestBase {
       Map<String, Integer> roles,
       List<String> extraArgs,
       boolean deleteExistingData,
+      boolean create,
       boolean blockUntilRunning) {
     extraArgs << ARG_PROVIDER << PROVIDER_AGENT;
 
@@ -115,16 +117,13 @@ public abstract class AgentTestBase extends YarnMiniClusterTestBase {
         :
     ]
 
-    extraArgs << ARG_ROLEOPT << ROLE_NODE <<
-    RoleKeys.YARN_MEMORY << YRAM
-
     return createOrBuildHoyaCluster(
-        HoyaActions.ACTION_BUILD,
+        create  ? HoyaActions.ACTION_CREATE:HoyaActions.ACTION_BUILD,
         clustername,
         roles,
         extraArgs,
         deleteExistingData,
-        blockUntilRunning,
+        create && blockUntilRunning,
         clusterOps)
   }
 

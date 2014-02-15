@@ -529,6 +529,20 @@ public class ClusterDescription implements Cloneable {
     }
     return val;
   }
+    /**
+   * Get a mandatory integer role option
+   * @param role role to get from
+   * @param option option name
+   * @return resolved value
+   * @throws BadConfigException if the option is not defined
+   */
+  public int getMandatoryRoleOptInt(String role, String option) throws
+                                                                BadConfigException {
+    getMandatoryRoleOpt(role, option);
+    return getRoleOptInt(role, option, 0);
+  }
+  
+  
 
   /**
    * look up a role and return its options
