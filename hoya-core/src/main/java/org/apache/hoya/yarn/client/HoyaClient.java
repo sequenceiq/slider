@@ -1329,7 +1329,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     if (live) {
       ApplicationReport instance = findInstance(name);
       if (instance == null) {
-        log.info("cluster {} not running");
+        log.info("cluster {} not running", name);
         return EXIT_FALSE;
       } else {
         // the app exists, but it may be in a terminated state
@@ -1339,7 +1339,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
           instance.getYarnApplicationState();
         if (state.ordinal() >= YarnApplicationState.FINISHED.ordinal()) {
           //cluster in the list of apps but not running
-          log.info("Cluster {} found but is in state {}", state);
+          log.info("Cluster {} found but is in state {}", name, state);
           log.debug("State {}", report);
           return EXIT_FALSE;
         }
