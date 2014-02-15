@@ -93,9 +93,6 @@ class TestClientResourceRegistration {
     ConfigHelper.mergeConfigurations(yc, conf, "hoya-client")
     InetSocketAddress addr = HoyaUtils.getRmAddress(yc)
     assert HoyaUtils.isAddressDefined(addr)
-    conf.unknown()
-
-
   }
 
 
