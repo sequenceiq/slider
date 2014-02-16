@@ -34,7 +34,7 @@ public class HoyaAMWebApp extends WebApp {
     bind(GenericExceptionHandler.class);
     
     route("/", HoyaAMController.class);
-    route("/hoyaam", HoyaAMController.class);
+    route("/stats", HoyaAMController.class, "containerStats");
   }
 
 }

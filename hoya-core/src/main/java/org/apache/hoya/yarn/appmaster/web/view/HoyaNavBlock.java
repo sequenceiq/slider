@@ -14,33 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hoya.yarn.appmaster.web;
+package org.apache.hoya.yarn.appmaster.web.view;
 
-import static org.apache.hadoop.yarn.webapp.view.JQueryUI.ACCORDION;
-import static org.apache.hadoop.yarn.webapp.view.JQueryUI.ACCORDION_ID;
-import static org.apache.hadoop.yarn.webapp.view.JQueryUI.initID;
-
-import org.apache.hadoop.yarn.webapp.SubView;
-import org.apache.hadoop.yarn.webapp.view.TwoColumnLayout;
+import org.apache.hadoop.yarn.webapp.view.HtmlBlock;
 
 /**
  * 
  */
-public class AppView extends TwoColumnLayout {
-  
-  @Override 
-  protected void preHead(Page.HTML<_> html) {
-    set(ACCORDION_ID, "nav");
-    set(initID(ACCORDION, "nav"), "{autoHeight:false, active:0}");
-  }
-  
-  @Override
-  protected Class<? extends SubView> nav() {
-    return HoyaNavBlock.class;
-  }
+public class HoyaNavBlock extends HtmlBlock {
 
   @Override
-  protected Class<? extends SubView> content() {
-    return IndexBlock.class;
+  protected void render(Block html) {
+    html.
+      div("#nav").
+        h3("Hoya").
+        ul().
+          li().a("/stats", "Statistics")._()._()._();
   }
 }

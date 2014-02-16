@@ -17,6 +17,8 @@
 package org.apache.hoya.yarn.appmaster.web;
 
 import org.apache.hadoop.yarn.webapp.Controller;
+import org.apache.hoya.yarn.appmaster.web.layout.AppLayout;
+import org.apache.hoya.yarn.appmaster.web.layout.ContainerStatsView;
 
 import com.google.inject.Inject;
 
@@ -25,15 +27,23 @@ import com.google.inject.Inject;
  */
 public class HoyaAMController extends Controller {
 
+  private final WebAppApi hoya;
+  
   @Inject
-  public HoyaAMController(RequestContext ctx) {
+  public HoyaAMController(WebAppApi hoya, RequestContext ctx) {
     super(ctx);
+    this.hoya = hoya;
   }
   
   @Override
   public void index() {
     setTitle("Hoya App Master");
-    render(AppView.class);
+    render(AppLayout.class);
+  }
+  
+  public void containerStats() {
+    setTitle("Hoya Container Statistics");
+    render(ContainerStatsView.class);
   }
 
 }

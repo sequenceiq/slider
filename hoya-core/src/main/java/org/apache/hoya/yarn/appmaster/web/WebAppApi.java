@@ -16,9 +16,15 @@
  */
 package org.apache.hoya.yarn.appmaster.web;
 
+import org.apache.hoya.providers.ProviderService;
+import org.apache.hoya.yarn.appmaster.state.AppState;
+
 /**
  * 
  */
 public interface WebAppApi {
 
+  public AppState getAppState();
+  public ProviderService getProviderService();
+  
 }

@@ -512,8 +512,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
         new ArrayList<ProviderRole>(providerService.getRoles());
       providerRoles.addAll(amClientProvider.getRoles());
 
-      // webApp = WebApps.$for("hoyaam", WebAppApi.class, new WebAppApiImpl()).with(serviceConf).start(new HoyaAMWebApp());
-      webApp = WebApps.$for("hoyaam").with(serviceConf).start(new HoyaAMWebApp());
+      webApp = WebApps.$for("hoyaam", WebAppApi.class, new WebAppApiImpl(appState, providerService)).with(serviceConf).start(new HoyaAMWebApp());
       appMasterTrackingUrl = "http://" + appMasterHostname + ":" + webApp.port();
       
 /*  DISABLED 

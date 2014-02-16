@@ -14,30 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hoya.yarn.appmaster.web;
+package org.apache.hoya.yarn.appmaster.web.layout;
 
-import org.apache.hoya.providers.ProviderService;
-import org.apache.hoya.yarn.appmaster.state.AppState;
+import static org.apache.hadoop.yarn.webapp.view.JQueryUI.ACCORDION;
+import static org.apache.hadoop.yarn.webapp.view.JQueryUI.ACCORDION_ID;
+import static org.apache.hadoop.yarn.webapp.view.JQueryUI.initID;
+
+import org.apache.hadoop.yarn.webapp.SubView;
+import org.apache.hadoop.yarn.webapp.view.TwoColumnLayout;
+import org.apache.hoya.yarn.appmaster.web.view.HoyaNavBlock;
 
 /**
  * 
  */
-public class WebAppApiImpl implements WebAppApi {
-
-  protected final AppState appState;
-  protected final ProviderService provider;
+public class HoyaLayout extends TwoColumnLayout {
   
-  public WebAppApiImpl(AppState appState, ProviderService provider) {
-    this.appState = appState;
-    this.provider = provider;
+  @Override 
+  protected void preHead(Page.HTML<_> html) {
+    set(ACCORDION_ID, "nav");
+    set(initID(ACCORDION, "nav"), "{autoHeight:false, active:0}");
   }
   
-  public AppState getAppState() {
-    return appState;
-  }
-  
-  public ProviderService getProviderService() {
-    return provider;
+  @Override
+  protected Class<? extends SubView> nav() {
+    return HoyaNavBlock.class;
   }
   
 }

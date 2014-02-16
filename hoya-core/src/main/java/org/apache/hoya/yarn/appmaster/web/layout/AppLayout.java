@@ -14,24 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hoya.yarn.appmaster.web;
+package org.apache.hoya.yarn.appmaster.web.layout;
 
-import org.apache.hadoop.yarn.webapp.view.HtmlBlock;
+import org.apache.hadoop.yarn.webapp.SubView;
+import org.apache.hoya.yarn.appmaster.web.view.IndexBlock;
 
 /**
  * 
  */
-public class HoyaNavBlock extends HtmlBlock {
+public class AppLayout extends HoyaLayout {
 
   @Override
-  protected void render(Block html) {
-    html.
-      div("#nav").
-        h3("Tools").
-        ul().
-          li().a("/conf", "Configuration")._().
-          li().a("/stacks", "Thread dump")._().
-          li().a("/logs", "Logs")._().
-          li().a("/metrics", "Metrics")._()._()._();
+  protected Class<? extends SubView> content() {
+    return IndexBlock.class;
   }
+  
 }

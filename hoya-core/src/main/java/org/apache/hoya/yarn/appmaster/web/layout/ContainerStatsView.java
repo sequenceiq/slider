@@ -14,30 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hoya.yarn.appmaster.web;
+package org.apache.hoya.yarn.appmaster.web.layout;
 
-import org.apache.hoya.providers.ProviderService;
-import org.apache.hoya.yarn.appmaster.state.AppState;
+import org.apache.hadoop.yarn.webapp.SubView;
+import org.apache.hoya.yarn.appmaster.web.view.ContainerStatsBlock;
+
+
 
 /**
  * 
  */
-public class WebAppApiImpl implements WebAppApi {
+public class ContainerStatsView extends HoyaLayout {
 
-  protected final AppState appState;
-  protected final ProviderService provider;
-  
-  public WebAppApiImpl(AppState appState, ProviderService provider) {
-    this.appState = appState;
-    this.provider = provider;
+  @Override
+  protected Class<? extends SubView> content() {
+    return ContainerStatsBlock.class;
   }
-  
-  public AppState getAppState() {
-    return appState;
-  }
-  
-  public ProviderService getProviderService() {
-    return provider;
-  }
-  
 }
