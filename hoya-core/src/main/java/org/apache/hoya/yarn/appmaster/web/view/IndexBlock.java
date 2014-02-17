@@ -41,7 +41,7 @@ public class IndexBlock extends HtmlBlock {
   
   @Override
   protected void render(Block html) {
-    Hamlet h = html.h1("Hoya App Master").h2("Roles");
+    Hamlet h = html.h2("Roles");
     
     ClusterDescription desc = appState.clusterDescription;
     for (String roleName : desc.getRoleNames()) {

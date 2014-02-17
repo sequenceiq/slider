@@ -41,3 +41,13 @@ td.table { padding: 0 }
   line-height: 1.2em; font-size: 90% }
 #themeswitcher { margin: 1em 0.25em }
 #footer { padding: 1em; text-align: center }
+.bold { font-weight: bold; }
+
+.role-stats-wrap { margin-bottom: 2em; margin-left: 2em; width: 200px; }
+table.role-stats { width: 200px }
+table.role-stats th { text-align: left; }
+table.role-stats td.label { text-align: right; font-weight: bold }
+
+.role-stats-containers { width: 350px; margin-left: 2em }
+
+div.role-info { width: 700px; padding-left: 15px; padding-top: 15px; padding-bottom: 25px; margin-bottom: 2em; }

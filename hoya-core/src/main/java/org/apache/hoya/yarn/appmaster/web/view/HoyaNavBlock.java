@@ -30,6 +30,7 @@ public class HoyaNavBlock extends HtmlBlock {
       div("#nav").
         h3("Hoya").
         ul().
+          li().a(this.prefix(), "Overview")._().
           li().a(this.prefix() + HoyaAMWebApp.CONTAINER_STATS, "Statistics")._()._()._();
   }
 }
