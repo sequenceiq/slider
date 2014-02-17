@@ -17,6 +17,7 @@
 package org.apache.hoya.yarn.appmaster.web.view;
 
 import org.apache.hadoop.yarn.webapp.view.HtmlBlock;
+import org.apache.hoya.yarn.appmaster.web.HoyaAMWebApp;
 
 /**
  * 
@@ -29,6 +30,6 @@ public class HoyaNavBlock extends HtmlBlock {
       div("#nav").
         h3("Hoya").
         ul().
-          li().a("/stats", "Statistics")._()._()._();
+          li().a(this.prefix() + HoyaAMWebApp.CONTAINER_STATS, "Statistics")._()._()._();
   }
 }

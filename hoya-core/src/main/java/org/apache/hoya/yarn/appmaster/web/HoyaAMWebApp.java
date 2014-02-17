@@ -24,6 +24,8 @@ import org.apache.hadoop.yarn.webapp.WebApp;
  */
 public class HoyaAMWebApp extends WebApp {
 
+  public static final String CONTAINER_STATS = "/stats";
+  
   @Override
   public void setup() {
     // Make one of these to ensure that the jax-b annotations
@@ -32,9 +34,9 @@ public class HoyaAMWebApp extends WebApp {
     
     // Get exceptions printed to the screen
     bind(GenericExceptionHandler.class);
-    
+
     route("/", HoyaAMController.class);
-    route("/stats", HoyaAMController.class, "containerStats");
+    route(CONTAINER_STATS, HoyaAMController.class, "containerStats");
   }
 
 }

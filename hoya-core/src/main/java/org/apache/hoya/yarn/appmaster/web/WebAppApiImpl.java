@@ -16,6 +16,7 @@
  */
 package org.apache.hoya.yarn.appmaster.web;
 
+import org.apache.hoya.api.HoyaClusterProtocol;
 import org.apache.hoya.providers.ProviderService;
 import org.apache.hoya.yarn.appmaster.state.AppState;
 
@@ -24,10 +25,12 @@ import org.apache.hoya.yarn.appmaster.state.AppState;
  */
 public class WebAppApiImpl implements WebAppApi {
 
+  protected final HoyaClusterProtocol clusterProto;
   protected final AppState appState;
   protected final ProviderService provider;
   
-  public WebAppApiImpl(AppState appState, ProviderService provider) {
+  public WebAppApiImpl(HoyaClusterProtocol clusterProto, AppState appState, ProviderService provider) {
+    this.clusterProto = clusterProto;
     this.appState = appState;
     this.provider = provider;
   }
@@ -38,6 +41,10 @@ public class WebAppApiImpl implements WebAppApi {
   
   public ProviderService getProviderService() {
     return provider;
+  }
+  
+  public HoyaClusterProtocol getClusterProtocol() {
+    return clusterProto;
   }
   
 }
