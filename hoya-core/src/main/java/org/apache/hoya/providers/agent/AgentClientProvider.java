@@ -33,7 +33,6 @@ import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderUtils;
 import org.apache.hoya.tools.ConfigHelper;
 import org.apache.hoya.tools.HoyaFileSystem;
-import org.apache.hoya.tools.HoyaUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -180,7 +179,7 @@ public class AgentClientProvider extends AbstractProviderCore implements
     for (String roleName : roleNames) {
       int count =
         clusterSpec.getMandatoryRoleOptInt(roleName, RoleKeys.ROLE_INSTANCES);
-      clusterSpec.getMandatoryRoleOpt(roleName, SCRIPT);
+      clusterSpec.getMandatoryRoleOpt(roleName, AGENT_SCRIPT);
 
       int priority =
         clusterSpec.getMandatoryRoleOptInt(roleName, RoleKeys.ROLE_PRIORITY);

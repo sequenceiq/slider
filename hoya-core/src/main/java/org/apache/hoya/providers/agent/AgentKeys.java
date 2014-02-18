@@ -58,7 +58,7 @@ public interface AgentKeys {
   /*  path to package*/
   String PACKAGE_PATH = "agent.package.root";
   /*  path to bin directory where script of starting/stopping is located*/
-  String SCRIPT = "agent.script";
+  String AGENT_SCRIPT = "agent.script";
   /* path to agent */
   String AGENT_PATH = "app.home";
 }

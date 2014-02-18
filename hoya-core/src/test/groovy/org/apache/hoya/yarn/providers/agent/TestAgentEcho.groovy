@@ -63,7 +63,7 @@ class TestAgentEcho extends AgentTestBase {
             ARG_OPTION, PACKAGE_PATH, hoya_core.absolutePath,
 
             ARG_ROLEOPT, role, ROLE_PRIORITY, "2",
-            ARG_ROLEOPT, role, SCRIPT, echo_py,
+            ARG_ROLEOPT, role, AGENT_SCRIPT, echo_py,
         ],
         true, true,
         true)

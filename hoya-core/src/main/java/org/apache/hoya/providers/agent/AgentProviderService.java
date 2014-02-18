@@ -21,13 +21,11 @@ package org.apache.hoya.providers.agent;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
-import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.exceptions.HoyaInternalStateException;
@@ -35,8 +33,6 @@ import org.apache.hoya.providers.AbstractProviderService;
 import org.apache.hoya.providers.ProviderCore;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderUtils;
-import org.apache.hoya.servicemonitor.HttpProbe;
-import org.apache.hoya.servicemonitor.MonitorKeys;
 import org.apache.hoya.servicemonitor.Probe;
 import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
@@ -46,10 +42,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -123,11 +115,17 @@ public class AgentProviderService extends AbstractProviderService implements
     env.put("PROPAGATED_CONFDIR", ApplicationConstants.Environment.PWD.$()+"/"+
                                   HoyaKeys.PROPAGATED_CONF_DIR_NAME);
     ctx.setEnvironment(env);
-
+    
     //local resources
     Map<String, LocalResource> localResources =
       new HashMap<String, LocalResource>();
 
+    
+    
+    
+    
+    
+    
     //add the configuration resources
     Map<String, LocalResource> confResources;
     confResources = hoyaFileSystem.submitDirectory(
@@ -146,26 +144,29 @@ public class AgentProviderService extends AbstractProviderService implements
 
     List<String> command = new ArrayList<String>();
 
+
+    String script =
+      clusterSpec.getMandatoryRoleOpt(role, AGENT_SCRIPT);
+    String packagePath = clusterSpec.getMandatoryOption(PACKAGE_PATH);
+    File packagePathFile = new File(packagePath);
+    HoyaUtils.verifyIsDir(packagePathFile, log);
+    File executable = new File(packagePathFile, script);
+    HoyaUtils.verifyFileExists(executable, log);
     //this must stay relative if it is an image
-    command.add("bin/ambari");
+    command.add("python");
+    command.add(executable.getCanonicalPath());
+    
+    //arguments come next
     //config dir is relative to the generated file
     command.add(ARG_CONFIG);
     command.add("$PROPAGATED_CONFDIR");
-    
-    //now look at the role
-    if (ROLE_NODE.equals(role)) {
-      //role is region server
-      command.add(REGION_SERVER);
-      command.add(ACTION_START);
-      //log details
-      command.add(
-        "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/agent-server.txt");
-      command.add("2>&1");
-    } else {
-      throw new HoyaInternalStateException("Cannot start role %s", role);
-    }
-/*    command.add("-D httpfs.log.dir = "+
-                ApplicationConstants.LOG_DIR_EXPANSION_VAR);*/
+
+
+    command.add(
+      "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/agent-server.txt");
+    command.add("2>&1");
+    command.add("&&");
+    command.add("sleep 60000");
 
     String cmdStr = HoyaUtils.join(command, " ");
 
