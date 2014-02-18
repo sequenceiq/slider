@@ -28,77 +28,100 @@ import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.client.HoyaClient
 import org.junit.Test
 
+import static org.apache.hoya.providers.agent.AgentKeys.*
+import static org.apache.hoya.yarn.Arguments.ARG_OPTION
+
 @CompileStatic
 @Slf4j
 class TestBuildBasicAgent extends AgentTestBase {
 
 
-  @Test
-  public void testBuildMultipleRoles() throws Throwable {
+    @Test
+    public void testBuildMultipleRoles() throws Throwable {
 
-    def clustername = "test_build_basic_agent"
-    createMiniCluster(
-        clustername,
-        configuration,
-        1,
-        1,
-        1,
-        true,
-        false)
-    buildAgentCluster("test_build_basic_agent_node_only",
-                      [(AgentKeys.ROLE_NODE): 5],
-                      [],
-                      true, false,
-                      false)
-    def master = "hbase-master"
+        def clustername = "test_build_basic_agent"
+        createMiniCluster(
+                clustername,
+                configuration,
+                1,
+                1,
+                1,
+                true,
+                false)
+        buildAgentCluster("test_build_basic_agent_node_only",
+                [(AgentKeys.ROLE_NODE): 5],
+                [
+                        ARG_OPTION, CONTROLLER_URL, "http://localhost",
+                        ARG_OPTION, PACKAGE_PATH, ".",
+                        ARG_OPTION, SCRIPT_PATH, "agent/scripts/agent.py",
+                        Arguments.ARG_ROLEOPT, AgentKeys.ROLE_NODE, SCRIPT_PATH, "agent/scripts/agent.py",
+                        Arguments.ARG_ROLEOPT, AgentKeys.ROLE_NODE, RoleKeys.ROLE_PRIORITY, "1",
+                ],
+                true, false,
+                false)
 
-    def rs = "hbase-rs"
-    ServiceLauncher<HoyaClient>  launcher= buildAgentCluster(clustername,
-                                                             [
-                                                                 (AgentKeys.ROLE_NODE): 5,
-                                                                 (master): 1,
-                                                                 (rs): 5
-                                                             ],
-                                                             [Arguments.ARG_ROLEOPT, master, RoleKeys.ROLE_PRIORITY, "2",
-                                                                 Arguments.ARG_ROLEOPT, rs, RoleKeys.ROLE_PRIORITY, "3"],
-                                                             true, false,
-                                                             false)
-    def cd = launcher.service.loadPersistedClusterDescription(clustername)
-    dumpClusterDescription("$clustername:",cd)
-    cd.getMandatoryRoleOpt(AgentKeys.ROLE_NODE, RoleKeys.ROLE_PRIORITY)
-    assert "2" == cd.getMandatoryRoleOpt(master, RoleKeys.ROLE_PRIORITY)
-    assert "5" == cd.getMandatoryRoleOpt(rs, RoleKeys.ROLE_INSTANCES)
-    
-    // now create an instance with no role priority for the rs
-    try {
-      buildAgentCluster(clustername + "-2",
-                        [
+        def master = "hbase-master"
+        def rs = "hbase-rs"
+        ServiceLauncher<HoyaClient> launcher = buildAgentCluster(clustername,
+                [
+                        (AgentKeys.ROLE_NODE): 5,
+                        (master): 1,
+                        (rs): 5
+                ],
+                [
+                        ARG_OPTION, CONTROLLER_URL, "http://localhost",
+                        ARG_OPTION, PACKAGE_PATH, ".",
+                        Arguments.ARG_ROLEOPT, master, SCRIPT_PATH, "agent/scripts/agent.py",
+                        Arguments.ARG_ROLEOPT, rs, SCRIPT_PATH, "agent/scripts/agent.py",
+                        Arguments.ARG_ROLEOPT, master, RoleKeys.ROLE_PRIORITY, "2",
+                        Arguments.ARG_ROLEOPT, rs, RoleKeys.ROLE_PRIORITY, "3",
+                        Arguments.ARG_ROLEOPT, master, AgentKeys.SERVICE_NAME, "HBASE",
+                        Arguments.ARG_ROLEOPT, rs, AgentKeys.SERVICE_NAME, "HBASE",
+                        Arguments.ARG_ROLEOPT, master, AgentKeys.APP_HOME, "/share/hbase/hbase-0.96.1-hadoop2",
+                        Arguments.ARG_ROLEOPT, rs, AgentKeys.APP_HOME, "/share/hbase/hbase-0.96.1-hadoop2",
+                        Arguments.ARG_ROLEOPT, AgentKeys.ROLE_NODE, SCRIPT_PATH, "agent/scripts/agent.py",
+                        Arguments.ARG_ROLEOPT, AgentKeys.ROLE_NODE, RoleKeys.ROLE_PRIORITY, "1",
+                ],
+                true, false,
+                false)
+        def cd = launcher.service.loadPersistedClusterDescription(clustername)
+        dumpClusterDescription("$clustername:", cd)
+        cd.getMandatoryRoleOpt(AgentKeys.ROLE_NODE, RoleKeys.ROLE_PRIORITY)
+        assert "2" == cd.getMandatoryRoleOpt(master, RoleKeys.ROLE_PRIORITY)
+        assert "5" == cd.getMandatoryRoleOpt(rs, RoleKeys.ROLE_INSTANCES)
+
+        // now create an instance with no role priority for the rs
+        try {
+            buildAgentCluster(clustername + "-2",
+                    [
                             (AgentKeys.ROLE_NODE): 5,
                             (master): 1,
                             (rs): 5
-                        ],
-                        [Arguments.ARG_ROLEOPT, master, RoleKeys.ROLE_PRIORITY, "2",
-                        ],
-                        true, false,
-                        false)
-      fail("Expected an exception")
-    } catch (BadConfigException expected) {
-    } 
-    try {
-      buildAgentCluster(clustername + "-3",
-                        [
+                    ],
+                    [
+                            Arguments.ARG_ROLEOPT, master, RoleKeys.ROLE_PRIORITY, "2",
+                    ],
+                    true, false,
+                    false)
+            fail("Expected an exception")
+        } catch (BadConfigException expected) {
+        }
+        try {
+            buildAgentCluster(clustername + "-3",
+                    [
                             (AgentKeys.ROLE_NODE): 5,
                             (master): 1,
                             (rs): 5
-                        ],
-                        [Arguments.ARG_ROLEOPT, master, RoleKeys.ROLE_PRIORITY, "2",
+                    ],
+                    [
+                            Arguments.ARG_ROLEOPT, master, RoleKeys.ROLE_PRIORITY, "2",
                             Arguments.ARG_ROLEOPT, rs, RoleKeys.ROLE_PRIORITY, "2"],
 
-                        true, false,
-                        false)
-      fail("Expected an exception")
-    } catch (BadConfigException expected) {
+                    true, false,
+                    false)
+            fail("Expected an exception")
+        } catch (BadConfigException expected) {
+        }
     }
-  }
 
 }

@@ -21,6 +21,8 @@ package org.apache.hoya.yarn.providers.agent
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
+import org.apache.hoya.providers.agent.AgentKeys
+import org.apache.hoya.yarn.Arguments
 
 import static org.apache.hoya.api.RoleKeys.*
 import static org.apache.hoya.providers.agent.AgentKeys.*
@@ -63,7 +65,9 @@ class TestAgentEcho extends AgentTestBase {
             ARG_OPTION, PACKAGE_PATH, hoya_core.absolutePath,
 
             ARG_ROLEOPT, role, ROLE_PRIORITY, "2",
-            ARG_ROLEOPT, role, AGENT_SCRIPT, echo_py,
+            ARG_ROLEOPT, role, SCRIPT_PATH, echo_py,
+            ARG_ROLEOPT, role, SERVICE_NAME, "Agent",
+            ARG_ROLEOPT, role, APP_HOME, "agent/home",
         ],
         true, true,
         true)

@@ -31,7 +31,7 @@
 
   <property>
     <name>agent.cache.path</name>
-    <value>/var/lib/ambari-agent/cache/HDP-2.0.6/</value>
+    <value>/var/lib/ambari-agent/cache/stacks/HDP/2.0.6/</value>
   </property>
 
 
