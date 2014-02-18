@@ -28,7 +28,6 @@ import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.HoyaException;
-import org.apache.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hoya.providers.AbstractProviderService;
 import org.apache.hoya.providers.ProviderCore;
 import org.apache.hoya.providers.ProviderRole;
@@ -140,9 +139,9 @@ public class AgentProviderService extends AbstractProviderService implements
       hoyaFileSystem.maybeAddImagePath(localResources, imagePath);
     }
     ctx.setLocalResources(localResources);
-    List<String> commands = new ArrayList<String>();
+    List<String> commandList = new ArrayList<String>();
 
-    List<String> command = new ArrayList<String>();
+    List<String> operation = new ArrayList<String>();
 
 
     String script =
@@ -153,29 +152,42 @@ public class AgentProviderService extends AbstractProviderService implements
     File executable = new File(packagePathFile, script);
     HoyaUtils.verifyFileExists(executable, log);
     //this must stay relative if it is an image
-    command.add("python");
-    command.add(executable.getCanonicalPath());
+    operation.add("python");
+    operation.add(executable.getCanonicalPath());
     
     //arguments come next
     //config dir is relative to the generated file
-    command.add(ARG_CONFIG);
-    command.add("$PROPAGATED_CONFDIR");
+    operation.add(ARG_CONFIG);
+    operation.add("$PROPAGATED_CONFDIR");
+
+    String filename = "agent-server.txt";
+
+    operation.add(
+      "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/" + filename);
+    operation.add("2>&1");
+
+    String cmdStr = HoyaUtils.join(operation, " ");
 
 
-    command.add(
-      "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/agent-server.txt");
-    command.add("2>&1");
-
-    String cmdStr = HoyaUtils.join(command, " ");
-
-
-    commands.add(cmdStr);
+    commandList.add(cmdStr);
     int sleeptime = 240;
-    commands.add("echo about sleep "+ sleeptime);
-    commands.add("sleep "+ sleeptime);
-    commands.add("echo sleep completed");
-    ctx.setCommands(commands);
+    appendOperation(commandList, "echo about sleep " + sleeptime, filename);
+    appendOperation(commandList, "sleep " + sleeptime, filename);
+    appendOperation(commandList, "echo sleep completed", filename);
+    ctx.setCommands(commandList);
 
+  }
+
+  public void appendOperation(List<String> commandList,
+                              String exe,
+                              String filename) {
+    List<String> operation = new ArrayList<String>();
+    operation.add(exe);
+    operation.add(
+      "1>>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/" + filename);
+    operation.add("2>&1");
+    String cmdStr = HoyaUtils.join(operation, " ");
+    commandList.add(cmdStr);
   }
 
   /**
