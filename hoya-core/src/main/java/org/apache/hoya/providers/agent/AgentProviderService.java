@@ -165,13 +165,15 @@ public class AgentProviderService extends AbstractProviderService implements
     command.add(
       "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/agent-server.txt");
     command.add("2>&1");
-    command.add("&&");
-    command.add("sleep 60000");
 
     String cmdStr = HoyaUtils.join(command, " ");
 
 
     commands.add(cmdStr);
+    int sleeptime = 240;
+    commands.add("echo about sleep "+ sleeptime);
+    commands.add("sleep "+ sleeptime);
+    commands.add("echo sleep completed");
     ctx.setCommands(commands);
 
   }

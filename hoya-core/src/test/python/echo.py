@@ -16,10 +16,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+import errno, sys
+
 def main():
   print "main"
 
 
 if __name__ == "__main__":
   main()
-
+  sys.exit(0)

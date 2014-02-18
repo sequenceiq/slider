@@ -70,6 +70,10 @@ class TestAgentEcho extends AgentTestBase {
     HoyaClient hoyaClient = launcher.service
 
     waitForRoleCount(hoyaClient, roles, AGENT_CLUSTER_STARTUP_TIME)
+    //sleep a bit
+    sleep(20000)
+    //expect the role count to be the same
+    waitForRoleCount(hoyaClient, roles, 1000)
 
   }
 }
