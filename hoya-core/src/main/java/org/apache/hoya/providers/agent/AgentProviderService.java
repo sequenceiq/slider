@@ -108,6 +108,9 @@ public class AgentProviderService extends AbstractProviderService implements
                                          ) throws
                                            IOException,
                                            HoyaException {
+    log.info("Build launch context for Agnet");
+    log.debug(clusterSpec.toString());
+
     // Set the environment
     Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
 
@@ -119,12 +122,6 @@ public class AgentProviderService extends AbstractProviderService implements
     Map<String, LocalResource> localResources =
       new HashMap<String, LocalResource>();
 
-    
-    
-    
-    
-    
-    
     //add the configuration resources
     Map<String, LocalResource> confResources;
     confResources = hoyaFileSystem.submitDirectory(
@@ -145,7 +142,7 @@ public class AgentProviderService extends AbstractProviderService implements
 
 
     String script =
-      clusterSpec.getMandatoryRoleOpt(role, AGENT_SCRIPT);
+      clusterSpec.getMandatoryRoleOpt(role, SCRIPT_PATH);
     String packagePath = clusterSpec.getMandatoryOption(PACKAGE_PATH);
     File packagePathFile = new File(packagePath);
     HoyaUtils.verifyIsDir(packagePathFile, log);

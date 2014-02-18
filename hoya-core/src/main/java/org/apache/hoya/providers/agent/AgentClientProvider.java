@@ -49,15 +49,14 @@ import java.util.Set;
  * of the agent deployer
  */
 public class AgentClientProvider extends AbstractProviderCore implements
-                                                              AgentKeys,
-                                                              HoyaKeys,
-                                                              ClientProvider {
+    AgentKeys,
+    HoyaKeys,
+    ClientProvider {
 
 
   protected static final Logger log =
-    LoggerFactory.getLogger(AgentClientProvider.class);
+      LoggerFactory.getLogger(AgentClientProvider.class);
   protected static final String NAME = "agent";
-
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
 
 
@@ -70,7 +69,6 @@ public class AgentClientProvider extends AbstractProviderCore implements
     return NAME;
   }
 
-
   @Override
   public Configuration create(Configuration conf) {
     return conf;
@@ -81,30 +79,30 @@ public class AgentClientProvider extends AbstractProviderCore implements
     return AgentRoles.getRoles();
   }
 
-
   /**
    * Get a map of all the default options for the cluster; values
    * that can be overridden by user defaults after
+   *
    * @return a possibly empty map of default cluster options.
    */
   @Override
   public Configuration getDefaultClusterConfiguration() throws
-                                                        FileNotFoundException {
+      FileNotFoundException {
     return ConfigHelper.loadMandatoryResource(
-      "org/apache/hoya/providers/agent/agent.xml");
+        "org/apache/hoya/providers/agent/agent.xml");
   }
 
   /**
    * Create the default cluster role instance for a named
-   * cluster role; 
+   * cluster role;
    *
    * @param rolename role name
    * @return a node that can be added to the JSON
    */
   @Override
   public Map<String, String> createDefaultClusterRole(String rolename) throws
-                                                                       HoyaException,
-                                                                       IOException {
+      HoyaException,
+      IOException {
     Map<String, String> rolemap = new HashMap<String, String>();
     // node settings
 /*
@@ -119,11 +117,12 @@ public class AgentClientProvider extends AbstractProviderCore implements
 
   /**
    * Build time review and update of the cluster specification
+   *
    * @param clusterSpec spec
    */
   @Override // Client
   public void reviewAndUpdateClusterSpec(ClusterDescription clusterSpec) throws
-                                                                         HoyaException {
+      HoyaException {
 
     validateClusterSpec(clusterSpec);
   }
@@ -136,17 +135,18 @@ public class AgentClientProvider extends AbstractProviderCore implements
                                                     Path clusterDirPath,
                                                     Path generatedConfDirPath,
                                                     boolean secure) throws
-                                                                    HoyaException,
-                                                                    IOException {
+      HoyaException,
+      IOException {
     validateClusterSpec(clusterSpec);
     Path templatePath = new Path(generatedConfDirPath, AgentKeys.CONF_FILE);
 /*    Configuration siteConf = ConfigHelper.loadConfiguration(hoyaFileSystem.getFileSystem(),
                                                             templatePath);
     validateSiteXML(siteConf);*/
   }
-  
+
   /**
    * Validate the site.xml values
+   *
    * @param siteConf site config
    * @throws BadConfigException if a config is missing/invalid
    */
@@ -158,46 +158,54 @@ public class AgentClientProvider extends AbstractProviderCore implements
   /**
    * Validate the cluster specification. This can be invoked on both
    * server and client
+   *
    * @param clusterSpec
    */
   @Override // Client and Server
   public void validateClusterSpec(ClusterDescription clusterSpec) throws
-                                                                  HoyaException {
+      HoyaException {
     log.debug(clusterSpec.toString());
     super.validateClusterSpec(clusterSpec);
+
+    // Mandatory options for Agents
     clusterSpec.getMandatoryOption(CONTROLLER_URL);
     clusterSpec.getMandatoryOption(PACKAGE_PATH);
-//    clusterSpec.getMandatoryOption(AGENT_PATH);
+    //clusterSpec.getMandatoryOption(AGENT_PATH);
 
     providerUtils.validateNodeCount(ROLE_NODE,
-                                    clusterSpec.getDesiredInstanceCount(
-                                      ROLE_NODE,
-                                      1), 0, -1);
+        clusterSpec.getDesiredInstanceCount(
+            ROLE_NODE,
+            1), 0, -1);
     Set<String> roleNames = clusterSpec.getRoleNames();
     roleNames.remove(HoyaKeys.ROLE_HOYA_AM);
     Map<Integer, String> priorityMap = new HashMap<Integer, String>();
     for (String roleName : roleNames) {
       int count =
-        clusterSpec.getMandatoryRoleOptInt(roleName, RoleKeys.ROLE_INSTANCES);
-      clusterSpec.getMandatoryRoleOpt(roleName, AGENT_SCRIPT);
+          clusterSpec.getMandatoryRoleOptInt(roleName, RoleKeys.ROLE_INSTANCES);
+      clusterSpec.getMandatoryRoleOpt(roleName, SCRIPT_PATH);
+      // Extra validation for directly executed START
+      if (!roleName.equals(ROLE_NODE)) {
+        clusterSpec.getMandatoryRoleOpt(roleName, SERVICE_NAME);
+        clusterSpec.getMandatoryRoleOpt(roleName, APP_HOME);
+      }
 
       int priority =
-        clusterSpec.getMandatoryRoleOptInt(roleName, RoleKeys.ROLE_PRIORITY);
+          clusterSpec.getMandatoryRoleOptInt(roleName, RoleKeys.ROLE_PRIORITY);
       if (priority <= 0) {
         throw new BadConfigException("role %s %s value out of range %d",
-                                     roleName,
-                                     RoleKeys.ROLE_PRIORITY,
-                                     priority);
+            roleName,
+            RoleKeys.ROLE_PRIORITY,
+            priority);
       }
 
       String existing = priorityMap.get(priority);
       if (existing != null) {
         throw new BadConfigException(
-          "role %s has a %s value %d which duplicates that of %s",
-          roleName,
-          RoleKeys.ROLE_PRIORITY,
-          priority,
-          existing);
+            "role %s has a %s value %d which duplicates that of %s",
+            roleName,
+            RoleKeys.ROLE_PRIORITY,
+            priority,
+            existing);
       }
       priorityMap.put(priority, roleName);
     }
@@ -212,21 +220,22 @@ public class AgentClientProvider extends AbstractProviderCore implements
                                                                 Configuration clientConfExtras,
                                                                 String libdir,
                                                                 Path tempPath) throws
-                                                                               IOException,
-                                                                               HoyaException {
+      IOException,
+      HoyaException {
     //load in the template site config
     log.debug("Loading template configuration from {}", originConfDirPath);
 
 
     Map<String, LocalResource> providerResources;
     providerResources = hoyaFileSystem.submitDirectory(generatedConfDirPath,
-                                                       HoyaKeys.PROPAGATED_CONF_DIR_NAME);
+        HoyaKeys.PROPAGATED_CONF_DIR_NAME);
 
     return providerResources;
   }
 
   /**
    * Update the AM resource with any local needs
+   *
    * @param capability capability to update
    */
   @Override
@@ -235,9 +244,9 @@ public class AgentClientProvider extends AbstractProviderCore implements
 
   }
 
-
   /**
    * Any operations to the service data before launching the AM
+   *
    * @param clusterSpec cspec
    * @param serviceData map of service data
    */

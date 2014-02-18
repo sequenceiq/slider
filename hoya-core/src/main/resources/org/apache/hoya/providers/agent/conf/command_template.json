@@ -1,5 +1,5 @@
 {
-  "roleCommand": "{{ROLE_COMMAND}}",
+  "roleCommand": "{{COMMAND}}",
   "clusterName": "{{CLUSTER_NAME}}",
   "hostname": "{{HOST_NAME}}",
   "hostLevelParams": {
@@ -11,7 +11,7 @@
   "role": "{{ROLE_NAME}}",
   "commandParams": {},
   "taskId": "{{TASK_ID}}",
-  "public_hostname": "{{PUBLIC_HOST_NAME}}",
+  "public_hostname": "{{HOST_NAME}}",
   "configurations": {
     "hbase-log4j": {
       "log4j.threshold": "ALL",
@@ -57,7 +57,7 @@
     "global": {
       "hbase_root": "{{HBASE_HOME}}",
       "security_enabled": "false",
-      "hbase_pid_dir": "{{HBASE_PID_DIR}}",
+      "hbase_pid_dir": "{{PID_DIR}}",
       "proxyuser_group": "users",
       "syncLimit": "5",
       "hbase_regionserver_heapsize": "{{REGION_SERVER_HEAP_SIZE}}",
@@ -65,9 +65,9 @@
       "tickTime": "2000",
       "hbase_master_heapsize": "{{MASTER_HEAP_SIZE}}",
       "initLimit": "10",
-      "user_group": "{{USER_GROUP}}",
+      "user_group": "{{GROUP_NAME}}",
       "hbase_user": "{{USER_NAME}}",
-      "hbase_log_dir": "{{HBASE_LOG_DIR}}"
+      "hbase_log_dir": "{{LOG_DIR}}"
     },
     "hdfs-site": {
       "dfs.namenode.checkpoint.period": "21600",
@@ -137,7 +137,7 @@
       "hbase.security.authentication": "simple",
       "hbase.defaults.for.version.skip": "true",
       "hbase.zookeeper.quorum": "{{ZK_HOSTS}}",
-      "zookeeper.znode.parent": "{{ZK_PARENT}}",
+      "zookeeper.znode.parent": "{{ZK_NODE_PARENT}}",
       "hbase.hstore.blockingStoreFiles": "10",
       "hbase.hregion.majorcompaction": "86400000",
       "hbase.security.authorization": "false",
@@ -145,7 +145,7 @@
       "hbase.hregion.memstore.mslab.enabled": "true",
       "hbase.client.scanner.caching": "100",
       "hbase.zookeeper.useMulti": "true",
-      "hbase.regionserver.info.port": "{{REGSIONSERVER_INFO_PORT}}",
+      "hbase.regionserver.info.port": "{{REGION_SERVER_INFO_PORT}}",
       "hbase.master.info.port": "{{MASTER_INFO_PORT}}"
     },
     "core-site": {
