@@ -47,6 +47,8 @@ Role
 1. short term
    py $something && sleep 600000
 
+1. Hoya to host web service
+
 # Testing
 
 1. Get a new sandbox 

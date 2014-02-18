@@ -151,6 +151,8 @@ public class AgentProviderService extends AbstractProviderService implements
     //this must stay relative if it is an image
     operation.add("python");
     operation.add(executable.getCanonicalPath());
+    operation.add("-log");
+    operation.add(ApplicationConstants.LOG_DIR_EXPANSION_VAR);
     
     //arguments come next
     //config dir is relative to the generated file
