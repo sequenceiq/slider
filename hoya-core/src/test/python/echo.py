@@ -17,16 +17,18 @@
 # limitations under the License.
 
 
-import logging, sys, datetime
+import logging, sys, datetime, time
 
 
 def main():
+  print "Executing echo"
   logfilename = "echo" + str(datetime.datetime.now()) + ".log"
   logging.basicConfig(filename=logfilename, level=logging.DEBUG)
   logging.debug('Starting echo script ...')
 
   logging.info("Number of arguments: %s arguments.", str(len(sys.argv)))
   logging.info("Argument List: %s", str(sys.argv))
+  time.sleep(20)
 
 if __name__ == "__main__":
   main()
