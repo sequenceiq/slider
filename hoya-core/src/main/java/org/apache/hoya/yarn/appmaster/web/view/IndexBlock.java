@@ -16,12 +16,15 @@
  */
 package org.apache.hoya.yarn.appmaster.web.view;
 
+import java.util.List;
 import java.util.Map.Entry;
+import java.util.TreeSet;
 
 import org.apache.hadoop.yarn.webapp.hamlet.Hamlet;
 import org.apache.hadoop.yarn.webapp.hamlet.Hamlet.P;
 import org.apache.hadoop.yarn.webapp.view.HtmlBlock;
 import org.apache.hoya.api.ClusterDescription;
+import org.apache.hoya.providers.ProviderService;
 import org.apache.hoya.yarn.appmaster.state.AppState;
 import org.apache.hoya.yarn.appmaster.web.WebAppApi;
 
@@ -31,27 +34,45 @@ import com.google.inject.Inject;
  * 
  */
 public class IndexBlock extends HtmlBlock {
+  private static final String ACCUMULO = "Accumulo", HBASE = "HBase", UNKNOWN = "Unknown";
 
   private AppState appState;
+  private ProviderService providerService;
   
   @Inject
   public IndexBlock(WebAppApi hoya) { 
     this.appState = hoya.getAppState();
+    this.providerService = hoya.getProviderService();
   }
   
   @Override
   protected void render(Block html) {
-    Hamlet h = html.h2("Roles");
+    final String providerName = getProviderName();
     
     ClusterDescription desc = appState.clusterDescription;
-    for (String roleName : desc.getRoleNames()) {
-      P<Hamlet> p = h.h3(roleName)
-      .p();
-      for (Entry<String,String> option : desc.getRole(roleName).entrySet()) {
-        p._(option.getKey(), " ", option.getValue());
+    
+    long totalProcs = 0;
+    for (Entry<String,List<String>> entry : desc.instances.entrySet()) {
+      if (null != entry.getValue()) {
+        totalProcs += entry.getValue().size();
       }
-      p._();
     }
+    
+    Hamlet h = html.h1("Hoya deployed " + providerName + " cluster: " + desc.name);
+    
+    h.p()._("Number of services: ", Long.toString(totalProcs))._();
+  }
+  
+  private String getProviderName() {
+    String providerServiceName = providerService.getName().toLowerCase();
+    
+    if (providerServiceName.contains("accumulo")) {
+      return ACCUMULO;
+    } else if (providerServiceName.contains("hbase")) {
+      return HBASE;
+    } 
+    
+    return UNKNOWN;
   }
 
 }

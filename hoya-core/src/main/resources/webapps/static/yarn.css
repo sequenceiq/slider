@@ -20,7 +20,8 @@
 html, body { height: 100% }
 body { padding: 0; font: 90% sans-serif }
 .content { padding-right: 1em }
-.content h1, .content h2, .content h3 { margin: 0 0 0.3em; font-weight: normal }
+.content h1, .content h2, .content h3 { margin: 0 0 0.3em; }
+/*.content h1, .content h2, .content h3 { margin: 0 0 0.3em; font-weight: normal }*/
 table { border-collapse: collapse; border-spacing: 0; width: 100% }
 table br { display: none }
 table.info th { text-align: right }
@@ -43,11 +44,13 @@ td.table { padding: 0 }
 #footer { padding: 1em; text-align: center }
 .bold { font-weight: bold; }
 
-.role-stats-wrap { margin-bottom: 2em; margin-left: 2em; width: 200px; }
+
+div.role-info { width: 700px; padding-left: 15px; padding-top: 15px; margin-bottom: 2em; }
+
+div.role-stats-containers { width: 350px; margin-left: 2em; margin-bottom: 2em; }
+div.role-stats-wrap { margin-bottom: 2em; margin-left: 2em; width: 200px; }
+div.role-options-wrap { margin-left: 2em; margin-bottom: 2em; width: 350px; }
+
 table.role-stats { width: 200px }
-table.role-stats th { text-align: left; }
-table.role-stats td.label { text-align: right; font-weight: bold }
 
-.role-stats-containers { width: 350px; margin-left: 2em }
-
-div.role-info { width: 700px; padding-left: 15px; padding-top: 15px; padding-bottom: 25px; margin-bottom: 2em; }
+.no-table-contents { padding-left: 0.5em; }
