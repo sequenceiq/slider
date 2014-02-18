@@ -263,8 +263,12 @@ public class AppState {
     return completionOfUnknownContainerEvent;
   }
 
-  private Map<Integer, RoleStatus> getRoleStatusMap() {
+  public Map<Integer, RoleStatus> getRoleStatusMap() {
     return roleStatusMap;
+  }
+  
+  protected Map<String, ProviderRole> getRoleMap() {
+    return roles;
   }
 
   private Map<ContainerId, RoleInstance> getStartingNodes() {
