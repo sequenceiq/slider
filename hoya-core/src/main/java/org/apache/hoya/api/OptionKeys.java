@@ -86,6 +86,11 @@ public interface OptionKeys {
 
 
   /**
+   * hoya temp directory: {@value}
+   */
+  String HOYA_TMP_DIR = "hoya.tmp.dir";
+  
+  /**
    * Zookeeper quorum host list: {@value}
    */
   String ZOOKEEPER_HOSTS = "zookeeper.hosts";
@@ -99,7 +104,6 @@ public interface OptionKeys {
    * Zookeeper port value (int): {@value}
    */
   String ZOOKEEPER_PATH = "zookeeper.path";
-
 
   /**
    * Is monitoring enabled on the AM?

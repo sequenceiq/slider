@@ -86,7 +86,6 @@ import org.apache.hoya.yarn.params.HoyaAMArgs;
 import org.apache.hoya.yarn.params.LaunchArgsAccessor;
 import org.apache.hoya.yarn.service.CompoundLaunchedService;
 import org.apache.hoya.yarn.service.SecurityCheckerService;
-import org.codehaus.jackson.JsonParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -442,6 +441,12 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     clusterSpec.setOptionifUnset(OptionKeys.SITE_XML_PREFIX +
                                  HoyaXmlConfKeys.FS_DEFAULT_NAME_CLASSIC,
                                  fsDefaultName);
+
+    // Set temp dir as an option
+    Path tmp = hoyaFileSystem.getTempPathForCluster(clustername);
+    Path tempDirPath = new Path(tmp, "am");
+    clusterSpec.setOption(OptionKeys.HOYA_TMP_DIR,
+                                 tempDirPath.toUri().toString());
 
     // patch in the properties related to the principals extracted from
     // the running hoya client

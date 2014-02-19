@@ -618,8 +618,15 @@ public class HoyaAppMaster extends CompoundLaunchedService
         envVars.put(HADOOP_USER_NAME, hoyaUsername);
       }
     }
-    Path launcherTmpDirPath = fs.createHoyaAppInstanceTempPath(
-      clustername, appMasterContainerID.toString() + "/roles");
+    String rolesTmpSubdir = appMasterContainerID.toString() + "/roles";
+
+    String amTmpDir =
+      clusterSpec.getMandatoryOption(OptionKeys.HOYA_TMP_DIR);
+
+    Path tmpDirPath = new Path(amTmpDir);
+    Path launcherTmpDirPath = new Path(tmpDirPath, rolesTmpSubdir);
+    fs.getFileSystem().mkdirs(launcherTmpDirPath);
+    
     //launcher service
     launchService = new RoleLaunchService(this,
                                           providerService,

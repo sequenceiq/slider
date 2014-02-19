@@ -79,3 +79,20 @@ MUST be in the metadata.
 
 * Need to know how to get tokens from .py -and how to use that to talk to AM.
 * 
+
+# Hoya Agent
+
+* run >1 per host
+* bind to AM REST-head (and rebind on failure -somehow)
+* store some state on behalf of a (stateless) AM.
+
+
+# What would a Java Agent do
+
+
+* run direct from YARN
+* register with ZK
+* use ZK to locate AM REST api
+* can talk to HDFS (token renewal issues)
+* listen to requests from AM (new tokens, get/set properties)
+

@@ -19,7 +19,6 @@
 package org.apache.hoya.tools;
 
 import com.google.common.base.Preconditions;
-import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -68,6 +67,16 @@ public class HoyaFileSystem {
     Preconditions.checkNotNull(configuration, "Cannot create a HoyaFileSystem with a null Configuration");
     this.fileSystem = FileSystem.get(configuration);
     this.configuration = fileSystem.getConf();
+  }
+
+  /**
+   * Get the temp path for this cluster
+   * @param clustername name of the cluster
+   * @return path for temp files (is not purged)
+   */
+  public Path getTempPathForCluster(String clustername) {
+    Path clusterDir = buildHoyaClusterDirPath(clustername);
+    return new Path(clusterDir, HoyaKeys.HOYA_TMP_DIR_PREFIX);
   }
 
   /**
@@ -243,7 +252,6 @@ public class HoyaFileSystem {
     }
   }
 
-
   /**
    * Create the application-instance specific temporary directory
    * in the DFS
@@ -255,8 +263,7 @@ public class HoyaFileSystem {
   public Path createHoyaAppInstanceTempPath(String clustername,
                                             String subdir) throws
           IOException {
-    Path hoyaPath = getBaseHoyaPath();
-    Path tmp = HoyaUtils.getTempPathForCluster(clustername, hoyaPath);
+    Path tmp = getTempPathForCluster(clustername);
     Path instancePath = new Path(tmp, subdir);
     fileSystem.mkdirs(instancePath);
     return instancePath;
@@ -271,8 +278,7 @@ public class HoyaFileSystem {
    */
   public Path purgeHoyaAppInstanceTempFiles(String clustername) throws
           IOException {
-    Path hoyaPath = getBaseHoyaPath();
-    Path tmp = HoyaUtils.getTempPathForCluster(clustername, hoyaPath);
+    Path tmp = getTempPathForCluster(clustername);
     fileSystem.delete(tmp, true);
     return tmp;
   }
@@ -284,7 +290,12 @@ public class HoyaFileSystem {
    */
   public Path getBaseHoyaPath() {
     String configuredHoyaBasePath = configuration.get(HoyaXmlConfKeys.KEY_BASE_HOYA_PATH);
-    return configuredHoyaBasePath != null ? new Path(configuredHoyaBasePath) : new Path(fileSystem.getHomeDirectory(), ".hoya");
+    return configuredHoyaBasePath != null ? new Path(configuredHoyaBasePath) :
+           new Path(getHomeDirectory(), ".hoya");
+  }
+
+  public Path getHomeDirectory() {
+    return fileSystem.getHomeDirectory();
   }
 
   /**

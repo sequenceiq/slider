@@ -356,10 +356,6 @@ public final class HoyaUtils {
   }
 
 
-  public static Path getTempPathForCluster(String clustername, Path hoyaPath) {
-    return new Path(hoyaPath, "tmp/" + clustername + "/");
-  }
-
   public static String stringify(Throwable t) {
     StringWriter sw = new StringWriter();
     sw.append(t.toString()).append('\n');
