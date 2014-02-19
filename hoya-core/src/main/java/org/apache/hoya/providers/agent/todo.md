@@ -65,3 +65,12 @@ Issues
   -read blueprint metadata to choose
   -provider service should take received
    .json, to validate and perhaps change
+   
+# How configs are set up
+
+HoyaAM does not need to expand properties in JSON if it knows how to generate
+a JSON config that can be parsed.
+
+Would be nice to have a list of what properties must be there.
+
+MUST be in the metadata. 

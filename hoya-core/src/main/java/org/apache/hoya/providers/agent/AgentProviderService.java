@@ -108,7 +108,7 @@ public class AgentProviderService extends AbstractProviderService implements
                                          ) throws
                                            IOException,
                                            HoyaException {
-    log.info("Build launch context for Agnet");
+    log.info("Build launch context for Agent");
     log.debug(clusterSpec.toString());
 
     // Set the environment

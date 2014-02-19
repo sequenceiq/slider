@@ -76,6 +76,9 @@ public interface AgentKeys {
    * Optional PID location for the application.
    */
   String SERVICE_PID_PATH = "app.pid.path";
+
+  String COMMAND_JSON_FILENAME = "command.json";
+
   //hbase-site and hdfs-site parameters
   String DFS_NAMENODE_HTTPS_ADDRESS = "site.dfs.namenode.https-address";
   String DFS_NAMENODE_HTTP_ADDRESS = "site.dfs.namenode.http-address";
