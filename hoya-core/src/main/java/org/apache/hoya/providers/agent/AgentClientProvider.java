@@ -223,8 +223,13 @@ public class AgentClientProvider extends AbstractProviderCore implements
       IOException,
       HoyaException {
     //load in the template site config
-    log.debug("Loading template configuration from {}", originConfDirPath);
+    log.debug("Loading template configuration from {}, saving to ",
+              originConfDirPath, generatedConfDirPath);
 
+    Path commandJson =
+      new Path(originConfDirPath, AgentKeys.COMMAND_JSON_FILENAME);
+    hoyaFileSystem.verifyFileExists(commandJson);
+    
 
     Map<String, LocalResource> providerResources;
     providerResources = hoyaFileSystem.submitDirectory(generatedConfDirPath,

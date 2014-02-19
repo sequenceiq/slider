@@ -425,7 +425,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     
     // build up the options map
     // first the defaults provided by the provider
-    HashMap<String, String> options = new HashMap<String, String>();
+    Map<String, String> options = new HashMap<String, String>();
     HoyaUtils.mergeEntries(options, hoyaAM.getDefaultClusterConfiguration());
     HoyaUtils.mergeEntries(options, provider.getDefaultClusterConfiguration());
 
@@ -573,14 +573,9 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     }
 
     // bulk copy
-    String clusterDirPermsOct =
-      conf.get(HOYA_CLUSTER_DIRECTORY_PERMISSIONS,
-               DEFAULT_HOYA_CLUSTER_DIRECTORY_PERMISSIONS);
-    FsPermission clusterPerms = new FsPermission(clusterDirPermsOct);
+    FsPermission clusterPerms = getClusterDirectoryPermissions(conf);
     // first the original from wherever to the DFS
     HoyaUtils.copyDirectory(conf, appconfdir, snapshotConfPath, clusterPerms);
-    // then build up the generated path. This d
-    HoyaUtils.copyDirectory(conf, snapshotConfPath, generatedConfPath, clusterPerms);
 
     // Data Directory
     Path datapath = new Path(clusterDirectory, HoyaKeys.DATA_DIR_NAME);
@@ -595,6 +590,13 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     clusterSpec.state = ClusterDescription.STATE_CREATED;
     clusterSpec.save(hoyaFileSystem.getFileSystem(), clusterSpecPath, true);
     return EXIT_SUCCESS;
+  }
+
+  public FsPermission getClusterDirectoryPermissions(Configuration conf) {
+    String clusterDirPermsOct =
+      conf.get(HOYA_CLUSTER_DIRECTORY_PERMISSIONS,
+               DEFAULT_HOYA_CLUSTER_DIRECTORY_PERMISSIONS);
+    return new FsPermission(clusterDirPermsOct);
   }
 
   /**
@@ -772,6 +774,12 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     propagatePrincipals(clusterSpec, config);
 
     Configuration clientConfExtras = new Configuration(false);
+
+    // then build up the generated path.
+    FsPermission clusterPerms = getClusterDirectoryPermissions(config);
+    HoyaUtils.copyDirectory(config, snapshotConfPath, generatedConfDirPath,
+                            clusterPerms);
+
 
     // add AM and provider specific artifacts to the resource map
     Map<String, LocalResource> providerResources;

@@ -393,7 +393,8 @@ public class HBaseClientProvider extends AbstractProviderCore implements
 
     log.debug("Saving the config to {}", sitePath);
     Map<String, LocalResource> providerResources;
-    providerResources = hoyaFileSystem.submitDirectory(generatedConfDirPath, HoyaKeys.PROPAGATED_CONF_DIR_NAME);
+    providerResources = hoyaFileSystem.submitDirectory(generatedConfDirPath,
+                                       HoyaKeys.PROPAGATED_CONF_DIR_NAME);
 
     addHBaseDependencyJars(providerResources, hoyaFileSystem,libdir, tempPath);
 

@@ -198,13 +198,12 @@ public class HoyaFileSystem {
    * It does this by creating then deleting a temp file
    *
    * @param dirPath actual directory to look for
-   * @throws java.io.IOException                                 trouble with FS
-   * @throws org.apache.hoya.exceptions.BadClusterStateException if the directory is not writeable
+   * @throws FileNotFoundException file not found
+   * @throws IOException  trouble with FS
+   * @throws BadClusterStateException if the directory is not writeable
    */
   public void verifyDirectoryWriteAccess(Path dirPath) throws IOException, HoyaException {
-    if (!fileSystem.exists(dirPath)) {
-      throw new FileNotFoundException(dirPath.toString());
-    }
+    verifyPathExists(dirPath);
     Path tempFile = new Path(dirPath, "tmp-file-for-checks");
     try {
       FSDataOutputStream out = null;
@@ -217,6 +216,33 @@ public class HoyaFileSystem {
               "Unable to write to directory %s : %s", dirPath, e.toString());
     }
   }
+
+  /**
+   * Verify that a path exists
+   * @param path path to check
+   * @throws FileNotFoundException file not found
+   * @throws IOException  trouble with FS
+   */
+  public void verifyPathExists(Path path) throws IOException {
+    if (!fileSystem.exists(path)) {
+      throw new FileNotFoundException(path.toString());
+    }
+  }
+
+  /**
+   * Verify that a path exists
+   * @param path path to check
+   * @throws FileNotFoundException file not found or is not a file
+   * @throws IOException  trouble with FS
+   */
+  public void verifyFileExists(Path path) throws IOException {
+    FileStatus status = fileSystem.getFileStatus(path);
+
+    if (!status.isFile()) {
+      throw new FileNotFoundException("Not a file: " + path.toString());
+    }
+  }
+
 
   /**
    * Create the application-instance specific temporary directory
