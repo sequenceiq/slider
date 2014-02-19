@@ -249,15 +249,15 @@ public class HoyaFileSystem {
    * in the DFS
    *
    * @param clustername name of the cluster
-   * @param appID       application ID
+   * @param subdir       application ID
    * @return the path; this directory will already have been created
    */
   public Path createHoyaAppInstanceTempPath(String clustername,
-                                            String appID) throws
+                                            String subdir) throws
           IOException {
     Path hoyaPath = getBaseHoyaPath();
     Path tmp = HoyaUtils.getTempPathForCluster(clustername, hoyaPath);
-    Path instancePath = new Path(tmp, appID);
+    Path instancePath = new Path(tmp, subdir);
     fileSystem.mkdirs(instancePath);
     return instancePath;
   }

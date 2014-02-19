@@ -707,7 +707,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     hoyaFileSystem.purgeHoyaAppInstanceTempFiles(clustername);
     Path tempPath = hoyaFileSystem.createHoyaAppInstanceTempPath(
             clustername,
-            appId.toString());
+            appId.toString()+"/am");
     String libdir = "lib";
     Path libPath = new Path(tempPath, libdir);
     hoyaFileSystem.getFileSystem().mkdirs(libPath);

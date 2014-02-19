@@ -112,6 +112,7 @@ public interface AgentKeys {
   String ZK_NODE_PARENT_KEY = "ZK_NODE_PARENT";
   String REGSION_SERVER_INFO_PORT_KEY = "REGION_SERVER_INFO_PORT";
   String MASTER_INFO_PORT = "MASTER_INFO_PORT";
+  String ARG_COMMAND = "--command";
 }
 
 

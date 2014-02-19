@@ -74,3 +74,8 @@ a JSON config that can be parsed.
 Would be nice to have a list of what properties must be there.
 
 MUST be in the metadata. 
+
+# Security
+
+* Need to know how to get tokens from .py -and how to use that to talk to AM.
+* 

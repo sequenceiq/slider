@@ -18,7 +18,6 @@
 
 package org.apache.hoya.yarn.appmaster;
 
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -88,6 +87,11 @@ public class RoleLaunchService extends AbstractService {
    * -the interpretation of it is left to the Provider
    */
   private final Path generatedConfDirPath;
+  /**
+   * Path in the launch filesystem that refers to a temp directory
+   * which will be cleaned up at (some) time in the future
+   */
+  private final Path launcherTmpDirPath;
 
   /**
    * Thread group for the launchers; gives them all a useful name
@@ -104,16 +108,18 @@ public class RoleLaunchService extends AbstractService {
    * @param fs filesystem
    * @param generatedConfDirPath path in the FS for the generated dir
    * @param envVars
+   * @param launcherTmpDirPath
    */
   public RoleLaunchService(ContainerStartOperation startOperation,
                            ProviderService provider,
                            HoyaFileSystem fs,
                            Path generatedConfDirPath,
-                           Map<String, String> envVars) {
+                           Map<String, String> envVars, Path launcherTmpDirPath) {
     super("RoleLaunchService");
     containerStarter = startOperation;
     this.fs = fs;
     this.generatedConfDirPath = generatedConfDirPath;
+    this.launcherTmpDirPath = launcherTmpDirPath;
     this.provider = provider;
     this.envVars = envVars;
   }
@@ -265,12 +271,14 @@ public class RoleLaunchService extends AbstractService {
         ContainerLaunchContext ctx = Records
           .newRecord(ContainerLaunchContext.class);
         //now build up the configuration data
+        Path containerTmpDirPath =
+          new Path(launcherTmpDirPath, container.getId().toString());
         provider.buildContainerLaunchContext(ctx,
-                                             fs,
+                                             container, containerRole, fs,
                                              generatedConfDirPath,
-                                             containerRole,
                                              clusterSpec,
-                                             roleOptions);
+                                             roleOptions,
+                                             containerTmpDirPath);
 
         RoleInstance instance = new RoleInstance(container);
         log.info("Starting container with command: {}", 

@@ -22,6 +22,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 
 import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hoya.HoyaKeys;
@@ -100,12 +101,13 @@ public class AgentProviderService extends AbstractProviderService implements
   
   @Override  // server
   public void buildContainerLaunchContext(ContainerLaunchContext ctx,
+                                          Container container,
+                                          String role,
                                           HoyaFileSystem hoyaFileSystem,
                                           Path generatedConfPath,
-                                          String role,
                                           ClusterDescription clusterSpec,
-                                          Map<String, String> roleOptions
-                                         ) throws
+                                          Map<String, String> roleOptions,
+                                          Path containerTmpDirPath) throws
                                            IOException,
                                            HoyaException {
     log.info("Build launch context for Agent");
@@ -114,9 +116,18 @@ public class AgentProviderService extends AbstractProviderService implements
     // Set the environment
     Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
 
-    env.put("PROPAGATED_CONFDIR", ApplicationConstants.Environment.PWD.$()+"/"+
-                                  HoyaKeys.PROPAGATED_CONF_DIR_NAME);
+    HoyaUtils.copyDirectory(getConf(), generatedConfPath, containerTmpDirPath,
+                            null);
+    Path targetConfDir = containerTmpDirPath;
+    
+    //TODO: PATCH THE CONFIG FOR THE TARGET
+
+
+    String propagatedConfDir = ApplicationConstants.Environment.PWD.$() + "/" +
+                   HoyaKeys.PROPAGATED_CONF_DIR_NAME;
+    env.put("PROPAGATED_CONFDIR", propagatedConfDir);
     ctx.setEnvironment(env);
+    
     
     //local resources
     Map<String, LocalResource> localResources =
@@ -125,7 +136,7 @@ public class AgentProviderService extends AbstractProviderService implements
     //add the configuration resources
     Map<String, LocalResource> confResources;
     confResources = hoyaFileSystem.submitDirectory(
-            generatedConfPath,
+      targetConfDir,
             HoyaKeys.PROPAGATED_CONF_DIR_NAME);
     localResources.putAll(confResources);
     //Add binaries
@@ -153,9 +164,9 @@ public class AgentProviderService extends AbstractProviderService implements
     operation.add(executable.getCanonicalPath());
     operation.add("--log");
     operation.add(ApplicationConstants.LOG_DIR_EXPANSION_VAR);
+    operation.add(ARG_COMMAND);
+    operation.add(propagatedConfDir +"/" + AgentKeys.COMMAND_JSON_FILENAME);
     
-    //arguments come next
-    //config dir is relative to the generated file
     operation.add(ARG_CONFIG);
     operation.add("$PROPAGATED_CONFDIR");
 
