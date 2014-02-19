@@ -397,25 +397,6 @@ public class HBaseClientProvider extends AbstractProviderCore implements
 
     addHBaseDependencyJars(providerResources, hoyaFileSystem,libdir, tempPath);
 
-/* TODO: anything else to set up node security
-    if (UserGroupInformation.isSecurityEnabled()) {
-      //secure mode
-      UserGroupInformation loginUser = UserGroupInformation.getLoginUser();
-      String shortname = loginUser.getShortUserName();
-      String masterPrincipal = siteConf.get(KEY_MASTER_KERBEROS_PRINCIPAL);
-
-      Path hbaseData = new Path(clusterSpec.dataPath);
-      if (clusterFS.exists(hbaseData)) {
-        throw new FileNotFoundException(
-          "HBase data directory not found: " + hbaseData);
-      }
-        
-      FsPermission permission = new FsPermission(
-        FsAction.ALL, FsAction.ALL,FsAction.EXECUTE
-      );
-      clusterFS.setPermission(hbaseData, permission);
-    }*/
-    
     return providerResources;
   }
 
