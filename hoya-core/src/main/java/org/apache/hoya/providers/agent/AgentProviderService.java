@@ -151,7 +151,7 @@ public class AgentProviderService extends AbstractProviderService implements
     //this must stay relative if it is an image
     operation.add("python");
     operation.add(executable.getCanonicalPath());
-    operation.add("-log");
+    operation.add("--log");
     operation.add(ApplicationConstants.LOG_DIR_EXPANSION_VAR);
     
     //arguments come next
@@ -167,12 +167,11 @@ public class AgentProviderService extends AbstractProviderService implements
 
     String cmdStr = HoyaUtils.join(operation, " ");
 
-
     commandList.add(cmdStr);
-    int sleeptime = 240;
-    appendOperation(commandList, "echo about sleep " + sleeptime, filename);
-    appendOperation(commandList, "sleep " + sleeptime, filename);
-    appendOperation(commandList, "echo sleep completed", filename);
+//    int sleeptime = 240;
+//    appendOperation(commandList, "echo about sleep " + sleeptime, filename);
+//    appendOperation(commandList, "sleep " + sleeptime, filename);
+//    appendOperation(commandList, "echo sleep completed", filename);
     ctx.setCommands(commandList);
 
   }
