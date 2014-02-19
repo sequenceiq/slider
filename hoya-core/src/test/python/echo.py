@@ -42,7 +42,7 @@ def main():
 
   logging.info("Number of arguments: %s arguments.", str(len(sys.argv)))
   logging.info("Argument List: %s", str(sys.argv))
-  time.sleep(15)
+  time.sleep(30)
 
 
 if __name__ == "__main__":
