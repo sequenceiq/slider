@@ -23,14 +23,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.yarn.webapp.hamlet.Hamlet;
 import org.apache.hadoop.yarn.webapp.hamlet.Hamlet.DIV;
-import org.apache.hadoop.yarn.webapp.hamlet.Hamlet.P;
 import org.apache.hadoop.yarn.webapp.hamlet.Hamlet.TABLE;
 import org.apache.hadoop.yarn.webapp.hamlet.Hamlet.TBODY;
+import org.apache.hadoop.yarn.webapp.hamlet.Hamlet.TR;
 import org.apache.hadoop.yarn.webapp.view.HtmlBlock;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
@@ -44,6 +43,9 @@ import org.apache.hoya.yarn.client.HoyaClusterOperations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.inject.Inject;
 
 /**
@@ -114,62 +116,88 @@ public class ContainerStatsBlock extends HtmlBlock {
 
       div.h2(BOLD, StringUtils.capitalize(name));
 
-      TABLE<DIV<DIV<Hamlet>>> table = div.div("role-stats-wrap").h3(BOLD, "Specifications").table("role-stats ui-widget-content ui-corner-bottom");
-
-      TBODY<TABLE<DIV<DIV<Hamlet>>>> tbody = table.tbody();
-
-      tbody.tr(EVEN).td("Desired").td(Integer.toString(roleStatus.getDesired()))._();
-      tbody.tr(ODD).td("Actual").td(Integer.toString(roleStatus.getActual()))._();
-      tbody.tr(EVEN).td("Requested").td(Integer.toString(roleStatus.getRequested()))._();
-      tbody.tr(ODD).td("Releasing").td(Integer.toString(roleStatus.getReleasing()))._();
-      tbody.tr(EVEN).td("Failed").td(Integer.toString(roleStatus.getFailed()))._();
-      tbody.tr(ODD).td("Start Failed").td(Integer.toString(roleStatus.getStartFailed()))._();
-      tbody.tr(EVEN).td("Completed").td(Integer.toString(roleStatus.getCompleted()))._();
-
-      tbody._()._()._();
+      // Generate the details on this role
+      generateRoleDetails(div.div("role-stats-wrap"), "Specifications", buildRoleStatusMap(roleStatus).entrySet());
 
       // Sort the ClusterNodes by their name (containerid)
       Collections.sort(nodesInRole, new ClusterNodeNameComparator());
 
-      DIV<DIV<Hamlet>> roleStatsContainers = div.div("role-stats-containers").h3(BOLD, "Containers");
+      // Generate the containers running this role
+      generateRoleDetails(div.div("role-stats-containers"), "Containers", Iterables.transform(nodesInRole, new Function<ClusterNode,Entry<String,String>>() {
 
-      if (!nodesInRole.isEmpty()) {
-        table = roleStatsContainers.table("ui-widget-content ui-corner-bottom");
-        tbody = table.tbody();
-
-        int offset = 0;
-        for (ClusterNode node : nodesInRole) {
-          tbody.tr(offset % 2 == 0 ? EVEN : ODD).td(node.name)._();
-          offset++;
+        @Override
+        public Entry<String,String> apply(ClusterNode input) {
+          return Maps.immutableEntry(input.name, null);
         }
-
-        tbody._()._()._();
-      } else {
-        // TODO we should be able to the get the AM container by normal means
-        roleStatsContainers.p("no-table-contents")._("None")._()._();
-      }
+        
+      }));
 
       ClusterDescription desc = appState.clusterDescription;
       Map<String,String> options = desc.getRole(name);
 
-      DIV<DIV<Hamlet>> roleOptionsWrap = div.div("role-options-wrap").h3(BOLD, "Role Options");
-
-      if (null != options) {
-        table = roleOptionsWrap.table("ui-widget-content ui-corner-bottom");
-        tbody = table.tbody();
-
-        int offset = 0;
-        for (Entry<String,String> option : options.entrySet()) {
-          tbody.tr(offset % 2 == 0 ? EVEN : ODD).td(option.getKey()).td(option.getValue())._();
-          offset++;
-        }
-
-        tbody._()._()._();
-      } else {
-        roleOptionsWrap.p("no-table-contents")._("None")._()._();
-      }
+      // Generate the options used by this role
+      generateRoleDetails(div.div("role-options-wrap"), "Role Options", (null != options) ? options.entrySet() : Collections.<Entry<String,String>> emptySet());
 
       div._();
+    }
+  }
+  
+  /**
+   * Convert the {@link RoleStatus} into a nice Map for easier use
+   * @param roleStatus
+   * @return
+   */
+  private Map<String,String> buildRoleStatusMap(RoleStatus roleStatus) {
+    Map<String,String> roleStatusMap = new HashMap<String,String>();
+    
+    roleStatusMap.put("Desired", Integer.toString(roleStatus.getDesired()));
+    roleStatusMap.put("Actual", Integer.toString(roleStatus.getActual()));
+    roleStatusMap.put("Requested", Integer.toString(roleStatus.getRequested()));
+    roleStatusMap.put("Releasing", Integer.toString(roleStatus.getReleasing()));
+    roleStatusMap.put("Failed", Integer.toString(roleStatus.getFailed()));
+    roleStatusMap.put("Start Failed", Integer.toString(roleStatus.getStartFailed()));
+    roleStatusMap.put("Completed", Integer.toString(roleStatus.getCompleted()));
+    
+    return roleStatusMap;
+  }
+  
+  /**
+   * Given a div, a name for this data, and some pairs of data, generate a nice HTML table. If contents
+   * is empty (of size zero), then a mesage will be printed that there were no items instead of an empty table.
+   * @param div
+   * @param detailsName
+   * @param contents
+   */
+  private void generateRoleDetails(DIV<DIV<Hamlet>> div, String detailsName, Iterable<Entry<String,String>> contents) {
+    div.h3(BOLD, detailsName);
+    
+    int offset = 0;
+    TABLE<DIV<DIV<Hamlet>>> table = null;
+    TBODY<TABLE<DIV<DIV<Hamlet>>>> tbody = null;
+    for (Entry<String,String> content : contents) {
+      if (null == table) {
+        table = div.table("ui-widget-content ui-corner-bottom");
+        tbody = table.tbody();
+      }
+      
+      TR<TBODY<TABLE<DIV<DIV<Hamlet>>>>> row = tbody.tr(offset % 2 == 0 ? EVEN : ODD).td(content.getKey());
+      
+      // Only add the second column if the element is non-null
+      if (null != content.getValue()) {
+        row.td(content.getValue());
+      }
+      
+      row._();
+      
+      offset++;
+    }
+    
+    // If we made a table, close it out
+    if (null != table) {
+      tbody._()._()._();
+    } else {
+      // Otherwise, throw in a nice "no content" message
+      div.p("no-table-contents")._("None")._()._();
     }
   }
 
