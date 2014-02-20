@@ -55,7 +55,7 @@ public interface StatusKeys {
    */
   String INFO_CONTAINERS_AM_RESTART = "containers.am-restart";
 
-  String INFO_CREATE_TIME_MILLIS = "create.time";
+  String INFO_CREATE_TIME_MILLIS = "create.time.millis";
   String INFO_CREATE_TIME_HUMAN = "create.time";
   String INFO_LIVE_TIME_MILLIS = "live.time.millis";
   String INFO_LIVE_TIME_HUMAN = "live.time";
