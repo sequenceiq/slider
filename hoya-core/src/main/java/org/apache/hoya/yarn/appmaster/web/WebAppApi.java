@@ -16,9 +16,12 @@
  */
 package org.apache.hoya.yarn.appmaster.web;
 
+import java.util.Map;
+
 import org.apache.hoya.api.HoyaClusterProtocol;
 import org.apache.hoya.providers.ProviderService;
 import org.apache.hoya.yarn.appmaster.state.AppState;
+import org.apache.hoya.yarn.appmaster.state.RoleStatus;
 
 /**
  * 
@@ -28,5 +31,5 @@ public interface WebAppApi {
   public AppState getAppState();
   public ProviderService getProviderService();
   public HoyaClusterProtocol getClusterProtocol();
-  
+  public Map<String,RoleStatus> getRoleStatusByName();
 }
