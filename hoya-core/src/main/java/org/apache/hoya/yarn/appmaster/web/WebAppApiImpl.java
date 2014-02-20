@@ -54,23 +54,35 @@ public class WebAppApiImpl implements WebAppApi {
     this.appState = appState;
     this.provider = provider;
   }
-  
+
+  /* (non-Javadoc)
+   * @see org.apache.hoya.yarn.appmaster.web.WebAppApi#getAppState()
+   */
+  @Override
   public AppState getAppState() {
     return appState;
   }
-  
+
+  /* (non-Javadoc)
+   * @see org.apache.hoya.yarn.appmaster.web.WebAppApi#getProviderService()
+   */
+  @Override
   public ProviderService getProviderService() {
     return provider;
   }
-  
+
+  /* (non-Javadoc)
+   * @see org.apache.hoya.yarn.appmaster.web.WebAppApi#getClusterProtocol()
+   */
+  @Override
   public HoyaClusterProtocol getClusterProtocol() {
     return clusterProto;
   }
   
-  /**
-   * Get the RoleStatus from the ProviderService by each role name
-   * @return A Map of role name to its RoleStatus
+  /* (non-Javadoc)
+   * @see org.apache.hoya.yarn.appmaster.web.WebAppApi#getRoleStatusByName()
    */
+  @Override
   public TreeMap<String,RoleStatus> getRoleStatusByName() {
     Map<Integer,ProviderRole> rolesById = rolesById(provider.getRoles());
     Map<Integer,RoleStatus> status = appState.getRoleStatusMap();
