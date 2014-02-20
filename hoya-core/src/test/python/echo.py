@@ -32,6 +32,7 @@ def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('--log', dest='log_folder', help='log destination')
   parser.add_argument('--config', dest='conf_folder', help='conf folder')
+  parser.add_argument('--command', dest='command', help='command to execute')
   args = parser.parse_args()
   if args.log_folder:
     log_file_name = "echo" + str(datetime.datetime.now()) + ".log"
