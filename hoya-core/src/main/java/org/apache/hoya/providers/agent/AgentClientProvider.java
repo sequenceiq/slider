@@ -104,14 +104,7 @@ public class AgentClientProvider extends AbstractProviderCore implements
       HoyaException,
       IOException {
     Map<String, String> rolemap = new HashMap<String, String>();
-    // node settings
-/*
 
-    Configuration conf = ConfigHelper.loadMandatoryResource(
-      "org/apache/hoya/providers/agent/role-node.xml");
-    HoyaUtils.mergeEntries(rolemap, conf);
-    
-*/
     return rolemap;
   }
 
@@ -138,22 +131,8 @@ public class AgentClientProvider extends AbstractProviderCore implements
       HoyaException,
       IOException {
     validateClusterSpec(clusterSpec);
-    Path templatePath = new Path(generatedConfDirPath, AgentKeys.CONF_FILE);
-/*    Configuration siteConf = ConfigHelper.loadConfiguration(hoyaFileSystem.getFileSystem(),
-                                                            templatePath);
-    validateSiteXML(siteConf);*/
   }
 
-  /**
-   * Validate the site.xml values
-   *
-   * @param siteConf site config
-   * @throws BadConfigException if a config is missing/invalid
-   */
-  void validateSiteXML(Configuration siteConf) throws BadConfigException {
-    //core customizations
-
-  }
 
   /**
    * Validate the cluster specification. This can be invoked on both
