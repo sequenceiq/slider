@@ -1162,6 +1162,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
       // and send the started event ourselves
       eventCallbackEvent();
     }
+    providerService.initMonitoring();
   }
 
 

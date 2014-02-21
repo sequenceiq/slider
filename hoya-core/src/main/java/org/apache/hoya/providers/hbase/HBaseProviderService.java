@@ -18,6 +18,19 @@
 
 package org.apache.hoya.providers.hbase;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Abortable;
@@ -54,18 +67,7 @@ import org.apache.hoya.yarn.service.EventCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.google.common.base.Preconditions;
 
 /**
  * This class implements the server-side aspects
@@ -84,6 +86,7 @@ public class HBaseProviderService extends AbstractProviderService implements
   protected static final String NAME = "hbase";
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
   private HBaseClientProvider clientProvider;
+  private Configuration siteConf;
 
   public HBaseProviderService() {
     super("HBaseProviderService");
@@ -272,7 +275,7 @@ public class HBaseProviderService extends AbstractProviderService implements
     }
 
     //now read it in
-    Configuration siteConf = ConfigHelper.loadConfFromFile(siteXML);
+    siteConf = ConfigHelper.loadConfFromFile(siteXML);
     //look in the site spec to see that it is OK
     clientProvider.validateHBaseSiteXML(siteConf, secure, siteXMLFilename);
     
@@ -288,15 +291,17 @@ public class HBaseProviderService extends AbstractProviderService implements
 
   @Override
   public boolean initMonitoring() {
+    log.info("Starting HBaseProviderService monitoring");
     startZKWatcher();
     return true;
   }
 
   private void startZKWatcher() {
+    Preconditions.checkNotNull(siteConf);
     try {
       Abortable abortable = new ProviderAbortable();
       ZooKeeperWatcher zkw =
-        new ZooKeeperWatcher(getConf(), "HBaseClient", abortable);
+        new ZooKeeperWatcher(siteConf, "HBaseClient", abortable);
       masterTracker = new MasterAddressTracker(zkw, abortable);
     } catch (IOException ioe) {
       log.error("Couldn't instantiate ZooKeeperWatcher", ioe);
@@ -358,10 +363,10 @@ public class HBaseProviderService extends AbstractProviderService implements
    */
   public Map<String, String> buildProviderStatus() {
     Map<String, String> stats = new HashMap<String, String>();
-    if (masterTracker != null) {
-      ServerName sn = masterTracker.getMasterAddress();
-      log.debug("getMasterAddress " + sn + ", quorum="
-                + getConf().get(HBaseConfigFileOptions.KEY_ZOOKEEPER_QUORUM));
+    if (siteConf != null && masterTracker != null) {
+      ServerName sn = masterTracker.getMasterAddress(true);
+      log.info("getMasterAddress " + sn + ", quorum="
+                + siteConf.get(HBaseConfigFileOptions.KEY_ZOOKEEPER_QUORUM));
       if (sn == null) {
         return null;
       }
