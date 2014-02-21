@@ -512,29 +512,9 @@ public class HoyaAppMaster extends CompoundLaunchedService
         new ArrayList<ProviderRole>(providerService.getRoles());
       providerRoles.addAll(amClientProvider.getRoles());
 
+      // Start up the WebApp and track the URL for it
       webApp = WebApps.$for("hoyaam", WebAppApi.class, new WebAppApiImpl(this, appState, providerService)).with(serviceConf).start(new HoyaAMWebApp());
       appMasterTrackingUrl = "http://" + appMasterHostname + ":" + webApp.port();
-      
-/*  DISABLED 
-    // work out a port for the AM
-
-    int infoport = clusterSpec.getRoleOptInt(ROLE_HOYA_AM,
-                                                  RoleKeys.APP_INFOPORT,
-                                                  0);
-    if (0 == infoport) {
-      infoport =
-        HoyaUtils.findFreePort(providerService.getDefaultMasterInfoPort(), 128);
-      //need to get this to the app
-
-      clusterSpec.setRoleOpt(ROLE_HOYA_AM,
-                                  RoleKeys.APP_INFOPORT,
-                                  infoport);
-    }
-    appMasterTrackingUrl = "http://" + appMasterHostname + ":" + infoport;
-
-    */
-//      appMasterTrackingUrl = null;
-
 
       // Register self with ResourceManager
       // This will start heartbeating to the RM

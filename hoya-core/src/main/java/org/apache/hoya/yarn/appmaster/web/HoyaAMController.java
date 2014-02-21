@@ -38,12 +38,23 @@ public class HoyaAMController extends Controller {
   @Override
   public void index() {
     setTitle("Hoya App Master");
+    
+    updateAppState();
+    
     render(AppLayout.class);
   }
   
   public void containerStats() {
     setTitle("Hoya Container Statistics");
+    
+    updateAppState();
+    
     render(ContainerStatsView.class);
   }
 
+  private void updateAppState() {
+    //TODO don't do this on every request?
+    hoya.getAppState().refreshClusterStatus(hoya.getProviderService().buildProviderStatus());
+  }
+  
 }

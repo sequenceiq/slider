@@ -552,6 +552,14 @@ public class AppState {
   }
   
   /**
+   * Get the number of active containers
+   * @return the number of active containers the time the call was made
+   */
+  public int getNumActiveContainers() {
+    return activeContainers.size();
+  }
+  
+  /**
    * Get any active container with the given ID
    * @param id container Id
    * @return the active container or null if it is not found

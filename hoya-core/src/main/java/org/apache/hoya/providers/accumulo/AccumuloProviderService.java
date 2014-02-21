@@ -18,8 +18,21 @@
 
 package org.apache.hoya.providers.accumulo;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -50,13 +63,7 @@ import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.google.common.base.Preconditions;
 
 /**
  * Server-side accumulo provider
@@ -70,7 +77,12 @@ public class AccumuloProviderService extends AbstractProviderService implements
     LoggerFactory.getLogger(AccumuloClientProvider.class);
   private AccumuloClientProvider clientProvider;
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
-
+  
+  private String masterAddress = null, monitorAddress = null;
+  private HoyaFileSystem hoyaFileSystem = null;
+  private ClusterDescription clusterSpec = null;
+  private ZooCache zooCache = null;
+  
   public AccumuloProviderService() {
     super("accumulo");
   }
@@ -120,6 +132,9 @@ public class AccumuloProviderService extends AbstractProviderService implements
                                          ) throws
                                            IOException,
                                            BadConfigException {
+    this.hoyaFileSystem = hoyaFileSystem;
+    this.clusterSpec = clusterSpec;
+    
     // Set the environment
     Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
     env.put(ACCUMULO_LOG_DIR, ApplicationConstants.LOG_DIR_EXPANSION_VAR);
@@ -356,6 +371,8 @@ public class AccumuloProviderService extends AbstractProviderService implements
     zookeeper.getChildren("/", watcher);
 
     watcher.waitForZKConnection(timeout);
+    
+    zooCache = ZooCache.getInstance(zkQuorum, 5 * 1000);
   }
 
   @Override
@@ -364,5 +381,51 @@ public class AccumuloProviderService extends AbstractProviderService implements
                                   Configuration config,
                                   int timeout) throws IOException {
     return new ArrayList<Probe>(0);
+  }
+  
+  @Override
+  public Map<String, String> buildProviderStatus() {
+    updateAccumuloInfo();
+    
+    Map<String,String> status = new HashMap<String, String>();
+    
+    status.put(AccumuloKeys.MASTER_ADDRESS, this.masterAddress);
+    status.put(AccumuloKeys.MONITOR_ADDRESS, this.monitorAddress);
+    
+    return status;
+  }
+  
+
+  @Override
+  public boolean initMonitoring() {
+    updateAccumuloInfo();
+    return true;
+  }
+  
+  private void updateAccumuloInfo() {
+    if (null == hoyaFileSystem || null == clusterSpec || null == zooCache) {
+      // Wait a while, the AM hasn't fully initialized things
+      return;
+    }
+    
+    String zkInstancePath;
+    try {
+      zkInstancePath = ZooUtil.getRoot(getInstanceId(hoyaFileSystem, clusterSpec));
+    } catch (IOException e) {
+      log.warn("Could not determine instanceID for Accumulo cluster {}", clusterSpec.name);
+      return;
+    }      
+    
+    this.masterAddress = new String(ZooUtil.getLockData(zooCache, zkInstancePath + Constants.ZMASTER_LOCK), Constants.UTF8);
+    // TODO constant will exist in >=1.5.1
+    this.monitorAddress = new String(zooCache.get(zkInstancePath + "/monitor/http_addr"), Constants.UTF8);
+  }
+  
+  private String getInstanceId(HoyaFileSystem hoyaFs, ClusterDescription cd) throws IOException {
+    // Should contain a single file whose name is the instance_id for this cluster
+    FileStatus[] children = hoyaFs.getFileSystem().listStatus(new Path(cd.dataPath, "instance_id"));
+    assert children.length == 0;
+    
+    return children[0].getPath().getName();
   }
 }

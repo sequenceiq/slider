@@ -53,3 +53,7 @@ div.role-stats-wrap table { width: 200px }
 div.role-options-wrap { margin-left: 2em; margin-bottom: 2em; width: 350px; }
 
 .no-table-contents { padding-left: 0.5em; }
+
+h1.index_header { margin-bottom: 15px; }
+div.general_info { margin-bottom: 15px; }
+div.provder_info { margin-bottom: 15px; }

@@ -31,6 +31,7 @@ import org.apache.hadoop.yarn.webapp.hamlet.Hamlet.TR;
 import org.apache.hadoop.yarn.webapp.view.HtmlBlock;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.ClusterNode;
+import org.apache.hoya.yarn.appmaster.state.RoleInstance;
 import org.apache.hoya.yarn.appmaster.state.RoleStatus;
 import org.apache.hoya.yarn.appmaster.web.WebAppApi;
 import org.apache.hoya.yarn.client.HoyaClusterOperations;
@@ -47,12 +48,16 @@ import com.google.inject.Inject;
  */
 public class ContainerStatsBlock extends HtmlBlock {
   private static final Logger log = LoggerFactory.getLogger(ContainerStatsBlock.class);
-  
-  private static final String EVEN = "even", ODD = "odd", BOLD = "bold";
+
+  private static final String EVEN = "even", ODD = "odd", BOLD = "bold", SCHEME = "http://", PATH = "/node/container/";
+
+  // Some functions that help transform the data into an object we can use to abstract presentation specifics
+  private static final Function<Entry<String,Integer>,Entry<TableContent,Integer>> stringIntPairFunc = toTableContentFunction();
+  private static final Function<Entry<String,String>,Entry<TableContent,String>> stringStringPairFunc = toTableContentFunction();
 
   private WebAppApi hoya;
   private HoyaClusterOperations clusterOps;
-  
+
   @Inject
   public ContainerStatsBlock(WebAppApi hoya) {
     this.hoya = hoya;
@@ -90,6 +95,9 @@ public class ContainerStatsBlock extends HtmlBlock {
 
   @Override
   protected void render(Block html) {
+    // TODO Probably better to just get a copy of this list for us to avoid the repeated synchronization?
+    // does this change if we have 50 node, 100node, 500 node hoya clusters?
+    final Map<String,RoleInstance> containerInstances = getContainerInstances(hoya.getAppState().cloneActiveContainerList());
 
     for (Entry<String,RoleStatus> entry : hoya.getRoleStatusByName().entrySet()) {
       final String name = entry.getKey();
@@ -108,63 +116,104 @@ public class ContainerStatsBlock extends HtmlBlock {
       div.h2(BOLD, StringUtils.capitalize(name));
 
       // Generate the details on this role
-      generateRoleDetails(div.div("role-stats-wrap"), "Specifications", roleStatus.buildStatistics().entrySet());
+      Iterable<Entry<String,Integer>> stats = roleStatus.buildStatistics().entrySet();
+      generateRoleDetails(div.div("role-stats-wrap"), "Specifications", Iterables.transform(stats, stringIntPairFunc));
 
       // Sort the ClusterNodes by their name (containerid)
       Collections.sort(nodesInRole, new ClusterNodeNameComparator());
 
       // Generate the containers running this role
-      generateRoleDetails(div.div("role-stats-containers"), "Containers", Iterables.transform(nodesInRole, new Function<ClusterNode,Entry<String,String>>() {
+      generateRoleDetails(div.div("role-stats-containers"), "Containers",
+          Iterables.transform(nodesInRole, new Function<ClusterNode,Entry<TableContent,String>>() {
 
-        @Override
-        public Entry<String,String> apply(ClusterNode input) {
-          return Maps.immutableEntry(input.name, null);
-        }
-        
-      }));
+            @Override
+            public Entry<TableContent,String> apply(ClusterNode input) {
+              final String containerId = input.name;
+              
+              if (containerInstances.containsKey(containerId)) {
+                RoleInstance roleInst = containerInstances.get(containerId);
+                return Maps.<TableContent,String> immutableEntry(
+                    new TableAnchorContent(containerId, buildNodeUrlForContainer(roleInst.container.getNodeHttpAddress(), containerId)), null);
+              } else {
+                return Maps.immutableEntry(new TableContent(input.name), null);
+              }
+            }
+
+          }));
 
       ClusterDescription desc = hoya.getAppState().clusterDescription;
       Map<String,String> options = desc.getRole(name);
-
+      Iterable<Entry<TableContent,String>> tableContent;
+      
+      // Generate the pairs of data in the expected form
+      if (null != options) {
+        tableContent = Iterables.transform(options.entrySet(), stringStringPairFunc);
+      } else {
+        // Or catch that we have no options and provide "empty"
+        tableContent = Collections.<Entry<TableContent,String>> emptySet();
+      }
+      
       // Generate the options used by this role
-      generateRoleDetails(div.div("role-options-wrap"), "Role Options", (null != options) ? options.entrySet() : Collections.<Entry<String,String>> emptySet());
+      generateRoleDetails(div.div("role-options-wrap"), "Role Options", tableContent);
 
       div._();
     }
   }
-  
+
+  private static <T> Function<Entry<String,T>,Entry<TableContent,T>> toTableContentFunction() {
+    return new Function<Entry<String,T>,Entry<TableContent,T>>() {
+      @Override
+      public Entry<TableContent,T> apply(Entry<String,T> input) {
+        return Maps.immutableEntry(new TableContent(input.getKey()), input.getValue());
+      }
+    };
+  }
+
+  private Map<String,RoleInstance> getContainerInstances(List<RoleInstance> roleInstances) {
+    Map<String,RoleInstance> map = Maps.newHashMapWithExpectedSize(roleInstances.size());
+    for (RoleInstance roleInstance : roleInstances) {
+      // UUID is the containerId
+      map.put(roleInstance.uuid, roleInstance);
+    }
+    return map;
+  }
+
   /**
-   * Given a div, a name for this data, and some pairs of data, generate a nice HTML table. If contents
-   * is empty (of size zero), then a mesage will be printed that there were no items instead of an empty table.
+   * Given a div, a name for this data, and some pairs of data, generate a nice HTML table. If contents is empty (of size zero), then a mesage will be printed
+   * that there were no items instead of an empty table.
+   * 
    * @param div
    * @param detailsName
    * @param contents
    */
-  private <T> void generateRoleDetails(DIV<DIV<Hamlet>> div, String detailsName, Iterable<Entry<String,T>> contents) {
+  private <T1 extends TableContent,T2> void generateRoleDetails(DIV<DIV<Hamlet>> div, String detailsName, Iterable<Entry<T1,T2>> contents) {
     div.h3(BOLD, detailsName);
-    
+
     int offset = 0;
     TABLE<DIV<DIV<Hamlet>>> table = null;
     TBODY<TABLE<DIV<DIV<Hamlet>>>> tbody = null;
-    for (Entry<String,T> content : contents) {
+    for (Entry<T1,T2> content : contents) {
       if (null == table) {
         table = div.table("ui-widget-content ui-corner-bottom");
         tbody = table.tbody();
       }
+
+      TR<TBODY<TABLE<DIV<DIV<Hamlet>>>>> row = tbody.tr(offset % 2 == 0 ? EVEN : ODD);
       
-      TR<TBODY<TABLE<DIV<DIV<Hamlet>>>>> row = tbody.tr(offset % 2 == 0 ? EVEN : ODD).td(content.getKey());
-      
+      // Defer to the implementation of the TableContent for what the cell should contain
+      content.getKey().printCell(row);
+
       // Only add the second column if the element is non-null
       // This also lets us avoid making a second method if we're only making a one-column table
       if (null != content.getValue()) {
         row.td(content.getValue().toString());
       }
-      
+
       row._();
-      
+
       offset++;
     }
-    
+
     // If we made a table, close it out
     if (null != table) {
       tbody._()._()._();
@@ -174,4 +223,53 @@ public class ContainerStatsBlock extends HtmlBlock {
     }
   }
 
+  /**
+   * Build a URL from the address:port and container ID directly to the NodeManager service
+   * @param nodeAddress
+   * @param containerId
+   * @return
+   */
+  private String buildNodeUrlForContainer(String nodeAddress, String containerId) {
+    StringBuilder sb = new StringBuilder(SCHEME.length() + nodeAddress.length() + PATH.length() + containerId.length());
+
+    sb.append(SCHEME).append(nodeAddress).append(PATH).append(containerId);
+
+    return sb.toString();
+  }
+
+  /**
+   * Creates a table cell with the provided String as content
+   */
+  private static class TableContent {
+    private String cell;
+
+    public TableContent(String cell) {
+      this.cell = cell;
+    }
+
+    public String getCell() {
+      return cell;
+    }
+
+    public void printCell(TR<?> tableRow) {
+      tableRow.td(this.cell);
+    }
+  }
+
+  /**
+   * Creates a table cell with an anchor to the given URL with the provided String as content
+   */
+  private static class TableAnchorContent extends TableContent {
+    private String anchorUrl;
+
+    public TableAnchorContent(String cell, String anchorUrl) {
+      super(cell);
+      this.anchorUrl = anchorUrl;
+    }
+
+    @Override
+    public void printCell(TR<?> tableRow) {
+      tableRow.td().a(anchorUrl, getCell())._();
+    }
+  }
 }

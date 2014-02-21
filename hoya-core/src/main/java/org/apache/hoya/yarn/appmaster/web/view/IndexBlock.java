@@ -16,17 +16,20 @@
  */
 package org.apache.hoya.yarn.appmaster.web.view;
 
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.TreeSet;
-
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.yarn.webapp.hamlet.Hamlet;
-import org.apache.hadoop.yarn.webapp.hamlet.Hamlet.P;
+import org.apache.hadoop.yarn.webapp.hamlet.Hamlet.DIV;
+import org.apache.hadoop.yarn.webapp.hamlet.Hamlet.UL;
 import org.apache.hadoop.yarn.webapp.view.HtmlBlock;
-import org.apache.hoya.api.ClusterDescription;
+import org.apache.hoya.api.StatusKeys;
 import org.apache.hoya.providers.ProviderService;
+import org.apache.hoya.providers.accumulo.AccumuloKeys;
+import org.apache.hoya.providers.accumulo.AccumuloProviderService;
+import org.apache.hoya.providers.hbase.HBaseProviderService;
 import org.apache.hoya.yarn.appmaster.state.AppState;
 import org.apache.hoya.yarn.appmaster.web.WebAppApi;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.inject.Inject;
 
@@ -35,6 +38,7 @@ import com.google.inject.Inject;
  */
 public class IndexBlock extends HtmlBlock {
   private static final String ACCUMULO = "Accumulo", HBASE = "HBase", UNKNOWN = "Unknown";
+  private static final Logger log = LoggerFactory.getLogger(IndexBlock.class);
 
   private AppState appState;
   private ProviderService providerService;
@@ -49,20 +53,26 @@ public class IndexBlock extends HtmlBlock {
   protected void render(Block html) {
     final String providerName = getProviderName();
     
-    ClusterDescription desc = appState.clusterDescription;
+    DIV<Hamlet> div = html.div("general_info").h1("index_header", providerName + " cluster: '" + appState.clusterDescription.name + "'");
     
-    long totalProcs = 0;
-    for (Entry<String,List<String>> entry : desc.instances.entrySet()) {
-      if (null != entry.getValue()) {
-        totalProcs += entry.getValue().size();
-      }
-    }
+    UL<DIV<Hamlet>> ul = div.ul();
     
-    Hamlet h = html.h1("Hoya deployed " + providerName + " cluster: " + desc.name);
+    ul.li("Total number of containers for cluster: " + appState.getNumActiveContainers());
+    ul.li("Cluster created: " + getInfoAvoidingNulls(StatusKeys.INFO_CREATE_TIME_HUMAN));
+    ul.li("Cluster last flexed: " + getInfoAvoidingNulls(StatusKeys.INFO_FLEX_TIME_HUMAN));
+    ul.li("Cluster running since: " + getInfoAvoidingNulls(StatusKeys.INFO_LIVE_TIME_HUMAN));
+    ul.li("Cluster HDFS storage path: " + appState.clusterDescription.dataPath);
+    ul.li("Cluster configuration path: " + appState.clusterDescription.originConfigurationPath);
     
-    h.p()._("Number of services: ", Long.toString(totalProcs))._();
+    ul._()._();
+    
+    
+    html.div("provider_info").h3(providerName + " specific information");
+    ul = div.ul();
+    addProviderSpecificOptions(ul);
+    ul._()._();
   }
-  
+
   private String getProviderName() {
     String providerServiceName = providerService.getName().toLowerCase();
     
@@ -75,4 +85,35 @@ public class IndexBlock extends HtmlBlock {
     return UNKNOWN;
   }
 
+  private String getInfoAvoidingNulls(String key) {
+    String createTime = appState.clusterDescription.getInfo(key);
+    
+    return null == createTime ? "N/A" : createTime;
+  }
+  
+  private void addProviderSpecificOptions(UL<DIV<Hamlet>> ul) {
+    Class<?> clz = providerService.getClass();
+    if (AccumuloProviderService.class.equals(clz)) {
+      addAccumuloProviderOptions((AccumuloProviderService) providerService, ul);
+    } else if (HBaseProviderService.class.equals(clz)) {
+      addHBaseProviderOptions((HBaseProviderService) providerService, ul);
+    } else {
+      log.debug("Could not determine provider service for class {} ", clz);
+    }
+  }
+  
+  private void addAccumuloProviderOptions(AccumuloProviderService accProviderService, UL<DIV<Hamlet>> ul) {
+    ul.li("Current Accumulo Master: " + getInfoAvoidingNulls(AccumuloKeys.MASTER_ADDRESS));
+    
+    String monitorAddr = appState.clusterDescription.getInfo(AccumuloKeys.MONITOR_ADDRESS);
+    if (!StringUtils.isBlank(monitorAddr)) {
+      ul.li()._("Current Accumulo Monitor: ").a("http://" + monitorAddr, monitorAddr)._();
+    } else 
+      ul.li("Current Accumulo Monitor: N/A");
+  }
+  
+  private void addHBaseProviderOptions(HBaseProviderService hbaseProviderService, UL<DIV<Hamlet>> ul) {
+    ul.li("Current HBase Master: " + getInfoAvoidingNulls(StatusKeys.INFO_MASTER_ADDRESS));
+  }
+  
 }
