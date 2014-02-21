@@ -416,9 +416,16 @@ public class AccumuloProviderService extends AbstractProviderService implements
       return;
     }      
     
-    this.masterAddress = new String(ZooUtil.getLockData(zooCache, zkInstancePath + Constants.ZMASTER_LOCK), Constants.UTF8);
+    byte[] masterData = ZooUtil.getLockData(zooCache, zkInstancePath + Constants.ZMASTER_LOCK);
+    if (null != masterData) {
+      this.masterAddress = new String(masterData, Constants.UTF8);
+    }
+
     // TODO constant will exist in >=1.5.1
-    this.monitorAddress = new String(zooCache.get(zkInstancePath + "/monitor/http_addr"), Constants.UTF8);
+    byte[] monitorData = zooCache.get(zkInstancePath + "/monitor/http_addr");
+    if (null != monitorData) {
+      this.monitorAddress = new String(monitorData, Constants.UTF8);
+    }
   }
   
   private String getInstanceId(HoyaFileSystem hoyaFs, ClusterDescription cd) throws IOException {
