@@ -431,7 +431,10 @@ public class AccumuloProviderService extends AbstractProviderService implements
   private String getInstanceId(HoyaFileSystem hoyaFs, ClusterDescription cd) throws IOException {
     // Should contain a single file whose name is the instance_id for this cluster
     FileStatus[] children = hoyaFs.getFileSystem().listStatus(new Path(cd.dataPath, "instance_id"));
-    assert children.length == 0;
+    
+    if (1 != children.length) {
+      throw new IOException("Expected exactly one instance_id present, found " + children.length);
+    }
     
     return children[0].getPath().getName();
   }
