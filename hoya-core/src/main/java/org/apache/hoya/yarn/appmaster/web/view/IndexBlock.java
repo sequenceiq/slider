@@ -103,17 +103,17 @@ public class IndexBlock extends HtmlBlock {
   }
   
   private void addAccumuloProviderOptions(AccumuloProviderService accProviderService, UL<DIV<Hamlet>> ul) {
-    ul.li("Current Accumulo Master (RPC): " + getInfoAvoidingNulls(AccumuloKeys.MASTER_ADDRESS));
+    ul.li("Active Accumulo Master (RPC): " + getInfoAvoidingNulls(AccumuloKeys.MASTER_ADDRESS));
     
     String monitorAddr = appState.clusterDescription.getInfo(AccumuloKeys.MONITOR_ADDRESS);
     if (!StringUtils.isBlank(monitorAddr)) {
-      ul.li()._("Current Accumulo Monitor: ").a("http://" + monitorAddr, monitorAddr)._();
+      ul.li()._("Active Accumulo Monitor: ").a("http://" + monitorAddr, monitorAddr)._();
     } else 
-      ul.li("Current Accumulo Monitor: N/A");
+      ul.li("Active Accumulo Monitor: N/A");
   }
   
   private void addHBaseProviderOptions(HBaseProviderService hbaseProviderService, UL<DIV<Hamlet>> ul) {
-    ul.li("Current HBase Master (RPC): " + getInfoAvoidingNulls(StatusKeys.INFO_MASTER_ADDRESS));
+    ul.li("Active HBase Master (RPC): " + getInfoAvoidingNulls(StatusKeys.INFO_MASTER_ADDRESS));
   }
   
 }
