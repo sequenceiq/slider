@@ -48,9 +48,11 @@ td.table { padding: 0 }
 div.role-info { width: 700px; padding-left: 15px; padding-top: 15px; margin-bottom: 2em; }
 
 div.role-stats-containers { width: 350px; margin-left: 2em; margin-bottom: 2em; }
+div.role-stats-containers table { margin-left: 0.5em; }
 div.role-stats-wrap { margin-bottom: 2em; margin-left: 2em; width: 200px; }
-div.role-stats-wrap table { width: 200px }
+div.role-stats-wrap table { margin-left: 0.5em; width: 200px }
 div.role-options-wrap { margin-left: 2em; margin-bottom: 2em; width: 350px; }
+div.role-options-wrap table { margin-left: 0.5em; }
 
 .no-table-contents { padding-left: 0.5em; }
 

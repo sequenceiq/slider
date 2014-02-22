@@ -52,8 +52,8 @@ public class ContainerStatsBlock extends HtmlBlock {
   private static final String EVEN = "even", ODD = "odd", BOLD = "bold", SCHEME = "http://", PATH = "/node/container/";
 
   // Some functions that help transform the data into an object we can use to abstract presentation specifics
-  private static final Function<Entry<String,Integer>,Entry<TableContent,Integer>> stringIntPairFunc = toTableContentFunction();
-  private static final Function<Entry<String,String>,Entry<TableContent,String>> stringStringPairFunc = toTableContentFunction();
+  protected static final Function<Entry<String,Integer>,Entry<TableContent,Integer>> stringIntPairFunc = toTableContentFunction();
+  protected static final Function<Entry<String,String>,Entry<TableContent,String>> stringStringPairFunc = toTableContentFunction();
 
   private WebAppApi hoya;
   private HoyaClusterOperations clusterOps;
@@ -67,7 +67,7 @@ public class ContainerStatsBlock extends HtmlBlock {
   /**
    * Sort a collection of ClusterNodes by name
    */
-  private static class ClusterNodeNameComparator implements Comparator<ClusterNode> {
+  protected static class ClusterNodeNameComparator implements Comparator<ClusterNode> {
 
     @Override
     public int compare(ClusterNode node1, ClusterNode node2) {
@@ -117,13 +117,13 @@ public class ContainerStatsBlock extends HtmlBlock {
 
       // Generate the details on this role
       Iterable<Entry<String,Integer>> stats = roleStatus.buildStatistics().entrySet();
-      generateRoleDetails(div.div("role-stats-wrap"), "Specifications", Iterables.transform(stats, stringIntPairFunc));
+      generateRoleDetails(div,"role-stats-wrap", "Specifications", Iterables.transform(stats, stringIntPairFunc));
 
       // Sort the ClusterNodes by their name (containerid)
       Collections.sort(nodesInRole, new ClusterNodeNameComparator());
 
       // Generate the containers running this role
-      generateRoleDetails(div.div("role-stats-containers"), "Containers",
+      generateRoleDetails(div, "role-stats-containers", "Containers",
           Iterables.transform(nodesInRole, new Function<ClusterNode,Entry<TableContent,String>>() {
 
             @Override
@@ -154,13 +154,13 @@ public class ContainerStatsBlock extends HtmlBlock {
       }
       
       // Generate the options used by this role
-      generateRoleDetails(div.div("role-options-wrap"), "Role Options", tableContent);
+      generateRoleDetails(div, "role-options-wrap", "Role Options", tableContent);
 
       div._();
     }
   }
 
-  private static <T> Function<Entry<String,T>,Entry<TableContent,T>> toTableContentFunction() {
+  protected static <T> Function<Entry<String,T>,Entry<TableContent,T>> toTableContentFunction() {
     return new Function<Entry<String,T>,Entry<TableContent,T>>() {
       @Override
       public Entry<TableContent,T> apply(Entry<String,T> input) {
@@ -169,7 +169,7 @@ public class ContainerStatsBlock extends HtmlBlock {
     };
   }
 
-  private Map<String,RoleInstance> getContainerInstances(List<RoleInstance> roleInstances) {
+  protected Map<String,RoleInstance> getContainerInstances(List<RoleInstance> roleInstances) {
     Map<String,RoleInstance> map = Maps.newHashMapWithExpectedSize(roleInstances.size());
     for (RoleInstance roleInstance : roleInstances) {
       // UUID is the containerId
@@ -186,8 +186,8 @@ public class ContainerStatsBlock extends HtmlBlock {
    * @param detailsName
    * @param contents
    */
-  private <T1 extends TableContent,T2> void generateRoleDetails(DIV<DIV<Hamlet>> div, String detailsName, Iterable<Entry<T1,T2>> contents) {
-    div.h3(BOLD, detailsName);
+  protected <T1 extends TableContent,T2> void generateRoleDetails(DIV<Hamlet> parent, String divSelector, String detailsName, Iterable<Entry<T1,T2>> contents) {
+    DIV<DIV<Hamlet>> div = parent.div(divSelector).h3(BOLD, detailsName);
 
     int offset = 0;
     TABLE<DIV<DIV<Hamlet>>> table = null;
@@ -216,7 +216,7 @@ public class ContainerStatsBlock extends HtmlBlock {
 
     // If we made a table, close it out
     if (null != table) {
-      tbody._()._()._();
+      tbody._()._()._()._();
     } else {
       // Otherwise, throw in a nice "no content" message
       div.p("no-table-contents")._("None")._()._();
@@ -229,7 +229,7 @@ public class ContainerStatsBlock extends HtmlBlock {
    * @param containerId
    * @return
    */
-  private String buildNodeUrlForContainer(String nodeAddress, String containerId) {
+  protected String buildNodeUrlForContainer(String nodeAddress, String containerId) {
     StringBuilder sb = new StringBuilder(SCHEME.length() + nodeAddress.length() + PATH.length() + containerId.length());
 
     sb.append(SCHEME).append(nodeAddress).append(PATH).append(containerId);
@@ -240,7 +240,7 @@ public class ContainerStatsBlock extends HtmlBlock {
   /**
    * Creates a table cell with the provided String as content
    */
-  private static class TableContent {
+  protected static class TableContent {
     private String cell;
 
     public TableContent(String cell) {
@@ -259,7 +259,7 @@ public class ContainerStatsBlock extends HtmlBlock {
   /**
    * Creates a table cell with an anchor to the given URL with the provided String as content
    */
-  private static class TableAnchorContent extends TableContent {
+  protected static class TableAnchorContent extends TableContent {
     private String anchorUrl;
 
     public TableAnchorContent(String cell, String anchorUrl) {

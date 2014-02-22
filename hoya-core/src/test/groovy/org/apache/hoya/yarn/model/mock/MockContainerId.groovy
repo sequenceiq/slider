@@ -55,6 +55,11 @@ class MockContainerId extends ContainerId implements Cloneable {
   public void build() {
 
   }
+  
+  @Override
+  public String toString() {
+    return "mockcontainer_" + id;
+  }
 
   @Override
   protected Object clone() throws CloneNotSupportedException {
