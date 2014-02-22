@@ -368,7 +368,7 @@ public class HBaseProviderService extends AbstractProviderService implements
       log.info("getMasterAddress " + sn + ", quorum="
                 + siteConf.get(HBaseConfigFileOptions.KEY_ZOOKEEPER_QUORUM));
       if (sn == null) {
-        return null;
+        return stats;
       }
       HostAndPort hostAndPort = new HostAndPort(sn.getHostname(), sn.getPort());
       stats.put(StatusKeys.INFO_MASTER_ADDRESS, hostAndPort.toString());
