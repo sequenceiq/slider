@@ -64,7 +64,7 @@ class TestAgentEcho extends AgentTestBase {
             ARG_OPTION, CONTROLLER_URL, "http://localhost",
             ARG_OPTION, PACKAGE_PATH, hoya_core.absolutePath,
 
-            ARG_ROLEOPT, role, ROLE_PRIORITY, "2",
+            ARG_ROLEOPT, role, ROLE_PRIORITY, "1",
             ARG_ROLEOPT, role, SCRIPT_PATH, echo_py,
             ARG_ROLEOPT, role, SERVICE_NAME, "Agent",
             ARG_ROLEOPT, role, APP_HOME, "agent/home",

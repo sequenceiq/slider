@@ -375,15 +375,15 @@ public class AppState {
         // this is a new value
         log.info("Adding new role {}", name);
         String priOpt =
-          cd.getMandatoryRoleOpt(name, RoleKeys.ROLE_PRIORITY);
+            cd.getMandatoryRoleOpt(name, RoleKeys.ROLE_PRIORITY);
         int pri = HoyaUtils.parseAndValidate("value of " + name + " " +
-                                             RoleKeys.ROLE_PRIORITY,
+                                                 RoleKeys.ROLE_PRIORITY,
                                              priOpt, 0, 1, -1);
         String placementOpt = cd.getRoleOpt(name,
                                             RoleKeys.ROLE_PLACEMENT_POLICY, "0");
         int placement = HoyaUtils.parseAndValidate("value of " + name + " " +
-                                             RoleKeys.ROLE_PLACEMENT_POLICY,
-                                             priOpt, 0, 0, -1);
+                                                       RoleKeys.ROLE_PLACEMENT_POLICY,
+                                                   placementOpt, 0, 0, -1);
         ProviderRole dynamicRole = new ProviderRole(name, pri, placement);
         buildRole(dynamicRole);
         providerRoles.add(dynamicRole);
@@ -562,7 +562,7 @@ public class AppState {
   /**
    * Look up a role from its key -or fail 
    *
-   * @param c container in a role
+   * @param name container in a role
    * @return the status
    * @throws YarnRuntimeException on no match
    */
@@ -1346,7 +1346,7 @@ public class AppState {
       } else {
 
         String roleName = role.getName();
-        log.info("Assiging role {} to container" +
+        log.info("Assigning role {} to container" +
                  " {}," +
                  " on {}:{},",
                  roleName,
