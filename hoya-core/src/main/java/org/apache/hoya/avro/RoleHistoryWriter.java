@@ -220,13 +220,14 @@ public class RoleHistoryWriter {
           }
           records++;
           NodeEntryRecord nodeEntryRecord = (NodeEntryRecord) entry;
-          NodeEntry nodeEntry = new NodeEntry();
+          Integer roleId = nodeEntryRecord.getRole();
+          NodeEntry nodeEntry = new NodeEntry(roleId);
           nodeEntry.setLastUsed(nodeEntryRecord.getLastUsed());
           if (nodeEntryRecord.getActive()) {
             //if active at the time of save, make the last used time the save time
             nodeEntry.setLastUsed(saved);
           }
-          Integer roleId = nodeEntryRecord.getRole();
+
           String hostname =
             HoyaUtils.sequenceToString(nodeEntryRecord.getHost());
           NodeInstance instance = history.getOrCreateNodeInstance(hostname);

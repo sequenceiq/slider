@@ -139,6 +139,8 @@ public interface HoyaKeys extends HoyaXmlConfKeys {
   String HOYA_SERVER_RESOURCE = "hoya-server.xml";
 
   String HOYA_TMP_LOGDIR_PREFIX = "/tmp/hoya-";
+  String HOYA_TMP_DIR_PREFIX = "tmp";
+  
   String HOYA_JAR = "hoya.jar";
   String JCOMMANDER_JAR = "jcommander.jar";
   String SLF4J_JAR = "slf4j.jar";

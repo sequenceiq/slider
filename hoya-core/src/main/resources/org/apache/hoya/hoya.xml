@@ -31,4 +31,8 @@
     <name>hoya.provider.accumulo</name>
     <value>org.apache.hoya.providers.accumulo.AccumuloProviderFactory</value>
   </property>
+  <property>
+    <name>hoya.provider.agent</name>
+    <value>org.apache.hoya.providers.agent.AgentProviderFactory</value>
+  </property>
 </configuration>

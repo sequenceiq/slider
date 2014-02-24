@@ -510,6 +510,41 @@ public class ClusterDescription implements Cloneable {
   }
 
   /**
+   * Get a mandatory role option
+   * @param role role to get from
+   * @param option option name
+   * @return resolved value
+   * @throws BadConfigException if the option is not defined
+   */
+  public String getMandatoryRoleOpt(String role, String option) throws
+                                                                BadConfigException {
+    Map<String, String> roleopts = getRole(role);
+    if (roleopts == null) {
+      throw new BadConfigException("Missing role %s ", role);
+    }
+    String val = roleopts.get(option);
+    if (val == null) {
+      throw new BadConfigException("Missing option '%s' in role %s ", option,
+                                   role);
+    }
+    return val;
+  }
+    /**
+   * Get a mandatory integer role option
+   * @param role role to get from
+   * @param option option name
+   * @return resolved value
+   * @throws BadConfigException if the option is not defined
+   */
+  public int getMandatoryRoleOptInt(String role, String option) throws
+                                                                BadConfigException {
+    getMandatoryRoleOpt(role, option);
+    return getRoleOptInt(role, option, 0);
+  }
+  
+  
+
+  /**
    * look up a role and return its options
    * @param role role
    * @return role mapping or null

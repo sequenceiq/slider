@@ -137,4 +137,15 @@ public interface RoleKeys {
    * The default heap of the AM:  {@value}
    */
   String DEFAULT_AM_HEAP = "512M";
+  /**
+   * Mandatory property for all roles
+   * 1. this must be defined.
+   * 2. this must be >= 1
+   * 3. this must not match any other role priority in the cluster.
+   */
+  String ROLE_PRIORITY = "role.priority";
+  /**
+   * placement policy
+   */
+  String ROLE_PLACEMENT_POLICY = "role.placement.policy";
 }

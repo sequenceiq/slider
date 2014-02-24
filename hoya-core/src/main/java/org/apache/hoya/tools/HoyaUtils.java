@@ -348,17 +348,13 @@ public final class HoyaUtils {
       log.debug("copying src conf file {}", srcFile);
       sourcePaths[i] = srcFile;
     }
-    log.debug("Copying {} files from to {} to dest {}", srcFileCount,
+    log.debug("Copying {} files from {} to dest {}", srcFileCount,
               srcDirPath,
               destDirPath);
     FileUtil.copy(srcFS, sourcePaths, destFS, destDirPath, false, true, conf);
     return srcFileCount;
   }
 
-
-  public static Path getTempPathForCluster(String clustername, Path hoyaPath) {
-    return new Path(hoyaPath, "tmp/" + clustername + "/");
-  }
 
   public static String stringify(Throwable t) {
     StringWriter sw = new StringWriter();
@@ -597,13 +593,11 @@ public final class HoyaUtils {
       throw new BadConfigException("Value of "
                                    + errorKey + ": " + val + ""
                                    + "is less than the minimum of " + min);
-
     }
     if (max >= 0 && val > max) {
       throw new BadConfigException("Value of "
                                    + errorKey + ": " + val + ""
                                    + "is more than the maximum of " + max);
-
     }
     return val;
   }
