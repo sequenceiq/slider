@@ -20,7 +20,6 @@ package org.apache.hoya.providers.agent;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
@@ -58,7 +57,7 @@ public class AgentProviderService extends AbstractProviderService implements
 
 
   protected static final Logger log =
-    LoggerFactory.getLogger(AgentProviderService.class);
+      LoggerFactory.getLogger(AgentProviderService.class);
   protected static final String NAME = "agent";
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
   private AgentClientProvider clientProvider;
@@ -77,12 +76,11 @@ public class AgentProviderService extends AbstractProviderService implements
     super.serviceInit(conf);
     clientProvider = new AgentClientProvider(conf);
   }
-  
+
   @Override
   public int getDefaultMasterInfoPort() {
     return 0;
   }
-
 
   @Override
   public Configuration loadProviderConfigurationInformation(File confDir) throws
@@ -91,14 +89,12 @@ public class AgentProviderService extends AbstractProviderService implements
     return new Configuration(false);
   }
 
-
-  @Override 
+  @Override
   public void validateClusterSpec(ClusterDescription clusterSpec) throws
                                                                   HoyaException {
     clientProvider.validateClusterSpec(clusterSpec);
   }
 
-  
   @Override  // server
   public void buildContainerLaunchContext(ContainerLaunchContext ctx,
                                           Container container,
@@ -108,8 +104,8 @@ public class AgentProviderService extends AbstractProviderService implements
                                           ClusterDescription clusterSpec,
                                           Map<String, String> roleOptions,
                                           Path containerTmpDirPath) throws
-                                           IOException,
-                                           HoyaException {
+                                                                    IOException,
+                                                                    HoyaException {
     log.info("Build launch context for Agent");
     log.debug(clusterSpec.toString());
 
@@ -119,25 +115,22 @@ public class AgentProviderService extends AbstractProviderService implements
     HoyaUtils.copyDirectory(getConf(), generatedConfPath, containerTmpDirPath,
                             null);
     Path targetConfDir = containerTmpDirPath;
-    
     //TODO: PATCH THE CONFIG FOR THE TARGET
 
 
     String propagatedConfDir = ApplicationConstants.Environment.PWD.$() + "/" +
-                   HoyaKeys.PROPAGATED_CONF_DIR_NAME;
+        HoyaKeys.PROPAGATED_CONF_DIR_NAME;
     env.put("PROPAGATED_CONFDIR", propagatedConfDir);
     ctx.setEnvironment(env);
-    
-    
     //local resources
     Map<String, LocalResource> localResources =
-      new HashMap<String, LocalResource>();
+        new HashMap<String, LocalResource>();
 
     //add the configuration resources
     Map<String, LocalResource> confResources;
     confResources = hoyaFileSystem.submitDirectory(
-      targetConfDir,
-            HoyaKeys.PROPAGATED_CONF_DIR_NAME);
+        targetConfDir,
+        HoyaKeys.PROPAGATED_CONF_DIR_NAME);
     localResources.putAll(confResources);
     //Add binaries
     //now add the image if it was set
@@ -153,36 +146,45 @@ public class AgentProviderService extends AbstractProviderService implements
 
 
     String script =
-      clusterSpec.getMandatoryRoleOpt(role, SCRIPT_PATH);
+        clusterSpec.getMandatoryRoleOpt(role, SCRIPT_PATH);
     String packagePath = clusterSpec.getMandatoryOption(PACKAGE_PATH);
     File packagePathFile = new File(packagePath);
     HoyaUtils.verifyIsDir(packagePathFile, log);
     File executable = new File(packagePathFile, script);
     HoyaUtils.verifyFileExists(executable, log);
-    //this must stay relative if it is an image
-    operation.add("python");
-    operation.add(executable.getCanonicalPath());
-    operation.add("--log");
-    operation.add(ApplicationConstants.LOG_DIR_EXPANSION_VAR);
-    operation.add(ARG_COMMAND);
-    operation.add(propagatedConfDir +"/" + AgentKeys.COMMAND_JSON_FILENAME);
-    
-    operation.add(ARG_CONFIG);
-    operation.add("$PROPAGATED_CONFDIR");
+
+    String appHome =
+        clusterSpec.getMandatoryRoleOpt(role, APP_HOME);
+    //APP_HOME == /dev/null is being used to issue direct start commands
+    //This is not required once embedded Agent is available
+    if (appHome.equals("/dev/null")) {
+      operation.add("python");
+      operation.add(executable.getCanonicalPath());
+      operation.add("START");
+      operation.add(propagatedConfDir + "/" + AgentKeys.COMMAND_JSON_FILENAME);
+      operation.add(packagePathFile.getCanonicalPath());
+      operation.add("/tmp/strout.txt");
+    } else {
+      //this must stay relative if it is an image
+      operation.add("python");
+      operation.add(executable.getCanonicalPath());
+      operation.add("--log");
+      operation.add(ApplicationConstants.LOG_DIR_EXPANSION_VAR);
+      operation.add(ARG_COMMAND);
+      operation.add(propagatedConfDir + "/" + AgentKeys.COMMAND_JSON_FILENAME);
+
+      operation.add(ARG_CONFIG);
+      operation.add("$PROPAGATED_CONFDIR");
+    }
 
     String filename = "agent-server.txt";
 
     operation.add(
-      "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/" + filename);
+        "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/" + filename);
     operation.add("2>&1");
 
     String cmdStr = HoyaUtils.join(operation, " ");
-
     commandList.add(cmdStr);
-//    int sleeptime = 240;
-//    appendOperation(commandList, "echo about sleep " + sleeptime, filename);
-//    appendOperation(commandList, "sleep " + sleeptime, filename);
-//    appendOperation(commandList, "echo sleep completed", filename);
     ctx.setCommands(commandList);
 
   }
@@ -193,7 +195,7 @@ public class AgentProviderService extends AbstractProviderService implements
     List<String> operation = new ArrayList<String>();
     operation.add(exe);
     operation.add(
-      "1>>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/" + filename);
+        "1>>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/" + filename);
     operation.add("2>&1");
     String cmdStr = HoyaUtils.join(operation, " ");
     commandList.add(cmdStr);
@@ -202,12 +204,11 @@ public class AgentProviderService extends AbstractProviderService implements
   /**
    * Run this service
    *
-   *
-   * @param cd component description
-   * @param confDir local dir with the config
-   * @param env environment variables above those generated by
+   * @param cd             component description
+   * @param confDir        local dir with the config
+   * @param env            environment variables above those generated by
    * @param execInProgress callback for the event notification
-   * @throws IOException IO problems
+   * @throws IOException   IO problems
    * @throws HoyaException anything internal
    */
   @Override
@@ -215,29 +216,29 @@ public class AgentProviderService extends AbstractProviderService implements
                       File confDir,
                       Map<String, String> env,
                       EventCallback execInProgress) throws
-                                                 IOException,
-                                                 HoyaException {
+                                                    IOException,
+                                                    HoyaException {
 
     return false;
   }
-
 
   /**
    * This is a validation of the application configuration on the AM.
    * Here is where things like the existence of keytabs and other
    * not-seen-client-side properties can be tested, before
-   * the actual process is spawned. 
+   * the actual process is spawned.
+   *
    * @param clusterSpec clusterSpecification
-   * @param confDir configuration directory
-   * @param secure flag to indicate that secure mode checks must exist
-   * @throws IOException IO problemsn
+   * @param confDir     configuration directory
+   * @param secure      flag to indicate that secure mode checks must exist
+   * @throws IOException   IO problemsn
    * @throws HoyaException any failure
    */
   @Override
   public void validateApplicationConfiguration(ClusterDescription clusterSpec,
                                                File confDir,
                                                boolean secure
-                                              ) throws IOException, HoyaException {
+  ) throws IOException, HoyaException {
 
   }
 
@@ -246,19 +247,19 @@ public class AgentProviderService extends AbstractProviderService implements
     return true;
   }
 
-
   @Override
   public List<Probe> createProbes(ClusterDescription clusterSpec, String urlStr,
                                   Configuration config,
                                   int timeout)
-    throws IOException {
+      throws IOException {
     List<Probe> probes = new ArrayList<Probe>();
-    
+
     return probes;
   }
 
   /**
    * Build the provider status, can be empty
+   *
    * @return the provider status - map of entries to add to the info section
    */
   public Map<String, String> buildProviderStatus() {

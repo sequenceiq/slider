@@ -29,20 +29,6 @@ def main():
   print "Executing echo"
   print 'Argument List: {}'.format(str(sys.argv))
 
-  parser = argparse.ArgumentParser()
-  parser.add_argument('--log', dest='log_folder', help='log destination')
-  parser.add_argument('--config', dest='conf_folder', help='conf folder')
-  parser.add_argument('--command', dest='command', help='command to execute')
-  args = parser.parse_args()
-  if args.log_folder:
-    log_file_name = "echo" + str(datetime.datetime.now()) + ".log"
-    log_file_path = os.path.join(args.log_folder, log_file_name)
-    logging.basicConfig(filename=log_file_path, level=logging.DEBUG)
-    print log_file_path
-  logging.debug('Starting echo script ...')
-
-  logging.info("Number of arguments: %s arguments.", str(len(sys.argv)))
-  logging.info("Argument List: %s", str(sys.argv))
   time.sleep(30)
 
 

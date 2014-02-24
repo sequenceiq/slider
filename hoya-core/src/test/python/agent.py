@@ -24,7 +24,7 @@ import time
 import argparse
 import os
 
-
+# A representative Agent code for the embedded agent
 def main():
   print "Executing echo"
   print 'Argument List: {}'.format(str(sys.argv))
