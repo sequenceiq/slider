@@ -106,11 +106,19 @@ Checkout the HBase `trunk` branch from apache svn/github.
 
     
     git clone git://git.apache.org/hbase.git
+    cd hbase
     git remote rename origin apache
     git fetch --tags apache
-    git checkout 0.98 --
-    git checkout -b 0.98
+
+then
+    git checkout -b apache/0.98
+or
+    git checkout tags/0.98.0RC1
     
+If you have already been building versions of HBase, remove the existing
+set of artifacts for safety:
+
+    rm -rf ~/.m2/repository/org/apache/hbase/
     
 The maven command for building hbase artifacts against this hadoop version is 
 
@@ -121,8 +129,8 @@ property of`/pom.xml`:
 
     mvn clean install assembly:single -DskipTests -Dmaven.javadoc.skip=true -Dhadoop-two.version=$HADOOP_VERSION
 
-This will create `hbase-0.98.0.tar.gz` in the directory `hbase-assembly/target/` in
-the hbase source tree. 
+This will create `hbase-0.98.0.tar.gz` in the directory `hbase-assembly/target/`
+in the hbase source tree. 
 
     export HBASE_VERSION=0.98.0
     
@@ -148,7 +156,7 @@ For building just the JAR files:
 
 *Tip:* you can force set a version in Maven by having it update all the POMs:
 
-    mvn versions:set -DnewVersion=0.97.1-SNAPSHOT
+    mvn versions:set -DnewVersion=0.98.1-SNAPSHOT
 
 ## Building Accumulo
 
