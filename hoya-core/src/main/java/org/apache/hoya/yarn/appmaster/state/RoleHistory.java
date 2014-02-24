@@ -434,9 +434,10 @@ public class RoleHistory {
    */
   @VisibleForTesting
   public synchronized NodeInstance findNodeForNewInstance(RoleStatus role) {
-    if (role.getNoDataLocality()) return null;
+    if (role.getNoDataLocality()) {
+      return null;
+    }
     int roleKey = role.getKey();
-    assert role.getKey() < roleSize;
     NodeInstance nodeInstance = null;
     
     List<NodeInstance> targets = getNodesForRoleId(roleKey);
