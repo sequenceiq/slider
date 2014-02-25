@@ -23,5 +23,9 @@
   -->
 <configuration>
 
-  
+  <property>
+    <name>site.hbase.master.startup.retainassign</name>
+    <value>true</value>
+  </property>
+
 </configuration>
