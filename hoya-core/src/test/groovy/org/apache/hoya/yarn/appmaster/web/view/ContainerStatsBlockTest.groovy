@@ -88,268 +88,6 @@ public class ContainerStatsBlockTest {
 
   private ContainerStatsBlock statsBlock;
 
-  private static class StubHoyaClusterProtocol implements HoyaClusterProtocol {
-
-    @Override
-    public long getProtocolVersion(String protocol, long clientVersion) throws IOException {
-      return 0;
-    }
-
-    @Override
-    public ProtocolSignature getProtocolSignature(String protocol, long clientVersion, int clientMethodsHash) throws IOException {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
-    public StopClusterResponseProto stopCluster(StopClusterRequestProto request) throws IOException, YarnException {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
-    public FlexClusterResponseProto flexCluster(FlexClusterRequestProto request) throws IOException, YarnException {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
-    public GetJSONClusterStatusResponseProto getJSONClusterStatus(GetJSONClusterStatusRequestProto request) throws IOException, YarnException {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
-    public ListNodeUUIDsByRoleResponseProto listNodeUUIDsByRole(ListNodeUUIDsByRoleRequestProto request) throws IOException, YarnException {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
-    public GetNodeResponseProto getNode(GetNodeRequestProto request) throws IOException, YarnException {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
-    public GetClusterNodesResponseProto getClusterNodes(GetClusterNodesRequestProto request) throws IOException, YarnException {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
-    public EchoResponseProto echo(EchoRequestProto request) throws IOException, YarnException {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
-    public KillContainerResponseProto killContainer(KillContainerRequestProto request) throws IOException, YarnException {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
-    public AMSuicideResponseProto amSuicide(AMSuicideRequestProto request) throws IOException, YarnException {
-      // TODO Auto-generated method stub
-      return null;
-    }
-  }
-
-  private static class StubAppState extends AppState {
-    public StubAppState(AbstractRecordFactory recordFactory) {
-      super(recordFactory);
-    }
-  }
-
-
-  private static class StubProviderService implements ProviderService {
-
-    @Override
-    public String getName() {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
-    public List<ProviderRole> getRoles() {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
-    public Configuration getConf() {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
-    public void validateClusterSpec(ClusterDescription clusterSpec) throws HoyaException {
-      // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public void init(Configuration config) {
-      // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public void start() {
-      // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public void stop() {
-      // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public void close() throws IOException {
-      // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public void registerServiceListener(ServiceStateChangeListener listener) {
-      // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public void unregisterServiceListener(ServiceStateChangeListener listener) {
-      // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public Configuration getConfig() {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
-    public STATE getServiceState() {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
-    public long getStartTime() {
-      // TODO Auto-generated method stub
-      return 0;
-    }
-
-    @Override
-    public boolean isInState(STATE state) {
-      // TODO Auto-generated method stub
-      return false;
-    }
-
-    @Override
-    public Throwable getFailureCause() {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
-    public STATE getFailureState() {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
-    public boolean waitForServiceToStop(long timeout) {
-      // TODO Auto-generated method stub
-      return false;
-    }
-
-    @Override
-    public List<LifecycleEvent> getLifecycleHistory() {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
-    public Map<String,String> getBlockers() {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
-    public int getExitCode() {
-      // TODO Auto-generated method stub
-      return 0;
-    }
-
-    @Override
-    public void buildContainerLaunchContext(ContainerLaunchContext ctx, HoyaFileSystem hoyaFileSystem, Path generatedConfPath, String role,
-        ClusterDescription clusterSpec, Map<String,String> roleOptions) throws IOException, HoyaException {
-      // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public int getDefaultMasterInfoPort() {
-      // TODO Auto-generated method stub
-      return 0;
-    }
-
-    @Override
-    public boolean exec(ClusterDescription cd, File confDir, Map<String,String> env, EventCallback execInProgress) throws IOException, HoyaException {
-      // TODO Auto-generated method stub
-      return false;
-    }
-
-    @Override
-    public boolean isSupportedRole(String role) {
-      // TODO Auto-generated method stub
-      return false;
-    }
-
-    @Override
-    public Configuration loadProviderConfigurationInformation(File confDir) throws BadCommandArgumentsException, IOException {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
-    public void validateApplicationConfiguration(ClusterDescription clusterSpec, File confDir, boolean secure) throws IOException, HoyaException {
-      // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public boolean initMonitoring() {
-      // TODO Auto-generated method stub
-      return false;
-    }
-
-    @Override
-    public List<Probe> createProbes(ClusterDescription clusterSpec, String url, Configuration config, int timeout) throws IOException {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
-    public Map<String,String> buildProviderStatus() {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
-    public void buildContainerLaunchContext(ContainerLaunchContext ctx,
-        Container container, String role, HoyaFileSystem hoyaFileSystem,
-        Path generatedConfPath, ClusterDescription clusterSpec,
-        Map<String, String> roleOptions, Path containerTmpDirPath)
-        throws IOException, HoyaException {
-      // TODO Auto-generated method stub
-      
-    }
-  }
 
   private Container cont1, cont2;
 
@@ -525,5 +263,229 @@ public class ContainerStatsBlockTest {
     tc.printCell(tr);
     tr._();
     assert prevLevel == hamlet.nestLevel();
+  }
+  
+  // non-implemented stubs to use Guice for injection
+  
+  private static class StubHoyaClusterProtocol implements HoyaClusterProtocol {
+
+    @Override
+    public long getProtocolVersion(String protocol, long clientVersion) throws IOException {
+      return 0;
+    }
+
+    @Override
+    public ProtocolSignature getProtocolSignature(String protocol, long clientVersion, int clientMethodsHash) throws IOException {
+      return null;
+    }
+
+    @Override
+    public StopClusterResponseProto stopCluster(StopClusterRequestProto request) throws IOException, YarnException {
+      return null;
+    }
+
+    @Override
+    public FlexClusterResponseProto flexCluster(FlexClusterRequestProto request) throws IOException, YarnException {
+      return null;
+    }
+
+    @Override
+    public GetJSONClusterStatusResponseProto getJSONClusterStatus(GetJSONClusterStatusRequestProto request) throws IOException, YarnException {
+      return null;
+    }
+
+    @Override
+    public ListNodeUUIDsByRoleResponseProto listNodeUUIDsByRole(ListNodeUUIDsByRoleRequestProto request) throws IOException, YarnException {
+      return null;
+    }
+
+    @Override
+    public GetNodeResponseProto getNode(GetNodeRequestProto request) throws IOException, YarnException {
+      return null;
+    }
+
+    @Override
+    public GetClusterNodesResponseProto getClusterNodes(GetClusterNodesRequestProto request) throws IOException, YarnException {
+      return null;
+    }
+
+    @Override
+    public EchoResponseProto echo(EchoRequestProto request) throws IOException, YarnException {
+      return null;
+    }
+
+    @Override
+    public KillContainerResponseProto killContainer(KillContainerRequestProto request) throws IOException, YarnException {
+      return null;
+    }
+
+    @Override
+    public AMSuicideResponseProto amSuicide(AMSuicideRequestProto request) throws IOException, YarnException {
+      return null;
+    }
+  }
+
+  private static class StubAppState extends AppState {
+    public StubAppState(AbstractRecordFactory recordFactory) {
+      super(recordFactory);
+    }
+  }
+
+  private static class StubProviderService implements ProviderService {
+
+    @Override
+    public String getName() {
+      return null;
+    }
+
+    @Override
+    public List<ProviderRole> getRoles() {
+      return null;
+    }
+
+    @Override
+    public Configuration getConf() {
+      return null;
+    }
+
+    @Override
+    public void validateClusterSpec(ClusterDescription clusterSpec) throws HoyaException {
+
+    }
+
+    @Override
+    public void init(Configuration config) {
+
+    }
+
+    @Override
+    public void start() {
+
+    }
+
+    @Override
+    public void stop() {
+
+    }
+
+    @Override
+    public void close() throws IOException {
+
+    }
+
+    @Override
+    public void registerServiceListener(ServiceStateChangeListener listener) {
+
+    }
+
+    @Override
+    public void unregisterServiceListener(ServiceStateChangeListener listener) {
+
+    }
+
+    @Override
+    public Configuration getConfig() {
+      return null;
+    }
+
+    @Override
+    public STATE getServiceState() {
+      return null;
+    }
+
+    @Override
+    public long getStartTime() {
+      return 0;
+    }
+
+    @Override
+    public boolean isInState(STATE state) {
+      return false;
+    }
+
+    @Override
+    public Throwable getFailureCause() {
+      return null;
+    }
+
+    @Override
+    public STATE getFailureState() {
+      return null;
+    }
+
+    @Override
+    public boolean waitForServiceToStop(long timeout) {
+      return false;
+    }
+
+    @Override
+    public List<LifecycleEvent> getLifecycleHistory() {
+      return null;
+    }
+
+    @Override
+    public Map<String,String> getBlockers() {
+      return null;
+    }
+
+    @Override
+    public int getExitCode() {
+      return 0;
+    }
+
+    @Override
+    public void buildContainerLaunchContext(ContainerLaunchContext ctx, HoyaFileSystem hoyaFileSystem, Path generatedConfPath, String role,
+        ClusterDescription clusterSpec, Map<String,String> roleOptions) throws IOException, HoyaException {
+
+    }
+
+    @Override
+    public int getDefaultMasterInfoPort() {
+      return 0;
+    }
+
+    @Override
+    public boolean exec(ClusterDescription cd, File confDir, Map<String,String> env, EventCallback execInProgress) throws IOException, HoyaException {
+      return false;
+    }
+
+    @Override
+    public boolean isSupportedRole(String role) {
+      return false;
+    }
+
+    @Override
+    public Configuration loadProviderConfigurationInformation(File confDir) throws BadCommandArgumentsException, IOException {
+      return null;
+    }
+
+    @Override
+    public void validateApplicationConfiguration(ClusterDescription clusterSpec, File confDir, boolean secure) throws IOException, HoyaException {
+
+    }
+
+    @Override
+    public boolean initMonitoring() {
+      return false;
+    }
+
+    @Override
+    public List<Probe> createProbes(ClusterDescription clusterSpec, String url, Configuration config, int timeout) throws IOException {
+      return null;
+    }
+
+    @Override
+    public Map<String,String> buildProviderStatus() {
+      return null;
+    }
+
+    @Override
+    public void buildContainerLaunchContext(ContainerLaunchContext ctx,
+        Container container, String role, HoyaFileSystem hoyaFileSystem,
+        Path generatedConfPath, ClusterDescription clusterSpec,
+        Map<String, String> roleOptions, Path containerTmpDirPath)
+        throws IOException, HoyaException {
+      
+    }
   }
 }
