@@ -16,9 +16,11 @@
  */
 package org.apache.hoya.yarn.appmaster.web.view;
 
+import java.io.IOException;
+import java.util.Map;
+
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.ipc.ProtocolSignature
@@ -71,7 +73,6 @@ import org.apache.hoya.yarn.model.mock.MockResource
 import org.apache.hoya.yarn.service.EventCallback
 import org.junit.Before
 import org.junit.Test
-
 import com.google.inject.AbstractModule
 import com.google.inject.Guice
 import com.google.inject.Injector
@@ -332,6 +333,16 @@ public class ContainerStatsBlockTest {
     public Map<String,String> buildProviderStatus() {
       // TODO Auto-generated method stub
       return null;
+    }
+
+    @Override
+    public void buildContainerLaunchContext(ContainerLaunchContext ctx,
+        Container container, String role, HoyaFileSystem hoyaFileSystem,
+        Path generatedConfPath, ClusterDescription clusterSpec,
+        Map<String, String> roleOptions, Path containerTmpDirPath)
+        throws IOException, HoyaException {
+      // TODO Auto-generated method stub
+      
     }
   }
 
