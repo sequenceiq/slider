@@ -117,7 +117,7 @@ the release number
 
     export HOYA_RELEASE=0.6.0-SNAPSHOT
     mvn versions:set -DnewVersion=$HOYA_RELEASE
-    git commit -a -m "BUG-XYZ updating development POMs to $HOYA_RELEASE"
+    git commit -a -m "$HOYA_RELEASE_JIRA updating development POMs to $HOYA_RELEASE"
 
 **Step #12:** Push the release and develop branches to github 
 
