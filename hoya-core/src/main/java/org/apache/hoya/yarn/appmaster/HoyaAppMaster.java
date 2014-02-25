@@ -18,24 +18,7 @@
 
 package org.apache.hoya.yarn.appmaster;
 
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.net.InetSocketAddress;
-import java.net.URI;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
-
+import com.google.protobuf.BlockingService;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.Path;
@@ -121,10 +104,27 @@ import org.apache.hoya.yarn.params.HoyaAMCreateAction;
 import org.apache.hoya.yarn.service.CompoundLaunchedService;
 import org.apache.hoya.yarn.service.EventCallback;
 import org.apache.hoya.yarn.service.RpcService;
+import org.apache.hoya.yarn.service.WebAppService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.protobuf.BlockingService;
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.InetSocketAddress;
+import java.net.URI;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * This is the AM, which directly implements the callbacks from the AM and NM
@@ -264,8 +264,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
   //username -null if it is not known/not to be set
   private String hoyaUsername;
   
-  private WebApp webApp;
-
+  private HoyaAMWebApp webApp;
 
   /**
    * Service Constructor
@@ -514,29 +513,18 @@ public class HoyaAppMaster extends CompoundLaunchedService
         new ArrayList<ProviderRole>(providerService.getRoles());
       providerRoles.addAll(amClientProvider.getRoles());
 
-      webApp = WebApps.$for("hoyaam", WebAppApi.class, new WebAppApiImpl(this, appState, providerService)).with(serviceConf).start(new HoyaAMWebApp());
+      webApp = new HoyaAMWebApp();
+      WebApps.$for("hoyaam", WebAppApi.class,
+                            new WebAppApiImpl(this, appState, providerService))
+                      .with(serviceConf)
+                      .start(webApp);
       appMasterTrackingUrl = "http://" + appMasterHostname + ":" + webApp.port();
-      
-/*  DISABLED 
-    // work out a port for the AM
+      WebAppService<HoyaAMWebApp> webAppService =
+        new WebAppService<HoyaAMWebApp>("hoya", webApp);
 
-    int infoport = clusterSpec.getRoleOptInt(ROLE_HOYA_AM,
-                                                  RoleKeys.APP_INFOPORT,
-                                                  0);
-    if (0 == infoport) {
-      infoport =
-        HoyaUtils.findFreePort(providerService.getDefaultMasterInfoPort(), 128);
-      //need to get this to the app
-
-      clusterSpec.setRoleOpt(ROLE_HOYA_AM,
-                                  RoleKeys.APP_INFOPORT,
-                                  infoport);
-    }
-    appMasterTrackingUrl = "http://" + appMasterHostname + ":" + infoport;
-
-    */
-//      appMasterTrackingUrl = null;
-
+      webAppService.init(conf);
+      webAppService.start();
+      addService(webAppService);
 
       // Register self with ResourceManager
       // This will start heartbeating to the RM
@@ -965,7 +953,6 @@ public class HoyaAppMaster extends CompoundLaunchedService
   @Override //AMRMClientAsync
   public void onShutdownRequest() {
     LOG_YARN.info("Shutdown Request received");
-    webApp.stop();
     signalAMComplete(EXIT_CLIENT_INITIATED_SHUTDOWN, "Shutdown requested from RM");
   }
 
@@ -1053,13 +1040,26 @@ public class HoyaAppMaster extends CompoundLaunchedService
     String result;
     //quick update
     //query and json-ify
+    ClusterDescription cd;
+    cd = getCurrentClusterStatus();
+    result = cd.toJsonString();
+    String stat = result;
+    return Messages.GetJSONClusterStatusResponseProto.newBuilder()
+      .setClusterSpec(stat)
+      .build();
+  }
+
+  /**
+   * Get the current cluster status, including any provider-specific info
+   * @return a status document
+   */
+  public ClusterDescription getCurrentClusterStatus() {
+    ClusterDescription cd;
     synchronized (this) {
       updateClusterStatus();
-      result = getClusterDescription().toJsonString();
+      cd = getClusterDescription();
     }
-    return Messages.GetJSONClusterStatusResponseProto.newBuilder()
-      .setClusterSpec(result)
-      .build();
+    return cd;
   }
 
   @Override //HoyaClusterProtocol
@@ -1162,7 +1162,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
   /**
    * Update the cluster description with anything interesting
    */
-  private void updateClusterStatus() {
+  public synchronized void updateClusterStatus() {
     Map<String, String> providerStatus = providerService.buildProviderStatus();
     assert providerStatus != null : "null provider status";
     appState.refreshClusterStatus(providerStatus);
