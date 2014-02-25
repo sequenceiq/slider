@@ -98,7 +98,7 @@
 <!--
     <hadoop.version>2.4.0-SNAPSHOT</hadoop.version>
 -->
-    <hadoop.version>2.2.0</hadoop.version>
+    <hadoop.version>2.3.0</hadoop.version>
 
     <hbase.version>0.98.0-hadoop2</hbase.version>
     <accumulo.version>1.5.0</accumulo.version>
@@ -1067,8 +1067,8 @@
       <!-- local builds of everything -->
       <id>local</id>
       <properties>
-        <hadoop.version>2.2.1-SNAPSHOT</hadoop.version>
-        <hbase.version>0.97.0-SNAPSHOT</hbase.version>
+        <hadoop.version>2.4.0-SNAPSHOT</hadoop.version>
+        <hbase.version>0.98.0-SNAPSHOT</hbase.version>
         <accumulo.version>1.6.0-SNAPSHOT</accumulo.version>
       </properties>
     </profile>
