@@ -16,6 +16,9 @@
  */
 package org.apache.hoya.yarn.appmaster.web.view;
 
+import java.net.URL;
+import java.util.Map;
+
 import com.google.inject.AbstractModule
 import com.google.inject.Guice
 import com.google.inject.Injector
@@ -84,7 +87,7 @@ import org.junit.Test
 
 @Slf4j
 @CompileStatic
-public class ContainerStatsBlockTest {
+public class TestContainerStatsBlock {
 
   private ContainerStatsBlock statsBlock;
 
@@ -486,6 +489,11 @@ public class ContainerStatsBlockTest {
         Map<String, String> roleOptions, Path containerTmpDirPath)
         throws IOException, HoyaException {
       
+    }
+
+    @Override
+    public Map<String, URL> buildMonitorDetails(ClusterDescription clusterSpec) {
+      return null;
     }
   }
 }
