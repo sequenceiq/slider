@@ -85,21 +85,33 @@ As the test run takes 30-60+ minutes, now is a good time to consider
 finalizing the release notes.
 
 
-**Step #8:** Look in `hoya-assembly/target` to find the `.tar.gz` file, and the
+**Step #8:** validate the Tar
+
+Look in `hoya-assembly/target` to find the `.tar.gz` file, and the
 expanded version of it. Inspect that expanded version to make sure that
 everything looks good -and that the versions of all the dependent artifacts
 look good too: there must be no `-SNAPSHOT` dependencies.
 
 
-**Step #9:** Create a a one-line plain text release note for commits and tags
+**Step #9:** Build the release notes
+
+Create a a one-line plain text release note for commits and tags
 And a multi-line markdown release note, which will be used for artifacts.
 
 
-Release of Hoya against hadoop 2.2.0 and 2.2.0, HBase-0.98.0 and Accumulo 1.5.0 artifacts. 
+    Release of Hoya against hadoop 2.2.0 and 2.2.0, HBase-0.98.0 and Accumulo 1.5.0 artifacts. 
 
-The multi-line release not should go into `hoya/src/site/markdown/release_notes`.
+The multi-line release notes should go into `hoya/src/site/markdown/release_notes`.
 
-**Step #10:** Finish the git flow release, either in the SourceTree GUI or
+
+These should be committed
+
+    git add --all
+    git commit -m "$HOYA_RELEASE_JIRA updating release notes"
+
+**Step #10:** End the git flow
+
+Finish the git flow release, either in the SourceTree GUI or
 the command line:
 
     
@@ -111,7 +123,9 @@ prepared earlier.
 
 You will now be back on the `develop` branch.
 
-**Step #11:** Switch back to `develop` and update its version number past
+**Step #11:** update mvn versions
+
+Switch back to `develop` and update its version number past
 the release number
 
 
@@ -158,7 +172,12 @@ Example:
 As well as email, we have a twitter handle `@hoyaproject` that can be used
 for these announcements
 
-**Step #16:** Get back to developing!
+**Step #16:** Finish the JIRA
+
+Log the time, close the issue. This should normally be the end of a 
+sprint -so wrap that up too.
+
+**Step #17:** Get back to developing!
 
 Check out the develop branch and purge all release artifacts
 
