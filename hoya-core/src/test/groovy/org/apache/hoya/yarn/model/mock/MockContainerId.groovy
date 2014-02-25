@@ -29,6 +29,10 @@ class MockContainerId extends ContainerId implements Cloneable {
   MockContainerId() {
   }
   
+  MockContainerId(int id) {
+    setId(id);
+  }
+  
   MockContainerId(ContainerId that) {
     id = that.id
     applicationAttemptId = that.applicationAttemptId

@@ -16,11 +16,12 @@
  */
 package org.apache.hoya.yarn.appmaster.web.view;
 
-import java.io.IOException;
-import java.util.Map;
-
+import com.google.inject.AbstractModule
+import com.google.inject.Guice
+import com.google.inject.Injector
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.apache.commons.lang.StringUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.ipc.ProtocolSignature
@@ -33,7 +34,11 @@ import org.apache.hadoop.yarn.api.records.Priority
 import org.apache.hadoop.yarn.exceptions.YarnException
 import org.apache.hadoop.yarn.webapp.hamlet.Hamlet
 import org.apache.hadoop.yarn.webapp.hamlet.Hamlet.DIV
+import org.apache.hadoop.yarn.webapp.hamlet.Hamlet.TABLE
+import org.apache.hadoop.yarn.webapp.hamlet.Hamlet.TR
+import org.apache.hadoop.yarn.webapp.hamlet.HamletImpl.EImp
 import org.apache.hoya.api.ClusterDescription
+import org.apache.hoya.api.ClusterNode
 import org.apache.hoya.api.HoyaClusterProtocol
 import org.apache.hoya.api.proto.Messages.AMSuicideRequestProto
 import org.apache.hoya.api.proto.Messages.AMSuicideResponseProto
@@ -64,6 +69,8 @@ import org.apache.hoya.yarn.appmaster.state.AppState
 import org.apache.hoya.yarn.appmaster.state.RoleInstance
 import org.apache.hoya.yarn.appmaster.web.WebAppApi
 import org.apache.hoya.yarn.appmaster.web.WebAppApiImpl
+import org.apache.hoya.yarn.appmaster.web.view.ContainerStatsBlock.ClusterNodeNameComparator
+import org.apache.hoya.yarn.appmaster.web.view.ContainerStatsBlock.TableAnchorContent
 import org.apache.hoya.yarn.appmaster.web.view.ContainerStatsBlock.TableContent
 import org.apache.hoya.yarn.model.mock.MockContainer
 import org.apache.hoya.yarn.model.mock.MockContainerId
@@ -71,11 +78,9 @@ import org.apache.hoya.yarn.model.mock.MockNodeId
 import org.apache.hoya.yarn.model.mock.MockRecordFactory
 import org.apache.hoya.yarn.model.mock.MockResource
 import org.apache.hoya.yarn.service.EventCallback
+import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
-import com.google.inject.AbstractModule
-import com.google.inject.Guice
-import com.google.inject.Injector
 
 @Slf4j
 @CompileStatic
@@ -398,11 +403,13 @@ public class ContainerStatsBlockTest {
   }
 
   @Test
-  public void testGenerateRoleDetails() {
+  public void testGenerateRoleDetailsWithTwoColumns() {
     StringWriter sw = new StringWriter(64);
     PrintWriter pw = new PrintWriter(sw);
 
     Hamlet hamlet = new Hamlet(pw, 0, false);
+    
+    // Make a div to put the content into
     DIV<Hamlet> div = hamlet.div();
     
     String detailsName = "testing";
@@ -413,23 +420,110 @@ public class ContainerStatsBlockTest {
     int levelPrior = hamlet.nestLevel();
     statsBlock.generateRoleDetails(div, selector, detailsName, data.entrySet());
     
-    // Ensures that nesting levels are correct
+    // Close out the div we made
+    // DIV<Hamlet>._() will actually invoke the wrong method (creating <p>), explicit 
+    // cast to make sure we're closing out the <div>
+    ((EImp) div)._();
+    
     assert levelPrior == hamlet.nestLevel();
+  }
+  
+  @Test
+  public void testGenerateRoleDetailsWithOneColumn() {
+    StringWriter sw = new StringWriter(64);
+    PrintWriter pw = new PrintWriter(sw);
+
+    Hamlet hamlet = new Hamlet(pw, 0, false);
+    DIV<Hamlet> div = hamlet.div();
     
-    // Close that div
-    div._();
-    
-    // and pop a new one
-    div = hamlet.div();
-    
-    // A null 2nd entry in the tuple implies only one column
-    data.clear();
+    String detailsName = "testing";
+    String selector = "selector";
+    Map<TableContent,String> data = new HashMap<TableContent,String>();
     data.put(new ContainerStatsBlock.TableContent("Bar"), null);
     
-    levelPrior = hamlet.nestLevel();
+    int levelPrior = hamlet.nestLevel();
     statsBlock.generateRoleDetails(div, selector, detailsName, data.entrySet());
     
-    // Ensures that nesting levels are correct
+    // Close out the div we made
+    // DIV<Hamlet>._() will actually invoke the wrong method (creating <p>), explicit 
+    // cast to make sure we're closing out the <div>
+    ((EImp) div)._();
+    
     assert levelPrior == hamlet.nestLevel();
+  }
+  
+  @Test
+  public void testGenerateRoleDetailsWithNoData() {
+    StringWriter sw = new StringWriter(64);
+    PrintWriter pw = new PrintWriter(sw);
+
+    Hamlet hamlet = new Hamlet(pw, 0, false);
+    DIV<Hamlet> div = hamlet.div();
+    
+    String detailsName = "testing";
+    String selector = "selector";
+    Map<TableContent,String> data = new HashMap<TableContent,String>();
+    
+    int levelPrior = hamlet.nestLevel();
+    statsBlock.generateRoleDetails(div, selector, detailsName, data.entrySet());
+    
+    // Close out the div we made
+    // DIV<Hamlet>._() will actually invoke the wrong method (creating <p>), explicit 
+    // cast to make sure we're closing out the <div>
+    ((EImp) div)._();
+    
+    assert levelPrior == hamlet.nestLevel();
+  }
+  
+  @Test
+  public void testClusterNodeNameComparator() {
+    ClusterNode n1 = new ClusterNode(new MockContainerId(1)),
+      n2 = new ClusterNode(new MockContainerId(2)),
+      n3 = new ClusterNode(new MockContainerId(3));
+    
+    List<ClusterNode> nodes = new ArrayList<ClusterNode>();
+    nodes.add(n2);
+    nodes.add(n3);
+    nodes.add(n1);
+    
+    Collections.sort(nodes, new ClusterNodeNameComparator());
+    
+    String prevName = "";
+    for (ClusterNode node : nodes) {
+      assert prevName.compareTo(node.name) <= 0;
+      prevName = node.name;
+    }
+  }
+  
+  @Test
+  public void testTableContent() { 
+    StringWriter sw = new StringWriter(64);
+    PrintWriter pw = new PrintWriter(sw);
+    TableContent tc = new TableContent("foo");
+    
+    Hamlet hamlet = new Hamlet(pw, 0, false);
+    TR<TABLE<Hamlet>> tr = hamlet.table().tr();
+    
+    int prevLevel = hamlet.nestLevel();
+    // printCell should not end the tr
+    tc.printCell(tr);
+    tr._();
+    assert prevLevel == hamlet.nestLevel();
+  }
+  
+  @Test
+  public void testTableAnchorContent() { 
+    StringWriter sw = new StringWriter(64);
+    PrintWriter pw = new PrintWriter(sw);
+    TableContent tc = new TableAnchorContent("foo", "http://bar.com");
+    
+    Hamlet hamlet = new Hamlet(pw, 0, false);
+    TR<TABLE<Hamlet>> tr = hamlet.table().tr();
+    
+    int prevLevel = hamlet.nestLevel();
+    // printCell should not end the tr
+    tc.printCell(tr);
+    tr._();
+    assert prevLevel == hamlet.nestLevel();
   }
 }

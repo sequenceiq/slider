@@ -156,6 +156,7 @@ public class ContainerStatsBlock extends HtmlBlock {
       // Generate the options used by this role
       generateRoleDetails(div, "role-options-wrap", "Role Options", tableContent);
 
+      // Close the div for this role
       div._();
     }
   }
@@ -187,7 +188,7 @@ public class ContainerStatsBlock extends HtmlBlock {
    * @param contents
    */
   protected <T1 extends TableContent,T2> void generateRoleDetails(DIV<Hamlet> parent, String divSelector, String detailsName, Iterable<Entry<T1,T2>> contents) {
-    DIV<DIV<Hamlet>> div = parent.div(divSelector).h3(BOLD, detailsName);
+    final DIV<DIV<Hamlet>> div = parent.div(divSelector).h3(BOLD, detailsName);
 
     int offset = 0;
     TABLE<DIV<DIV<Hamlet>>> table = null;
@@ -197,7 +198,7 @@ public class ContainerStatsBlock extends HtmlBlock {
         table = div.table("ui-widget-content ui-corner-bottom");
         tbody = table.tbody();
       }
-
+      
       TR<TBODY<TABLE<DIV<DIV<Hamlet>>>>> row = tbody.tr(offset % 2 == 0 ? EVEN : ODD);
       
       // Defer to the implementation of the TableContent for what the cell should contain
@@ -216,11 +217,14 @@ public class ContainerStatsBlock extends HtmlBlock {
 
     // If we made a table, close it out
     if (null != table) {
-      tbody._()._()._()._();
+      tbody._()._();
     } else {
       // Otherwise, throw in a nice "no content" message
-      div.p("no-table-contents")._("None")._()._();
+      div.p("no-table-contents")._("None")._();
     }
+    
+    // Close out the initial div
+    div._();
   }
 
   /**
@@ -238,7 +242,7 @@ public class ContainerStatsBlock extends HtmlBlock {
   }
 
   /**
-   * Creates a table cell with the provided String as content
+   * Creates a table cell with the provided String as content.
    */
   protected static class TableContent {
     private String cell;
@@ -251,13 +255,17 @@ public class ContainerStatsBlock extends HtmlBlock {
       return cell;
     }
 
+    /**
+     * Adds a td to the given tr. The tr is not closed 
+     * @param tableRow
+     */
     public void printCell(TR<?> tableRow) {
       tableRow.td(this.cell);
     }
   }
 
   /**
-   * Creates a table cell with an anchor to the given URL with the provided String as content
+   * Creates a table cell with an anchor to the given URL with the provided String as content.
    */
   protected static class TableAnchorContent extends TableContent {
     private String anchorUrl;
@@ -267,6 +275,9 @@ public class ContainerStatsBlock extends HtmlBlock {
       this.anchorUrl = anchorUrl;
     }
 
+    /* (non-javadoc)
+     * @see org.apache.hoya.yarn.appmaster.web.view.ContainerStatsBlock.TableContent#printCell(TR<?>)
+     */
     @Override
     public void printCell(TR<?> tableRow) {
       tableRow.td().a(anchorUrl, getCell())._();
