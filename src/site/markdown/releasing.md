@@ -66,7 +66,11 @@ In the `hoya` directory, run:
 
     mvn clean test
 
-This will run the functional tests as well as the `hoya-core` tests
+This will run the functional tests as well as the `hoya-core` tests.
+
+It is wise to reset any VMs here, and on live clusters kill all running jobs.
+This stops functional tests failing because the job doesn't get started before
+the tests time out.
 
 
 **Step #7:** Build the release package
