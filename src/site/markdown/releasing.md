@@ -40,6 +40,8 @@ starting to make a release*
 **Step #1:** Create a JIRA for the release, estimate 3h
 (so you don't try to skip the tests)
 
+    export HOYA_RELEASE_JIRA=BUG-13927
+    
 **Step #2:** Check everything in. Git flow won't let you progress without this.
 
 **Step #3:** Git flow: create a release branch
@@ -57,7 +59,7 @@ versions plugin)[http://mojo.codehaus.org/versions-maven-plugin/]
 **Step #5:** commit the changed POM files
   
     git add <changed files>
-    git commit -m "BUG-XYZ updating release POMs for $HOYA_RELEASE"
+    git commit -m "$HOYA_RELEASE_JIRA updating release POMs for $HOYA_RELEASE"
 
   
 **Step #6:** Do a final test run to make sure nothing is broken
