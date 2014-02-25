@@ -17,32 +17,28 @@
 package org.apache.hoya.yarn.appmaster.web.view;
 
 import org.apache.commons.lang.StringUtils;
+
+import com.google.inject.Inject;
+import java.net.URL;
+import java.util.Map;
+import java.util.Map.Entry;
 import org.apache.hadoop.yarn.webapp.hamlet.Hamlet;
 import org.apache.hadoop.yarn.webapp.hamlet.Hamlet.DIV;
 import org.apache.hadoop.yarn.webapp.hamlet.Hamlet.UL;
 import org.apache.hadoop.yarn.webapp.view.HtmlBlock;
 import org.apache.hoya.api.StatusKeys;
 import org.apache.hoya.providers.ProviderService;
-import org.apache.hoya.providers.accumulo.AccumuloKeys;
-import org.apache.hoya.providers.accumulo.AccumuloProviderService;
-import org.apache.hoya.providers.hbase.HBaseProviderService;
 import org.apache.hoya.yarn.appmaster.state.AppState;
 import org.apache.hoya.yarn.appmaster.web.WebAppApi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.inject.Inject;
-
 /**
  * 
  */
 public class IndexBlock extends HtmlBlock {
-  private static final String ACCUMULO = "Accumulo", HBASE = "HBase", UNKNOWN = "Unknown";
+  private static final String HBASE = "HBase";
   private static final Logger log = LoggerFactory.getLogger(IndexBlock.class);
-
-  // Public for tests to use for verification
-  public static final String HBASE_MASTER_ADDR_LABEL = "Active HBase Master (RPC): ", ACCUMULO_MASTER_ADDR_LABEL = "Active Accumulo Master (RPC): ",
-      ACCUMULO_MONITOR_ADDR_LABEL = "Active Accumulo Monitor: ";
 
   private AppState appState;
   private ProviderService providerService;
@@ -57,6 +53,11 @@ public class IndexBlock extends HtmlBlock {
   protected void render(Block html) {
     final String providerName = getProviderName();
 
+    doIndex(html, providerName);
+  }
+
+  // An extra method to make testing easier since you can't make an instance of Block
+  protected void doIndex(Hamlet html, String providerName) {
     DIV<Hamlet> div = html.div("general_info").h1("index_header", providerName + " cluster: '" + appState.clusterDescription.name + "'");
 
     UL<DIV<Hamlet>> ul = div.ul();
@@ -72,20 +73,19 @@ public class IndexBlock extends HtmlBlock {
 
     html.div("provider_info").h3(providerName + " specific information");
     ul = div.ul();
-    addProviderSpecificOptions(ul);
+    addProviderServiceOptions(providerService, ul);
     ul._()._();
   }
 
   private String getProviderName() {
     String providerServiceName = providerService.getName().toLowerCase();
 
-    if (providerServiceName.contains("accumulo")) {
-      return ACCUMULO;
-    } else if (providerServiceName.contains("hbase")) {
+    // Get HBase properly capitalized
+    if (providerServiceName.contains("hbase")) {
       return HBASE;
     }
 
-    return UNKNOWN;
+    return StringUtils.capitalize(providerServiceName);
   }
 
   private String getInfoAvoidingNulls(String key) {
@@ -94,29 +94,21 @@ public class IndexBlock extends HtmlBlock {
     return null == createTime ? "N/A" : createTime;
   }
 
-  private void addProviderSpecificOptions(UL<DIV<Hamlet>> ul) {
-    Class<?> clz = providerService.getClass();
-    if (AccumuloProviderService.class.equals(clz)) {
-      addAccumuloProviderOptions((AccumuloProviderService) providerService, ul);
-    } else if (HBaseProviderService.class.equals(clz)) {
-      addHBaseProviderOptions((HBaseProviderService) providerService, ul);
-    } else {
-      log.debug("Could not determine provider service for class {} ", clz);
+  protected void addProviderServiceOptions(ProviderService providerService, UL<DIV<Hamlet>> ul) {
+    Map<String,URL> details = providerService.buildMonitorDetails(appState.clusterDescription);
+    if (null == details) {
+      return;
     }
-  }
-
-  private void addAccumuloProviderOptions(AccumuloProviderService accProviderService, UL<DIV<Hamlet>> ul) {
-    ul.li(ACCUMULO_MASTER_ADDR_LABEL + getInfoAvoidingNulls(AccumuloKeys.MASTER_ADDRESS));
-
-    String monitorAddr = appState.clusterDescription.getInfo(AccumuloKeys.MONITOR_ADDRESS);
-    if (!StringUtils.isBlank(monitorAddr)) {
-      ul.li()._(ACCUMULO_MONITOR_ADDR_LABEL).a("http://" + monitorAddr, monitorAddr)._();
-    } else
-      ul.li(ACCUMULO_MONITOR_ADDR_LABEL + "N/A");
-  }
-
-  private void addHBaseProviderOptions(HBaseProviderService hbaseProviderService, UL<DIV<Hamlet>> ul) {
-    ul.li(HBASE_MASTER_ADDR_LABEL + getInfoAvoidingNulls(StatusKeys.INFO_MASTER_ADDRESS));
+    
+    // Loop over each entry, placing the text in the UL, adding an anchor when the URL is non-null
+    for (Entry<String,URL> entry : details.entrySet()) {
+      if (null != entry.getValue()) {
+        String url = entry.getValue().toString();
+        ul.li()._(entry.getKey()).a(url, url)._();
+      } else {
+        ul.li(entry.getKey());
+      }
+    }
   }
 
 }

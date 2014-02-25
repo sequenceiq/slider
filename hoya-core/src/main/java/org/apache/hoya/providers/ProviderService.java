@@ -18,6 +18,8 @@
 
 package org.apache.hoya.providers;
 
+import java.net.URL;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -31,7 +33,6 @@ import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.servicemonitor.Probe;
 import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.yarn.service.EventCallback;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -136,4 +137,14 @@ public interface ProviderService extends ProviderCore, Service,
      * @return the provider status - map of entries to add to the info section
      */
   Map<String, String> buildProviderStatus();
+  
+  /**
+   * Build a map of data intended for the AM webapp that is specific
+   * about this provider. The key is some text to be displayed, and the
+   * value can be a URL that will create an anchor over the key text.
+   * 
+   * If no anchor is needed/desired, insert the key with a null value.
+   * @return
+   */
+  Map<String,URL> buildMonitorDetails(ClusterDescription clusterSpec);
 }

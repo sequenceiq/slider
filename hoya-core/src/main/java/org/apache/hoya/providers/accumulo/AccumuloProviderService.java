@@ -18,6 +18,11 @@
 
 package org.apache.hoya.providers.accumulo;
 
+import java.net.MalformedURLException;
+
+import com.google.common.net.HostAndPort;
+import java.net.URL;
+import org.apache.hoya.api.StatusKeys;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -25,7 +30,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
@@ -63,7 +67,6 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Preconditions;
 
 /**
@@ -439,5 +442,31 @@ public class AccumuloProviderService extends AbstractProviderService implements
     }
     
     return children[0].getPath().getName();
+  }
+  
+  /* non-javadoc
+   * @see org.apache.hoya.providers.ProviderService#buildMonitorDetails()
+   */
+  @Override
+  public Map<String,URL> buildMonitorDetails(ClusterDescription clusterDesc) {
+    Map<String,URL> map = new HashMap<String,URL>();
+    
+    map.put("Active Accumulo Master (RPC): " + getInfoAvoidingNull(clusterDesc, AccumuloKeys.MASTER_ADDRESS), null);
+    
+    String monitorKey = "Active Accumulo Monitor: ";
+    String monitorAddr = getInfoAvoidingNull(clusterDesc, AccumuloKeys.MONITOR_ADDRESS);
+    if (!StringUtils.isBlank(monitorAddr)) {
+      try {
+        HostAndPort hostPort = HostAndPort.fromString(monitorAddr);
+        map.put(monitorKey, new URL("http", hostPort.getHostText(), hostPort.getPort(), ""));
+      } catch (Exception e) {
+        log.debug("Caught exception parsing Accumulo monitor URL", e);
+        map.put(monitorKey + "N/A", null);
+      }
+    } else {
+      map.put(monitorKey + "N/A", null);
+    }
+
+    return map;
   }
 }
