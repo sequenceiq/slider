@@ -115,9 +115,6 @@ class TestActionExists extends HBaseMiniClusterTestBase {
 
     //but the cluster is still there for the default
     assert 0 == hoyaClient.actionExists(clustername, false)
-
-
   }
   
-
 }

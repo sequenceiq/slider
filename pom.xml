@@ -3,7 +3,7 @@
   <groupId>org.apache.hoya</groupId>
   <artifactId>hoya</artifactId>
   <name>Hoya: HBase on YARN</name>
-  <version>0.12.0-SNAPSHOT</version>
+  <version>0.13.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <description>
@@ -113,10 +113,12 @@
     <gmavenProviderSelection>2.0</gmavenProviderSelection>
     <groovy.version>2.1.9</groovy.version>
     <guava.version>11.0.2</guava.version>
+    <guice.version>3.0</guice.version>
 
 
     <jackson.version>1.9.7</jackson.version>
     <jcommander.version>1.30</jcommander.version>
+    <jersey.version>1.9</jersey.version>
     <junit.version>4.11</junit.version>
     <log4j.version>1.2.17</log4j.version>
     <slf4j.version>1.7.5</slf4j.version>
@@ -1009,6 +1011,52 @@
             
           </dependency>
           -->
+
+
+      <!-- ======================================================== -->
+      <!-- Jersey and webapp support -->
+      <!-- ======================================================== -->
+
+      <dependency>
+        <groupId>com.sun.jersey</groupId>
+        <artifactId>jersey-core</artifactId>
+        <version>${jersey.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.sun.jersey</groupId>
+        <artifactId>jersey-json</artifactId>
+        <version>${jersey.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>stax</groupId>
+            <artifactId>stax-api</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>com.sun.jersey</groupId>
+        <artifactId>jersey-server</artifactId>
+        <version>${jersey.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.google.inject</groupId>
+        <artifactId>guice</artifactId>
+        <version>${guice.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.google.inject.extensions</groupId>
+        <artifactId>guice-servlet</artifactId>
+        <version>${guice.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.sun.jersey.contribs</groupId>
+        <artifactId>jersey-guice</artifactId>
+        <version>${jersey.version}</version>
+      </dependency>
+      
     </dependencies>
   </dependencyManagement>
 
@@ -1025,6 +1073,13 @@
       </properties>
     </profile>
 
+    <profile>
+      <!-- hadoop 2.4 builds of everything -->
+      <id>branch-2</id>
+      <properties>
+        <hadoop.version>2.4.0-SNAPSHOT</hadoop.version>
+      </properties>
+    </profile>
 
     <profile>
       <!-- anything for a jenkins build -->

@@ -22,6 +22,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.service.Service;
+import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.service.launcher.ExitCodeProvider;
 import org.apache.hoya.api.ClusterDescription;
@@ -42,15 +43,20 @@ public interface ProviderService extends ProviderCore, Service,
   /**
    * Set up the entire container launch context
    * @param ctx
+   * @param container
+   * @param role
    * @param hoyaFileSystem
    * @param generatedConfPath
-   * @param role
+   * @param containerTmpDirPath
    */
   void buildContainerLaunchContext(ContainerLaunchContext ctx,
+                                   Container container,
+                                   String role,
                                    HoyaFileSystem hoyaFileSystem,
-                                   Path generatedConfPath, String role,
+                                   Path generatedConfPath,
                                    ClusterDescription clusterSpec,
-                                   Map<String, String> roleOptions) throws
+                                   Map<String, String> roleOptions,
+                                   Path containerTmpDirPath) throws
                                                                     IOException,
                                                                     HoyaException;
 

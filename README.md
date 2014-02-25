@@ -51,6 +51,7 @@ application itself
 * [Architecture](src/site/markdown/architecture.md)
 * [Application Needs](src/site/markdown/app_needs.md)
 * [Building](src/site/markdown/building.md)
+* [Testing](src/site/markdown/testing.md)
 * [Role history](src/site/markdown/rolehistory.md)
 
 # License

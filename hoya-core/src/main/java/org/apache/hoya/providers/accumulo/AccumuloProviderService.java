@@ -36,6 +36,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hoya.HoyaKeys;
@@ -124,12 +125,13 @@ public class AccumuloProviderService extends AbstractProviderService implements
   */
   @Override //server
   public void buildContainerLaunchContext(ContainerLaunchContext ctx,
+                                          Container container,
+                                          String role,
                                           HoyaFileSystem hoyaFileSystem,
                                           Path generatedConfPath,
-                                          String role,
                                           ClusterDescription clusterSpec,
-                                          Map<String, String> roleOptions
-                                         ) throws
+                                          Map<String, String> roleOptions,
+                                          Path containerTmpDirPath) throws
                                            IOException,
                                            BadConfigException {
     this.hoyaFileSystem = hoyaFileSystem;

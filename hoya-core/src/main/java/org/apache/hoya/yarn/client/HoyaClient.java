@@ -424,7 +424,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     
     // build up the options map
     // first the defaults provided by the provider
-    HashMap<String, String> options = new HashMap<String, String>();
+    Map<String, String> options = new HashMap<String, String>();
     HoyaUtils.mergeEntries(options, hoyaAM.getDefaultClusterConfiguration());
     HoyaUtils.mergeEntries(options, provider.getDefaultClusterConfiguration());
 
@@ -441,6 +441,12 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     clusterSpec.setOptionifUnset(OptionKeys.SITE_XML_PREFIX +
                                  HoyaXmlConfKeys.FS_DEFAULT_NAME_CLASSIC,
                                  fsDefaultName);
+
+    // Set temp dir as an option
+    Path tmp = hoyaFileSystem.getTempPathForCluster(clustername);
+    Path tempDirPath = new Path(tmp, "am");
+    clusterSpec.setOption(OptionKeys.HOYA_TMP_DIR,
+                                 tempDirPath.toUri().toString());
 
     // patch in the properties related to the principals extracted from
     // the running hoya client
@@ -466,7 +472,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       Map<String, String> clusterRole =
         provider.createDefaultClusterRole(roleName);
       // get the command line instance count
-      String instanceCount = argsRoleMap.get(roleName);
+      String instanceCount = argsRoleMap.remove(roleName);
       // this is here in case we want to extract from the provider
       // the min #of instances
       int defInstances =
@@ -476,7 +482,20 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       clusterRole.put(RoleKeys.ROLE_INSTANCES, instanceCount);
       clusterRoleMap.put(roleName, clusterRole);
     }
-    
+
+
+    // any roles for counts which aren't in there, special
+    // creation option
+    for (Map.Entry<String, String> roleAndCount : argsRoleMap.entrySet()) {
+      String name = roleAndCount.getKey();
+      String count = roleAndCount.getValue();
+      log.debug("Creating non-standard role {} of size {}", name, count);
+      HashMap<String, String> newRole = new HashMap<String, String>();
+      newRole.put(RoleKeys.ROLE_NAME, name);
+      newRole.put(RoleKeys.ROLE_INSTANCES, count);
+      clusterRoleMap.put(name, newRole);
+    }
+
     //AM roles are special
     // add in the Hoya AM role(s)
     Collection<ProviderRole> amRoles = hoyaAM.getRoles();
@@ -487,9 +506,10 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       // get the command line instance count
       clusterRoleMap.put(roleName, clusterRole);
     }
-
-    //finally, any roles that came in the list  but aren't in the map
-    // and overwrite any entries the role option map with command line overrides
+    
+    // finally, insert any roles that are implicitly defined
+    // in the command line but for which we don't have any standard
+    // templates
     Map<String, Map<String, String>> commandOptions =
       buildInfo.getRoleOptionMap();
     HoyaUtils.applyCommandLineOptsToRoleMap(clusterRoleMap, commandOptions);
@@ -558,14 +578,9 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     }
 
     // bulk copy
-    String clusterDirPermsOct =
-      conf.get(HOYA_CLUSTER_DIRECTORY_PERMISSIONS,
-               DEFAULT_HOYA_CLUSTER_DIRECTORY_PERMISSIONS);
-    FsPermission clusterPerms = new FsPermission(clusterDirPermsOct);
+    FsPermission clusterPerms = getClusterDirectoryPermissions(conf);
     // first the original from wherever to the DFS
     HoyaUtils.copyDirectory(conf, appconfdir, snapshotConfPath, clusterPerms);
-    // then build up the generated path. This d
-    HoyaUtils.copyDirectory(conf, snapshotConfPath, generatedConfPath, clusterPerms);
 
     // Data Directory
     Path datapath = new Path(clusterDirectory, HoyaKeys.DATA_DIR_NAME);
@@ -580,6 +595,13 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     clusterSpec.state = ClusterDescription.STATE_CREATED;
     clusterSpec.save(hoyaFileSystem.getFileSystem(), clusterSpecPath, true);
     return EXIT_SUCCESS;
+  }
+
+  public FsPermission getClusterDirectoryPermissions(Configuration conf) {
+    String clusterDirPermsOct =
+      conf.get(HOYA_CLUSTER_DIRECTORY_PERMISSIONS,
+               DEFAULT_HOYA_CLUSTER_DIRECTORY_PERMISSIONS);
+    return new FsPermission(clusterDirPermsOct);
   }
 
   /**
@@ -690,7 +712,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     hoyaFileSystem.purgeHoyaAppInstanceTempFiles(clustername);
     Path tempPath = hoyaFileSystem.createHoyaAppInstanceTempPath(
             clustername,
-            appId.toString());
+            appId.toString()+"/am");
     String libdir = "lib";
     Path libPath = new Path(tempPath, libdir);
     hoyaFileSystem.getFileSystem().mkdirs(libPath);
@@ -758,6 +780,12 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     Configuration clientConfExtras = new Configuration(false);
 
+    // then build up the generated path.
+    FsPermission clusterPerms = getClusterDirectoryPermissions(config);
+    HoyaUtils.copyDirectory(config, snapshotConfPath, generatedConfDirPath,
+                            clusterPerms);
+
+
     // add AM and provider specific artifacts to the resource map
     Map<String, LocalResource> providerResources;
     // standard AM resources
@@ -797,7 +825,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                    clusterSpec,
                                                    clusterDirectory,
                                                    generatedConfDirPath,
-                             clusterSecure
+                                                   clusterSecure
                                                   );
 
 
@@ -1314,7 +1342,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     if (live) {
       ApplicationReport instance = findInstance(name);
       if (instance == null) {
-        log.info("cluster {} not running");
+        log.info("cluster {} not running", name);
         return EXIT_FALSE;
       } else {
         // the app exists, but it may be in a terminated state
@@ -1324,7 +1352,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
           instance.getYarnApplicationState();
         if (state.ordinal() >= YarnApplicationState.FINISHED.ordinal()) {
           //cluster in the list of apps but not running
-          log.info("Cluster {} found but is in state {}", state);
+          log.info("Cluster {} found but is in state {}", name, state);
           log.debug("State {}", report);
           return EXIT_FALSE;
         }
@@ -1787,11 +1815,37 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     return exitCode;
   }
 
+
   /**
-   * Connect to a live cluster and get its current state
-   * @param clustername the cluster name
-   * @return its description
+   * Load the persistent cluster description
+   * @param clustername name of the cluster
+   * @return the description in the filesystem
+   * @throws IOException any problems loading -including a missing file
    */
+  @VisibleForTesting
+  public ClusterDescription loadPersistedClusterDescription(String clustername) throws
+                                                                                IOException {
+    Path clusterDirectory = hoyaFileSystem.buildHoyaClusterDirPath(clustername);
+    Path clusterSpecPath =
+      new Path(clusterDirectory, HoyaKeys.CLUSTER_SPECIFICATION_FILE);
+    return ClusterDescription.load(hoyaFileSystem.getFileSystem(), clusterSpecPath);
+  }
+
+  /**
+   * Load the persistent cluster description
+   * @return the description in the filesystem
+   * @throws IOException any problems loading -including a missing file
+   */
+  @VisibleForTesting
+  public ClusterDescription loadPersistedClusterDescription() throws IOException {
+    return loadPersistedClusterDescription(deployedClusterName);
+  }
+
+    /**
+     * Connect to a live cluster and get its current state
+     * @param clustername the cluster name
+     * @return its description
+     */
   @VisibleForTesting
   public ClusterDescription getClusterDescription(String clustername) throws
                                                                  YarnException,

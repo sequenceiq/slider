@@ -16,16 +16,29 @@
  * limitations under the License.
  */
 
-package org.apache.hoya.providers;
+package org.apache.hoya.providers.agent;
 
-/**
- * Placement values
- */
-public class PlacementPolicy {
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hoya.providers.ClientProvider;
+import org.apache.hoya.providers.HoyaProviderFactory;
+import org.apache.hoya.providers.ProviderService;
 
-  public static final int DEFAULT = 0;
-  public static final int EXCLUDE_FROM_FLEXING = 1;
-  public static final int NO_DATA_LOCALITY = 2;
-  public static final int ANTI_AFFINITY_REQUIRED = 4;
+public class AgentProviderFactory extends HoyaProviderFactory {
 
+  public AgentProviderFactory() {
+  }
+
+  public AgentProviderFactory(Configuration conf) {
+    super(conf);
+  }
+
+  @Override
+  public ClientProvider createClientProvider() {
+    return new AgentClientProvider(getConf());
+  }
+
+  @Override
+  public ProviderService createServerProvider() {
+    return new AgentProviderService();
+  }
 }

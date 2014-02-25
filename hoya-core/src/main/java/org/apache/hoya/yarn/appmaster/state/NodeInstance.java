@@ -18,10 +18,11 @@
 
 package org.apache.hoya.yarn.appmaster.state;
 
-import com.google.common.annotations.VisibleForTesting;
-
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
+import java.util.ListIterator;
 
 /**
  * A node instance -stores information about a node in the cluster.
@@ -32,7 +33,7 @@ public class NodeInstance {
 
   public final String hostname;
 
-  private final NodeEntry[] nodeEntries;
+  private final List<NodeEntry> nodeEntries;
 
   /**
    * Create an instance and the (empty) array of nodes
@@ -40,17 +41,22 @@ public class NodeInstance {
    */
   public NodeInstance(String hostname, int roles) {
     this.hostname = hostname;
-    nodeEntries = new NodeEntry[roles];
+    nodeEntries = new ArrayList<NodeEntry>(roles);
   }
 
   /**
    * Get the entry for a role -if present
    * @param role role index
    * @return the entry
-   * @throws ArrayIndexOutOfBoundsException if the role is out of range
+   * null if the role is out of range
    */
   public synchronized NodeEntry get(int role) {
-   return nodeEntries[role] ;
+    for (NodeEntry nodeEntry : nodeEntries) {
+      if (nodeEntry.index == role) {
+        return nodeEntry;
+      }
+    }
+    return null;
   }
   
   /**
@@ -60,10 +66,10 @@ public class NodeInstance {
    * @throws ArrayIndexOutOfBoundsException if the role is out of range
    */
   public synchronized NodeEntry getOrCreate(int role) {
-    NodeEntry entry = nodeEntries[role];
+    NodeEntry entry = get(role);
     if (entry == null) {
-      entry = new NodeEntry();
-      nodeEntries[role] = entry;
+      entry = new NodeEntry(role);
+      nodeEntries.add(entry);
     }
     return entry;
   }
@@ -78,16 +84,6 @@ public class NodeInstance {
     NodeEntry nodeEntry = get(role);
     return (nodeEntry != null ) ? nodeEntry.getActive() : 0;
   }
-  
-  /**
-   * Get a clone of the node entries; changes to it are
-   * not reflected, though they are if you edit the entries themselves
-   * @return a copy of the array
-   */
-  @VisibleForTesting
-  public synchronized NodeEntry[] cloneNodeEntries() {
-    return nodeEntries.clone();
-  }
 
   /**
    * Get the entry for a role -and remove it if present
@@ -96,12 +92,15 @@ public class NodeInstance {
    */
   public synchronized NodeEntry remove(int role) {
     NodeEntry nodeEntry = get(role);
-    nodeEntries[role] = null;
+    if (nodeEntry != null) {
+      nodeEntries.remove(nodeEntry);
+    }
     return nodeEntry;
   }
 
   public synchronized void set(int role, NodeEntry nodeEntry) {
-    nodeEntries[role] = nodeEntry;
+    remove(role);
+    nodeEntries.add(nodeEntry);
   }
 
   /**
@@ -111,14 +110,13 @@ public class NodeInstance {
    */
   public synchronized boolean purgeUnusedEntries(long absoluteTime) {
     boolean active = false;
-    for (int i = 0; i < nodeEntries.length; i++) {
-      NodeEntry entry = nodeEntries[i];
-      if (entry != null) {
-        if (entry.notUsedSince(absoluteTime)) {
-          nodeEntries[i] = null;
-        } else {
-          active = true;
-        }
+    ListIterator<NodeEntry> entries = nodeEntries.listIterator();
+    while (entries.hasNext()) {
+      NodeEntry entry = entries.next();
+      if (entry.notUsedSince(absoluteTime)) {
+        entries.remove();
+      } else {
+        active = true;
       }
     }
     return active;
@@ -136,12 +134,10 @@ public class NodeInstance {
   public String toFullString() {
     final StringBuilder sb =
       new StringBuilder(toString());
-    for (int i = 0; i < nodeEntries.length; i++) {
-      NodeEntry entry = nodeEntries[i];
-      sb.append(String.format("\n  [%02d]  ", i));
-      if (entry != null) {
+    int i = 0;
+    for (NodeEntry entry : nodeEntries) {
+      sb.append(String.format("\n  [%02d]  ", i++));
         sb.append(entry.toString());
-      }
     }
     return sb.toString();
   }
@@ -159,11 +155,8 @@ public class NodeInstance {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-
     NodeInstance that = (NodeInstance) o;
-
     return hostname.equals(that.hostname);
-
   }
 
   @Override

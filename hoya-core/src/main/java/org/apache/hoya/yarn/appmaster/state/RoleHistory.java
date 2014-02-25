@@ -86,7 +86,7 @@ public class RoleHistory {
    * For each role, lists nodes that are available for data-local allocation,
    ordered by more recently released - To accelerate node selection
    */
-  private LinkedList<NodeInstance> availableNodes[];
+  private Map<Integer, LinkedList<NodeInstance>> availableNodes;
 
   public RoleHistory(List<ProviderRole> providerRoles) {
     this.providerRoles = providerRoles;
@@ -104,26 +104,25 @@ public class RoleHistory {
   protected synchronized void reset() {
 
     nodemap = new NodeMap(roleSize);
-    availableNodes = new LinkedList[roleSize];
+    resetAvailableNodeLists();
 
     resetAvailableNodeLists();
     outstandingRequests = new OutstandingRequestTracker();
-    RoleStatus[] roleStats;
+    Map<Integer, RoleStatus> roleStats = new HashMap<Integer, RoleStatus>();
 
-    roleStats = new RoleStatus[roleSize];
 
     for (ProviderRole providerRole : providerRoles) {
       int index = providerRole.id;
-      if (index >= roleSize || index < 0) {
+      if (index < 0) {
         throw new ArrayIndexOutOfBoundsException("Provider " + providerRole
                                                  + " id is out of range");
       }
-      if (roleStats[index] != null) {
+      if (roleStats.get(index) != null) {
         throw new ArrayIndexOutOfBoundsException(
           providerRole.toString() + " id duplicates that of " +
-          roleStats[index]);
+          roleStats.get(index));
       }
-      roleStats[index] = new RoleStatus(providerRole);
+      roleStats.put(index, new RoleStatus(providerRole));
     }
   }
 
@@ -131,9 +130,7 @@ public class RoleHistory {
    * Clear the lists of available nodes
    */
   private synchronized void resetAvailableNodeLists() {
-    for (int i = 0; i < roleSize; i++) {
-      availableNodes[i] = new LinkedList<NodeInstance>();
-    }
+    availableNodes = new HashMap<Integer, LinkedList<NodeInstance>>(roleSize);
   }
 
   /**
@@ -381,7 +378,7 @@ public class RoleHistory {
       for (int i = 0; i < roleSize; i++) {
         NodeEntry nodeEntry = ni.get(i);
         if (nodeEntry != null && nodeEntry.isAvailable()) {
-          availableNodes[i].add(ni);
+          getOrCreateNodesForRoleId(i).add(ni);
         }
       }
     }
@@ -392,11 +389,38 @@ public class RoleHistory {
   }
 
   /**
+   * Get the nodes for an ID -may be null
+   * @param id role ID
+   * @return list
+   */
+  private LinkedList<NodeInstance> getNodesForRoleId(int id) {
+    return availableNodes.get(id);
+  }
+  
+  /**
+   * Get the nodes for an ID -may be null
+   * @param id role ID
+   * @return list
+   */
+  private LinkedList<NodeInstance> getOrCreateNodesForRoleId(int id) {
+    LinkedList<NodeInstance> instances = availableNodes.get(id);
+    if (instances==null) {
+      instances = new LinkedList<NodeInstance>();
+      availableNodes.put(id, instances);
+    }
+    return instances;
+  }
+  
+  
+  /**
    * Sort an available node list
    * @param role role to sort
    */
   private void sortAvailableNodeList(int role) {
-    Collections.sort(availableNodes[role], new NodeInstance.newerThan(role));
+    List<NodeInstance> nodesForRoleId = getNodesForRoleId(role);
+    if (nodesForRoleId != null) {
+      Collections.sort(nodesForRoleId, new NodeInstance.newerThan(role));
+    }
   }
 
   public synchronized void onAMRestart() {
@@ -410,15 +434,15 @@ public class RoleHistory {
    */
   @VisibleForTesting
   public synchronized NodeInstance findNodeForNewInstance(RoleStatus role) {
-    if (role.getNoDataLocality()) return null;
+    if (role.getNoDataLocality()) {
+      return null;
+    }
     int roleKey = role.getKey();
-    assert role.getKey() < roleSize;
     NodeInstance nodeInstance = null;
     
-    List<NodeInstance> targets = availableNodes[roleKey];
-    while (!targets.isEmpty() && nodeInstance == null) {
+    List<NodeInstance> targets = getNodesForRoleId(roleKey);
+    while (targets != null && !targets.isEmpty() && nodeInstance == null) {
       NodeInstance head = targets.remove(0);
-      ;
       if (head.getActiveRoleInstances(roleKey) == 0) {
         nodeInstance = head;
       }
@@ -540,7 +564,7 @@ public class RoleHistory {
         hosts = outstandingRequests.cancelOutstandingRequests(role);
       if (!hosts.isEmpty()) {
         //add the list
-        availableNodes[role].addAll(hosts);
+        getOrCreateNodesForRoleId(role).addAll(hosts);
         sortAvailableNodeList(role);
       }
     }
@@ -661,7 +685,7 @@ public class RoleHistory {
       NodeInstance ni = getOrCreateNodeInstance(container);
       int roleId = ContainerPriority.extractRole(container);
       log.debug("Node {} is now available for role id {}", ni, roleId);
-      availableNodes[roleId].addFirst(ni);
+      getOrCreateNodesForRoleId(roleId).addFirst(ni);
     }
     return available;
   }
@@ -672,8 +696,10 @@ public class RoleHistory {
   public synchronized void dump() {
     for (ProviderRole role : providerRoles) {
       log.info(role.toString());
-      log.info("  available: " + availableNodes[role.id].size()
-               + " " + HoyaUtils.joinWithInnerSeparator(", ", availableNodes[role.id]));
+      List<NodeInstance> instances =
+        getOrCreateNodesForRoleId(role.id);
+      log.info("  available: " + instances.size()
+               + " " + HoyaUtils.joinWithInnerSeparator(", ", instances));
     }
 
     log.info("Nodes in Cluster: {}", getClusterSize());
@@ -689,7 +715,7 @@ public class RoleHistory {
    */
   @VisibleForTesting
   public List<NodeInstance> cloneAvailableList(int role) {
-    return new LinkedList<NodeInstance>(availableNodes[role]);
+    return new LinkedList<NodeInstance>(getOrCreateNodesForRoleId(role));
   }
 
   /**

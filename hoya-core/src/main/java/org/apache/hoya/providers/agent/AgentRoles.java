@@ -16,16 +16,35 @@
  * limitations under the License.
  */
 
-package org.apache.hoya.providers;
+package org.apache.hoya.providers.agent;
 
-/**
- * Placement values
- */
-public class PlacementPolicy {
+import org.apache.hoya.HoyaKeys;
+import org.apache.hoya.providers.ProviderRole;
 
-  public static final int DEFAULT = 0;
-  public static final int EXCLUDE_FROM_FLEXING = 1;
-  public static final int NO_DATA_LOCALITY = 2;
-  public static final int ANTI_AFFINITY_REQUIRED = 4;
+import java.util.ArrayList;
+import java.util.List;
 
+public class AgentRoles {
+
+  /**
+   * List of roles
+   */
+  protected static final List<ProviderRole> ROLES =
+    new ArrayList<ProviderRole>();
+
+  public static final int KEY_NODE =
+                                 HoyaKeys.ROLE_HOYA_AM_PRIORITY_INDEX + 1;
+    /**
+     * Initialize role list
+     */
+/*
+    static {
+      ROLES.add(new ProviderRole(AgentKeys.ROLE_NODE, KEY_NODE));
+  }
+*/
+
+
+  public static List<ProviderRole> getRoles() {
+    return ROLES;
+  }
 }

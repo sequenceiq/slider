@@ -19,7 +19,6 @@
 package org.apache.hoya.tools;
 
 import com.google.common.base.Preconditions;
-import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -71,6 +70,16 @@ public class HoyaFileSystem {
   }
 
   /**
+   * Get the temp path for this cluster
+   * @param clustername name of the cluster
+   * @return path for temp files (is not purged)
+   */
+  public Path getTempPathForCluster(String clustername) {
+    Path clusterDir = buildHoyaClusterDirPath(clustername);
+    return new Path(clusterDir, HoyaKeys.HOYA_TMP_DIR_PREFIX);
+  }
+
+  /**
    * Returns the underlying FileSystem for this object.
    *
    * @return filesystem
@@ -87,6 +96,9 @@ public class HoyaFileSystem {
    * @return the path for persistent data
    */
   public Path buildHoyaClusterDirPath(String clustername) {
+    if (clustername == null) {
+      throw new NullPointerException();
+    }
     Path hoyaPath = getBaseHoyaPath();
     return new Path(hoyaPath, HoyaKeys.CLUSTER_DIRECTORY + "/" + clustername);
   }
@@ -195,13 +207,12 @@ public class HoyaFileSystem {
    * It does this by creating then deleting a temp file
    *
    * @param dirPath actual directory to look for
-   * @throws java.io.IOException                                 trouble with FS
-   * @throws org.apache.hoya.exceptions.BadClusterStateException if the directory is not writeable
+   * @throws FileNotFoundException file not found
+   * @throws IOException  trouble with FS
+   * @throws BadClusterStateException if the directory is not writeable
    */
   public void verifyDirectoryWriteAccess(Path dirPath) throws IOException, HoyaException {
-    if (!fileSystem.exists(dirPath)) {
-      throw new FileNotFoundException(dirPath.toString());
-    }
+    verifyPathExists(dirPath);
     Path tempFile = new Path(dirPath, "tmp-file-for-checks");
     try {
       FSDataOutputStream out = null;
@@ -216,19 +227,44 @@ public class HoyaFileSystem {
   }
 
   /**
+   * Verify that a path exists
+   * @param path path to check
+   * @throws FileNotFoundException file not found
+   * @throws IOException  trouble with FS
+   */
+  public void verifyPathExists(Path path) throws IOException {
+    if (!fileSystem.exists(path)) {
+      throw new FileNotFoundException(path.toString());
+    }
+  }
+
+  /**
+   * Verify that a path exists
+   * @param path path to check
+   * @throws FileNotFoundException file not found or is not a file
+   * @throws IOException  trouble with FS
+   */
+  public void verifyFileExists(Path path) throws IOException {
+    FileStatus status = fileSystem.getFileStatus(path);
+
+    if (!status.isFile()) {
+      throw new FileNotFoundException("Not a file: " + path.toString());
+    }
+  }
+
+  /**
    * Create the application-instance specific temporary directory
    * in the DFS
    *
    * @param clustername name of the cluster
-   * @param appID       application ID
+   * @param subdir       application ID
    * @return the path; this directory will already have been created
    */
   public Path createHoyaAppInstanceTempPath(String clustername,
-                                            String appID) throws
+                                            String subdir) throws
           IOException {
-    Path hoyaPath = getBaseHoyaPath();
-    Path tmp = HoyaUtils.getTempPathForCluster(clustername, hoyaPath);
-    Path instancePath = new Path(tmp, appID);
+    Path tmp = getTempPathForCluster(clustername);
+    Path instancePath = new Path(tmp, subdir);
     fileSystem.mkdirs(instancePath);
     return instancePath;
   }
@@ -242,8 +278,7 @@ public class HoyaFileSystem {
    */
   public Path purgeHoyaAppInstanceTempFiles(String clustername) throws
           IOException {
-    Path hoyaPath = getBaseHoyaPath();
-    Path tmp = HoyaUtils.getTempPathForCluster(clustername, hoyaPath);
+    Path tmp = getTempPathForCluster(clustername);
     fileSystem.delete(tmp, true);
     return tmp;
   }
@@ -255,7 +290,12 @@ public class HoyaFileSystem {
    */
   public Path getBaseHoyaPath() {
     String configuredHoyaBasePath = configuration.get(HoyaXmlConfKeys.KEY_BASE_HOYA_PATH);
-    return configuredHoyaBasePath != null ? new Path(configuredHoyaBasePath) : new Path(fileSystem.getHomeDirectory(), ".hoya");
+    return configuredHoyaBasePath != null ? new Path(configuredHoyaBasePath) :
+           new Path(getHomeDirectory(), ".hoya");
+  }
+
+  public Path getHomeDirectory() {
+    return fileSystem.getHomeDirectory();
   }
 
   /**

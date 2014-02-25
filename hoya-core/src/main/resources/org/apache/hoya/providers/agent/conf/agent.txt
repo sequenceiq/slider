@@ -15,17 +15,5 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.apache.hoya.providers;
-
-/**
- * Placement values
- */
-public class PlacementPolicy {
-
-  public static final int DEFAULT = 0;
-  public static final int EXCLUDE_FROM_FLEXING = 1;
-  public static final int NO_DATA_LOCALITY = 2;
-  public static final int ANTI_AFFINITY_REQUIRED = 4;
-
-}
+ 
+This is the conf directory for the python agent

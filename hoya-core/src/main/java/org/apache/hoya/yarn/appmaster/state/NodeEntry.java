@@ -36,6 +36,13 @@ package org.apache.hoya.yarn.appmaster.state;
  Accesses are synchronized.
  */
 public class NodeEntry {
+  
+  public final int index;
+
+  public NodeEntry(int index) {
+    this.index = index;
+  }
+
   /**
    * instance explicitly requested on this node: it's OK if an allocation
    * comes in that has not been (and when that happens, this count should 

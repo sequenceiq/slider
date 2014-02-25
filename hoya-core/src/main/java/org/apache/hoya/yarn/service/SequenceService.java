@@ -69,8 +69,6 @@ public class SequenceService extends AbstractService implements Parent,
        addService(service);
      }
   }
-  
-  
 
   /**
    * Get the current service -which may be null

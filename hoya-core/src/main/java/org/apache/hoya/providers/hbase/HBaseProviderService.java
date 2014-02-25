@@ -43,6 +43,7 @@ import org.apache.hadoop.hbase.zookeeper.MasterAddressTracker;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hoya.HostAndPort;
@@ -139,12 +140,13 @@ public class HBaseProviderService extends AbstractProviderService implements
   
   @Override  // server
   public void buildContainerLaunchContext(ContainerLaunchContext ctx,
+                                          Container container,
+                                          String role,
                                           HoyaFileSystem hoyaFileSystem,
                                           Path generatedConfPath,
-                                          String role,
                                           ClusterDescription clusterSpec,
-                                          Map<String, String> roleOptions
-                                         ) throws
+                                          Map<String, String> roleOptions,
+                                          Path containerTmpDirPath) throws
                                            IOException,
                                            HoyaException {
     // Set the environment

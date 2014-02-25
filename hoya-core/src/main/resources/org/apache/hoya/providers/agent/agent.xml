@@ -18,21 +18,21 @@
   ~  limitations under the License.
   -->
 
+  <!--
+  These are the default cluster options for an agent
+  -->
 <configuration>
+
   <property>
-    <name>hoya.config.loaded</name>
-    <value>true</value>
+    <name>agent.controller.url</name>
+    <value>http://localhost:8080/</value>
   </property>
+
+
   <property>
-    <name>hoya.provider.hbase</name>
-    <value>org.apache.hoya.providers.hbase.HBaseProviderFactory</value>
+    <name>agent.cache.path</name>
+    <value>/var/lib/ambari-agent/cache/stacks/HDP/2.0.6/</value>
   </property>
-  <property>
-    <name>hoya.provider.accumulo</name>
-    <value>org.apache.hoya.providers.accumulo.AccumuloProviderFactory</value>
-  </property>
-  <property>
-    <name>hoya.provider.agent</name>
-    <value>org.apache.hoya.providers.agent.AgentProviderFactory</value>
-  </property>
+
+
 </configuration>

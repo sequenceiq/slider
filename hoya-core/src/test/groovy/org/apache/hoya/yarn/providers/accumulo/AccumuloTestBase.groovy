@@ -34,8 +34,9 @@ import static org.apache.hoya.yarn.HoyaActions.*;
 import static org.apache.hoya.testtools.HoyaTestUtils.*
 import static org.apache.hoya.HoyaXMLConfKeysForTesting.*
 import static org.apache.hoya.providers.accumulo.AccumuloKeys.*
+
 /**
- * test base for all hbase clusters
+ * test base for accumulo clusters
  */
 @CompileStatic
 @Slf4j

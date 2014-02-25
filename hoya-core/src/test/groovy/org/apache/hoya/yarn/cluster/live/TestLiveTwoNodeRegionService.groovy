@@ -49,7 +49,7 @@ class TestLiveTwoNodeRegionService extends HBaseMiniClusterTestBase {
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
     ClusterDescription status = hoyaClient.getClusterDescription(clustername)
-    log.info("${status.toJsonString()}")
+    dumpClusterDescription("initial status", status)
     assert ZKHosts == status.zkHosts
     assert ZKPort == status.zkPort
 
@@ -61,8 +61,14 @@ class TestLiveTwoNodeRegionService extends HBaseMiniClusterTestBase {
 
     //now log the final status
     status = hoyaClient.getClusterDescription(clustername)
-    log.info("${status.toJsonString()}")
+    
+    dumpClusterDescription("final status", status)
 
+    String hoyaRootPage = hoyaClient.applicationReport.originalTrackingUrl
+    assert hoyaRootPage
+    log.info("Hoya root = ${hoyaRootPage}")
+    def page = fetchWebPage(hoyaRootPage)
+    log.info(page)
   }
 
 }
