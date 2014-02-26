@@ -19,6 +19,7 @@
 package org.apache.hoya.providers.hbase;
 
 
+import com.google.common.base.Preconditions;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -28,10 +29,10 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Abortable;
@@ -68,7 +69,6 @@ import org.apache.hoya.tools.HoyaUtils;
 import org.apache.hoya.yarn.service.EventCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.google.common.base.Preconditions;
 
 /**
  * This class implements the server-side aspects
@@ -405,8 +405,8 @@ public class HBaseProviderService extends AbstractProviderService implements
    * @see org.apache.hoya.providers.ProviderService#buildMonitorDetails()
    */
   @Override
-  public Map<String,URL> buildMonitorDetails(ClusterDescription clusterDesc) {
-    Map<String,URL> map = new HashMap<String,URL>();
+  public TreeMap<String,URL> buildMonitorDetails(ClusterDescription clusterDesc) {
+    TreeMap<String,URL> map = new TreeMap<String,URL>();
     
     map.put("Active HBase Master (RPC): " + getInfoAvoidingNull(clusterDesc, StatusKeys.INFO_MASTER_ADDRESS), null);
 

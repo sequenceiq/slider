@@ -18,22 +18,19 @@
 
 package org.apache.hoya.providers.accumulo;
 
-import java.net.MalformedURLException;
-
 import com.google.common.net.HostAndPort;
-import java.net.URL;
-import org.apache.hoya.api.StatusKeys;
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -67,7 +64,6 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.google.common.base.Preconditions;
 
 /**
  * Server-side accumulo provider
@@ -448,8 +444,8 @@ public class AccumuloProviderService extends AbstractProviderService implements
    * @see org.apache.hoya.providers.ProviderService#buildMonitorDetails()
    */
   @Override
-  public Map<String,URL> buildMonitorDetails(ClusterDescription clusterDesc) {
-    Map<String,URL> map = new HashMap<String,URL>();
+  public TreeMap<String,URL> buildMonitorDetails(ClusterDescription clusterDesc) {
+    TreeMap<String,URL> map = new TreeMap<String,URL>();
     
     map.put("Active Accumulo Master (RPC): " + getInfoAvoidingNull(clusterDesc, AccumuloKeys.MASTER_ADDRESS), null);
     
