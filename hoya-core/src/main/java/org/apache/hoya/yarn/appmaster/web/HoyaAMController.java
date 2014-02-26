@@ -16,14 +16,14 @@
  */
 package org.apache.hoya.yarn.appmaster.web;
 
-import java.util.Map;
+import org.apache.hoya.yarn.appmaster.web.layout.ClusterSpecificationView;
 
+import java.util.Map;
 import org.apache.hadoop.yarn.webapp.Controller;
 import org.apache.hoya.yarn.appmaster.web.layout.AppLayout;
 import org.apache.hoya.yarn.appmaster.web.layout.ContainerStatsView;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import com.google.inject.Inject;
 
 /**
@@ -55,6 +55,12 @@ public class HoyaAMController extends Controller {
     updateAppState();
     
     render(ContainerStatsView.class);
+  }
+  
+  public void specification() {
+    setTitle("Hoya Cluster Specification");
+    
+    render(ClusterSpecificationView.class);
   }
 
   private void updateAppState() {

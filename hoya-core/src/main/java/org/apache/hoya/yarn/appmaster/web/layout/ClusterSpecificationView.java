@@ -14,24 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hoya.yarn.appmaster.web.view;
+package org.apache.hoya.yarn.appmaster.web.layout;
 
-import org.apache.hadoop.yarn.webapp.view.HtmlBlock;
-import org.apache.hoya.yarn.appmaster.web.HoyaAMWebApp;
+import org.apache.hadoop.yarn.webapp.SubView;
+import org.apache.hoya.yarn.appmaster.web.view.ClusterSpecificationBlock;
 
 /**
  * 
  */
-public class HoyaNavBlock extends HtmlBlock {
+public class ClusterSpecificationView extends HoyaLayout {
 
   @Override
-  protected void render(Block html) {
-    html.
-      div("#nav").
-        h3("Hoya").
-        ul().
-          li().a(this.prefix(), "Overview")._().
-          li().a(this.prefix() + HoyaAMWebApp.CONTAINER_STATS, "Statistics")._().
-          li().a(this.prefix() + HoyaAMWebApp.CLUSTER_SPEC, "Specification")._()._()._();
+  protected Class<? extends SubView> content() {
+    return ClusterSpecificationBlock.class;
   }
+  
 }

@@ -21,37 +21,31 @@ import com.google.inject.Guice
 import com.google.inject.Injector
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import org.apache.hadoop.yarn.api.records.Container
-import org.apache.hadoop.yarn.api.records.Priority
 import org.apache.hadoop.yarn.webapp.hamlet.Hamlet
+import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.HoyaClusterProtocol
 import org.apache.hoya.providers.ProviderService
+import org.apache.hoya.yarn.appmaster.state.AbstractRecordFactory
 import org.apache.hoya.yarn.appmaster.state.AppState
 import org.apache.hoya.yarn.appmaster.web.WebAppApi
 import org.apache.hoya.yarn.appmaster.web.WebAppApiImpl
 import org.apache.hoya.yarn.model.mock.MockAppState
-import org.apache.hoya.yarn.model.mock.MockContainer
-import org.apache.hoya.yarn.model.mock.MockContainerId
 import org.apache.hoya.yarn.model.mock.MockHoyaClusterProtocol
-import org.apache.hoya.yarn.model.mock.MockNodeId
 import org.apache.hoya.yarn.model.mock.MockProviderService
 import org.apache.hoya.yarn.model.mock.MockRecordFactory
-import org.apache.hoya.yarn.model.mock.MockResource
 import org.junit.Before
 import org.junit.Test
 
 @Slf4j
 @CompileStatic
-public class TestIndexBlock {
+public class TestClusterSpecificationBlock {
 
-  private IndexBlock indexBlock;
-
-  private Container cont1, cont2;
+  private ClusterSpecificationBlock clusterSpecBlock;
 
   @Before
   public void setup() {
     HoyaClusterProtocol clusterProto = new MockHoyaClusterProtocol();
-    AppState appState = new MockAppState(new MockRecordFactory());
+    AppState appState = new MyAppState(new MockRecordFactory());
     ProviderService providerService = new MockProviderService();
 
     WebAppApiImpl inst = new WebAppApiImpl(clusterProto, appState, providerService);
@@ -63,33 +57,34 @@ public class TestIndexBlock {
           }
         });
 
-    indexBlock = injector.getInstance(IndexBlock.class);
-
-    cont1 = new MockContainer();
-    cont1.id = new MockContainerId();
-    ((MockContainerId) cont1.id).setId(0);
-    cont1.nodeId = new MockNodeId();
-    cont1.priority = Priority.newInstance(1);
-    cont1.resource = new MockResource();
-
-    cont2 = new MockContainer();
-    cont2.id = new MockContainerId();
-    ((MockContainerId) cont2.id).setId(1);
-    cont2.nodeId = new MockNodeId();
-    cont2.priority = Priority.newInstance(1);
-    cont2.resource = new MockResource();
+    clusterSpecBlock = injector.getInstance(ClusterSpecificationBlock.class);
   }
 
   @Test
-  public void testIndex() {
+  public void testJsonGeneration() {
     StringWriter sw = new StringWriter(64);
     PrintWriter pw = new PrintWriter(sw);
 
     Hamlet hamlet = new Hamlet(pw, 0, false);
     
     int level = hamlet.nestLevel();
-    indexBlock.doIndex(hamlet, "accumulo");
+    clusterSpecBlock.doRender(hamlet);
     
     assert level == hamlet.nestLevel();
   }
+  
+  private static class MyAppState extends MockAppState {
+    public MyAppState(AbstractRecordFactory recordFactory) {
+      super(recordFactory);
+      this.clusterDescription = new MockClusterDescription();
+    }
+  }
+  
+  private static class MockClusterDescription extends ClusterDescription {
+    @Override
+    public String toJsonString() {
+      return "{\"foo\": \"bar\"}";
+    }
+  }
+
 }

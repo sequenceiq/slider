@@ -14,24 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hoya.yarn.appmaster.web.view;
 
-import org.apache.hadoop.yarn.webapp.view.HtmlBlock;
-import org.apache.hoya.yarn.appmaster.web.HoyaAMWebApp;
+package org.apache.hoya.yarn.model.mock
 
-/**
- * 
- */
-public class HoyaNavBlock extends HtmlBlock {
+import org.apache.hoya.yarn.appmaster.state.AbstractRecordFactory;
+import org.apache.hoya.yarn.appmaster.state.AppState
 
-  @Override
-  protected void render(Block html) {
-    html.
-      div("#nav").
-        h3("Hoya").
-        ul().
-          li().a(this.prefix(), "Overview")._().
-          li().a(this.prefix() + HoyaAMWebApp.CONTAINER_STATS, "Statistics")._().
-          li().a(this.prefix() + HoyaAMWebApp.CLUSTER_SPEC, "Specification")._()._()._();
+class MockAppState extends AppState {
+
+  public MockAppState(AbstractRecordFactory recordFactory) {
+    super(recordFactory);
   }
+
 }
