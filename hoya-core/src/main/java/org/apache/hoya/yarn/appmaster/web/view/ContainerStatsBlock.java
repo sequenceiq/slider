@@ -132,11 +132,12 @@ public class ContainerStatsBlock extends HtmlBlock {
               
               if (containerInstances.containsKey(containerId)) {
                 RoleInstance roleInst = containerInstances.get(containerId);
-                return Maps.<TableContent,String> immutableEntry(
+                if (roleInst.container.getNodeHttpAddress() != null) {
+                  return Maps.<TableContent,String> immutableEntry(
                     new TableAnchorContent(containerId, buildNodeUrlForContainer(roleInst.container.getNodeHttpAddress(), containerId)), null);
-              } else {
-                return Maps.immutableEntry(new TableContent(input.name), null);
+                }
               }
+              return Maps.immutableEntry(new TableContent(input.name), null);
             }
 
           }));
