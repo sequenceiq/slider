@@ -85,7 +85,7 @@ class TestAccumuloAMWebApp extends AccumuloTestBase {
     
     ApplicationReport appReport = hoyaClient.getApplicationReport();
     
-    String url = "http://" + appReport.getTrackingUrl();
+    String url = appReport.getTrackingUrl();
     
     // Should redirect to (or at least serve content from) HoyaAMWebApp.BASE_PATH 
     fetchWebPageWithoutError(url);
