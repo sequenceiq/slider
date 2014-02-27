@@ -720,6 +720,20 @@ public class ClusterDescription implements Cloneable {
     return info.get(key);
   }
 
+  /**
+   * Get an information string. This is content that is only valid in status
+   * reports.
+   * @param key key
+   * @return the value or null
+   */
+  @JsonIgnore
+  public boolean getInfoBool(String key) {
+    String val = info.get(key);
+    if (val != null) {
+      return Boolean.valueOf(val);
+    }
+    return false;
+  }
 
   @JsonIgnore
   public String getZkHosts() throws BadConfigException {

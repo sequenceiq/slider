@@ -22,6 +22,7 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hoya.api.ClusterDescription
+import org.apache.hoya.api.StatusKeys
 import org.apache.hoya.yarn.client.HoyaClient
 import org.apache.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
@@ -55,12 +56,15 @@ class TestLiveTwoNodeRegionService extends HBaseMiniClusterTestBase {
 
     ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient)
 
-    status = waitForHoyaWorkerCount(hoyaClient, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+    waitForHoyaWorkerCount(hoyaClient, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     //get the hbase status
     waitForHBaseRegionServerCount(hoyaClient, clustername, regionServerCount, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
     //now log the final status
     status = hoyaClient.getClusterDescription(clustername)
+    // look for the restarting info 
+    def restarting = status.getInfoBool(StatusKeys.INFO_AM_RESTART_SUPPORTED)
+    
     
     dumpClusterDescription("final status", status)
 

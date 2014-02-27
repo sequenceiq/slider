@@ -114,7 +114,7 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
     sleep(10000)
 
     // policy here depends on YARN behavior
-    if (!status.AMRestartSupported) {
+    if (!status.getInfoBool(StatusKeys.INFO_AM_RESTART_SUPPORTED)) {
       // kill hbase masters for OS/X tests to pass
       killAllMasterServers();
       // expect hbase connection to have failed

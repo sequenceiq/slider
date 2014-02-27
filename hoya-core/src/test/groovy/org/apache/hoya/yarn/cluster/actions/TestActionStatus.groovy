@@ -44,7 +44,7 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
   @Before
   public void setup() {
     super.setup()
-    createMiniCluster("TestActionStatus", getConfiguration(), 1, false)
+    createMiniCluster("test_action_status", configuration, 1, false)
   }
 
   @Test
@@ -60,7 +60,7 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
           //varargs list of command line params
           [
               ClientArgs.ACTION_STATUS,
-              "testStatusMissingCluster",
+              "test_status_missing_cluster",
               Arguments.ARG_MANAGER, RMAddr
           ]
       )
@@ -79,13 +79,18 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
     //launch the cluster
     ServiceLauncher launcher = createMasterlessAM(clustername, 0, true, false)
 
-    ApplicationReport report = waitForClusterLive((HoyaClient)launcher.service)
+    ApplicationReport report = waitForClusterLive(launcher.service)
 
     //do the low level operations to get a better view of what is going on 
     HoyaClient hoyaClient = (HoyaClient) launcher.service
-    
+
+    //now look for the explicit sevice
+
+    int status = hoyaClient.actionStatus(clustername, null)
+    assert status == HoyaExitCodes.EXIT_SUCCESS
+
     //now exec the status command
-    ServiceLauncher stausLauncher = launchHoyaClientAgainstMiniMR(
+    ServiceLauncher statusLauncher = launchHoyaClientAgainstMiniMR(
         //config includes RM binding info
         new YarnConfiguration(miniCluster.config),
         //varargs list of command line params
@@ -96,15 +101,10 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
         ]
         
     )
-    assert stausLauncher.serviceExitCode == 0
-    //now look for the explicit sevice
+    assert statusLauncher.serviceExitCode == 0
 
-    int status = hoyaClient.actionStatus(clustername, null)
-    assert status == HoyaExitCodes.EXIT_SUCCESS
-    
-    
     //status to a file
-    File tfile = new File("target/"+clustername + "/status.json")
+    File tfile = new File("target/" + clustername + "/status.json")
     hoyaClient.actionStatus(clustername, tfile.absolutePath)
     def text = tfile.text
     ClusterDescription cd = new ClusterDescription();
@@ -112,7 +112,7 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
     
     //status to a file via the command line :  bin/hoya status cl1 --out file.json
     String path = "target/cluster.json"
-    stausLauncher = launchHoyaClientAgainstMiniMR(
+    statusLauncher = launchHoyaClientAgainstMiniMR(
         //config includes RM binding info
         new YarnConfiguration(miniCluster.config),
         //varargs list of command line params
@@ -123,7 +123,7 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
             Arguments.ARG_OUTPUT, path
         ]
     )
-    assert stausLauncher.serviceExitCode == 0
+    assert statusLauncher.serviceExitCode == 0
     tfile = new File(path)
     ClusterDescription cd2 = new ClusterDescription();
     cd2.fromJson(text)

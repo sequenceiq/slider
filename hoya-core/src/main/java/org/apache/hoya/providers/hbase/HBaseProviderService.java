@@ -67,6 +67,7 @@ import org.apache.hoya.tools.ConfigHelper;
 import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
 import org.apache.hoya.yarn.service.EventCallback;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -365,15 +366,19 @@ public class HBaseProviderService extends AbstractProviderService implements
    */
   public Map<String, String> buildProviderStatus() {
     Map<String, String> stats = new HashMap<String, String>();
-    if (siteConf != null && masterTracker != null) {
-      ServerName sn = masterTracker.getMasterAddress(true);
-      log.info("getMasterAddress " + sn + ", quorum="
-                + siteConf.get(HBaseConfigFileOptions.KEY_ZOOKEEPER_QUORUM));
-      if (sn == null) {
-        return stats;
+    try {
+      if (siteConf != null && masterTracker != null) {
+        ServerName sn = masterTracker.getMasterAddress(true);
+        log.info("getMasterAddress " + sn + ", quorum="
+                  + siteConf.get(HBaseConfigFileOptions.KEY_ZOOKEEPER_QUORUM));
+        if (sn == null) {
+          return stats;
+        }
+        HostAndPort hostAndPort = new HostAndPort(sn.getHostname(), sn.getPort());
+        stats.put(StatusKeys.INFO_MASTER_ADDRESS, hostAndPort.toString());
       }
-      HostAndPort hostAndPort = new HostAndPort(sn.getHostname(), sn.getPort());
-      stats.put(StatusKeys.INFO_MASTER_ADDRESS, hostAndPort.toString());
+    } catch (Exception e) {
+      log.warn("Failed to retrieve master ports", e);
     }
     return stats;
   }

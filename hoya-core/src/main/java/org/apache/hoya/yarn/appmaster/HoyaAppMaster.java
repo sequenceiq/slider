@@ -55,7 +55,6 @@ import org.apache.hadoop.yarn.security.client.ClientToAMTokenSecretManager;
 import org.apache.hadoop.yarn.service.launcher.RunService;
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher;
 import org.apache.hadoop.yarn.util.ConverterUtils;
-import org.apache.hadoop.yarn.webapp.WebApp;
 import org.apache.hadoop.yarn.webapp.WebApps;
 import org.apache.hoya.HoyaExitCodes;
 import org.apache.hoya.HoyaKeys;
@@ -63,6 +62,7 @@ import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.HoyaClusterProtocol;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.RoleKeys;
+import org.apache.hoya.api.StatusKeys;
 import org.apache.hoya.api.proto.HoyaClusterAPI;
 import org.apache.hoya.api.proto.Messages;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
@@ -103,6 +103,7 @@ import org.apache.hoya.yarn.params.HoyaAMArgs;
 import org.apache.hoya.yarn.params.HoyaAMCreateAction;
 import org.apache.hoya.yarn.service.CompoundLaunchedService;
 import org.apache.hoya.yarn.service.EventCallback;
+import org.apache.hoya.yarn.service.HoyaServiceUtils;
 import org.apache.hoya.yarn.service.RpcService;
 import org.apache.hoya.yarn.service.WebAppService;
 import org.slf4j.Logger;
@@ -110,8 +111,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.ByteBuffer;
@@ -553,31 +552,10 @@ public class HoyaAppMaster extends CompoundLaunchedService
       }
 
       // extract container list
-      List<Container> liveContainers = null;
-      // AM-RESTART-SUPPORT
-      Method m = null;
-      String methName = "RegisterApplicationMasterResponse.getContainersFromPreviousAttempt()";
-      Class<? extends RegisterApplicationMasterResponse> cls = response.getClass();
-      try {
-        m = cls.getDeclaredMethod("getContainersFromPreviousAttempt", new Class<?>[] { });
-      } catch (NoSuchMethodException e) {
-        log.warn(methName + " not found");
-      } catch (SecurityException e) {
-        log.warn("No access to " + methName);
-      }
-      if (m != null) {
-        try {
-          Object obj = m.invoke(response, new Object []{});
-          if (obj instanceof List) {
-            liveContainers = (List<Container>) obj;
-            appState.setAMRestartSupported(true);
-          }
-        } catch (InvocationTargetException ite) {
-          log.error(methName + " got", ite);
-        } catch (IllegalAccessException iae) {
-          log.error(methName + " got", iae);
-        }
-      }
+      List<Container> liveContainers = HoyaServiceUtils.retrieveContainersFromPreviousAttempt(
+        response);
+      clusterSpec.setInfo(StatusKeys.INFO_AM_RESTART_SUPPORTED,
+                          Boolean.toString(liveContainers != null));
       //now validate the dir by loading in a hadoop-site.xml file from it
 
       Configuration providerConf =
