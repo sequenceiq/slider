@@ -38,6 +38,7 @@ import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.hoya.yarn.client.HoyaClient
 import org.apache.hoya.yarn.params.ActionAMSuicideArgs
 import org.apache.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
+import org.apache.hoya.yarn.service.HoyaServiceUtils
 import org.junit.Test
 
 /**
@@ -129,7 +130,8 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
         regionServerCount,
         HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
-    if (status.AMRestartSupported) {
+    if (status.getInfoBool(StatusKeys.INFO_AM_RESTART_SUPPORTED)
+        && HoyaServiceUtils.AMRestartInHadoopLibrary) {
 
       dumpClusterDescription("post-restart status", status)
       // verify the AM restart container count was set

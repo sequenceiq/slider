@@ -19,6 +19,7 @@
 package org.apache.hoya.yarn.service;
 
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
+import org.apache.hadoop.yarn.api.protocolrecords.impl.pb.RegisterApplicationMasterResponsePBImpl;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.slf4j.Logger;
@@ -103,6 +104,14 @@ public class HoyaServiceUtils {
     return liveContainers;
   }
 
+  /**
+   * Get the method to retrieve containers. The presence of this
+   * method indicates the Hadoop libraries are compiled with the
+   * extra fields, and that, if the client requested it, the AM
+   * will be given a list of existing containers on a restart
+   * @param response registration response
+   * @return a method or null if it is not present.
+   */
   public static Method extractRetrieveContainersMethod(
     RegisterApplicationMasterResponse response) {
     Method m = null;
@@ -116,5 +125,11 @@ public class HoyaServiceUtils {
       log.debug("No access to " + REGISTER_AM_RESPONSE);
     }
     return m;
+  }
+  
+  public static boolean isAMRestartInHadoopLibrary() {
+    RegisterApplicationMasterResponse response =
+      new RegisterApplicationMasterResponsePBImpl();
+    return null != extractRetrieveContainersMethod(response);
   }
 }
