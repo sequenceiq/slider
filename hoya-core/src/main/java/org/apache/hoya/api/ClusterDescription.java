@@ -159,8 +159,6 @@ public class ClusterDescription implements Cloneable {
    * This is where the data goes
    */
   public String dataPath;
-  
-  public boolean AMRestartSupported;
 
   /**
    * cluster-specific options -to control both
