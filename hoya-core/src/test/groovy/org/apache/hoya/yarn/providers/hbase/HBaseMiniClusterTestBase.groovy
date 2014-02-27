@@ -27,9 +27,10 @@ import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.ClusterNode
 import org.apache.hoya.api.RoleKeys
 import org.apache.hoya.yarn.client.HoyaClient
-import org.apache.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hoya.testtools.HBaseTestUtils
+import org.apache.hoya.yarn.cluster.YarnZKMiniClusterTestBase
+
 import static org.apache.hoya.yarn.Arguments.*
 import static org.apache.hoya.testtools.HoyaTestUtils.*
 import static org.apache.hoya.HoyaXMLConfKeysForTesting.*
@@ -39,7 +40,7 @@ import static org.apache.hoya.providers.hbase.HBaseKeys.*
  */
 @CompileStatic
 @Slf4j
-public abstract class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
+public abstract class HBaseMiniClusterTestBase extends YarnZKMiniClusterTestBase {
   public static final int HBASE_CLUSTER_STARTUP_TIME = HBASE_LAUNCH_WAIT_TIME
 
   /**
