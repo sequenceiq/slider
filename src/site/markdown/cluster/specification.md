@@ -41,7 +41,15 @@ truncated. Accordingly, this history was dropped.
 Having moved to Protocol Buffers as the IPC wire format, with a web view
 alongside, this history could be reconsidered.
 
+The initial design place most values into the root entry, and relied
+on Jaxon introspection to set and retrieve the values -it was a
+Java-first specification, with no external specificatin or regression tests.
 
+As the number of entries in the root increased, the design switched to storing
+more attributes into specific sections *under* the root path:
+
+* `info`: read-only information about the cluster.
+* `statistics`: Numeric statistics about the cluster
 
 # Sections
 
@@ -86,4 +94,57 @@ intended to be used for debugging and testing.
     "status.hadoop.build.info" : "2.3.0",
     "status.hadoop.deployed.info" : "bigwheel-m16-2.2.0 @704f1e463ebc4fb89353011407e965"
  
+ ## `statistics`
  
+ Statistics on each role. 
+ 
+ They can be divided into counters that only increase
+
+    "containers.start.completed": 0,
+    "containers.start.failed": 0,
+    "containers.failed": 0,
+    "containers.completed": 0,
+    "containers.requested": 0
+
+and those that vary depending upon the current state
+
+    "containers.live": 0,
+    "containers.active.requests": 0,
+    "containers.desired": 0,
+
+
+* Propose: move these values out of statistics into some other section, as they
+are state, not statistics*
+ 
+     "statistics": {
+       "worker": {
+         "containers.start.completed": 0,
+         "containers.live": 0,
+         "containers.start.failed": 0,
+         "containers.active.requests": 0,
+         "containers.failed": 0,
+         "containers.completed": 0,
+         "containers.desired": 0,
+         "containers.requested": 0
+       },
+       "hoya": {
+         "containers.unknown.completed": 0,
+         "containers.start.completed": 0,
+         "containers.live": 1,
+         "containers.start.failed": 0,
+         "containers.failed": 0,
+         "containers.completed": 0,
+         "containers.surplus": 0
+       },
+       "master": {
+         "containers.start.completed": 0,
+         "containers.live": 0,
+         "containers.start.failed": 0,
+         "containers.active.requests": 0,
+         "containers.failed": 0,
+         "containers.completed": 0,
+         "containers.desired": 0,
+         "containers.requested": 0
+       }
+     },
+    
