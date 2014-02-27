@@ -154,6 +154,13 @@ class HoyaTestUtils extends Assert {
   }
 
   /**
+   * Fails a test because required behavior has not been implemented.
+   */
+  public static void failNotImplemented() {
+    fail("Not implemented")
+  }
+
+  /**
    * Wait for the cluster live; fail if it isn't within the (standard) timeout
    * @param hoyaClient client
    * @return the app report of the live cluster

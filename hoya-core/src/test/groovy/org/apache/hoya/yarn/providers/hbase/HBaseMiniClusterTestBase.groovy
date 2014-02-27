@@ -142,6 +142,14 @@ public abstract class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
     return HBaseTestUtils.getHBaseClusterStatus(hoyaClient)
   }
 
+  public String getApplicationHomeKey() {
+    return KEY_HOYA_TEST_HBASE_HOME
+  }
+
+  public String getArchiveKey() {
+    return KEY_HOYA_TEST_HBASE_TAR
+  }
+
   /**
    * Create an HBase config to work with
    * @param hoyaClient hoya client
@@ -151,6 +159,56 @@ public abstract class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
    */
   public static Configuration createHBaseConfiguration(HoyaClient hoyaClient) {
     return HBaseTestUtils.createHBaseConfiguration(hoyaClient)
+  }
+
+  /**
+   * Create a full cluster with a master & the requested no. of region servers
+   * @param clustername cluster name
+   * @param size # of nodes
+   * @param extraArgs list of extra args to add to the creation command
+   * @param deleteExistingData should the data of any existing cluster
+   * of this name be deleted
+   * @param blockUntilRunning block until the AM is running
+   * @return launcher which will have executed the command.
+   */
+  public ServiceLauncher<HoyaClient> createHBaseCluster(String clustername,
+                                                        int size, List<String> extraArgs,
+                                                        boolean deleteExistingData,
+                                                        boolean blockUntilRunning) {
+    Map<String, Integer> roles = [
+        (ROLE_MASTER): 1,
+        (ROLE_WORKER): size,
+    ];
+    extraArgs << ARG_ROLEOPT << ROLE_MASTER << RoleKeys.YARN_MEMORY << YRAM
+    extraArgs << ARG_ROLEOPT << ROLE_WORKER << RoleKeys.YARN_MEMORY << YRAM
+    return createHoyaCluster(clustername,
+        roles,
+        extraArgs,
+        deleteExistingData,
+        blockUntilRunning,
+        [:])
+
+  }
+
+  /**
+   * Create an AM without a master
+   * @param clustername AM name
+   * @param size # of nodes
+   * @param deleteExistingData should any existing cluster data be deleted
+   * @param blockUntilRunning block until the AM is running
+   * @return launcher which will have executed the command.
+   */
+  public ServiceLauncher<HoyaClient> createMasterlessAM(String clustername, int size, boolean deleteExistingData, boolean blockUntilRunning) {
+    Map<String, Integer> roles = [
+        (ROLE_MASTER): 0,
+        (ROLE_WORKER): size,
+    ];
+    return createHoyaCluster(clustername,
+        roles,
+        [],
+        deleteExistingData,
+        blockUntilRunning,
+        [:])
   }
 
   public static ClusterStatus basicHBaseClusterStartupSequence(HoyaClient hoyaClient) {

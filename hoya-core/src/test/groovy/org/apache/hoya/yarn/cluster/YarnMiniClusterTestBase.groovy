@@ -38,12 +38,9 @@ import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
 import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.HoyaXmlConfKeys
 import org.apache.hoya.api.ClusterNode
-import org.apache.hoya.api.OptionKeys
-import org.apache.hoya.api.RoleKeys
 import org.apache.hoya.exceptions.ErrorStrings
 import org.apache.hoya.exceptions.HoyaException
 import org.apache.hoya.providers.hbase.HBaseConfigFileOptions
-import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.hoya.tools.*
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.HoyaActions
@@ -63,7 +60,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import static org.apache.hoya.HoyaXMLConfKeysForTesting.*
 import static org.apache.hoya.testtools.HoyaTestUtils.*
 import static org.apache.hoya.testtools.KeysForTests.*
-import static org.junit.Assert.fail
 
 /**
  * Base class for mini cluster tests -creates a field for the
@@ -420,53 +416,6 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
   }
 
   /**
-   * Create an AM without a master
-   * @param clustername AM name
-   * @param size # of nodes
-   * @param deleteExistingData should any existing cluster data be deleted
-   * @param blockUntilRunning block until the AM is running
-   * @return launcher which will have executed the command.
-   */
-  public ServiceLauncher<HoyaClient> createMasterlessAM(String clustername, int size, boolean deleteExistingData, boolean blockUntilRunning) {
-    Map<String, Integer> roles = [
-        (HBaseKeys.ROLE_MASTER): 0,
-        (HBaseKeys.ROLE_WORKER): size,
-    ];
-    return createHoyaCluster(clustername,
-                             roles,
-                             [],
-                             deleteExistingData,
-                             blockUntilRunning,
-                             [:])
-  }
-
-  /**
-   * Create a full cluster with a master & the requested no. of region servers
-   * @param clustername cluster name
-   * @param size # of nodes
-   * @param extraArgs list of extra args to add to the creation command
-   * @param deleteExistingData should the data of any existing cluster
-   * of this name be deleted
-   * @param blockUntilRunning block until the AM is running
-   * @return launcher which will have executed the command.
-   */
-  public ServiceLauncher<HoyaClient> createHBaseCluster(String clustername, int size, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
-    Map<String, Integer> roles = [
-        (HBaseKeys.ROLE_MASTER): 1,
-        (HBaseKeys.ROLE_WORKER): size,
-    ];
-    extraArgs << Arguments.ARG_ROLEOPT << HBaseKeys.ROLE_MASTER << RoleKeys.YARN_MEMORY << YRAM
-    extraArgs << Arguments.ARG_ROLEOPT << HBaseKeys.ROLE_WORKER << RoleKeys.YARN_MEMORY << YRAM
-    return createHoyaCluster(clustername,
-                             roles,
-                             extraArgs,
-                             deleteExistingData,
-                             blockUntilRunning,
-                             [:])
-
-  }
-
-  /**
    * Create a hoya cluster
    * @param clustername cluster name
    * @param roles map of rolename to count
@@ -573,8 +522,9 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
    * @return
    */
   public String getApplicationHomeKey() {
-    return KEY_HOYA_TEST_HBASE_HOME
+    failNotImplemented()
   }
+
   /**
    * Get the archive path -which defaults to the local one
    * @return
@@ -594,7 +544,7 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
    * @return
    */
   public String getArchiveKey() {
-    return KEY_HOYA_TEST_HBASE_TAR
+    failNotImplemented()
   }
 
   public void assumeArchiveDefined() {
@@ -606,9 +556,9 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
     Assume.assumeTrue(NO_ARCHIVE_DEFINED + archiveKey, defined)
   }
   /**
-   * Assume that HBase home is defined. This does not check that the
+   * Assume that application home is defined. This does not check that the
    * path is valid -that is expected to be a failure on tests that require
-   * HBase home to be set.
+   * application home to be set.
    */
   public void assumeApplicationHome() {
     Assume.assumeTrue("Application home dir option not set " + applicationHomeKey,
@@ -640,10 +590,6 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
       assert new File(applicationHome).exists();
       return [Arguments.ARG_APP_HOME, applicationHome]
     }
-  }
-
-  public void not_implemented() {
-    fail("Not implemented")
   }
 
   /**
@@ -694,7 +640,7 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
   }
 
   public String getTestConfigurationPath() {
-    fail("Not implemented");
+    failNotImplemented()
     null;
   }
 
