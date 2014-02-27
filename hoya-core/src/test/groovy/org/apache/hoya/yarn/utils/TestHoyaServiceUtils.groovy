@@ -18,5 +18,37 @@
 
 package org.apache.hoya.yarn.utils
 
-class TestHoyaServiceUtils {
+import groovy.util.logging.Slf4j
+import org.apache.hadoop.yarn.api.protocolrecords.impl.pb.RegisterApplicationMasterResponsePBImpl
+import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext
+import org.apache.hadoop.yarn.api.records.impl.pb.ApplicationSubmissionContextPBImpl
+import org.apache.hoya.yarn.HoyaTestBase
+import org.apache.hoya.yarn.service.HoyaServiceUtils
+import org.junit.Test
+
+@Slf4j
+class TestHoyaServiceUtils extends HoyaTestBase {
+
+  @Test
+  public void testKeepContainers() throws Throwable {
+
+    ApplicationSubmissionContext ctx = new ApplicationSubmissionContextPBImpl()
+
+    def success = HoyaServiceUtils.keepContainersAcrossSubmissions(ctx)
+    log.info("AM restart enabled=$success")
+  }
+
+  @Test
+  public void testRetrieveContainers() throws Throwable {
+    RegisterApplicationMasterResponsePBImpl registration = new RegisterApplicationMasterResponsePBImpl()
+
+    def method = HoyaServiceUtils.retrieveContainersFromPreviousAttempt(registration)
+    def hasMethod = method != null
+    def containers = HoyaServiceUtils.retrieveContainersFromPreviousAttempt(
+        registration)
+    def success = containers != null;
+    
+    assert (hasMethod==success)
+    log.info("AM container recovery support=$hasMethod")
+  }
 }

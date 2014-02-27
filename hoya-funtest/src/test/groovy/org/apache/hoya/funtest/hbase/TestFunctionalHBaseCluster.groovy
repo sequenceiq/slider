@@ -53,7 +53,7 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
     implements HoyaFuntestProperties, Arguments, HoyaExitCodes {
 
 
-  public static final String HBASE_HEAP = "256m"
+  public static final String HBASE_HEAP = "96m"
 
   public String getClusterName() {
     return "test_functional_hbase_cluster"

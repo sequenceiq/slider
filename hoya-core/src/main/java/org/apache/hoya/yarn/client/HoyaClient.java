@@ -85,6 +85,7 @@ import org.apache.hoya.yarn.params.ClientArgs;
 import org.apache.hoya.yarn.params.HoyaAMArgs;
 import org.apache.hoya.yarn.params.LaunchArgsAccessor;
 import org.apache.hoya.yarn.service.CompoundLaunchedService;
+import org.apache.hoya.yarn.service.HoyaServiceUtils;
 import org.apache.hoya.yarn.service.SecurityCheckerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,8 +95,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.ByteBuffer;
@@ -686,27 +685,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     submissionContext.setMaxAppAttempts(config.getInt(KEY_HOYA_RESTART_LIMIT,
                                                       DEFAULT_HOYA_RESTART_LIMIT));
 
-    Method m = null;
-    String methName = "ApplicationSubmissionContext.setKeepContainersAcrossApplicationAttempts()";
-    Class<? extends ApplicationSubmissionContext> cls = submissionContext.getClass();
-    try {
-      m = cls.getDeclaredMethod("setKeepContainersAcrossApplicationAttempts",
-        new Class<?>[] { boolean.class });
-      m.setAccessible(true);
-    } catch (NoSuchMethodException e) {
-      log.warn(methName + " not found");
-    } catch (SecurityException e) {
-      log.warn("No access to " + methName);
-    }
-    // AM-RESTART-SUPPORT: AM wants its old containers back on a restart
-    if (m != null) {
-      try {
-        m.invoke(submissionContext, true);
-      } catch (InvocationTargetException ite) {
-        log.error(methName + " got", ite);
-      } catch (IllegalAccessException iae) {
-        log.error(methName + " got", iae);
-      }
+    if (HoyaServiceUtils.keepContainersAcrossSubmissions(submissionContext)) {
+      log.info("Requesting cluster stays running over AM failure");
     }
 
     hoyaFileSystem.purgeHoyaAppInstanceTempFiles(clustername);

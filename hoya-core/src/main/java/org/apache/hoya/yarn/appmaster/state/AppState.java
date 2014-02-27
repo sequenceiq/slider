@@ -333,14 +333,6 @@ public class AppState {
     containerMaxMemory = maxMemory;
   }
 
-  /*
-   * Sets whether AM restart is supported
-   * @param supported
-   */
-  public void setAMRestartSupported(boolean supported) {
-    clusterDescription.AMRestartSupported = supported;
-  }
-  
   /**
    * Build up the application state
    * @param cd cluster specification
