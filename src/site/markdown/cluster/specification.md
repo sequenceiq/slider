@@ -60,12 +60,12 @@ intended to be used for debugging and testing.
 
 ### Persisted: static information about the file history
  
-  "info" : {
-    "create.hadoop.deployed.info" : "(detached from release-2.3.0) @dfe46336fbc6a044bc124392ec06b85",
-    "create.application.build.info" : "Hoya Core-0.13.0-SNAPSHOT Built against commit# 1a94ee4aa1 on Java 1.7.0_45 by stevel",
-    "create.hadoop.build.info" : "2.3.0",
-    "create.time.millis" : "1393512091276",
-  },
+    "info" : {
+      "create.hadoop.deployed.info" : "(detached from release-2.3.0) @dfe46336fbc6a044bc124392ec06b85",
+      "create.application.build.info" : "Hoya Core-0.13.0-SNAPSHOT Built against commit# 1a94ee4aa1 on Java 1.7.0_45 by stevel",
+      "create.hadoop.build.info" : "2.3.0",
+      "create.time.millis" : "1393512091276",
+    },
  
  
 ### Dynamic: 
@@ -73,16 +73,20 @@ intended to be used for debugging and testing.
  
  whether the AM supports service restart without killing all the containers hosting
  the role instances:
+ 
     "hoya.am.restart.supported" : "false",
     
     
- timestamps of the cluster going live, and when the status query was made   
+ timestamps of the cluster going live, and when the status query was made
+    
+    
     "live.time" : "27 Feb 2014 14:41:56 GMT",
     "live.time.millis" : "1393512116881",
     "status.time" : "27 Feb 2014 14:42:08 GMT",
     "status.time.millis" : "1393512128726",
     
-  yarn data provided to the AM  
+  yarn data provided to the AM
+    
     "yarn.vcores" : "32",
     "yarn.memory" : "2048",
   
@@ -115,36 +119,117 @@ and those that vary depending upon the current state
 
 * Propose: move these values out of statistics into some other section, as they
 are state, not statistics*
- 
-     "statistics": {
-       "worker": {
-         "containers.start.completed": 0,
-         "containers.live": 0,
-         "containers.start.failed": 0,
-         "containers.active.requests": 0,
-         "containers.failed": 0,
-         "containers.completed": 0,
-         "containers.desired": 0,
-         "containers.requested": 0
+
+
+       "statistics": {
+         "worker": {
+           "containers.start.completed": 0,
+           "containers.live": 0,
+           "containers.start.failed": 0,
+           "containers.active.requests": 0,
+           "containers.failed": 0,
+           "containers.completed": 0,
+           "containers.desired": 0,
+           "containers.requested": 0
+         },
+         "hoya": {
+           "containers.unknown.completed": 0,
+           "containers.start.completed": 0,
+           "containers.live": 1,
+           "containers.start.failed": 0,
+           "containers.failed": 0,
+           "containers.completed": 0,
+           "containers.surplus": 0
+         },
+         "master": {
+           "containers.start.completed": 0,
+           "containers.live": 0,
+           "containers.start.failed": 0,
+           "containers.active.requests": 0,
+           "containers.failed": 0,
+           "containers.completed": 0,
+           "containers.desired": 0,
+           "containers.requested": 0
+         }
        },
-       "hoya": {
-         "containers.unknown.completed": 0,
-         "containers.start.completed": 0,
-         "containers.live": 1,
-         "containers.start.failed": 0,
-         "containers.failed": 0,
-         "containers.completed": 0,
-         "containers.surplus": 0
-       },
-       "master": {
-         "containers.start.completed": 0,
-         "containers.live": 0,
-         "containers.start.failed": 0,
-         "containers.active.requests": 0,
-         "containers.failed": 0,
-         "containers.completed": 0,
-         "containers.desired": 0,
-         "containers.requested": 0
-       }
-     },
     
+## Options
+
+A list of options used by Hoya and its providers to build up the AM
+and the configurations of the deployed service components
+
+
+    "options": {
+      "zookeeper.port": "2181",
+      "site.hbase.master.startup.retainassign": "true",
+      "hoya.cluster.application.image.path": "hdfs://sandbox.hortonworks.com:8020/hbase.tar.gz",
+      "site.fs.defaultFS": "hdfs://sandbox.hortonworks.com:8020",
+      "hoya.container.failure.threshold": "5",
+      "site.fs.default.name": "hdfs://sandbox.hortonworks.com:8020",
+      "hoya.cluster.directory.permissions": "0770",
+      "hoya.am.monitoring.enabled": "false",
+      "zookeeper.path": "/yarnapps_hoya_stevel_test_cluster_lifecycle",
+      "hoya.tmp.dir": "hdfs://sandbox.hortonworks.com:8020/user/stevel/.hoya/cluster/test_cluster_lifecycle/tmp/am",
+      "hoya.data.directory.permissions": "0770",
+      "zookeeper.hosts": "sandbox",
+      "hoya.container.failure.shortlife": "60"
+    },
+  
+Some for these options options have been created by hoya itself ("hoya.tmp.dir")
+for internal use -and are cluster specific. If/when the ability to use
+an existing json file as a template for a new cluster is added, having these
+options in the configuration will create problems
+
+
+# Proposed Changes
+
+
+### Move Hoya internal state to `/hoya-internal`
+
+Move all hoya "private" data to an internal section,`/hoya-internal`
+including those in the toplevel directory and in `/options`
+  
+### Allow `/options` and `roles/*/` options entries to take the value "null".
+
+This would be a definition that the value must be defined before the cluster
+can start. Provider templates could declare this.
+  
+### Make client configuration retrieval hierarchical -and maybe move out of the
+status
+
+The current design assumes that it is a -site.xml file being served up. This
+does not work for alternate designs.
+
+Proposed:
+
+`/clientProperties` goes to `clientfiles` with a new entry underneath for
+each text file Listing its role
+
+"/clientconf/hbase-site.xml": "site information for HBase"
+"/clientconf/log4.properties": "log4.property file"
+
+The CLI option to get a client property would have to be changed.
+1. The specific file must be named
+1. If it is not present, an error must be raised.
+1. If it is present, it is downloaded and output to the console/to a named
+destination file/directory `--outfile <file>` and `--outdir <dir>`
+1. If the `--list` argument is provided, the list of available files is
+returned (e.g.) 
+
+    hbase-site.xml: site information for HBase
+    log4.properties: log4.property file
+    
+1. No attempt to parse/process the body of the messages will be returned.
+
+In a REST implementation of the client API, /clientconf would be a path
+to the list of options; each file a path underneath.
+
+We may want to move client configuration file retrieval outside the status completely;
+the status just lists the possible values; a separate call returns them.
+
+This would permit binary content to be retrieved, and avoid any marshalling
+problems and inefficiencies.
+
+### Stop intermixing role specification with role current state
+
+ 
