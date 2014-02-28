@@ -20,6 +20,7 @@ In this document, a full path to a value is represented as a path
 `options/zookeeper.port`  ; an assigment as  `options/zookeeper.port=2181`.
 
 A wildcard indicates all entries matching a path: `options/zookeeper.*`
+or `/roles/*/yarn.memory`
 
 
 ## History
@@ -98,6 +99,32 @@ intended to be used for debugging and testing.
     "status.hadoop.build.info" : "2.3.0",
     "status.hadoop.deployed.info" : "bigwheel-m16-2.2.0 @704f1e463ebc4fb89353011407e965"
  
+ 
+ ## `instances`
+ 
+ Information about the live containers in a cluster
+
+     "instances": {
+       "hoya": [ "container_1393511571284_0002_01_000001" ],
+       "master": [ "container_1393511571284_0002_01_000003" ],
+       "worker": [ 
+         "container_1393511571284_0002_01_000002",
+         "container_1393511571284_0002_01_000004"
+       ]
+     },
+
+There's no information about location, nor is there any history about containers
+that are no longer part of the cluster (i.e. failed & released containers). 
+
+It could be possible to include a list of previous containers,
+though Hoya would need to be selective about how many to store
+(or how much detail to retain) on those previous containers.
+
+Perhaps the list could be allowed to grow without limit, but detail
+only preserved on the last 100. If more containers fail than that,
+there is likely to be a problem which the most recent containers
+will also display.
+ 
  ## `statistics`
  
  Statistics on each role. 
@@ -124,17 +151,17 @@ are state, not statistics*
        "statistics": {
          "worker": {
            "containers.start.completed": 0,
-           "containers.live": 0,
+           "containers.live": 2,
            "containers.start.failed": 0,
            "containers.active.requests": 0,
            "containers.failed": 0,
            "containers.completed": 0,
-           "containers.desired": 0,
+           "containers.desired": 2,
            "containers.requested": 0
          },
          "hoya": {
            "containers.unknown.completed": 0,
-           "containers.start.completed": 0,
+           "containers.start.completed": 3,
            "containers.live": 1,
            "containers.start.failed": 0,
            "containers.failed": 0,
@@ -143,16 +170,61 @@ are state, not statistics*
          },
          "master": {
            "containers.start.completed": 0,
-           "containers.live": 0,
+           "containers.live": 1,
            "containers.start.failed": 0,
            "containers.active.requests": 0,
            "containers.failed": 0,
            "containers.completed": 0,
-           "containers.desired": 0,
+           "containers.desired": 1,
            "containers.requested": 0
          }
        },
     
+The `/statistics/hoya` section is unusual in that it provides the aggregate statistics
+of the cluster -this is not obvious. A different name could be used -but
+again, there's a risk of clash with or confusion with a role. 
+
+Better to have a specific `/statistics/cluster` element, 
+and to move the roles' statistics under `/statistics/roles`:
+
+    "statistics": {
+      "cluster": {
+        "containers.unknown.completed": 0,
+        "containers.start.completed": 3,
+        "containers.live": 1,
+        "containers.start.failed": 0,
+        "containers.failed": 0,
+        "containers.completed": 0,
+        "containers.surplus": 0
+  
+      },
+      "roles": {
+        "worker": {
+          "containers.start.completed": 0,
+          "containers.live": 2,
+          "containers.start.failed": 0,
+          "containers.active.requests": 0,
+          "containers.failed": 0,
+          "containers.completed": 0,
+          "containers.desired": 2,
+          "containers.requested": 0
+        },
+        "master": {
+          "containers.start.completed": 0,
+          "containers.live": 1,
+          "containers.start.failed": 0,
+          "containers.active.requests": 0,
+          "containers.failed": 0,
+          "containers.completed": 0,
+          "containers.desired": 1,
+          "containers.requested": 0
+        }
+      }
+    },
+
+This approach allows extra statistics sections to be added (perhaps
+by providers), without any changes to the toplevel section.
+
 ## Options
 
 A list of options used by Hoya and its providers to build up the AM
@@ -232,4 +304,32 @@ problems and inefficiencies.
 
 ### Stop intermixing role specification with role current state
 
- 
+Create a new section, `rolestatus`, which lists the current status
+of the roles: how many are running vs requested, how many are being
+released.
+
+There's some overlap here with the `/statistics` field, so we should
+either merge them or clearly separate the two. Only the `role.failed`
+properties match entries in the statistics -perhaps they should be cut.
+
+#### provider-specific status
+
+Allow providers to publish information to the status, in their
+own section.
+
+There already is support for providers updating the cluster status
+in Hoya 12.1 and earlier, but it has flaws
+
+A key one is that it is done sychronously on a `getStatus()` call;
+as providers may perform a live query of their status (example, the HBase
+provider looks up the Web UI ports published by HBase to zookeeper),
+there's overhead, and if the operation blocks (example: when HBase hasn't
+ever been deployed and the zookeeper path is empty), then the status
+call blocks.
+
+*Proposed:*
+
+1. There is a specific `/provider` section
+1. There's no restriction on what JSON is permitted in this section.
+1. Providers may make their own updates to the application state to read and
+write this block -operations that are asynchronous to any status queries.

@@ -1,5 +1,5 @@
 {
-  "version": "1.0",
+  "version": "2.0",
   "name": "test_cluster_lifecycle",
   "hoya-internal":{
     "type": "hbase",
@@ -11,20 +11,23 @@
     "dataPath": "hdfs://sandbox.hortonworks.com:8020/user/stevel/.hoya/cluster/test_cluster_lifecycle/database",
     "hoya.tmp.dir": "hdfs://sandbox.hortonworks.com:8020/user/stevel/.hoya/cluster/test_cluster_lifecycle/tmp/am",
     "hoya.cluster.directory.permissions": "0770",
-    "hoya.data.directory.permissions": "0770"
+    "hoya.data.directory.permissions": "0770",
+    "roleNames": [ "worker", "hoya", "master" ]
   },
   
   "options": {
-    "zookeeper.port": "2181",
-    "site.hbase.master.startup.retainassign": "true",
-    "hoya.cluster.application.image.path": "hdfs://sandbox.hortonworks.com:8020/hbase.tar.gz",
-    "site.fs.defaultFS": "hdfs://sandbox.hortonworks.com:8020",
-    "hoya.container.failure.threshold": "5",
-    "site.fs.default.name": "hdfs://sandbox.hortonworks.com:8020",
     "hoya.am.monitoring.enabled": "false",
+    "hoya.cluster.application.image.path": "hdfs://sandbox.hortonworks.com:8020/hbase.tar.gz",
+    "hoya.container.failure.threshold": "5",
+    "hoya.container.failure.shortlife": "60",
+    "zookeeper.port": "2181",
     "zookeeper.path": "/yarnapps_hoya_stevel_test_cluster_lifecycle",
     "zookeeper.hosts": "sandbox",
-    "hoya.container.failure.shortlife": "60"
+    "site.hbase.master.startup.retainassign": "true",
+    "site.fs.defaultFS": "hdfs://sandbox.hortonworks.com:8020",
+    "site.fs.default.name": "hdfs://sandbox.hortonworks.com:8020",
+    "env.MALLOC_ARENA_MAX": "4"
+
   },
   
   "info": {
@@ -44,92 +47,117 @@
     "status.hadoop.build.info": "2.3.0",
     "status.hadoop.deployed.info": "bigwheel-m16-2.2.0 @704f1e463ebc4fb89353011407e965"
   },
+
   "statistics": {
-    "worker": {
-      "containers.start.started": 0,
-      "containers.live": 0,
-      "containers.start.failed": 0,
-      "containers.active.requests": 0,
-      "containers.failed": 0,
-      "containers.completed": 0,
-      "containers.desired": 0,
-      "containers.requested": 0
-    },
-    "hoya": {
+
+    "cluster": {
       "containers.unknown.completed": 0,
-      "containers.start.started": 0,
+      "containers.start.completed": 3,
       "containers.live": 1,
       "containers.start.failed": 0,
       "containers.failed": 0,
       "containers.completed": 0,
       "containers.surplus": 0
+
     },
-    "master": {
-      "containers.start.started": 0,
-      "containers.live": 0,
-      "containers.start.failed": 0,
-      "containers.active.requests": 0,
-      "containers.failed": 0,
-      "containers.completed": 0,
-      "containers.desired": 0,
-      "containers.requested": 0
+    "roles": {
+      "worker": {
+        "containers.start.completed": 0,
+        "containers.live": 2,
+        "containers.start.failed": 0,
+        "containers.active.requests": 0,
+        "containers.failed": 0,
+        "containers.completed": 0,
+        "containers.desired": 2,
+        "containers.requested": 0
+      },
+      "master": {
+        "containers.start.completed": 0,
+        "containers.live": 1,
+        "containers.start.failed": 0,
+        "containers.active.requests": 0,
+        "containers.failed": 0,
+        "containers.completed": 0,
+        "containers.desired": 1,
+        "containers.requested": 0
+      }
     }
   },
-  "status": {
-  },
+
   "instances": {
-    "hoya": [ "container_1393511571284_0002_01_000001" ]
+    "hoya": [ "container_1393511571284_0002_01_000001" ],
+    "master": [ "container_1393511571284_0002_01_000003" ],
+    "worker": [ 
+      "container_1393511571284_0002_01_000002",
+      "container_1393511571284_0002_01_000004"
+    ]
   },
+  
   "roles": {
     "worker": {
       "yarn.memory": "768",
-      "env.MALLOC_ARENA_MAX": "4",
       "role.instances": "0",
-      "role.requested.instances": "0",
       "role.name": "worker",
-      "role.failed.starting.instances": "0",
-      "role.actual.instances": "0",
       "jvm.heapsize": "512M",
       "yarn.vcores": "1",
-      "role.releasing.instances": "0",
-      "role.failed.instances": "0",
       "app.infoport": "0"
     },
     "hoya": {
       "yarn.memory": "256",
-      "env.MALLOC_ARENA_MAX": "4",
       "role.instances": "1",
-      "role.requested.instances": "0",
       "role.name": "hoya",
-      "role.failed.starting.instances": "0",
-      "role.actual.instances": "1",
       "jvm.heapsize": "256M",
-      "yarn.vcores": "1",
-      "role.releasing.instances": "0",
-      "role.failed.instances": "0"
+      "yarn.vcores": "1"
     },
     "master": {
       "yarn.memory": "1024",
-      "env.MALLOC_ARENA_MAX": "4",
       "role.instances": "0",
-      "role.requested.instances": "0",
       "role.name": "master",
-      "role.failed.starting.instances": "0",
-      "role.actual.instances": "0",
       "jvm.heapsize": "512M",
       "yarn.vcores": "1",
-      "role.releasing.instances": "0",
-      "role.failed.instances": "0",
       "app.infoport": "0"
     }
   },
 
-  "roleNames": [ "worker", "hoya", "master" ],
+  "rolestatus": {
+    "worker": {
+      "role.instances": "2",
+      "role.requested.instances": "0",
+      "role.failed.starting.instances": "0",
+      "role.actual.instances": "2",
+      "role.releasing.instances": "0",
+      "role.failed.instances": "1"
+    },
+    "hoya": {
+      "role.instances": "1",
+      "role.requested.instances": "0",
+      "role.name": "hoya",
+      "role.actual.instances": "1",
+      "role.releasing.instances": "0",
+      "role.failed.instances": "0"
+    },
+    "master": {
+      "role.instances": "1",
+      "role.requested.instances": "1",
+      "role.name": "master",
+      "role.failed.starting.instances": "0",
+      "role.actual.instances": "0",
+      "role.releasing.instances": "0",
+      "role.failed.instances": "0"
+    }
+  },
   
   "clientconf": {
-
     "hbase-site.xml": "site information for HBase",
     "log4.properties": "log4.property file"    
+  },
+  
+  "provider":{
+    "load":0.4,
+    "urls": {
+      "master": ["http://node4:28209"],
+      "worker": ["http://node4:28717", "http://node6:31268"]
+    }
   }
 
 }
