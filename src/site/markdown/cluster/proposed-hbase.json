@@ -123,22 +123,13 @@
       "app.infoport": "0"
     }
   },
-  "clientProperties": {
-    "fs.defaultFS": "hdfs://sandbox.hortonworks.com:8020",
-    "hbase.cluster.distributed": "true",
-    "hbase.master.info.port": "0",
-    "hbase.master.port": "0",
-    "hbase.master.startup.retainassign": "true",
-    "hbase.regionserver.hlog.tolerable.lowreplication": "1",
-    "hbase.regionserver.info.port": "0",
-    "hbase.regionserver.port": "0",
-    "hbase.rootdir": "hdfs://sandbox.hortonworks.com:8020/user/stevel/.hoya/cluster/test_cluster_lifecycle/database",
-    "hbase.tmp.dir": "./hbase-tmp",
-    "hbase.zookeeper.property.clientPort": "2181",
-    "hbase.zookeeper.quorum": "sandbox",
-    "hoya.template.origin": "hdfs://sandbox.hortonworks.com:8020/user/stevel/.hoya/cluster/test_cluster_lifecycle/snapshot/hbase-site.xml",
-    "hoya.unused.option": "1",
-    "zookeeper.znode.parent": "/yarnapps_hoya_stevel_test_cluster_lifecycle"
-  },
-  "roleNames": [ "worker", "hoya", "master" ]
+
+  "roleNames": [ "worker", "hoya", "master" ],
+  
+  "clientconf": {
+
+    "hbase-site.xml": "site information for HBase",
+    "log4.properties": "log4.property file"    
+  }
+
 }
