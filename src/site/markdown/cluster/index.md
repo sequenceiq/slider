@@ -16,6 +16,6 @@
 
 
 1. [Specification](specification.html)
-1. [Standard keys]()
-1. [Examples]()
+1. [Example: current](original-hbase.json)
+1. [Example: proposed](proposed-hbase.json)
 

@@ -17,3 +17,5 @@
 
 
 1. [Specification](specification.md)
+1. [Example: current](original-hbase.json)
+1. [Example: proposed](proposed-hbase.json)
