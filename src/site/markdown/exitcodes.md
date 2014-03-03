@@ -34,86 +34,89 @@ no. 72.
     int EXIT_FALSE                      = -1;
     
     /**
-     * Exit code when a client requested service termination: {@value}
+     * Exit code when a client requested service termination:
      */
     int EXIT_CLIENT_INITIATED_SHUTDOWN  =  1;
     
     /**
-     * Exit code when targets could not be launched: {@value}
+     * Exit code when targets could not be launched:
      */
     int EXIT_TASK_LAUNCH_FAILURE        =  2;
+    
     /**
-     * Exit code when an exception was thrown from the service: {@value}
+     * Exit code when an exception was thrown from the service:
      */
     int EXIT_EXCEPTION_THROWN           = 32;
+    
     /**
-     * Exit code when a usage message was printed: {@value}
+     * Exit code when a usage message was printed:
      */
     int EXIT_USAGE                      = 33;
+    
     /**
-     * Exit code when something happened but we can't be specific: {@value}
+     * Exit code when something happened but we can't be specific:
      */
     int EXIT_OTHER_FAILURE              = 34;
+    
     /**
-     * Exit code when a control-C, kill -3, signal was picked up: {@value}
+     * Exit code when a control-C, kill -3, signal was picked up:
      */
                                   
     int EXIT_INTERRUPTED                = 35;
+    
     /**
-     * Exit code when the command line doesn't parse: {@value}, or
+     * Exit code when the command line doesn't parse:, or
      * when it is otherwise invalid.
      */
     int EXIT_COMMAND_ARGUMENT_ERROR     = 36;
+    
     /**
-     * Exit code when the configurations in valid/incomplete: {@value}
+     * Exit code when the configurations in valid/incomplete:
      */
     int EXIT_BAD_CONFIGURATION          = 37;
-   
+    
     /**
-     * Exit code when the configurations in valid/incomplete: {@value}
+     * Exit code when the configurations in valid/incomplete:
      */
     int EXIT_CONNECTIVTY_PROBLEM        = 38;
-   
+    
     /**
-     * starting point for exit codes; not an exception itself
+     * internal error:
      */
-    int _EXIT_CODE_BASE =           64;
+    int EXIT_INTERNAL_ERROR =       64;
+    
     /**
-     * internal error: {@value}
-     */
-    int EXIT_INTERNAL_ERROR = _EXIT_CODE_BASE;
-    /**
-     * Unimplemented feature: {@value}
+     * Unimplemented feature:
      */
     int EXIT_UNIMPLEMENTED =        65;
   
     /**
-     * service entered the failed state: {@value}
+     * service entered the failed state:
      */
     int EXIT_YARN_SERVICE_FAILED =  66;
   
     /**
-     * service was killed: {@value}
+     * service was killed:
      */
     int EXIT_YARN_SERVICE_KILLED =  67;
   
     /**
-     * timeout on monitoring client: {@value}
+     * timeout on monitoring client:
      */
     int EXIT_TIMED_OUT =            68;
   
     /**
-     * service finished with an error: {@value}
+     * service finished with an error:
      */
     int EXIT_YARN_SERVICE_FINISHED_WITH_ERROR = 69;
   
     /**
-     * the cluster is unknown: {@value}
+     * the cluster is unknown:
      */
     int EXIT_UNKNOWN_HOYA_CLUSTER = 70;
   
     /**
-     * the cluster is in the wrong state for that operation: {@value}
+     * the cluster is in the wrong state for that operation:
      */
     int EXIT_BAD_CLUSTER_STATE =    71;
   
