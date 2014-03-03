@@ -19,7 +19,6 @@
 package org.apache.hoya.yarn.appmaster.state;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableSortedSet;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -95,6 +94,7 @@ public class AppState {
    feed in to the CD
    */
   public ClusterDescription clusterSpec = new ClusterDescription();
+  
   /**
    * This is the status, the live model
    */
@@ -286,11 +286,19 @@ public class AppState {
   private Map<ContainerId, RoleInstance> getLiveNodes() {
     return liveNodes;
   }
-  
- public ClusterDescription getClusterSpec() {
+
+  /**
+   * Get the desired cluster state
+   * @return the specification of the cluter
+   */
+  public ClusterDescription getClusterSpec() {
     return clusterSpec;
   }
 
+  /**
+   * Get the current cluster description 
+   * @return the actual state of the cluster
+   */
   public ClusterDescription getClusterDescription() {
     return clusterDescription;
   }
@@ -366,17 +374,7 @@ public class AppState {
       if (!roles.containsKey(name)) {
         // this is a new value
         log.info("Adding new role {}", name);
-        String priOpt =
-            cd.getMandatoryRoleOpt(name, RoleKeys.ROLE_PRIORITY);
-        int pri = HoyaUtils.parseAndValidate("value of " + name + " " +
-                                                 RoleKeys.ROLE_PRIORITY,
-                                             priOpt, 0, 1, -1);
-        String placementOpt = cd.getRoleOpt(name,
-                                            RoleKeys.ROLE_PLACEMENT_POLICY, "0");
-        int placement = HoyaUtils.parseAndValidate("value of " + name + " " +
-                                                       RoleKeys.ROLE_PLACEMENT_POLICY,
-                                                   placementOpt, 0, 0, -1);
-        ProviderRole dynamicRole = new ProviderRole(name, pri, placement);
+        ProviderRole dynamicRole = createDynamicProviderRole(cd, name);
         buildRole(dynamicRole);
         providerRoles.add(dynamicRole);
       }
@@ -428,10 +426,35 @@ public class AppState {
   }
 
   /**
+   * Build a dynamic provider role
+   * @param cd CD to derive role from
+   * @param name name of role
+   * @return a new provider role
+   * @throws BadConfigException bad configuration
+   */
+  public ProviderRole createDynamicProviderRole(ClusterDescription cd,
+                                                String name) throws
+                                                        BadConfigException {
+    String priOpt =
+        cd.getMandatoryRoleOpt(name, RoleKeys.ROLE_PRIORITY);
+    int pri = HoyaUtils.parseAndValidate("value of " + name + " " +
+                                         RoleKeys.ROLE_PRIORITY,
+                                         priOpt, 0, 1, -1
+                                        );
+    String placementOpt = cd.getRoleOpt(name,
+                                        RoleKeys.ROLE_PLACEMENT_POLICY, "0");
+    int placement = HoyaUtils.parseAndValidate("value of " + name + " " +
+                                                   RoleKeys.ROLE_PLACEMENT_POLICY,
+                                               placementOpt, 0, 0, -1);
+    return new ProviderRole(name, pri, placement);
+  }
+
+  /**
    * The cluster specification has been updated
    * @param cd updated cluster specification
    */
-  public synchronized void updateClusterSpec(ClusterDescription cd) {
+  public synchronized void updateClusterSpec(ClusterDescription cd) throws
+                                                                    BadConfigException {
     setClusterSpec(cd);
 
     //propagate info from cluster, specifically the role table
@@ -445,21 +468,34 @@ public class AppState {
   /**
    * build the role requirements from the cluster specification
    */
-  private void buildRoleRequirementsFromClusterSpec() {
+  private void buildRoleRequirementsFromClusterSpec() throws
+                                                      BadConfigException {
     //now update every role's desired count.
     //if there are no instance values, that role count goes to zero
 
-    // This is where we add extra roles
-    Set<String> roleNames = getClusterSpec().getRoleNames();
+    // Add all the existing roles
+    ClusterDescription specification = getClusterSpec();
     for (RoleStatus roleStatus : getRoleStatusMap().values()) {
       int currentDesired = roleStatus.getDesired();
       String role = roleStatus.getName();
       int desiredInstanceCount =
-        getClusterSpec().getDesiredInstanceCount(role, -1);
+        specification.getDesiredInstanceCount(role, 0);
       if (currentDesired != desiredInstanceCount) {
         log.info("Role {} flexed from {} to {}", role, currentDesired,
                  desiredInstanceCount);
         roleStatus.setDesired(desiredInstanceCount);
+      }
+    }
+    //now the dynamic ones. Iterate through the the cluster spec and
+    //add any role status entries not in the role status
+    Set<String> roleNames = specification.getRoleNames();
+    for (String name : roleNames) {
+      if (!roles.containsKey(name)) {
+        // this is a new value
+        log.info("Adding new role {}", name);
+        ProviderRole dynamicRole = createDynamicProviderRole(specification, name);
+        buildRole(dynamicRole);
+        roleHistory.addNewProviderRole(dynamicRole);
       }
     }
   }

@@ -26,6 +26,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hoya.avro.RoleHistoryHeader;
 import org.apache.hoya.avro.RoleHistoryWriter;
+import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaIOException;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.tools.HoyaUtils;
@@ -88,7 +89,8 @@ public class RoleHistory {
    */
   private Map<Integer, LinkedList<NodeInstance>> availableNodes;
 
-  public RoleHistory(List<ProviderRole> providerRoles) {
+  public RoleHistory(List<ProviderRole> providerRoles) throws
+                                                       BadConfigException {
     this.providerRoles = providerRoles;
     roleSize = providerRoles.size();
     for (ProviderRole providerRole : providerRoles) {
@@ -101,7 +103,7 @@ public class RoleHistory {
    * Reset the variables -this does not adjust the fixed attributes
    * of the history
    */
-  protected synchronized void reset() {
+  protected synchronized void reset() throws BadConfigException {
 
     nodemap = new NodeMap(roleSize);
     resetAvailableNodeLists();
@@ -112,18 +114,42 @@ public class RoleHistory {
 
 
     for (ProviderRole providerRole : providerRoles) {
-      int index = providerRole.id;
-      if (index < 0) {
-        throw new ArrayIndexOutOfBoundsException("Provider " + providerRole
-                                                 + " id is out of range");
-      }
-      if (roleStats.get(index) != null) {
-        throw new ArrayIndexOutOfBoundsException(
-          providerRole.toString() + " id duplicates that of " +
-          roleStats.get(index));
-      }
-      roleStats.put(index, new RoleStatus(providerRole));
+      addProviderRole(roleStats, providerRole);
     }
+  }
+
+  
+  private void addProviderRole(Map<Integer, RoleStatus> roleStats,
+                               ProviderRole providerRole)
+    throws ArrayIndexOutOfBoundsException, BadConfigException {
+    int index = providerRole.id;
+    if (index < 0) {
+      throw new BadConfigException("Provider " + providerRole
+                                               + " id is out of range");
+    }
+    if (roleStats.get(index) != null) {
+      throw new BadConfigException(
+        providerRole.toString() + " id duplicates that of " +
+        roleStats.get(index));
+    }
+    roleStats.put(index, new RoleStatus(providerRole));
+  }
+
+
+  /**
+   * Add a new provider role to the map
+   * @param providerRole new provider role
+   */
+  public void addNewProviderRole(ProviderRole providerRole)
+    throws BadConfigException {
+    Map<Integer, RoleStatus> roleStats = new HashMap<Integer, RoleStatus>();
+
+
+    for (ProviderRole role : providerRoles) {
+      roleStats.put(role.id, new RoleStatus(role));
+    }
+
+    addProviderRole(roleStats, providerRole);
   }
 
   /**
@@ -139,7 +165,8 @@ public class RoleHistory {
    * This intended for use by the RoleWriter logic.
    */
   public synchronized void prepareForReading(RoleHistoryHeader header) throws
-                                                                    IOException {
+                                                                       IOException,
+                                                                       BadConfigException {
     reset();
 
     int roleCountInSource = header.getRoles();
@@ -311,7 +338,8 @@ public class RoleHistory {
    * @param historyDir path in FS for history
    * @return true if the history was thawed
    */
-  public boolean onStart(FileSystem fs, Path historyDir) {
+  public boolean onStart(FileSystem fs, Path historyDir) throws
+                                                         BadConfigException {
     assert filesystem == null;
     filesystem = fs;
     historyPath = historyDir;
@@ -332,7 +360,7 @@ public class RoleHistory {
    * and after any gc/purge
    */
   @VisibleForTesting
-  public synchronized boolean onThaw() {
+  public synchronized boolean onThaw() throws BadConfigException {
     assert filesystem != null;
     assert historyPath != null;
     boolean thawSuccessful = false;

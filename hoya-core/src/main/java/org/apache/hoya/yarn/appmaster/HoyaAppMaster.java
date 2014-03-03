@@ -66,6 +66,7 @@ import org.apache.hoya.api.StatusKeys;
 import org.apache.hoya.api.proto.HoyaClusterAPI;
 import org.apache.hoya.api.proto.Messages;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
+import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hoya.exceptions.TriggerClusterTeardownException;
@@ -880,7 +881,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
    * @throws IOException
    */
   private boolean flexCluster(ClusterDescription updated)
-      throws IOException, HoyaInternalStateException {
+    throws IOException, HoyaInternalStateException, BadConfigException {
 
     //validation
     try {

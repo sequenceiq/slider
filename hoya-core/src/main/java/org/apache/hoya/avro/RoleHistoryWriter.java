@@ -37,6 +37,7 @@ import org.apache.hadoop.fs.GlobFilter;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hoya.HoyaKeys;
+import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaIOException;
 import org.apache.hoya.tools.HoyaUtils;
 import org.apache.hoya.yarn.appmaster.state.NodeEntry;
@@ -179,7 +180,9 @@ public class RoleHistoryWriter {
    * @return no. of entries read
    * @throws IOException problems
    */
-  public int read(InputStream in, RoleHistory history) throws IOException {
+  public int read(InputStream in, RoleHistory history) throws
+                                                       IOException,
+                                                       BadConfigException {
     try {
       DatumReader<RoleHistoryRecord> reader =
         new SpecificDatumReader<RoleHistoryRecord>(RoleHistoryRecord.class);
@@ -266,7 +269,8 @@ public class RoleHistoryWriter {
    * @throws IOException any problem
    */
   public int read(FileSystem fs, Path path, RoleHistory roleHistory) throws
-                                                                     IOException {
+                                                                     IOException,
+                                                                     BadConfigException {
     FSDataInputStream instream = fs.open(path);
     return read(instream, roleHistory);
   }
@@ -279,7 +283,8 @@ public class RoleHistoryWriter {
    * @throws IOException any problem
    */
   public int read(File file, RoleHistory roleHistory) throws
-                                                      IOException {
+                                                      IOException,
+                                                      BadConfigException {
 
 
     return read(new FileInputStream(file), roleHistory);
@@ -293,7 +298,8 @@ public class RoleHistoryWriter {
    * @throws IOException any problem
    */
   public int read(String resource, RoleHistory roleHistory) throws
-                                                            IOException {
+                                                            IOException,
+                                                            BadConfigException {
 
     return read(this.getClass().getClassLoader().getResourceAsStream(resource),
                 roleHistory);
@@ -354,7 +360,8 @@ public class RoleHistoryWriter {
    * @param paths paths to load
    * @return the path of any loaded history -or null if all failed to load
    */
-  public Path attemptToReadHistory(RoleHistory roleHistory, FileSystem fileSystem,  List<Path> paths) {
+  public Path attemptToReadHistory(RoleHistory roleHistory, FileSystem fileSystem,  List<Path> paths) throws
+                                                                                                      BadConfigException {
     ListIterator<Path> pathIterator = paths.listIterator();
     boolean success = false;
     Path path = null;
@@ -383,7 +390,9 @@ public class RoleHistoryWriter {
    * @throws IOException if indexing the history directory fails. 
    */
   public Path loadFromHistoryDir(FileSystem fs, Path dir,
-                                 RoleHistory roleHistory) throws IOException {
+                                 RoleHistory roleHistory) throws
+                                                          IOException,
+                                                          BadConfigException {
     assert fs != null: "null filesystem";
     List<Path> entries = findAllHistoryEntries(fs, dir, false);
     return attemptToReadHistory(roleHistory, fs, entries);
