@@ -66,7 +66,7 @@ class TestAppStateDynamicRoles extends BaseMockAppStateTest
 
     def opts = [
         (RoleKeys.ROLE_INSTANCES): "1",
-        (RoleKeys.ROLE_PRIORITY): "6",
+        (RoleKeys.ROLE_PRIORITY): "4",
     ]
     
     cd.roles["dynamic"]= opts

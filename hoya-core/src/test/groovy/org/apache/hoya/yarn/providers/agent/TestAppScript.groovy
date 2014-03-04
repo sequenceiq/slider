@@ -68,11 +68,13 @@ class TestAppScript extends AgentTestBase {
                         ARG_OPTION, CONTROLLER_URL, "http://localhost",
                         ARG_OPTION, PACKAGE_PATH, hoya_core.absolutePath,
 
+                        ARG_ROLEOPT, master_role, PACKAGE_PATH, hoya_core.absolutePath,
                         ARG_ROLEOPT, master_role, ROLE_PRIORITY, "1",
                         ARG_ROLEOPT, master_role, SCRIPT_PATH, master_script_py,
                         ARG_ROLEOPT, master_role, SERVICE_NAME, "HBASE",
                         ARG_ROLEOPT, master_role, APP_HOME, "/dev/null",
 
+                        ARG_ROLEOPT, rs_role, PACKAGE_PATH, hoya_core.absolutePath,
                         ARG_ROLEOPT, rs_role, ROLE_PRIORITY, "2",
                         ARG_ROLEOPT, rs_role, SCRIPT_PATH, rs_script_py,
                         ARG_ROLEOPT, rs_role, SERVICE_NAME, "HBASE",

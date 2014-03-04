@@ -146,7 +146,7 @@ public class AgentProviderService extends AbstractProviderService implements
 
     String script =
         clusterSpec.getMandatoryRoleOpt(role, SCRIPT_PATH);
-    String packagePath = clusterSpec.getMandatoryOption(PACKAGE_PATH);
+    String packagePath = clusterSpec.getMandatoryRoleOpt(role, PACKAGE_PATH);
     File packagePathFile = new File(packagePath);
     HoyaUtils.verifyIsDir(packagePathFile, log);
     File executable = new File(packagePathFile, script);
@@ -167,7 +167,7 @@ public class AgentProviderService extends AbstractProviderService implements
       //this must stay relative if it is an image
       operation.add("python");
       operation.add(executable.getCanonicalPath());
-      operation.add("--log");
+      operation.add(ARG_LOG);
       operation.add(ApplicationConstants.LOG_DIR_EXPANSION_VAR);
       operation.add(ARG_COMMAND);
       operation.add(propagatedConfDir + "/" + AgentKeys.COMMAND_JSON_FILENAME);
