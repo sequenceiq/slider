@@ -33,26 +33,26 @@ class TestAccFlexTablets133Mgr113 extends AccumuloTestBase {
         "test_acc_flex_tablets133mgr113",
         [
             [
-                (AccumuloKeys.ROLE_MASTER): 1,
-                (AccumuloKeys.ROLE_TABLET): 1,
+                (AccumuloKeys.ROLE_MASTER) : 1,
+                (AccumuloKeys.ROLE_TABLET) : 1,
                 (AccumuloKeys.ROLE_MONITOR): 1,
                 (AccumuloKeys.ROLE_GARBAGE_COLLECTOR): 1
             ],
             [
-                (AccumuloKeys.ROLE_MASTER): 1,
-                (AccumuloKeys.ROLE_TABLET): 3,
+                (AccumuloKeys.ROLE_MASTER) : 1,
+                (AccumuloKeys.ROLE_TABLET) : 3,
                 (AccumuloKeys.ROLE_MONITOR): 1,
                 (AccumuloKeys.ROLE_GARBAGE_COLLECTOR): 1
             ],
             [
-                (AccumuloKeys.ROLE_MASTER): 3,
-                (AccumuloKeys.ROLE_TABLET): 3,
+                (AccumuloKeys.ROLE_MASTER) : 3,
+                (AccumuloKeys.ROLE_TABLET) : 3,
                 (AccumuloKeys.ROLE_MONITOR): 1,
                 (AccumuloKeys.ROLE_GARBAGE_COLLECTOR): 1
             ],
 
-        ],
-        true)
+        ]
+    )
     
     log.info("Final CD \n{}", cd)
   }

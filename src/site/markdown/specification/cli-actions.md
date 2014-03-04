@@ -411,13 +411,12 @@ The outcome should be the same:
 
 ## Action: Flex
 
-Flex the cluster size: add or remove roles. Flexing can be
-marked as persistent or not; 
+Flex the cluster size: add or remove roles. 
 
     flex clustername 
     roleSizes:List[(String, int)]
 
-1. if persistent, the JSON cluster specification is updated
+1. The JSON cluster specification in the filesystem is updated
 1. if the cluster is running, it is given the new cluster specification,
 which will change the desired steady-state of the application
 
@@ -433,8 +432,7 @@ which will change the desired steady-state of the application
     let updatedSpec = originalspec where:
         forall (name, size) in roleSizes :
             updatedSpec.roles[name]["role.instances"] == size
-    if persist:
-        data(HDFS', cluster-json-path(HDFS', clustername)) == updatedSpec
+    data(HDFS', cluster-json-path(HDFS', clustername)) == updatedSpec
     rpc-connection(hoya-app-live-instances(YARN(t2))[0], HoyaClusterProtocol)
     let flexed = rpc-connection(hoya-app-live-instances(YARN(t2))[0], HoyaClusterProtocol).flexClusterupdatedSpec)
 
@@ -488,7 +486,7 @@ The cluster directory and all its children do not exist
 ## Action: Status
 
     status clustername [--out outfile]
-    
+    2
 #### Preconditions
 
     if not hoya-app-running(YARN, clustername) : raise HoyaException(EXIT_UNKNOWN_HOYA_CLUSTER)

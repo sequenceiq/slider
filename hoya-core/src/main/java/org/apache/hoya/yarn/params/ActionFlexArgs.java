@@ -37,9 +37,9 @@ public class ActionFlexArgs extends AbstractActionArgs {
   public RoleArgsDelegate roleDelegate = new RoleArgsDelegate();
 
   @Parameter(names = {ARG_PERSIST},
-             description = "flag to indicate whether a flex change should be persisted (default=true)",
+             description = "Unused parameter to indicate persistence",
              arity = 1)
-  public boolean persist;
+  public boolean persist = true;
 
   /**
    * Get the role mapping (may be empty, but never null)

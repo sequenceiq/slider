@@ -27,9 +27,7 @@ import org.apache.hoya.api.RoleKeys
 import org.apache.hoya.avro.RoleHistoryWriter
 import org.apache.hoya.exceptions.BadConfigException
 import org.apache.hoya.exceptions.HoyaRuntimeException
-import org.apache.hoya.yarn.appmaster.state.AbstractRMOperation
 import org.apache.hoya.yarn.appmaster.state.AppState
-import org.apache.hoya.yarn.appmaster.state.RoleHistory
 import org.apache.hoya.yarn.appmaster.state.RoleInstance
 import org.apache.hoya.yarn.model.mock.BaseMockAppStateTest
 import org.apache.hoya.yarn.model.mock.MockRecordFactory

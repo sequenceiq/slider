@@ -1302,7 +1302,11 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                key, val);
       }
     }
-    return flex(name, roleInstances, args.isPersist());
+    if (!args.isPersist()) {
+      log.warn(
+        "Persist flag ignored: the updated specification is always persisted");
+    }
+    return flex(name, roleInstances, true);
   }
 
   /**
@@ -1731,9 +1735,11 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   /**
    * Implement flexing
    * @param clustername name of the cluster
-   * @param workers number of workers
-   * @param masters number of masters
+   * @param roleInstances map of new role instances
+   * @param persist (ignored) flag of persistence policy
    * @return EXIT_SUCCESS if the #of nodes in a live cluster changed
+   * @throws YarnException
+   * @throws IOException
    */
   public int flex(String clustername,
                   Map<String, Integer> roleInstances,
@@ -1765,18 +1771,14 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                 count,
                 clusterSpec);
     }
-    if (persist) {
-      Path clusterDirectory = hoyaFileSystem.buildHoyaClusterDirPath(clustername);
-      log.debug("Saving the cluster specification to {}", clusterSpecPath);
-      // save the specification
-      if (!hoyaFileSystem.updateClusterSpecification(
-              clusterDirectory,
-              clusterSpecPath,
-              clusterSpec)) {
-        log.warn("Failed to save new cluster size to {}", clusterSpecPath);
-      } else {
-        log.debug("New cluster size: persisted");
-      }
+    Path clusterDirectory = hoyaFileSystem.buildHoyaClusterDirPath(clustername);
+    log.debug("Saving the cluster specification to {}", clusterSpecPath);
+    // save the specification
+    if (!hoyaFileSystem.updateClusterSpecification(
+      clusterDirectory,
+      clusterSpecPath,
+      clusterSpec)) {
+      log.warn("Failed to save new cluster size to {}", clusterSpecPath);
     }
     int exitCode = EXIT_FALSE;
 

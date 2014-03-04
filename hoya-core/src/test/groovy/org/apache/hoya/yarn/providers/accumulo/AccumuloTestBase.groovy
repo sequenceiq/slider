@@ -179,9 +179,7 @@ public abstract class AccumuloTestBase extends YarnMiniClusterTestBase {
   }
 
   public ClusterDescription flexAccClusterTestRun(
-      String clustername,
-      List<Map<String,Integer>> plan,
-      boolean persist) {
+      String clustername, List<Map<String, Integer>> plan) {
     int planCount = plan.size()
     assert planCount > 0
     createMiniCluster(clustername, getConfiguration(),
@@ -214,7 +212,7 @@ public abstract class AccumuloTestBase extends YarnMiniClusterTestBase {
             "Flexing " + roleMapToString(flexTarget));
         boolean flexed = 0 == hoyaClient.flex(clustername,
                                       flexTarget,
-                                      persist);
+                                      true);
         cd = waitForRoleCount(hoyaClient, flexTarget,
                               ACCUMULO_CLUSTER_STARTUP_TO_LIVE_TIME);
 
