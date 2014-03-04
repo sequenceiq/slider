@@ -183,7 +183,6 @@ public abstract class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
       int masterFlexTarget,
       int workers,
       int flexTarget,
-      boolean persist,
       boolean testHBaseAfter) {
     createMiniCluster(clustername, getConfiguration(),
                       1,
@@ -230,7 +229,7 @@ public abstract class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
                                         (ROLE_WORKER): flexTarget,
                                         (ROLE_MASTER): masterFlexTarget
                                     ],
-                                    persist);
+                                    true);
       waitForHoyaWorkerCount(hoyaClient, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME);
       waitForHoyaMasterCount(hoyaClient, masterFlexTarget,
                              HBASE_CLUSTER_STARTUP_TO_LIVE_TIME);

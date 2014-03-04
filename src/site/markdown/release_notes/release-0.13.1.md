@@ -38,12 +38,18 @@ This release has been built using the Hadoop 2.3.0 libraries.
 As part of our release process we run functional tests of Hoya on a HDP-2.0
 cluster running Hadoop 2.2.0, as well as a secure Hadoop 2.3.0 cluster.
 
+### Cluster flex operation *always* persists the changes.
+
+This is needed to ensure that when an AM is restarted by YARN, it picks
+up the latest cluster specification, not the original one used when
+the cluster was thawed. 
+
+It also addresses a minor issue wherea second flex operation forgets
+the values from a preceeding flex.
+
+The `--persist` parameter is still supported -it is just ignored.
 
 ## Other points
 
-* There is some ongoing work to support more dynamic role models for providers,
-  so that providers can add extra roles at run-time, rather than compile time.
-  This is incomplete, as is some new provider development.
-* Part of the release process involved rewinding the master branch two revisions;
-  this was the only way to merge in the develop branch reliably. If a git update
-  complains, this is the root cause -sorry.
+* We've been redesiging the persistent cluster.json file; the changes
+will appear in the next release.
