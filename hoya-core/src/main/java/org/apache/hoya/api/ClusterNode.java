@@ -178,18 +178,24 @@ public class ClusterNode {
     ClusterNode node = new ClusterNode();
     node.command = message.getCommand();
     node.diagnostics = message.getDiagnostics();
-    String[] arr = new String[message.getEnvironmentCount()];
-    node.environment = message.getEnvironmentList().toArray(arr);
+    String[] arr;
+    int environmentCount = message.getEnvironmentCount();
+    if (environmentCount > 0) {
+      arr = new String[environmentCount];
+      node.environment = message.getEnvironmentList().toArray(arr);
+    }
     node.exitCode = message.getExitCode();
-    node.name = message.getName();
-    arr = new String[message.getOutputCount()];
-    node.output = message.getOutputList().toArray(arr);
+    int outputCount = message.getOutputCount();
+    if (outputCount > 0) {
+      arr = new String[outputCount];
+      node.output = message.getOutputList().toArray(arr);
+    }
     node.role = message.getRole();
     //node.roleId = message.get
     node.state = message.getState();
     node.id = message.getId();
     node.host = message.getHost();
-    node.hostUrl = message.getHostURL();
+//    node.hostUrl = message.getHostURL();
     return node;
   }
 }
