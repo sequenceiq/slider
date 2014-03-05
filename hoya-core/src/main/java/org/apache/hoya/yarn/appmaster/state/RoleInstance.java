@@ -94,7 +94,7 @@ public final class RoleInstance implements Cloneable {
       host = container.getNodeId().getHost();
     }
     if (container.getNodeHttpAddress() != null) {
-      hostURL = container.getNodeHttpAddress();
+      hostURL = "http://" + container.getNodeHttpAddress();
     }
   }
 

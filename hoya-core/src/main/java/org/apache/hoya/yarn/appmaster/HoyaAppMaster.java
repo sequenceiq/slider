@@ -583,8 +583,8 @@ public class HoyaAppMaster extends CompoundLaunchedService
       
       appState.buildAppMasterNode(appMasterContainerID,
                                   appMasterHostname,
-                                  webApp.port(), 
-                                  appMasterTrackingUrl);
+                                  webApp.port(),
+                                  appMasterHostname + ":" + webApp.port());
 
       // build up environment variables that the AM wants set in every container
       // irrespective of provider and role.
