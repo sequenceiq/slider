@@ -13,20 +13,37 @@
 -->
   
 
-# Hoya: HBase on YARN
+# Hoya: Dynamic YARN Applicatins
 
 
 
+Hoya is a YARN application to deploy existing distributed applications on YARN, 
+monitor them and make them larger or smaller as desired -even while 
+the cluster is running.
 
-Hoya is an application to dynamically create Apache HBase clusters in an
-Apache Hadoop 2.x cluster, using the YARN scheduler to 
-create the HBase cluster
+
+Hoya has a plug-in *provider* architecture to support different applications,
+and currently supports Apache HBase and Apache Accumulo.
+
+Clusters can be stopped, "frozen" and restarted, "thawed" later; the distribution
+of the deployed application across the YARN cluster is persisted -enabling
+a best-effort placement close to the previous locations on a cluster thaw.
+Applications which remember the previous placement of data (such as HBase)
+can exhibit fast start-up times from this feature.
+
+YARN itself monitors the health of 'YARN containers" hosting parts of 
+the deployed application -it notifies the Hoya manager application of container
+failure. Hoya then asks YARN for a new container, into which Hoya deploys
+a replacement for the failed component. As a result, Hoya can keep the
+size of managed applications consistent with the specified configuration, even
+in the face of failures of servers in the cluster -as well as parts of the
+application itself
 
 Some of the features are:
 
-* Allows users to create on-demand HBase clusters
+* Allows users to create on-demand Apache HBase and Apache Accumulo clusters
 
-* Allow different users/applicatins to run different versions of HBase.
+* Allow different users/applicatins to run different versions of the application.
 
 * Allow users to configure different Hbase instances differently
 
@@ -35,10 +52,6 @@ Some of the features are:
 * Expand / shrink clusters as needed
 
 The Hoya tool is a Java command line application.
-
-It takes in a cluster specification - in terms of the number of regionservers,
-the location of HBASE_HOME, the ZooKeeper quorum hosts, the configuration that
-the new HBase cluster instance should use and so on.
 
 The tool persists the information as a JSON document into the HDFS.
 It also generates the configuration files assuming the passed configuration
@@ -50,17 +63,8 @@ using the Hoya commands. The cluster can also be stopped, *frozen*
 and later resumed, *thawed*.
       
 Hoya implements all its functionality through YARN APIs and the existing
-HBase’s shell scripts. The goal of the prototype was to have minimal
-code changes and as of this writing, it has required zero code changes in HBase.
-
-We built Hoya to demonstrate the capabilities of YARN, to broaden the use cases
-for HBase by allowing it to be used in mixed workload clusters and to learn
-how to improve and integrated all the layers of the Hadoop 2.0 stack.  Hoya
-is a work in progress.  We plan to share our early work on Github under the
-Apache License, so that we can get feedback and validation.  As Hoya
-matures, we plan to move it into the Apache Foundation to be closer
-to Apache's Hadoop and HBase projects. If you are interested in
-running HBase on YARN:  Come work with us on Hoya!
+application shell scripts. The goal of the application was to have minimal
+code changes and as of this writing, it has required few changes.
 
 ## Using Hoya
 
@@ -81,4 +85,5 @@ running HBase on YARN:  Come work with us on Hoya!
 * [Building](building.html)
 * [Releasing](releasing.html)
 * [Role history](rolehistory.html) 
-* [Specification](specification)
+* [Specification](specification/index.html)
+* [Specification of the persistent cluster.json file](cluster/index.html)
