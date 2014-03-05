@@ -121,7 +121,6 @@ public class AgentProviderService extends AbstractProviderService implements
     String propagatedConfDir = ApplicationConstants.Environment.PWD.$() + "/" +
         HoyaKeys.PROPAGATED_CONF_DIR_NAME;
     env.put("PROPAGATED_CONFDIR", propagatedConfDir);
-    ctx.setEnvironment(env);
     //local resources
     Map<String, LocalResource> localResources =
         new HashMap<String, LocalResource>();
@@ -186,8 +185,8 @@ public class AgentProviderService extends AbstractProviderService implements
     String cmdStr = HoyaUtils.join(operation, " ");
     commandList.add(cmdStr);
     ctx.setCommands(commandList);
-
-  }
+    ctx.setEnvironment(env);
+}
 
   public void appendOperation(List<String> commandList,
                               String exe,

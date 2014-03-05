@@ -157,7 +157,7 @@ public class HBaseProviderService extends AbstractProviderService implements
 
     env.put("PROPAGATED_CONFDIR", ApplicationConstants.Environment.PWD.$()+"/"+
                                   HoyaKeys.PROPAGATED_CONF_DIR_NAME);
-    ctx.setEnvironment(env);
+
 
     //local resources
     Map<String, LocalResource> localResources =
@@ -184,13 +184,11 @@ public class HBaseProviderService extends AbstractProviderService implements
     String heap = clusterSpec.getRoleOpt(role, RoleKeys.JVM_HEAP, DEFAULT_JVM_HEAP);
     if (HoyaUtils.isSet(heap)) {
       String adjustedHeap = HoyaUtils.translateTrailingHeapUnit(heap);
-      command.add("HBASE_HEAPSIZE=" + adjustedHeap);
       env.put("HBASE_HEAPSIZE", adjustedHeap);
     }
     
     String gcOpts = clusterSpec.getRoleOpt(role, RoleKeys.GC_OPTS, DEFAULT_GC_OPTS);
     if (HoyaUtils.isSet(gcOpts)) {
-      command.add("SERVER_GC_OPTS=" + gcOpts);
       env.put("SERVER_GC_OPTS", gcOpts);
     }
     
@@ -227,6 +225,7 @@ public class HBaseProviderService extends AbstractProviderService implements
 
     commands.add(cmdStr);
     ctx.setCommands(commands);
+    ctx.setEnvironment(env);
 
   }
 

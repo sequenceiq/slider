@@ -153,8 +153,6 @@ public class AccumuloProviderService extends AbstractProviderService implements
               HoyaKeys.PROPAGATED_CONF_DIR_NAME));
     env.put(ZOOKEEPER_HOME, clusterSpec.getMandatoryOption(OPTION_ZK_HOME));
 
-    ctx.setEnvironment(env);
-
     //local resources
     Map<String, LocalResource> localResources =
       new HashMap<String, LocalResource>();
@@ -190,7 +188,6 @@ public class AccumuloProviderService extends AbstractProviderService implements
       } else if (AccumuloKeys.ROLE_GARBAGE_COLLECTOR.equals(role)) {
         opt = "ACCUMULO_GC_OPTS";
       }
-      command.add(opt + "='" + heap + "'");
       env.put(opt, heap);
     }
 
@@ -217,7 +214,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
 
     commands.add(cmdStr);
     ctx.setCommands(commands);
-
+    ctx.setEnvironment(env);
   }
   
   public List<String> buildProcessCommandList(ClusterDescription clusterSpec,
