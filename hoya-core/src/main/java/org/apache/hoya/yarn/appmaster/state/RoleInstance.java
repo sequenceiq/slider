@@ -164,9 +164,7 @@ public final class RoleInstance implements Cloneable {
     }
     builder.setRoleId(roleId);
     builder.setState(state);
-    if (id != null) {
-      builder.setId(id);
-    }
+
     builder.setReleased(released);
     builder.setCreateTime(createTime);
     builder.setStartTime(startTime);

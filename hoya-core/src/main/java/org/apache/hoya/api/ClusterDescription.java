@@ -209,7 +209,7 @@ public class ClusterDescription implements Cloneable {
   /**
    * Cluster Nodes
    */
-  public Map<String, List<ClusterNode>> cluster;
+  public Map<String, Object> cluster;
 
   /**
    * Creator.

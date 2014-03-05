@@ -175,6 +175,7 @@ public class ClusterNode {
    */
   public static ClusterNode fromProtobuf(Messages.RoleInstanceState message) {
     ClusterNode node = new ClusterNode();
+    node.name = message.getName();
     node.command = message.getCommand();
     node.diagnostics = message.getDiagnostics();
     String[] arr;

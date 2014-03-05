@@ -34,6 +34,7 @@ import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.hoya.HoyaExitCodes;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
+import org.apache.hoya.api.ClusterDescriptionKeys;
 import org.apache.hoya.api.ClusterNode;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.RoleKeys;
@@ -741,19 +742,19 @@ public class AppState {
    * Build an instance map to send over the wire
    * @return the map of Role name to list of Cluster Nodes, ready
    */
-  private synchronized Map<String, List<ClusterNode>> createRoleToClusterNodeMap() {
-    Map<String, List<ClusterNode>> map =
-      new HashMap<String, List<ClusterNode>>();
+  private synchronized Map<String, Map<String, ClusterNode>> createRoleToClusterNodeMap() {
+    Map<String, Map<String, ClusterNode>> map =
+      new HashMap<String, Map<String, ClusterNode>>();
     for (RoleInstance node : getLiveNodes().values()) {
       
-      List<ClusterNode> containers = map.get(node.role);
+      Map<String, ClusterNode> containers = map.get(node.role);
       if (containers == null) {
-        containers = new ArrayList<ClusterNode>();
+        containers = new HashMap<String, ClusterNode>();
         map.put(node.role, containers);
       }
       Messages.RoleInstanceState pbuf = node.toProtobuf();
       ClusterNode clusterNode = ClusterNode.fromProtobuf(pbuf);
-      containers.add(clusterNode);
+      containers.put(clusterNode.name, clusterNode);
     }
     return map;
   }
@@ -1181,9 +1182,10 @@ public class AppState {
     cd.instances = instanceMap;
     
     //build the map of node -> containers
-    Map<String, List<ClusterNode>> clusterNodes =
+    Map<String, Map<String, ClusterNode>> clusterNodes =
       createRoleToClusterNodeMap();
-    cd.cluster = clusterNodes;
+    cd.cluster = new HashMap<String, Object>();
+    cd.cluster.put(ClusterDescriptionKeys.KEY_CLUSTER_LIVE, clusterNodes);
 
 
     for (RoleStatus role : getRoleStatusMap().values()) {
