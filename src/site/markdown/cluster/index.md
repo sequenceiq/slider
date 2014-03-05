@@ -12,9 +12,14 @@
   limitations under the License. See accompanying LICENSE file.
 -->
   
-# Specification of the Hoya Cluster Description
+# Specification of the Cluster Description, v2.0
 
+The specification of a cluster, the cluster.json file is
+both the persistent description of a deployed application,
+it is the format of the dynamic status report provided by
+the Application Master
 
+1. [Redesign](redesign.html)
 1. [Specification](specification.html)
 1. [Example: current](original-hbase.json)
 1. [Example: proposed](proposed-hbase.json)

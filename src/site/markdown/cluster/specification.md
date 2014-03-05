@@ -12,7 +12,9 @@
   limitations under the License. See accompanying LICENSE file.
 -->
   
-# Cluster Specification
+# Specification of the "Cluster Description"
+
+# Version 2.0.0
 
 ### Notation: 
 
@@ -23,83 +25,308 @@ A wildcard indicates all entries matching a path: `options/zookeeper.*`
 or `/roles/*/yarn.memory`
 
 
-## History
+## Core Concepts
 
-The Hoya cluster specification was implicitly defined in the file
-`org.apache.hoya.api.ClusterDescription`. It had a number of roles
+A persistent cluster is defined in a "Cluster Description" JSON file,
+saved into HDFS as `cluster.json` in a standarized location for each
+cluster (by default, `${user.home}/.hoya/clusters/${clustername}/cluster.json`)
 
-1. Persistent representaton of cluster state
-1. Internal model of desired cluster state within the Application Master.
-1. Dynamic representation of current cluster state when the AM
-was queried, marshalled over the network as JSON.
-1. Description of updated state when reconfiguring a running cluster.
+An extended form of the same JSON specification is used to provide status
+information back from the Application Master, "AM", to client applications.
 
-Initially the dynamic status included a complete history of all containers
--this soon highlit some restrictions on the maximum size of a JSON-formatted
-string in Hadoop's "classic" RPC: 32K, after which the string was silently
-truncated. Accordingly, this history was dropped.
 
-Having moved to Protocol Buffers as the IPC wire format, with a web view
-alongside, this history could be reconsidered.
+## Sections for specifying and describing cluster state
 
-The initial design place most values into the root entry, and relied
-on Jaxon introspection to set and retrieve the values -it was a
-Java-first specification, with no external specificatin or regression tests.
+The cluster desciption is hierarchal, with standardized sections.
 
-As the number of entries in the root increased, the design switched to storing
-more attributes into specific sections *under* the root path:
+Different sections have one of three roles.
 
-* `info`: read-only information about the cluster.
-* `statistics`: Numeric statistics about the cluster
+1. Storage and specification of internal properties used to define a cluster -properties
+that should not be modified by users -doing so is likely to render the
+cluster undeployable.
 
-# Sections
+1. Storage and specification of the components deployed by Hoya.
+These sections define options for the deployed application, the size of
+the deployed application, attributes of the deployed roles, and customizable
+aspects of the Hoya application master. 
 
-## `info {}`
+  This information defines the *desired state* of a cluster.
+   
+  Users may edit these sections, either via the CLI, or by directly editing the `cluster.json` file of
+  a frozen cluster.
 
-Read-only list of information about the application. Generally this is
-intended to be used for debugging and testing.
-
-### Persisted: static information about the file history
+1. Status information provided by a running cluster. These include:
+ information about the cluster, statistics, information about reach role in
+ the cluster -as well as other aspects of the deployment.
  
-    "info" : {
+ This information describes the *actual state* of a cluster.
+  
+Using a common format for both the specification and description of a cluster
+may be confusing, but it is designed to unify the logic needed to parse
+and process cluster descriptions. There is only one JSON file to parse
+-merely different sections of relevance at different times.
+
+## Role-by-role subsections
+
+A hoya-deployed application consists of the single Hoya application master,
+and one or more roles -specific components in the actual application.
+
+The `/roles` section contains a listing for each role, 
+declaring the number of instances of each role desired,
+possibly along with some details defining the actual execution of the application.
+
+The `/statistics/roles/` section returns statistics on each role,
+while `/instances` has a per-role entry listing the YARN
+containers hosting instances. 
+
+
+## Cluster information for applications
+
+The AM/application provider may generate information for use
+
+
+
+# Specification Sections
+
+## "/" : root
+
+The root contains a limited number of key-value pairs, 
+
+* `version`: string; required.
+The version of the JSON file, as an `x.y.z` version string.
+    1. Applications MUST verify that they can process a specific version.
+    1. The version number SHOULD be incremented in the minor "z" value
+    after enhancements that are considered backwards compatible.
+    Incompatible updates MUST be updated with a new "y" value.
+    The final, "x" number, is to be reserved for major reworkings
+    of the cluster specification itself (this document or its
+    successors).
+
+* `name`: string; required. Cluster name; 
+* `type`: string; required.
+Reference to the provider type -this triggers a Hadoop configuration
+property lookup to find the implementation classes.
+* `valid`: boolean; required.
+Flag to indicate whether or not a specification is considered valid.
+If false, the rest of the document is in an unknown state.
+
+## `/hoya-internal`
+
+Stores internal configuration options. These parameters
+are not defined in this document.
+
+## `/diagnostics`
+
+Persisted list of information about Hoya. 
+
+Static information about the file history
+ 
+    "diagnostics" : {
       "create.hadoop.deployed.info" : "(detached from release-2.3.0) @dfe46336fbc6a044bc124392ec06b85",
       "create.application.build.info" : "Hoya Core-0.13.0-SNAPSHOT Built against commit# 1a94ee4aa1 on Java 1.7.0_45 by stevel",
       "create.hadoop.build.info" : "2.3.0",
       "create.time.millis" : "1393512091276",
     },
  
+This information is not intended to provide anything other
+than diagnostics to an application; the values and their meaning
+are not defined. All applications MUST be able to process
+an empty or absent `/diagnostics` section.
+
+## Options
+
+A Persisted list of options used by Hoya and its providers to build up the AM
+and the configurations of the deployed service components
+
+
+  "options": {
+    "hoya.am.monitoring.enabled": "false",
+    "hoya.cluster.application.image.path": "hdfs://sandbox.hortonworks.com:8020/hbase.tar.gz",
+    "hoya.container.failure.threshold": "5",
+    "hoya.container.failure.shortlife": "60",
+    "zookeeper.port": "2181",
+    "zookeeper.path": "/yarnapps_hoya_stevel_test_cluster_lifecycle",
+    "zookeeper.hosts": "sandbox",
+    "site.hbase.master.startup.retainassign": "true",
+    "site.fs.defaultFS": "hdfs://sandbox.hortonworks.com:8020",
+    "site.fs.default.name": "hdfs://sandbox.hortonworks.com:8020",
+    "env.MALLOC_ARENA_MAX": "4",
+    "site.hbase.master.info.port": "0",
+    "site.hbase.regionserver.info.port": "0"
+  },
+
+Many of the properties are automatically set by Hoya when a cluster is constructed.
+They may be edited afterwards.
+
+
+### Standard Option types
+
+All option values MUST be strings.
+
+#### `hoya.`
+All options that begin with `hoya.` are intended for use by hoya and 
+providers to configure the Hoya application master itself, and the
+application. For example, `hoya.container.failure.threshold` defines
+the number of times a container must fail before the role (and hence the cluster)
+is considered to have failed. As another example, the zookeeper bindings
+such as `zookeeper.hosts` are read by the HBase and Ambari providers, and
+used to modify the applications' site configurations with application-specific
+properties.
+
+#### `site.`
  
-### Dynamic: 
+These are properties that are expected to be propagated to an application's
+ `site` configuration -if such a configuration is created. For HBase, the 
+ site file is `hbase-site.xml`; for Accumulo it is `accumulo-site.xml`
+
+1. The destination property is taken by removing the prefix `site.`, and
+setting the shortened key with the defined value.
+1. Not all applications have the notion of a site file; These applications MAY
+ignore the settings.
+1. Providers MAY validate site settings to recognise invalid values. This
+aids identifying and diagnosing startup problems.
+
+#### `env.`
+
+These are options to configure environment variables in the roles. When
+a container is started, all `env.` options have the prefix removed, and
+are then set as environment variables in the target context.
+
+1. The Hoya AM uses these values to configure itself, after following the
+option/role merge process.
+1. Application providers SHOULD follow the same process.
+
+
+## '/roles': Role definitions
+
+The `/roles/$ROLENAME/` clauses each provide options for a
+specific role.
+
+This includes
+1. `role.instances`: defines the number of instances of a role to create
+1. `env.` environment variables for launching the container
+1. `yarn.` properties to configure YARN requests.
+1. `jvm.heapsize`: an option supported by some providers to 
+fix the heap size of a component.
+
+
+      "worker": {
+        "yarn.memory": "768",
+        "env.MALLOC_ARENA_MAX": "4",
+        "role.instances": "0",
+        "role.name": "worker",
+        "role.failed.starting.instances": "0",
+        "jvm.heapsize": "512M",
+        "yarn.vcores": "1",
+      },
+
+
+The role `hoya` represents the Hoya Application Master itself.
+
+      
+      "hoya": {
+        "yarn.memory": "256",
+        "env.MALLOC_ARENA_MAX": "4",
+        "role.instances": "1",
+        "role.name": "hoya",
+        "jvm.heapsize": "256M",
+        "yarn.vcores": "1",
+      },
+
+## How `/options` and role options are merged.
+
+The options declared for a specific role are merged with the cluster-wide options
+to define the final options for a role. This is implemented in a simple
+override model: role-specific options can override any site-wide options.
+
+1. The options defined in `/options` are used to create the initial option
+map for each role.
+1. The role's options are then applied to the map -this may overwrite definitions
+from the `/options` section.
+1. There is no way to "undefine" a cluster option, merely overwrite it. 
+1. The merged map is then used by the provider to create the component.
+1. The special `hoya` role is used in the CLI to define the attributes of the AM.
+
+Options set on a role do not affect any site-wide options: they
+are specific to the invidual role being created. 
+
+As such, overwriting a `site.` option may have no effect -or it it may
+change the value of a site configuration document *in that specific role instance*.
+
+*Standard role options*
+
+* `role.instances` : number; required.
+  The number of instances of that role desired in the application.
+* `yarn.vcores` : number.
+  The number of YARN "virtual cores" to request for each role instance.
+  The larger the number, the more CPU allocation -and potentially the longer
+  time to satisfy the request and so instantiate the node. 
+  If the value '"-1"` is used -for any role but `hoya`-the maximum value
+  available to the application is requested.
+* `yarn.memory` : number.
+  The number in Megabytes of RAM to request for each role instance.
+  The larger the number, the more memory allocation -and potentially the longer
+  time to satisfy the request and so instantiate the node. 
+  If the value '"-1"` is used -for any role but `hoya`-the maximum value
+  available to the application is requested.
+ 
+* `env.` environment variables.
+String environment variables to use when setting up the container
+
+*Provider-specific role options*
+  
+* `jvm.heapsize` -the amount of memory for a provider to allocate for
+ a processes JVM. Example "512M". This option MAY be implemented by a provider.
+ 
+
+
+
+
+# Information Sections
+
+These are the parts of the document that provide dynamic run-time
+information about an application. They are provided by the
+Hoya Application Master when a request for the cluster status is issued.
+
+## `/info`
+
+Dynamic set of string key-value pairs containing
+information about the running application -as provided by th 
+
+The values in this section are not normatively defined. 
+
+However, here are some 
  
  
- whether the AM supports service restart without killing all the containers hosting
+* `hoya.am.restart.supported"`  whether the AM supports service restart without killing all the containers hosting
  the role instances:
  
-    "hoya.am.restart.supported" : "false",
+        "hoya.am.restart.supported" : "false",
     
+* timestamps of the cluster going live, and when the status query was made
     
- timestamps of the cluster going live, and when the status query was made
+        "live.time" : "27 Feb 2014 14:41:56 GMT",
+        "live.time.millis" : "1393512116881",
+        "status.time" : "27 Feb 2014 14:42:08 GMT",
+        "status.time.millis" : "1393512128726",
     
+* yarn data provided to the AM
     
-    "live.time" : "27 Feb 2014 14:41:56 GMT",
-    "live.time.millis" : "1393512116881",
-    "status.time" : "27 Feb 2014 14:42:08 GMT",
-    "status.time.millis" : "1393512128726",
-    
-  yarn data provided to the AM
-    
-    "yarn.vcores" : "32",
-    "yarn.memory" : "2048",
-  
-  information about the application and hadoop versions in use. Here
+        "yarn.vcores" : "32",
+        "yarn.memory" : "2048",
+      
+*  information about the application and hadoop versions in use. Here
   the application was built using Hadoop 2.3.0, but is running against the version
   of Hadoop built for HDP-2.
   
-    "status.application.build.info" : "Hoya Core-0.13.0-SNAPSHOT Built against commit# 1a94ee4aa1 on Java 1.7.0_45 by stevel",
-    "status.hadoop.build.info" : "2.3.0",
-    "status.hadoop.deployed.info" : "bigwheel-m16-2.2.0 @704f1e463ebc4fb89353011407e965"
+        "status.application.build.info" : "Hoya Core-0.13.0-SNAPSHOT Built against commit# 1a94ee4aa1 on Java 1.7.0_45 by stevel",
+        "status.hadoop.build.info" : "2.3.0",
+        "status.hadoop.deployed.info" : "bigwheel-m16-2.2.0 @704f1e463ebc4fb89353011407e965"
+     
  
- 
+As with the `/diagnostics` section, this area is primarily intended
+for debugging.
+
  ## `instances`
  
  Information about the live containers in a cluster
@@ -225,54 +452,7 @@ and to move the roles' statistics under `/statistics/roles`:
 This approach allows extra statistics sections to be added (perhaps
 by providers), without any changes to the toplevel section.
 
-## Options
 
-A list of options used by Hoya and its providers to build up the AM
-and the configurations of the deployed service components
-
-
-    "options": {
-      "zookeeper.port": "2181",
-      "site.hbase.master.startup.retainassign": "true",
-      "hoya.cluster.application.image.path": "hdfs://sandbox.hortonworks.com:8020/hbase.tar.gz",
-      "site.fs.defaultFS": "hdfs://sandbox.hortonworks.com:8020",
-      "hoya.container.failure.threshold": "5",
-      "site.fs.default.name": "hdfs://sandbox.hortonworks.com:8020",
-      "hoya.cluster.directory.permissions": "0770",
-      "hoya.am.monitoring.enabled": "false",
-      "zookeeper.path": "/yarnapps_hoya_stevel_test_cluster_lifecycle",
-      "hoya.tmp.dir": "hdfs://sandbox.hortonworks.com:8020/user/stevel/.hoya/cluster/test_cluster_lifecycle/tmp/am",
-      "hoya.data.directory.permissions": "0770",
-      "zookeeper.hosts": "sandbox",
-      "hoya.container.failure.shortlife": "60"
-    },
-  
-Some for these options options have been created by hoya itself ("hoya.tmp.dir")
-for internal use -and are cluster specific. If/when the ability to use
-an existing json file as a template for a new cluster is added, having these
-options in the configuration will create problems
-
-
-# Proposed Changes
-
-
-## Move Hoya internal state to `/hoya-internal`
-
-Move all hoya "private" data to an internal section,`/hoya-internal`
-including those in the toplevel directory and in `/options`
-  
-## Allow `/options` and `roles/*/` options entries to take the value "null".
-
-This would be a definition that the value must be defined before the cluster
-can start. Provider templates could declare this.
-  
-## Make client configuration retrieval hierarchical -and maybe move out of the
-status
-
-The current design assumes that it is a -site.xml file being served up. This
-does not work for alternate file formats generated by the Provider.
-
-  
 ### Proposed:  `/clientProperties` continues return Key-val pairs
 
 The `/clientProperties` section will remain, with key-val pairs of type

@@ -1,10 +1,10 @@
 {
-  "version": "2.0",
+  "version": "2.0.0",
   "name": "test_cluster_lifecycle",
+  "valid`": true,
   
   "hoya-internal":{
     "type": "hbase",
-    "state": 3,
     "createTime": 1393512091276,
     "updateTime": 1393512117286,
     "originConfigurationPath": "hdfs://sandbox.hortonworks.com:8020/user/stevel/.hoya/cluster/test_cluster_lifecycle/snapshot",
@@ -12,8 +12,7 @@
     "dataPath": "hdfs://sandbox.hortonworks.com:8020/user/stevel/.hoya/cluster/test_cluster_lifecycle/database",
     "hoya.tmp.dir": "hdfs://sandbox.hortonworks.com:8020/user/stevel/.hoya/cluster/test_cluster_lifecycle/tmp/am",
     "hoya.cluster.directory.permissions": "0770",
-    "hoya.data.directory.permissions": "0770",
-    "roleNames": [ "worker", "hoya", "master" ]
+    "hoya.data.directory.permissions": "0770"
   },
   
   "options": {
@@ -27,16 +26,20 @@
     "site.hbase.master.startup.retainassign": "true",
     "site.fs.defaultFS": "hdfs://sandbox.hortonworks.com:8020",
     "site.fs.default.name": "hdfs://sandbox.hortonworks.com:8020",
-    "env.MALLOC_ARENA_MAX": "4"
-
+    "env.MALLOC_ARENA_MAX": "4",
+    "site.hbase.master.info.port": "0",
+    "site.hbase.regionserver.info.port": "0"
   },
   
-  "info": {
+  "diagnostics": {
     "create.hadoop.deployed.info": "(detached from release-2.3.0) @dfe46336fbc6a044bc124392ec06b85",
     "create.application.build.info": "Hoya Core-0.13.0-SNAPSHOT Built against commit# 1a94ee4aa1 on Java 1.7.0_45 by stevel",
     "create.hadoop.build.info": "2.3.0",
     "create.time.millis": "1393512091276",
     "create.time": "27 Feb 2014 14:41:31 GMT",
+  },
+  
+  "info": {
     "hoya.am.restart.supported": "false",
     "live.time": "27 Feb 2014 14:41:56 GMT",
     "live.time.millis": "1393512116881",
@@ -100,8 +103,7 @@
       "role.instances": "0",
       "role.name": "worker",
       "jvm.heapsize": "512M",
-      "yarn.vcores": "1",
-      "app.infoport": "0"
+      "yarn.vcores": "1"
     },
     "hoya": {
       "yarn.memory": "256",
@@ -115,8 +117,7 @@
       "role.instances": "0",
       "role.name": "master",
       "jvm.heapsize": "512M",
-      "yarn.vcores": "1",
-      "app.infoport": "0"
+      "yarn.vcores": "1"
     }
   },
 
