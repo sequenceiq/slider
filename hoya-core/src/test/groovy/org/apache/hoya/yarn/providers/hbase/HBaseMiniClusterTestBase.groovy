@@ -51,6 +51,7 @@ public abstract class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
 
   public static final String HREGION = "HRegion"
   public static final String HMASTER = "HMaster"
+  public static final String HB_HEAP = "256"
 
 
   @Override
