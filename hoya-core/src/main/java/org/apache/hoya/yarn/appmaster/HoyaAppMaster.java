@@ -445,6 +445,10 @@ public class HoyaAppMaster extends CompoundLaunchedService
     log.info("RM is at {}", address);
     yarnRPC = YarnRPC.create(conf);
 
+    /*
+     * Extract the container ID. This is then
+     * turned into an (incompete) container
+     */
     appMasterContainerID = ConverterUtils.toContainerId(
       HoyaUtils.mandatoryEnvVariable(
         ApplicationConstants.Environment.CONTAINER_ID.name()));
@@ -576,8 +580,11 @@ public class HoyaAppMaster extends CompoundLaunchedService
                              liveContainers);
 
       // add the AM to the list of nodes in the cluster
-
-      appState.buildAppMasterNode(appMasterContainerID);
+      
+      appState.buildAppMasterNode(appMasterContainerID,
+                                  appMasterHostname,
+                                  webApp.port(),
+                                  appMasterHostname + ":" + webApp.port());
 
       // build up environment variables that the AM wants set in every container
       // irrespective of provider and role.
@@ -1052,7 +1059,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
       Messages.ListNodeUUIDsByRoleResponseProto.newBuilder();
     List<RoleInstance> nodes = appState.enumLiveNodesInRole(role);
     for (RoleInstance node : nodes) {
-      builder.addUuid(node.uuid);
+      builder.addUuid(node.id);
     }
     return builder.build();
   }

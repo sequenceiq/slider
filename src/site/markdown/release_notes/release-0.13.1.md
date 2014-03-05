@@ -24,11 +24,6 @@ Download: [hoya-0.13.1-all.tar.gz]()
 
 ## Key changes
 
-
-### Improved Hoya AM web UI
-
-The Web UI has more features
-
 ### Built against Hadoop 2.3.0
 
 This release has been built using the Hadoop 2.3.0 libraries.
@@ -49,7 +44,54 @@ the values from a preceeding flex.
 
 The `--persist` parameter is still supported -it is just ignored.
 
-## Other points
 
-* We've been redesiging the persistent cluster.json file; the changes
-will appear in the next release.
+### Improved Hoya AM web UI
+
+The Web UI has more features, including the JSON status of
+a cluster.
+
+## Cluster status includes more detail on running instances
+ 
+The `/cluster/live` section in status reports lists the running cluster instances by role,
+including the command used to start the instance, as well as the
+environment variables. 
+
+As an example, here is the status on a running worker node:
+
+    "cluster": {
+      "live": {
+        "worker": {
+          "container_1394032374441_0001_01_000003": {
+            "name": "container_1394032374441_0001_01_000003",
+            "role": "worker",
+            "roleId": 1,
+            "createTime": 1394032384451,
+            "startTime": 1394032384503,
+            "released": false,
+            "host": "192.168.1.88",
+            "state": 3,
+            "exitCode": 0,
+            "command": "hbase-0.98.0/bin/hbase --config $PROPAGATED_CONFDIR regionserver start 1><LOG_DIR>/region-server.txt 2>&1 ; ",
+            "diagnostics": "",
+            "environment": [
+              "HADOOP_USER_NAME=\"hoya\"",
+              "HBASE_LOG_DIR=\"/tmp/hoya-hoya\"",
+              "HBASE_HEAPSIZE=\"256\"",
+              "MALLOC_ARENA_MAX=\"4\"",
+              "PROPAGATED_CONFDIR=\"$PWD/propagatedconf\""
+            ]
+          }
+        }
+        failed : {}
+      }
+
+This `/cluster` section will be expanded in future.
+
+
+# Warning: imminent change to persistent cluster specification
+
+We've been redesiging the persistent `cluster.json` file; the changes
+will appear in the next release. These changes will *not* be backwards compatible.
+
+Please have a look at the [proposed new cluster specification](https://github.com/hortonworks/hoya/blob/feature/BUG-13917-cluster-spec/src/site/markdown/cluster/index.md)
+and comment on them.

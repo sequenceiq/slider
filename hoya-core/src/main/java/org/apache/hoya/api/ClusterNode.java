@@ -23,6 +23,7 @@ import org.apache.hoya.api.proto.Messages;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
@@ -34,7 +35,7 @@ import java.io.IOException;
  * Describe a specific node in the cluster
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL )
 public class ClusterNode {
   protected static final Logger
     LOG = LoggerFactory.getLogger(ClusterDescription.class);
@@ -47,9 +48,27 @@ public class ClusterNode {
    */
   public String name;
 
+
+  /**
+   * UUID of container used in Hoya RPC to refer to instances
+   */
+  public String id;
+  
   public String role;
   
   public int roleId;
+
+  public long createTime;
+  public long startTime;
+  /**
+   * flag set when it is released, to know if it has
+   * already been targeted for termination
+   */
+  public boolean released;
+  public String host;
+  public String hostUrl;
+  
+  
   /**
    * state from {@link ClusterDescription}
    */
@@ -82,12 +101,6 @@ public class ClusterNode {
   public String[] environment;
 
   /**
-   * UUID of container used in Hoya RPC to refer to instances
-   */
-  public String uuid;
-
-
-  /**
    * server-side ctor takes the container ID and builds the name from it
    * @param containerId container ID
    */
@@ -109,21 +122,24 @@ public class ClusterNode {
     builder.append(state).append("\n");
     builder.append("state: ").append(state).append("\n");
     builder.append("role: ").append(role).append("\n");
-    builder.append("uuid: ").append(uuid).append("\n");
-    if (command != null) {
-      builder.append("command: ").append(command).append("\n");
-    }
+    append(builder, "host", host);
+    append(builder, "hostURL", hostUrl);
+    append(builder, "command", command);
     if (output != null) {
       for (String line : output) {
         builder.append(line).append("\n");
       }
     }
-    if (diagnostics != null) {
-      builder.append(diagnostics).append("\n");
-    }
+    append(builder, "diagnostics", diagnostics);
     return builder.toString();
   }
 
+  private void append(StringBuilder builder, String name, Object val) {
+    if (val != null) {
+      builder.append(name).append(val.toString()).append("\n");
+    }
+  }
+  
   /**
    * Convert to a JSON string
    * @return a JSON string description
@@ -159,18 +175,29 @@ public class ClusterNode {
    */
   public static ClusterNode fromProtobuf(Messages.RoleInstanceState message) {
     ClusterNode node = new ClusterNode();
+    node.name = message.getName();
     node.command = message.getCommand();
     node.diagnostics = message.getDiagnostics();
-    String[] arr = new String[message.getEnvironmentCount()];
-    node.environment = message.getEnvironmentList().toArray(arr);
+    String[] arr;
+    int environmentCount = message.getEnvironmentCount();
+    if (environmentCount > 0) {
+      arr = new String[environmentCount];
+      node.environment = message.getEnvironmentList().toArray(arr);
+    }
     node.exitCode = message.getExitCode();
-    node.name = message.getName();
-    arr = new String[message.getOutputCount()];
-    node.output = message.getOutputList().toArray(arr);
+    int outputCount = message.getOutputCount();
+    if (outputCount > 0) {
+      arr = new String[outputCount];
+      node.output = message.getOutputList().toArray(arr);
+    }
     node.role = message.getRole();
-    //node.roleId = message.get
+    node.roleId = message.getRoleId();
     node.state = message.getState();
-    node.uuid = message.getUuid();
+    node.host = message.getHost();
+//    node.hostUrl = message.getHostURL();
+    node.createTime = message.getCreateTime();
+    node.startTime = message.getStartTime();
+    node.released = message.getReleased();
     return node;
   }
 }

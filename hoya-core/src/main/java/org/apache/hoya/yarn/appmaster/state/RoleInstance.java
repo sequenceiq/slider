@@ -37,7 +37,7 @@ public final class RoleInstance implements Cloneable {
    * UUID of container used in Hoya RPC to refer to instances. 
    * The string value of the container ID is used here.
    */
-  public final String uuid;
+  public final String id;
   public long createTime;
   public long startTime;
   /**
@@ -77,6 +77,9 @@ public final class RoleInstance implements Cloneable {
    * Any environment details
    */
   public String[] environment;
+  
+  public String host;
+  public String hostURL;
 
   public RoleInstance(Container container) {
     this.container = container;
@@ -86,14 +89,20 @@ public final class RoleInstance implements Cloneable {
     if (container.getId() == null) {
       throw new NullPointerException("Null container ID");
     }
-    uuid = container.getId().toString();
+    id = container.getId().toString();
+    if (container.getNodeId() != null) {
+      host = container.getNodeId().getHost();
+    }
+    if (container.getNodeHttpAddress() != null) {
+      hostURL = "http://" + container.getNodeHttpAddress();
+    }
   }
 
   public ContainerId getId() {
     return container.getId();
   }
   
-  public NodeId getNodeId() {
+  public NodeId getHost() {
     return container.getNodeId();
   }
 
@@ -102,12 +111,14 @@ public final class RoleInstance implements Cloneable {
     final StringBuilder sb =
       new StringBuilder("RoleInstance{");
     sb.append("container=").append(HoyaUtils.containerToString(container));
-    sb.append(", uuid='").append(uuid).append('\'');
+    sb.append(", id='").append(id).append('\'');
     sb.append(", createTime=").append(createTime);
     sb.append(", startTime=").append(startTime);
     sb.append(", released=").append(released);
     sb.append(", role='").append(role).append('\'');
     sb.append(", roleId=").append(roleId);
+    sb.append(", host=").append(host);
+    sb.append(", hostURL=").append(hostURL);
     sb.append(", state=").append(state);
     sb.append(", exitCode=").append(exitCode);
     sb.append(", command='").append(command).append('\'');
@@ -153,9 +164,12 @@ public final class RoleInstance implements Cloneable {
     }
     builder.setRoleId(roleId);
     builder.setState(state);
-    if (uuid != null) {
-      builder.setUuid(uuid);
-    }
+
+    builder.setReleased(released);
+    builder.setCreateTime(createTime);
+    builder.setStartTime(startTime);
+    builder.setHost(host);
+    builder.setHostURL(hostURL);
     return builder.build();
   }
 
@@ -170,4 +184,6 @@ public final class RoleInstance implements Cloneable {
   public Object clone() throws CloneNotSupportedException {
     return super.clone();
   }
+
+
 }

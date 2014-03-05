@@ -174,7 +174,7 @@ environment variables which will be set for all instances of that role.
 
     --roleopt worker env.MALLOC_ARENA 4
 
-## Accumulo-Specfic Options
+## Accumulo-Specific Options
 
 ### Accumulo cluster options
 

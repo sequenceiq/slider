@@ -85,6 +85,9 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
   public static final String SERVICE_LAUNCHER = "ServiceLauncher"
   public static
   final String NO_ARCHIVE_DEFINED = "Archive configuration option not set: "
+  /**
+   * RAM for the YARN containers: {@value}
+   */
   public static final String YRAM = "256"
 
 

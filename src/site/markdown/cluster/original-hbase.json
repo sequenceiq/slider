@@ -135,6 +135,5 @@
     "hoya.template.origin": "hdfs://sandbox.hortonworks.com:8020/user/stevel/.hoya/cluster/test_cluster_lifecycle/snapshot/hbase-site.xml",
     "hoya.unused.option": "1",
     "zookeeper.znode.parent": "/yarnapps_hoya_stevel_test_cluster_lifecycle"
-  },
-  "roleNames": [ "worker", "hoya", "master" ]
+  }
 }
