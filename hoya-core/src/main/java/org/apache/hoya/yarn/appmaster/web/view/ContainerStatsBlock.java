@@ -175,7 +175,7 @@ public class ContainerStatsBlock extends HtmlBlock {
     Map<String,RoleInstance> map = Maps.newHashMapWithExpectedSize(roleInstances.size());
     for (RoleInstance roleInstance : roleInstances) {
       // UUID is the containerId
-      map.put(roleInstance.uuid, roleInstance);
+      map.put(roleInstance.id, roleInstance);
     }
     return map;
   }

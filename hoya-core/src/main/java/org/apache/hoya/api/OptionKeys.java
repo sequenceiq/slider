@@ -84,7 +84,6 @@ public interface OptionKeys {
    */
   String SITE_XML_PREFIX = "site.";
 
-
   /**
    * hoya temp directory: {@value}
    */

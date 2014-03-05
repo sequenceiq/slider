@@ -36,6 +36,7 @@ import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,6 +69,8 @@ import static org.apache.hoya.api.OptionKeys.ZOOKEEPER_PORT;
  * the code paths are simplified.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
+
 public class ClusterDescription implements Cloneable {
   protected static final Logger
     log = LoggerFactory.getLogger(ClusterDescription.class);
@@ -202,6 +205,11 @@ public class ClusterDescription implements Cloneable {
    */
   public Map<String, String> clientProperties =
     new HashMap<String, String>();
+
+  /**
+   * Cluster Nodes
+   */
+  public Map<String, List<ClusterNode>> cluster;
 
   /**
    * Creator.
@@ -540,8 +548,6 @@ public class ClusterDescription implements Cloneable {
     return getRoleOptInt(role, option, 0);
   }
   
-  
-
   /**
    * look up a role and return its options
    * @param role role
@@ -569,6 +575,7 @@ public class ClusterDescription implements Cloneable {
   /*
    * return the Set of role names
    */
+  @JsonIgnore
   public Set<String> getRoleNames() {
     return new HashSet<String>(roles.keySet());
   }

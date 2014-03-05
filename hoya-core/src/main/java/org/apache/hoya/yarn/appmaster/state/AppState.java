@@ -25,6 +25,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
+import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.impl.pb.ContainerPBImpl;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
@@ -33,9 +34,11 @@ import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.hoya.HoyaExitCodes;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
+import org.apache.hoya.api.ClusterNode;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.api.StatusKeys;
+import org.apache.hoya.api.proto.Messages;
 import org.apache.hoya.exceptions.BadClusterStateException;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.ErrorStrings;
@@ -524,11 +527,18 @@ public class AppState {
    * build up the special master node, which lives
    * in the live node set but has a lifecycle bonded to the AM
    * @param containerId the AM master
+   * @param host
+   * @param nodeHttpAddress
    */
-  public void buildAppMasterNode(ContainerId containerId) {
+  public void buildAppMasterNode(ContainerId containerId,
+                                 String host,
+                                 int amPort,
+                                 String nodeHttpAddress) {
     Container container = new ContainerPBImpl();
     container.setId(containerId);
-    
+    NodeId nodeId = NodeId.newInstance(host, amPort);
+    container.setNodeId(nodeId);
+    container.setNodeHttpAddress(nodeHttpAddress);
     RoleInstance am = new RoleInstance(container);
     am.role = HoyaKeys.ROLE_HOYA_AM;
     appMasterNode = am;
@@ -651,7 +661,7 @@ public class AppState {
     throws NoSuchNodeException {
     Collection<RoleInstance> nodes = getLiveNodes().values();
     for (RoleInstance node : nodes) {
-      if (uuid.equals(node.uuid)) {
+      if (uuid.equals(node.id)) {
         return node;
       }
     }
@@ -686,7 +696,7 @@ public class AppState {
     Collection<RoleInstance> clusterNodes = getLiveNodes().values();
 
     for (RoleInstance node : clusterNodes) {
-      if (uuidSet.contains(node.uuid)) {
+      if (uuidSet.contains(node.id)) {
         nodes.add(node);
       }
     }
@@ -717,14 +727,33 @@ public class AppState {
    */
   private synchronized Map<String, List<String>> createRoleToInstanceMap() {
     Map<String, List<String>> map = new HashMap<String, List<String>>();
-    
     for (RoleInstance node : getLiveNodes().values()) {
       List<String> containers = map.get(node.role);
       if (containers == null) {
         containers = new ArrayList<String>();
         map.put(node.role, containers);
       }
-      containers.add(node.uuid);
+      containers.add(node.id);
+    }
+    return map;
+  }
+  /**
+   * Build an instance map to send over the wire
+   * @return the map of Role name to list of Cluster Nodes, ready
+   */
+  private synchronized Map<String, List<ClusterNode>> createRoleToClusterNodeMap() {
+    Map<String, List<ClusterNode>> map =
+      new HashMap<String, List<ClusterNode>>();
+    for (RoleInstance node : getLiveNodes().values()) {
+      
+      List<ClusterNode> containers = map.get(node.role);
+      if (containers == null) {
+        containers = new ArrayList<ClusterNode>();
+        map.put(node.role, containers);
+      }
+      Messages.RoleInstanceState pbuf = node.toProtobuf();
+      ClusterNode clusterNode = ClusterNode.fromProtobuf(pbuf);
+      containers.add(clusterNode);
     }
     return map;
   }
@@ -1151,6 +1180,12 @@ public class AppState {
     Map<String, List<String>> instanceMap = createRoleToInstanceMap();
     cd.instances = instanceMap;
     
+    //build the map of node -> containers
+    Map<String, List<ClusterNode>> clusterNodes =
+      createRoleToClusterNodeMap();
+    cd.cluster = clusterNodes;
+
+
     for (RoleStatus role : getRoleStatusMap().values()) {
       String rolename = role.getName();
       List<String> instances = instanceMap.get(rolename);
@@ -1163,7 +1198,6 @@ public class AppState {
       cd.setRoleOpt(rolename, ROLE_FAILED_STARTING_INSTANCES, role.getStartFailed());
       Map<String, Integer> stats = role.buildStatistics();
       cd.statistics.put(rolename, stats);
-      
     }
 
     Map<String, Integer> hoyastats = new HashMap<String, Integer>();
@@ -1271,12 +1305,12 @@ public class AppState {
         roleHistory.findNodesForRelease(roleId, excess);
       
       for (NodeInstance node : nodesForRelease) {
-        Container possible = findContainerOnHost(node, roleId);
+        RoleInstance possible = findRoleInstanceOnHost(node, roleId);
         if (possible == null) {
           throw new HoyaInternalStateException(
             "Failed to find a container to release on node %s", node.hostname);
         }
-        containerReleaseSubmitted(possible);
+        containerReleaseSubmitted(possible.container);
         operations.add(new ContainerReleaseOperation(possible.getId()));
 
       }
@@ -1296,14 +1330,14 @@ public class AppState {
    * @return a container or null if there are no containers on this host
    * that can be released.
    */
-  private Container findContainerOnHost(NodeInstance node, int roleId) {
+  private RoleInstance findRoleInstanceOnHost(NodeInstance node, int roleId) {
     Collection<RoleInstance> targets = cloneActiveContainerList();
     String hostname = node.hostname;
     for (RoleInstance ri : targets) {
       if (hostname.equals(RoleHistoryUtils.hostnameOf(ri.container))
                          && ri.roleId == roleId
         && containersBeingReleased.get(ri.getContainerId()) == null) {
-        return ri.container;
+        return ri;
       }
     }
     return null;
