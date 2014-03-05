@@ -82,11 +82,17 @@ containers hosting instances.
 
 ## Cluster information for applications
 
-The AM/application provider may generate information for use
+The AM/application provider may generate information for use by client applications.
+
+There are three ways to provide this
+
+1. A section in which simple key-value pairs are provided for interpretation
+by client applications -usually to generate configuration documents
+2. A listing of files that may be provided directly to a client. The API to provide these files is not covered by this document.
+3. A provider-specific section in which arbitrary values and structures may be defined. This allows greater flexibility in the information that a provider can publish -though it does imply custom code to process this data on the client.
 
 
-
-# Specification Sections
+# Persistent Specification Sections
 
 ## "/" : root
 
@@ -110,20 +116,22 @@ property lookup to find the implementation classes.
 Flag to indicate whether or not a specification is considered valid.
 If false, the rest of the document is in an unknown state.
 
-## `/hoya-internal`
+## `/hoya-internal`: internal confiugration
 
 Stores internal configuration options. These parameters
 are not defined in this document.
 
-## `/diagnostics`
+## `/diagnostics`: diagnostics sections
 
 Persisted list of information about Hoya. 
 
 Static information about the file history
  
     "diagnostics" : {
-      "create.hadoop.deployed.info" : "(detached from release-2.3.0) @dfe46336fbc6a044bc124392ec06b85",
-      "create.application.build.info" : "Hoya Core-0.13.0-SNAPSHOT Built against commit# 1a94ee4aa1 on Java 1.7.0_45 by stevel",
+      "create.hadoop.deployed.info" : 
+       "(detached from release-2.3.0) @dfe46336fbc6a044bc124392ec06b85",
+      "create.application.build.info" : 
+       "Hoya Core-0.13.0-SNAPSHOT Built against commit# 1a94ee4aa1 on Java 1.7.0_45 by stevel",
       "create.hadoop.build.info" : "2.3.0",
       "create.time.millis" : "1393512091276",
     },
@@ -133,27 +141,27 @@ than diagnostics to an application; the values and their meaning
 are not defined. All applications MUST be able to process
 an empty or absent `/diagnostics` section.
 
-## Options
+## Options: cluster options
 
-A Persisted list of options used by Hoya and its providers to build up the AM
+A persisted list of options used by Hoya and its providers to build up the AM
 and the configurations of the deployed service components
 
-
-  "options": {
-    "hoya.am.monitoring.enabled": "false",
-    "hoya.cluster.application.image.path": "hdfs://sandbox.hortonworks.com:8020/hbase.tar.gz",
-    "hoya.container.failure.threshold": "5",
-    "hoya.container.failure.shortlife": "60",
-    "zookeeper.port": "2181",
-    "zookeeper.path": "/yarnapps_hoya_stevel_test_cluster_lifecycle",
-    "zookeeper.hosts": "sandbox",
-    "site.hbase.master.startup.retainassign": "true",
-    "site.fs.defaultFS": "hdfs://sandbox.hortonworks.com:8020",
-    "site.fs.default.name": "hdfs://sandbox.hortonworks.com:8020",
-    "env.MALLOC_ARENA_MAX": "4",
-    "site.hbase.master.info.port": "0",
-    "site.hbase.regionserver.info.port": "0"
-  },
+  
+    "options": {
+      "hoya.am.monitoring.enabled": "false",
+      "hoya.cluster.application.image.path": "hdfs://sandbox.hortonworks.com:8020/hbase.tar.gz",
+      "hoya.container.failure.threshold": "5",
+      "hoya.container.failure.shortlife": "60",
+      "zookeeper.port": "2181",
+      "zookeeper.path": "/yarnapps_hoya_stevel_test_cluster_lifecycle",
+      "zookeeper.hosts": "sandbox",
+      "site.hbase.master.startup.retainassign": "true",
+      "site.fs.defaultFS": "hdfs://sandbox.hortonworks.com:8020",
+      "site.fs.default.name": "hdfs://sandbox.hortonworks.com:8020",
+      "env.MALLOC_ARENA_MAX": "4",
+      "site.hbase.master.info.port": "0",
+      "site.hbase.regionserver.info.port": "0"
+    },
 
 Many of the properties are automatically set by Hoya when a cluster is constructed.
 They may be edited afterwards.
@@ -197,7 +205,7 @@ option/role merge process.
 1. Application providers SHOULD follow the same process.
 
 
-## '/roles': Role definitions
+## '/roles': role declarations
 
 The `/roles/$ROLENAME/` clauses each provide options for a
 specific role.
@@ -233,6 +241,9 @@ The role `hoya` represents the Hoya Application Master itself.
         "yarn.vcores": "1",
       },
 
+Providers may support a fixed number of roles -or they may support a dynamic
+number of roles defined at run-time, potentially from other data sources.
+
 ## How `/options` and role options are merged.
 
 The options declared for a specific role are merged with the cluster-wide options
@@ -253,7 +264,7 @@ are specific to the invidual role being created.
 As such, overwriting a `site.` option may have no effect -or it it may
 change the value of a site configuration document *in that specific role instance*.
 
-*Standard role options*
+### Standard role options
 
 * `role.instances` : number; required.
   The number of instances of that role desired in the application.
@@ -273,7 +284,7 @@ change the value of a site configuration document *in that specific role instanc
 * `env.` environment variables.
 String environment variables to use when setting up the container
 
-*Provider-specific role options*
+### Provider-specific role options
   
 * `jvm.heapsize` -the amount of memory for a provider to allocate for
  a processes JVM. Example "512M". This option MAY be implemented by a provider.
@@ -282,7 +293,7 @@ String environment variables to use when setting up the container
 
 
 
-# Information Sections
+# Dynamic Information Sections
 
 These are the parts of the document that provide dynamic run-time
 information about an application. They are provided by the
@@ -295,8 +306,7 @@ information about the running application -as provided by th
 
 The values in this section are not normatively defined. 
 
-However, here are some 
- 
+Here are some standard values
  
 * `hoya.am.restart.supported"`  whether the AM supports service restart without killing all the containers hosting
  the role instances:
@@ -327,7 +337,7 @@ However, here are some
 As with the `/diagnostics` section, this area is primarily intended
 for debugging.
 
- ## `instances`
+ ## `/instances`: instance list
  
  Information about the live containers in a cluster
 
@@ -340,76 +350,96 @@ for debugging.
        ]
      },
 
-There's no information about location, nor is there any history about containers
-that are no longer part of the cluster (i.e. failed & released containers). 
 
-It could be possible to include a list of previous containers,
-though Hoya would need to be selective about how many to store
-(or how much detail to retain) on those previous containers.
+## `/cluster`: detailed cluster state
 
-Perhaps the list could be allowed to grow without limit, but detail
-only preserved on the last 100. If more containers fail than that,
-there is likely to be a problem which the most recent containers
-will also display.
+This provides more detail on the  cluster, including live and failed instances
+
+### `/cluster/live`: live role instances by container
+
+    "cluster": {
+      "live": {
+        "worker": {
+          "container_1394032374441_0001_01_000003": {
+            "name": "container_1394032374441_0001_01_000003",
+            "role": "worker",
+            "roleId": 1,
+            "createTime": 1394032384451,
+            "startTime": 1394032384503,
+            "released": false,
+            "host": "192.168.1.88",
+            "state": 3,
+            "exitCode": 0,
+            "command": "hbase-0.98.0/bin/hbase --config $PROPAGATED_CONFDIR regionserver start 1><LOG_DIR>/region-server.txt 2>&1 ; ",
+            "diagnostics": "",
+            "environment": [
+              "HADOOP_USER_NAME=\"hoya\"",
+              "HBASE_LOG_DIR=\"/tmp/hoya-hoya\"",
+              "HBASE_HEAPSIZE=\"256\"",
+              "MALLOC_ARENA_MAX=\"4\"",
+              "PROPAGATED_CONFDIR=\"$PWD/propagatedconf\""
+            ]
+          }
+        }
+        failed : {}
+      }
+
+All live instances MUST be described in `/cluster/live`
+
+Failed clusters MAY be listed in the `/cluster/failed` section, specifically,
+a limited set of recently failed clusters SHOULD be provided.
+
+Future versions of this document may introduce more sections under `/cluster`.
+        
+### `/cluster/rolestatus`: role status information
+
+This lists the current status of the roles: 
+How many are running vs requested, how many are being
+released.
  
- ## `statistics`
+      
+    "rolestatus": {
+      "worker": {
+        "role.instances": "2",
+        "role.requested.instances": "0",
+        "role.failed.starting.instances": "0",
+        "role.actual.instances": "2",
+        "role.releasing.instances": "0",
+        "role.failed.instances": "1"
+      },
+      "hoya": {
+        "role.instances": "1",
+        "role.requested.instances": "0",
+        "role.name": "hoya",
+        "role.actual.instances": "1",
+        "role.releasing.instances": "0",
+        "role.failed.instances": "0"
+      },
+      "master": {
+        "role.instances": "1",
+        "role.requested.instances": "1",
+        "role.name": "master",
+        "role.failed.starting.instances": "0",
+        "role.actual.instances": "0",
+        "role.releasing.instances": "0",
+        "role.failed.instances": "0"
+      }
+    }
+
+
+### `/cluster/provider`: provider-specific information
+
+Providers MAY publish information to the `/cluster/provider` section.
+
+1. There's no restriction on what JSON is permitted in this section.
+1. Providers may make their own updates to the application state to read and
+write this block -operations that are asynchronous to any status queries.
+
+
+
+## `/statistics`: aggregate statistics 
  
- Statistics on each role. 
- 
- They can be divided into counters that only increase
-
-    "containers.start.completed": 0,
-    "containers.start.failed": 0,
-    "containers.failed": 0,
-    "containers.completed": 0,
-    "containers.requested": 0
-
-and those that vary depending upon the current state
-
-    "containers.live": 0,
-    "containers.active.requests": 0,
-    "containers.desired": 0,
-
-
-* Propose: move these values out of statistics into some other section, as they
-are state, not statistics*
-
-
-       "statistics": {
-         "worker": {
-           "containers.start.completed": 0,
-           "containers.live": 2,
-           "containers.start.failed": 0,
-           "containers.active.requests": 0,
-           "containers.failed": 0,
-           "containers.completed": 0,
-           "containers.desired": 2,
-           "containers.requested": 0
-         },
-         "hoya": {
-           "containers.unknown.completed": 0,
-           "containers.start.completed": 3,
-           "containers.live": 1,
-           "containers.start.failed": 0,
-           "containers.failed": 0,
-           "containers.completed": 0,
-           "containers.surplus": 0
-         },
-         "master": {
-           "containers.start.completed": 0,
-           "containers.live": 1,
-           "containers.start.failed": 0,
-           "containers.active.requests": 0,
-           "containers.failed": 0,
-           "containers.completed": 0,
-           "containers.desired": 1,
-           "containers.requested": 0
-         }
-       },
-    
-The `/statistics/hoya` section is unusual in that it provides the aggregate statistics
-of the cluster -this is not obvious. A different name could be used -but
-again, there's a risk of clash with or confusion with a role. 
+Statistics on the cluster and each role in the cluster 
 
 Better to have a specific `/statistics/cluster` element, 
 and to move the roles' statistics under `/statistics/roles`:
@@ -423,7 +453,6 @@ and to move the roles' statistics under `/statistics/roles`:
         "containers.failed": 0,
         "containers.completed": 0,
         "containers.surplus": 0
-  
       },
       "roles": {
         "worker": {
@@ -449,13 +478,16 @@ and to move the roles' statistics under `/statistics/roles`:
       }
     },
 
-This approach allows extra statistics sections to be added (perhaps
-by providers), without any changes to the toplevel section.
+`/statistics/cluster` provides aggregate statistics for the entire cluster.
+
+Under `/statistics/roles` MUST come an entry for each role in the cluster.
+
+All simple values in statistics section are integers.
 
 
-### Proposed:  `/clientProperties` continues return Key-val pairs
+### `/clientProperties` 
 
-The `/clientProperties` section will remain, with key-val pairs of type
+The `/clientProperties` section contains key-val pairs of type
 string, the expectation being this is where providers can insert specific
 single attributes for client applications.
 
@@ -464,77 +496,15 @@ in code -as done today in the Hoya CLI-, or via template expansion (beyond
 the scope of this document.
 
 
+### `/clientfiles` 
 
-### Proposed: alongside `/clientProperties`  comes `/clientfiles` 
-
-This section will list all files that an application instance can generate
+This section list all files that an application instance MAY generate
 for clients, along with with a description.
 
     "/clientfiles/hbase-site.xml": "site information for HBase"
     "/clientfiles/log4.properties": "log4.property file"
 
-A new CLI command would be added to retrieve a client file.
-1. The specific file must be named.
-1. If it is not present, an error must be raised.
-1. If it is present, it is downloaded and output to the console/to a named
-destination file/directory `--outfile <file>` and `--outdir <dir>`
-1. If the `--list` argument is provided, the list of available files is
-returned (e.g.) 
+Client configuration file retrieval is by other means; this
+status operation merely lists files that are available;
 
-    hbase-site.xml: site information for HBase
-    log4.properties: log4.property file
-    
-*No attempt to parse/process the body of the messages will be returned.*
 
-In a REST implementation of the client API, /clientconf would be a path
-to the list of options; each file a path underneath.
-
-Client configuration file retrieval outside the status completely;
-the status just lists the possible values; a separate call returns them.
-
-This will  permit binary content to be retrieved, and avoid any marshalling
-problems and inefficiencies.
-
-With this change, there will now be two ways to generate client configuration
-files
-
-* Client-side: as today
-* Server-side: via the provider
-
-Client side is more extensible as it allows for arbitrary clients; server-side
-is restricted to those files which the application provider is capable of
-generating. The advantage of the server-side option is that for those files
-about which the provider is aware of, they will be visible through the 
-REST and Web UIs, so trivially retrieved.
-
-### Stop intermixing role specification with role current state
-
-Create a new section, `rolestatus`, which lists the current status
-of the roles: how many are running vs requested, how many are being
-released.
-
-There's some overlap here with the `/statistics` field, so we should
-either merge them or clearly separate the two. Only the `role.failed`
-properties match entries in the statistics -perhaps they should be cut.
-
-#### provider-specific status
-
-Allow providers to publish information to the status, in their
-own section.
-
-There already is support for providers updating the cluster status
-in Hoya 12.1 and earlier, but it has flaws
-
-A key one is that it is done sychronously on a `getStatus()` call;
-as providers may perform a live query of their status (example, the HBase
-provider looks up the Web UI ports published by HBase to zookeeper),
-there's overhead, and if the operation blocks (example: when HBase hasn't
-ever been deployed and the zookeeper path is empty), then the status
-call blocks.
-
-*Proposed:*
-
-1. There is a specific `/provider` section
-1. There's no restriction on what JSON is permitted in this section.
-1. Providers may make their own updates to the application state to read and
-write this block -operations that are asynchronous to any status queries.
