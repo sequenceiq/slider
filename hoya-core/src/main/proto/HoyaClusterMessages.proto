@@ -36,7 +36,6 @@ package org.apache.hoya.api;
 message RoleInstanceState {
   required string name = 1;
   optional string role = 2;
-  optional string id = 3;
   required uint32 state = 4;
   required uint32 exitCode = 5;
   optional string command = 6;

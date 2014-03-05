@@ -120,7 +120,6 @@ public class ClusterNode {
     StringBuilder builder = new StringBuilder();
     builder.append(name).append(": ");
     builder.append(state).append("\n");
-    builder.append("id: ").append(id).append("\n");
     builder.append("state: ").append(state).append("\n");
     builder.append("role: ").append(role).append("\n");
     append(builder, "host", host);
@@ -191,11 +190,13 @@ public class ClusterNode {
       node.output = message.getOutputList().toArray(arr);
     }
     node.role = message.getRole();
-    //node.roleId = message.get
+    node.roleId = message.getRoleId();
     node.state = message.getState();
-    node.id = message.getId();
     node.host = message.getHost();
 //    node.hostUrl = message.getHostURL();
+    node.createTime = message.getCreateTime();
+    node.startTime = message.getStartTime();
+    node.released = message.getReleased();
     return node;
   }
 }
