@@ -88,10 +88,11 @@ As an example, here is the status on a running worker node:
 This `/cluster` section will be expanded in future.
 
 
-# Warning: imminent change to persistent cluster specification
+# Warning: Changes to persistent cluster specification likely in future
 
-We've been redesiging the persistent `cluster.json` file; the changes
-will appear in the next release. These changes will *not* be backwards compatible.
+We've been redesiging how we're going to persist the cluster `cluster.json`
+specification.
 
-Please have a look at the [proposed new cluster specification](https://github.com/hortonworks/hoya/blob/feature/BUG-13917-cluster-spec/src/site/markdown/cluster/index.md)
-and comment on them.
+These changes will *not* be backwards compatible -but are intended to be
+stable after this. We will put the plans up online for review once they
+are written down.
