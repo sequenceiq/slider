@@ -26,20 +26,18 @@ import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hoya.api.RoleKeys
 import org.apache.hoya.yarn.HoyaActions
 import org.apache.hoya.yarn.client.HoyaClient
-import org.apache.hoya.yarn.cluster.YarnMiniClusterTestBase
+import org.apache.hoya.yarn.cluster.YarnZKMiniClusterTestBase
 
 import static org.apache.hoya.HoyaXMLConfKeysForTesting.*
 import static org.apache.hoya.providers.agent.AgentKeys.*
-import static org.apache.hoya.testtools.HoyaTestUtils.assumeBoolOption
 import static org.apache.hoya.yarn.Arguments.ARG_PROVIDER
-import static org.apache.hoya.yarn.Arguments.ARG_ROLEOPT
 
 /**
  * test base for all agent clusters
  */
 @CompileStatic
 @Slf4j
-public abstract class AgentTestBase extends YarnMiniClusterTestBase {
+public abstract class AgentTestBase extends YarnZKMiniClusterTestBase {
 
   public static
   final int AGENT_CLUSTER_STARTUP_TIME = DEFAULT_HOYA_AGENT_LAUNCH_TIME

@@ -19,6 +19,7 @@
 package org.apache.hoya.yarn.cluster
 
 import groovy.transform.CompileStatic
+import groovy.util.logging.Slf4j
 import org.apache.commons.logging.Log
 import org.apache.commons.logging.LogFactory
 import org.apache.hadoop.conf.Configuration
@@ -38,16 +39,11 @@ import org.apache.hadoop.yarn.service.launcher.ServiceLauncherBaseTest
 import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.HoyaXmlConfKeys
 import org.apache.hoya.api.ClusterNode
-import org.apache.hoya.api.OptionKeys
-import org.apache.hoya.api.RoleKeys
 import org.apache.hoya.exceptions.ErrorStrings
 import org.apache.hoya.exceptions.HoyaException
-import org.apache.hoya.providers.hbase.HBaseConfigFileOptions
-import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.hoya.tools.*
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.HoyaActions
-import org.apache.hoya.yarn.MicroZKCluster
 import org.apache.hoya.yarn.appmaster.HoyaAppMaster
 import org.apache.hoya.yarn.client.HoyaClient
 import org.apache.hoya.yarn.params.ActionFreezeArgs
@@ -55,24 +51,18 @@ import org.junit.After
 import org.junit.Assume
 import org.junit.Rule
 import org.junit.rules.Timeout
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
-
-import java.util.concurrent.atomic.AtomicBoolean
 
 import static org.apache.hoya.HoyaXMLConfKeysForTesting.*
 import static org.apache.hoya.testtools.HoyaTestUtils.*
 import static org.apache.hoya.testtools.KeysForTests.*
-import static org.junit.Assert.fail
 
 /**
  * Base class for mini cluster tests -creates a field for the
  * mini yarn cluster
  */
 @CompileStatic
-public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
-  private static final Logger log =
-      LoggerFactory.getLogger(YarnMiniClusterTestBase.class);
+@Slf4j
+public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest {
   /**
    * Mini YARN cluster only
    */
@@ -91,7 +81,7 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
   public static final String YRAM = "256"
 
 
-  public static final YarnConfiguration HOYA_CONFIG = HoyaUtils.createConfiguration(); 
+  public static final YarnConfiguration HOYA_CONFIG = HoyaUtils.createConfiguration();
   static {
     HOYA_CONFIG.setInt(HoyaXmlConfKeys.KEY_HOYA_RESTART_LIMIT, 1)
     HOYA_CONFIG.setInt(YarnConfiguration.RM_AM_MAX_ATTEMPTS, 100)
@@ -129,8 +119,7 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
   }
 
   protected MiniDFSCluster hdfsCluster
-  protected MiniYARNCluster miniCluster;
-  protected MicroZKCluster microZKCluster
+  protected MiniYARNCluster miniCluster
   protected boolean switchToImageDeploy = false
   protected boolean imageIsRemote = false
   protected URI remoteImageURI
@@ -174,47 +163,11 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
       }
     }
   }
-  
+
   public void stopMiniCluster() {
     Log l = LogFactory.getLog(this.getClass())
     ServiceOperations.stopQuietly(l, miniCluster)
-    microZKCluster?.close();
     hdfsCluster?.shutdown();
-  }
-
-
-  public ZKIntegration createZKIntegrationInstance(String zkQuorum, String clusterName, boolean createClusterPath, boolean canBeReadOnly, int timeout) {
-    
-    BlockingZKWatcher watcher = new BlockingZKWatcher();
-    ZKIntegration zki = ZKIntegration.newInstance(zkQuorum,
-                                                  USERNAME,
-                                                  clusterName,
-                                                  createClusterPath,
-                                                  canBeReadOnly, watcher) 
-    zki.init()
-    //here the callback may or may not have occurred.
-    //optionally wait for it
-    if (timeout > 0) {
-      watcher.waitForZKConnection(timeout)
-    }
-    //if we get here, the binding worked
-    log.info("Connected: ${zki}")
-    return zki
-  }
-
-  /**
-   * Wait for a flag to go true
-   * @param connectedFlag
-   */
-  public void waitForZKConnection(AtomicBoolean connectedFlag, int timeout) {
-    synchronized (connectedFlag) {
-      if (!connectedFlag.get()) {
-        log.info("waiting for ZK event")
-        //wait a bit
-        connectedFlag.wait(timeout)
-      }
-    }
-    assert connectedFlag.get()
   }
 
   /**
@@ -232,23 +185,17 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
                                    int noOfNodeManagers,
                                    int numLocalDirs,
                                    int numLogDirs,
-                                   boolean startZK,
                                    boolean startHDFS) {
     conf.setInt(YarnConfiguration.RM_SCHEDULER_MINIMUM_ALLOCATION_MB, 64);
     conf.setClass(YarnConfiguration.RM_SCHEDULER,
-                  FifoScheduler.class, ResourceScheduler.class);
+        FifoScheduler.class, ResourceScheduler.class);
     HoyaUtils.patchConfiguration(conf)
     miniCluster = new MiniYARNCluster(name, noOfNodeManagers, numLocalDirs, numLogDirs)
     miniCluster.init(conf)
     miniCluster.start();
-    //now the ZK cluster
-    if (startZK) {
-      createMicroZKCluster(conf)
-    }
     if (startHDFS) {
       createMiniHDFSCluster(name, conf)
     }
-
   }
 
   /**
@@ -265,26 +212,6 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
     hdfsCluster = builder.build()
   }
 
-  public void createMicroZKCluster(Configuration conf) {
-    microZKCluster = new MicroZKCluster(new Configuration(conf))
-    microZKCluster.createCluster();
-  }
-
-  /**
-   * Create and start a minicluster
-   * @param name cluster/test name
-   * @param conf configuration to use
-   * @param noOfNodeManagers #of NMs
-   * @param numLocalDirs #of local dirs
-   * @param numLogDirs #of log dirs
-   * @param startZK create a ZK micro cluster
-   * @param startHDFS create an HDFS mini cluster
-   */
-  protected void createMiniCluster(String name, YarnConfiguration conf, int noOfNodeManagers, boolean startZK) {
-    createMiniCluster(name, conf, noOfNodeManagers, 1, 1, startZK, false)
-  }
-
-
   /**
    * Launch the hoya client with the specific args against the MiniMR cluster
    * launcher ie expected to have successfully completed
@@ -293,7 +220,7 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
    * @return the return code
    */
   protected ServiceLauncher<HoyaClient> launchHoyaClientAgainstMiniMR(Configuration conf,
-                                                          List args) {
+                                                                      List args) {
     ServiceLauncher<HoyaClient> launcher = launchHoyaClientNoExitCodeCheck(conf, args)
     int exited = launcher.serviceExitCode
     if (exited != 0) {
@@ -324,7 +251,7 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
   public void killHoyaAM(int signal) {
     killJavaProcesses(HoyaAppMaster.SERVICE_CLASSNAME, signal)
   }
-  
+
   /**
    * Kill any java process with the given grep pattern
    * @param grepString string to grep for
@@ -335,7 +262,7 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
     log.info("Bash command = $bashCommand" )
     Process bash = ["bash", "-c", bashCommand].execute()
     bash.waitFor()
-    
+
     log.info(bash.in.text)
     log.error(bash.err.text)
   }
@@ -380,26 +307,6 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
     return addr
   }
 
-  void assertHasZKCluster() {
-    assert microZKCluster != null
-  }
-
-  protected String getZKBinding() {
-    if (!microZKCluster) {
-      return "localhost:1"
-    } else {
-      return microZKCluster.zkBindingString
-    }
-  }
-
-  protected int getZKPort() {
-    return microZKCluster ? microZKCluster.port : HBaseConfigFileOptions.HBASE_ZK_PORT;
-  }
-
-  protected String getZKHosts() {
-    return MicroZKCluster.HOSTS;
-  }
-
   /**
    * return the default filesystem, which is HDFS if the miniDFS cluster is
    * up, file:// if not
@@ -412,61 +319,14 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
       return "file:///"
     }
   }
-  
+
   protected String getWaitTimeArg() {
     return WAIT_TIME_ARG;
   }
-  
+
   protected int getWaitTimeMillis(Configuration conf) {
-    
+
     return WAIT_TIME * 1000;
-  }
-
-  /**
-   * Create an AM without a master
-   * @param clustername AM name
-   * @param size # of nodes
-   * @param deleteExistingData should any existing cluster data be deleted
-   * @param blockUntilRunning block until the AM is running
-   * @return launcher which will have executed the command.
-   */
-  public ServiceLauncher<HoyaClient> createMasterlessAM(String clustername, int size, boolean deleteExistingData, boolean blockUntilRunning) {
-    Map<String, Integer> roles = [
-        (HBaseKeys.ROLE_MASTER): 0,
-        (HBaseKeys.ROLE_WORKER): size,
-    ];
-    return createHoyaCluster(clustername,
-                             roles,
-                             [],
-                             deleteExistingData,
-                             blockUntilRunning,
-                             [:])
-  }
-
-  /**
-   * Create a full cluster with a master & the requested no. of region servers
-   * @param clustername cluster name
-   * @param size # of nodes
-   * @param extraArgs list of extra args to add to the creation command
-   * @param deleteExistingData should the data of any existing cluster
-   * of this name be deleted
-   * @param blockUntilRunning block until the AM is running
-   * @return launcher which will have executed the command.
-   */
-  public ServiceLauncher<HoyaClient> createHBaseCluster(String clustername, int size, List<String> extraArgs, boolean deleteExistingData, boolean blockUntilRunning) {
-    Map<String, Integer> roles = [
-        (HBaseKeys.ROLE_MASTER): 1,
-        (HBaseKeys.ROLE_WORKER): size,
-    ];
-    extraArgs << Arguments.ARG_ROLEOPT << HBaseKeys.ROLE_MASTER << RoleKeys.YARN_MEMORY << YRAM
-    extraArgs << Arguments.ARG_ROLEOPT << HBaseKeys.ROLE_WORKER << RoleKeys.YARN_MEMORY << YRAM
-    return createHoyaCluster(clustername,
-                             roles,
-                             extraArgs,
-                             deleteExistingData,
-                             blockUntilRunning,
-                             [:])
-
   }
 
   /**
@@ -523,16 +383,14 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
 
 
     List<String> roleList = [];
-    roles.each { String role, Integer val -> 
+    roles.each { String role, Integer val ->
       log.info("Role $role := $val")
       roleList << Arguments.ARG_ROLE << role << Integer.toString(val)
     }
-    
+
     List<String> argsList = [
         action, clustername,
         Arguments.ARG_MANAGER, RMAddr,
-        Arguments.ARG_ZKHOSTS, ZKHosts,
-        Arguments.ARG_ZKPORT, ZKPort.toString(),
         Arguments.ARG_FILESYSTEM, fsDefaultName,
         Arguments.ARG_DEBUG,
         Arguments.ARG_CONFDIR, confDir
@@ -541,6 +399,7 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
       argsList << Arguments.ARG_WAIT << WAIT_TIME_ARG
     }
 
+    argsList += getExtraHoyaClientArgs()
     argsList += roleList;
     argsList += imageCommands
 
@@ -548,7 +407,7 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
     clusterOps.each { String opt, String val ->
       argsList << Arguments.ARG_OPTION << opt << val;
     }
-    
+
     if (extraArgs != null) {
       argsList += extraArgs;
     }
@@ -566,6 +425,16 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
     return launcher;
   }
 
+  /**
+   * Add arguments to launch Hoya with.
+   *
+   * Extra arguments are added after standard arguments and before roles.
+   *
+   * @return additional arguments to launch Hoya with
+   */
+  protected List<String> getExtraHoyaClientArgs() {
+    []
+  }
 
   public String getConfDir() {
     return resourceConfDirURI
@@ -576,8 +445,10 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
    * @return
    */
   public String getApplicationHomeKey() {
-    return KEY_HOYA_TEST_HBASE_HOME
+    failNotImplemented()
+    null
   }
+
   /**
    * Get the archive path -which defaults to the local one
    * @return
@@ -597,25 +468,26 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
    * @return
    */
   public String getArchiveKey() {
-    return KEY_HOYA_TEST_HBASE_TAR
+    failNotImplemented()
+    null
   }
 
   public void assumeArchiveDefined() {
     String archive = archivePath
     boolean defined = archive != null && archive != ""
     if (!defined) {
-      log.warn(YarnMiniClusterTestBase.NO_ARCHIVE_DEFINED + archiveKey);
+      log.warn(NO_ARCHIVE_DEFINED + archiveKey);
     }
     Assume.assumeTrue(NO_ARCHIVE_DEFINED + archiveKey, defined)
   }
   /**
-   * Assume that HBase home is defined. This does not check that the
+   * Assume that application home is defined. This does not check that the
    * path is valid -that is expected to be a failure on tests that require
-   * HBase home to be set.
+   * application home to be set.
    */
   public void assumeApplicationHome() {
     Assume.assumeTrue("Application home dir option not set " + applicationHomeKey,
-                      applicationHome != null && applicationHome != "")
+        applicationHome != null && applicationHome != "")
   }
 
 
@@ -643,10 +515,6 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
       assert new File(applicationHome).exists();
       return [Arguments.ARG_APP_HOME, applicationHome]
     }
-  }
-
-  public void not_implemented() {
-    fail("Not implemented")
   }
 
   /**
@@ -683,7 +551,7 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
     return launcher;
   }
 
-  
+
   /**
    * Get the resource configuration dir in the source tree
    * @return
@@ -697,7 +565,7 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
   }
 
   public String getTestConfigurationPath() {
-    fail("Not implemented");
+    failNotImplemented()
     null;
   }
 
@@ -771,7 +639,7 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
     freezeArgs.waittime = CLUSTER_STOP_TIME
     freezeArgs.message = message
     int exitCode = hoyaClient.actionFreeze(clustername,
-                                           freezeArgs);
+        freezeArgs);
     if (exitCode != 0) {
       log.warn("Cluster freeze failed with error code $exitCode")
     }
@@ -857,10 +725,10 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
    * Assert that an operation failed because a cluster is in use
    * @param e exception
    */
-  public void assertFailureClusterInUse(HoyaException e) {
+  public static void assertFailureClusterInUse(HoyaException e) {
     assertExceptionDetails(e,
-                           HoyaExitCodes.EXIT_CLUSTER_IN_USE,
-                           ErrorStrings.E_CLUSTER_RUNNING)
+        HoyaExitCodes.EXIT_CLUSTER_IN_USE,
+        ErrorStrings.E_CLUSTER_RUNNING)
   }
 
   /**
@@ -868,9 +736,9 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest{
    * & the {@link HoyaClient#E_UNKNOWN_CLUSTER} text
    * @param exception
    */
-  public void assertUnknownClusterException(HoyaException e) {
+  public static void assertUnknownClusterException(HoyaException e) {
     assertExceptionDetails(e, HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER,
-                           ErrorStrings.E_UNKNOWN_CLUSTER)
+        ErrorStrings.E_UNKNOWN_CLUSTER)
   }
 
 }

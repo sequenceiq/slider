@@ -405,7 +405,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // build up the initial cluster specification
     ClusterDescription clusterSpec = new ClusterDescription();
 
-    requireArgumentSet(Arguments.ARG_ZKHOSTS, buildInfo.getZKhosts());
     Path appconfdir = buildInfo.getConfdir();
     requireArgumentSet(Arguments.ARG_CONFDIR, appconfdir);
     // Provider

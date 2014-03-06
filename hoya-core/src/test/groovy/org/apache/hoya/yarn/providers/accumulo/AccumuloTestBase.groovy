@@ -20,17 +20,15 @@ package org.apache.hoya.yarn.providers.accumulo
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import org.apache.hoya.HoyaXMLConfKeysForTesting
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.RoleKeys
 import org.apache.hoya.providers.accumulo.AccumuloConfigFileOptions
 import org.apache.hoya.yarn.client.HoyaClient
-import org.apache.hoya.yarn.cluster.YarnMiniClusterTestBase
+import org.apache.hoya.yarn.cluster.YarnZKMiniClusterTestBase
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import static org.apache.hoya.yarn.Arguments.*
-import static org.apache.hoya.yarn.HoyaActions.*;
 import static org.apache.hoya.testtools.HoyaTestUtils.*
 import static org.apache.hoya.HoyaXMLConfKeysForTesting.*
 import static org.apache.hoya.providers.accumulo.AccumuloKeys.*
@@ -40,7 +38,7 @@ import static org.apache.hoya.providers.accumulo.AccumuloKeys.*
  */
 @CompileStatic
 @Slf4j
-public abstract class AccumuloTestBase extends YarnMiniClusterTestBase {
+public abstract class AccumuloTestBase extends YarnZKMiniClusterTestBase {
 
   public static final int ACCUMULO_CLUSTER_STARTUP_TIME = ACCUMULO_LAUNCH_WAIT_TIME
   public static final int ACCUMULO_CLUSTER_STOP_TIME = 1 * 60 * 1000
