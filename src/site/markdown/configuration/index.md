@@ -12,12 +12,15 @@
   limitations under the License. See accompanying LICENSE file.
 -->
   
-# Specification of the Cluster Description, v2.0
+# Specification of a deployed application, v2.0
 
-The specification of a cluster, the cluster.json file is
-both the persistent description of a deployed application,
-it is the format of the dynamic status report provided by
-the Application Master
+The specification of an applicaton, comprises
+1. The persistent description of an application's configuration
+1. The persistent description of the desired topology and YARN resource
+requirements.
+1. The dynamic description of the running application, including information
+on the location of components and aggregated statistics. 
+
 
 1. [Redesign](redesign.html)
 1. [Specification](specification.html)

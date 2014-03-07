@@ -86,4 +86,4 @@ code changes and as of this writing, it has required few changes.
 * [Releasing](releasing.html)
 * [Role history](rolehistory.html) 
 * [Specification](specification/index.html)
-* [Specification of the persistent cluster.json file](cluster/index.html)
+* [Application configuratin model](configuration/index.html)
