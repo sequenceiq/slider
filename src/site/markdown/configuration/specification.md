@@ -351,11 +351,11 @@ for debugging.
      },
 
 
-## `/cluster`: detailed cluster state
+## `/status`: detailed dynamic state
 
-This provides more detail on the  cluster, including live and failed instances
+This provides more detail on the application including live and failed instances
 
-### `/cluster/live`: live role instances by container
+### `/status/live`: live role instances by container
 
     "cluster": {
       "live": {
@@ -384,14 +384,14 @@ This provides more detail on the  cluster, including live and failed instances
         failed : {}
       }
 
-All live instances MUST be described in `/cluster/live`
+All live instances MUST be described in `/status/live`
 
-Failed clusters MAY be listed in the `/cluster/failed` section, specifically,
+Failed clusters MAY be listed in the `/status/failed` section, specifically,
 a limited set of recently failed clusters SHOULD be provided.
 
-Future versions of this document may introduce more sections under `/cluster`.
+Future versions of this document may introduce more sections under `/status`.
         
-### `/cluster/rolestatus`: role status information
+### `/status/rolestatus`: role status information
 
 This lists the current status of the roles: 
 How many are running vs requested, how many are being
@@ -427,9 +427,9 @@ released.
     }
 
 
-### `/cluster/provider`: provider-specific information
+### `/status/provider`: provider-specific information
 
-Providers MAY publish information to the `/cluster/provider` section.
+Providers MAY publish information to the `/status/provider` section.
 
 1. There's no restriction on what JSON is permitted in this section.
 1. Providers may make their own updates to the application state to read and

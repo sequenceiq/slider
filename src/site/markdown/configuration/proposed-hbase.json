@@ -152,7 +152,7 @@
     }
   },
 
-  "cluster": {
+  "status": {
     "live": {
       "worker": {
         "container_1394032374441_0001_01_000003": {

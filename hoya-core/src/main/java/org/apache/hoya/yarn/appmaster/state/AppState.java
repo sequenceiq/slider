@@ -1184,8 +1184,8 @@ public class AppState {
     //build the map of node -> containers
     Map<String, Map<String, ClusterNode>> clusterNodes =
       createRoleToClusterNodeMap();
-    cd.cluster = new HashMap<String, Object>();
-    cd.cluster.put(ClusterDescriptionKeys.KEY_CLUSTER_LIVE, clusterNodes);
+    cd.status = new HashMap<String, Object>();
+    cd.status.put(ClusterDescriptionKeys.KEY_CLUSTER_LIVE, clusterNodes);
 
 
     for (RoleStatus role : getRoleStatusMap().values()) {

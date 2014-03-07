@@ -183,9 +183,6 @@ public class ClusterDescription implements Cloneable {
   public Map<String, Map<String, Integer>> statistics =
     new HashMap<String, Map<String, Integer>>();
 
-  public Map<String, Map<String, Integer>> status =
-    new HashMap<String, Map<String, Integer>>();
-
   /**
    * Instances: role->count
    */
@@ -207,9 +204,10 @@ public class ClusterDescription implements Cloneable {
     new HashMap<String, String>();
 
   /**
-   * Cluster Nodes
+   * Status information
    */
-  public Map<String, Object> cluster;
+  public Map<String, Object> status;
+  
 
   /**
    * Creator.
