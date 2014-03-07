@@ -1,0 +1,21 @@
+{
+  "global": {
+    "g1": "a",
+    "g2": "b"
+  },
+  "components": {
+    "simple": {
+    },
+    "master": {
+      "name": "m",
+      "g1": "overridden"
+
+    },
+    "worker": {
+      "name": "m",
+      "g1": "overridden-by-worker",
+      "timeout": "1000"
+
+    }
+  }
+}
