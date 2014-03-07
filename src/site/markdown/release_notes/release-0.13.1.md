@@ -50,15 +50,15 @@ The `--persist` parameter is still supported -it is just ignored.
 The Web UI has more features, including the JSON status of
 a cluster.
 
-## Cluster status includes more detail on running instances
+## Status includes more detail on running instances
  
-The `/cluster/live` section in status reports lists the running cluster instances by role,
+The `/status/live` section in status reports lists the running cluster instances by role,
 including the command used to start the instance, as well as the
 environment variables. 
 
 As an example, here is the status on a running worker node:
 
-    "cluster": {
+    "status": {
       "live": {
         "worker": {
           "container_1394032374441_0001_01_000003": {
@@ -85,14 +85,10 @@ As an example, here is the status on a running worker node:
         failed : {}
       }
 
-This `/cluster` section will be expanded in future.
-
-
 # Warning: Changes to persistent cluster specification likely in future
 
-We've been redesiging how we're going to persist the cluster `cluster.json`
-specification.
+We've been redesiging how we're going to persist the cluster specification.
 
 These changes will *not* be backwards compatible -but are intended to be
-stable after this. We will put the plans up online for review once they
-are written down.
+stable after this. We will put the plans up online for review shortly
+
