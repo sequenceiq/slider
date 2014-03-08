@@ -14,7 +14,7 @@
 
 # Application Definition
 
-App definition is a declarative definition of an yarn application describing the content of an application. The AppDefinition is used in conjunction with the [AppPackage](application_package.md).
+App definition is a declarative definition of a YARN application describing its content. The AppDefinition is used in conjunction with the [AppPackage](application_package.md).
 
 ## Structure
 
@@ -24,9 +24,9 @@ The fields to describe an application is as follows:
 
 * **name**: the name of the application
 
-* **version**: the version of the application. name + version uniquely identifies an application.
+* **version**: the version of the application. name and version together uniquely identify an application.
 
-* **type**: the type of the application. "YARN-APP" identifies an application definition suitable for Yarn.
+* **type**: the type of the application. "YARN-APP" identifies an application definition suitable for YARN.
 
 * **minHadoopVersion**: the minimum version of hadoop on which the app can run
 
