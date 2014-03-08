@@ -14,24 +14,32 @@
 
 #App Package
 
-All application artifacts, app definition, app configuration, scripts are packaged into a structured single package that can be handed off to any management infrastructure.
+All application artifacts, app definition, app configuration, scripts are packaged into a structured single package that can be handed off to any YARN application deployment tool including Slider
 
 ## Overall Structure
 
-App package is a tarball containing all application artifacts. App package contains the following items.
+App package is a tarball containing all application artifacts. App package contains the following items:
 
-* **app definition file**application structure, content, definition, supported platforms, version, etc.
+* **app definition file**
+application structure, content, definition, supported platforms, version, etc.
 
-* **default configurations folder**various configurations and configuration files associated with the application
+* **default configurations folder**
+various configurations and configuration files associated with the application
 
-* **cmd_impl folder**management operations for the application/component
+* **cmd_impl folder**
+management operations for the application/component
 
- * **scripts folder**various scripts that implement management operations
+ * **scripts folder**
+various scripts that implement management operations
 
- * **templates folder**various templates used by the application
+ * **templates folder**
+various templates used by the application
 
- * **files folder**other scripts, txt files, tarballs, etc.
-![Image](../images/app_package_sample_04.png?raw=true)
+ * **files folder**
+other scripts, txt files, tarballs, etc.
+
+
+![Image](../images/app_package_sample_04.png?raw=true)
 
 The example above shows a semi-expanded view of an application "HBASE-YARN-APP" and the package structure for OOZIE command scripts.
 
@@ -63,7 +71,7 @@ Scripts are the implementation of management operations. There are five default 
 
 6. restart (by default calls stop + start)
 
-The script specified in the metainfo is expected to understand the command. It can choose to call other scripts based on how the application author organizes the code base. Sample:
+The script specified in the metainfo is expected to understand the command. It can choose to call other scripts based on how the application author organizes the code base. For example:
 
 ```
 class OozieServer(Script):
