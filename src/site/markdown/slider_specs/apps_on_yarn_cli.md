@@ -75,24 +75,6 @@ if no --config option is provided all available configs are listed
 
 If a --file is specified, it is downloaded to the current directory with the specified filename, unless a destination directory/filename is provided
 
-### getproperties \<application\> [--format xml|json|properties|csv] [--outfile file]
-
-get the properties of an application instance
-
-outfile:= output file name rather than stdout
-
-format values:
-
-* XML => Hadoop XML format
-* JSON => JSON key:value map
-* properties= Java properties file (with escaping)
-* csv = CSV format "key","value"
-
-### getproperty <application> <propertyname>
-
-Retrieves a single property of an application instance and emits it to stdout.
-
-If the property is unknown, an error code is emitted.
 
 ### history <application>
 
