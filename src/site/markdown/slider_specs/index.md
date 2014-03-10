@@ -27,11 +27,11 @@ Specifications
 
 Information / material to co-exist in the project. The entry point for partners that will leverage Slider.
 
-- Specifications for AppPackage
-- Documentation for the SliderCLI
-- Specifications for Application Definition 
-- Specifications for Configuration
-- Specification of Resources
-- Specifications InstanceConfiguration
-- Guidelines for Clients and Client Applications
-- Documentation for "General Developer Guidelines"
+- [Specifications for AppPackage](application_package.md)
+- [Documentation for the SliderCLI](apps_on_yarn_cli.md)
+- [Specifications for Application Definition](application_definition.md)
+- [Specifications for Configuration](application_configuration.md)
+- [Specification of Resources](resource_specification.md)
+- [Specifications InstanceConfiguration](application_instance_configuration.md)
+- [Guidelines for Clients and Client Applications](canonical_scenarios.md)
+- [Documentation for "General Developer Guidelines"](app_developer_guideline.md)
