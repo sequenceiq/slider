@@ -44,7 +44,13 @@ and what their resource requirements are.
 
 ## Structure
 
+Configurations are stored in well-formed JSON files. 
+
+* No duplicate entries are permitted in any section.
+* The ordering of elements is NOT significant.
+
 The JSON specification files all have a similar structure
+
 1. A global section, `/global` containing string properties
 1. A component  section, `/components`.
 1. 0 or more sections under `/components` for each component, identified by component name,
@@ -190,7 +196,13 @@ to individual components.
 Note that a resolved specification can still have the resolution operation applied
 to it -it just does not have any effect.
  
+## Metadata
 
+The metadata section can contain arbitrary string values for use in diagnostics
+and by other applications.
+
+To avoid conflict with other applications, please use a unique name in strings,
+such as java-style package names.
   
 # Resource Requirements: `resources.json`
 
@@ -285,7 +297,7 @@ of diagnostics reports)
     }
 
 
-## Deployment specification: FILENAME TBD. deployment.json?
+## Deployment specification: `app_configration.json`
 
 
 This defines parameters that are to be used when creating the instance of the
