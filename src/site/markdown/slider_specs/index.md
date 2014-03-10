@@ -20,7 +20,7 @@ Terminology
 - **Slider Apps**
  - Applications deployed and managed on YARN using Slider
  - Use of slider minimizes custom code for deployment + lifecycle management
-- Requires apps to follow Slider guidelines and packaging ("Sliderize")
+ - Requires apps to follow Slider guidelines and packaging ("Sliderize")
 
 Specifications
 ---
