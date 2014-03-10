@@ -154,6 +154,13 @@ class HoyaTestUtils extends Assert {
   }
 
   /**
+   * Fails a test because required behavior has not been implemented.
+   */
+  public static void failNotImplemented() {
+    fail("Not implemented")
+  }
+
+  /**
    * Wait for the cluster live; fail if it isn't within the (standard) timeout
    * @param hoyaClient client
    * @return the app report of the live cluster
@@ -334,6 +341,29 @@ class HoyaTestUtils extends Assert {
     int resultCode = client.executeMethod(get);
     String body = get.responseBodyAsString;
     return body;
+  }
+  
+  /**
+   * Fetches a web page asserting that the response code is between 200 and 400.
+   * Will error on 400 and 500 series response codes and let 200 and 300 through. 
+   * @param url
+   * @return
+   */
+  public static String fetchWebPageWithoutError(String url) {
+    assert null != url
+    
+    log.info("Fetching HTTP content at " + url);
+    
+    def client = new HttpClient(new MultiThreadedHttpConnectionManager());
+    client.httpConnectionManager.params.connectionTimeout = 10000;
+    GetMethod get = new GetMethod(url);
+    
+    get.followRedirects = true;
+    int resultCode = client.executeMethod(get);
+    
+    assert resultCode < 400 && resultCode >= 200;
+    
+    return get.responseBodyAsString;
   }
 
   /**

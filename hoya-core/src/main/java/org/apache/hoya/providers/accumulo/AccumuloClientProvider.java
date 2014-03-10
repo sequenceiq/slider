@@ -252,11 +252,14 @@ public class AccumuloClientProvider extends AbstractProviderCore implements
     String[] jars =
       {
         "accumulo-core.jar",
+        "accumulo-fate.jar",
         "zookeeper.jar",
       };
     Class<?>[] classes = {
       // accumulo-core
       org.apache.accumulo.core.Constants.class,
+      // accumulo-fate
+      org.apache.accumulo.fate.zookeeper.ZooLock.class,
       //zk
       org.apache.zookeeper.ClientCnxn.class
     };

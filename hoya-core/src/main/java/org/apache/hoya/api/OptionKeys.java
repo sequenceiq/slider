@@ -77,13 +77,12 @@ public interface OptionKeys {
   /**
    * Version of the app: {@value}
    */
-  String KEYTAB_LOCATION = "cluster.keytab.location";
+  String KEYTAB_LOCATION = "hoya.keytab.location";
 
   /**
    * Prefix for site.xml options: {@value}
    */
   String SITE_XML_PREFIX = "site.";
-
 
   /**
    * hoya temp directory: {@value}

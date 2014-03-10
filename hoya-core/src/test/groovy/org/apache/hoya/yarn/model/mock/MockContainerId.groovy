@@ -29,6 +29,10 @@ class MockContainerId extends ContainerId implements Cloneable {
   MockContainerId() {
   }
   
+  MockContainerId(int id) {
+    setId(id);
+  }
+  
   MockContainerId(ContainerId that) {
     id = that.id
     applicationAttemptId = that.applicationAttemptId
@@ -54,6 +58,11 @@ class MockContainerId extends ContainerId implements Cloneable {
   @Override
   public void build() {
 
+  }
+  
+  @Override
+  public String toString() {
+    return "mockcontainer_" + id;
   }
 
   @Override

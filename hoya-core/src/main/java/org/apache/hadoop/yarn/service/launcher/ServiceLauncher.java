@@ -72,8 +72,7 @@ public class ServiceLauncher<S extends Service>
 
   private volatile S service;
   private int serviceExitCode;
-  private final List<IrqHandler> interruptHandlers =
-    new ArrayList<IrqHandler>(1);
+  private final List<IrqHandler> interruptHandlers = new ArrayList<IrqHandler>(1);
   private Configuration configuration;
   private String serviceClassName;
   private static AtomicBoolean signalAlreadyReceived = new AtomicBoolean(false);
@@ -111,7 +110,6 @@ public class ServiceLauncher<S extends Service>
   public int getServiceExitCode() {
     return serviceExitCode;
   }
-
 
   @Override
   public String toString() {
@@ -157,10 +155,8 @@ public class ServiceLauncher<S extends Service>
     registerInterruptHandler();
     //and the shutdown hook
     if (addShutdownHook) {
-      ServiceShutdownHook shutdownHook =
-        new ServiceShutdownHook(service);
-      ShutdownHookManager.get().addShutdownHook(
-        shutdownHook, PRIORITY);
+      ServiceShutdownHook shutdownHook = new ServiceShutdownHook(service);
+      ShutdownHookManager.get().addShutdownHook(shutdownHook, PRIORITY);
     }
     RunService runService = null;
 
@@ -235,7 +231,7 @@ public class ServiceLauncher<S extends Service>
       interruptHandlers.add(new IrqHandler(IrqHandler.CONTROL_C, this));
       interruptHandlers.add(new IrqHandler(IrqHandler.SIGTERM, this));
     } catch (IOException e) {
-      LOG.warn("Signal handler setup failed : {}" , e);
+      LOG.warn("Signal handler setup failed : " + e, e);
     }
   }
 
@@ -307,6 +303,7 @@ public class ServiceLauncher<S extends Service>
       try {
         name = s.getName();
       } catch (Exception ignored) {
+        // ignored
       }
     }
     if (name != null) {
@@ -363,20 +360,18 @@ public class ServiceLauncher<S extends Service>
         if (!arguments.hasNext()) {
           //overshot the end of the file
           exitWithMessage(EXIT_COMMAND_ARGUMENT_ERROR,
-                          ARG_CONF + ": missing configuration file after ");
+              ARG_CONF + ": missing configuration file after ");
         }
         File file = new File(arguments.next());
         if (!file.exists()) {
           exitWithMessage(EXIT_COMMAND_ARGUMENT_ERROR,
-                          ARG_CONF + ": configuration file not found: "
-                          + file);
+              ARG_CONF + ": configuration file not found: " + file);
         }
         try {
           conf.addResource(file.toURI().toURL());
         } catch (MalformedURLException e) {
           exitWithMessage(EXIT_COMMAND_ARGUMENT_ERROR,
-                          ARG_CONF + ": configuration file path invalid: "
-                          + file);
+              ARG_CONF + ": configuration file path invalid: " + file);
         }
       } else {
         argsList.add(arg);
@@ -409,15 +404,16 @@ public class ServiceLauncher<S extends Service>
           if (failureState == Service.STATE.STOPPED) {
             //the failure occurred during shutdown, not important enough to bother
             //the user as it may just scare them
-            LOG.debug("Failure during shutdown", failure);
+            LOG.debug("Failure during shutdown: " + failure, failure);
           } else {
             //throw it for the catch handlers to deal with
             throw failure;
           }
         }
       }
-      exitException = new ExitUtil.ExitException(exitCode, "In " + serviceClassName);
-      //either the service succeeded, or an error was only raised during shutdown, 
+      exitException = new ExitUtil.ExitException(exitCode,
+                                     "In " + serviceClassName);
+      //either the service succeeded, or an error raised during shutdown, 
       //which we don't worry that much about
     } catch (ExitUtil.ExitException ee) {
       exitException = ee;
@@ -499,8 +495,8 @@ public class ServiceLauncher<S extends Service>
     public ServiceForcedShutdown(int shutdownTimeoutMillis) {
       this.shutdownTimeMillis = shutdownTimeoutMillis;
     }
-//  @Override
 
+    @Override
     public void run() {
       if (service != null) {
         service.stop();
@@ -513,16 +509,6 @@ public class ServiceLauncher<S extends Service>
     private boolean isServiceStopped() {
       return serviceStopped;
     }
-  }
-
-  /**
-   * This is the main entry point for the service launcher.
-   * @param args command line arguments.
-   */
-  public static void main(String[] args) {
-    List<String> argsList = Arrays.asList(args); 
-
-    serviceMain(argsList);
   }
 
   /**
@@ -547,5 +533,12 @@ public class ServiceLauncher<S extends Service>
     }
   }
 
-
+  /**
+   * This is the main entry point for the service launcher.
+   * @param args command line arguments.
+   */
+  public static void main(String[] args) {
+    List<String> argsList = Arrays.asList(args);
+    serviceMain(argsList);
+  }
 }

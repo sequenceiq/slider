@@ -18,6 +18,8 @@
 
 package org.apache.hoya.providers.accumulo;
 
+import org.apache.hoya.api.StatusKeys;
+
 /**
  * Any keys related to acculumulo
  */
@@ -111,4 +113,7 @@ public interface AccumuloKeys {
   String MONITOR_PAGE_XML = "/xml";
 
   String ACCUMULO_VERSION_COMMAND = "version";
+  
+  String MASTER_ADDRESS = StatusKeys.INFO_MASTER_ADDRESS;
+  String MONITOR_ADDRESS = "monitor.address";
 }

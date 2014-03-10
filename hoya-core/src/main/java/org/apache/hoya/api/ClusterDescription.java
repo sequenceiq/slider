@@ -36,6 +36,7 @@ import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,6 +69,8 @@ import static org.apache.hoya.api.OptionKeys.ZOOKEEPER_PORT;
  * the code paths are simplified.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
+
 public class ClusterDescription implements Cloneable {
   protected static final Logger
     log = LoggerFactory.getLogger(ClusterDescription.class);
@@ -159,8 +162,6 @@ public class ClusterDescription implements Cloneable {
    * This is where the data goes
    */
   public String dataPath;
-  
-  public boolean AMRestartSupported;
 
   /**
    * cluster-specific options -to control both
@@ -182,9 +183,6 @@ public class ClusterDescription implements Cloneable {
   public Map<String, Map<String, Integer>> statistics =
     new HashMap<String, Map<String, Integer>>();
 
-  public Map<String, Map<String, Integer>> status =
-    new HashMap<String, Map<String, Integer>>();
-
   /**
    * Instances: role->count
    */
@@ -204,6 +202,12 @@ public class ClusterDescription implements Cloneable {
    */
   public Map<String, String> clientProperties =
     new HashMap<String, String>();
+
+  /**
+   * Status information
+   */
+  public Map<String, Object> status;
+  
 
   /**
    * Creator.
@@ -542,8 +546,6 @@ public class ClusterDescription implements Cloneable {
     return getRoleOptInt(role, option, 0);
   }
   
-  
-
   /**
    * look up a role and return its options
    * @param role role
@@ -571,6 +573,7 @@ public class ClusterDescription implements Cloneable {
   /*
    * return the Set of role names
    */
+  @JsonIgnore
   public Set<String> getRoleNames() {
     return new HashSet<String>(roles.keySet());
   }
@@ -720,6 +723,20 @@ public class ClusterDescription implements Cloneable {
     return info.get(key);
   }
 
+  /**
+   * Get an information string. This is content that is only valid in status
+   * reports.
+   * @param key key
+   * @return the value or null
+   */
+  @JsonIgnore
+  public boolean getInfoBool(String key) {
+    String val = info.get(key);
+    if (val != null) {
+      return Boolean.valueOf(val);
+    }
+    return false;
+  }
 
   @JsonIgnore
   public String getZkHosts() throws BadConfigException {

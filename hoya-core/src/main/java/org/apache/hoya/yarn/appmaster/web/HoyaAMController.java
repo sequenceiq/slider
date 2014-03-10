@@ -16,16 +16,21 @@
  */
 package org.apache.hoya.yarn.appmaster.web;
 
+import org.apache.hoya.yarn.appmaster.web.layout.ClusterSpecificationView;
+
+import java.util.Map;
 import org.apache.hadoop.yarn.webapp.Controller;
 import org.apache.hoya.yarn.appmaster.web.layout.AppLayout;
 import org.apache.hoya.yarn.appmaster.web.layout.ContainerStatsView;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.google.inject.Inject;
 
 /**
  * 
  */
 public class HoyaAMController extends Controller {
+  private static final Logger log = LoggerFactory.getLogger(HoyaAMController.class);
 
   private final WebAppApi hoya;
   
@@ -38,12 +43,35 @@ public class HoyaAMController extends Controller {
   @Override
   public void index() {
     setTitle("Hoya App Master");
+    
+    updateAppState();
+    
     render(AppLayout.class);
   }
   
   public void containerStats() {
     setTitle("Hoya Container Statistics");
+    
+    updateAppState();
+    
     render(ContainerStatsView.class);
   }
+  
+  public void specification() {
+    setTitle("Hoya Cluster Specification");
+    
+    render(ClusterSpecificationView.class);
+  }
 
+  private void updateAppState() {
+    //TODO don't do this on every request?
+    Map<String,String> providerStatus = hoya.getProviderService().buildProviderStatus();
+    
+    if (null != providerStatus) {
+      log.info("Updating AppState with status from provider: {}", providerStatus.toString());
+      
+      hoya.getAppState().refreshClusterStatus(providerStatus);
+    }
+  }
+  
 }

@@ -327,6 +327,7 @@ public class HBaseClientProvider extends AbstractProviderCore implements
         "hbase-protocol.jar",
         "hbase-client.jar",
         "zookeeper.jar",
+        "htrace-core.jar",
       };
     Class[] classes = {
       // hbase-common
@@ -336,7 +337,9 @@ public class HBaseClientProvider extends AbstractProviderCore implements
       // hbase-client
       org.apache.hadoop.hbase.client.Put.class,
       //zk
-      org.apache.zookeeper.ClientCnxn.class
+      org.apache.zookeeper.ClientCnxn.class,
+      // HTrace
+      org.cloudera.htrace.Trace.class
     };
     ProviderUtils.addDependencyJars(providerResources, hoyaFileSystem, tempPath,
                                     libdir, jars,

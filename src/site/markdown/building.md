@@ -21,6 +21,11 @@ Here's how to set this up.
 
 ## Before you begin
 
+### Networking
+
+The network on the development system must be functional, with hostname lookup
+of the local host working. Tests will fail without this.
+
 ### Maven
 
 You will need a version of Maven 3.0+, set up with enough memory

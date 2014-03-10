@@ -19,7 +19,7 @@ February 2014
 This release is built against the Apache Hadoop 2.2.0, HBase-0.98.0RC1
 and Accumulo 1.5.0 artifacts. 
 
-Download: [hoya-0.12.1-all.tar.gz]()
+Download: [hoya-0.12.1-all.tar.gz](http://dffeaef8882d088c28ff-185c1feb8a981dddd593a05bb55b67aa.r18.cf1.rackcdn.com/hoya-0.12.1-all.tar.gz)
 
 
 ## Key changes
@@ -54,6 +54,12 @@ in the AM itself.
 
 Be advised that the RC0 and RC1 versions of HBase do not talk to each other well.
 
-Note also there is some ongoing work to support more dynamic role models
-for providers, so that providers can add extra roles at run-time, rather than
-compile time. This is incomplete, as is some new provider development.
+
+## Other points
+
+* There is some ongoing work to support more dynamic role models for providers,
+  so that providers can add extra roles at run-time, rather than compile time.
+  This is incomplete, as is some new provider development.
+* Part of the release process involved rewinding the master branch two revisions;
+  this was the only way to merge in the develop branch reliably. If a git update
+  complains, this is the root cause -sorry.

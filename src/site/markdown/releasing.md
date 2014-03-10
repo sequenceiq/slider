@@ -148,13 +148,13 @@ If you are planning on any release work of more than a single test run,
 consider having your local release branch track the master.
 
 
-**Step #13:** ### For releasing small artifacts
+**Step #13:** ### Release on github small artifacts
 
-(This only works for files under 5GB)
 Browse to https://github.com/hortonworks/hoya/releases/new
 
 Create a new release on the site by following the instructions
 
+Files under 5GB can be published directly. Otherwise, follow step 14
 
 **Step #14:**  For releasing via an external CDN (e.g. Rackspace Cloud)
 

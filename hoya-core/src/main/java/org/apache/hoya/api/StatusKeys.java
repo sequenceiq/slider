@@ -74,5 +74,5 @@ public interface StatusKeys {
    */
   String INFO_STATUS_TIME_HUMAN = "status.time";
 
-  
+  String INFO_AM_RESTART_SUPPORTED = "hoya.am.restart.supported";
 }

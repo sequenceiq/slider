@@ -439,7 +439,6 @@ class TestCommonArgParsing implements HoyaActions, Arguments {
         ACTION_FLEX, 'cluster1',
         ARG_ROLE, "master", "1",
         ARG_ROLE, "worker", "2",
-        ARG_PERSIST, "false"
     ])
     assert ca.coreAction instanceof ActionFlexArgs
     def tuples = ca.actionFlexArgs.roleTuples;

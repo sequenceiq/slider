@@ -23,7 +23,7 @@ import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
 import org.apache.hoya.testtools.KeysForTests
 import org.apache.hoya.tools.ZKIntegration
-import org.apache.hoya.yarn.cluster.YarnMiniClusterTestBase
+import org.apache.hoya.yarn.cluster.YarnZKMiniClusterTestBase
 import org.apache.zookeeper.CreateMode
 import org.apache.zookeeper.ZooDefs
 import org.apache.zookeeper.data.Stat
@@ -33,7 +33,7 @@ import org.junit.Test
 @Slf4j
 @CompileStatic
 
-class TestZKIntegration extends YarnMiniClusterTestBase implements KeysForTests {
+class TestZKIntegration extends YarnZKMiniClusterTestBase implements KeysForTests {
 
   @Before
   void createCluster() {

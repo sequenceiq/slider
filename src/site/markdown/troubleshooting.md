@@ -84,7 +84,47 @@ It is from those logs that the cause of the problem -because they are the actual
 output of the actual application which Hoya is trying to deploy.
 
 
-### Configuring YARN
+
+### Not all the containers start -but whenever you kill one, another one comes up.
+
+This is often caused by YARN not having enough capacity in the cluster to start
+up the requested set of containers. The AM has submitted a list of container
+requests to YARN, but only when an existing container is released or killed
+is one of the outstanding requests granted.
+
+Fix #1: Ask for smaller containers
+
+edit the `yarn.memory` option for roles to be smaller: set it 64 for a smaller
+YARN allocation. *This does not affect the actual heap size of the 
+application component deployed*
+
+Fix #2: Tell YARN to be less strict about memory consumption
+
+Here are the properties in `yarn-site.xml` which we set to allow YARN 
+to schedule more role instances than it nominally has room for.
+
+    <property>
+      <name>yarn.scheduler.minimum-allocation-mb</name>
+      <value>1</value>
+    </property>
+    <property>
+      <description>Whether physical memory limits will be enforced for
+        containers.
+      </description>
+      <name>yarn.nodemanager.pmem-check-enabled</name>
+      <value>false</value>
+    </property>
+    <!-- we really don't want checking here-->
+    <property>
+      <name>yarn.nodemanager.vmem-check-enabled</name>
+      <value>false</value>
+    </property>
+  
+If you create too many instances, your hosts will start swapping and
+performance will collapse -we do not recommend using this in production.
+
+
+### Configuring YARN for better debugging
  
  
 One configuration to aid debugging is tell the nodemanagers to

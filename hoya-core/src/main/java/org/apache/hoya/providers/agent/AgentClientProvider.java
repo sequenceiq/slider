@@ -147,8 +147,9 @@ public class AgentClientProvider extends AbstractProviderCore implements
     super.validateClusterSpec(clusterSpec);
 
     // Mandatory options for Agents
-    clusterSpec.getMandatoryOption(CONTROLLER_URL);
-    clusterSpec.getMandatoryOption(PACKAGE_PATH);
+    // TODO: Enable these after CLI changes
+    //clusterSpec.getMandatoryOption(CONTROLLER_URL);
+    //clusterSpec.getMandatoryOption(PACKAGE_PATH);
     //clusterSpec.getMandatoryOption(AGENT_PATH);
 
     providerUtils.validateNodeCount(ROLE_NODE,

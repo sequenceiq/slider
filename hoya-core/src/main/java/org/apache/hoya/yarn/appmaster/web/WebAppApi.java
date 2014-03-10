@@ -16,17 +16,36 @@
  */
 package org.apache.hoya.yarn.appmaster.web;
 
+import java.util.Map;
+
 import org.apache.hoya.api.HoyaClusterProtocol;
 import org.apache.hoya.providers.ProviderService;
 import org.apache.hoya.yarn.appmaster.state.AppState;
+import org.apache.hoya.yarn.appmaster.state.RoleStatus;
 
 /**
- * 
+ * Interface to pass information from the Hoya AppMaster to the WebApp
  */
 public interface WebAppApi {
 
+  /**
+   * The {@link AppState} for the current cluster
+   */
   public AppState getAppState();
+  
+  /**
+   * The {@link ProviderService} for the current cluster
+   */
   public ProviderService getProviderService();
+  
+  /**
+   * The {@link HoyaClusterProtocol} for the current cluster
+   */
   public HoyaClusterProtocol getClusterProtocol();
   
+  /**
+   * Generate a mapping from role name to its {@link RoleStatus}. Be aware that this
+   * is a computed value and not just a getter
+   */
+  public Map<String,RoleStatus> getRoleStatusByName();
 }

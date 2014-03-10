@@ -27,9 +27,10 @@ import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.ClusterNode
 import org.apache.hoya.api.RoleKeys
 import org.apache.hoya.yarn.client.HoyaClient
-import org.apache.hoya.yarn.cluster.YarnMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hoya.testtools.HBaseTestUtils
+import org.apache.hoya.yarn.cluster.YarnZKMiniClusterTestBase
+
 import static org.apache.hoya.yarn.Arguments.*
 import static org.apache.hoya.testtools.HoyaTestUtils.*
 import static org.apache.hoya.HoyaXMLConfKeysForTesting.*
@@ -39,7 +40,7 @@ import static org.apache.hoya.providers.hbase.HBaseKeys.*
  */
 @CompileStatic
 @Slf4j
-public abstract class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
+public abstract class HBaseMiniClusterTestBase extends YarnZKMiniClusterTestBase {
   public static final int HBASE_CLUSTER_STARTUP_TIME = HBASE_LAUNCH_WAIT_TIME
 
   /**
@@ -51,6 +52,7 @@ public abstract class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
 
   public static final String HREGION = "HRegion"
   public static final String HMASTER = "HMaster"
+  public static final String HB_HEAP = "256"
 
 
   @Override
@@ -142,6 +144,14 @@ public abstract class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
     return HBaseTestUtils.getHBaseClusterStatus(hoyaClient)
   }
 
+  public String getApplicationHomeKey() {
+    return KEY_HOYA_TEST_HBASE_HOME
+  }
+
+  public String getArchiveKey() {
+    return KEY_HOYA_TEST_HBASE_TAR
+  }
+
   /**
    * Create an HBase config to work with
    * @param hoyaClient hoya client
@@ -151,6 +161,56 @@ public abstract class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
    */
   public static Configuration createHBaseConfiguration(HoyaClient hoyaClient) {
     return HBaseTestUtils.createHBaseConfiguration(hoyaClient)
+  }
+
+  /**
+   * Create a full cluster with a master & the requested no. of region servers
+   * @param clustername cluster name
+   * @param size # of nodes
+   * @param extraArgs list of extra args to add to the creation command
+   * @param deleteExistingData should the data of any existing cluster
+   * of this name be deleted
+   * @param blockUntilRunning block until the AM is running
+   * @return launcher which will have executed the command.
+   */
+  public ServiceLauncher<HoyaClient> createHBaseCluster(String clustername,
+                                                        int size, List<String> extraArgs,
+                                                        boolean deleteExistingData,
+                                                        boolean blockUntilRunning) {
+    Map<String, Integer> roles = [
+        (ROLE_MASTER): 1,
+        (ROLE_WORKER): size,
+    ];
+    extraArgs << ARG_ROLEOPT << ROLE_MASTER << RoleKeys.YARN_MEMORY << YRAM
+    extraArgs << ARG_ROLEOPT << ROLE_WORKER << RoleKeys.YARN_MEMORY << YRAM
+    return createHoyaCluster(clustername,
+        roles,
+        extraArgs,
+        deleteExistingData,
+        blockUntilRunning,
+        [:])
+
+  }
+
+  /**
+   * Create an AM without a master
+   * @param clustername AM name
+   * @param size # of nodes
+   * @param deleteExistingData should any existing cluster data be deleted
+   * @param blockUntilRunning block until the AM is running
+   * @return launcher which will have executed the command.
+   */
+  public ServiceLauncher<HoyaClient> createMasterlessAM(String clustername, int size, boolean deleteExistingData, boolean blockUntilRunning) {
+    Map<String, Integer> roles = [
+        (ROLE_MASTER): 0,
+        (ROLE_WORKER): size,
+    ];
+    return createHoyaCluster(clustername,
+        roles,
+        [],
+        deleteExistingData,
+        blockUntilRunning,
+        [:])
   }
 
   public static ClusterStatus basicHBaseClusterStartupSequence(HoyaClient hoyaClient) {
@@ -183,7 +243,6 @@ public abstract class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
       int masterFlexTarget,
       int workers,
       int flexTarget,
-      boolean persist,
       boolean testHBaseAfter) {
     createMiniCluster(clustername, getConfiguration(),
                       1,
@@ -230,7 +289,7 @@ public abstract class HBaseMiniClusterTestBase extends YarnMiniClusterTestBase {
                                         (ROLE_WORKER): flexTarget,
                                         (ROLE_MASTER): masterFlexTarget
                                     ],
-                                    persist);
+                                    true);
       waitForHoyaWorkerCount(hoyaClient, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME);
       waitForHoyaMasterCount(hoyaClient, masterFlexTarget,
                              HBASE_CLUSTER_STARTUP_TO_LIVE_TIME);

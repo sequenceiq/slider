@@ -23,8 +23,9 @@ import org.apache.hadoop.yarn.webapp.WebApp;
  * 
  */
 public class HoyaAMWebApp extends WebApp {
-
+  public static final String BASE_PATH = "hoyaam";
   public static final String CONTAINER_STATS = "/stats";
+  public static final String CLUSTER_SPEC = "/spec";
   
   @Override
   public void setup() {
@@ -37,6 +38,7 @@ public class HoyaAMWebApp extends WebApp {
 
     route("/", HoyaAMController.class);
     route(CONTAINER_STATS, HoyaAMController.class, "containerStats");
+    route(CLUSTER_SPEC, HoyaAMController.class, "specification");
   }
 
 }

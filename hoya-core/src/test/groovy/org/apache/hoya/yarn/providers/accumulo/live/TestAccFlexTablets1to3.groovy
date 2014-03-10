@@ -45,8 +45,8 @@ class TestAccFlexTablets1to3 extends AccumuloTestBase {
 
     ClusterDescription cd = flexAccClusterTestRun(
         "test_acc_flex_tablets1to3",
-        [plan1, plan2],
-        true)
+        [plan1, plan2]
+    )
 
     log.info("Final CD \n{}", cd)
   }

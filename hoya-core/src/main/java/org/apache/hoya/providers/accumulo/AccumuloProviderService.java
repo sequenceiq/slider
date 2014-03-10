@@ -18,8 +18,22 @@
 
 package org.apache.hoya.providers.accumulo;
 
+import com.google.common.net.HostAndPort;
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -51,14 +65,6 @@ import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 /**
  * Server-side accumulo provider
  */
@@ -71,7 +77,12 @@ public class AccumuloProviderService extends AbstractProviderService implements
     LoggerFactory.getLogger(AccumuloClientProvider.class);
   private AccumuloClientProvider clientProvider;
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
-
+  
+  private String masterAddress = null, monitorAddress = null;
+  private HoyaFileSystem hoyaFileSystem = null;
+  private ClusterDescription clusterSpec = null;
+  private ZooCache zooCache = null;
+  
   public AccumuloProviderService() {
     super("accumulo");
   }
@@ -122,6 +133,9 @@ public class AccumuloProviderService extends AbstractProviderService implements
                                           Path containerTmpDirPath) throws
                                            IOException,
                                            BadConfigException {
+    this.hoyaFileSystem = hoyaFileSystem;
+    this.clusterSpec = clusterSpec;
+    
     // Set the environment
     Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
     env.put(ACCUMULO_LOG_DIR, ApplicationConstants.LOG_DIR_EXPANSION_VAR);
@@ -138,8 +152,6 @@ public class AccumuloProviderService extends AbstractProviderService implements
             ProviderUtils.convertToAppRelativePath(
               HoyaKeys.PROPAGATED_CONF_DIR_NAME));
     env.put(ZOOKEEPER_HOME, clusterSpec.getMandatoryOption(OPTION_ZK_HOME));
-
-    ctx.setEnvironment(env);
 
     //local resources
     Map<String, LocalResource> localResources =
@@ -176,7 +188,6 @@ public class AccumuloProviderService extends AbstractProviderService implements
       } else if (AccumuloKeys.ROLE_GARBAGE_COLLECTOR.equals(role)) {
         opt = "ACCUMULO_GC_OPTS";
       }
-      command.add(opt + "='" + heap + "'");
       env.put(opt, heap);
     }
 
@@ -203,7 +214,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
 
     commands.add(cmdStr);
     ctx.setCommands(commands);
-
+    ctx.setEnvironment(env);
   }
   
   public List<String> buildProcessCommandList(ClusterDescription clusterSpec,
@@ -358,6 +369,8 @@ public class AccumuloProviderService extends AbstractProviderService implements
     zookeeper.getChildren("/", watcher);
 
     watcher.waitForZKConnection(timeout);
+    
+    zooCache = ZooCache.getInstance(zkQuorum, 5 * 1000);
   }
 
   @Override
@@ -366,5 +379,87 @@ public class AccumuloProviderService extends AbstractProviderService implements
                                   Configuration config,
                                   int timeout) throws IOException {
     return new ArrayList<Probe>(0);
+  }
+  
+  @Override
+  public Map<String, String> buildProviderStatus() {
+    updateAccumuloInfo();
+    
+    Map<String,String> status = new HashMap<String, String>();
+    
+    status.put(AccumuloKeys.MASTER_ADDRESS, this.masterAddress);
+    status.put(AccumuloKeys.MONITOR_ADDRESS, this.monitorAddress);
+    
+    return status;
+  }
+  
+
+  @Override
+  public boolean initMonitoring() {
+    updateAccumuloInfo();
+    return true;
+  }
+  
+  private void updateAccumuloInfo() {
+    if (null == hoyaFileSystem || null == clusterSpec || null == zooCache) {
+      // Wait a while, the AM hasn't fully initialized things
+      return;
+    }
+    
+    String zkInstancePath;
+    try {
+      zkInstancePath = ZooUtil.getRoot(getInstanceId(hoyaFileSystem, clusterSpec));
+    } catch (IOException e) {
+      log.warn("Could not determine instanceID for Accumulo cluster {}", clusterSpec.name);
+      return;
+    }      
+    
+    byte[] masterData = ZooUtil.getLockData(zooCache, zkInstancePath + Constants.ZMASTER_LOCK);
+    if (null != masterData) {
+      this.masterAddress = new String(masterData, Constants.UTF8);
+    }
+
+    // TODO constant will exist in >=1.5.1
+    byte[] monitorData = zooCache.get(zkInstancePath + "/monitor/http_addr");
+    if (null != monitorData) {
+      this.monitorAddress = new String(monitorData, Constants.UTF8);
+    }
+  }
+  
+  private String getInstanceId(HoyaFileSystem hoyaFs, ClusterDescription cd) throws IOException {
+    // Should contain a single file whose name is the instance_id for this cluster
+    FileStatus[] children = hoyaFs.getFileSystem().listStatus(new Path(cd.dataPath, "instance_id"));
+    
+    if (1 != children.length) {
+      throw new IOException("Expected exactly one instance_id present, found " + children.length);
+    }
+    
+    return children[0].getPath().getName();
+  }
+  
+  /* non-javadoc
+   * @see org.apache.hoya.providers.ProviderService#buildMonitorDetails()
+   */
+  @Override
+  public TreeMap<String,URL> buildMonitorDetails(ClusterDescription clusterDesc) {
+    TreeMap<String,URL> map = new TreeMap<String,URL>();
+    
+    map.put("Active Accumulo Master (RPC): " + getInfoAvoidingNull(clusterDesc, AccumuloKeys.MASTER_ADDRESS), null);
+    
+    String monitorKey = "Active Accumulo Monitor: ";
+    String monitorAddr = getInfoAvoidingNull(clusterDesc, AccumuloKeys.MONITOR_ADDRESS);
+    if (!StringUtils.isBlank(monitorAddr)) {
+      try {
+        HostAndPort hostPort = HostAndPort.fromString(monitorAddr);
+        map.put(monitorKey, new URL("http", hostPort.getHostText(), hostPort.getPort(), ""));
+      } catch (Exception e) {
+        log.debug("Caught exception parsing Accumulo monitor URL", e);
+        map.put(monitorKey + "N/A", null);
+      }
+    } else {
+      map.put(monitorKey + "N/A", null);
+    }
+
+    return map;
   }
 }

@@ -303,7 +303,7 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
    */
   static void teardown(String name) {
     if (FUNTESTS_ENABLED) {
-      freeze(name)
+      freezeForce(name)
     }
   }
 

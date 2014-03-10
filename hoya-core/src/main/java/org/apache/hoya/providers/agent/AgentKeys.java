@@ -113,6 +113,7 @@ public interface AgentKeys {
   String REGSION_SERVER_INFO_PORT_KEY = "REGION_SERVER_INFO_PORT";
   String MASTER_INFO_PORT = "MASTER_INFO_PORT";
   String ARG_COMMAND = "--command";
+  String ARG_LOG = "--log";
 }
 
 

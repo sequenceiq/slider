@@ -68,7 +68,11 @@ import org.apache.hoya.providers.ClientProvider;
 import org.apache.hoya.providers.HoyaProviderFactory;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.hoyaam.HoyaAMClientProvider;
-import org.apache.hoya.tools.*;
+import org.apache.hoya.tools.ConfigHelper;
+import org.apache.hoya.tools.Duration;
+import org.apache.hoya.tools.HoyaFileSystem;
+import org.apache.hoya.tools.HoyaUtils;
+import org.apache.hoya.tools.HoyaVersionInfo;
 import org.apache.hoya.yarn.Arguments;
 import org.apache.hoya.yarn.HoyaActions;
 import org.apache.hoya.yarn.appmaster.rpc.RpcBinder;
@@ -85,6 +89,7 @@ import org.apache.hoya.yarn.params.ClientArgs;
 import org.apache.hoya.yarn.params.HoyaAMArgs;
 import org.apache.hoya.yarn.params.LaunchArgsAccessor;
 import org.apache.hoya.yarn.service.CompoundLaunchedService;
+import org.apache.hoya.yarn.service.HoyaServiceUtils;
 import org.apache.hoya.yarn.service.SecurityCheckerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,8 +99,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.ByteBuffer;
@@ -402,7 +405,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // build up the initial cluster specification
     ClusterDescription clusterSpec = new ClusterDescription();
 
-    requireArgumentSet(Arguments.ARG_ZKHOSTS, buildInfo.getZKhosts());
     Path appconfdir = buildInfo.getConfdir();
     requireArgumentSet(Arguments.ARG_CONFDIR, appconfdir);
     // Provider
@@ -686,27 +688,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     submissionContext.setMaxAppAttempts(config.getInt(KEY_HOYA_RESTART_LIMIT,
                                                       DEFAULT_HOYA_RESTART_LIMIT));
 
-    Method m = null;
-    String methName = "ApplicationSubmissionContext.setKeepContainersAcrossApplicationAttempts()";
-    Class<? extends ApplicationSubmissionContext> cls = submissionContext.getClass();
-    try {
-      m = cls.getDeclaredMethod("setKeepContainersAcrossApplicationAttempts",
-        new Class<?>[] { boolean.class });
-      m.setAccessible(true);
-    } catch (NoSuchMethodException e) {
-      log.warn(methName + " not found");
-    } catch (SecurityException e) {
-      log.warn("No access to " + methName);
-    }
-    // AM-RESTART-SUPPORT: AM wants its old containers back on a restart
-    if (m != null) {
-      try {
-        m.invoke(submissionContext, true);
-      } catch (InvocationTargetException ite) {
-        log.error(methName + " got", ite);
-      } catch (IllegalAccessException iae) {
-        log.error(methName + " got", iae);
-      }
+    if (HoyaServiceUtils.keepContainersAcrossSubmissions(submissionContext)) {
+      log.info("Requesting cluster stays running over AM failure");
     }
 
     hoyaFileSystem.purgeHoyaAppInstanceTempFiles(clustername);
@@ -1318,7 +1301,11 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                key, val);
       }
     }
-    return flex(name, roleInstances, args.isPersist());
+    if (!args.isPersist()) {
+      log.warn(
+        "Persist flag ignored: the updated specification is always persisted");
+    }
+    return flex(name, roleInstances, true);
   }
 
   /**
@@ -1747,9 +1734,11 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   /**
    * Implement flexing
    * @param clustername name of the cluster
-   * @param workers number of workers
-   * @param masters number of masters
+   * @param roleInstances map of new role instances
+   * @param persist (ignored) flag of persistence policy
    * @return EXIT_SUCCESS if the #of nodes in a live cluster changed
+   * @throws YarnException
+   * @throws IOException
    */
   public int flex(String clustername,
                   Map<String, Integer> roleInstances,
@@ -1781,18 +1770,14 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                 count,
                 clusterSpec);
     }
-    if (persist) {
-      Path clusterDirectory = hoyaFileSystem.buildHoyaClusterDirPath(clustername);
-      log.debug("Saving the cluster specification to {}", clusterSpecPath);
-      // save the specification
-      if (!hoyaFileSystem.updateClusterSpecification(
-              clusterDirectory,
-              clusterSpecPath,
-              clusterSpec)) {
-        log.warn("Failed to save new cluster size to {}", clusterSpecPath);
-      } else {
-        log.debug("New cluster size: persisted");
-      }
+    Path clusterDirectory = hoyaFileSystem.buildHoyaClusterDirPath(clustername);
+    log.debug("Saving the cluster specification to {}", clusterSpecPath);
+    // save the specification
+    if (!hoyaFileSystem.updateClusterSpecification(
+      clusterDirectory,
+      clusterSpecPath,
+      clusterSpec)) {
+      log.warn("Failed to save new cluster size to {}", clusterSpecPath);
     }
     int exitCode = EXIT_FALSE;
 

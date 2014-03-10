@@ -275,10 +275,9 @@ Example:
 
     hoya exists cluster4 --live
 
-### `flex <cluster> [--role rolename count]* [--persist true|false]`
+### `flex <cluster> [--role rolename count]* `
 
 Flex the number of workers in a cluster to the new value. If greater than before -nodes will be added. If less, nodes will be removed  from the cluster. 
-The persist flag (default = true) indicates whether or not the new worker count should be persisted and used the next time the cluster is started up. Set this to false if the flexed cluster size is only to be applied to a live cluster.
 
 This operation has a return value of 0 if the size of a running cluster was changed. 
 
@@ -286,8 +285,8 @@ It returns -1 if there is no running cluster, or the size of the flexed cluster 
 
 Example
 
-    hoya flex cluster1 --role worker 8 --persist true --filesystem hdfs://host:port
-    hoya flex cluster1 --role master 2 --persist false --filesystem hdfs://host:port
+    hoya flex cluster1 --role worker 8 --filesystem hdfs://host:port
+    hoya flex cluster1 --role master 2 --filesystem hdfs://host:port
     
 
 ### `freeze <cluster>  [--force] [--wait time] [--message text]`
