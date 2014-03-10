@@ -297,7 +297,7 @@ of diagnostics reports)
     }
 
 
-## Deployment specification: `app_configration.json`
+## Deployment specification: `app_configuration.json`
 
 
 This defines parameters that are to be used when creating the instance of the
@@ -329,3 +329,51 @@ application, and instances of the individual components.
       
 The resolved specification defines the values that are passed to the
 different components.
+
+    {
+      "global": {
+        "zookeeper.port": "2181",
+        "zookeeper.path": "/yarnapps_small_cluster",
+        "zookeeper.hosts": "zoo1,zoo2,zoo3",
+        "env.MALLOC_ARENA_MAX": "4",
+        "site.hbase.master.startup.retainassign": "true",
+        "site.fs.defaultFS": "hdfs://cluster:8020",
+        "site.fs.default.name": "hdfs://cluster:8020",
+        "site.hbase.master.info.port": "0",
+        "site.hbase.regionserver.info.port": "0"
+      },
+      "components": {
+    
+        "worker": {
+          "zookeeper.port": "2181",
+          "zookeeper.path": "/yarnapps_small_cluster",
+          "zookeeper.hosts": "zoo1,zoo2,zoo3",
+          "env.MALLOC_ARENA_MAX": "4",
+          "site.hbase.master.startup.retainassign": "true",
+          "site.fs.defaultFS": "hdfs://cluster:8020",
+          "site.fs.default.name": "hdfs://cluster:8020",
+          "site.hbase.master.info.port": "0",
+          "site.hbase.regionserver.info.port": "0",
+          "jvm.heapsize": "512M"
+        },
+        "master": {
+          "zookeeper.port": "2181",
+          "zookeeper.path": "/yarnapps_small_cluster",
+          "zookeeper.hosts": "zoo1,zoo2,zoo3",
+          "env.MALLOC_ARENA_MAX": "4",
+          "site.hbase.master.startup.retainassign": "true",
+          "site.fs.defaultFS": "hdfs://cluster:8020",
+          "site.fs.default.name": "hdfs://cluster:8020",
+          "site.hbase.master.info.port": "0",
+          "site.hbase.regionserver.info.port": "0",
+          "jvm.heapsize": "512M"
+        }
+      }
+    }
+    
+The `site.` properties have been passed down to each component, components
+whose templates may generate local site configurations. The override model
+does not prevent any component from overriding global configuration so as
+to create local configurations incompatible with the global state. (i.e.,
+there is no way to declare an attribute as final). It is the responsibility
+of the author of the configuration file (and their tools) to detect such issues.
