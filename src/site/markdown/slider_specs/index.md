@@ -25,7 +25,7 @@ Terminology
 Specifications
 ---
 
-Information / material to co-exist in the project. The entry point for partners that will leverage Slider.
+The entry points to leverage Slider are:
 
 - [Specifications for AppPackage](application_package.md)
 - [Documentation for the SliderCLI](apps_on_yarn_cli.md)
