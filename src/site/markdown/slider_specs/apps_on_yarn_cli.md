@@ -47,7 +47,7 @@ Stop the application instance.
 
 The --force operation tells YARN to kill the application instance without involving the AppMaster.
 
-### flex \<application\> [--component componentname count]*
+### flex \<application\> [--component componentname count]* \<--resource resourcespec\>
 
 Update component instance count
  
