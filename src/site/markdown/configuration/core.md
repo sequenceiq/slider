@@ -34,7 +34,7 @@ to satisfy the requested YARN resource requirements. A process can be deployed
 to a container.
 
 
-*`topology.json`*: A file that describes the
+*`resources.json`*: A file that describes the
 size of the application in terms of its component requirements: how many,
 and what their resource requirements are. 
 

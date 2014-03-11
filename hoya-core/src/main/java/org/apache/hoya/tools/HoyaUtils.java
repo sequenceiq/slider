@@ -527,6 +527,25 @@ public final class HoyaUtils {
   }
 
   /**
+   * Generic map merge logic
+   * @param first first map
+   * @param second second map
+   * @param <T1> key type
+   * @param <T2> value type
+   * @return 'first' merged with the second
+   */
+  public static <T1, T2> Map<T1, T2> mergeMapsIgnoreDuplicateKeys(Map<T1, T2> first,
+                                               Map<T1, T2> second) {
+    for (Map.Entry<T1, T2> entry : second.entrySet()) {
+      T1 key = entry.getKey();
+      if (!first.containsKey(key)) {
+        first.put(key, entry.getValue());
+      }
+    }
+    return first;
+  }
+
+  /**
    * Convert a map to a multi-line string for printing
    * @param map map to stringify
    * @return a string representation of the map
