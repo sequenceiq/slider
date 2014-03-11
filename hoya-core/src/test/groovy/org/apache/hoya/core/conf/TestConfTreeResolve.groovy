@@ -23,7 +23,8 @@ import org.apache.hoya.core.persist.JsonSerDeser
 import org.junit.Assert
 import org.junit.Test
 
-import static org.apache.hoya.core.conf.ExampleFilenames.*
+import static org.apache.hoya.core.conf.ExampleFilenames.getOverridden
+import static org.apache.hoya.core.conf.ExampleFilenames.getPACKAGE
 
 /**
  * Test 
@@ -46,9 +47,9 @@ class TestConfTreeResolve extends Assert {
     def global = origOperations.globalOptions
     assert global["g1"] == "a"
     assert global["g2"] == "b"
-    
+
     def simple = origOperations.getMandatoryComponent("simple")
-    assert simple.size() ==0
+    assert simple.size() == 0
 
     def master = origOperations.getMandatoryComponent("master")
     assert master["name"] == "m"
@@ -62,7 +63,7 @@ class TestConfTreeResolve extends Assert {
     assert worker["g1"] == "overridden-by-worker"
     assert worker["g2"] == null
     assert worker["timeout"] == "1000"
-    
+
     // here is the resolution
     origOperations.resolve()
 
@@ -70,7 +71,7 @@ class TestConfTreeResolve extends Assert {
     log.info("global = $global")
     assert global["g1"] == "a"
     assert global["g2"] == "b"
-    
+
     simple = origOperations.getMandatoryComponent("simple")
     assert simple.size() == 2
     simple.getMandatoryOption("g1")

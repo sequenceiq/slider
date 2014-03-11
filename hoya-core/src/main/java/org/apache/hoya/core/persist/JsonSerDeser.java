@@ -22,7 +22,6 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IOUtils;
 import org.codehaus.jackson.JsonGenerationException;
@@ -70,7 +69,7 @@ public class JsonSerDeser<T> {
     throws IOException, JsonParseException, JsonMappingException {
     ObjectMapper mapper = new ObjectMapper();
     try {
-      return (T)(mapper.readValue(json, classType));
+      return (T) (mapper.readValue(json, classType));
     } catch (IOException e) {
       log.error("Exception while parsing json : " + e + "\n" + json, e);
       throw e;
@@ -107,7 +106,7 @@ public class JsonSerDeser<T> {
     InputStream resStream = null;
     try {
       resStream = this.getClass().getResourceAsStream(resource);
-      if (resStream==null) {
+      if (resStream == null) {
         throw new FileNotFoundException(resource);
       }
 
@@ -148,8 +147,11 @@ public class JsonSerDeser<T> {
    * @param overwrite should any existing file be overwritten
    * @throws IOException IO exception
    */
-  public void save(T instance, FileSystem fs, Path path, boolean overwrite) throws
-                                                                IOException {
+  public void save(T instance,
+                   FileSystem fs,
+                   Path path,
+                   boolean overwrite) throws
+                                      IOException {
     FSDataOutputStream dataOutputStream = fs.create(path, overwrite);
     writeJsonAsBytes(instance, dataOutputStream);
   }
@@ -159,7 +161,8 @@ public class JsonSerDeser<T> {
    * @param dataOutputStream an outout stream that will always be closed
    * @throws IOException on any failure
    */
-  private void writeJsonAsBytes(T instance, DataOutputStream dataOutputStream) throws
+  private void writeJsonAsBytes(T instance,
+                                DataOutputStream dataOutputStream) throws
                                                                    IOException {
     try {
       String json = toJson(instance);
@@ -169,7 +172,7 @@ public class JsonSerDeser<T> {
       dataOutputStream.close();
     }
   }
-  
+
 
   /**
    * Convert an object to a JSON string
@@ -179,8 +182,8 @@ public class JsonSerDeser<T> {
    * @throws JsonMappingException O/J mapping problems
    */
   public static String toJson(Object o) throws IOException,
-                                JsonGenerationException,
-                                JsonMappingException {
+                                               JsonGenerationException,
+                                               JsonMappingException {
     ObjectMapper mapper = new ObjectMapper();
     mapper.configure(SerializationConfig.Feature.INDENT_OUTPUT, true);
     return mapper.writeValueAsString(o);

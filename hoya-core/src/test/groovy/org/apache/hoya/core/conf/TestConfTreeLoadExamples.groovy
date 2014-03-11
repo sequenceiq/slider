@@ -32,8 +32,10 @@ import org.junit.runners.Parameterized
 class TestConfTreeLoadExamples extends Assert {
 
   String resource;
-  
-  static final JsonSerDeser<ConfTree> confTreeJsonSerDeser = new JsonSerDeser<ConfTree>(ConfTree) 
+
+  static
+  final JsonSerDeser<ConfTree> confTreeJsonSerDeser = new JsonSerDeser<ConfTree>(
+      ConfTree)
 
   TestConfTreeLoadExamples(String resource) {
     this.resource = resource

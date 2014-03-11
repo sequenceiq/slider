@@ -36,9 +36,10 @@ class ExampleFilenames {
 
   static final String PACKAGE = "/org/apache/hoya/core/conf/examples/"
 
-  
-  static final String[] all_examples = [overridden, overriddenRes, internal, internalRes,
-                                      app_configuration, app_configurationRes, resources, empty];
+
+  static
+  final String[] all_examples = [overridden, overriddenRes, internal, internalRes,
+                                 app_configuration, app_configurationRes, resources, empty];
 
   static final List<String> all_example_resources = [];
   static {
