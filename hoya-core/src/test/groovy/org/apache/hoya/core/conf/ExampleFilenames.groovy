@@ -24,7 +24,7 @@ package org.apache.hoya.core.conf
 
 class ExampleFilenames {
 
-  static final String overridden = "example-overridden.json"
+  static final String overridden = "overridden.json"
   static final String overriddenRes = "overridden-resolved.json"
   static final String internal = "internal.json"
   static final String internalRes = "internal-resolved.json"

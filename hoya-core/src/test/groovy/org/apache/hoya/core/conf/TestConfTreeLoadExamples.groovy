@@ -18,12 +18,12 @@
 
 package org.apache.hoya.core.conf
 
-import groovy.transform.CompileStatic
 import org.apache.hoya.core.persist.JsonSerDeser
 import org.junit.Assert
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
+
 
 /**
  * Test 
@@ -47,6 +47,9 @@ class TestConfTreeLoadExamples extends Assert {
   @Test
   public void testLoadResource() throws Throwable {
     def confTree = confTreeJsonSerDeser.fromResource(resource)
-    
+    ConfTreeOperations ops = new ConfTreeOperations(confTree)
+    ops.resolve()
+    ops.validate()
+
   }
 }

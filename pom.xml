@@ -111,7 +111,7 @@
     <commons-codec.version>1.7</commons-codec.version>
     <gmavenVersion>1.5</gmavenVersion>
     <gmavenProviderSelection>2.0</gmavenProviderSelection>
-    <groovy.version>2.1.9</groovy.version>
+    <groovy.version>2.2.2</groovy.version>
     <guava.version>11.0.2</guava.version>
     <guice.version>3.0</guice.version>
 

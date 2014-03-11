@@ -20,5 +20,6 @@ package org.apache.hoya.core;
 
 public class CoreKeys {
 
-  public static final String APPLICATION_CONF_VERSION = "2.0.0";
+  public static final String SCHEMA =
+    "http://example.org/specification/v2.0.0";
 }

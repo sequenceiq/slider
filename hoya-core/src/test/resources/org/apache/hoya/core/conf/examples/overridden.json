@@ -14,7 +14,7 @@
 
     },
     "worker": {
-      "name": "m",
+      "name": "worker",
       "g1": "overridden-by-worker",
       "timeout": "1000"
 

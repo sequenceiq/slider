@@ -535,7 +535,7 @@ public final class HoyaUtils {
    * @return 'first' merged with the second
    */
   public static <T1, T2> Map<T1, T2> mergeMapsIgnoreDuplicateKeys(Map<T1, T2> first,
-                                               Map<T1, T2> second) {
+                                                                  Map<T1, T2> second) {
     for (Map.Entry<T1, T2> entry : second.entrySet()) {
       T1 key = entry.getKey();
       if (!first.containsKey(key)) {

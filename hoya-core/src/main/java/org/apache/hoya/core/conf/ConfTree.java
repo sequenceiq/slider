@@ -44,7 +44,7 @@ public final class ConfTree {
   /**
    * version counter
    */
-  public String version = CoreKeys.APPLICATION_CONF_VERSION;
+  public String schema = CoreKeys.SCHEMA;
 
   /**
    * Metadata

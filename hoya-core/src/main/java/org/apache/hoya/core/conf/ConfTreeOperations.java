@@ -47,15 +47,15 @@ public class ConfTreeOperations {
    * @throws BadConfigException
    */
   public void validate() throws BadConfigException {
-    String version = tree.version;
+    String version = tree.schema;
     if (version == null) {
       throw new BadConfigException("'version' undefined");
     }
-    if (!CoreKeys.APPLICATION_CONF_VERSION.equals(version)) {
+    if (!CoreKeys.SCHEMA.equals(version)) {
       throw new BadConfigException(
         "version %s incompatible with supported version %s",
         version,
-        CoreKeys.APPLICATION_CONF_VERSION);
+        CoreKeys.SCHEMA);
     }
   }
 
@@ -65,18 +65,16 @@ public class ConfTreeOperations {
    */
   public void resolve() {
     for (Map.Entry<String, Map<String, String>> comp : tree.components.entrySet()) {
-      mergeOptions(tree.global, comp.getValue());
+      mergeOptions(comp.getValue());
     }
   }
 
   /**
    * Merge any options
-   * @param global global opt set
-   * @param comp dest values
+   * @param component dest values
    */
-  public void mergeOptions(Map<String, String> global,
-                           Map<String, String> comp) {
-    HoyaUtils.mergeMapsIgnoreDuplicateKeys(comp, global);
+  public void mergeOptions(Map<String, String> component) {
+    HoyaUtils.mergeMapsIgnoreDuplicateKeys(component, tree.global);
   }
 
   /**
