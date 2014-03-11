@@ -29,7 +29,6 @@ import org.junit.runners.Parameterized
  * Test 
  */
 @RunWith(value = Parameterized.class)
-@CompileStatic
 class TestConfTreeLoadExamples extends Assert {
 
   String resource;
@@ -41,8 +40,8 @@ class TestConfTreeLoadExamples extends Assert {
   }
 
   @Parameterized.Parameters
-  public static Collection filenames() {
-    return [(ExampleFilenames.all_examples)];
+  public static filenames() {
+    return ExampleFilenames.all_example_resources.collect { [it] as String[] }
   }
 
   @Test

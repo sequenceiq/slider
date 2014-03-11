@@ -25,16 +25,16 @@ package org.apache.hoya.core.conf
 class ExampleFilenames {
 
   static final String overridden = "example-overridden.json"
-  static final String overriddenRes = "example-overridden-resolved.json"
-  static final String internal = "example-internal.json"
-  static final String internalRes = "example-internal-resolved.json"
-  static final String app_configuration = "example-app_configuration.json"
+  static final String overriddenRes = "overridden-resolved.json"
+  static final String internal = "internal.json"
+  static final String internalRes = "internal-resolved.json"
+  static final String app_configuration = "app_configuration.json"
   final
-  static String app_configurationRes = "example-app_configuration-resolved.json"
-  static final String resources = "example-resources.json"
-  static final String empty = "example-empty.json"
+  static String app_configurationRes = "app_configuration-resolved.json"
+  static final String resources = "resources.json"
+  static final String empty = "empty.json"
 
-  static final String PACKAGE = "org.apache.hoya.core.conf.examples"
+  static final String PACKAGE = "/org/apache/hoya/core/conf/examples/"
 
   
   static final String[] all_examples = [overridden, overriddenRes, internal, internalRes,
@@ -42,7 +42,7 @@ class ExampleFilenames {
 
   static final List<String> all_example_resources = [];
   static {
-    all_examples.each { all_example_resources << (PACKAGE + "." + it) }
+    all_examples.each { all_example_resources << (PACKAGE + it) }
   }
 
 }

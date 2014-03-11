@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -106,6 +107,9 @@ public class JsonSerDeser<T> {
     InputStream resStream = null;
     try {
       resStream = this.getClass().getResourceAsStream(resource);
+      if (resStream==null) {
+        throw new FileNotFoundException(resource);
+      }
 
       ObjectMapper mapper = new ObjectMapper();
       return (T) (mapper.readValue(resStream, classType));
