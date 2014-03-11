@@ -21,11 +21,8 @@ package org.apache.hoya.core.conf;
 import org.apache.hoya.core.CoreKeys;
 import org.apache.hoya.core.persist.JsonSerDeser;
 import org.codehaus.jackson.JsonGenerationException;
-import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.map.JsonMappingException;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.SerializationConfig;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,7 +65,6 @@ public final class ConfTree {
    */
   public Map<String, Map<String, String>> components =
     new HashMap<String, Map<String, String>>();
-
 
 
   /**

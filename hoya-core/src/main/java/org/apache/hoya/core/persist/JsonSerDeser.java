@@ -22,7 +22,9 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IOUtils;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -34,12 +36,13 @@ import org.slf4j.LoggerFactory;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * Support for marshalling objects to and from JSON
  * @param <T>
  */
-public class JsonSerDeser<T extends Class> {
+public class JsonSerDeser<T> {
 
   protected static final Logger log = LoggerFactory.getLogger(
     JsonSerDeser.class);
@@ -91,6 +94,28 @@ public class JsonSerDeser<T extends Class> {
     }
   }
 
+  /**
+   * Convert from a JSON file
+   * @param resource input file
+   * @return the parsed JSON
+   * @throws IOException IO problems
+   * @throws JsonMappingException failure to map from the JSON to this class
+   */
+  public T fromResource(String resource)
+    throws IOException, JsonParseException, JsonMappingException {
+    InputStream resStream = null;
+    try {
+      resStream = this.getClass().getResourceAsStream(resource);
+
+      ObjectMapper mapper = new ObjectMapper();
+      return (T) (mapper.readValue(resStream, classType));
+    } catch (IOException e) {
+      log.error("Exception while parsing json resource {}: {}", resource, e);
+      throw e;
+    } finally {
+      IOUtils.closeStream(resStream);
+    }
+  }
 
   /**
    * Load from a Hadoop filesystem

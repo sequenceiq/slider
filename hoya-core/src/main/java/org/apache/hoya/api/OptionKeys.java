@@ -45,6 +45,17 @@ public interface OptionKeys {
    * up
    */
   String CONTAINER_STARTUP_DELAY = "hoya.container.startup.delay";
+  
+  /**
+   * Time in milliseconds to wait after forking any in-AM 
+   * process before attempting to start up the containers: {@value}
+   * 
+   * A shorter value brings the cluster up faster, but means that if the
+   * in AM process fails (due to a bad configuration), then time
+   * is wasted starting containers on a cluster that isn't going to come
+   * up
+   */
+  String APPLICATION_TYPE = "application.type";
 
   /**
    * Time in milliseconds before a container is considered long-lived.

@@ -57,7 +57,6 @@ public class ConfTreeOperations {
         version,
         CoreKeys.APPLICATION_CONF_VERSION);
     }
-
   }
 
   /**

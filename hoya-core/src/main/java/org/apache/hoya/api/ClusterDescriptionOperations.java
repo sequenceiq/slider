@@ -19,8 +19,17 @@
 package org.apache.hoya.api;
 
 import org.apache.hoya.core.conf.AggregateConf;
+import org.apache.hoya.core.conf.ConfTree;
+import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.exceptions.BadConfigException;
+import org.apache.hoya.providers.HoyaProviderFactory;
+import org.apache.hoya.tools.HoyaUtils;
 
+import java.util.Map;
+
+/**
+ * Operations on Cluster Descriptions
+ */
 public class ClusterDescriptionOperations {
 
 
@@ -30,9 +39,39 @@ public class ClusterDescriptionOperations {
     ClusterDescription cd = new ClusterDescription();
     
     aggregateConf.resolve();
-    //options are a merge of all globals
-    
-    
 
+    //options are a merge of all globals
+    Map<String, String> options = cd.options;
+    HoyaUtils.mergeMapsIgnoreDuplicateKeys(options,
+                                           aggregateConf.getInternal().global);
+    HoyaUtils.mergeMapsIgnoreDuplicateKeys(options,
+                                           aggregateConf.getResources().global);
+    HoyaUtils.mergeMapsIgnoreDuplicateKeys(options,
+                                           aggregateConf.getAppConf().global);
+
+    //roles are the role values merged in the same order
+    mergeInComponentMap(cd, aggregateConf.getResources());
+    mergeInComponentMap(cd, aggregateConf.getAppConf());
+
+    //now add the extra bits
+    cd.state = ClusterDescription.STATE_LIVE;
+    MapOperations internalOptions =
+      aggregateConf.getInternalOperations().getGlobalOptions();
+    cd.type = internalOptions.getOption(OptionKeys.APPLICATION_TYPE,
+                                HoyaProviderFactory.DEFAULT_CLUSTER_TYPE);
+    
+    return cd;
+  }
+
+  private static void mergeInComponentMap(ClusterDescription cd,
+                                          ConfTree confTree
+                                          ) {
+
+    Map<String, Map<String, String>> components = confTree.components;
+    for (Map.Entry<String, Map<String, String>> compEntry : components.entrySet()) {
+      String name = compEntry.getKey();
+      Map<String, String> role = cd.getOrAddRole(name);
+      HoyaUtils.mergeMapsIgnoreDuplicateKeys(role, compEntry.getValue());
+    }
   }
 }

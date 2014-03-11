@@ -27,7 +27,7 @@ import java.util.Set;
 
 /**
  * Standard map operations.
- * 
+ *
  * This delegates the standard map interface to the map passed in,
  * so it can be used to add more actions to the map.
  */
@@ -48,8 +48,7 @@ public class MapOperations implements Map<String, String> {
     assert options != null : "null map";
     this.options = options;
   }
-  
-  
+
 
   /**
    * Get a cluster option or value

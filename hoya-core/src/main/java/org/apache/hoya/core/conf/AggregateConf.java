@@ -25,7 +25,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 /**
  * Aggregate Configuration.
- * 
+ *
  * It is serializable to JSON
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -35,7 +35,7 @@ public final class AggregateConf {
   private ConfTree resources;
   private ConfTree internal;
   private ConfTree appConf;
-  
+
   private ConfTreeOperations resourceOperations;
   private ConfTreeOperations appConfOperations;
   private ConfTreeOperations internalOperations;
@@ -53,7 +53,7 @@ public final class AggregateConf {
 
   public void setResources(ConfTree resources) {
     this.resources = resources;
-    resourceOperations = new ConfTreeOperations(resources);     
+    resourceOperations = new ConfTreeOperations(resources);
   }
 
   public void setAppConf(ConfTree appConf) {
@@ -102,7 +102,7 @@ public final class AggregateConf {
   public boolean isComplete() {
     return resources != null && appConf != null && internal != null;
   }
-  
+
   public void validate() throws BadConfigException {
     if (!isComplete()) {
       throw new BadConfigException("Incomplete instance %s", this);
@@ -111,7 +111,7 @@ public final class AggregateConf {
     internalOperations.validate();
     appConfOperations.validate();
   }
-  
+
   public void resolve() throws BadConfigException {
     validate();
     resourceOperations.resolve();
