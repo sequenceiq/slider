@@ -12,14 +12,14 @@
   limitations under the License. See accompanying LICENSE file.
 -->
   
-# Hoya Release 0.12.1
+# Hoya Release 0.13.1
 
 March 2014
 
 This release is built against the Apache Hadoop 2.3.0, HBase-0.98.0RC1
 and Accumulo 1.5.0 artifacts. 
 
-Download: [hoya-0.13.1-all.tar.gz]()
+Download: [hoya-0.13.1-all.tar.gz](http://dffeaef8882d088c28ff-185c1feb8a981dddd593a05bb55b67aa.r18.cf1.rackcdn.com/hoya-0.13.1-all.tar.gz)
 
 
 ## Key changes
