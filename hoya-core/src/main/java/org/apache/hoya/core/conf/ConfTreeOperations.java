@@ -30,24 +30,31 @@ import java.util.Set;
 
 public class ConfTreeOperations {
 
-  public final ConfTree tree;
-  private MapOperations globalOptions;
+  public final ConfTree confTree;
+  private final MapOperations globalOptions;
 
 
-  public ConfTreeOperations(ConfTree tree) {
-    assert tree != null : "null tree";
-    assert tree.components != null : "null tree components";
-    this.tree = tree;
-    globalOptions = new MapOperations(tree.global);
+  public ConfTreeOperations(ConfTree confTree) {
+    assert confTree != null : "null tree";
+    assert confTree.components != null : "null tree components";
+    this.confTree = confTree;
+    globalOptions = new MapOperations(confTree.global);
   }
 
+  /**
+   * Get the underlying conf tree
+   * @return the tree
+   */
+  public ConfTree getConfTree() {
+    return confTree;
+  }
 
   /**
    * Validate the configuration
    * @throws BadConfigException
    */
   public void validate() throws BadConfigException {
-    String version = tree.schema;
+    String version = confTree.schema;
     if (version == null) {
       throw new BadConfigException("'version' undefined");
     }
@@ -64,8 +71,8 @@ public class ConfTreeOperations {
    * -if there is none there already
    */
   public void resolve() {
-    for (Map.Entry<String, Map<String, String>> comp : tree.components.entrySet()) {
-      mergeOptions(comp.getValue());
+    for (Map.Entry<String, Map<String, String>> comp : confTree.components.entrySet()) {
+      mergeInGlobal(comp.getValue());
     }
   }
 
@@ -73,8 +80,8 @@ public class ConfTreeOperations {
    * Merge any options
    * @param component dest values
    */
-  public void mergeOptions(Map<String, String> component) {
-    HoyaUtils.mergeMapsIgnoreDuplicateKeys(component, tree.global);
+  public void mergeInGlobal(Map<String, String> component) {
+    HoyaUtils.mergeMapsIgnoreDuplicateKeys(component, confTree.global);
   }
 
   /**
@@ -82,7 +89,6 @@ public class ConfTreeOperations {
    * @return a wrapped map
    */
   public MapOperations getGlobalOptions() {
-
     return globalOptions;
   }
 
@@ -93,7 +99,7 @@ public class ConfTreeOperations {
    * @return component mapping or null
    */
   public MapOperations getComponentOperations(String component) {
-    Map<String, String> instance = tree.components.get(component);
+    Map<String, String> instance = confTree.components.get(component);
     if (instance != null) {
       return new MapOperations(instance);
     }
@@ -113,7 +119,7 @@ public class ConfTreeOperations {
     }
     //create a new instances
     Map<String, String> map = new HashMap<String, String>();
-    tree.components.put(name, map);
+    confTree.components.put(name, map);
     return new MapOperations(map);
   }
 
@@ -123,7 +129,7 @@ public class ConfTreeOperations {
    */
   @JsonIgnore
   public Set<String> getComponentNames() {
-    return new HashSet<String>(tree.components.keySet());
+    return new HashSet<String>(confTree.components.keySet());
   }
 
   /**
@@ -139,5 +145,40 @@ public class ConfTreeOperations {
       throw new BadConfigException("Missing component " + name);
     }
     return ops;
+  }
+
+  /**
+   * Set a global option
+   * @param key key
+   * @param value non null value
+   */
+  public void set(String key, String value) {
+    globalOptions.put(key, value);
+  }
+
+  /**
+   * Propagate all global keys matching a prefix
+   * @param src source
+   * @param prefix prefix
+   */
+  public void propagateGlobalKeys(ConfTree src, String prefix) {
+    Map<String, String> global = src.global;
+    for (Map.Entry<String, String> entry : global.entrySet()) {
+      String key = entry.getKey();
+      if (key.startsWith(prefix)) {
+        set(key, entry.getValue());
+      }
+    }
+  }
+
+  public void propagateComponentMap(String component, Map<String, String> map) {
+    MapOperations comp = getOrAddComponent(component);
+    comp.putAll(map);
+  }
+
+  public void applyComponentOptions(Map<String, Map<String, String>> commandOptions) {
+    for (Map.Entry<String, Map<String, String>> entry : commandOptions.entrySet()) {
+      propagateComponentMap(entry.getKey(), entry.getValue());
+    }
   }
 }

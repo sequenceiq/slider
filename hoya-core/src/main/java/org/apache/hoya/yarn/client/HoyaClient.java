@@ -56,11 +56,16 @@ import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.api.StatusKeys;
 import org.apache.hoya.api.proto.Messages;
+import org.apache.hoya.core.build.InstanceBuilder;
+import org.apache.hoya.core.conf.ConfTree;
+import org.apache.hoya.core.conf.ConfTreeOperations;
+import org.apache.hoya.core.persist.LockAcquireFailedException;
 import org.apache.hoya.exceptions.BadClusterStateException;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.ErrorStrings;
 import org.apache.hoya.exceptions.HoyaException;
+import org.apache.hoya.exceptions.HoyaIOException;
 import org.apache.hoya.exceptions.NoSuchNodeException;
 import org.apache.hoya.exceptions.UnknownClusterException;
 import org.apache.hoya.exceptions.WaitTimeoutException;
@@ -141,14 +146,13 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * Yarn client service
    */
   private HoyaYarnClientImpl yarnClient;
-  private URI filesystemURL;
 
   /**
    * Constructor
    */
   public HoyaClient() {
     // make sure all the yarn configs get loaded
-    YarnConfiguration yarnConfiguration = new YarnConfiguration();
+    new YarnConfiguration();
     log.debug("Hoya constructed");
   }
 
@@ -188,7 +192,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     super.serviceInit(conf);
     
     //here the superclass is inited; getConfig returns a non-null value
-    filesystemURL = FileSystem.getDefaultUri(conf);
     hoyaFileSystem = new HoyaFileSystem(conf);
 
   }
@@ -447,7 +450,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // Set temp dir as an option
     Path tmp = hoyaFileSystem.getTempPathForCluster(clustername);
     Path tempDirPath = new Path(tmp, "am");
-    clusterSpec.setOption(OptionKeys.HOYA_TMP_DIR,
+    clusterSpec.setOption(OptionKeys.INTERNAL_AM_TMP_DIR,
                                  tempDirPath.toUri().toString());
 
     // patch in the properties related to the principals extracted from
@@ -514,7 +517,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // templates
     Map<String, Map<String, String>> commandOptions =
       buildInfo.getRoleOptionMap();
-    HoyaUtils.applyCommandLineOptsToRoleMap(clusterRoleMap, commandOptions);
+    HoyaUtils.applyCommandLineRoleOptsToRoleMap(clusterRoleMap, commandOptions);
 
     clusterSpec.roles = clusterRoleMap;
 
@@ -570,12 +573,12 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       clusterSpec.save(hoyaFileSystem.getFileSystem(), clusterSpecPath, false);
     } catch (FileAlreadyExistsException fae) {
       throw new HoyaException(EXIT_CLUSTER_EXISTS,
-                              PRINTF_E_ALREADY_EXISTS, clustername,
+                              PRINTF_E_INSTANCE_ALREADY_EXISTS, clustername,
                               clusterSpecPath);
     } catch (IOException e) {
       // this is probably a file exists exception too, but include it in the trace just in case
       throw new HoyaException(EXIT_CLUSTER_EXISTS, e,
-                              PRINTF_E_ALREADY_EXISTS, clustername,
+                              PRINTF_E_INSTANCE_ALREADY_EXISTS, clustername,
                               clusterSpecPath);
     }
 
@@ -599,6 +602,68 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     return EXIT_SUCCESS;
   }
 
+  public boolean buildInstanceConfiguration(String clustername,
+                AbstractClusterBuildingActionArgs buildInfo) throws YarnException,
+                                                             IOException {
+    // verify that a live cluster isn't there
+    HoyaUtils.validateClusterName(clustername);
+    verifyManagerSet();
+    verifyNoLiveClusters(clustername);
+    Configuration conf = getConfig();
+    // build up the initial cluster specification
+    ClusterDescription clusterSpec = new ClusterDescription();
+
+    Path appconfdir = buildInfo.getConfdir();
+    requireArgumentSet(Arguments.ARG_CONFDIR, appconfdir);
+    // Provider
+    requireArgumentSet(Arguments.ARG_PROVIDER, buildInfo.getProvider());
+    HoyaAMClientProvider hoyaAM = new HoyaAMClientProvider(conf);
+    ClientProvider provider;
+    provider = createClientProvider(buildInfo.getProvider());
+
+    InstanceBuilder builder =
+      new InstanceBuilder(hoyaFileSystem, getConfig(), clustername);
+
+
+    ConfTree internal = new ConfTree();
+    ConfTree resources = new ConfTree();
+    ConfTreeOperations resOps = new ConfTreeOperations(resources);
+    ConfTree appConf = buildInfo.buildConfTree();
+    ConfTreeOperations appConfOps = new ConfTreeOperations(appConf);
+
+    //copy over role. and yarn. values
+    resOps.propagateGlobalKeys(appConf, "role.");
+    resOps.propagateGlobalKeys(appConf, "yarn.");
+    appConfOps.applyComponentOptions(buildInfo.getRoleOptionMap());
+    resOps.applyComponentOptions(buildInfo.getRoleOptionMap());
+
+
+    builder.init(appconfdir, provider.getName(), internal, resources, appConf);
+    builder.propagateFilename();
+    builder.propagatePrincipals();
+    builder.setImageDetails(buildInfo.getImage(), buildInfo.getAppHomeDir());
+
+    String zookeeperRoot = buildInfo.getAppZKPath();
+    if (isUnset(zookeeperRoot)) {
+      zookeeperRoot =
+        "/yarnapps_" + getAppName() + "_" + getUsername() + "_" + clustername;
+    }
+    builder.addZKPaths(buildInfo.getZKhosts(),
+                       zookeeperRoot,
+                       buildInfo.getZKport());
+    builder.takeSnapshotOfConfDir(appconfdir);
+
+    try {
+      builder.persist();
+    } catch (LockAcquireFailedException e) {
+      log.warn("Failed to get a Lock on {} : {}", builder, e);
+      throw new BadClusterStateException("Failed to save " + clustername
+                                         + ": " + e);
+    }
+
+    return true;
+  }
+  
   public FsPermission getClusterDirectoryPermissions(Configuration conf) {
     String clusterDirPermsOct =
       conf.get(HOYA_CLUSTER_DIRECTORY_PERMISSIONS,

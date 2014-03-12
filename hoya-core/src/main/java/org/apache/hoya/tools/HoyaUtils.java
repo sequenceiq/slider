@@ -70,11 +70,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.Callable;
-import java.util.concurrent.FutureTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -491,8 +488,8 @@ public final class HoyaUtils {
    */
   public static Map<String, String>  mergeMap(Map<String, String> first,
            Map<String, String> second) {
-    Set<Map.Entry<String,String>> entries = second.entrySet();
-    return mergeEntries(first, entries);
+    first.putAll(second);
+    return first;
   }
 
   /**
@@ -520,9 +517,7 @@ public final class HoyaUtils {
    */
   public static <T1, T2> Map<T1, T2>  mergeMaps(Map<T1, T2> first,
            Map<T1, T2> second) {
-    for (Map.Entry<T1, T2> entry: second.entrySet()) {
-      first.put(entry.getKey(), entry.getValue());
-    }
+    first.putAll(second);
     return first;
   }
 
@@ -775,8 +770,8 @@ public final class HoyaUtils {
    * @param clusterRoleMap cluster role map to merge onto
    * @param commandOptions command opts
    */
-  public static void applyCommandLineOptsToRoleMap(Map<String, Map<String, String>> clusterRoleMap,
-                                                   Map<String, Map<String, String>> commandOptions) {
+  public static void applyCommandLineRoleOptsToRoleMap(Map<String, Map<String, String>> clusterRoleMap,
+                                                       Map<String, Map<String, String>> commandOptions) {
     for (Map.Entry<String, Map<String, String>> entry: commandOptions.entrySet()) {
       String key = entry.getKey();
       Map<String, String> optionMap = entry.getValue();

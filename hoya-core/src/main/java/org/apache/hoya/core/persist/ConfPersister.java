@@ -68,8 +68,7 @@ public class ConfPersister {
   private static final Logger log =
     LoggerFactory.getLogger(ConfPersister.class);
 
-  private final JsonSerDeser<AggregateConf> serDeser =
-    new JsonSerDeser<AggregateConf>(AggregateConf.class);
+
   private final JsonSerDeser<ConfTree> confTreeSerDeser =
     new JsonSerDeser<ConfTree>(ConfTree.class);
 

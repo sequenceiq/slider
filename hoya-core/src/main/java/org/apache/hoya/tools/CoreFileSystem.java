@@ -35,6 +35,7 @@ import org.apache.hadoop.yarn.util.Records;
 import org.apache.hoya.HoyaExitCodes;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.HoyaXmlConfKeys;
+import org.apache.hoya.core.persist.InstancePaths;
 import org.apache.hoya.exceptions.BadClusterStateException;
 import org.apache.hoya.exceptions.ErrorStrings;
 import org.apache.hoya.exceptions.HoyaException;
@@ -47,6 +48,9 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.apache.hoya.HoyaXmlConfKeys.DEFAULT_HOYA_CLUSTER_DIRECTORY_PERMISSIONS;
+import static org.apache.hoya.HoyaXmlConfKeys.HOYA_CLUSTER_DIRECTORY_PERMISSIONS;
 
 public class CoreFileSystem {
   private static final Logger
@@ -118,34 +122,43 @@ public class CoreFileSystem {
   public Path createClusterDirectories(String clustername, Configuration conf) throws
                                                                                IOException,
                                                                                HoyaException {
+    
+    
     Path clusterDirectory = buildHoyaClusterDirPath(clustername);
-    Path snapshotConfPath =
-            new Path(clusterDirectory, HoyaKeys.SNAPSHOT_CONF_DIR_NAME);
-    Path generatedConfPath =
-            new Path(clusterDirectory, HoyaKeys.GENERATED_CONF_DIR_NAME);
-    Path historyPath =
-            new Path(clusterDirectory, HoyaKeys.HISTORY_DIR_NAME);
-    String clusterDirPermsOct = conf.get(HoyaXmlConfKeys.HOYA_CLUSTER_DIRECTORY_PERMISSIONS,
-            HoyaXmlConfKeys.DEFAULT_HOYA_CLUSTER_DIRECTORY_PERMISSIONS);
-    FsPermission clusterPerms = new FsPermission(clusterDirPermsOct);
+    InstancePaths instancePaths = new InstancePaths(clusterDirectory);
+    createClusterDirectories(instancePaths);
+    return clusterDirectory;
+  }
+  
+  /**
+   * Create the Hoya cluster path for a named cluster and all its subdirs
+   * This is a directory; a mkdirs() operation is executed
+   * to ensure that it is there.
+   *
+   * @param clustername name of the cluster
+   * @return the path to the cluster directory
+   * @throws java.io.IOException                      trouble
+   * @throws org.apache.hoya.exceptions.HoyaException hoya-specific exceptions
+   */
+  public void createClusterDirectories(InstancePaths instancePaths) throws
+                                                                               IOException,
+                                                                               HoyaException {
+    Path clusterDirectory = instancePaths.instanceDir;
 
-    verifyClusterDirectoryNonexistent(clustername, clusterDirectory);
-
-
+    verifyDirectoryNonexistent(clusterDirectory);
+    FsPermission clusterPerms = getInstanceDirectoryPermissions();
     createWithPermissions(clusterDirectory, clusterPerms);
-    createWithPermissions(snapshotConfPath, clusterPerms);
-    createWithPermissions(generatedConfPath, clusterPerms);
-    createWithPermissions(historyPath, clusterPerms);
+    createWithPermissions(instancePaths.snapshotConfPath, clusterPerms);
+    createWithPermissions(instancePaths.generatedConfPath, clusterPerms);
+    createWithPermissions(instancePaths.historyPath, clusterPerms);
 
     // Data Directory
-    Path datapath = new Path(clusterDirectory, HoyaKeys.DATA_DIR_NAME);
     String dataOpts =
-            conf.get(HoyaXmlConfKeys.HOYA_DATA_DIRECTORY_PERMISSIONS,
-                    HoyaXmlConfKeys.DEFAULT_HOYA_DATA_DIRECTORY_PERMISSIONS);
+      configuration.get(HoyaXmlConfKeys.HOYA_DATA_DIRECTORY_PERMISSIONS,
+               HoyaXmlConfKeys.DEFAULT_HOYA_DATA_DIRECTORY_PERMISSIONS);
     log.debug("Setting data directory permissions to {}", dataOpts);
-    createWithPermissions(datapath, new FsPermission(dataOpts));
+    createWithPermissions(instancePaths.dataPath, new FsPermission(dataOpts));
 
-    return clusterDirectory;
   }
 
   /**
@@ -184,6 +197,13 @@ public class CoreFileSystem {
     return status.getPermission();
   }
 
+  public FsPermission getInstanceDirectoryPermissions() {
+    String clusterDirPermsOct =
+      configuration.get(HOYA_CLUSTER_DIRECTORY_PERMISSIONS,
+               DEFAULT_HOYA_CLUSTER_DIRECTORY_PERMISSIONS);
+    return new FsPermission(clusterDirPermsOct);
+  }
+
   /**
    * Verify that the cluster directory is not present
    *
@@ -199,7 +219,25 @@ public class CoreFileSystem {
           HoyaException {
     if (fileSystem.exists(clusterDirectory)) {
       throw new HoyaException(HoyaExitCodes.EXIT_CLUSTER_EXISTS,
-              ErrorStrings.PRINTF_E_ALREADY_EXISTS, clustername,
+              ErrorStrings.PRINTF_E_INSTANCE_ALREADY_EXISTS, clustername,
+              clusterDirectory);
+    }
+  }
+  /**
+   * Verify that the given directory is not present
+   *
+   * @param clustername      name of the cluster
+   * @param clusterDirectory actual directory to look for
+   * @return the path to the cluster directory
+   * @throws IOException                      trouble with FS
+   * @throws HoyaException If the directory exists
+   */
+  public void verifyDirectoryNonexistent(Path clusterDirectory) throws
+          IOException,
+          HoyaException {
+    if (fileSystem.exists(clusterDirectory)) {
+      throw new HoyaException(HoyaExitCodes.EXIT_CLUSTER_EXISTS,
+              ErrorStrings.PRINTF_E_INSTANCE_DIR_ALREADY_EXISTS,
               clusterDirectory);
     }
   }
