@@ -23,21 +23,17 @@ import org.apache.hoya.core.persist.JsonSerDeser
 import org.junit.Assert
 import org.junit.Test
 
-import static org.apache.hoya.core.conf.ExampleFilenames.getOverridden
-import static org.apache.hoya.core.conf.ExampleFilenames.getPACKAGE
+import static org.apache.hoya.core.conf.ExampleConfResources.overridden
 
 /**
  * Test 
  */
 @Slf4j
 class TestConfTreeResolve extends Assert {
-  static final JsonSerDeser<ConfTree> confTreeJsonSerDeser = new JsonSerDeser<ConfTree>(
-      ConfTree)
-
   @Test
   public void testOverride() throws Throwable {
 
-    def orig = confTreeJsonSerDeser.fromResource(PACKAGE + overridden)
+    def orig = ExampleConfResources.loadResource(overridden) 
 
     ConfTreeOperations origOperations = new ConfTreeOperations(orig)
     origOperations.validate()

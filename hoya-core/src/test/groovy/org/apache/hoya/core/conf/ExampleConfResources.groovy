@@ -18,11 +18,16 @@
 
 package org.apache.hoya.core.conf
 
+import org.apache.hoya.core.persist.JsonSerDeser
+
+import static org.apache.hoya.core.conf.ExampleConfResources.getOverridden
+import static org.apache.hoya.core.conf.ExampleConfResources.getPACKAGE
+
 /*
   names of the example configs
  */
 
-class ExampleFilenames {
+class ExampleConfResources {
 
   static final String overridden = "overridden.json"
   static final String overriddenRes = "overridden-resolved.json"
@@ -46,4 +51,27 @@ class ExampleFilenames {
     all_examples.each { all_example_resources << (PACKAGE + it) }
   }
 
+  /**
+   * Build up an aggregate conf by loading in the details of the individual resources
+   * and then aggregating them
+   * @return a new instance
+   */
+  static AggregateConf loadExampleAggregateResource() {
+    JsonSerDeser<ConfTree> confTreeJsonSerDeser =
+        new JsonSerDeser<ConfTree>(ConfTree)
+    ConfTree internal = confTreeJsonSerDeser.fromResource(PACKAGE + internal)
+    ConfTree app_conf = confTreeJsonSerDeser.fromResource(PACKAGE + app_configuration)
+    ConfTree resources = confTreeJsonSerDeser.fromResource(PACKAGE + resources)
+    AggregateConf aggregateConf = new AggregateConf(
+        resources,
+        app_conf,
+        internal)
+    return aggregateConf;
+  }
+  
+  static ConfTree loadResource(String name) {
+    JsonSerDeser<ConfTree> confTreeJsonSerDeser =
+        new JsonSerDeser<ConfTree>(ConfTree)
+    return confTreeJsonSerDeser.fromResource(PACKAGE + name)
+  }
 }

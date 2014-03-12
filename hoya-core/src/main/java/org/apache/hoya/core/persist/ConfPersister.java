@@ -43,10 +43,23 @@ import java.util.Date;
  * # releaselock is only released if the client created it.
  * # after acquiring either lock, client must check for the alternate lock
  * existing. If it is, release lock and fail.
- *
+ * 
  * There's one small race here: multiple readers; first reader releases lock
  * while second is in use. Strict Fix: client checks for readlock after read completed.
  * If it is not there, problem: fail.
+ * 
+ * This isn't 100% perfect, because of the condition where the owner releases
+ * a lock, a writer grabs its lock & writes to it, the reader gets slightly
+ * contaminated data:
+ * own-share-delete-write-own-release(shared)-delete
+ * 
+ * We are assuming that the rate of change is low enough that this is rare, and
+ * of limited damage.
+ * 
+ * ONCE A CLUSTER IS RUNNING, ONLY THE AM MAY PERSIST UPDATES VIA ITS APIs
+ * 
+ * That is: outside the AM, a writelock MUST only be acquired after verifying there is no
+ * running application.
  */
 public class ConfPersister {
   private static final Logger log =
@@ -226,7 +239,9 @@ public class ConfPersister {
   }
 
   /**
-   * Load the configuration
+   * Load the configuration. If a lock failure is raised, the 
+   * contents of the configuration MAY have changed -lock race conditions
+   * are looked for on exit
    * @param conf configuration to fill in
    * @throws IOException IO problems
    * @throws LockAcquireFailedException the lock could not be acquired

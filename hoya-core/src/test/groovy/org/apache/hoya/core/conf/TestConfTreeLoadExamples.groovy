@@ -33,9 +33,8 @@ class TestConfTreeLoadExamples extends Assert {
 
   String resource;
 
-  static
-  final JsonSerDeser<ConfTree> confTreeJsonSerDeser = new JsonSerDeser<ConfTree>(
-      ConfTree)
+  static final JsonSerDeser<ConfTree> confTreeJsonSerDeser =
+      new JsonSerDeser<ConfTree>(ConfTree)
 
   TestConfTreeLoadExamples(String resource) {
     this.resource = resource
@@ -43,7 +42,7 @@ class TestConfTreeLoadExamples extends Assert {
 
   @Parameterized.Parameters
   public static filenames() {
-    return ExampleFilenames.all_example_resources.collect { [it] as String[] }
+    return ExampleConfResources.all_example_resources.collect { [it] as String[] }
   }
 
   @Test

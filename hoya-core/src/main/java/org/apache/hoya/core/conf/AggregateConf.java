@@ -42,6 +42,7 @@ public final class AggregateConf {
   private ConfTreeOperations internalOperations;
 
   public AggregateConf() {
+    this(new ConfTree(), new ConfTree(), new ConfTree());
   }
 
   public AggregateConf(ConfTree resources,
