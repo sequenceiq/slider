@@ -39,7 +39,9 @@ public class TestConfPersisterReadWrite extends YarnMiniClusterTestBase {
   static HadoopFS dfsClient
   static final JsonSerDeser<ConfTree> confTreeJsonSerDeser =
       new JsonSerDeser<ConfTree>(ConfTree)
-  
+  AggregateConf aggregateConf = ExampleConfResources.loadExampleAggregateResource()
+
+
   TestConfPersisterReadWrite() {
     
   }
@@ -74,8 +76,6 @@ public class TestConfPersisterReadWrite extends YarnMiniClusterTestBase {
   
   @Test
   public void testSaveLoadTestConf() throws Throwable {
-    AggregateConf aggregateConf= ExampleConfResources.loadExampleAggregateResource()
-    
     def persister = createPersister("testSaveLoadTestConf")
     persister.save(aggregateConf)
     AggregateConf loaded = new AggregateConf()
@@ -87,7 +87,6 @@ public class TestConfPersisterReadWrite extends YarnMiniClusterTestBase {
     
   @Test
   public void testSaveLoadTestConfResolveAndCheck() throws Throwable {
-    AggregateConf aggregateConf= ExampleConfResources.loadExampleAggregateResource()
     def appConfOperations = aggregateConf.getAppConfOperations()
     appConfOperations.getMandatoryComponent("master")["PATH"]="."
     def persister = createPersister("testSaveLoadTestConf")
@@ -103,9 +102,92 @@ public class TestConfPersisterReadWrite extends YarnMiniClusterTestBase {
     def appConfOperations2 = loaded.getAppConfOperations()
     assert appConfOperations2.getMandatoryComponent("master")["PATH"] == "."
 
+  } 
+  
+  @Test
+  public void testSaveFailsIfWritelocked() throws Throwable {
+    def persister = createPersister("testSaveFailsIfWritelocked")
+    persister.releaseWritelock()
+    persister.acquireWritelock()
+    try {
+      expectSaveToFailOnLock(persister, aggregateConf)
+    } finally {
+      persister.releaseWritelock()
+    }
   }
- 
+
+  @Test
+  public void testSaveFailsIfReadlocked() throws Throwable {
+    def persister = createPersister("testSaveFailsIfReadlocked")
+    persister.releaseWritelock()
+    persister.acquireReadLock()
+    try {
+      expectSaveToFailOnLock(persister, aggregateConf)
+    } finally {
+      persister.releaseReadlock(true)
+    }
+  }
+    
+  @Test
+  public void testLoadFailsIfWritelocked() throws Throwable {
+    def persister = createPersister("testLoadFailsIfWritelocked")
+    persister.acquireWritelock()
+    try {
+      expectLoadToFailOnLock(persister, aggregateConf)
+    } finally {
+      persister.releaseWritelock()
+    }
+  }
+    
+  @Test
+  public void testLoadFailsIfDestDoesNotExist() throws Throwable {
+    def persister = createPersister("testLoadFailsIfDestDoesNotExist")
+    try {
+      persister.load(aggregateConf)
+      fail "expected save to fail to find a file"
+    } catch (FileNotFoundException e) {
+      //expected
+    }
+  }
+
+  @Test
+  public void testLoadSucceedsIfReadlocked() throws Throwable {
+    def persister = createPersister("testLoadSucceedsIfReadlocked")
+    persister.releaseReadlock(true)
+    try {
+      persister.save(aggregateConf)
+      persister.acquireReadLock()
+      AggregateConf loaded = new AggregateConf()
+      persister.load(loaded)
+      loaded.validate()
+      loaded.resolve()
+    } finally {
+      persister.releaseReadlock(true)
+    }
+  }
+  
+  public void expectSaveToFailOnLock(
+      ConfPersister persister,
+      AggregateConf aggregateConf) {
+    try {
+      persister.save(aggregateConf)
+      fail "expected save to fail to get a lock"
+    } catch (LockAcquireFailedException lafe) {
+      //expected
+    }
+  }
   
   
-  
+  public void expectLoadToFailOnLock(
+      ConfPersister persister,
+      AggregateConf aggregateConf) {
+    try {
+      persister.load(aggregateConf)
+      fail "expected save to fail to get a lock"
+    } catch (LockAcquireFailedException lafe) {
+      //expected
+    }
+  }
+
+
 }
