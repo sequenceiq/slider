@@ -199,17 +199,31 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest {
   }
 
   /**
-   * Create a mini HDFS cluster
+   * Create a mini HDFS cluster and save it to the hdfsClusterField
    * @param name
    * @param conf
    */
   public void createMiniHDFSCluster(String name, YarnConfiguration conf) {
+    hdfsCluster = buildMiniHDFSCluster(name, conf)
+  }
+
+  /**
+   * Inner work building the mini dfs cluster
+   * @param name
+   * @param conf
+   * @return
+   */
+  public static MiniDFSCluster buildMiniHDFSCluster(
+      String name,
+      YarnConfiguration conf) {
     File baseDir = new File("./target/hdfs/$name").absoluteFile;
     //use file: to rm it recursively
     FileUtil.fullyDelete(baseDir)
     conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, baseDir.absolutePath)
     MiniDFSCluster.Builder builder = new MiniDFSCluster.Builder(conf)
-    hdfsCluster = builder.build()
+
+    def cluster = builder.build()
+    return cluster
   }
 
   /**
@@ -313,8 +327,12 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest {
    * @return a filesystem string to pass down
    */
   protected String getFsDefaultName() {
-    if (hdfsCluster) {
-      return "hdfs://localhost:${hdfsCluster.nameNodePort}/"
+    return buildFsDefaultName(hdfsCluster)
+  }
+
+  public static String buildFsDefaultName(MiniDFSCluster miniDFSCluster) {
+    if (miniDFSCluster) {
+      return "hdfs://localhost:${miniDFSCluster.nameNodePort}/"
     } else {
       return "file:///"
     }

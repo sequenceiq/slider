@@ -155,4 +155,9 @@ public class MapOperations implements Map<String, String> {
   public boolean equals(Object o) {
     return options.equals(o);
   }
+
+  @Override
+  public int hashCode() {
+    return options.hashCode();
+  }
 }

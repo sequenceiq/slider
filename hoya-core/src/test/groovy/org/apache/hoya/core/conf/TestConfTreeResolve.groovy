@@ -31,8 +31,7 @@ import static org.apache.hoya.core.conf.ExampleFilenames.getPACKAGE
  */
 @Slf4j
 class TestConfTreeResolve extends Assert {
-  static
-  final JsonSerDeser<ConfTree> confTreeJsonSerDeser = new JsonSerDeser<ConfTree>(
+  static final JsonSerDeser<ConfTree> confTreeJsonSerDeser = new JsonSerDeser<ConfTree>(
       ConfTree)
 
   @Test

@@ -425,13 +425,13 @@ public class CoreFileSystem {
     return builder.toString();
   }
 
-  public void touch(Path path) throws IOException {
-    FSDataOutputStream out = fileSystem.create(path);
+  public void touch(Path path, boolean overwrite) throws IOException {
+    FSDataOutputStream out = fileSystem.create(path, overwrite);
     out.close();
   }
 
-  public void cat(Path path, String data) throws IOException {
-    FSDataOutputStream out = fileSystem.create(path);
+  public void cat(Path path, boolean overwrite, String data) throws IOException {
+    FSDataOutputStream out = fileSystem.create(path, overwrite);
     byte[] bytes = data.getBytes(Charset.forName("UTF-8"));
     out.write(bytes);
     out.close();

@@ -39,16 +39,18 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * Support for marshalling objects to and from JSON
+ * Support for marshalling objects to and from JSON.
+ * This class is NOT thread safe; it constructs an object mapper
+ * as an instance field.
  * @param <T>
  */
 public class JsonSerDeser<T> {
 
-  protected static final Logger log = LoggerFactory.getLogger(
-    JsonSerDeser.class);
+  private static final Logger log = LoggerFactory.getLogger(JsonSerDeser.class);
   private static final String UTF_8 = "UTF-8";
 
   private final Class classType;
+  private static final ObjectMapper mapper = new ObjectMapper();
 
   /**
    * Create an instance bound to a specific type
@@ -67,7 +69,6 @@ public class JsonSerDeser<T> {
    */
   public T fromJson(String json)
     throws IOException, JsonParseException, JsonMappingException {
-    ObjectMapper mapper = new ObjectMapper();
     try {
       return (T) (mapper.readValue(json, classType));
     } catch (IOException e) {
@@ -85,7 +86,6 @@ public class JsonSerDeser<T> {
    */
   public T fromFile(File jsonFile)
     throws IOException, JsonParseException, JsonMappingException {
-    ObjectMapper mapper = new ObjectMapper();
     try {
       return (T) (mapper.readValue(jsonFile, classType));
     } catch (IOException e) {
@@ -110,7 +110,6 @@ public class JsonSerDeser<T> {
         throw new FileNotFoundException(resource);
       }
 
-      ObjectMapper mapper = new ObjectMapper();
       return (T) (mapper.readValue(resStream, classType));
     } catch (IOException e) {
       log.error("Exception while parsing json resource {}: {}", resource, e);
@@ -147,9 +146,7 @@ public class JsonSerDeser<T> {
    * @param overwrite should any existing file be overwritten
    * @throws IOException IO exception
    */
-  public void save(T instance,
-                   FileSystem fs,
-                   Path path,
+  public void save(FileSystem fs, Path path, T instance,
                    boolean overwrite) throws
                                       IOException {
     FSDataOutputStream dataOutputStream = fs.create(path, overwrite);
@@ -184,7 +181,6 @@ public class JsonSerDeser<T> {
   public static String toJson(Object o) throws IOException,
                                                JsonGenerationException,
                                                JsonMappingException {
-    ObjectMapper mapper = new ObjectMapper();
     mapper.configure(SerializationConfig.Feature.INDENT_OUTPUT, true);
     return mapper.writeValueAsString(o);
   }

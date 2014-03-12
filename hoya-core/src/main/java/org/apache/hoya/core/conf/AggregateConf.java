@@ -32,6 +32,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public final class AggregateConf {
 
+  private String name;
   private ConfTree resources;
   private ConfTree internal;
   private ConfTree appConf;
@@ -76,6 +77,14 @@ public final class AggregateConf {
 
   public ConfTree getAppConf() {
     return appConf;
+  }
+
+  public String getName() {
+    return name;
+  }
+
+  public void setName(String name) {
+    this.name = name;
   }
 
   @JsonIgnore

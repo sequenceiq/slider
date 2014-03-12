@@ -18,11 +18,23 @@
 
 package org.apache.hoya.core.persist;
 
-public interface Filenames {
+import org.apache.hadoop.fs.Path;
 
-  String RESOURCES = "resources.json";
-  String APPCONF = "app_config.json";
-  String INTERNAL = "internal.json";
-  String WRITELOCK = "writelock";
-  String READLOCK = "readlock";
+public class LockAcquireFailedException extends Exception {
+  
+  private final Path path;
+
+  public LockAcquireFailedException(Path path) {
+    super("Failed to acquire lock " +path);
+    this.path = path;
+  }
+
+  public LockAcquireFailedException(Path path, Throwable cause) {
+    super("Failed to acquire lock " + path, cause);
+    this.path = path;
+  }
+
+  public Path getPath() {
+    return path;
+  }
 }
