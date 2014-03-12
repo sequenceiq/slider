@@ -88,8 +88,12 @@ a specific component in the application.
 1. A component section may override any global property.
 1. The final set of configuration properties for a component is the global
 properties extended and overridden by the global set.
-1, The process of expanding the properties is termed *resolution*; the *resolved*
+1. The process of expanding the properties is termed *resolution*; the *resolved*
 specification is the outcome.
+1. There is NO form of explicitly cross-referencing another attribute. This
+MAY be added in future.
+1. There is NO sharing of information from the different `.json` files in a
+an application configuration.
 
 ### Example
 
