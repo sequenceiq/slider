@@ -20,7 +20,6 @@ package org.apache.hoya.core.persist
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hdfs.MiniDFSCluster
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hoya.tools.CoreFileSystem
@@ -111,18 +110,10 @@ public class TestConfPersisterLocksHDFS extends YarnMiniClusterTestBase {
   @Test
   public void testReleaseNonexistentReadlock() throws Exception {
     ConfPersister persister = createPersister("testReleaseNonexistentReadlock")
-    expectReadlockReleaseException(persister)
+    assert !persister.releaseReadlock(false)
   }
 
-  public void expectReadlockReleaseException(ConfPersister persister) {
-    try {
-      def released = persister.releaseReadlock(false);
-      fail("expected lock release exception, got release result $released")
-    } catch (LockAcquireFailedException lafe) {
-      assertReadlockBlocked(lafe)
-    }
-  }
-
+  
   @Test
   public void testAcqRelReadlock() throws Exception {
     ConfPersister persister = createPersister("testAcqRelReadlock")
@@ -158,7 +149,7 @@ public class TestConfPersisterLocksHDFS extends YarnMiniClusterTestBase {
 
     assert persister.releaseReadlock(true);
     assert !persister.readLockExists();
-    expectReadlockReleaseException(persister)
+    assert !persister.releaseReadlock(false)
 
   }
 

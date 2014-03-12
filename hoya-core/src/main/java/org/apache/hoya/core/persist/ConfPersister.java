@@ -45,8 +45,11 @@ import java.util.Date;
  * existing. If it is, release lock and fail.
  * 
  * There's one small race here: multiple readers; first reader releases lock
- * while second is in use. Strict Fix: client checks for readlock after read completed.
- * If it is not there, problem: fail.
+ * while second is in use. 
+ * 
+ * Strict Fix: client checks for readlock after read completed.
+ * If it is not there, problem: fail. But this massively increases the risk of
+ * false negatives.
  * 
  * This isn't 100% perfect, because of the condition where the owner releases
  * a lock, a writer grabs its lock & writes to it, the reader gets slightly
@@ -187,23 +190,12 @@ public class ConfPersister {
    * @return true if the lock was present and then released  
    */
   @VisibleForTesting
-  boolean releaseReadlock(boolean owner) throws LockAcquireFailedException {
+  boolean releaseReadlock(boolean owner) {
     if (owner) {
       try {
         return fileSystem.delete(readlock, false);
       } catch (IOException e) {
         log.warn("IOException releasing writelock {} ", readlock, e);
-      }
-    } else {
-      boolean readLockExists;
-      try {
-        readLockExists = readLockExists();
-      } catch (IOException e) {
-        log.warn("IOException releasing writelock {} ", readlock, e);
-        readLockExists = false;
-      }
-      if (!readLockExists) {
-        throw new LockAcquireFailedException(readlock);
       }
     }
     return false;
