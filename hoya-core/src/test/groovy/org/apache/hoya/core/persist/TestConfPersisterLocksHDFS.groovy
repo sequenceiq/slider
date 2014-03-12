@@ -101,18 +101,17 @@ public class TestConfPersisterLocksHDFS extends YarnMiniClusterTestBase {
     persister.acquireWritelock();
   }
 
-
   @Test
   public void testReleaseNonexistentReadlockOwner() throws Exception {
     ConfPersister persister = createPersister("testReleaseNonexistentReadlock")
     assert !persister.releaseReadlock(true);
   }
+  
   @Test
   public void testReleaseNonexistentReadlock() throws Exception {
     ConfPersister persister = createPersister("testReleaseNonexistentReadlock")
     assert !persister.releaseReadlock(false)
   }
-
   
   @Test
   public void testAcqRelReadlock() throws Exception {
