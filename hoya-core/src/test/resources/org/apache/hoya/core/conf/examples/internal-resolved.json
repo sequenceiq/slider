@@ -12,6 +12,9 @@
   "components": {
 
     "diagnostics": {
+      "application.name": "small_cluster",
+      "application.type": "hbase",
+      "application": "hdfs://cluster:8020/apps/hbase/v/1.0.0/application.tar",
       "create.hadoop.deployed.info": "(release-2.3.0) @dfe463",
       "create.hadoop.build.info": "2.3.0",
       "create.time.millis": "1393512091276",

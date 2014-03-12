@@ -96,7 +96,7 @@ class TestHistoryRWOrdering extends BaseMockAppStateTest {
     Path history3 = roleHistory.saveHistory(time++)
     
     //inject a later file with a different name
-    hoyaFileSystem.cat(new Path(historyPath, "file.json"), "hello, world")
+    hoyaFileSystem.cat(new Path(historyPath, "file.json"), true, "hello, world")
     
     
     RoleHistoryWriter historyWriter = new RoleHistoryWriter();

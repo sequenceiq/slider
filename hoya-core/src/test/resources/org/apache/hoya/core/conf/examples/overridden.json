@@ -7,19 +7,17 @@
   },
   "components": {
     "simple": {
-      "g1": "a",
-      "g2": "b"
     },
     "master": {
       "name": "m",
-      "g1": "overridden",
-      "g2": "b"
+      "g1": "overridden"
+
     },
     "worker": {
-      "name": "m",
+      "name": "worker",
       "g1": "overridden-by-worker",
-      "g2": "b",
       "timeout": "1000"
+
     }
   }
 }

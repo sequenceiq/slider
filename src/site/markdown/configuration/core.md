@@ -34,7 +34,7 @@ to satisfy the requested YARN resource requirements. A process can be deployed
 to a container.
 
 
-*`topology.json`*: A file that describes the
+*`resources.json`*: A file that describes the
 size of the application in terms of its component requirements: how many,
 and what their resource requirements are. 
 
@@ -45,12 +45,17 @@ and what their resource requirements are.
 ## Structure
 
 Configurations are stored in well-formed JSON files. 
-
-* No duplicate entries are permitted in any section.
-* The ordering of elements is NOT significant.
+1. Text MUST be saved in the UTF-8 format.
+1. Duplicate entries MUST NOT occur in any section.
+1. The ordering of elements is NOT significant.
 
 The JSON specification files all have a similar structure
 
+1. A `schema` string indicating version. Currently this is temporarily set to
+
+        "http://example.org/specification/v2.0.0"
+   
+        
 1. A global section, `/global` containing string properties
 1. A component  section, `/components`.
 1. 0 or more sections under `/components` for each component, identified by component name,
@@ -62,6 +67,8 @@ author, or any other information that is not parsed or processed directly).
 The simplest valid specification file is 
     
     {
+      "schema": "http://example.org/specification/v2.0.0",
+
       "global": {
       },
       "components": {
@@ -89,6 +96,8 @@ specification is the outcome.
 Here is an example configuration
 
     {
+      "schema": "http://example.org/specification/v2.0.0",
+
       "global": {
         "g1": "a",
         "g2": "b"
@@ -166,6 +175,8 @@ This example shows some key points about the design
 The final *resolved* model is as follows
     
     {
+      "schema": "http://example.org/specification/v2.0.0",
+
       "global": {
         "g1": "a",
         "g2": "b"
@@ -215,6 +226,8 @@ of an application.
 
   
     {
+      "schema": "http://example.org/specification/v2.0.0",
+
       "metadata": {
         "description": "example of a resources file"
       },
@@ -238,6 +251,8 @@ of an application.
 The resolved file would be
   
     {
+      "schema": "http://example.org/specification/v2.0.0",
+
       "metadata": {
         "description": "example of a resources file"
       },
@@ -278,6 +293,8 @@ of diagnostics reports)
 
 
     {
+      "schema": "http://example.org/specification/v2.0.0",
+
       "metadata": {
         "description": "Internal configuration DO NOT EDIT"
       },
@@ -304,6 +321,8 @@ This defines parameters that are to be used when creating the instance of the
 application, and instances of the individual components.
     
     {
+      "schema": "http://example.org/specification/v2.0.0",
+
       "global": {
     
         "zookeeper.port": "2181",
@@ -331,6 +350,8 @@ The resolved specification defines the values that are passed to the
 different components.
 
     {
+      "schema": "http://example.org/specification/v2.0.0",
+
       "global": {
         "zookeeper.port": "2181",
         "zookeeper.path": "/yarnapps_small_cluster",
