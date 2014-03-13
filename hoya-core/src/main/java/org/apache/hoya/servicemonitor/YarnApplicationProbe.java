@@ -74,7 +74,7 @@ public class YarnApplicationProbe extends Probe {
     try {
 
       List<ApplicationReport> instances =
-        yarnClient.listHoyaInstances(username);
+        yarnClient.listInstances(username);
       ApplicationReport instance =
         yarnClient.findClusterInInstanceList(instances, clustername);
       if (null == instance) {

@@ -60,12 +60,12 @@ import org.apache.hoya.core.build.InstanceBuilder;
 import org.apache.hoya.core.conf.ConfTree;
 import org.apache.hoya.core.conf.ConfTreeOperations;
 import org.apache.hoya.core.persist.LockAcquireFailedException;
+import org.apache.hoya.core.registry.ServiceRegistryClient;
 import org.apache.hoya.exceptions.BadClusterStateException;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.ErrorStrings;
 import org.apache.hoya.exceptions.HoyaException;
-import org.apache.hoya.exceptions.HoyaIOException;
 import org.apache.hoya.exceptions.NoSuchNodeException;
 import org.apache.hoya.exceptions.UnknownClusterException;
 import org.apache.hoya.exceptions.WaitTimeoutException;
@@ -105,7 +105,6 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.net.InetSocketAddress;
-import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -146,6 +145,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * Yarn client service
    */
   private HoyaYarnClientImpl yarnClient;
+  private ServiceRegistryClient serviceRegistryClient;
 
   /**
    * Constructor
@@ -187,6 +187,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     //create the YARN client
     yarnClient = new HoyaYarnClientImpl();
     addService(yarnClient);
+    serviceRegistryClient =
+      new ServiceRegistryClient(yarnClient, getUsername(), conf);
     
     
     super.serviceInit(conf);
@@ -288,7 +290,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     }
     hoyaFileSystem.getFileSystem().delete(clusterDirectory, true);
 
-    List<ApplicationReport> instances = findAllLiveInstances(null, clustername);
+    List<ApplicationReport> instances = findAllLiveInstances(clustername);
     // detect any race leading to cluster creation during the check/destroy process
     // and report a problem.
     if (!instances.isEmpty()) {
@@ -610,8 +612,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     verifyManagerSet();
     verifyNoLiveClusters(clustername);
     Configuration conf = getConfig();
-    // build up the initial cluster specification
-    ClusterDescription clusterSpec = new ClusterDescription();
+
 
     Path appconfdir = buildInfo.getConfdir();
     requireArgumentSet(Arguments.ARG_CONFDIR, appconfdir);
@@ -1130,7 +1131,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   public void verifyNoLiveClusters(String clustername) throws
                                                        IOException,
                                                        YarnException {
-    List<ApplicationReport> existing = findAllLiveInstances(null, clustername);
+    List<ApplicationReport> existing = findAllLiveInstances(clustername);
 
     if (!existing.isEmpty()) {
       throw new HoyaException(EXIT_CLUSTER_IN_USE,
@@ -1301,7 +1302,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   @VisibleForTesting
   public List<ApplicationReport> listHoyaInstances(String user)
     throws YarnException, IOException {
-    return yarnClient.listHoyaInstances(user);
+    return serviceRegistryClient.listInstances();
   }
 
   /**
@@ -1467,49 +1468,36 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   }
 
   /**
-   * Find an instance of a hoya application belong to the current user
-   * @param appname application name
-   * @return the app report or null if none is found
-   * @throws YarnException YARN issues
-   * @throws IOException IO problems
+   * Get at the service registry operations
+   * @return registry client -valid after the service is inited.
    */
-  @VisibleForTesting
-  public ApplicationReport findInstance(String appname) throws
-                                                        YarnException,
-                                                        IOException {
-    return findInstance(getUsername(), appname);
+  public ServiceRegistryClient getServiceRegistryClient() {
+    return serviceRegistryClient;
   }
 
   /**
    * Find an instance of a hoya application belong to the current user
-   * @param user user name
    * @param appname application name
    * @return the app report or null if none is found
    * @throws YarnException YARN issues
    * @throws IOException IO problems
    */
-  @VisibleForTesting
-  public ApplicationReport findInstance(String user, String appname) throws
-                                                                     IOException,
-                                                                     YarnException {
-    List<ApplicationReport> instances = listHoyaInstances(user);
-    return findClusterInInstanceList(instances, appname);
+  private ApplicationReport findInstance(String appname) throws
+                                                        YarnException,
+                                                        IOException {
+    return serviceRegistryClient.findInstance(appname);
   }
-
 
   /**
    * find all live instances of a specific app -if there is >1 in the cluster,
    * this returns them all. State should be running or less
-   * @param user user
    * @param appname application name
    * @return the list of all matching application instances
    */
-  @VisibleForTesting
-  public List<ApplicationReport> findAllLiveInstances(String user,
-                                                      String appname)
+  private List<ApplicationReport> findAllLiveInstances(String appname)
     throws YarnException, IOException {
     
-    return yarnClient.findAllLiveInstances(user, appname);
+    return serviceRegistryClient.findAllLiveInstances(appname);
   }
 
 

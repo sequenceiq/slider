@@ -94,8 +94,9 @@ class TestActionList extends HBaseMiniClusterTestBase {
     //now look for the explicit sevice
     
     //do the low level operations to get a better view of what is going on 
-    HoyaClient hoyaClient = (HoyaClient) launcher.service
-    ApplicationReport instance = hoyaClient.findInstance(clustername)
+    HoyaClient hoyaClient = launcher.service
+    def serviceRegistryClient = hoyaClient.serviceRegistryClient
+    ApplicationReport instance = serviceRegistryClient.findInstance(clustername)
     assert instance != null
     log.info(instance.toString())
 

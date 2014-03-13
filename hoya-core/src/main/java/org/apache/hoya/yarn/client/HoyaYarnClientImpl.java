@@ -68,7 +68,7 @@ public class HoyaYarnClientImpl extends YarnClientImpl {
    * @param user user: "" means all users
    * @return a possibly empty list of Hoya AMs
    */
-  public List<ApplicationReport> listHoyaInstances(String user)
+  public List<ApplicationReport> listInstances(String user)
     throws YarnException, IOException {
     Set<String> types = new HashSet<String>(1);
     types.add(HoyaKeys.APP_TYPE);
@@ -95,7 +95,7 @@ public class HoyaYarnClientImpl extends YarnClientImpl {
                                                   String appname) throws
                                                                   IOException,
                                                                   YarnException {
-    List<ApplicationReport> instances = listHoyaInstances(user);
+    List<ApplicationReport> instances = listInstances(user);
     List<ApplicationReport> results =
       new ArrayList<ApplicationReport>(instances.size());
     for (ApplicationReport report : instances) {
@@ -152,7 +152,7 @@ public class HoyaYarnClientImpl extends YarnClientImpl {
       // user wants all hoya applications killed
       String user = getUsername();
       log.info("Killing all applications belonging to {}", user);
-      Collection<ApplicationReport> instances = listHoyaInstances(user);
+      Collection<ApplicationReport> instances = listInstances(user);
       for (ApplicationReport instance : instances) {
         if (isApplicationLive(instance)) {
           ApplicationId appId = instance.getApplicationId();
@@ -238,7 +238,7 @@ public class HoyaYarnClientImpl extends YarnClientImpl {
                                                       String appname) throws
                                                                       YarnException,
                                                                       IOException {
-    List<ApplicationReport> instances = listHoyaInstances(user);
+    List<ApplicationReport> instances = listInstances(user);
     List<ApplicationReport> results =
       new ArrayList<ApplicationReport>(instances.size());
     for (ApplicationReport app : instances) {

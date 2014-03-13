@@ -53,9 +53,8 @@ class TestBuildThawClusterM1W1 extends HBaseMiniClusterTestBase {
         [:])
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
-
-
-    ApplicationReport report = hoyaClient.findInstance(clustername)
+    def serviceRegistryClient = hoyaClient.serviceRegistryClient
+    ApplicationReport report = serviceRegistryClient.findInstance(clustername)
     assert report == null;
 
     //thaw time
