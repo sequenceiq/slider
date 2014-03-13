@@ -151,6 +151,7 @@ public class CoreFileSystem {
     createWithPermissions(instancePaths.snapshotConfPath, clusterPerms);
     createWithPermissions(instancePaths.generatedConfPath, clusterPerms);
     createWithPermissions(instancePaths.historyPath, clusterPerms);
+    createWithPermissions(instancePaths.tmpPathAM, clusterPerms);
 
     // Data Directory
     String dataOpts =
@@ -226,16 +227,18 @@ public class CoreFileSystem {
   /**
    * Verify that the given directory is not present
    *
-   * @param clustername      name of the cluster
    * @param clusterDirectory actual directory to look for
    * @return the path to the cluster directory
-   * @throws IOException                      trouble with FS
+   * @throws IOException    trouble with FS
    * @throws HoyaException If the directory exists
    */
   public void verifyDirectoryNonexistent(Path clusterDirectory) throws
           IOException,
           HoyaException {
     if (fileSystem.exists(clusterDirectory)) {
+      log.warn("Dir {} exists: {}",
+               clusterDirectory,
+               listFSDir(clusterDirectory));
       throw new HoyaException(HoyaExitCodes.EXIT_CLUSTER_EXISTS,
               ErrorStrings.PRINTF_E_INSTANCE_DIR_ALREADY_EXISTS,
               clusterDirectory);
