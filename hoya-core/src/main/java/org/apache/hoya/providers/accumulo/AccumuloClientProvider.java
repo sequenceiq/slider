@@ -21,7 +21,6 @@ package org.apache.hoya.providers.accumulo;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -251,15 +250,9 @@ public class AccumuloClientProvider extends AbstractProviderCore implements
                                                            HoyaException {
     String[] jars =
       {
-        "accumulo-core.jar",
-        "accumulo-fate.jar",
         "zookeeper.jar",
       };
     Class<?>[] classes = {
-      // accumulo-core
-      org.apache.accumulo.core.Constants.class,
-      // accumulo-fate
-      org.apache.accumulo.fate.zookeeper.ZooLock.class,
       //zk
       org.apache.zookeeper.ClientCnxn.class
     };

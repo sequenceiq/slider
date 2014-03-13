@@ -78,11 +78,6 @@ public class AgentProviderService extends AbstractProviderService implements
   }
 
   @Override
-  public int getDefaultMasterInfoPort() {
-    return 0;
-  }
-
-  @Override
   public Configuration loadProviderConfigurationInformation(File confDir) throws
                                                                           BadCommandArgumentsException,
                                                                           IOException {
@@ -239,11 +234,6 @@ public class AgentProviderService extends AbstractProviderService implements
                                                boolean secure
   ) throws IOException, HoyaException {
 
-  }
-
-  @Override
-  public boolean initMonitoring() {
-    return true;
   }
 
   @Override

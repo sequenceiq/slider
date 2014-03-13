@@ -18,8 +18,6 @@
 
 package org.apache.hoya.providers.accumulo;
 
-import org.apache.accumulo.core.conf.Property;
-
 /**
  * Mappings of config params to env variables for
  * custom -site.xml files to pick up
@@ -30,45 +28,45 @@ public interface AccumuloConfigFileOptions {
   /**
    * quorum style, comma separated list of hostname:port values
    */
-  String ZOOKEEPER_HOST = Property.INSTANCE_ZK_HOST.getKey();
+  String ZOOKEEPER_HOST = "instance.zookeeper.host";
 
   /**
    * URI to the filesystem
    */
-  String INSTANCE_DFS_URI = Property.INSTANCE_DFS_URI.getKey();
+  String INSTANCE_DFS_URI = "instance.dfs.uri";
 
   /**
    * Dir under the DFS URI
    */
-  String INSTANCE_DFS_DIR = Property.INSTANCE_DFS_DIR.getKey();
+  String INSTANCE_DFS_DIR = "instance.dfs.dir";
 
   // String used to restrict access to data in ZK
-  String INSTANCE_SECRET = Property.INSTANCE_SECRET.getKey();
+  String INSTANCE_SECRET = "instance.secret";
   
   // IPC port for master
-  String MASTER_PORT_CLIENT = Property.MASTER_CLIENTPORT.getKey();
-  String MASTER_PORT_CLIENT_DEFAULT = Property.MASTER_CLIENTPORT.getDefaultValue();
+  String MASTER_PORT_CLIENT = "master.port.client";
+  String MASTER_PORT_CLIENT_DEFAULT = "9999";
   
   // IPC port for monitor
-  String MONITOR_PORT_CLIENT = Property.MONITOR_PORT.getKey();
-  String MONITOR_PORT_CLIENT_DEFAULT = Property.MONITOR_PORT.getDefaultValue();
+  String MONITOR_PORT_CLIENT = "monitor.port.client";
+  String MONITOR_PORT_CLIENT_DEFAULT = "50095";
   int MONITOR_PORT_CLIENT_INT = Integer.parseInt(MONITOR_PORT_CLIENT_DEFAULT);
   
   // Log4j forwarding port
-  String MONITOR_LOG4J_PORT = Property.MONITOR_LOG4J_PORT.getKey();
-  String MONITOR_LOG4J_PORT_DEFAULT = Property.MONITOR_LOG4J_PORT.getDefaultValue();
+  String MONITOR_LOG4J_PORT = "monitor.port.log4j";
+  String MONITOR_LOG4J_PORT_DEFAULT = "4560";
   int MONITOR_LOG4J_PORT_INT = Integer.parseInt(MONITOR_LOG4J_PORT_DEFAULT);
   
   // IPC port for tracer
-  String TRACE_PORT_CLIENT = Property.TRACE_PORT.getKey();
-  String TRACE_PORT_CLIENT_DEFAULT = Property.TRACE_PORT.getDefaultValue();
+  String TRACE_PORT_CLIENT = "trace.port.client";
+  String TRACE_PORT_CLIENT_DEFAULT = "trace.port.client";
 
   // IPC port for tserver
-  String TSERV_PORT_CLIENT = Property.TSERV_CLIENTPORT.getKey();
-  String TSERV_PORT_CLIENT_DEFAULT = Property.TSERV_CLIENTPORT.getDefaultValue();
+  String TSERV_PORT_CLIENT = "tserver.port.client";
+  String TSERV_PORT_CLIENT_DEFAULT = "tserver.port.client";
   
   // IPC port for gc
-  String GC_PORT_CLIENT = Property.GC_PORT.getKey();
-  String GC_PORT_CLIENT_DEFAULT = Property.GC_PORT.getDefaultValue();
+  String GC_PORT_CLIENT = "gc.port.client";
+  String GC_PORT_CLIENT_DEFAULT = "50091";
   int GC_PORT_CLIENT_INT = Integer.parseInt(GC_PORT_CLIENT_DEFAULT);
 }
