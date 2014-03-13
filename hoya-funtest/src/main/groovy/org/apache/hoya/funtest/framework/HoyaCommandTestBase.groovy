@@ -97,7 +97,7 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
     FUNTESTS_ENABLED =
         HOYA_CONFIG.getBoolean(KEY_HOYA_FUNTESTS_ENABLED, true)
     ACCUMULO_TESTS_ENABLED =
-        HOYA_CONFIG.getBoolean(KEY_HOYA_TEST_ACCUMULO_ENABLED, true)
+        HOYA_CONFIG.getBoolean(KEY_HOYA_TEST_ACCUMULO_ENABLED, false)
     HBASE_TESTS_ENABLED =
         HOYA_CONFIG.getBoolean(KEY_HOYA_TEST_HBASE_ENABLED, true)
  }
