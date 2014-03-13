@@ -27,8 +27,7 @@ import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
-import org.apache.hoya.providers.AbstractProviderCore;
-import org.apache.hoya.providers.ClientProvider;
+import org.apache.hoya.providers.AbstractClientProvider;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderUtils;
 import org.apache.hoya.tools.ConfigHelper;
@@ -48,14 +47,12 @@ import java.util.Set;
  * This class implements  the client-side aspects
  * of the agent deployer
  */
-public class AgentClientProvider extends AbstractProviderCore implements
-    AgentKeys,
-    HoyaKeys,
-    ClientProvider {
+public class AgentClientProvider extends AbstractClientProvider
+              implements AgentKeys, HoyaKeys {
 
 
   protected static final Logger log =
-      LoggerFactory.getLogger(AgentClientProvider.class);
+    LoggerFactory.getLogger(AgentClientProvider.class);
   protected static final String NAME = "agent";
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
 
@@ -67,11 +64,6 @@ public class AgentClientProvider extends AbstractProviderCore implements
   @Override
   public String getName() {
     return NAME;
-  }
-
-  @Override
-  public Configuration create(Configuration conf) {
-    return conf;
   }
 
   @Override

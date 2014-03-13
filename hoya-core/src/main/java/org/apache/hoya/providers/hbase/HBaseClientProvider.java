@@ -30,8 +30,7 @@ import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
-import org.apache.hoya.providers.AbstractProviderCore;
-import org.apache.hoya.providers.ClientProvider;
+import org.apache.hoya.providers.AbstractClientProvider;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderUtils;
 import org.apache.hoya.tools.ConfigHelper;
@@ -53,14 +52,10 @@ import java.util.Set;
  * This class implements  the client-side aspects
  * of an HBase Cluster
  */
-public class HBaseClientProvider extends AbstractProviderCore implements
+public class HBaseClientProvider extends AbstractClientProvider implements
                                                           HBaseKeys, HoyaKeys,
-                                                          ClientProvider,
                                                           HBaseConfigFileOptions {
 
-
-
-  
   protected static final Logger log =
     LoggerFactory.getLogger(HBaseClientProvider.class);
   protected static final String NAME = "hbase";
@@ -75,15 +70,6 @@ public class HBaseClientProvider extends AbstractProviderCore implements
   public String getName() {
     return NAME;
   }
-
-
-
-  @Override
-  public Configuration create(Configuration conf) {
-    return conf;
-  }
-
-
 
   @Override
   public List<ProviderRole> getRoles() {

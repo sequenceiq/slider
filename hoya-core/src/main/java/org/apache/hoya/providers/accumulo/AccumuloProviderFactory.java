@@ -19,7 +19,7 @@
 package org.apache.hoya.providers.accumulo;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hoya.providers.ClientProvider;
+import org.apache.hoya.providers.AbstractClientProvider;
 import org.apache.hoya.providers.HoyaProviderFactory;
 import org.apache.hoya.providers.ProviderService;
 
@@ -33,7 +33,7 @@ public class AccumuloProviderFactory extends HoyaProviderFactory {
   }
 
   @Override
-  public ClientProvider createClientProvider() {
+  public AbstractClientProvider createClientProvider() {
     return new AccumuloClientProvider(getConf());
   }
 

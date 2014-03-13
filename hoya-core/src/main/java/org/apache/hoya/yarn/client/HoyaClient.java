@@ -69,6 +69,7 @@ import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.exceptions.NoSuchNodeException;
 import org.apache.hoya.exceptions.UnknownClusterException;
 import org.apache.hoya.exceptions.WaitTimeoutException;
+import org.apache.hoya.providers.AbstractClientProvider;
 import org.apache.hoya.providers.ClientProvider;
 import org.apache.hoya.providers.HoyaProviderFactory;
 import org.apache.hoya.providers.ProviderRole;
@@ -336,7 +337,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * @return the provider instance
    * @throws HoyaException problems building the provider
    */
-  private ClientProvider createClientProvider(ClusterDescription clusterSpec)
+  private AbstractClientProvider createClientProvider(ClusterDescription clusterSpec)
     throws HoyaException {
     HoyaProviderFactory factory =
       HoyaProviderFactory.createHoyaProviderFactory(clusterSpec);
@@ -349,7 +350,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * @return the provider instance
    * @throws HoyaException problems building the provider
    */
-  private ClientProvider createClientProvider(String provider)
+  private AbstractClientProvider createClientProvider(String provider)
     throws HoyaException {
     HoyaProviderFactory factory =
       HoyaProviderFactory.createHoyaProviderFactory(provider);
@@ -441,7 +442,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // Provider
     requireArgumentSet(Arguments.ARG_PROVIDER, buildInfo.getProvider());
     HoyaAMClientProvider hoyaAM = new HoyaAMClientProvider(conf);
-    ClientProvider provider;
+    AbstractClientProvider provider;
     provider = createClientProvider(buildInfo.getProvider());
 
     // remember this
@@ -646,7 +647,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // Provider
     requireArgumentSet(Arguments.ARG_PROVIDER, buildInfo.getProvider());
     HoyaAMClientProvider hoyaAM = new HoyaAMClientProvider(conf);
-    ClientProvider provider;
+    AbstractClientProvider provider;
     provider = createClientProvider(buildInfo.getProvider());
 
     InstanceBuilder builder =
@@ -740,7 +741,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     //create the Hoya AM provider -this helps set up the AM
     HoyaAMClientProvider hoyaAM = new HoyaAMClientProvider(config);
     // cluster Provider
-    ClientProvider provider = createClientProvider(clusterSpec);
+    AbstractClientProvider provider = createClientProvider(clusterSpec);
     // make sure the conf dir is valid;
 
     Path generatedConfDirPath =

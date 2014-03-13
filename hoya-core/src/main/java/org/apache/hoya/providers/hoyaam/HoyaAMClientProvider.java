@@ -20,7 +20,6 @@ package org.apache.hoya.providers.hoyaam;
 
 import com.beust.jcommander.JCommander;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -31,8 +30,7 @@ import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.exceptions.HoyaRuntimeException;
-import org.apache.hoya.providers.AbstractProviderCore;
-import org.apache.hoya.providers.ClientProvider;
+import org.apache.hoya.providers.AbstractClientProvider;
 import org.apache.hoya.providers.PlacementPolicy;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderUtils;
@@ -55,9 +53,8 @@ import java.util.Map;
  * This keeps aspects of role, cluster validation and Clusterspec setup
  * out of the core hoya client
  */
-public class HoyaAMClientProvider extends AbstractProviderCore implements
-                                                     HoyaKeys,
-                                                     ClientProvider {
+public class HoyaAMClientProvider extends AbstractClientProvider implements
+                                                     HoyaKeys {
 
 
   protected static final Logger log =
@@ -266,8 +263,4 @@ public class HoyaAMClientProvider extends AbstractProviderCore implements
 
   }
 
-  @Override
-  public Configuration create(Configuration conf) {
-    return conf;
-  }
 }

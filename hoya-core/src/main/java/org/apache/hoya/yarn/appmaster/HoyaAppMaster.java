@@ -70,7 +70,7 @@ import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hoya.exceptions.TriggerClusterTeardownException;
-import org.apache.hoya.providers.ClientProvider;
+import org.apache.hoya.providers.AbstractClientProvider;
 import org.apache.hoya.providers.HoyaProviderFactory;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderService;
@@ -411,13 +411,10 @@ public class HoyaAppMaster extends CompoundLaunchedService
       HoyaProviderFactory.createHoyaProviderFactory(
         providerType);
     providerService = factory.createServerProvider();
-    ClientProvider providerClient = factory.createClientProvider();
+    AbstractClientProvider providerClient = factory.createClientProvider();
     // init the provider BUT DO NOT START IT YET
     providerService.init(getConfig());
     addService(providerService);
-    //verify that the cluster specification is now valid
-    providerService.validateClusterSpec(clusterSpec);
-
     
     
     HoyaAMClientProvider amClientProvider = new HoyaAMClientProvider(conf);
@@ -890,12 +887,6 @@ public class HoyaAppMaster extends CompoundLaunchedService
   private boolean flexCluster(ClusterDescription updated)
     throws IOException, HoyaInternalStateException, BadConfigException {
 
-    //validation
-    try {
-      providerService.validateClusterSpec(updated);
-    } catch (HoyaException e) {
-      throw new IOException("Invalid cluster specification " + e, e);
-    }
     appState.updateClusterSpec(updated);
 
     // ask for more containers if needed

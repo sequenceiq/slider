@@ -21,12 +21,9 @@ package org.apache.hoya.providers;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hoya.api.ClusterDescription;
-import org.apache.hoya.api.OptionKeys;
-import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
 
 import java.util.List;
-import java.util.Map;
 
 import static org.apache.hoya.api.RoleKeys.DEF_YARN_CORES;
 import static org.apache.hoya.api.RoleKeys.DEF_YARN_MEMORY;
@@ -36,8 +33,8 @@ import static org.apache.hoya.api.RoleKeys.YARN_MEMORY;
 /**
  * An optional base class for providers
  */
-public abstract class AbstractProviderCore extends Configured implements
-                                                              ProviderCore {
+public abstract class AbstractProviderCore extends Configured
+      implements ProviderCore {
 
   protected AbstractProviderCore(Configuration conf) {
     super(conf);
@@ -46,46 +43,15 @@ public abstract class AbstractProviderCore extends Configured implements
   protected AbstractProviderCore() {
   }
 
-  private void putSiteOpt(Map<String, String> options, String key, String val) {
-    options.put(
-      OptionKeys.SITE_XML_PREFIX + key, val);
-  }
-
-  /**
-   * Propagate a key's value from the conf to the site, ca
-   * @param sitexml
-   * @param conf
-   * @param srckey
-   * @param destkey
-   */
-  private void propagate(Map<String, String> sitexml,
-                         Configuration conf,
-                         String srckey, String destkey) {
-    String val = conf.get(srckey);
-    if (val != null) {
-      sitexml.put(destkey, val);
-    }
-  }
-
-  protected void assignIfSet(Map<String, String> sitexml,
-                             String prop,
-                             ClusterDescription cd,
-                             String role,
-                             String key) throws BadConfigException {
-    Map<String, String> map = cd.getMandatoryRole(role);
-
-    String value = map.get(key);
-    if (value != null) {
-      sitexml.put(prop, value);
-    }
-  }
-
+  
+  
   /**
    * Validation common to all roles
    * @param clusterSpec
    * @throws HoyaException
    */
   @Override
+  @Deprecated
   public void validateClusterSpec(ClusterDescription clusterSpec) throws
                                                                   HoyaException {
     List<ProviderRole> roles = getRoles();
