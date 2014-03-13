@@ -601,6 +601,13 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // here the configuration is set up. Mark it
     clusterSpec.state = ClusterDescription.STATE_CREATED;
     clusterSpec.save(hoyaFileSystem.getFileSystem(), clusterSpecPath, true);
+    
+    
+    //now build the new style
+    String newcluster = clustername + "-ac";
+    Path newClusterDirectory = hoyaFileSystem.buildHoyaClusterDirPath(newcluster);
+    hoyaFileSystem.getFileSystem().delete(newClusterDirectory, true);
+    buildInstanceConfiguration(newcluster, buildInfo);
     return EXIT_SUCCESS;
   }
 
@@ -652,7 +659,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     builder.addZKPaths(buildInfo.getZKhosts(),
                        zookeeperRoot,
                        buildInfo.getZKport());
-    builder.takeSnapshotOfConfDir(appconfdir);
 
     try {
       builder.persist();
@@ -661,6 +667,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       throw new BadClusterStateException("Failed to save " + clustername
                                          + ": " + e);
     }
+
+    builder.takeSnapshotOfConfDir(appconfdir);
 
     return true;
   }
