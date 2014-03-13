@@ -19,10 +19,13 @@
 package org.apache.hoya.core.conf;
 
 import org.apache.hoya.core.CoreKeys;
+import org.apache.hoya.core.persist.JsonSerDeser;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.tools.HoyaUtils;
 import org.codehaus.jackson.annotate.JsonIgnore;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -171,14 +174,110 @@ public class ConfTreeOperations {
     }
   }
 
-  public void propagateComponentMap(String component, Map<String, String> map) {
+  /**
+   * Merge the map of a single component
+   * @param component component name
+   * @param map map to merge
+   */
+  public void mergeSingleComponentMap(String component, Map<String, String> map) {
     MapOperations comp = getOrAddComponent(component);
     comp.putAll(map);
   }
+  /**
+   * Merge the map of a single component
+   * @param component component name
+   * @param map map to merge
+   */
+  public void mergeSingleComponentMapPrefix(String component,
+                                            Map<String, String> map,
+                                            String prefix,
+                                            boolean overwrite) {
+    MapOperations comp = getOrAddComponent(component);
+    comp.mergeMapPrefixedKeys(map,prefix, overwrite);
+  }
 
-  public void applyComponentOptions(Map<String, Map<String, String>> commandOptions) {
+  /**
+   * Merge in components
+   * @param commandOptions component options on the CLI
+   */
+  public void mergeComponents(Map<String, Map<String, String>> commandOptions) {
     for (Map.Entry<String, Map<String, String>> entry : commandOptions.entrySet()) {
-      propagateComponentMap(entry.getKey(), entry.getValue());
+      mergeSingleComponentMap(entry.getKey(), entry.getValue());
     }
   }
+
+  /**
+   * Merge in components
+   * @param commandOptions component options on the CLI
+   */
+  public void mergeComponentsPrefix(Map<String,
+    Map<String, String>> commandOptions,
+                                    String prefix,
+                                    boolean overwrite) {
+    for (Map.Entry<String, Map<String, String>> entry : commandOptions.entrySet()) {
+      mergeSingleComponentMapPrefix(entry.getKey(), entry.getValue(), prefix, overwrite);
+    }
+  }
+
+  /**
+   * Merge in another tree -no overwrites of global or conf data
+   * (note that metadata does a naive putAll merge/overwrite)
+   * @param that the other tree
+   */
+  public void mergeWithoutOverwrite(ConfTree that) {
+
+    getGlobalOptions().mergeWithoutOverwrite(that.global);
+    confTree.metadata.putAll(that.metadata);
+
+    for (Map.Entry<String, Map<String, String>> entry : that.components.entrySet()) {
+      MapOperations comp = getOrAddComponent(entry.getKey());
+      comp.mergeWithoutOverwrite(entry.getValue());
+    }
+  }
+  
+  /**
+   * Merge in another tree with overwrites
+   * @param that the other tree
+   */
+  public void putAll(ConfTree that) {
+
+    getGlobalOptions().putAll(that.global);
+    confTree.metadata.putAll(that.metadata);
+    
+    for (Map.Entry<String, Map<String, String>> entry : that.components.entrySet()) {
+      MapOperations comp = getOrAddComponent(entry.getKey());
+      comp.putAll(entry.getValue());
+    }
+  }
+  
+  /**
+   * Load from a resource. The inner conf tree is the loaded data -unresolved
+   * @param resource resource
+   * @return loaded value
+   * @throws IOException load failure
+   */
+  public static ConfTreeOperations fromResource(String resource) throws
+                                                                 IOException {
+    JsonSerDeser<ConfTree> confTreeSerDeser =
+      new JsonSerDeser<ConfTree>(ConfTree.class);
+    ConfTreeOperations ops = new ConfTreeOperations(
+       confTreeSerDeser.fromResource(resource) );
+    return ops;      
+  }
+  /**
+   * Load from a resource. The inner conf tree is the loaded data -unresolved
+   * @param resource resource
+   * @return loaded value
+   * @throws IOException load failure
+   */
+  public static ConfTreeOperations fromFile(File resource) throws
+                                                                 IOException {
+    JsonSerDeser<ConfTree> confTreeSerDeser =
+      new JsonSerDeser<ConfTree>(ConfTree.class);
+    ConfTreeOperations ops = new ConfTreeOperations(
+       confTreeSerDeser.fromFile(resource) );
+    return ops;      
+  }
+
+  
 }

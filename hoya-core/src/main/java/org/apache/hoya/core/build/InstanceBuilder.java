@@ -108,12 +108,10 @@ public class InstanceBuilder {
   public void init(
     Path configSrcDir,
     String provider,
-    ConfTree internal,
-    ConfTree resources,
-    ConfTree app_conf) {
+    AggregateConf instanceConf) {
 
 
-    instanceConf = new AggregateConf(internal, app_conf, resources);
+    this.instanceConf = instanceConf;
 
     //internal is extended
     ConfTreeOperations internalOps = instanceConf.getInternalOperations();

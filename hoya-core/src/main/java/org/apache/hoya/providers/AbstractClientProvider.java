@@ -24,18 +24,24 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hoya.api.ClusterDescription;
+import org.apache.hoya.core.conf.AggregateConf;
+import org.apache.hoya.core.conf.ConfTreeOperations;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.tools.HoyaFileSystem;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.apache.hoya.api.RoleKeys.*;
 
 public abstract class AbstractClientProvider extends Configured {
+
+  public static final String PROVIDER_RESOURCE_BASE =
+    "org/apache/hoya/providers/";
 
   public AbstractClientProvider(Configuration conf) {
     super(conf);
@@ -77,10 +83,26 @@ public abstract class AbstractClientProvider extends Configured {
    * @param rolename role name
    * @return a node that can be added to the JSON
    */
-  public abstract Map<String, String> createDefaultClusterRole(String rolename) throws
+  public Map<String, String> createDefaultClusterRole(String rolename) throws
                                                                          HoyaException,
-                                                                         IOException;
+                                                                         IOException {
+    return new HashMap<String, String>();
+  }
 
+  /**
+   * Any provider-side alteration of a configuration can take place here.
+   * @param aggregateConf config to patch
+   * @throws IOException IO problems
+   * @throws HoyaException Hoya-specific issues
+   */
+  public void prepareInstanceConfiguration(AggregateConf aggregateConf) throws
+                                                                    HoyaException,
+                                                                    IOException {
+    //default: do nothing
+  }
+    
+  
+  
   /**
    * This builds up the site configuration for the AM and downstream services;
    * the path is added to the cluster spec so that launchers in the 
@@ -133,6 +155,41 @@ public abstract class AbstractClientProvider extends Configured {
   public abstract void prepareAMServiceData(ClusterDescription clusterSpec,
                                      Map<String, ByteBuffer> serviceData);
 
+
+  /**
+   * Load in and merge in templates. Null arguments means "no such template"
+   * @param instanceConf instance to patch 
+   * @param internalTemplate patch to internal.json
+   * @param resourceTemplate path to resources.json
+   * @param appConfTemplate path to app_conf.json
+   * @throws IOException any IO problems
+   */
+  protected void mergeTemplates(AggregateConf instanceConf,
+                                String internalTemplate,
+                                String resourceTemplate,
+                                String appConfTemplate) throws IOException {
+    if (internalTemplate != null) {
+      ConfTreeOperations template =
+        ConfTreeOperations.fromResource(internalTemplate);
+      instanceConf.getInternalOperations()
+                  .mergeWithoutOverwrite(template.confTree);
+    }
+
+    if (resourceTemplate != null) {
+      ConfTreeOperations resTemplate =
+        ConfTreeOperations.fromResource(resourceTemplate);
+      instanceConf.getResourceOperations()
+                   .mergeWithoutOverwrite(resTemplate.confTree);
+    }
+   
+    if (appConfTemplate != null) {
+      ConfTreeOperations template =
+        ConfTreeOperations.fromResource(appConfTemplate);
+      instanceConf.getAppConfOperations()
+                   .mergeWithoutOverwrite(template.confTree);
+    }
+    
+  }
 
   /**
    * Build time review and update of the cluster specification

@@ -103,6 +103,29 @@ public class MapOperations implements Map<String, String> {
       throw new BadConfigException("Unset option %s", key);
     }
   }
+  
+  public void mergeWithoutOverwrite(Map<String, String> that) {
+    HoyaUtils.mergeMapsIgnoreDuplicateKeys(options, that);
+  }
+
+  /**
+   * Merge a map by prefixed keys
+   * @param that the map to merge in
+   * @param prefix prefix to match on
+   * @param overwrite flag to enable overwrite
+   */
+  public void mergeMapPrefixedKeys(Map<String, String> that,
+                                    String prefix,
+                                    boolean overwrite) {
+    for (Map.Entry<String, String> entry : that.entrySet()) {
+      String key = entry.getKey();
+      if (key.startsWith(prefix)) {
+        if (overwrite || get(key) == null) {
+          put(key, entry.getValue());
+        }
+      }
+    }
+  }
 
   public int size() {
     return options.size();

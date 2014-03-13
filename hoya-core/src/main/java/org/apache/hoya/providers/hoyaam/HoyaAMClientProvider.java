@@ -26,6 +26,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.RoleKeys;
+import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
@@ -61,8 +62,17 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
     LoggerFactory.getLogger(HoyaAMClientProvider.class);
   protected static final String NAME = "hoyaAM";
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
+  public static final String INSTANCE_RESOURCE_BASE = PROVIDER_RESOURCE_BASE +
+                                                       "hoyaam/instance/";
+  public static final String INTERNAL_JSON =
+    INSTANCE_RESOURCE_BASE + "internal.json";
+  public static final String APPCONF_JSON =
+    INSTANCE_RESOURCE_BASE + "appconf.json";
+  public static final String RESOURCES_JSON =
+    INSTANCE_RESOURCE_BASE + "resources.json";
+
   public static final String AM_ROLE_CONFIG_RESOURCE =
-    "org/apache/hoya/providers/hoyaam/role-am.xml";
+    PROVIDER_RESOURCE_BASE +"hoyaam/role-am.xml";
 
   public HoyaAMClientProvider(Configuration conf) {
     super(conf);
@@ -263,4 +273,14 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
 
   }
 
+
+  @Override
+  public void prepareInstanceConfiguration(AggregateConf aggregateConf) throws
+                                                                        HoyaException,
+                                                                        IOException {
+    mergeTemplates(aggregateConf,
+                   INTERNAL_JSON, RESOURCES_JSON,
+                   APPCONF_JSON
+                  );
+  }
 }

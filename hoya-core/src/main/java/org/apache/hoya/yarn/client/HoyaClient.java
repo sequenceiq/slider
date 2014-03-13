@@ -57,6 +57,7 @@ import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.api.StatusKeys;
 import org.apache.hoya.api.proto.Messages;
 import org.apache.hoya.core.build.InstanceBuilder;
+import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.core.conf.ConfTree;
 import org.apache.hoya.core.conf.ConfTreeOperations;
 import org.apache.hoya.core.persist.LockAcquireFailedException;
@@ -70,7 +71,6 @@ import org.apache.hoya.exceptions.NoSuchNodeException;
 import org.apache.hoya.exceptions.UnknownClusterException;
 import org.apache.hoya.exceptions.WaitTimeoutException;
 import org.apache.hoya.providers.AbstractClientProvider;
-import org.apache.hoya.providers.ClientProvider;
 import org.apache.hoya.providers.HoyaProviderFactory;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.hoyaam.HoyaAMClientProvider;
@@ -96,7 +96,6 @@ import org.apache.hoya.yarn.params.HoyaAMArgs;
 import org.apache.hoya.yarn.params.LaunchArgsAccessor;
 import org.apache.hoya.yarn.service.CompoundLaunchedService;
 import org.apache.hoya.yarn.service.HoyaServiceUtils;
-import org.apache.hoya.yarn.service.SecurityCheckerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -632,6 +631,16 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     return EXIT_SUCCESS;
   }
 
+  /**
+   * Build up the AggregateConfiguration for an application instance then
+   * persiste it
+   * @param clustername name of the cluster
+   * @param buildInfo the arguments needed to build the cluster
+   * @return true if it worked
+   * @throws YarnException
+   * @throws IOException
+   */
+  
   public boolean buildInstanceConfiguration(String clustername,
                 AbstractClusterBuildingActionArgs buildInfo) throws YarnException,
                                                              IOException {
@@ -647,31 +656,48 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // Provider
     requireArgumentSet(Arguments.ARG_PROVIDER, buildInfo.getProvider());
     HoyaAMClientProvider hoyaAM = new HoyaAMClientProvider(conf);
-    AbstractClientProvider provider;
-    provider = createClientProvider(buildInfo.getProvider());
-
+    AbstractClientProvider provider =
+      createClientProvider(buildInfo.getProvider());
     InstanceBuilder builder =
       new InstanceBuilder(hoyaFileSystem, getConfig(), clustername);
-
+    
 
     ConfTree internal = new ConfTree();
     ConfTree resources = new ConfTree();
-    ConfTreeOperations resOps = new ConfTreeOperations(resources);
-    ConfTree appConf = buildInfo.buildConfTree();
-    ConfTreeOperations appConfOps = new ConfTreeOperations(appConf);
+    ConfTree appConf = new ConfTree();
+    ConfTree cmdLineConf = buildInfo.buildConfTree();
 
-    //copy over role. and yarn. values
+    AggregateConf instanceConf = new AggregateConf(internal, appConf, resources);
+    
+    hoyaAM.prepareInstanceConfiguration(instanceConf);
+    provider.prepareInstanceConfiguration(instanceConf);
+    
+    ConfTreeOperations appConfOps = instanceConf.getAppConfOperations();
+    ConfTreeOperations resOps = instanceConf.getResourceOperations();
+    ConfTreeOperations internalOps = instanceConf.getInternalOperations();
+    appConfOps.putAll(cmdLineConf);
+
+
+    //all CLI role options
+    Map<String, Map<String, String>> roleOptionMap =
+      buildInfo.getRoleOptionMap();
+    appConfOps.mergeComponents(roleOptionMap);
+
+    //internal picks up hoya. values only
+    internalOps.propagateGlobalKeys(appConf, "hoya.");
+    //copy over role. and yarn. values ONLY to the resources
     resOps.propagateGlobalKeys(appConf, "role.");
     resOps.propagateGlobalKeys(appConf, "yarn.");
-    appConfOps.applyComponentOptions(buildInfo.getRoleOptionMap());
-    resOps.applyComponentOptions(buildInfo.getRoleOptionMap());
+    resOps.mergeComponentsPrefix(roleOptionMap, "role.", true);
+    resOps.mergeComponentsPrefix(roleOptionMap, "yarn.", true);
 
 
-    builder.init(appconfdir, provider.getName(), internal, resources, appConf);
+    builder.init(appconfdir, provider.getName(), instanceConf);
     builder.propagateFilename();
     builder.propagatePrincipals();
     builder.setImageDetails(buildInfo.getImage(), buildInfo.getAppHomeDir());
 
+        
     String zookeeperRoot = buildInfo.getAppZKPath();
     if (isUnset(zookeeperRoot)) {
       zookeeperRoot =
@@ -681,6 +707,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                        zookeeperRoot,
                        buildInfo.getZKport());
 
+    
     try {
       builder.persist();
     } catch (LockAcquireFailedException e) {
