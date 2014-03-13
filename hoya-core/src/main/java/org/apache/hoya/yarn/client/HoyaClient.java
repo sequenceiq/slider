@@ -386,6 +386,32 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                YarnException,
                                                IOException {
 
+
+    int ret = actionBuildClassic(clustername, buildInfo);
+
+    //now build the new style
+    String newcluster = clustername + "-ac";
+    Path newClusterDirectory =
+      hoyaFileSystem.buildHoyaClusterDirPath(newcluster);
+    hoyaFileSystem.getFileSystem().delete(newClusterDirectory, true);
+    buildInstanceConfiguration(newcluster, buildInfo);
+    return ret; 
+  }
+
+  /**
+   * Build up the cluster specification/directory -classic logic
+   *
+   * @param clustername cluster name
+   * @param buildInfo the arguments needed to build the cluster
+   * @throws YarnException Yarn problems
+   * @throws IOException other problems
+   * @throws BadCommandArgumentsException bad arguments.
+   */
+  public int actionBuildClassic(String clustername,
+                           AbstractClusterBuildingActionArgs buildInfo) throws
+                                               YarnException,
+                                               IOException {
+
     // verify that a live cluster isn't there
     HoyaUtils.validateClusterName(clustername);
     verifyManagerSet();
@@ -602,12 +628,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     clusterSpec.state = ClusterDescription.STATE_CREATED;
     clusterSpec.save(hoyaFileSystem.getFileSystem(), clusterSpecPath, true);
     
-    
-    //now build the new style
-    String newcluster = clustername + "-ac";
-    Path newClusterDirectory = hoyaFileSystem.buildHoyaClusterDirPath(newcluster);
-    hoyaFileSystem.getFileSystem().delete(newClusterDirectory, true);
-    buildInstanceConfiguration(newcluster, buildInfo);
     return EXIT_SUCCESS;
   }
 
