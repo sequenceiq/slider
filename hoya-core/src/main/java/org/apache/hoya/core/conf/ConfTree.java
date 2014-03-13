@@ -38,6 +38,12 @@ import java.util.Map;
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public final class ConfTree {
 
+  /**
+   * Size of an initial map. This is kept low so the cost of having
+   * many conf trees in a process is low.
+   */
+  public static final int INITAL_MAP_CAPACITY=3;
+  
   protected static final Logger
     log = LoggerFactory.getLogger(ConfTree.class);
 
@@ -49,14 +55,15 @@ public final class ConfTree {
   /**
    * Metadata
    */
-  public Map<String, Object> metadata;
+  public Map<String, Object> metadata = new HashMap<String, Object>(
+    INITAL_MAP_CAPACITY);
 
 
   /**
    * Global options
    */
   public Map<String, String> global =
-    new HashMap<String, String>();
+    new HashMap<String, String>(INITAL_MAP_CAPACITY);
 
 
   /**
@@ -64,7 +71,7 @@ public final class ConfTree {
    * role -> option -> value
    */
   public Map<String, Map<String, String>> components =
-    new HashMap<String, Map<String, String>>();
+    new HashMap<String, Map<String, String>>(INITAL_MAP_CAPACITY);
 
 
   /**

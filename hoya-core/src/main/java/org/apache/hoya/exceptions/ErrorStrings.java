@@ -22,7 +22,8 @@ public interface ErrorStrings {
   String E_UNSTABLE_CLUSTER = "Unstable Cluster:";
   String E_CLUSTER_RUNNING = "cluster already running";
   String E_ALREADY_EXISTS = "already exists";
-  String PRINTF_E_ALREADY_EXISTS = "Hoya Cluster \"%s\" already exists and is defined in %s";
+  String PRINTF_E_INSTANCE_ALREADY_EXISTS = "Application Instance \"%s\" already exists and is defined in %s";
+  String PRINTF_E_INSTANCE_DIR_ALREADY_EXISTS = "Application Instance dir already exists: %s";
   String E_MISSING_PATH = "Missing path ";
   String E_INCOMPLETE_CLUSTER_SPEC =
     "Cluster specification is marked as incomplete: ";

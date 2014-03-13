@@ -22,6 +22,7 @@ import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.tools.HoyaUtils;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 

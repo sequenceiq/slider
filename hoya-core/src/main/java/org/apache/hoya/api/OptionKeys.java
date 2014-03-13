@@ -109,7 +109,28 @@ public interface OptionKeys {
   /**
    * hoya temp directory: {@value}
    */
-  String HOYA_TMP_DIR = "hoya.tmp.dir";
+  String INTERNAL_AM_TMP_DIR = "hoya.tmp.dir";
+
+  /**
+   * where a snapshot of the original conf dir is: {@value}
+   */
+  String INTERNAL_SNAPSHOT_CONF_PATH = "internal.snapshot.conf.path";
+  
+  /**
+   * where a snapshot of the original conf dir is: {@value}
+   */
+  String INTERNAL_GENERATED_CONF__PATH = "internal.generated.conf.path";
+  
+  /**
+   * where the .tar of an application is: {@value}
+   */
+  String INTERNAL_APP_PACKAGE_PATH = "internal.app.package.path";
+  
+  
+  /**
+   * where the homedir of an application is: {@value}
+   */
+  String INTERNAL_APP_HOME_DIR= "internal.app.home.dir";
   
   /**
    * Zookeeper quorum host list: {@value}

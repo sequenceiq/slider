@@ -530,7 +530,7 @@ class TestCommonArgParsing implements HoyaActions, Arguments {
         "master":["cheese":"french"],
         "worker":["env.CHEESE":"french"]
     ])
-    HoyaUtils.applyCommandLineOptsToRoleMap(clusterRoleMap, roleOpts);
+    HoyaUtils.applyCommandLineRoleOptsToRoleMap(clusterRoleMap, roleOpts);
 
     def masterOpts = clusterRoleMap["master"];
     assert masterOpts["cheese"] == "swiss"
@@ -549,7 +549,7 @@ class TestCommonArgParsing implements HoyaActions, Arguments {
         "master": ["cheese": "french"],
         "worker": ["env.CHEESE": "french"]
     ])
-    HoyaUtils.applyCommandLineOptsToRoleMap(clusterRoleMap, roleOpts);
+    HoyaUtils.applyCommandLineRoleOptsToRoleMap(clusterRoleMap, roleOpts);
 
     def workerOpts = Maps.newHashMap(clusterRoleMap["worker"])
     assert workerOpts["env.CHEESE"] == "stilton";

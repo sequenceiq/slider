@@ -596,7 +596,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
     String rolesTmpSubdir = appMasterContainerID.toString() + "/roles";
 
     String amTmpDir =
-      clusterSpec.getMandatoryOption(OptionKeys.HOYA_TMP_DIR);
+      clusterSpec.getMandatoryOption(OptionKeys.INTERNAL_AM_TMP_DIR);
 
     Path tmpDirPath = new Path(amTmpDir);
     Path launcherTmpDirPath = new Path(tmpDirPath, rolesTmpSubdir);

@@ -21,6 +21,8 @@ package org.apache.hoya.yarn.params;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
 import org.apache.hadoop.fs.Path;
+import org.apache.hoya.core.conf.ConfTree;
+import org.apache.hoya.core.conf.ConfTreeOperations;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.providers.HoyaProviderFactory;
 import org.apache.hoya.providers.hbase.HBaseConfigFileOptions;
@@ -150,5 +152,18 @@ public class AbstractClusterBuildingActionArgs extends AbstractActionArgs {
 
   public String getProvider() {
     return provider;
+  }
+  
+  public ConfTree buildConfTree() throws BadCommandArgumentsException {
+    ConfTree confTree = new ConfTree();
+    ConfTreeOperations ops = new ConfTreeOperations(confTree);
+    confTree.global.putAll(getOptionsMap());
+    Map<String, Map<String, String>> roleOptionMap = getRoleOptionMap();
+    for (Map.Entry<String, Map<String, String>> entry : roleOptionMap.entrySet()) {
+      String key = entry.getKey();
+      Map<String, String> value = entry.getValue();
+      ops.getOrAddComponent(key).putAll(value);
+    }
+    return confTree;
   }
 }

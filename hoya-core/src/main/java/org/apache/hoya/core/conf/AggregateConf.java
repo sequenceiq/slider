@@ -128,4 +128,20 @@ public final class AggregateConf {
     internalOperations.resolve();
     appConfOperations.resolve();
   }
+
+  /**
+   * string operation includes all the inner conftrees
+   * @return a string description
+   */
+  @Override
+  public String toString() {
+    final StringBuilder sb =
+      new StringBuilder("AggregateConf{");
+    sb.append("name='").append(name).append('\'');
+    sb.append("\nresources=").append(resources);
+    sb.append("\ninternal=").append(internal);
+    sb.append("\nappConf=").append(appConf);
+    sb.append('}');
+    return sb.toString();
+  }
 }

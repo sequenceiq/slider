@@ -86,21 +86,22 @@ class TestCreateMasterlessAM extends HBaseMiniClusterTestBase {
 
 
     String username = hoyaClient.username
+    def serviceRegistryClient = hoyaClient.serviceRegistryClient
     describe("list of all applications")
     logApplications(apps)
     describe("apps of user $username")
-    List<ApplicationReport> userInstances = hoyaClient.listHoyaInstances(username)
+    List<ApplicationReport> userInstances = serviceRegistryClient.listInstances()
     logApplications(userInstances)
     assert userInstances.size() == 1
     describe("named app $clustername")
-    ApplicationReport instance = hoyaClient.findInstance(username, clustername)
+    ApplicationReport instance = serviceRegistryClient.findInstance(clustername)
     logReport(instance)
     assert instance != null
 
     //now kill that cluster
     assert 0 == clusterActionFreeze(hoyaClient, clustername)
     //list it & See if it is still there
-    ApplicationReport oldInstance = hoyaClient.findInstance(clustername)
+    ApplicationReport oldInstance = serviceRegistryClient.findInstance(clustername)
     assert oldInstance != null
     assert oldInstance.yarnApplicationState >= YarnApplicationState.FINISHED
 
@@ -110,12 +111,12 @@ class TestCreateMasterlessAM extends HBaseMiniClusterTestBase {
     ApplicationId i2AppID = hoyaClient.applicationId
 
     //expect 2 in the list
-    userInstances = hoyaClient.listHoyaInstances(username)
+    userInstances = serviceRegistryClient.listInstances()
     logApplications(userInstances)
     assert userInstances.size() == 2
 
     //but when we look up an instance, we get the new App ID
-    ApplicationReport instance2 = hoyaClient.findInstance(username, clustername)
+    ApplicationReport instance2 = serviceRegistryClient.findInstance(clustername)
     assert i2AppID == instance2.applicationId
     
     
@@ -157,7 +158,7 @@ class TestCreateMasterlessAM extends HBaseMiniClusterTestBase {
     assert YarnApplicationState.FINISHED <= reportFor.yarnApplicationState
 
 
-    ApplicationReport instance3 = hoyaClient.findInstance(username, clustername)
+    ApplicationReport instance3 = serviceRegistryClient.findInstance(clustername)
     assert instance3.yarnApplicationState >= YarnApplicationState.FINISHED
 
 
