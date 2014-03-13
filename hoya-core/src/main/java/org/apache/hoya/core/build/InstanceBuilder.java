@@ -28,7 +28,6 @@ import org.apache.hoya.HoyaXmlConfKeys;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.StatusKeys;
 import org.apache.hoya.core.conf.AggregateConf;
-import org.apache.hoya.core.conf.ConfTree;
 import org.apache.hoya.core.conf.ConfTreeOperations;
 import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.core.persist.ConfPersister;
@@ -45,13 +44,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.Map;
 
-import static org.apache.hoya.api.OptionKeys.INTERNAL_AM_TMP_DIR;
-import static org.apache.hoya.api.OptionKeys.INTERNAL_APP_PACKAGE_PATH;
-import static org.apache.hoya.api.OptionKeys.INTERNAL_GENERATED_CONF__PATH;
-import static org.apache.hoya.api.OptionKeys.INTERNAL_SNAPSHOT_CONF_PATH;
-import static org.apache.hoya.api.OptionKeys.ZOOKEEPER_HOSTS;
-import static org.apache.hoya.api.OptionKeys.ZOOKEEPER_PATH;
-import static org.apache.hoya.api.OptionKeys.ZOOKEEPER_PORT;
+import static org.apache.hoya.api.OptionKeys.*;
 
 /**
  * Build up the instance of a cluster.
@@ -127,7 +120,7 @@ public class InstanceBuilder {
                     instancePaths.tmpPathAM.toUri());
     internalOps.set(INTERNAL_SNAPSHOT_CONF_PATH,
                     instancePaths.snapshotConfPath.toUri());
-    internalOps.set(INTERNAL_GENERATED_CONF__PATH,
+    internalOps.set(INTERNAL_GENERATED_CONF_PATH,
                     instancePaths.generatedConfPath.toUri());
   }
 
@@ -148,7 +141,7 @@ public class InstanceBuilder {
         throw new BadConfigException("Both application image path and home dir"
                                      + " have been provided");
       }
-      instanceConf.getInternalOperations().set(INTERNAL_APP_PACKAGE_PATH,
+      instanceConf.getInternalOperations().set(APPLICATION_HOME,
                                                appImage.toUri());
     } else {
       // the alternative is app home, which now MUST be set
@@ -157,7 +150,7 @@ public class InstanceBuilder {
         throw new BadConfigException(
           "No image path or home directory provided");
       }
-      instanceConf.getInternalOperations().set(INTERNAL_APP_PACKAGE_PATH,
+      instanceConf.getInternalOperations().set(APPLICATION_HOME,
                                                appHomeDir);
 
     }
@@ -165,8 +158,6 @@ public class InstanceBuilder {
 
   /**
    * Propagate any critical principals from the current site config down to the HBase one.
-   * @param clusterSpec cluster spec
-   * @param config config to read from
    */
   public void propagatePrincipals() {
     String dfsPrincipal = conf.get(DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY);
@@ -243,11 +234,4 @@ public class InstanceBuilder {
     globalAppOptions.put(ZOOKEEPER_PORT, Integer.toString(zkport));
   }
 
-  /**
-   * Merge in g
-   * @param options
-   */
-  public void mergeAppGlobalOptions(Map<String, String> options) {
-    instanceConf.getAppConfOperations().getGlobalOptions().putAll(options);
-  }
 }

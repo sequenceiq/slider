@@ -119,18 +119,7 @@ public interface OptionKeys {
   /**
    * where a snapshot of the original conf dir is: {@value}
    */
-  String INTERNAL_GENERATED_CONF__PATH = "internal.generated.conf.path";
-  
-  /**
-   * where the .tar of an application is: {@value}
-   */
-  String INTERNAL_APP_PACKAGE_PATH = "internal.app.package.path";
-  
-  
-  /**
-   * where the homedir of an application is: {@value}
-   */
-  String INTERNAL_APP_HOME_DIR= "internal.app.home.dir";
+  String INTERNAL_GENERATED_CONF_PATH = "internal.generated.conf.path";
   
   /**
    * Zookeeper quorum host list: {@value}
