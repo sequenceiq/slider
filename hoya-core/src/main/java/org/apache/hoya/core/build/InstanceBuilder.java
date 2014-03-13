@@ -126,11 +126,11 @@ public class InstanceBuilder {
     BuildHelper.addBuildInfo(internalOps.getGlobalOptions(), "create");
 
     internalOps.set(INTERNAL_AM_TMP_DIR,
-                    instancePaths.tmpPathAM.toUri().toString());
+                    instancePaths.tmpPathAM.toUri());
     internalOps.set(INTERNAL_SNAPSHOT_CONF_PATH,
-                    instancePaths.snapshotConfPath.toUri().toString());
+                    instancePaths.snapshotConfPath.toUri());
     internalOps.set(INTERNAL_GENERATED_CONF__PATH,
-                    instancePaths.generatedConfPath.toUri().toString());
+                    instancePaths.generatedConfPath.toUri());
   }
 
   /**
@@ -151,7 +151,7 @@ public class InstanceBuilder {
                                      + " have been provided");
       }
       instanceConf.getInternalOperations().set(INTERNAL_APP_PACKAGE_PATH,
-                                               appImage.toUri().toString());
+                                               appImage.toUri());
     } else {
       // the alternative is app home, which now MUST be set
       if (appHomeUnset) {

@@ -148,12 +148,12 @@ public class ConfTreeOperations {
   }
 
   /**
-   * Set a global option
+   * Set a global option, converting it to a string as needed
    * @param key key
    * @param value non null value
    */
-  public void set(String key, String value) {
-    globalOptions.put(key, value);
+  public void set(String key, Object value) {
+    globalOptions.put(key, value.toString());
   }
 
   /**
