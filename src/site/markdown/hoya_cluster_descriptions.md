@@ -58,7 +58,7 @@ on the command line -though other parameters cannot be appended.
 
 #### `hoya.container.failure.shortlife`
 
-An integer stating the time in seconds before which a failed container is
+An integer stating the time in milliseconds before which a failed container is
 considered 'short lived'.
 
 A failure of a short-lived container is treated as a sign of a problem with
