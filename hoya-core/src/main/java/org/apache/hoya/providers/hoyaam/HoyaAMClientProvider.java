@@ -62,7 +62,7 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
     LoggerFactory.getLogger(HoyaAMClientProvider.class);
   protected static final String NAME = "hoyaAM";
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
-  public static final String INSTANCE_RESOURCE_BASE = PROVIDER_RESOURCE_BASE +
+  public static final String INSTANCE_RESOURCE_BASE = PROVIDER_RESOURCE_BASE_ROOT +
                                                        "hoyaam/instance/";
   public static final String INTERNAL_JSON =
     INSTANCE_RESOURCE_BASE + "internal.json";

@@ -62,7 +62,7 @@ public class HBaseClientProvider extends AbstractClientProvider implements
     LoggerFactory.getLogger(HBaseClientProvider.class);
   protected static final String NAME = "hbase";
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
-  private static final String INSTANCE_RESOURCE_BASE = PROVIDER_RESOURCE_BASE +
+  private static final String INSTANCE_RESOURCE_BASE = PROVIDER_RESOURCE_BASE_ROOT +
                                                        "hbase/instance/";
 
 

@@ -42,6 +42,8 @@ public abstract class AbstractClientProvider extends Configured {
 
   public static final String PROVIDER_RESOURCE_BASE =
     "org/apache/hoya/providers/";
+  public static final String PROVIDER_RESOURCE_BASE_ROOT =
+    "/" + PROVIDER_RESOURCE_BASE;
 
   public AbstractClientProvider(Configuration conf) {
     super(conf);

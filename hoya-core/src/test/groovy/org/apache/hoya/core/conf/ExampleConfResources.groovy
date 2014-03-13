@@ -51,8 +51,10 @@ class ExampleConfResources {
   static {
     all_examples.each { all_example_resources << (PACKAGE + it) }
 
-    all_example_resources << HoyaAMClientProvider.RESOURCES_JSON <<
-        HoyaAMClientProvider.INTERNAL_JSON << HoyaAMClientProvider.APPCONF_JSON
+    all_example_resources <<
+        HoyaAMClientProvider.RESOURCES_JSON <<
+        HoyaAMClientProvider.INTERNAL_JSON << 
+        HoyaAMClientProvider.APPCONF_JSON
     
   }
 
