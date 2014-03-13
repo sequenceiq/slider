@@ -219,12 +219,36 @@
       <artifactId>hbase-server</artifactId>
       <classifier>tests</classifier>
     </dependency>
+    
     <dependency>
       <groupId>org.apache.bigtop.itest</groupId>
       <artifactId>itest-common</artifactId>
-      <version>${bigtop.version}</version>
     </dependency>
 
+    <dependency>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-minicluster</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-start</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-trace</artifactId>
+      <scope>test</scope>
+    </dependency>
+    
   </dependencies>
 
 

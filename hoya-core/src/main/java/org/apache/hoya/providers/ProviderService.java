@@ -61,8 +61,6 @@ public interface ProviderService extends ProviderCore, Service,
                                                                     IOException,
                                                                     HoyaException;
 
-  int getDefaultMasterInfoPort();
-
   /**
    * Execute a process in the AM
    * @param cd cluster description
@@ -113,13 +111,6 @@ public interface ProviderService extends ProviderCore, Service,
                                         File confDir,
                                         boolean secure
                                        ) throws IOException, HoyaException;
-
-  /**
-   * Initialize any monitoring logic -return true if monitoring
-   * has started/has any side effects
-   * @return 
-   */
-  boolean initMonitoring();
 
   /**
    * @param clusterSpec cluster specification

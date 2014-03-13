@@ -18,11 +18,9 @@
 
 package org.apache.hoya.providers;
 
-import org.apache.hoya.api.StatusKeys;
 import java.util.Collections;
 import java.net.URL;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.Abortable;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.yarn.service.launcher.ExitCodeProvider;
 import org.apache.hoya.HoyaKeys;
@@ -238,12 +236,6 @@ public abstract class AbstractProviderService
   }
 
 
-  @Override
-  public boolean initMonitoring() {
-    return false;
-  }
-
-
   /*
    * Build the provider status, can be empty
    * @return the provider status - map of entries to add to the info section
@@ -253,17 +245,6 @@ public abstract class AbstractProviderService
     return new HashMap<String, String>();
   }
 
-  public static class ProviderAbortable implements Abortable {
-    @Override
-    public void abort(String why, Throwable e) {
-    }
-
-    @Override
-    public boolean isAborted() {
-      return false;
-    }
-  }
-  
   /* non-javadoc
    * @see org.apache.hoya.providers.ProviderService#buildMonitorDetails()
    */

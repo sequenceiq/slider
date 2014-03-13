@@ -134,10 +134,6 @@ class MockProviderService implements ProviderService {
       ClusterDescription clusterSpec, Map<String,String> roleOptions) throws IOException, HoyaException {
   }
 
-  @Override
-  public int getDefaultMasterInfoPort() {
-    return 0;
-  }
 
   @Override
   public boolean exec(ClusterDescription cd, File confDir, Map<String,String> env, EventCallback execInProgress) throws IOException, HoyaException {
@@ -158,10 +154,6 @@ class MockProviderService implements ProviderService {
   public void validateApplicationConfiguration(ClusterDescription clusterSpec, File confDir, boolean secure) throws IOException, HoyaException {
   }
 
-  @Override
-  public boolean initMonitoring() {
-    return false;
-  }
 
   @Override
   public List<Probe> createProbes(ClusterDescription clusterSpec, String url, Configuration config, int timeout) throws IOException {

@@ -19,9 +19,7 @@
 package org.apache.hoya.providers.hbase;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hoya.HoyaKeys;
@@ -82,7 +80,7 @@ public class HBaseClientProvider extends AbstractProviderCore implements
 
   @Override
   public Configuration create(Configuration conf) {
-    return HBaseConfiguration.create(conf);
+    return conf;
   }
 
 
@@ -296,56 +294,6 @@ public class HBaseClientProvider extends AbstractProviderCore implements
                                     -1);
   }
 
-  /**
-   * Add HBase and its dependencies (only) to the job configuration.
-   * <p>
-   * This is intended as a low-level API, facilitating code reuse between this
-   * class and its mapred counterpart. It also of use to extenral tools that
-   * need to build a MapReduce job that interacts with HBase but want
-   * fine-grained control over the jars shipped to the cluster.
-   * </p>
-   *
-   * @see org.apache.hadoop.hbase.mapred.TableMapReduceUtil
-   * @see <a href="https://issues.apache.org/;jira/browse/PIG-3285">PIG-3285</a>
-   *
-   * @param providerResources provider resources to add resource to
-   * @param hoyaFileSystem filesystem
-   * @param libdir relative directory to place resources
-   * @param tempPath path in the cluster FS for temp files
-   * @throws IOException IO problems
-   * @throws HoyaException Hoya-specific issues
-   */
-  public static void addHBaseDependencyJars(Map<String, LocalResource> providerResources,
-                                            HoyaFileSystem hoyaFileSystem,
-                                            String libdir,
-                                            Path tempPath) throws
-                                                           IOException,
-                                                           HoyaException {
-    String[] jars =
-      {
-        "hbase-common.jar",
-        "hbase-protocol.jar",
-        "hbase-client.jar",
-        "zookeeper.jar",
-        "htrace-core.jar",
-      };
-    Class[] classes = {
-      // hbase-common
-      org.apache.hadoop.hbase.HConstants.class,
-      // hbase-protocol
-      org.apache.hadoop.hbase.protobuf.generated.ClientProtos.class,
-      // hbase-client
-      org.apache.hadoop.hbase.client.Put.class,
-      //zk
-      org.apache.zookeeper.ClientCnxn.class,
-      // HTrace
-      org.cloudera.htrace.Trace.class
-    };
-    ProviderUtils.addDependencyJars(providerResources, hoyaFileSystem, tempPath,
-                                    libdir, jars,
-                                    classes);
-  }
-
   @Override
   public Map<String, LocalResource> prepareAMAndConfigForLaunch(HoyaFileSystem hoyaFileSystem,
                                                                 Configuration serviceConf,
@@ -398,8 +346,6 @@ public class HBaseClientProvider extends AbstractProviderCore implements
     Map<String, LocalResource> providerResources;
     providerResources = hoyaFileSystem.submitDirectory(generatedConfDirPath,
                                        HoyaKeys.PROPAGATED_CONF_DIR_NAME);
-
-    addHBaseDependencyJars(providerResources, hoyaFileSystem,libdir, tempPath);
 
     return providerResources;
   }

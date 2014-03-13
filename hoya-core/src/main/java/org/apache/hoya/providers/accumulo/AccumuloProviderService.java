@@ -28,12 +28,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
+//import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -78,10 +75,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
   private AccumuloClientProvider clientProvider;
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
   
-  private String masterAddress = null, monitorAddress = null;
   private HoyaFileSystem hoyaFileSystem = null;
-  private ClusterDescription clusterSpec = null;
-  private ZooCache zooCache = null;
   
   public AccumuloProviderService() {
     super("accumulo");
@@ -97,11 +91,6 @@ public class AccumuloProviderService extends AbstractProviderService implements
   protected void serviceInit(Configuration conf) throws Exception {
     super.serviceInit(conf);
     clientProvider = new AccumuloClientProvider(conf);
-  }
-
-  @Override
-  public int getDefaultMasterInfoPort() {
-    return 0;
   }
 
   @Override
@@ -134,7 +123,6 @@ public class AccumuloProviderService extends AbstractProviderService implements
                                            IOException,
                                            BadConfigException {
     this.hoyaFileSystem = hoyaFileSystem;
-    this.clusterSpec = clusterSpec;
     
     // Set the environment
     Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
@@ -370,7 +358,6 @@ public class AccumuloProviderService extends AbstractProviderService implements
 
     watcher.waitForZKConnection(timeout);
     
-    zooCache = ZooCache.getInstance(zkQuorum, 5 * 1000);
   }
 
   @Override
@@ -383,60 +370,14 @@ public class AccumuloProviderService extends AbstractProviderService implements
   
   @Override
   public Map<String, String> buildProviderStatus() {
-    updateAccumuloInfo();
     
     Map<String,String> status = new HashMap<String, String>();
     
-    status.put(AccumuloKeys.MASTER_ADDRESS, this.masterAddress);
-    status.put(AccumuloKeys.MONITOR_ADDRESS, this.monitorAddress);
     
     return status;
   }
-  
 
-  @Override
-  public boolean initMonitoring() {
-    updateAccumuloInfo();
-    return true;
-  }
-  
-  private void updateAccumuloInfo() {
-    if (null == hoyaFileSystem || null == clusterSpec || null == zooCache) {
-      // Wait a while, the AM hasn't fully initialized things
-      return;
-    }
-    
-    String zkInstancePath;
-    try {
-      zkInstancePath = ZooUtil.getRoot(getInstanceId(hoyaFileSystem, clusterSpec));
-    } catch (IOException e) {
-      log.warn("Could not determine instanceID for Accumulo cluster {}", clusterSpec.name);
-      return;
-    }      
-    
-    byte[] masterData = ZooUtil.getLockData(zooCache, zkInstancePath + Constants.ZMASTER_LOCK);
-    if (null != masterData) {
-      this.masterAddress = new String(masterData, Constants.UTF8);
-    }
 
-    // TODO constant will exist in >=1.5.1
-    byte[] monitorData = zooCache.get(zkInstancePath + "/monitor/http_addr");
-    if (null != monitorData) {
-      this.monitorAddress = new String(monitorData, Constants.UTF8);
-    }
-  }
-  
-  private String getInstanceId(HoyaFileSystem hoyaFs, ClusterDescription cd) throws IOException {
-    // Should contain a single file whose name is the instance_id for this cluster
-    FileStatus[] children = hoyaFs.getFileSystem().listStatus(new Path(cd.dataPath, "instance_id"));
-    
-    if (1 != children.length) {
-      throw new IOException("Expected exactly one instance_id present, found " + children.length);
-    }
-    
-    return children[0].getPath().getName();
-  }
-  
   /* non-javadoc
    * @see org.apache.hoya.providers.ProviderService#buildMonitorDetails()
    */

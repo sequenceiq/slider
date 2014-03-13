@@ -74,4 +74,16 @@
     <value>ubuntu</value>
   </property>
 
+  <property>
+    <name>zk.home</name>
+    <description>zookeeper home dir -needed for accumulo</description>
+    <value>/home/stevel/zookeeper</value>
+  </property>
+  
+  <property>
+    <name>hadoop.home</name>
+    <description>hadoop home dir -needed for accumulo</description>
+    <value>/home/stevel/hadoop</value>
+  </property>
+
 </configuration>

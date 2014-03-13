@@ -19,36 +19,13 @@
 package org.apache.hoya.providers.hbase;
 
 
-import com.google.common.base.Preconditions;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.Abortable;
-import org.apache.hadoop.hbase.ClusterStatus;
-import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HConnection;
-import org.apache.hadoop.hbase.client.HConnectionManager;
-import org.apache.hadoop.hbase.zookeeper.MasterAddressTracker;
-import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hoya.HostAndPort;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.RoleKeys;
@@ -67,9 +44,21 @@ import org.apache.hoya.tools.ConfigHelper;
 import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
 import org.apache.hoya.yarn.service.EventCallback;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * This class implements the server-side aspects
@@ -79,8 +68,6 @@ public class HBaseProviderService extends AbstractProviderService implements
                                                                   ProviderCore,
                                                                   HBaseKeys,
                                                                   HoyaKeys {
-
-  private MasterAddressTracker masterTracker = null;
 
   public static final String ERROR_UNKNOWN_ROLE = "Unknown role ";
   protected static final Logger log =
@@ -103,11 +90,6 @@ public class HBaseProviderService extends AbstractProviderService implements
   protected void serviceInit(Configuration conf) throws Exception {
     super.serviceInit(conf);
     clientProvider = new HBaseClientProvider(conf);
-  }
-
-  @Override
-  public int getDefaultMasterInfoPort() {
-    return HBaseConfigFileOptions.DEFAULT_MASTER_INFO_PORT;
   }
 
   @Override
@@ -291,25 +273,6 @@ public class HBaseProviderService extends AbstractProviderService implements
     }
   }
 
-  @Override
-  public boolean initMonitoring() {
-    log.info("Starting HBaseProviderService monitoring");
-    startZKWatcher();
-    return true;
-  }
-
-  private void startZKWatcher() {
-    Preconditions.checkNotNull(siteConf);
-    try {
-      Abortable abortable = new ProviderAbortable();
-      ZooKeeperWatcher zkw =
-        new ZooKeeperWatcher(siteConf, "HBaseClient", abortable);
-      masterTracker = new MasterAddressTracker(zkw, abortable);
-    } catch (IOException ioe) {
-      log.error("Couldn't instantiate ZooKeeperWatcher", ioe);
-    }
-  }
-
 
   @Override
   public List<Probe> createProbes(ClusterDescription clusterSpec, String urlStr,
@@ -365,44 +328,8 @@ public class HBaseProviderService extends AbstractProviderService implements
    */
   public Map<String, String> buildProviderStatus() {
     Map<String, String> stats = new HashMap<String, String>();
-    try {
-      if (siteConf != null && masterTracker != null) {
-        ServerName sn = masterTracker.getMasterAddress(true);
-        log.info("getMasterAddress " + sn + ", quorum="
-                  + siteConf.get(HBaseConfigFileOptions.KEY_ZOOKEEPER_QUORUM));
-        if (sn == null) {
-          return stats;
-        }
-        HostAndPort hostAndPort = new HostAndPort(sn.getHostname(), sn.getPort());
-        stats.put(StatusKeys.INFO_MASTER_ADDRESS, hostAndPort.toString());
-      }
-    } catch (Exception e) {
-      log.warn("Failed to retrieve master ports", e);
-    }
+
     return stats;
-  }
-
-  public Collection<HostAndPort> listDeadServers(Configuration conf) throws
-                                                                     IOException {
-    HConnection hbaseConnection = HConnectionManager.createConnection(conf);
-    HBaseAdmin hBaseAdmin = new HBaseAdmin(hbaseConnection);
-    try {
-      ClusterStatus cs = hBaseAdmin.getClusterStatus();
-      return serverNameToHostAndPort(cs.getDeadServerNames());
-    } finally {
-      hBaseAdmin.close();
-      hbaseConnection.close();
-    }
-  }
-
-
-  private Collection<HostAndPort> serverNameToHostAndPort(Collection<ServerName> servers) {
-    Collection<HostAndPort> col = new ArrayList<HostAndPort>();
-    if (servers == null || servers.isEmpty()) return col;
-    for (ServerName sn : servers) {
-      col.add(new HostAndPort(sn.getHostname(), sn.getPort()));
-    }
-    return col;
   }
   
   /* non-javadoc
