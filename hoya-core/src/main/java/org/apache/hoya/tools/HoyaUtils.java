@@ -882,7 +882,8 @@ public final class HoyaUtils {
     }
     if (authUser.getAuthenticationMethod() ==
         UserGroupInformation.AuthenticationMethod.SIMPLE) {
-      throw new BadConfigException("Auth User is not Kerberized %s",
+      throw new BadConfigException("Auth User is not Kerberized %s" +
+                   " -security has already been set up with the wrong authentication method",
                                    authUser);
 
     }

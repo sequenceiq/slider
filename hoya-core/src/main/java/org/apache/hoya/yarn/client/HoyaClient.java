@@ -152,7 +152,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    */
   public HoyaClient() {
     // make sure all the yarn configs get loaded
-    new YarnConfiguration();
+    YarnConfiguration yarnConfiguration = new YarnConfiguration();
     log.debug("Hoya constructed");
   }
 
@@ -182,20 +182,20 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // init security with our conf
     if (HoyaUtils.isClusterSecure(conf)) {
       HoyaUtils.forceLogin();
-      addService(new SecurityCheckerService());
+      HoyaUtils.initProcessSecurity(conf);
     }
     //create the YARN client
     yarnClient = new HoyaYarnClientImpl();
     addService(yarnClient);
-    serviceRegistryClient =
-      new ServiceRegistryClient(yarnClient, getUsername(), conf);
+
     
     
     super.serviceInit(conf);
     
     //here the superclass is inited; getConfig returns a non-null value
     hoyaFileSystem = new HoyaFileSystem(conf);
-
+    serviceRegistryClient =
+      new ServiceRegistryClient(yarnClient, getUsername(), conf);
   }
 
   /**
