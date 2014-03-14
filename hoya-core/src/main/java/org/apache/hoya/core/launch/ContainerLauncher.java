@@ -30,6 +30,7 @@ import org.apache.hoya.tools.CoreFileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 
 /**
@@ -40,7 +41,7 @@ public class ContainerLauncher extends AbstractLauncher {
     LoggerFactory.getLogger(ContainerLauncher.class);
   // Allocated container
   public final Container container;
-  
+
   public ContainerLauncher(Configuration conf,
                            CoreFileSystem fs,
                            Container container) {
@@ -49,12 +50,12 @@ public class ContainerLauncher extends AbstractLauncher {
   }
 
   @Override
-  public ContainerLaunchContext completeContainerLaunch() {
+  public ContainerLaunchContext completeContainerLaunch() throws IOException {
     super.completeContainerLaunch();
     return containerLaunchContext;
   }
-  
-  private UserGroupInformation setupUGInfo() {
+
+  private UserGroupInformation setupUGI() {
     UserGroupInformation user =
       UserGroupInformation.createRemoteUser(container.getId().toString());
     String cmIpPortStr =
@@ -72,4 +73,5 @@ public class ContainerLauncher extends AbstractLauncher {
     }
     return user;
   }
+
 }

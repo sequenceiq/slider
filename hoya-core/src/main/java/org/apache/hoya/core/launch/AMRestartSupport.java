@@ -45,7 +45,7 @@ public class AMRestartSupport {
    * @param submissionContext context to query
    * @return true if the method was applied.
    */
-  
+
   public static boolean keepContainersAcrossSubmissions(
     ApplicationSubmissionContext submissionContext) {
     Method m = null;
@@ -92,7 +92,7 @@ public class AMRestartSupport {
         Object obj = m.invoke(response);
         if (obj instanceof List) {
           liveContainers = (List<Container>) obj;
-          
+
         }
       } catch (InvocationTargetException ite) {
         log.error(REGISTER_AM_RESPONSE + " got", ite);

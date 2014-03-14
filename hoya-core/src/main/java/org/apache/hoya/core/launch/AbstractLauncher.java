@@ -20,11 +20,15 @@ package org.apache.hoya.core.launch;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.io.DataOutputBuffer;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.util.Records;
+import org.apache.hoya.api.RoleKeys;
+import org.apache.hoya.core.conf.ConfTreeOperations;
 import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.tools.CoreFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
@@ -47,7 +51,7 @@ public abstract class AbstractLauncher extends Configured {
   /**
    * Filesystem to use for the launch
    */
-  protected final CoreFileSystem fs;
+  protected final CoreFileSystem coreFileSystem;
   /**
    * Env vars; set up at final launch stage
    */
@@ -60,16 +64,18 @@ public abstract class AbstractLauncher extends Configured {
     new HashMap<String, LocalResource>();
   private final Map<String, ByteBuffer> serviceData =
     new HashMap<String, ByteBuffer>();
-  private ByteBuffer tokens = null;
+  // security
+  Credentials credentials = new Credentials();
+
 
   protected AbstractLauncher(Configuration conf,
                              CoreFileSystem fs) {
     super(conf);
-    this.fs = fs;
+    this.coreFileSystem = fs;
   }
 
   public AbstractLauncher(CoreFileSystem fs) {
-    this.fs = fs;
+    this.coreFileSystem = fs;
   }
 
   /**
@@ -96,6 +102,19 @@ public abstract class AbstractLauncher extends Configured {
     return localResources;
   }
 
+  public void addLocalResource(String subpath, LocalResource resource) {
+    localResources.put(subpath, resource);
+  }
+
+  /**
+   * Add a set of local resources
+   * @param resourceMap map of name:resource to add
+   */
+  public void addLocalResources(Map<String, LocalResource> resourceMap) {
+    localResources.putAll(resourceMap);
+  }
+
+
   public Map<String, ByteBuffer> getServiceData() {
     return serviceData;
   }
@@ -108,33 +127,11 @@ public abstract class AbstractLauncher extends Configured {
     commands.add(cmd);
   }
 
-
-  /**
-   * Append the output and error files to the tail of the command
-   * @param stdout out
-   * @param stderr error
-   */
-  public void addOutAndErrFiles(String stdout, String stderr) {
-    // write out the path output
-    commands.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/" +
-                 stdout);
-    commands.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/" +
-                 stderr);
-  }
-
-  public void setTokens(ByteBuffer tokens) {
-    this.tokens = tokens;
-  }
-
-  public ByteBuffer getTokens() {
-    return tokens;
-  }
-
   /**
    * Complete the launch context (copy in env vars, etc).
    * @return the container to launch
    */
-  public ContainerLaunchContext completeContainerLaunch() {
+  public ContainerLaunchContext completeContainerLaunch() throws IOException {
     dumpLocalResources();
     String cmdStr = HoyaUtils.join(commands, " ");
     log.debug("Completed setting up container command {}", cmdStr);
@@ -142,7 +139,12 @@ public abstract class AbstractLauncher extends Configured {
     containerLaunchContext.setEnvironment(env);
     //service data
     containerLaunchContext.setServiceData(serviceData);
-    containerLaunchContext.setTokens(tokens);
+
+
+    DataOutputBuffer dob = new DataOutputBuffer();
+    credentials.writeTokenStorageToStream(dob);
+    ByteBuffer tokenBuffer = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
+    containerLaunchContext.setTokens(tokenBuffer);
 
 
     return containerLaunchContext;
@@ -170,9 +172,53 @@ public abstract class AbstractLauncher extends Configured {
    * data.
    * @throws IOException problems working with current user
    */
-  private void propagateUsernameInInsecureCluster() throws IOException {
+  protected void propagateUsernameInInsecureCluster() throws IOException {
     //insecure cluster: propagate user name via env variable
     String userName = UserGroupInformation.getCurrentUser().getUserName();
     env.put("HADOOP_USER_NAME", userName);
+  }
+
+  /**
+   * Extract any resource requirements from this component's settings.
+   * All fields that are set will override the existing values -if
+   * unset that resource field will be left unchanged.
+   *
+   * Important: the configuration must already be fully resolved 
+   * in order to pick up global options.
+   * @param resource resource to configure
+   * @param map map of options
+   */
+  public void extractResourceRequirements(Resource resource,
+                                          Map<String, String> map) {
+
+
+    if (map != null) {
+      MapOperations options = new MapOperations(map);
+      resource.setMemory(options.getOptionInt(RoleKeys.YARN_MEMORY,
+                                              resource.getMemory()));
+      resource.setVirtualCores(options.getOptionInt(RoleKeys.YARN_CORES,
+                                                    resource.getVirtualCores()));
+    }
+  }
+
+  /**
+   * Important: the configuration must already be fully resolved 
+   * in order to pick up global options
+   * Copy env vars into the launch context.
+   * @param ctree config tree to work from
+   */
+  public boolean copyEnvVars(ConfTreeOperations ctree, String component) {
+    MapOperations options = ctree.getComponentOperations(component);
+    if (options == null) {
+      return false;
+    }
+    for (Map.Entry<String, String> entry : options.entrySet()) {
+      String key = entry.getKey();
+      if (key.startsWith(RoleKeys.ENV_PREFIX)) {
+        key = key.substring(RoleKeys.ENV_PREFIX.length());
+        env.put(key, entry.getValue());
+      }
+    }
+    return true;
   }
 }

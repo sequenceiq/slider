@@ -19,6 +19,7 @@
 package org.apache.hoya.core.launch;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.Priority;
@@ -27,8 +28,12 @@ import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.hoya.tools.CoreFileSystem;
+import org.apache.hoya.tools.HoyaUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.Map;
 
 public class AppMasterLauncher extends AbstractLauncher {
 
@@ -41,21 +46,37 @@ public class AppMasterLauncher extends AbstractLauncher {
   private final String type;
   private final ApplicationSubmissionContext submissionContext;
   private final ApplicationId appId;
+  private final boolean secureCluster;
   private int maxAppAttempts = 2;
   private boolean keepContainersOverRestarts = true;
   private String queueName = YarnConfiguration.DEFAULT_QUEUE_NAME;
   private int queuePriority = 1;
   private final Resource resource = Records.newRecord(Resource.class);
 
+  /**
+   * Build the AM Launcher
+   * @param name app name
+   * @param type applicatin type
+   * @param conf hadoop config
+   * @param fs filesystem binding
+   * @param application precreated YARN client app instance
+   * @param secureCluster is the cluster secure?
+   * @param options map of options. All values are extracted in this constructor only
+   * -the map is not retained.
+   */
   public AppMasterLauncher(String name,
                            String type,
                            Configuration conf,
                            CoreFileSystem fs,
-                           YarnClientApplication application) {
+                           YarnClientApplication application,
+                           boolean secureCluster,
+                           Map<String, String> options
+                          ) {
     super(conf, fs);
     this.application = application;
     this.name = name;
     this.type = type;
+    this.secureCluster = secureCluster;
 
     submissionContext = application.getApplicationSubmissionContext();
     appId = submissionContext.getApplicationId();
@@ -63,6 +84,7 @@ public class AppMasterLauncher extends AbstractLauncher {
     submissionContext.setApplicationName(name);
     // app type used in service enum;
     submissionContext.setApplicationType(type);
+    extractResourceRequirements(resource, options);
 
   }
 
@@ -87,12 +109,34 @@ public class AppMasterLauncher extends AbstractLauncher {
     resource.setVirtualCores(cores);
   }
 
+  public ApplicationId getAppId() {
+    return appId;
+  }
+
+  public int getMaxAppAttempts() {
+    return maxAppAttempts;
+  }
+
+  public boolean isKeepContainersOverRestarts() {
+    return keepContainersOverRestarts;
+  }
+
+  public String getQueueName() {
+    return queueName;
+  }
+
+  public int getQueuePriority() {
+    return queuePriority;
+  }
+
   /**
    * Complete the launch context (copy in env vars, etc).
    * @return the container to launch
    */
-  public ApplicationSubmissionContext completeAppMasterLaunch() {
-    completeContainerLaunch();
+  public ApplicationSubmissionContext completeAppMasterLaunch() throws
+                                                                IOException {
+
+    submissionContext.setAMContainerSpec(containerLaunchContext);
 
     //queue priority
     Priority pri = Records.newRecord(Priority.class);
@@ -103,18 +147,44 @@ public class AppMasterLauncher extends AbstractLauncher {
     // Queue for App master
 
     submissionContext.setQueue(queueName);
-    
+
+
     //container requirements
-    submissionContext.setResource(getResource());
+    submissionContext.setResource(resource);
 
     if (keepContainersOverRestarts &&
         AMRestartSupport.keepContainersAcrossSubmissions(submissionContext)) {
       log.debug("Requesting cluster stays running over AM failure");
     }
 
-    submissionContext.setAMContainerSpec(containerLaunchContext);
+    submissionContext.setMaxAppAttempts(maxAppAttempts);
 
+    if (secureCluster) {
+      addSecurityTokens();
+    } else {
+      propagateUsernameInInsecureCluster();
+    }
+    completeContainerLaunch();
     return submissionContext;
 
+  }
+
+  /**
+   * Add the security tokens if this is a secure cluster
+   * @throws IOException
+   */
+  void addSecurityTokens() throws IOException {
+
+    String tokenRenewer = getConf().get(YarnConfiguration.RM_PRINCIPAL);
+    if (HoyaUtils.isUnset(tokenRenewer)) {
+      throw new IOException(
+        "Can't get Master Kerberos principal for the RM to use as renewer: "
+        + YarnConfiguration.RM_PRINCIPAL
+      );
+    }
+
+    // For now, only getting tokens for the default file-system.
+    FileSystem fs = coreFileSystem.getFileSystem();
+    fs.addDelegationTokens(tokenRenewer, credentials);
   }
 }
