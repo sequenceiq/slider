@@ -49,6 +49,11 @@ public class ContainerLauncher extends AbstractLauncher {
     this.container = container;
   }
 
+  /**
+   * This code is in the dist shell examples -it's been moved here
+   * so that if it is needed, it's still here
+   * @return a remote user with a token to access the container.
+   */
   public UserGroupInformation setupUGI() {
     UserGroupInformation user =
       UserGroupInformation.createRemoteUser(container.getId().toString());

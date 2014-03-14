@@ -32,7 +32,7 @@ public class CommandLineBuilder {
   protected final List<String> args = new ArrayList<String>(20);
 
 
-  public void addArg(String arg) {
+  public void add(String arg) {
     args.add(arg);
   }
 
@@ -43,7 +43,7 @@ public class CommandLineBuilder {
    */
   public void addOutAndErrFiles(String stdout, String stderr) {
     Preconditions.checkNotNull(stdout, "Null output file");
-    Preconditions.checkState(stdout.isEmpty(), "Empty output file");
+    Preconditions.checkState(!stdout.isEmpty(), "output filename invalid");
     // write out the path output
     args.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/" +
              stdout);
