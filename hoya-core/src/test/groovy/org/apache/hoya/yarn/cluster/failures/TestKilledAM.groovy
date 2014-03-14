@@ -30,15 +30,14 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.ResourceScheduler
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fifo.FifoScheduler
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
-import org.apache.hoya.HoyaXMLConfKeysForTesting
 import org.apache.hoya.HoyaXmlConfKeys
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.StatusKeys
+import org.apache.hoya.core.launch.AMRestartSupport
 import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.hoya.yarn.client.HoyaClient
 import org.apache.hoya.yarn.params.ActionAMSuicideArgs
 import org.apache.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
-import org.apache.hoya.yarn.service.HoyaServiceUtils
 import org.junit.Test
 
 /**
@@ -131,7 +130,7 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
         HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
 
     if (status.getInfoBool(StatusKeys.INFO_AM_RESTART_SUPPORTED)
-        && HoyaServiceUtils.AMRestartInHadoopLibrary) {
+        && AMRestartSupport.AMRestartInHadoopLibrary) {
 
       dumpClusterDescription("post-restart status", status)
       // verify the AM restart container count was set

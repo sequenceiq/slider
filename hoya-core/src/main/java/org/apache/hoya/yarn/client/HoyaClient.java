@@ -60,6 +60,7 @@ import org.apache.hoya.core.build.InstanceBuilder;
 import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.core.conf.ConfTree;
 import org.apache.hoya.core.conf.ConfTreeOperations;
+import org.apache.hoya.core.launch.AMRestartSupport;
 import org.apache.hoya.core.persist.LockAcquireFailedException;
 import org.apache.hoya.core.registry.ServiceRegistryClient;
 import org.apache.hoya.exceptions.BadClusterStateException;
@@ -95,7 +96,6 @@ import org.apache.hoya.yarn.params.ClientArgs;
 import org.apache.hoya.yarn.params.HoyaAMArgs;
 import org.apache.hoya.yarn.params.LaunchArgsAccessor;
 import org.apache.hoya.yarn.service.CompoundLaunchedService;
-import org.apache.hoya.yarn.service.HoyaServiceUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -810,7 +810,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     submissionContext.setMaxAppAttempts(config.getInt(KEY_HOYA_RESTART_LIMIT,
                                                       DEFAULT_HOYA_RESTART_LIMIT));
 
-    if (HoyaServiceUtils.keepContainersAcrossSubmissions(submissionContext)) {
+    if (AMRestartSupport.keepContainersAcrossSubmissions(submissionContext)) {
       log.info("Requesting cluster stays running over AM failure");
     }
 

@@ -65,6 +65,7 @@ import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.api.StatusKeys;
 import org.apache.hoya.api.proto.HoyaClusterAPI;
 import org.apache.hoya.api.proto.Messages;
+import org.apache.hoya.core.launch.AMRestartSupport;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
@@ -104,7 +105,6 @@ import org.apache.hoya.yarn.params.HoyaAMArgs;
 import org.apache.hoya.yarn.params.HoyaAMCreateAction;
 import org.apache.hoya.yarn.service.CompoundLaunchedService;
 import org.apache.hoya.yarn.service.EventCallback;
-import org.apache.hoya.yarn.service.HoyaServiceUtils;
 import org.apache.hoya.yarn.service.RpcService;
 import org.apache.hoya.yarn.service.WebAppService;
 import org.slf4j.Logger;
@@ -554,7 +554,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
       }
 
       // extract container list
-      List<Container> liveContainers = HoyaServiceUtils.retrieveContainersFromPreviousAttempt(
+      List<Container> liveContainers = AMRestartSupport.retrieveContainersFromPreviousAttempt(
         response);
       clusterSpec.setInfo(StatusKeys.INFO_AM_RESTART_SUPPORTED,
                           Boolean.toString(liveContainers != null));

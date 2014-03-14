@@ -21,14 +21,13 @@ package org.apache.hoya.funtest.hbase
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext
 import org.apache.hadoop.yarn.api.records.impl.pb.ApplicationSubmissionContextPBImpl
-import org.apache.hoya.HoyaXMLConfKeysForTesting
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.RoleKeys
 import org.apache.hoya.api.StatusKeys
+import org.apache.hoya.core.launch.AMRestartSupport
 import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.hoya.yarn.client.HoyaClient
 import org.apache.hoya.yarn.params.ActionKillContainerArgs
-import org.apache.hoya.yarn.service.HoyaServiceUtils
 
 import static org.apache.hoya.testtools.HBaseTestUtils.waitForHBaseRegionServerCount
 
@@ -104,7 +103,7 @@ class TestHBaseNodeFailure extends TestFunctionalHBaseCluster {
 
     ApplicationSubmissionContext ctx = new ApplicationSubmissionContextPBImpl()
 
-    def yarn_am_client_supports_restart = HoyaServiceUtils.keepContainersAcrossSubmissions(ctx)
+    def yarn_am_client_supports_restart = AMRestartSupport.keepContainersAcrossSubmissions(ctx)
     def amRestartSupported = status.getInfoBool(StatusKeys.INFO_AM_RESTART_SUPPORTED)
 
     if (yarn_am_client_supports_restart && amRestartSupported) {
