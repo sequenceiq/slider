@@ -30,6 +30,7 @@ import org.apache.hadoop.yarn.security.ContainerTokenIdentifier;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.hoya.api.ClusterDescription;
+import org.apache.hoya.core.launch.ContainerLauncher;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderService;
 import org.apache.hoya.tools.HoyaFileSystem;
@@ -148,11 +149,9 @@ public class RoleLaunchService extends AbstractService {
                                          clusterSpec,
                                          clusterSpec.getOrAddRole(roleName));
     launchThread(launcher,
-                 String.format("%s on %s:%d", roleName,
-                               container.getNodeId()
-                                        .getHost(),
-                               container.getNodeId()
-                                        .getPort()));
+                 String.format("%s-%s", roleName,
+                               container.getId().toString())
+                );
   }
 
 
@@ -249,20 +248,12 @@ public class RoleLaunchService extends AbstractService {
     public void run() {
       Exception ex = null;
       try {
-        UserGroupInformation user =
-          UserGroupInformation.createRemoteUser(container.getId().toString());
-        String cmIpPortStr =
-          container.getNodeId().getHost() + ":" + container.getNodeId().getPort();
-        final InetSocketAddress cmAddress =
-          NetUtils.createSocketAddr(cmIpPortStr);
+        ContainerLauncher containerLauncher = new ContainerLauncher(getConfig(),
+                                                                    fs,
+                                                                    container);
 
-        org.apache.hadoop.yarn.api.records.Token containerToken = container.getContainerToken();
-        if (containerToken != null) {
-          Token<ContainerTokenIdentifier> token =
-              ConverterUtils.convertFromYarn(containerToken,
-                cmAddress);
-          user.addToken(token);
-        }
+
+        containerLauncher.setupUGI();
 
         log.debug("Launching container {} into role {}",
                   container.getId(),
@@ -270,49 +261,46 @@ public class RoleLaunchService extends AbstractService {
 
         ContainerLaunchContext ctx = Records
           .newRecord(ContainerLaunchContext.class);
+
         //now build up the configuration data
         Path containerTmpDirPath =
           new Path(launcherTmpDirPath, container.getId().toString());
         provider.buildContainerLaunchContext(ctx,
-                                             container, containerRole, fs,
+                                             container,
+                                             containerRole,
+                                             fs,
                                              generatedConfDirPath,
                                              clusterSpec,
                                              roleOptions,
                                              containerTmpDirPath);
 
         RoleInstance instance = new RoleInstance(container);
-        log.info("Starting container with command: {}", 
-                 HoyaUtils.join(ctx.getCommands(),"\n"));
-        Map<String, LocalResource> lr = ctx.getLocalResources();
-        List<String> nodeEnv = new ArrayList<String>();
-        if (log.isDebugEnabled()) {
-          log.debug("{} resources: ", lr.size());
-          for (Map.Entry<String, LocalResource> entry : lr.entrySet()) {
 
-            String key = entry.getKey();
-            LocalResource val = entry.getValue();
-            String envElt = key + "=" + HoyaUtils.stringify(val.getResource());
-            log.debug(envElt);
-          }
-        }
-        
+        //extract these and feed back in to the container
+
+        Map<String, LocalResource> lr = ctx.getLocalResources();
+        containerLauncher.addLocalResources(lr);
+
         // complete setting up the environment
         Map<String, String> environment = ctx.getEnvironment();
-        environment.putAll(envVars);
-        log.debug("{} env variables: ", environment.size());
 
-        for (Map.Entry<String, String> env : environment.entrySet()) {
-          String envElt = String.format("%s=\"%s\"",
-                                        env.getKey(),
-                                        env.getValue());
-          log.debug(envElt);
-          nodeEnv.add(envElt);
-        }
-        instance.command = HoyaUtils.join(ctx.getCommands(), "; ");
+        containerLauncher.putEnv(environment);
+
+        String[] envDescription = containerLauncher.dumpEnvToString();
+
+        containerLauncher.addCommands(ctx.getCommands());
+
+        String commandsAsString = containerLauncher.getCommandsAsString();
+        log.info("Starting container with command: {}",
+                 commandsAsString);
+
+        instance.command = commandsAsString;
         instance.role = containerRole;
         instance.roleId = role.id;
-        instance.environment = nodeEnv.toArray(new String[nodeEnv.size()]);
-        containerStarter.startContainer(container, ctx, instance);
+        instance.environment = envDescription;
+        containerStarter.startContainer(container,
+                                        containerLauncher.completeContainerLaunch(),
+                                        instance);
       } catch (Exception e) {
         log.error(
           "Exception thrown while trying to start " + containerRole + ": " + e,

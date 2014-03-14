@@ -28,4 +28,9 @@
     <value>true</value>
   </property>
 
+  <property>
+    <name>site.hbase.cluster.distributed</name>
+    <value>true</value>
+  </property>
+
 </configuration>

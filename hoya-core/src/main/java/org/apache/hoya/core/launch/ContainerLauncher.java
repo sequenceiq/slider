@@ -49,13 +49,7 @@ public class ContainerLauncher extends AbstractLauncher {
     this.container = container;
   }
 
-  @Override
-  public ContainerLaunchContext completeContainerLaunch() throws IOException {
-    super.completeContainerLaunch();
-    return containerLaunchContext;
-  }
-
-  private UserGroupInformation setupUGI() {
+  public UserGroupInformation setupUGI() {
     UserGroupInformation user =
       UserGroupInformation.createRemoteUser(container.getId().toString());
     String cmIpPortStr =

@@ -20,6 +20,7 @@ package org.apache.hoya.core.launch;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -119,12 +120,17 @@ public abstract class AbstractLauncher extends Configured {
     return serviceData;
   }
 
-  public void setEnv(String var, String value) {
-    env.put(var, value);
-  }
 
   public void addCommand(String cmd) {
     commands.add(cmd);
+  }
+
+  public void addCommands(List<String> cmd) {
+    commands.addAll(cmd);
+  }
+
+  public String getCommandsAsString() {
+    return HoyaUtils.join(getCommands(), "; ");
   }
 
   /**
@@ -133,12 +139,16 @@ public abstract class AbstractLauncher extends Configured {
    */
   public ContainerLaunchContext completeContainerLaunch() throws IOException {
     dumpLocalResources();
+
     String cmdStr = HoyaUtils.join(commands, " ");
     log.debug("Completed setting up container command {}", cmdStr);
+    containerLaunchContext.setCommands(commands);
+
     //fix the env variables
     containerLaunchContext.setEnvironment(env);
     //service data
     containerLaunchContext.setServiceData(serviceData);
+    containerLaunchContext.setLocalResources(localResources);
 
 
     DataOutputBuffer dob = new DataOutputBuffer();
@@ -201,6 +211,15 @@ public abstract class AbstractLauncher extends Configured {
     }
   }
 
+
+  public void setEnv(String var, String value) {
+    env.put(var, value);
+  }
+
+  public void putEnv(Map<String, String> map) {
+    env.putAll(map);
+  }
+
   /**
    * Important: the configuration must already be fully resolved 
    * in order to pick up global options
@@ -221,4 +240,37 @@ public abstract class AbstractLauncher extends Configured {
     }
     return true;
   }
+
+  public String[] dumpEnvToString() {
+
+    List<String> nodeEnv = new ArrayList<String>();
+
+    for (Map.Entry<String, String> entry : env.entrySet()) {
+      String envElt = String.format("%s=\"%s\"",
+                                    entry.getKey(),
+                                    entry.getValue());
+      log.debug(envElt);
+      nodeEnv.add(envElt);
+    }
+    String[] envDescription = nodeEnv.toArray(new String[nodeEnv.size()]);
+
+    return envDescription;
+  }
+
+  /**
+   * Suubmit an entire directory
+   * @param srcDir src path in filesystem
+   * @param destRelativeDir relative path under destination local dir
+   * @throws IOException IO problems
+   */
+  public void submitDirectory(Path srcDir, String destRelativeDir) throws
+                                                                   IOException {
+    //add the configuration resources
+    Map<String, LocalResource> confResources;
+    confResources = coreFileSystem.submitDirectory(
+      srcDir,
+      destRelativeDir);
+    addLocalResources(confResources);
+  }
+
 }
