@@ -27,6 +27,7 @@ import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.core.conf.AggregateConf;
+import org.apache.hoya.core.launch.CommandLineBuilder;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
@@ -244,20 +245,20 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
    * @param clusterSpec spec
    */
   public void addJVMOptions(ClusterDescription clusterSpec,
-                            List<String> commands) {
-    commands.add(HoyaKeys.JVM_FORCE_IPV4);
-    commands.add(HoyaKeys.JVM_JAVA_HEADLESS);
+                            CommandLineBuilder cmdLine) {
+    cmdLine.add(HoyaKeys.JVM_FORCE_IPV4);
+    cmdLine.add(HoyaKeys.JVM_JAVA_HEADLESS);
     String heap = clusterSpec.getRoleOpt(ROLE_HOYA_AM,
                                          RoleKeys.JVM_HEAP,
                                          DEFAULT_JVM_HEAP);
     if (HoyaUtils.isSet(heap)) {
-      commands.add("-Xmx" + heap);
+      cmdLine.add("-Xmx" + heap);
     }
 
     String jvmopts = clusterSpec.getRoleOpt(ROLE_HOYA_AM,
                                             RoleKeys.JVM_OPTS, "");
     if (HoyaUtils.isSet(jvmopts)) {
-      commands.add(jvmopts);
+      cmdLine.add(jvmopts);
     }
 
   }

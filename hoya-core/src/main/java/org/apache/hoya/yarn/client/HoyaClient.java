@@ -61,6 +61,7 @@ import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.core.conf.ConfTree;
 import org.apache.hoya.core.conf.ConfTreeOperations;
 import org.apache.hoya.core.launch.AMRestartSupport;
+import org.apache.hoya.core.launch.CommandLineBuilder;
 import org.apache.hoya.core.persist.LockAcquireFailedException;
 import org.apache.hoya.core.registry.ServiceRegistryClient;
 import org.apache.hoya.exceptions.BadClusterStateException;
@@ -972,50 +973,51 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     }
 
     // build up the args list, intially as anyting
-    List<String> commands = new ArrayList<String>(20);
-    commands.add(ApplicationConstants.Environment.JAVA_HOME.$() + "/bin/java");
+    CommandLineBuilder commandLine = new CommandLineBuilder();
+    commandLine.add(ApplicationConstants.Environment.JAVA_HOME.$() + "/bin/java");
     // insert any JVM options);
-    hoyaAM.addJVMOptions(clusterSpec, commands);
+    hoyaAM.addJVMOptions(clusterSpec, commandLine);
     // enable asserts if the text option is set
     if (serviceArgs.isDebug()) {
-      commands.add(HoyaKeys.JVM_ENABLE_ASSERTIONS);
-      commands.add(HoyaKeys.JVM_ENABLE_SYSTEM_ASSERTIONS);
+      commandLine.add(HoyaKeys.JVM_ENABLE_ASSERTIONS);
+      commandLine.add(HoyaKeys.JVM_ENABLE_SYSTEM_ASSERTIONS);
     }
-    commands.add(String.format(HoyaKeys.FORMAT_D_CLUSTER_NAME, clustername));
-    commands.add(String.format(HoyaKeys.FORMAT_D_CLUSTER_TYPE, provider.getName()));
+    commandLine.add(String.format(HoyaKeys.FORMAT_D_CLUSTER_NAME, clustername));
+    commandLine.add(
+      String.format(HoyaKeys.FORMAT_D_CLUSTER_TYPE, provider.getName()));
     // add the hoya AM sevice entry point
-    commands.add(HoyaAMArgs.CLASSNAME);
+    commandLine.add(HoyaAMArgs.CLASSNAME);
 
     // create action and the cluster name
-    commands.add(HoyaActions.ACTION_CREATE);
-    commands.add(clustername);
+    commandLine.add(HoyaActions.ACTION_CREATE);
+    commandLine.add(clustername);
 
     // debug
     if (serviceArgs.isDebug()) {
-      commands.add(Arguments.ARG_DEBUG);
+      commandLine.add(Arguments.ARG_DEBUG);
     }
     
     // set the cluster directory path
-    commands.add(Arguments.ARG_HOYA_CLUSTER_URI);
-    commands.add(clusterDirectory.toUri().toString());
+    commandLine.add(Arguments.ARG_HOYA_CLUSTER_URI);
+    commandLine.add(clusterDirectory.toUri().toString());
 
     if (!isUnset(rmAddr)) {
-      commands.add(Arguments.ARG_RM_ADDR);
-      commands.add(rmAddr);
+      commandLine.add(Arguments.ARG_RM_ADDR);
+      commandLine.add(rmAddr);
     }
 
     if (serviceArgs.getFilesystemURL() != null) {
-      commands.add(Arguments.ARG_FILESYSTEM);
-      commands.add(serviceArgs.getFilesystemURL().toString());
+      commandLine.add(Arguments.ARG_FILESYSTEM);
+      commandLine.add(serviceArgs.getFilesystemURL().toString());
     }
 
     if (clusterSecure) {
       // if the cluster is secure, make sure that
       // the relevant security settings go over
-      propagateConfOption(commands,
+      propagateConfOption(commandLine,
                           config,
                           HoyaXmlConfKeys.KEY_HOYA_SECURITY_ENABLED);
-      propagateConfOption(commands,
+      propagateConfOption(commandLine,
                           config,
                           DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY);
       Credentials credentials = new Credentials();
@@ -1045,15 +1047,12 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       env.put(HADOOP_USER_NAME, userName);
     }
     // write out the path output
-    commands.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/"+
-                 STDOUT_HOYAAM);
-    commands.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/"+
-                 STDERR_HOYAAM);
+    commandLine.addOutAndErrFiles(STDOUT_HOYAAM, STDERR_HOYAAM);
 
-    String cmdStr = HoyaUtils.join(commands, " ");
+    String cmdStr = commandLine.build();
     log.info("Completed setting up app master command {}", cmdStr);
 
-    amContainer.setCommands(commands);
+    amContainer.setCommands(commandLine.getArgumentList());
     //fix the env variables
     amContainer.setEnvironment(env);
     // Set up resource type requirements
@@ -1149,12 +1148,12 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   }
 
 
-  private void propagateConfOption(List<String> command, Configuration conf,
+  private void propagateConfOption(CommandLineBuilder cmdLine, Configuration conf,
                                    String key) {
     String val = conf.get(key);
     if (val != null) {
-      command.add(Arguments.ARG_DEFINE);
-      command.add(key + "=" + val);
+      cmdLine.add(Arguments.ARG_DEFINE);
+      cmdLine.add(key + "=" + val);
     }
   }
 

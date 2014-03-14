@@ -29,11 +29,11 @@ import java.util.List;
  * Build a single command line to include in the container commands;
  */
 public class CommandLineBuilder {
-  protected final List<String> args = new ArrayList<String>(20);
+  protected final List<String> argumentList = new ArrayList<String>(20);
 
 
   public void add(String arg) {
-    args.add(arg);
+    argumentList.add(arg);
   }
 
   /**
@@ -45,13 +45,13 @@ public class CommandLineBuilder {
     Preconditions.checkNotNull(stdout, "Null output file");
     Preconditions.checkState(!stdout.isEmpty(), "output filename invalid");
     // write out the path output
-    args.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/" +
+    argumentList.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/" +
              stdout);
     if (stderr != null) {
-      args.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/" +
+      argumentList.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/" +
                stderr);
     } else {
-      args.add("2>&1");
+      argumentList.add("2>&1");
     }
   }
 
@@ -70,6 +70,10 @@ public class CommandLineBuilder {
    * @return the command line
    */
   public String build() {
-    return HoyaUtils.join(args, " ");
+    return HoyaUtils.join(argumentList, " ");
+  }
+
+  public List<String> getArgumentList() {
+    return argumentList;
   }
 }
