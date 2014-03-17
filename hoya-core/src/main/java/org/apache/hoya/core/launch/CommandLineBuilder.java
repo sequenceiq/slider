@@ -32,10 +32,33 @@ public class CommandLineBuilder {
   protected final List<String> argumentList = new ArrayList<String>(20);
 
 
-  public void add(String arg) {
+  /**
+   * Add an entry to the command list
+   * @param arg argument
+   * @return the argument
+   */
+  public String add(String arg) {
     argumentList.add(arg);
+    return arg;
   }
 
+  /**
+   * Get the value at an offset
+   * @param offset offset
+   * @return the value at that point
+   */
+  public String elt(int offset) {
+    return argumentList.get(offset);
+  }
+
+  /**
+   * Get the number of arguments
+   * @return an integer >= 0
+   */
+  public int size() {
+    return argumentList.size();
+  }
+  
   /**
    * Append the output and error files to the tail of the command
    * @param stdout out
@@ -76,4 +99,6 @@ public class CommandLineBuilder {
   public List<String> getArgumentList() {
     return argumentList;
   }
+  
+  
 }

@@ -22,6 +22,7 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hoya.HoyaKeys
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.RoleKeys
+import org.apache.hoya.core.launch.CommandLineBuilder
 import org.apache.hoya.providers.ProviderRole
 import org.apache.hoya.providers.hoyaam.HoyaAMClientProvider
 import org.apache.hoya.tools.ConfigHelper
@@ -30,7 +31,8 @@ import org.apache.hoya.yarn.HoyaTestBase
 import org.junit.Before
 import org.junit.Test
 
-class TestHoyaAMCommandSetup extends HoyaTestBase implements RoleKeys, HoyaKeys{
+class TestHoyaAMCommandSetup extends HoyaTestBase
+    implements RoleKeys, HoyaKeys {
   public static final int JVM_HEAP_INDEX = 2
   public static final int JVM_OPT_INDEX = JVM_HEAP_INDEX + 1
   private ClusterDescription clusterSpec
@@ -62,39 +64,37 @@ class TestHoyaAMCommandSetup extends HoyaTestBase implements RoleKeys, HoyaKeys{
     roleConf = ConfigHelper.loadMandatoryResource(
         HoyaAMClientProvider.AM_ROLE_CONFIG_RESOURCE);
   }
-  
+
   @Test
   public void testDefaultJVMHeap() throws Throwable {
-    List<String> commands = [];
-    hoyaAM.addJVMOptions(clusterSpec,commands)
-    assert commands[JVM_HEAP_INDEX] == "-Xmx" + roleConf.get(JVM_HEAP)
-    assert commands.size() == JVM_HEAP_INDEX +1
+    CommandLineBuilder commands = new CommandLineBuilder();
+    hoyaAM.addJVMOptions(clusterSpec, commands)
+    assert commands.elt(JVM_HEAP_INDEX) == "-Xmx" + roleConf.get(JVM_HEAP)
+    assert commands.size() == JVM_HEAP_INDEX + 1
   }
-  
+
   @Test
   public void testEmptyJVMHeap() throws Throwable {
-    List<String> commands = [];
+    CommandLineBuilder commands = new CommandLineBuilder();
     clusterSpec.setRoleOpt(ROLE_HOYA_AM, JVM_HEAP, "")
-    hoyaAM.addJVMOptions(clusterSpec,commands)
-    assert commands.size() == JVM_HEAP_INDEX 
+    hoyaAM.addJVMOptions(clusterSpec, commands)
+    assert commands.size() == JVM_HEAP_INDEX
   }
-    
+
   @Test
   public void testUpdatedJVMHeap() throws Throwable {
-    List<String> commands = [];
+    CommandLineBuilder commands = new CommandLineBuilder();
     clusterSpec.setRoleOpt(ROLE_HOYA_AM, JVM_HEAP, "1G")
-    hoyaAM.addJVMOptions(clusterSpec,commands)
-    assert commands[JVM_HEAP_INDEX] == "-Xmx1G" 
+    hoyaAM.addJVMOptions(clusterSpec, commands)
+    assert commands.elt(JVM_HEAP_INDEX) == "-Xmx1G"
   }
-  
-      
+
   @Test
   public void testJVMOpts() throws Throwable {
-    List<String> commands = [];
+    CommandLineBuilder commands = new CommandLineBuilder();
     clusterSpec.setRoleOpt(ROLE_HOYA_AM, JVM_OPTS, "-Dsecurity.disabled=true")
-    hoyaAM.addJVMOptions(clusterSpec,commands)
-    assert commands[JVM_OPT_INDEX] == "-Dsecurity.disabled=true"
+    hoyaAM.addJVMOptions(clusterSpec, commands)
+    assert commands.elt(JVM_OPT_INDEX) == "-Dsecurity.disabled=true"
   }
-  
-  
+
 }
