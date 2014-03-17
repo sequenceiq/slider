@@ -23,9 +23,13 @@ import org.apache.hoya.core.conf.ConfTree;
 import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.providers.HoyaProviderFactory;
+import org.apache.hoya.providers.hbase.HBaseConfigFileOptions;
 import org.apache.hoya.tools.HoyaUtils;
-
 import java.util.Map;
+
+import static org.apache.hoya.api.OptionKeys.ZOOKEEPER_HOSTS;
+import static org.apache.hoya.api.OptionKeys.ZOOKEEPER_PATH;
+import static org.apache.hoya.api.OptionKeys.ZOOKEEPER_PORT;
 
 /**
  * Operations on Cluster Descriptions
@@ -57,8 +61,20 @@ public class ClusterDescriptionOperations {
     cd.state = ClusterDescription.STATE_LIVE;
     MapOperations internalOptions =
       aggregateConf.getInternalOperations().getGlobalOptions();
-    cd.type = internalOptions.getOption(OptionKeys.APPLICATION_TYPE,
+
+    cd.type = internalOptions.getOption(OptionKeys.INTERNAL_PROVIDER_NAME,
                                 HoyaProviderFactory.DEFAULT_CLUSTER_TYPE);
+
+    cd.dataPath = internalOptions.get(OptionKeys.INTERNAL_DATA_DIR_PATH);
+    cd.name = internalOptions.get(OptionKeys.APPLICATION_NAME);
+    cd.originConfigurationPath = internalOptions.get(OptionKeys.INTERNAL_SNAPSHOT_CONF_PATH);
+    cd.generatedConfigurationPath = internalOptions.get(OptionKeys.INTERNAL_GENERATED_CONF_PATH);
+    cd.setImagePath(internalOptions.get(OptionKeys.APPLICATION_IMAGE_PATH));
+    cd.setApplicationHome(internalOptions.get(OptionKeys.APPLICATION_HOME));
+    cd.setZkPath(internalOptions.get(ZOOKEEPER_PATH));
+    cd.setZkPort(internalOptions.getOptionInt(ZOOKEEPER_PORT,
+                                              HBaseConfigFileOptions.HBASE_ZK_PORT));
+    cd.setZkHosts(internalOptions.get(ZOOKEEPER_HOSTS));
     
     return cd;
   }

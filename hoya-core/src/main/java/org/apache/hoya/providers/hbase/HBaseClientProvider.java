@@ -211,17 +211,9 @@ public class HBaseClientProvider extends AbstractClientProvider implements
 */
 
 
-    sitexml.put(KEY_HBASE_CLUSTER_DISTRIBUTED, "true");
-    sitexml.put(KEY_HBASE_MASTER_PORT, "0");
-
-    sitexml.put(KEY_HBASE_MASTER_INFO_PORT, master.get(
-      RoleKeys.APP_INFOPORT));
     sitexml.put(KEY_HBASE_ROOTDIR,
                 globalInstanceOptions.getMandatoryOption(
                   OptionKeys.INTERNAL_DATA_DIR_PATH) );
-    sitexml.put(KEY_REGIONSERVER_INFO_PORT,
-                worker.get(RoleKeys.APP_INFOPORT));
-    sitexml.put(KEY_REGIONSERVER_PORT, "0");
     providerUtils.propagateOption(globalAppOptions, OptionKeys.ZOOKEEPER_PATH,
                                   sitexml, KEY_ZNODE_PARENT);
     providerUtils.propagateOption(globalAppOptions, OptionKeys.ZOOKEEPER_PORT,

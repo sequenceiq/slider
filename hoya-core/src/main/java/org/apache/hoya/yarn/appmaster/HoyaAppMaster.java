@@ -59,12 +59,15 @@ import org.apache.hadoop.yarn.webapp.WebApps;
 import org.apache.hoya.HoyaExitCodes;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
+import org.apache.hoya.api.ClusterDescriptionOperations;
 import org.apache.hoya.api.HoyaClusterProtocol;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.api.StatusKeys;
 import org.apache.hoya.api.proto.HoyaClusterAPI;
 import org.apache.hoya.api.proto.Messages;
+import org.apache.hoya.core.build.InstanceLoader;
+import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.core.launch.AMRestartSupport;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.BadConfigException;
@@ -147,9 +150,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
   /**
    * log for YARN events
    */
-  protected static final Logger LOG_YARN =
-    LoggerFactory.getLogger(
-      "org.apache.hoya.yarn.appmaster.HoyaAppMaster.yarn");
+  protected static final Logger LOG_YARN = log;
 
   /**
    * time to wait from shutdown signal being rx'd to telling
@@ -384,13 +385,18 @@ public class HoyaAppMaster extends CompoundLaunchedService
     Path clusterSpecPath =
       new Path(clusterDirPath, HoyaKeys.CLUSTER_SPECIFICATION_FILE);
     HoyaFileSystem fs = getClusterFS();
-    ClusterDescription.verifyClusterSpecExists(clustername,
-                                               fs.getFileSystem(),
-                                               clusterSpecPath);
 
-    ClusterDescription clusterSpec = ClusterDescription.load(fs.getFileSystem(), clusterSpecPath);
+    AggregateConf instanceDefinition =
+      InstanceLoader.loadInstanceDefinition(fs, clusterDirPath);
 
-    log.info("Deploying cluster from {}:", clusterSpecPath);
+    log.info("Deploying cluster {}:", instanceDefinition);
+
+
+    ClusterDescription clusterSpec;
+    clusterSpec =
+      ClusterDescriptionOperations.buildFromAggregateConf(instanceDefinition);
+//    clusterSpec = ClusterDescription.load(fs.getFileSystem(), clusterSpecPath);
+
     log.info(clusterSpec.toString());
     File confDir = getLocalConfDir();
     if (!confDir.exists() || !confDir.isDirectory()) {

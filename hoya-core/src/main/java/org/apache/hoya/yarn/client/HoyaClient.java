@@ -48,6 +48,7 @@ import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.api.StatusKeys;
 import org.apache.hoya.api.proto.Messages;
 import org.apache.hoya.core.build.InstanceBuilder;
+import org.apache.hoya.core.build.InstanceLoader;
 import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.core.conf.ConfTree;
 import org.apache.hoya.core.conf.ConfTreeOperations;
@@ -1089,18 +1090,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                           YarnException,
                                                           IOException {
     Path clusterDirectory = hoyaFileSystem.buildHoyaClusterDirPath(clustername);
-    AggregateConf instanceDefinition = new AggregateConf();
-    ConfPersister persister =
-      new ConfPersister(hoyaFileSystem, clusterDirectory);
-    try {
-      persister.load(instanceDefinition);
-    } catch (LockAcquireFailedException e) {
-      log.debug("Lock acquisition failure of {}", clusterDirectory, e);
-      
-      throw new BadClusterStateException(
-        "Application at %s is locked for reading",
-        clusterDirectory.toString());
-    }
+    AggregateConf instanceDefinition = loadInstanceDefinition(clusterDirectory);
 
     LaunchedApplication launchedApplication =
       launchApplication(clustername, clusterDirectory, instanceDefinition,
@@ -1108,6 +1098,14 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     applicationId = launchedApplication.getApplicationId();
 
     return waitForAppAccepted(launchedApplication, launchArgs.getWaittime());
+  }
+
+  private AggregateConf loadInstanceDefinition(Path clusterDirectory) throws
+                                                                      IOException,
+                                                                      HoyaException {
+
+    return InstanceLoader.loadInstanceDefinition(hoyaFileSystem,
+                                                 clusterDirectory);
   }
 
 
@@ -1279,7 +1277,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                        libdir,
                                        tempPath);
     //add provider-specific resources
-    provider.prepareAMAndConfigForLaunch(hoyaFileSystem, 
+    provider.prepareAMAndConfigForLaunch(hoyaFileSystem,
                                          config,
                                          amLauncher,
                                          instanceDefinition,

@@ -113,7 +113,8 @@ public class InstanceBuilder {
     md.put(StatusKeys.INFO_CREATE_TIME_HUMAN, HoyaUtils.toGMTString(time));
     md.put(StatusKeys.INFO_CREATE_TIME_MILLIS, Long.toString(time));
 
-    BuildHelper.addBuildInfo(internalOps.getGlobalOptions(), "create");
+    MapOperations globalOptions = internalOps.getGlobalOptions();
+    BuildHelper.addBuildInfo(globalOptions, "create");
 
     internalOps.set(INTERNAL_AM_TMP_DIR,
                     instancePaths.tmpPathAM.toUri());
@@ -125,8 +126,8 @@ public class InstanceBuilder {
                     instancePaths.dataPath.toUri());
 
 
-    internalOps.getGlobalOptions().put(OptionKeys.INTERNAL_PROVIDER_NAME,
-                                       provider);
+    internalOps.set(OptionKeys.INTERNAL_PROVIDER_NAME, provider);
+    internalOps.set(OptionKeys.APPLICATION_NAME, clustername);
 
   }
 
@@ -242,9 +243,14 @@ public class InstanceBuilder {
     if (HoyaUtils.isSet(zkhosts)) {
       MapOperations globalAppOptions =
         instanceConf.getAppConfOperations().getGlobalOptions();
+      MapOperations globalInternalOptions =
+        instanceConf.getAppConfOperations().getGlobalOptions();
       globalAppOptions.put(ZOOKEEPER_PATH, zookeeperRoot);
       globalAppOptions.put(ZOOKEEPER_HOSTS, zkhosts);
       globalAppOptions.put(ZOOKEEPER_PORT, Integer.toString(zkport));
+      globalInternalOptions.put(ZOOKEEPER_PATH, zookeeperRoot);
+      globalInternalOptions.put(ZOOKEEPER_HOSTS, zkhosts);
+      globalInternalOptions.put(ZOOKEEPER_PORT, Integer.toString(zkport));
     }
   }
 
