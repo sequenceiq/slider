@@ -27,6 +27,8 @@ import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.core.conf.AggregateConf;
+import org.apache.hoya.core.conf.MapOperations;
+import org.apache.hoya.core.launch.AbstractLauncher;
 import org.apache.hoya.core.launch.CommandLineBuilder;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.BadConfigException;
@@ -223,6 +225,32 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
                      JCOMMANDER_JAR);
     return providerResources;
   }
+  
+  /**
+   * The Hoya AM sets up all the dependency JARs above hoya.jar itself
+   * {@inheritDoc}
+   */
+  public void prepareAMAndConfigForLaunch(HoyaFileSystem hoyaFileSystem,
+                                                                Configuration serviceConf,
+                                                                AbstractLauncher launcher,
+                                                                AggregateConf instanceDescription,
+                                                                Path originConfDirPath,
+                                                                Path generatedConfDirPath,
+                                                                Configuration clientConfExtras,
+                                                                String libdir,
+                                                                Path tempPath)
+    throws IOException, HoyaException {
+    
+    Map<String, LocalResource> providerResources =
+      new HashMap<String, LocalResource>();
+    HoyaUtils.putJar(providerResources,
+                     hoyaFileSystem,
+                     JCommander.class,
+                     tempPath,
+                     libdir,
+                     JCOMMANDER_JAR);
+    launcher.addLocalResources(providerResources);
+  }
 
   /**
    * Update the AM resource with any local needs
@@ -231,12 +259,22 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
   @Override
   public void prepareAMResourceRequirements(ClusterDescription clusterSpec,
                                             Resource capability) {
-    capability.setMemory(clusterSpec.getRoleOptInt(
-      HoyaKeys.ROLE_HOYA_AM,
+    MapOperations ops =
+      new MapOperations(clusterSpec.getOrAddRole(ROLE_HOYA_AM));
+    prepareAMResourceRequirements(ops, capability);
+  }
+
+  /**
+   * Update the AM resource with any local needs
+   * @param capability capability to update
+   */
+  public void prepareAMResourceRequirements(MapOperations hoyaAM,
+                                            Resource capability) {
+    capability.setMemory(hoyaAM.getOptionInt(
       RoleKeys.YARN_MEMORY,
       capability.getMemory()));
-    capability.setVirtualCores(clusterSpec.getRoleOptInt(
-      HoyaKeys.ROLE_HOYA_AM, RoleKeys.YARN_CORES, capability.getVirtualCores()));
+    capability.setVirtualCores(
+      hoyaAM.getOptionInt(RoleKeys.YARN_CORES, capability.getVirtualCores()));
   }
 
   /**
@@ -246,22 +284,34 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
    */
   public void addJVMOptions(ClusterDescription clusterSpec,
                             CommandLineBuilder cmdLine) {
+    MapOperations ops = new MapOperations(clusterSpec.getOrAddRole(ROLE_HOYA_AM));
+    addJVMOptions(ops, cmdLine);
+  }
+  
+  
+  /**
+   * Extract any JVM options from the cluster specification and
+   * add them to the command line
+   * @param clusterSpec spec
+   */
+  public void addJVMOptions(MapOperations hoyaAM,
+                            CommandLineBuilder cmdLine) {
     cmdLine.add(HoyaKeys.JVM_FORCE_IPV4);
     cmdLine.add(HoyaKeys.JVM_JAVA_HEADLESS);
-    String heap = clusterSpec.getRoleOpt(ROLE_HOYA_AM,
-                                         RoleKeys.JVM_HEAP,
+    String heap = hoyaAM.getOption(RoleKeys.JVM_HEAP,
                                          DEFAULT_JVM_HEAP);
     if (HoyaUtils.isSet(heap)) {
       cmdLine.add("-Xmx" + heap);
     }
 
-    String jvmopts = clusterSpec.getRoleOpt(ROLE_HOYA_AM,
-                                            RoleKeys.JVM_OPTS, "");
+    String jvmopts = hoyaAM.getOption(RoleKeys.JVM_OPTS, "");
     if (HoyaUtils.isSet(jvmopts)) {
       cmdLine.add(jvmopts);
     }
-
   }
+  
+  
+  
 
   /**
    * Any operations to the service data before launching the AM

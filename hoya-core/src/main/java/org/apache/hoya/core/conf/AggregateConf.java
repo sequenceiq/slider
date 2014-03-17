@@ -45,6 +45,11 @@ public final class AggregateConf {
     this(new ConfTree(), new ConfTree(), new ConfTree());
   }
 
+  public AggregateConf(String name) {
+    this(new ConfTree(), new ConfTree(), new ConfTree());
+    this.name = name;
+  }
+
   public AggregateConf(ConfTree resources,
                        ConfTree appConf,
                        ConfTree internal) {

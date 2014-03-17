@@ -94,6 +94,15 @@ public class CoreFileSystem {
     return fileSystem;
   }
 
+  @Override
+  public String toString() {
+    final StringBuilder sb =
+      new StringBuilder("CoreFileSystem{");
+    sb.append("fileSystem=").append(fileSystem.getUri());
+    sb.append('}');
+    return sb.toString();
+  }
+
   /**
    * Build up the path string for a cluster instance -no attempt to
    * create the directory is made

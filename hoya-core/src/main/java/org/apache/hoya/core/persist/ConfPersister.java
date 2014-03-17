@@ -102,9 +102,8 @@ public class ConfPersister {
    * @throws LockAcquireFailedException
    */
   @VisibleForTesting
-  void acquireWritelock() throws
-                                  IOException,
-                                  LockAcquireFailedException {
+  void acquireWritelock() throws IOException,
+                                 LockAcquireFailedException {
     long now = System.currentTimeMillis();
     try {
       coreFS.cat(writelock, false, new Date(now).toGMTString());
@@ -262,4 +261,5 @@ public class ConfPersister {
     }
   }
   
+
 }

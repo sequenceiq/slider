@@ -120,6 +120,11 @@ public interface OptionKeys {
    * where a snapshot of the original conf dir is: {@value}
    */
   String INTERNAL_GENERATED_CONF_PATH = "internal.generated.conf.path";
+    
+  /**
+   * where a snapshot of the original conf dir is: {@value}
+   */
+  String INTERNAL_PROVIDER_NAME = "internal.provider.name";
   
   /**
    * Zookeeper quorum host list: {@value}

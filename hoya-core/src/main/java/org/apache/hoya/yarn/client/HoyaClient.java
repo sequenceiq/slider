@@ -28,7 +28,6 @@ import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
@@ -52,10 +51,12 @@ import org.apache.hoya.core.build.InstanceBuilder;
 import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.core.conf.ConfTree;
 import org.apache.hoya.core.conf.ConfTreeOperations;
+import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.core.launch.AppMasterLauncher;
 import org.apache.hoya.core.launch.CommandLineBuilder;
 import org.apache.hoya.core.launch.LaunchedApplication;
 import org.apache.hoya.core.launch.RunningApplication;
+import org.apache.hoya.core.persist.ConfPersister;
 import org.apache.hoya.core.persist.LockAcquireFailedException;
 import org.apache.hoya.core.registry.ServiceRegistryClient;
 import org.apache.hoya.exceptions.BadClusterStateException;
@@ -330,7 +331,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   private AbstractClientProvider createClientProvider(ClusterDescription clusterSpec)
     throws HoyaException {
     HoyaProviderFactory factory =
-      HoyaProviderFactory.createHoyaProviderFactory(clusterSpec);
+      HoyaProviderFactory.createHoyaProviderFactory(clusterSpec.type);
     return factory.createClientProvider();
   }
 
@@ -378,14 +379,17 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                IOException {
 
 
-    int ret = actionBuildClassic(clustername, buildInfo);
-
+    String newcluster = clustername;
+    String oldcluster = clustername + "-classic";
     //now build the new style
-    String newcluster = clustername + "-ac";
-    Path newClusterDirectory =
-      hoyaFileSystem.buildHoyaClusterDirPath(newcluster);
-    hoyaFileSystem.getFileSystem().delete(newClusterDirectory, true);
-    buildInstanceConfiguration(newcluster, buildInfo);
+    Path dirToPurge =
+      hoyaFileSystem.buildHoyaClusterDirPath(oldcluster);
+    hoyaFileSystem.getFileSystem().delete(dirToPurge, true);
+
+    int ret = actionBuildClassic(oldcluster, buildInfo);
+
+
+    buildInstanceDefinition(newcluster, buildInfo);
     return ret; 
   }
 
@@ -632,8 +636,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * @throws IOException
    */
   
-  public boolean buildInstanceConfiguration(String clustername,
-                AbstractClusterBuildingActionArgs buildInfo) throws YarnException,
+  public boolean buildInstanceDefinition(String clustername,
+                                         AbstractClusterBuildingActionArgs buildInfo) throws YarnException,
                                                              IOException {
     // verify that a live cluster isn't there
     HoyaUtils.validateClusterName(clustername);
@@ -645,10 +649,11 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     Path appconfdir = buildInfo.getConfdir();
     requireArgumentSet(Arguments.ARG_CONFDIR, appconfdir);
     // Provider
-    requireArgumentSet(Arguments.ARG_PROVIDER, buildInfo.getProvider());
+    String providerName = buildInfo.getProvider();
+    requireArgumentSet(Arguments.ARG_PROVIDER, providerName);
     HoyaAMClientProvider hoyaAM = new HoyaAMClientProvider(conf);
     AbstractClientProvider provider =
-      createClientProvider(buildInfo.getProvider());
+      createClientProvider(providerName);
     InstanceBuilder builder =
       new InstanceBuilder(hoyaFileSystem, getConfig(), clustername);
     
@@ -668,6 +673,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     ConfTreeOperations internalOps = instanceConf.getInternalOperations();
     appConfOps.putAll(cmdLineConf);
 
+    internalOps.getGlobalOptions().put(OptionKeys.INTERNAL_PROVIDER_NAME,
+                                       providerName);
 
     //all CLI role options
     Map<String, Map<String, String>> roleOptionMap =
@@ -706,9 +713,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       throw new BadClusterStateException("Failed to save " + clustername
                                          + ": " + e);
     }
-
-
-
     return true;
   }
   
@@ -736,6 +740,32 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     }
   }
 
+
+  /**
+   * Load and start a cluster specification.
+   * This assumes that all validation of args and cluster state
+   * have already taken place
+   *
+   * @param clustername name of the cluster.
+   * @param launchArgs
+   * @return the exit code
+   * @throws YarnException
+   * @throws IOException
+   */
+  private int startClusterClassic(String clustername,
+                           LaunchArgsAccessor launchArgs) throws
+                                                          YarnException,
+                                                          IOException {
+    Path clusterSpecPath = locateClusterSpecification(clustername);
+
+    ClusterDescription clusterSpec =
+      hoyaFileSystem.loadAndValidateClusterSpec(clusterSpecPath);
+    Path clusterDirectory = hoyaFileSystem.buildHoyaClusterDirPath(clustername);
+
+    return executeClusterStartClassic(clusterDirectory, clusterSpec, launchArgs);
+  }
+
+
   /**
    * Create a cluster to the specification
    *
@@ -743,9 +773,9 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * @param launchArgs
    * @return the exit code from the operation
    */
-  public int executeClusterStart(Path clusterDirectory,
-                                 ClusterDescription clusterSpec,
-                                 LaunchArgsAccessor launchArgs)
+  public int executeClusterStartClassic(Path clusterDirectory,
+                                        ClusterDescription clusterSpec,
+                                        LaunchArgsAccessor launchArgs)
       throws YarnException, IOException {
 
     // verify that a live cluster isn't there;
@@ -951,7 +981,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     // build up the args list, intially as anyting
     CommandLineBuilder commandLine = new CommandLineBuilder();
-    commandLine.add(ApplicationConstants.Environment.JAVA_HOME.$() + "/bin/java");
+    commandLine.addJavaBinary();
     // insert any JVM options);
     hoyaAM.addJVMOptions(clusterSpec, commandLine);
     // enable asserts if the text option is set
@@ -1032,21 +1062,383 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // SubmitApplicationResponse submitResp = applicationsManager.submitApplication(appRequest);
     // Ignore the response as either a valid response object is returned on success
     // or an exception thrown to denote some form of a failure
-    log.info("Submitting application to Resource Manager");
 
     // submit the application
     LaunchedApplication launchedApplication;
     launchedApplication = amLauncher.submitApplication();
     applicationId = launchedApplication.getApplicationId() ;
 
-    int waittime = launchArgs.getWaittime();
-    return waitForAppAccepted(launchedApplication, waittime);
+    return waitForAppAccepted(launchedApplication, launchArgs.getWaittime());
   }
 
+
+  /**
+   * Load and start a cluster specification.
+   * This assumes that all validation of args and cluster state
+   * have already taken place
+   *
+   * @param clustername name of the cluster.
+   * @param launchArgs launch arguments
+   * @return the exit code
+   * @throws YarnException
+   * @throws IOException
+   */
+  private int startCluster(String clustername,
+                           LaunchArgsAccessor launchArgs) throws
+                                                          YarnException,
+                                                          IOException {
+    Path clusterDirectory = hoyaFileSystem.buildHoyaClusterDirPath(clustername);
+    AggregateConf instanceDefinition = new AggregateConf();
+    ConfPersister persister =
+      new ConfPersister(hoyaFileSystem, clusterDirectory);
+    try {
+      persister.load(instanceDefinition);
+    } catch (LockAcquireFailedException e) {
+      log.debug("Lock acquisition failure of {}", clusterDirectory, e);
+      
+      throw new BadClusterStateException(
+        "Application at %s is locked for reading",
+        clusterDirectory.toString());
+    }
+
+    LaunchedApplication launchedApplication =
+      launchApplication(clustername, clusterDirectory, instanceDefinition,
+                        serviceArgs.isDebug());
+    applicationId = launchedApplication.getApplicationId();
+
+    return waitForAppAccepted(launchedApplication, launchArgs.getWaittime());
+  }
+
+
+  /**
+   *
+   * @param clustername
+   * @param clusterDirectory
+   * @param instanceDefinition
+   * @param debugAM
+   * @return the launched application
+   * @throws YarnException
+   * @throws IOException
+   */
+  public LaunchedApplication launchApplication(String clustername,
+                                               Path clusterDirectory,
+                               AggregateConf instanceDefinition,
+                               boolean debugAM)
+    throws YarnException, IOException {
+
+
+    deployedClusterName = clustername;
+    HoyaUtils.validateClusterName(clustername);
+    verifyNoLiveClusters(clustername);
+    Configuration config = getConfig();
+    boolean clusterSecure = HoyaUtils.isClusterSecure(config);
+    //create the Hoya AM provider -this helps set up the AM
+    HoyaAMClientProvider hoyaAM = new HoyaAMClientProvider(config);
+
+
+    ConfTreeOperations internalOperations =
+      instanceDefinition.getInternalOperations();
+    MapOperations
+      internalOptions =
+      internalOperations.getGlobalOptions();
+    ConfTreeOperations resourceOperations =
+      instanceDefinition.getResourceOperations();
+    ConfTreeOperations appOperations =
+      instanceDefinition.getAppConfOperations();
+    Path generatedConfDirPath =
+      createPathThatMustExist(internalOptions.getMandatoryOption(
+        OptionKeys.INTERNAL_GENERATED_CONF_PATH));
+    Path snapshotConfPath =
+      createPathThatMustExist(internalOptions.getMandatoryOption(
+        OptionKeys.INTERNAL_SNAPSHOT_CONF_PATH));
+
+
+    // cluster Provider
+    AbstractClientProvider provider = createClientProvider(
+      internalOptions.getMandatoryOption(
+        OptionKeys.INTERNAL_PROVIDER_NAME));
+    // make sure the conf dir is valid;
+    
+    // now build up the image path
+    // TODO: consider supporting apps that don't have an image path
+    Path imagePath;
+    String imagePathOption =
+      internalOptions.get(OptionKeys.APPLICATION_IMAGE_PATH);
+    String appHomeOption = internalOptions.get(OptionKeys.APPLICATION_HOME);
+    if (!isUnset(imagePathOption)) {
+      imagePath = createPathThatMustExist(imagePathOption);
+    } else {
+      imagePath = null;
+      if (isUnset(appHomeOption)) {
+        throw new BadClusterStateException(NO_IMAGE_OR_HOME_DIR_SPECIFIED);
+      }
+    }
+    if (log.isDebugEnabled()) {
+      log.debug(instanceDefinition.toString());
+    }
+    MapOperations hoyaAMComponent =
+      internalOperations.getOrAddComponent(HoyaKeys.ROLE_HOYA_AM);
+    AppMasterLauncher amLauncher = new AppMasterLauncher(clustername,
+                                                         HoyaKeys.APP_TYPE,
+                                                         config,
+                                                         hoyaFileSystem,
+                                                         yarnClient,
+                                                         clusterSecure,
+                                                         hoyaAMComponent);
+
+    ApplicationId appId = amLauncher.getApplicationId();
+    // set the application name;
+    amLauncher.setKeepContainersOverRestarts(true);
+
+    amLauncher.setMaxAppAttempts(config.getInt(KEY_HOYA_RESTART_LIMIT,
+                                               DEFAULT_HOYA_RESTART_LIMIT));
+
+    hoyaFileSystem.purgeHoyaAppInstanceTempFiles(clustername);
+    Path tempPath = hoyaFileSystem.createHoyaAppInstanceTempPath(
+      clustername,
+      appId.toString() + "/am");
+    String libdir = "lib";
+    Path libPath = new Path(tempPath, libdir);
+    hoyaFileSystem.getFileSystem().mkdirs(libPath);
+    log.debug("FS={}, tempPath={}, libdir={}", hoyaFileSystem.toString(),
+              tempPath, libPath);
+    // set local resources for the application master
+    // local files or archives as needed
+    // In this scenario, the jar file for the application master is part of the local resources
+    Map<String, LocalResource> localResources = amLauncher.getLocalResources();
+    // conf directory setup
+    Path remoteHoyaConfPath = null;
+    String relativeHoyaConfDir = null;
+    String hoyaConfdirProp =
+      System.getProperty(HoyaKeys.PROPERTY_HOYA_CONF_DIR);
+    if (hoyaConfdirProp == null || hoyaConfdirProp.isEmpty()) {
+      log.debug("No local configuration directory provided as system property");
+    } else {
+      File hoyaConfDir = new File(hoyaConfdirProp);
+      if (!hoyaConfDir.exists()) {
+        throw new BadConfigException(HOYA_CONFIGURATION_DIRECTORY_NOT_FOUND,
+                                     hoyaConfDir);
+      }
+      Path localConfDirPath = HoyaUtils.createLocalPath(hoyaConfDir);
+      log.debug("Copying Hoya AM configuration data from {}", localConfDirPath);
+      remoteHoyaConfPath = new Path(clusterDirectory,
+                                    HoyaKeys.SUBMITTED_HOYA_CONF_DIR);
+      HoyaUtils.copyDirectory(config, localConfDirPath, remoteHoyaConfPath,
+                              null);
+    }
+    // the assumption here is that minimr cluster => this is a test run
+    // and the classpath can look after itself
+
+    if (!getUsingMiniMRCluster()) {
+
+      log.debug("Destination is not a MiniYARNCluster -copying full classpath");
+
+      // insert conf dir first
+      if (remoteHoyaConfPath != null) {
+        relativeHoyaConfDir = HoyaKeys.SUBMITTED_HOYA_CONF_DIR;
+        Map<String, LocalResource> submittedConfDir =
+          hoyaFileSystem.submitDirectory(remoteHoyaConfPath,
+                                         relativeHoyaConfDir);
+        HoyaUtils.mergeMaps(localResources, submittedConfDir);
+      }
+
+      log.debug("Copying JARs from local filesystem");
+      // Copy the application master jar to the filesystem
+      // Create a local resource to point to the destination jar path
+
+      HoyaUtils.putJar(localResources,
+                       hoyaFileSystem,
+                       this.getClass(),
+                       tempPath,
+                       libdir,
+                       HOYA_JAR);
+    }
+    // build up the configuration 
+    // IMPORTANT: it is only after this call that site configurations
+    // will be valid.
+
+    propagatePrincipals(config, instanceDefinition);
+    Configuration clientConfExtras = new Configuration(false);
+    // then build up the generated path.
+    FsPermission clusterPerms = getClusterDirectoryPermissions(config);
+    HoyaUtils.copyDirectory(config, snapshotConfPath, generatedConfDirPath,
+                            clusterPerms);
+
+
+    // add AM and provider specific artifacts to the resource map
+    Map<String, LocalResource> providerResources;
+    // standard AM resources
+    hoyaAM.prepareAMAndConfigForLaunch(hoyaFileSystem,
+                                       config,
+                                       amLauncher,
+                                       instanceDefinition,
+                                       snapshotConfPath,
+                                       generatedConfDirPath,
+                                       clientConfExtras,
+                                       libdir,
+                                       tempPath);
+/*
+    //add provider-specific resources
+    providerResources = provider.prepareAMAndConfigForLaunch(hoyaFileSystem,
+                                                             config,
+                                                             clusterSpec,
+                                                             snapshotConfPath,
+                                                             generatedConfDirPath,
+                                                             clientConfExtras,
+                                                             libdir,
+                                                             tempPath);
+    localResources.putAll(providerResources);
+*/
+
+    // now that the site config is fully generated, the provider gets
+    // to do a quick review of them.
+    log.debug("Preflight validation of cluster configuration");
+
+/*
+    hoyaAM.preflightValidateClusterConfiguration(hoyaFileSystem, clustername,
+                                                 config,
+                                                 clusterSpec,
+                                                 clusterDirectory,
+                                                 generatedConfDirPath,
+                                                 clusterSecure
+                                                );
+
+    provider.preflightValidateClusterConfiguration(hoyaFileSystem, clustername,
+                                                   config,
+                                                   clusterSpec,
+                                                   clusterDirectory,
+                                                   generatedConfDirPath,
+                                                   clusterSecure
+                                                  );
+*/
+
+
+    // now add the image if it was set
+    if (hoyaFileSystem.maybeAddImagePath(localResources, imagePath)) {
+      log.debug("Registered image path {}", imagePath);
+    }
+
+
+    // build the environment
+    amLauncher.putEnv(
+      HoyaUtils.buildEnvMap(hoyaAMComponent));
+    String classpath = HoyaUtils.buildClasspath(relativeHoyaConfDir,
+                                                libdir,
+                                                getConfig(),
+                                                getUsingMiniMRCluster());
+    amLauncher.setEnv("CLASSPATH", classpath);
+    if (log.isDebugEnabled()) {
+      log.debug("AM classpath={}", classpath);
+      log.debug("Environment Map:\n{}",
+                HoyaUtils.stringifyMap(amLauncher.getEnv()));
+      log.debug("Files in lib path\n{}", hoyaFileSystem.listFSDir(libPath));
+    }
+
+    // rm address
+
+    InetSocketAddress rmSchedulerAddress = null;
+    try {
+      rmSchedulerAddress = HoyaUtils.getRmSchedulerAddress(config);
+    } catch (IllegalArgumentException e) {
+      throw new BadConfigException("%s Address invalid: %s",
+                                   YarnConfiguration.RM_SCHEDULER_ADDRESS,
+                                   config.get(
+                                     YarnConfiguration.RM_SCHEDULER_ADDRESS)
+      );
+
+    }
+    String rmAddr = NetUtils.getHostPortString(rmSchedulerAddress);
+
+    CommandLineBuilder commandLine = new CommandLineBuilder();
+    commandLine.addJavaBinary();
+    // insert any JVM options);
+    hoyaAM.addJVMOptions(hoyaAMComponent, commandLine);
+    // enable asserts if the text option is set
+    if (debugAM) {
+      commandLine.add(HoyaKeys.JVM_ENABLE_ASSERTIONS);
+      commandLine.add(HoyaKeys.JVM_ENABLE_SYSTEM_ASSERTIONS);
+    }
+    commandLine.add(String.format(HoyaKeys.FORMAT_D_CLUSTER_NAME, clustername));
+    commandLine.add(
+      String.format(HoyaKeys.FORMAT_D_CLUSTER_TYPE, provider.getName()));
+    // add the hoya AM sevice entry point
+    commandLine.add(HoyaAMArgs.CLASSNAME);
+
+    // create action and the cluster name
+    commandLine.add(HoyaActions.ACTION_CREATE);
+    commandLine.add(clustername);
+
+    // debug
+    if (debugAM) {
+      commandLine.add(Arguments.ARG_DEBUG);
+    }
+
+    // set the cluster directory path
+    commandLine.add(Arguments.ARG_HOYA_CLUSTER_URI);
+    commandLine.add(clusterDirectory.toUri().toString());
+
+    if (!isUnset(rmAddr)) {
+      commandLine.add(Arguments.ARG_RM_ADDR);
+      commandLine.add(rmAddr);
+    }
+
+    if (serviceArgs.getFilesystemURL() != null) {
+      commandLine.add(Arguments.ARG_FILESYSTEM);
+      commandLine.add(serviceArgs.getFilesystemURL().toString());
+    }
+
+    if (clusterSecure) {
+      // if the cluster is secure, make sure that
+      // the relevant security settings go over
+      propagateConfOption(commandLine,
+                          config,
+                          HoyaXmlConfKeys.KEY_HOYA_SECURITY_ENABLED);
+      propagateConfOption(commandLine,
+                          config,
+                          DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY);
+    }
+    // write out the path output
+    commandLine.addOutAndErrFiles(STDOUT_HOYAAM, STDERR_HOYAAM);
+
+    String cmdStr = commandLine.build();
+    log.info("Completed setting up app master command {}", cmdStr);
+
+    amLauncher.addCommand(commandLine);
+
+    // the Hoya AM gets to configure the AM requirements, not the custom provider
+    hoyaAM.prepareAMResourceRequirements(hoyaAMComponent, amLauncher.getResource());
+
+
+    // Set the priority for the application master
+
+    int amPriority = config.getInt(KEY_HOYA_YARN_QUEUE_PRIORITY,
+                                   DEFAULT_HOYA_YARN_QUEUE_PRIORITY);
+
+
+    amLauncher.setPriority(amPriority);
+
+    // Set the queue to which this application is to be submitted in the RM
+    // Queue for App master
+    String amQueue = config.get(KEY_HOYA_YARN_QUEUE, DEFAULT_HOYA_YARN_QUEUE);
+
+    amLauncher.setQueue(amQueue);
+
+    // Submit the application to the applications manager
+    // SubmitApplicationResponse submitResp = applicationsManager.submitApplication(appRequest);
+    // Ignore the response as either a valid response object is returned on success
+    // or an exception thrown to denote some form of a failure
+    
+
+    // submit the application
+    LaunchedApplication launchedApplication = amLauncher.submitApplication();
+    return launchedApplication;
+  }
+  
+  
   /**
    * Wait for the launched app to be accepted
-   * @param waittime
-   * @return
+   * @param waittime time in millis
+   * @return exit code
    * @throws YarnException
    * @throws IOException
    */
@@ -1102,6 +1494,24 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       String siteDfsPrincipal = OptionKeys.SITE_XML_PREFIX +
                                 DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY;
       clusterSpec.setOptionifUnset(siteDfsPrincipal, dfsPrincipal);
+    }
+  }
+
+
+  /**
+   * Propagate any critical principals from the current site config down to the HBase one.
+   * @param config config to read from
+   * @param clusterSpec cluster spec
+   */
+  private void propagatePrincipals(Configuration config,
+                                   AggregateConf clusterSpec) {
+    String dfsPrincipal = config.get(DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY);
+    if (dfsPrincipal != null) {
+      String siteDfsPrincipal = OptionKeys.SITE_XML_PREFIX +
+                                DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY;
+      clusterSpec.getAppConfOperations().getGlobalOptions().putIfUnset(
+        siteDfsPrincipal,
+        dfsPrincipal);
     }
   }
 
@@ -1767,28 +2177,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     //start the cluster
     return startCluster(clustername, thaw);
-  }
-
-  /**
-   * Load and start a cluster specification.
-   * This assumes that all validation of args and cluster state
-   * have already taken place
-   *
-   * @param clustername name of the cluster.
-   * @param launchArgs
-   * @return the exit code
-   * @throws YarnException
-   * @throws IOException
-   */
-  private int startCluster(String clustername, LaunchArgsAccessor launchArgs) throws
-                                               YarnException,
-                                               IOException {
-    Path clusterSpecPath = locateClusterSpecification(clustername);
-
-    ClusterDescription clusterSpec = hoyaFileSystem.loadAndValidateClusterSpec(clusterSpecPath);
-    Path clusterDirectory = hoyaFileSystem.buildHoyaClusterDirPath(clustername);
-
-    return executeClusterStart(clusterDirectory, clusterSpec, launchArgs);
   }
 
   /**

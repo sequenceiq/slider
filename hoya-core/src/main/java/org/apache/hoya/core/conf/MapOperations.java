@@ -127,6 +127,17 @@ public class MapOperations implements Map<String, String> {
     }
   }
 
+  /**
+   * Set a property if it is not already set
+   * @param key key
+   * @param value value
+   */
+  public void putIfUnset(String key, String value) {
+    if (get(key) == null) {
+      put(key, value);
+    }
+  }
+
   public int size() {
     return options.size();
   }
@@ -183,5 +194,9 @@ public class MapOperations implements Map<String, String> {
   @Override
   public int hashCode() {
     return options.hashCode();
+  }
+
+  public boolean isSet(String key) {
+    return HoyaUtils.isSet(get(key));
   }
 }

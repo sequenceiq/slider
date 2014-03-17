@@ -26,6 +26,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.core.conf.ConfTreeOperations;
+import org.apache.hoya.core.launch.AbstractLauncher;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.tools.HoyaFileSystem;
 
@@ -122,6 +123,7 @@ public abstract class AbstractClientProvider extends Configured {
    * @throws IOException IO problems
    * @throws HoyaException Hoya-specific issues
    */
+  @Deprecated
   public abstract Map<String, LocalResource> prepareAMAndConfigForLaunch(HoyaFileSystem hoyaFileSystem,
                                                                   Configuration serviceConf,
                                                                   ClusterDescription clusterSpec,
@@ -158,6 +160,23 @@ public abstract class AbstractClientProvider extends Configured {
                                      Map<String, ByteBuffer> serviceData);
 
 
+  /**
+   * The Hoya AM sets up all the dependency JARs above hoya.jar itself
+   * {@inheritDoc}
+   */
+  public void prepareAMAndConfigForLaunch(HoyaFileSystem hoyaFileSystem,
+                                          Configuration serviceConf,
+                                          AbstractLauncher launcher,
+                                          AggregateConf instanceDescription,
+                                          Path originConfDirPath,
+                                          Path generatedConfDirPath,
+                                          Configuration clientConfExtras,
+                                          String libdir,
+                                          Path tempPath)
+    throws IOException, HoyaException {
+    
+  }
+  
   /**
    * Load in and merge in templates. Null arguments means "no such template"
    * @param instanceConf instance to patch 

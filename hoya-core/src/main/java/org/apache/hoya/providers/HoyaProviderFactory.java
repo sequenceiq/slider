@@ -56,17 +56,6 @@ public abstract class HoyaProviderFactory extends Configured {
   public abstract ProviderService createServerProvider();
 
   /**
-   * Create the relevant provider 
-   * @param cd
-   * @return
-   * @throws HoyaException
-   */
-  public static HoyaProviderFactory createHoyaProviderFactory(ClusterDescription cd) throws
-                                                                                        HoyaException {
-    return createHoyaProviderFactory(cd.type);
-  }
-  
-  /**
    * Create a provider for a specific application
    * @param application app
    * @return app instance

@@ -207,6 +207,7 @@ public class AppMasterLauncher extends AbstractLauncher {
  
   public LaunchedApplication submitApplication() throws IOException, YarnException {
     completeAppMasterLaunch();
+    log.info("Submitting application to Resource Manager");
     ApplicationId applicationId =
       yarnClient.submitApplication(submissionContext);
     return new LaunchedApplication(applicationId, yarnClient);

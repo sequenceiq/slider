@@ -928,7 +928,6 @@ public final class HoyaUtils {
                              )
     throws IOException, HoyaException {
     LocalResource res = hoyaFileSystem.submitJarWithClass(
-
             clazz,
             tempPath,
             libdir,
