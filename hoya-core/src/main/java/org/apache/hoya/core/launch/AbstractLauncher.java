@@ -18,6 +18,7 @@
 
 package org.apache.hoya.core.launch;
 
+import org.apache.commons.cli.CommandLine;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
@@ -120,6 +121,10 @@ public abstract class AbstractLauncher extends Configured {
     return serviceData;
   }
 
+
+  public void addCommand(CommandLineBuilder cmd) {
+    commands.add(cmd.build());
+  }
 
   public void addCommand(String cmd) {
     commands.add(cmd);

@@ -29,7 +29,6 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import static org.apache.hoya.yarn.Arguments.*
-import static org.apache.hoya.testtools.HoyaTestUtils.*
 import static org.apache.hoya.HoyaXMLConfKeysForTesting.*
 import static org.apache.hoya.providers.accumulo.AccumuloKeys.*
 
@@ -209,8 +208,8 @@ public abstract class AccumuloTestBase extends YarnZKMiniClusterTestBase {
         describe(
             "Flexing " + roleMapToString(flexTarget));
         boolean flexed = 0 == hoyaClient.flex(clustername,
-                                      flexTarget,
-                                      true);
+            flexTarget
+        );
         cd = waitForRoleCount(hoyaClient, flexTarget,
                               ACCUMULO_CLUSTER_STARTUP_TO_LIVE_TIME);
 

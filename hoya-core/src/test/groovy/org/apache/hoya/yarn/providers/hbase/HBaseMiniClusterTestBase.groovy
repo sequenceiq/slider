@@ -285,11 +285,11 @@ public abstract class HBaseMiniClusterTestBase extends YarnZKMiniClusterTestBase
       describe("Flexing  masters:$masters -> $masterFlexTarget ; workers $workers -> $flexTarget");
       boolean flexed;
       flexed = 0 == hoyaClient.flex(clustername,
-                                    [
-                                        (ROLE_WORKER): flexTarget,
-                                        (ROLE_MASTER): masterFlexTarget
-                                    ],
-                                    true);
+          [
+              (ROLE_WORKER): flexTarget,
+              (ROLE_MASTER): masterFlexTarget
+          ]
+      );
       waitForHoyaWorkerCount(hoyaClient, flexTarget, HBASE_CLUSTER_STARTUP_TO_LIVE_TIME);
       waitForHoyaMasterCount(hoyaClient, masterFlexTarget,
                              HBASE_CLUSTER_STARTUP_TO_LIVE_TIME);

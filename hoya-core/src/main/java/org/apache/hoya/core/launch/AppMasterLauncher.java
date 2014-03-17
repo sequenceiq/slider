@@ -21,14 +21,19 @@ package org.apache.hoya.core.launch;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.hoya.tools.CoreFileSystem;
+import org.apache.hoya.tools.Duration;
 import org.apache.hoya.tools.HoyaUtils;
+import org.apache.hoya.yarn.client.HoyaYarnClientImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,9 +54,10 @@ public class AppMasterLauncher extends AbstractLauncher {
   private final boolean secureCluster;
   private int maxAppAttempts = 2;
   private boolean keepContainersOverRestarts = true;
-  private String queueName = YarnConfiguration.DEFAULT_QUEUE_NAME;
-  private int queuePriority = 1;
+  private String queue = YarnConfiguration.DEFAULT_QUEUE_NAME;
+  private int priority = 1;
   private final Resource resource = Records.newRecord(Resource.class);
+  private final HoyaYarnClientImpl yarnClient;
 
   /**
    * Build the AM Launcher
@@ -68,12 +74,13 @@ public class AppMasterLauncher extends AbstractLauncher {
                            String type,
                            Configuration conf,
                            CoreFileSystem fs,
-                           YarnClientApplication application,
+                           HoyaYarnClientImpl yarnClient,
                            boolean secureCluster,
                            Map<String, String> options
-                          ) {
+                          ) throws IOException, YarnException {
     super(conf, fs);
-    this.application = application;
+    this.yarnClient = yarnClient;
+    this.application = yarnClient.createApplication();
     this.name = name;
     this.type = type;
     this.secureCluster = secureCluster;
@@ -105,11 +112,11 @@ public class AppMasterLauncher extends AbstractLauncher {
     resource.setMemory(memory);
   }
 
-  public void setCores(int cores) {
+  public void setVirtualCores(int cores) {
     resource.setVirtualCores(cores);
   }
 
-  public ApplicationId getAppId() {
+  public ApplicationId getApplicationId() {
     return appId;
   }
 
@@ -121,12 +128,20 @@ public class AppMasterLauncher extends AbstractLauncher {
     return keepContainersOverRestarts;
   }
 
-  public String getQueueName() {
-    return queueName;
+  public String getQueue() {
+    return queue;
   }
 
-  public int getQueuePriority() {
-    return queuePriority;
+  public int getPriority() {
+    return priority;
+  }
+
+  public void setQueue(String queue) {
+    this.queue = queue;
+  }
+
+  public void setPriority(int priority) {
+    this.priority = priority;
   }
 
   /**
@@ -136,17 +151,17 @@ public class AppMasterLauncher extends AbstractLauncher {
   public ApplicationSubmissionContext completeAppMasterLaunch() throws
                                                                 IOException {
 
-    submissionContext.setAMContainerSpec(containerLaunchContext);
+
 
     //queue priority
     Priority pri = Records.newRecord(Priority.class);
-    pri.setPriority(queuePriority);
+    pri.setPriority(priority);
     submissionContext.setPriority(pri);
 
     // Set the queue to which this application is to be submitted in the RM
     // Queue for App master
 
-    submissionContext.setQueue(queueName);
+    submissionContext.setQueue(queue);
 
 
     //container requirements
@@ -165,6 +180,7 @@ public class AppMasterLauncher extends AbstractLauncher {
       propagateUsernameInInsecureCluster();
     }
     completeContainerLaunch();
+    submissionContext.setAMContainerSpec(containerLaunchContext);
     return submissionContext;
 
   }
@@ -173,7 +189,7 @@ public class AppMasterLauncher extends AbstractLauncher {
    * Add the security tokens if this is a secure cluster
    * @throws IOException
    */
-  void addSecurityTokens() throws IOException {
+  private void addSecurityTokens() throws IOException {
 
     String tokenRenewer = getConf().get(YarnConfiguration.RM_PRINCIPAL);
     if (HoyaUtils.isUnset(tokenRenewer)) {
@@ -187,4 +203,13 @@ public class AppMasterLauncher extends AbstractLauncher {
     FileSystem fs = coreFileSystem.getFileSystem();
     fs.addDelegationTokens(tokenRenewer, credentials);
   }
+
+ 
+  public LaunchedApplication submitApplication() throws IOException, YarnException {
+    completeAppMasterLaunch();
+    ApplicationId applicationId =
+      yarnClient.submitApplication(submissionContext);
+    return new LaunchedApplication(applicationId, yarnClient);
+  }
+  
 }
