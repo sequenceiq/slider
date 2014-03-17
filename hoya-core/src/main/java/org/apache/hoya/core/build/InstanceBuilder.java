@@ -33,6 +33,7 @@ import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.core.persist.ConfPersister;
 import org.apache.hoya.core.persist.InstancePaths;
 import org.apache.hoya.core.persist.LockAcquireFailedException;
+import org.apache.hoya.core.persist.LockHeldAction;
 import org.apache.hoya.exceptions.BadClusterStateException;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
@@ -207,15 +208,20 @@ public class InstanceBuilder {
    * @throws IOException
    * @throws HoyaException
    * @throws LockAcquireFailedException
+   * @param appconfdir
    */
-  public void persist() throws
-                        IOException,
-                        HoyaException,
-                        LockAcquireFailedException {
+  public void persist(Path appconfdir) throws
+                                       IOException,
+                                       HoyaException,
+                                       LockAcquireFailedException {
     coreFS.createClusterDirectories(instancePaths);
     ConfPersister persister =
       new ConfPersister(coreFS, getInstanceDir());
-    persister.save(instanceConf);
+    ConfDirSnapshotAction action = null;
+    if (appconfdir != null) {
+      action = new ConfDirSnapshotAction(appconfdir);
+    }
+    persister.save(instanceConf, action);
   }
 
   /**
@@ -234,4 +240,28 @@ public class InstanceBuilder {
     globalAppOptions.put(ZOOKEEPER_PORT, Integer.toString(zkport));
   }
 
+
+  /**
+   * Class to execute the snapshotting of the configuration directory
+   * while the persistence lock is held. 
+   * 
+   * This guarantees that there won't be an attempt to launch a cluster
+   * until the snapshot is complete -as the write lock won't be released
+   * until afterwards.
+   */
+  private class ConfDirSnapshotAction implements LockHeldAction {
+
+    private final Path appconfdir;
+
+    private ConfDirSnapshotAction(Path appconfdir) {
+      this.appconfdir = appconfdir;
+    }
+
+    @Override
+    public void execute() throws IOException, HoyaException {
+
+      takeSnapshotOfConfDir(appconfdir);
+    }
+  }
+  
 }

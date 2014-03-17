@@ -700,14 +700,14 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     
     try {
-      builder.persist();
+      builder.persist(appconfdir);
     } catch (LockAcquireFailedException e) {
       log.warn("Failed to get a Lock on {} : {}", builder, e);
       throw new BadClusterStateException("Failed to save " + clustername
                                          + ": " + e);
     }
 
-    builder.takeSnapshotOfConfDir(appconfdir);
+
 
     return true;
   }
