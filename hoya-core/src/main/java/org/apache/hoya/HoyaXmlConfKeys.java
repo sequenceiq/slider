@@ -77,7 +77,7 @@ public interface HoyaXmlConfKeys {
    * Default Limit on restarts for the AM
    * {@value}
    */
-  int DEFAULT_HOYA_RESTART_LIMIT = 3;
+  int DEFAULT_HOYA_RESTART_LIMIT = 2;
 
   /**
    * Flag which is set to indicate that security should be enabled

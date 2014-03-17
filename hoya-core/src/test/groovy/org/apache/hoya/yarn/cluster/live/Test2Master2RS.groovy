@@ -20,12 +20,15 @@ package org.apache.hoya.yarn.cluster.live
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.ClusterStatus
+import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.providers.hbase.HBaseKeys
+import org.apache.hoya.testtools.HBaseTestUtils
+import org.apache.hoya.tools.Duration
 import org.apache.hoya.yarn.client.HoyaClient
 import org.apache.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
-import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
 /**
@@ -46,16 +49,15 @@ class Test2Master2RS extends HBaseMiniClusterTestBase {
     describe(" Create a two master, two region service cluster");
     //now launch the cluster
     int masterCount = 2
-    Map<String, Integer> roles = [
-        (HBaseKeys.ROLE_MASTER): masterCount,
-        (HBaseKeys.ROLE_WORKER): regionServerCount,
-    ]
-    ServiceLauncher launcher = createHoyaCluster(clustername,
-                                                 roles,
-                                                 [],
-                                                 true,
-                                                 true,
-                                                 [:])
+
+    ServiceLauncher launcher = createHBaseCluster(
+        clustername,
+        masterCount,
+        regionServerCount,
+        [],
+        true,
+        true)
+    
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
     ClusterDescription status = hoyaClient.getClusterDescription(clustername)
@@ -72,15 +74,25 @@ class Test2Master2RS extends HBaseMiniClusterTestBase {
         regionServerCount,
         HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
     //get the hbase status
-    ClusterStatus hbase = waitForHBaseRegionServerCount(
-        hoyaClient,
-        clustername,
-        regionServerCount,
-        HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
-  
-    //expect a back up master
-    assert hbase.backupMastersSize == 1;
+
+    Duration duration = new Duration(HBASE_CLUSTER_STARTUP_TO_LIVE_TIME)
+    duration.start()
+
+    Configuration clientConf = HBaseTestUtils.createHBaseConfiguration(
+        hoyaClient)
+
+
+    while (!duration.limitExceeded && clustat.backupMastersSize != 1) {
+      clustat = HBaseTestUtils.getHBaseClusterStatus(clientConf);
+      Thread.sleep(1000);
+    }
+    if (duration.limitExceeded) {
+      HBaseTestUtils.describe(
+          "Cluster region server count of ${regionServerCount} not met:");
+      log.info(HBaseTestUtils.hbaseStatusToString(clustat));
+      fail("Backup master count not reached");
+    }
 
   }
-
 }
+

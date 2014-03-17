@@ -31,8 +31,7 @@ import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
-import org.apache.hoya.providers.AbstractProviderCore;
-import org.apache.hoya.providers.ClientProvider;
+import org.apache.hoya.providers.AbstractClientProvider;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderUtils;
 import org.apache.hoya.tools.ConfigHelper;
@@ -57,9 +56,8 @@ import static org.apache.hoya.providers.accumulo.AccumuloConfigFileOptions.INSTA
 /**
  * Client-side accumulo provider
  */
-public class AccumuloClientProvider extends AbstractProviderCore implements
-                                                       AccumuloKeys,
-                                                       ClientProvider {
+public class AccumuloClientProvider extends AbstractClientProvider implements
+                                                       AccumuloKeys {
 
   protected static final Logger log =
     LoggerFactory.getLogger(AccumuloClientProvider.class);
@@ -78,11 +76,6 @@ public class AccumuloClientProvider extends AbstractProviderCore implements
   @Override
   public String getName() {
     return PROVIDER_ACCUMULO;
-  }
-
-  @Override
-  public Configuration create(Configuration conf) {
-    return conf;
   }
 
   @Override

@@ -27,11 +27,11 @@ import org.apache.hoya.HoyaXmlConfKeys;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.RoleKeys;
+import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
-import org.apache.hoya.providers.AbstractProviderCore;
-import org.apache.hoya.providers.ClientProvider;
+import org.apache.hoya.providers.AbstractClientProvider;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderUtils;
 import org.apache.hoya.tools.ConfigHelper;
@@ -53,18 +53,17 @@ import java.util.Set;
  * This class implements  the client-side aspects
  * of an HBase Cluster
  */
-public class HBaseClientProvider extends AbstractProviderCore implements
+public class HBaseClientProvider extends AbstractClientProvider implements
                                                           HBaseKeys, HoyaKeys,
-                                                          ClientProvider,
                                                           HBaseConfigFileOptions {
-
-
 
   
   protected static final Logger log =
     LoggerFactory.getLogger(HBaseClientProvider.class);
   protected static final String NAME = "hbase";
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
+  private static final String INSTANCE_RESOURCE_BASE = PROVIDER_RESOURCE_BASE_ROOT +
+                                                       "hbase/instance/";
 
 
   protected HBaseClientProvider(Configuration conf) {
@@ -75,15 +74,6 @@ public class HBaseClientProvider extends AbstractProviderCore implements
   public String getName() {
     return NAME;
   }
-
-
-
-  @Override
-  public Configuration create(Configuration conf) {
-    return conf;
-  }
-
-
 
   @Override
   public List<ProviderRole> getRoles() {
@@ -117,15 +107,24 @@ public class HBaseClientProvider extends AbstractProviderCore implements
     if (rolename.equals(HBaseKeys.ROLE_MASTER)) {
       // master role
       Configuration conf = ConfigHelper.loadMandatoryResource(
-        "org/apache/hoya/providers/hbase/role-hbase-master.xml");
+        PROVIDER_RESOURCE_BASE +"hbase/role-hbase-master.xml");
       HoyaUtils.mergeEntries(rolemap, conf);
     } else if (rolename.equals(HBaseKeys.ROLE_WORKER)) {
       // worker settings
       Configuration conf = ConfigHelper.loadMandatoryResource(
-        "org/apache/hoya/providers/hbase/role-hbase-worker.xml");
+        PROVIDER_RESOURCE_BASE +"hbase/role-hbase-worker.xml");
       HoyaUtils.mergeEntries(rolemap, conf);
     }
     return rolemap;
+  }
+
+  @Override
+  public void prepareInstanceConfiguration(AggregateConf aggregateConf) throws
+                                                              HoyaException,
+                                                              IOException {
+    String resourceTemplate = INSTANCE_RESOURCE_BASE + "resources.json";
+    String appConfTemplate = INSTANCE_RESOURCE_BASE + "appconf.json";
+    mergeTemplates(aggregateConf, null, resourceTemplate, appConfTemplate);
   }
 
   /**

@@ -26,26 +26,18 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
-import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.net.NetUtils;
-import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
-import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
-import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.Priority;
-import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
-import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.service.launcher.RunService;
-import org.apache.hadoop.yarn.util.Records;
+import org.apache.hoya.Constants;
 import org.apache.hoya.HoyaExitCodes;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.HoyaXmlConfKeys;
@@ -57,8 +49,13 @@ import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.api.StatusKeys;
 import org.apache.hoya.api.proto.Messages;
 import org.apache.hoya.core.build.InstanceBuilder;
+import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.core.conf.ConfTree;
 import org.apache.hoya.core.conf.ConfTreeOperations;
+import org.apache.hoya.core.launch.AppMasterLauncher;
+import org.apache.hoya.core.launch.CommandLineBuilder;
+import org.apache.hoya.core.launch.LaunchedApplication;
+import org.apache.hoya.core.launch.RunningApplication;
 import org.apache.hoya.core.persist.LockAcquireFailedException;
 import org.apache.hoya.core.registry.ServiceRegistryClient;
 import org.apache.hoya.exceptions.BadClusterStateException;
@@ -69,7 +66,7 @@ import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.exceptions.NoSuchNodeException;
 import org.apache.hoya.exceptions.UnknownClusterException;
 import org.apache.hoya.exceptions.WaitTimeoutException;
-import org.apache.hoya.providers.ClientProvider;
+import org.apache.hoya.providers.AbstractClientProvider;
 import org.apache.hoya.providers.HoyaProviderFactory;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.hoyaam.HoyaAMClientProvider;
@@ -94,8 +91,6 @@ import org.apache.hoya.yarn.params.ClientArgs;
 import org.apache.hoya.yarn.params.HoyaAMArgs;
 import org.apache.hoya.yarn.params.LaunchArgsAccessor;
 import org.apache.hoya.yarn.service.CompoundLaunchedService;
-import org.apache.hoya.yarn.service.HoyaServiceUtils;
-import org.apache.hoya.yarn.service.SecurityCheckerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,7 +100,6 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -124,12 +118,9 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                           ErrorStrings {
   private static final Logger log = LoggerFactory.getLogger(HoyaClient.class);
 
-  public static final int ACCEPT_TIME = 60000;
-  public static final int CONNECT_TIMEOUT = 10000;
-  public static final int RPC_TIMEOUT = 15000;
-
   private ClientArgs serviceArgs;
   public ApplicationId applicationId;
+  
   
 
   private String deployedClusterName;
@@ -152,7 +143,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    */
   public HoyaClient() {
     // make sure all the yarn configs get loaded
-    YarnConfiguration yarnConfiguration = new YarnConfiguration();
+    new YarnConfiguration();
     log.debug("Hoya constructed");
   }
 
@@ -336,7 +327,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * @return the provider instance
    * @throws HoyaException problems building the provider
    */
-  private ClientProvider createClientProvider(ClusterDescription clusterSpec)
+  private AbstractClientProvider createClientProvider(ClusterDescription clusterSpec)
     throws HoyaException {
     HoyaProviderFactory factory =
       HoyaProviderFactory.createHoyaProviderFactory(clusterSpec);
@@ -349,7 +340,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * @return the provider instance
    * @throws HoyaException problems building the provider
    */
-  private ClientProvider createClientProvider(String provider)
+  private AbstractClientProvider createClientProvider(String provider)
     throws HoyaException {
     HoyaProviderFactory factory =
       HoyaProviderFactory.createHoyaProviderFactory(provider);
@@ -441,7 +432,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // Provider
     requireArgumentSet(Arguments.ARG_PROVIDER, buildInfo.getProvider());
     HoyaAMClientProvider hoyaAM = new HoyaAMClientProvider(conf);
-    ClientProvider provider;
+    AbstractClientProvider provider;
     provider = createClientProvider(buildInfo.getProvider());
 
     // remember this
@@ -631,6 +622,16 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     return EXIT_SUCCESS;
   }
 
+  /**
+   * Build up the AggregateConfiguration for an application instance then
+   * persiste it
+   * @param clustername name of the cluster
+   * @param buildInfo the arguments needed to build the cluster
+   * @return true if it worked
+   * @throws YarnException
+   * @throws IOException
+   */
+  
   public boolean buildInstanceConfiguration(String clustername,
                 AbstractClusterBuildingActionArgs buildInfo) throws YarnException,
                                                              IOException {
@@ -646,31 +647,48 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // Provider
     requireArgumentSet(Arguments.ARG_PROVIDER, buildInfo.getProvider());
     HoyaAMClientProvider hoyaAM = new HoyaAMClientProvider(conf);
-    ClientProvider provider;
-    provider = createClientProvider(buildInfo.getProvider());
-
+    AbstractClientProvider provider =
+      createClientProvider(buildInfo.getProvider());
     InstanceBuilder builder =
       new InstanceBuilder(hoyaFileSystem, getConfig(), clustername);
-
+    
 
     ConfTree internal = new ConfTree();
     ConfTree resources = new ConfTree();
-    ConfTreeOperations resOps = new ConfTreeOperations(resources);
-    ConfTree appConf = buildInfo.buildConfTree();
-    ConfTreeOperations appConfOps = new ConfTreeOperations(appConf);
+    ConfTree appConf = new ConfTree();
+    ConfTree cmdLineConf = buildInfo.buildConfTree();
 
-    //copy over role. and yarn. values
+    AggregateConf instanceConf = new AggregateConf(internal, appConf, resources);
+    
+    hoyaAM.prepareInstanceConfiguration(instanceConf);
+    provider.prepareInstanceConfiguration(instanceConf);
+    
+    ConfTreeOperations appConfOps = instanceConf.getAppConfOperations();
+    ConfTreeOperations resOps = instanceConf.getResourceOperations();
+    ConfTreeOperations internalOps = instanceConf.getInternalOperations();
+    appConfOps.putAll(cmdLineConf);
+
+
+    //all CLI role options
+    Map<String, Map<String, String>> roleOptionMap =
+      buildInfo.getRoleOptionMap();
+    appConfOps.mergeComponents(roleOptionMap);
+
+    //internal picks up hoya. values only
+    internalOps.propagateGlobalKeys(appConf, "hoya.");
+    //copy over role. and yarn. values ONLY to the resources
     resOps.propagateGlobalKeys(appConf, "role.");
     resOps.propagateGlobalKeys(appConf, "yarn.");
-    appConfOps.applyComponentOptions(buildInfo.getRoleOptionMap());
-    resOps.applyComponentOptions(buildInfo.getRoleOptionMap());
+    resOps.mergeComponentsPrefix(roleOptionMap, "role.", true);
+    resOps.mergeComponentsPrefix(roleOptionMap, "yarn.", true);
 
 
-    builder.init(appconfdir, provider.getName(), internal, resources, appConf);
+    builder.init(appconfdir, provider.getName(), instanceConf);
     builder.propagateFilename();
     builder.propagatePrincipals();
     builder.setImageDetails(buildInfo.getImage(), buildInfo.getAppHomeDir());
 
+        
     String zookeeperRoot = buildInfo.getAppZKPath();
     if (isUnset(zookeeperRoot)) {
       zookeeperRoot =
@@ -680,6 +698,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                        zookeeperRoot,
                        buildInfo.getZKport());
 
+    
     try {
       builder.persist();
     } catch (LockAcquireFailedException e) {
@@ -740,7 +759,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     //create the Hoya AM provider -this helps set up the AM
     HoyaAMClientProvider hoyaAM = new HoyaAMClientProvider(config);
     // cluster Provider
-    ClientProvider provider = createClientProvider(clusterSpec);
+    AbstractClientProvider provider = createClientProvider(clusterSpec);
     // make sure the conf dir is valid;
 
     Path generatedConfDirPath =
@@ -770,21 +789,23 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       log.debug(clusterSpec.toString());
     }
 
-    YarnClientApplication application = yarnClient.createApplication();
-    ApplicationSubmissionContext submissionContext =
-      application.getApplicationSubmissionContext();
-    ApplicationId appId = submissionContext.getApplicationId();
+    Map<String, String> options =
+      clusterSpec.getOrAddRole(HoyaKeys.ROLE_HOYA_AM);
+    AppMasterLauncher amLauncher = new AppMasterLauncher(clustername,
+                                                         HoyaKeys.APP_TYPE,
+                                                         config,
+                                                         hoyaFileSystem,
+                                                         yarnClient,
+                                                         clusterSecure,
+                                                         options);
+    
+
+    ApplicationId appId = amLauncher.getApplicationId();
     // set the application name;
-    submissionContext.setApplicationName(clustername);
-    // app type used in service enum;
-    submissionContext.setApplicationType(HoyaKeys.APP_TYPE);
+    amLauncher.setKeepContainersOverRestarts(true);
 
-    submissionContext.setMaxAppAttempts(config.getInt(KEY_HOYA_RESTART_LIMIT,
+    amLauncher.setMaxAppAttempts(config.getInt(KEY_HOYA_RESTART_LIMIT,
                                                       DEFAULT_HOYA_RESTART_LIMIT));
-
-    if (HoyaServiceUtils.keepContainersAcrossSubmissions(submissionContext)) {
-      log.info("Requesting cluster stays running over AM failure");
-    }
 
     hoyaFileSystem.purgeHoyaAppInstanceTempFiles(clustername);
     Path tempPath = hoyaFileSystem.createHoyaAppInstanceTempPath(
@@ -794,15 +815,11 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     Path libPath = new Path(tempPath, libdir);
     hoyaFileSystem.getFileSystem().mkdirs(libPath);
     log.debug("FS={}, tempPath={}, libdir={}", hoyaFileSystem.getFileSystem(), tempPath, libPath);
-    // Set up the container launch context for the application master
-    ContainerLaunchContext amContainer =
-      Records.newRecord(ContainerLaunchContext.class);
 
     // set local resources for the application master
     // local files or archives as needed
     // In this scenario, the jar file for the application master is part of the local resources
-    Map<String, LocalResource> localResources =
-      new HashMap<String, LocalResource>();
+    Map<String, LocalResource> localResources = amLauncher.getLocalResources();
     // conf directory setup
     Path remoteHoyaConfPath = null;
     String relativeHoyaConfDir = null;
@@ -911,29 +928,18 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       log.debug("Registered image path {}", imagePath);
     }
 
-    if (log.isDebugEnabled()) {
-      for (Map.Entry<String, LocalResource> entry : localResources.entrySet()) {
-        String key = entry.getKey();
-        LocalResource val = entry.getValue();
-        log.debug("{}={}", key, HoyaUtils.stringify(val.getResource()));
-      }
-    }
-    
-    // Set local resource info into app master container launch context
-    amContainer.setLocalResources(localResources);
-
 
     // build the environment
-    Map<String, String> env =
-      HoyaUtils.buildEnvMap(clusterSpec.getOrAddRole(HoyaKeys.ROLE_HOYA_AM));
+    amLauncher.putEnv(
+      HoyaUtils.buildEnvMap(clusterSpec.getOrAddRole(HoyaKeys.ROLE_HOYA_AM)));
     String classpath = HoyaUtils.buildClasspath(relativeHoyaConfDir,
                                                 libdir,
                                                 getConfig(),
                                                 getUsingMiniMRCluster());
-    env.put("CLASSPATH", classpath);
+    amLauncher.setEnv("CLASSPATH", classpath);
     if (log.isDebugEnabled()) {
       log.debug("AM classpath={}", classpath);
-      log.debug("Environment Map:\n{}", HoyaUtils.stringifyMap(env));
+      log.debug("Environment Map:\n{}", HoyaUtils.stringifyMap(amLauncher.getEnv()));
       log.debug("Files in lib path\n{}", hoyaFileSystem.listFSDir(libPath));
     }
 
@@ -944,123 +950,83 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     }
 
     // build up the args list, intially as anyting
-    List<String> commands = new ArrayList<String>(20);
-    commands.add(ApplicationConstants.Environment.JAVA_HOME.$() + "/bin/java");
+    CommandLineBuilder commandLine = new CommandLineBuilder();
+    commandLine.add(ApplicationConstants.Environment.JAVA_HOME.$() + "/bin/java");
     // insert any JVM options);
-    hoyaAM.addJVMOptions(clusterSpec, commands);
+    hoyaAM.addJVMOptions(clusterSpec, commandLine);
     // enable asserts if the text option is set
     if (serviceArgs.isDebug()) {
-      commands.add(HoyaKeys.JVM_ENABLE_ASSERTIONS);
-      commands.add(HoyaKeys.JVM_ENABLE_SYSTEM_ASSERTIONS);
+      commandLine.add(HoyaKeys.JVM_ENABLE_ASSERTIONS);
+      commandLine.add(HoyaKeys.JVM_ENABLE_SYSTEM_ASSERTIONS);
     }
-    commands.add(String.format(HoyaKeys.FORMAT_D_CLUSTER_NAME, clustername));
-    commands.add(String.format(HoyaKeys.FORMAT_D_CLUSTER_TYPE, provider.getName()));
+    commandLine.add(String.format(HoyaKeys.FORMAT_D_CLUSTER_NAME, clustername));
+    commandLine.add(
+      String.format(HoyaKeys.FORMAT_D_CLUSTER_TYPE, provider.getName()));
     // add the hoya AM sevice entry point
-    commands.add(HoyaAMArgs.CLASSNAME);
+    commandLine.add(HoyaAMArgs.CLASSNAME);
 
     // create action and the cluster name
-    commands.add(HoyaActions.ACTION_CREATE);
-    commands.add(clustername);
+    commandLine.add(HoyaActions.ACTION_CREATE);
+    commandLine.add(clustername);
 
     // debug
     if (serviceArgs.isDebug()) {
-      commands.add(Arguments.ARG_DEBUG);
+      commandLine.add(Arguments.ARG_DEBUG);
     }
     
     // set the cluster directory path
-    commands.add(Arguments.ARG_HOYA_CLUSTER_URI);
-    commands.add(clusterDirectory.toUri().toString());
+    commandLine.add(Arguments.ARG_HOYA_CLUSTER_URI);
+    commandLine.add(clusterDirectory.toUri().toString());
 
     if (!isUnset(rmAddr)) {
-      commands.add(Arguments.ARG_RM_ADDR);
-      commands.add(rmAddr);
+      commandLine.add(Arguments.ARG_RM_ADDR);
+      commandLine.add(rmAddr);
     }
 
     if (serviceArgs.getFilesystemURL() != null) {
-      commands.add(Arguments.ARG_FILESYSTEM);
-      commands.add(serviceArgs.getFilesystemURL().toString());
+      commandLine.add(Arguments.ARG_FILESYSTEM);
+      commandLine.add(serviceArgs.getFilesystemURL().toString());
     }
 
     if (clusterSecure) {
       // if the cluster is secure, make sure that
       // the relevant security settings go over
-      propagateConfOption(commands,
+      propagateConfOption(commandLine,
                           config,
                           HoyaXmlConfKeys.KEY_HOYA_SECURITY_ENABLED);
-      propagateConfOption(commands,
+      propagateConfOption(commandLine,
                           config,
                           DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY);
-      Credentials credentials = new Credentials();
-      String tokenRenewer = config.get(YarnConfiguration.RM_PRINCIPAL);
-      if (isUnset(tokenRenewer)) {
-        throw new BadConfigException(
-          "Can't get Master Kerberos principal %s for the RM to use as renewer",
-          YarnConfiguration.RM_PRINCIPAL
-        );
-      }
-
-      // For now, only getting tokens for the default file-system.
-      final Token<?>[] tokens = hoyaFileSystem.getFileSystem().addDelegationTokens(tokenRenewer, credentials);
-      if (tokens != null) {
-        for (Token<?> token : tokens) {
-          log.debug("Got delegation token for {}; {}", hoyaFileSystem.getFileSystem().getUri(), token);
-        }
-      }
-      DataOutputBuffer dob = new DataOutputBuffer();
-      credentials.writeTokenStorageToStream(dob);
-      ByteBuffer fsTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
-      amContainer.setTokens(fsTokens);
-    } else {
-      //insecure cluster: propagate user name via env variable
-      String userName = UserGroupInformation.getCurrentUser().getUserName();
-      log.debug(HADOOP_USER_NAME + "='{}'", userName);
-      env.put(HADOOP_USER_NAME, userName);
     }
     // write out the path output
-    commands.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/"+
-                 STDOUT_HOYAAM);
-    commands.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/"+
-                 STDERR_HOYAAM);
+    commandLine.addOutAndErrFiles(STDOUT_HOYAAM, STDERR_HOYAAM);
 
-    String cmdStr = HoyaUtils.join(commands, " ");
+    String cmdStr = commandLine.build();
     log.info("Completed setting up app master command {}", cmdStr);
 
-    amContainer.setCommands(commands);
-    //fix the env variables
-    amContainer.setEnvironment(env);
-    // Set up resource type requirements
-    Resource capability = Records.newRecord(Resource.class);
-    // Amt. of memory resource to request for to run the App Master
-    capability.setMemory(RoleKeys.DEFAULT_AM_MEMORY);
-    capability.setVirtualCores(RoleKeys.DEFAULT_AM_V_CORES);
+    amLauncher.addCommand(commandLine);
+//    amContainer.setCommands(commandLine.getArgumentList());
+
+    amLauncher.setMemory(RoleKeys.DEFAULT_AM_MEMORY);
+    amLauncher.setVirtualCores(RoleKeys.DEFAULT_AM_V_CORES);
     // the Hoya AM gets to configure the AM requirements, not the custom provider
-    hoyaAM.prepareAMResourceRequirements(clusterSpec, capability);
-    submissionContext.setResource(capability);
-    Map<String, ByteBuffer> serviceData = new HashMap<String, ByteBuffer>();
-    // Service data is a binary blob that can be passed to the application
-    // Not needed in this scenario
-    provider.prepareAMServiceData(clusterSpec, serviceData);
-    amContainer.setServiceData(serviceData);
+    // TODO
+    //hoyaAM.prepareAMResourceRequirements(clusterSpec, capability);
 
-    // The following are not required for launching an application master
-    // amContainer.setContainerId(containerId);
-
-    submissionContext.setAMContainerSpec(amContainer);
 
     // Set the priority for the application master
     
     int amPriority = config.getInt(KEY_HOYA_YARN_QUEUE_PRIORITY,
                                    DEFAULT_HOYA_YARN_QUEUE_PRIORITY);
 
-    Priority pri = Records.newRecord(Priority.class);
-    pri.setPriority(amPriority);
-    submissionContext.setPriority(pri);
+    
+    amLauncher.setPriority(amPriority);
 
     // Set the queue to which this application is to be submitted in the RM
     // Queue for App master
     String amQueue = config.get(KEY_HOYA_YARN_QUEUE, DEFAULT_HOYA_YARN_QUEUE);
 
-    submissionContext.setQueue(amQueue);
+    amLauncher.setQueue(amQueue);
 
     // Submit the application to the applications manager
     // SubmitApplicationResponse submitResp = applicationsManager.submitApplication(appRequest);
@@ -1069,22 +1035,41 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     log.info("Submitting application to Resource Manager");
 
     // submit the application
-    applicationId = yarnClient.submitApplication(submissionContext);
+    LaunchedApplication launchedApplication;
+    launchedApplication = amLauncher.submitApplication();
+    applicationId = launchedApplication.getApplicationId() ;
 
+    int waittime = launchArgs.getWaittime();
+    return waitForAppAccepted(launchedApplication, waittime);
+  }
+
+  /**
+   * Wait for the launched app to be accepted
+   * @param waittime
+   * @return
+   * @throws YarnException
+   * @throws IOException
+   */
+  public int waitForAppAccepted(LaunchedApplication launchedApplication, 
+                                int waittime) throws
+                                              YarnException,
+                                              IOException {
+    assert launchedApplication != null;
     int exitCode;
     // wait for the submit state to be reached
-    ApplicationReport report = monitorAppToState(new Duration(ACCEPT_TIME),
-      YarnApplicationState.ACCEPTED);
+    ApplicationReport report = monitorAppToState(new Duration(
+                                                   Constants.ACCEPT_TIME),
+                                                 YarnApplicationState.ACCEPTED
+                                                );
 
 
     // may have failed, so check that
     if (HoyaUtils.hasAppFinished(report)) {
-      exitCode = buildExitCode(appId, report);
+      exitCode = buildExitCode(report);
     } else {
       // exit unless there is a wait
       exitCode = EXIT_SUCCESS;
 
-      int waittime = launchArgs.getWaittime();
       if (waittime != 0) {
         // waiting for state to change
         Duration duration = new Duration(waittime * 1000);
@@ -1096,8 +1081,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
           exitCode = EXIT_SUCCESS;
         } else {
 
-          yarnClient.killRunningApplication(appId, "");
-          exitCode = buildExitCode(appId, report);
+          launchedApplication.kill("");
+          exitCode = buildExitCode(report);
         }
       }
     }
@@ -1121,12 +1106,12 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   }
 
 
-  private void propagateConfOption(List<String> command, Configuration conf,
+  private void propagateConfOption(CommandLineBuilder cmdLine, Configuration conf,
                                    String key) {
     String val = conf.get(key);
     if (val != null) {
-      command.add(Arguments.ARG_DEFINE);
-      command.add(key + "=" + val);
+      cmdLine.add(Arguments.ARG_DEFINE);
+      cmdLine.add(key + "=" + val);
     }
   }
 
@@ -1223,8 +1208,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * @param report report
    * @return the exit code
    */
-  private int buildExitCode(ApplicationId appId,
-                            ApplicationReport report) throws
+  private int buildExitCode(ApplicationReport report) throws
                                                       IOException,
                                                       YarnException {
     if (null == report) {
@@ -1316,7 +1300,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   public boolean forceKillApplication(String reason)
     throws YarnException, IOException {
     if (applicationId != null) {
-      yarnClient.killRunningApplication(applicationId, reason);
+      new LaunchedApplication(applicationId, yarnClient).forceKill(reason);
       return true;
     }
     return false;
@@ -1399,7 +1383,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       log.warn(
         "Persist flag ignored: the updated specification is always persisted");
     }
-    return flex(name, roleInstances, true);
+    return flex(name, roleInstances);
   }
 
   /**
@@ -1515,6 +1499,14 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                         IOException {
     return serviceRegistryClient.findInstance(appname);
   }
+  
+  private RunningApplication findApplication(String appname) throws
+                                                                      YarnException,
+                                                                      IOException {
+    ApplicationReport applicationReport = findInstance(appname);
+    return applicationReport != null ? new RunningApplication(yarnClient, applicationReport): null; 
+      
+  }
 
   /**
    * find all live instances of a specific app -if there is >1 in the cluster,
@@ -1549,8 +1541,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       return RpcBinder.getProxy(getConfig(),
                                 yarnClient.getRmClient(),
                                 app,
-                                CONNECT_TIMEOUT,
-                                RPC_TIMEOUT);
+                                Constants.CONNECT_TIMEOUT,
+                                Constants.RPC_TIMEOUT);
     } catch (InterruptedException e) {
       throw new HoyaException(HoyaExitCodes.EXIT_TIMED_OUT,
                               e,
@@ -1632,13 +1624,13 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                app.getYarnApplicationState());
       return EXIT_SUCCESS;
     }
-    ApplicationId appId = app.getApplicationId();
+    LaunchedApplication application = new LaunchedApplication(yarnClient, app);
+    
 
     if (forcekill) {
       //escalating to forced kill
-      yarnClient.killRunningApplication(appId,
-                                        "Forced freeze of " + clustername +
-                                       ": " + text);
+      application.kill("Forced freeze of " + clustername +
+                       ": " + text);
     } else {
       try {
         HoyaClusterProtocol appMaster = connect(app);
@@ -1665,7 +1657,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     try {
       if (waittime > 0) {
         ApplicationReport applicationReport =
-          monitorAppToState(appId,
+          monitorAppToState(applicationId,
                             YarnApplicationState.FINISHED,
                             new Duration(waittime * 1000));
         if (applicationReport == null) {
@@ -1719,7 +1711,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   public int actionGetConf(String clustername, ActionGetConfArgs confArgs) throws
                                                YarnException,
                                                IOException {
-    int exitCode;
     File outfile = null;
     
     if (confArgs.getOutput() != null) {
@@ -1816,14 +1807,12 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * Implement flexing
    * @param clustername name of the cluster
    * @param roleInstances map of new role instances
-   * @param persist (ignored) flag of persistence policy
    * @return EXIT_SUCCESS if the #of nodes in a live cluster changed
    * @throws YarnException
    * @throws IOException
    */
   public int flex(String clustername,
-                  Map<String, Integer> roleInstances,
-                  boolean persist) throws
+                  Map<String, Integer> roleInstances) throws
                                    YarnException,
                                    IOException {
     verifyManagerSet();

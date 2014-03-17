@@ -22,8 +22,8 @@ import groovy.util.logging.Slf4j
 import org.apache.hadoop.yarn.api.protocolrecords.impl.pb.RegisterApplicationMasterResponsePBImpl
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext
 import org.apache.hadoop.yarn.api.records.impl.pb.ApplicationSubmissionContextPBImpl
+import org.apache.hoya.core.launch.AMRestartSupport
 import org.apache.hoya.yarn.HoyaTestBase
-import org.apache.hoya.yarn.service.HoyaServiceUtils
 import org.junit.Test
 
 @Slf4j
@@ -34,7 +34,7 @@ class TestHoyaServiceUtils extends HoyaTestBase {
 
     ApplicationSubmissionContext ctx = new ApplicationSubmissionContextPBImpl()
 
-    def success = HoyaServiceUtils.keepContainersAcrossSubmissions(ctx)
+    def success = AMRestartSupport.keepContainersAcrossSubmissions(ctx)
     log.info("AM restart enabled=$success")
   }
 
@@ -42,9 +42,9 @@ class TestHoyaServiceUtils extends HoyaTestBase {
   public void testRetrieveContainers() throws Throwable {
     RegisterApplicationMasterResponsePBImpl registration = new RegisterApplicationMasterResponsePBImpl()
 
-    def method = HoyaServiceUtils.retrieveContainersFromPreviousAttempt(registration)
+    def method = AMRestartSupport.retrieveContainersFromPreviousAttempt(registration)
     def hasMethod = method != null
-    def containers = HoyaServiceUtils.retrieveContainersFromPreviousAttempt(
+    def containers = AMRestartSupport.retrieveContainersFromPreviousAttempt(
         registration)
     def success = containers != null;
     

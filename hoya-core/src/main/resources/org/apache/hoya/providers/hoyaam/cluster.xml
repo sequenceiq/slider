@@ -28,7 +28,7 @@
     Time in milliseconds before a container is considered long-lived.
     Shortlived containers are interpreted as a problem with the role and/or the host.
     </description>
-    <value>60</value>
+    <value>60000</value>
   </property>
   
   <property>

@@ -16,29 +16,10 @@
  * limitations under the License.
  */
 
-package org.apache.hoya.providers.accumulo;
+package org.apache.hoya;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hoya.providers.AbstractClientProvider;
-import org.apache.hoya.providers.HoyaProviderFactory;
-import org.apache.hoya.providers.ProviderService;
-
-public class AccumuloProviderFactory extends HoyaProviderFactory {
-
-  public AccumuloProviderFactory() {
-  }
-
-  public AccumuloProviderFactory(Configuration conf) {
-    super(conf);
-  }
-
-  @Override
-  public AbstractClientProvider createClientProvider() {
-    return new AccumuloClientProvider(getConf());
-  }
-
-  @Override
-  public ProviderService createServerProvider() {
-    return new AccumuloProviderService();
-  }
+public class Constants {
+  public static final int ACCEPT_TIME = 60000;
+  public static final int CONNECT_TIMEOUT = 10000;
+  public static final int RPC_TIMEOUT = 15000;
 }

@@ -65,12 +65,13 @@ import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.api.StatusKeys;
 import org.apache.hoya.api.proto.HoyaClusterAPI;
 import org.apache.hoya.api.proto.Messages;
+import org.apache.hoya.core.launch.AMRestartSupport;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hoya.exceptions.TriggerClusterTeardownException;
-import org.apache.hoya.providers.ClientProvider;
+import org.apache.hoya.providers.AbstractClientProvider;
 import org.apache.hoya.providers.HoyaProviderFactory;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderService;
@@ -104,7 +105,6 @@ import org.apache.hoya.yarn.params.HoyaAMArgs;
 import org.apache.hoya.yarn.params.HoyaAMCreateAction;
 import org.apache.hoya.yarn.service.CompoundLaunchedService;
 import org.apache.hoya.yarn.service.EventCallback;
-import org.apache.hoya.yarn.service.HoyaServiceUtils;
 import org.apache.hoya.yarn.service.RpcService;
 import org.apache.hoya.yarn.service.WebAppService;
 import org.slf4j.Logger;
@@ -411,13 +411,10 @@ public class HoyaAppMaster extends CompoundLaunchedService
       HoyaProviderFactory.createHoyaProviderFactory(
         providerType);
     providerService = factory.createServerProvider();
-    ClientProvider providerClient = factory.createClientProvider();
+    AbstractClientProvider providerClient = factory.createClientProvider();
     // init the provider BUT DO NOT START IT YET
     providerService.init(getConfig());
     addService(providerService);
-    //verify that the cluster specification is now valid
-    providerService.validateClusterSpec(clusterSpec);
-
     
     
     HoyaAMClientProvider amClientProvider = new HoyaAMClientProvider(conf);
@@ -557,7 +554,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
       }
 
       // extract container list
-      List<Container> liveContainers = HoyaServiceUtils.retrieveContainersFromPreviousAttempt(
+      List<Container> liveContainers = AMRestartSupport.retrieveContainersFromPreviousAttempt(
         response);
       clusterSpec.setInfo(StatusKeys.INFO_AM_RESTART_SUPPORTED,
                           Boolean.toString(liveContainers != null));
@@ -890,12 +887,6 @@ public class HoyaAppMaster extends CompoundLaunchedService
   private boolean flexCluster(ClusterDescription updated)
     throws IOException, HoyaInternalStateException, BadConfigException {
 
-    //validation
-    try {
-      providerService.validateClusterSpec(updated);
-    } catch (HoyaException e) {
-      throw new IOException("Invalid cluster specification " + e, e);
-    }
     appState.updateClusterSpec(updated);
 
     // ask for more containers if needed

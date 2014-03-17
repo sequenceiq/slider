@@ -28,12 +28,12 @@ public interface OptionKeys {
    * Home dir of the app: {@value}
    * If set, implies there is a home dir to use
    */
-  String APPLICATION_HOME = "cluster.application.home";
+  String APPLICATION_HOME = "hoya.application.home";
   
   /**
    * Path to an image file containing the app: {@value}
    */
-  String APPLICATION_IMAGE_PATH = "cluster.application.image.path";
+  String APPLICATION_IMAGE_PATH = "hoya.application.image.path";
 
   /**
    * Time in milliseconds to wait after forking any in-AM 
@@ -119,18 +119,7 @@ public interface OptionKeys {
   /**
    * where a snapshot of the original conf dir is: {@value}
    */
-  String INTERNAL_GENERATED_CONF__PATH = "internal.generated.conf.path";
-  
-  /**
-   * where the .tar of an application is: {@value}
-   */
-  String INTERNAL_APP_PACKAGE_PATH = "internal.app.package.path";
-  
-  
-  /**
-   * where the homedir of an application is: {@value}
-   */
-  String INTERNAL_APP_HOME_DIR= "internal.app.home.dir";
+  String INTERNAL_GENERATED_CONF_PATH = "internal.generated.conf.path";
   
   /**
    * Zookeeper quorum host list: {@value}

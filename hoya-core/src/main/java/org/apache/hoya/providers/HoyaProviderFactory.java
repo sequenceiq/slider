@@ -51,7 +51,7 @@ public abstract class HoyaProviderFactory extends Configured {
   protected HoyaProviderFactory() {
   }
 
-  public abstract ClientProvider createClientProvider();
+  public abstract AbstractClientProvider createClientProvider();
 
   public abstract ProviderService createServerProvider();
 

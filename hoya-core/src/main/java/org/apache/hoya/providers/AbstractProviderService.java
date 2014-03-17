@@ -18,8 +18,6 @@
 
 package org.apache.hoya.providers;
 
-import java.util.Collections;
-import java.net.URL;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.yarn.service.launcher.ExitCodeProvider;
@@ -34,10 +32,13 @@ import org.apache.hoya.yarn.service.Parent;
 import org.apache.hoya.yarn.service.SequenceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

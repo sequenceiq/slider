@@ -397,7 +397,7 @@ public class AppState {
     }
 
     //set the livespan
-    startTimeThreshold = 1000 * cd.getOptionInt(
+    startTimeThreshold = cd.getOptionInt(
       OptionKeys.CONTAINER_FAILURE_SHORTLIFE,
       OptionKeys.DEFAULT_CONTAINER_FAILURE_SHORTLIFE);
     

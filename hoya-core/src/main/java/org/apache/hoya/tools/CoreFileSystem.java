@@ -433,7 +433,7 @@ public class CoreFileSystem {
    * @return the local resource ref
    * @throws IOException trouble copying to HDFS
    */
-  private LocalResource submitFile(File localFile, Path tempPath, String subdir, String destFileName) throws IOException {
+  public LocalResource submitFile(File localFile, Path tempPath, String subdir, String destFileName) throws IOException {
     Path src = new Path(localFile.toString());
     Path subdirPath = new Path(tempPath, subdir);
     fileSystem.mkdirs(subdirPath);

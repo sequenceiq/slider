@@ -30,6 +30,7 @@ import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.api.StatusKeys;
+import org.apache.hoya.core.launch.CommandLineBuilder;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.exceptions.HoyaInternalStateException;
@@ -161,7 +162,7 @@ public class HBaseProviderService extends AbstractProviderService implements
     ctx.setLocalResources(localResources);
     List<String> commands = new ArrayList<String>();
 
-    List<String> command = new ArrayList<String>();
+    CommandLineBuilder command = new CommandLineBuilder();
 
     String heap = clusterSpec.getRoleOpt(role, RoleKeys.JVM_HEAP, DEFAULT_JVM_HEAP);
     if (HoyaUtils.isSet(heap)) {
@@ -179,30 +180,28 @@ public class HBaseProviderService extends AbstractProviderService implements
     //config dir is relative to the generated file
     command.add(ARG_CONFIG);
     command.add("$PROPAGATED_CONFDIR");
-    
+
+    String roleCommand;
+    String logfile;
     //now look at the role
     if (ROLE_WORKER.equals(role)) {
       //role is region server
-      command.add(REGION_SERVER);
-      command.add(ACTION_START);
-      //log details
-      command.add(
-        "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/region-server.txt");
-      command.add("2>&1");
+      roleCommand = REGION_SERVER;
+      logfile = "/region-server.txt";
     } else if (ROLE_MASTER.equals(role)) {
-      command.add(MASTER);
-      command.add(ACTION_START);
-      //log details
-      command.add(
-        "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/master.txt");
-      command.add("2>&1");
+      roleCommand = MASTER;
+      
+      logfile ="/master.txt";
     } else {
       throw new HoyaInternalStateException("Cannot start role %s", role);
     }
-/*    command.add("-D httpfs.log.dir = "+
-                ApplicationConstants.LOG_DIR_EXPANSION_VAR);*/
 
-    String cmdStr = HoyaUtils.join(command, " ");
+    command.add(roleCommand);
+    command.add(ACTION_START);
+    //log details
+    command.addOutAndErrFiles(logfile, null);
+
+    String cmdStr = command.build();
 
 
     commands.add(cmdStr);

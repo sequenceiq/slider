@@ -20,19 +20,19 @@ package org.apache.hoya.providers.hoyaam;
 
 import com.beust.jcommander.JCommander;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.RoleKeys;
+import org.apache.hoya.core.conf.AggregateConf;
+import org.apache.hoya.core.launch.CommandLineBuilder;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.exceptions.HoyaRuntimeException;
-import org.apache.hoya.providers.AbstractProviderCore;
-import org.apache.hoya.providers.ClientProvider;
+import org.apache.hoya.providers.AbstractClientProvider;
 import org.apache.hoya.providers.PlacementPolicy;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderUtils;
@@ -55,17 +55,25 @@ import java.util.Map;
  * This keeps aspects of role, cluster validation and Clusterspec setup
  * out of the core hoya client
  */
-public class HoyaAMClientProvider extends AbstractProviderCore implements
-                                                     HoyaKeys,
-                                                     ClientProvider {
+public class HoyaAMClientProvider extends AbstractClientProvider implements
+                                                     HoyaKeys {
 
 
   protected static final Logger log =
     LoggerFactory.getLogger(HoyaAMClientProvider.class);
   protected static final String NAME = "hoyaAM";
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
+  public static final String INSTANCE_RESOURCE_BASE = PROVIDER_RESOURCE_BASE_ROOT +
+                                                       "hoyaam/instance/";
+  public static final String INTERNAL_JSON =
+    INSTANCE_RESOURCE_BASE + "internal.json";
+  public static final String APPCONF_JSON =
+    INSTANCE_RESOURCE_BASE + "appconf.json";
+  public static final String RESOURCES_JSON =
+    INSTANCE_RESOURCE_BASE + "resources.json";
+
   public static final String AM_ROLE_CONFIG_RESOURCE =
-    "org/apache/hoya/providers/hoyaam/role-am.xml";
+    PROVIDER_RESOURCE_BASE +"hoyaam/role-am.xml";
 
   public HoyaAMClientProvider(Configuration conf) {
     super(conf);
@@ -237,20 +245,20 @@ public class HoyaAMClientProvider extends AbstractProviderCore implements
    * @param clusterSpec spec
    */
   public void addJVMOptions(ClusterDescription clusterSpec,
-                            List<String> commands) {
-    commands.add(HoyaKeys.JVM_FORCE_IPV4);
-    commands.add(HoyaKeys.JVM_JAVA_HEADLESS);
+                            CommandLineBuilder cmdLine) {
+    cmdLine.add(HoyaKeys.JVM_FORCE_IPV4);
+    cmdLine.add(HoyaKeys.JVM_JAVA_HEADLESS);
     String heap = clusterSpec.getRoleOpt(ROLE_HOYA_AM,
                                          RoleKeys.JVM_HEAP,
                                          DEFAULT_JVM_HEAP);
     if (HoyaUtils.isSet(heap)) {
-      commands.add("-Xmx" + heap);
+      cmdLine.add("-Xmx" + heap);
     }
 
     String jvmopts = clusterSpec.getRoleOpt(ROLE_HOYA_AM,
                                             RoleKeys.JVM_OPTS, "");
     if (HoyaUtils.isSet(jvmopts)) {
-      commands.add(jvmopts);
+      cmdLine.add(jvmopts);
     }
 
   }
@@ -266,8 +274,14 @@ public class HoyaAMClientProvider extends AbstractProviderCore implements
 
   }
 
+
   @Override
-  public Configuration create(Configuration conf) {
-    return conf;
+  public void prepareInstanceConfiguration(AggregateConf aggregateConf) throws
+                                                                        HoyaException,
+                                                                        IOException {
+    mergeTemplates(aggregateConf,
+                   INTERNAL_JSON, RESOURCES_JSON,
+                   APPCONF_JSON
+                  );
   }
 }

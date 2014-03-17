@@ -18,10 +18,7 @@
 
 package org.apache.hoya.providers;
 
-import java.net.URL;
-
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -33,8 +30,10 @@ import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.servicemonitor.Probe;
 import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.yarn.service.EventCallback;
+
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.util.List;
 import java.util.Map;
 
