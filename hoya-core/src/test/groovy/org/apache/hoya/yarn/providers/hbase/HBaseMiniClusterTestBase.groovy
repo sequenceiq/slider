@@ -166,7 +166,7 @@ public abstract class HBaseMiniClusterTestBase extends YarnZKMiniClusterTestBase
   /**
    * Create a full cluster with a master & the requested no. of region servers
    * @param clustername cluster name
-   * @param size # of nodes
+   * @param workers # of nodes
    * @param extraArgs list of extra args to add to the creation command
    * @param deleteExistingData should the data of any existing cluster
    * of this name be deleted
@@ -174,12 +174,42 @@ public abstract class HBaseMiniClusterTestBase extends YarnZKMiniClusterTestBase
    * @return launcher which will have executed the command.
    */
   public ServiceLauncher<HoyaClient> createHBaseCluster(String clustername,
-                                                        int size, List<String> extraArgs,
-                                                        boolean deleteExistingData,
-                                                        boolean blockUntilRunning) {
+      int workers,
+      List<String> extraArgs,
+      boolean deleteExistingData,
+      boolean blockUntilRunning) {
+    def masters = 1
+    return createHBaseCluster(
+        clustername,
+        masters,
+        workers,
+        extraArgs,
+        deleteExistingData,
+        blockUntilRunning)
+
+  }
+
+  /**
+   * Create a full cluster with a master & the requested no. of region servers
+   * @param clustername cluster name
+   * @param masters #of masters
+   * @param workers # of nodes
+   * @param extraArgs list of extra args to add to the creation command
+   * @param deleteExistingData should the data of any existing cluster
+   * of this name be deleted
+   * @param blockUntilRunning block until the AM is running
+   * @return launcher which will have executed the command.
+   */
+  public ServiceLauncher<HoyaClient> createHBaseCluster(
+      String clustername,
+      int masters,
+      int workers,
+      List<String> extraArgs,
+      boolean deleteExistingData,
+      boolean blockUntilRunning) {
     Map<String, Integer> roles = [
-        (ROLE_MASTER): 1,
-        (ROLE_WORKER): size,
+        (ROLE_MASTER): masters,
+        (ROLE_WORKER): workers,
     ];
     extraArgs << ARG_ROLEOPT << ROLE_MASTER << RoleKeys.YARN_MEMORY << YRAM
     extraArgs << ARG_ROLEOPT << ROLE_WORKER << RoleKeys.YARN_MEMORY << YRAM
@@ -189,7 +219,6 @@ public abstract class HBaseMiniClusterTestBase extends YarnZKMiniClusterTestBase
         deleteExistingData,
         blockUntilRunning,
         [:])
-
   }
 
   /**

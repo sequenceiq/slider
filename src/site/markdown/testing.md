@@ -257,6 +257,44 @@ Optional parameters
 
 
 
+### Configuring the YARN cluster for tests
+
+
+Here are the configuration options we use in `yarn-site.xml` for testing:
+
+These tell YARN to ignore memory requirements in allocating VMs, and
+to keep the log files around after an application run. 
+
+      <property>
+        <name>yarn.scheduler.minimum-allocation-mb</name>
+        <value>1</value>
+      </property>
+      <property>
+        <description>Whether physical memory limits will be enforced for
+          containers.
+        </description>
+        <name>yarn.nodemanager.pmem-check-enabled</name>
+        <value>false</value>
+      </property>
+      <!-- we really don't want checking here-->
+      <property>
+        <name>yarn.nodemanager.vmem-check-enabled</name>
+        <value>false</value>
+      </property>
+      
+      <!-- how long after a failure to see what is left in the directory-->
+      <property>
+        <name>yarn.nodemanager.delete.debug-delay-sec</name>
+        <value>60000</value>
+      </property>
+    
+      <!--ten seconds before the process gets a -9 -->
+      <property>
+        <name>yarn.nodemanager.sleep-delay-before-sigkill.ms</name>
+        <value>30000</value>
+      </property>
+
+
 ### Testing against a secure cluster
 
 To test against a secure cluster
@@ -342,7 +380,7 @@ testing, you must build/install the hoya packages from the root assembly.
 
 1. If you are testing in a local VM and stops responding, it'll have been
 swapped out to RAM. Rebooting can help, but for a long term fix go through
-all the Hadoop configuratins (HDFS, YARN, Zookeeper) and set their heaps to
+all the Hadoop configurations (HDFS, YARN, Zookeeper) and set their heaps to
 smaller numbers, like 256M each. Also: turn off unused services (hcat, oozie,
 webHDFS)
 

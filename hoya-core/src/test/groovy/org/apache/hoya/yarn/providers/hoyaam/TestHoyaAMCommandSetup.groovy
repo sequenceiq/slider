@@ -18,6 +18,7 @@
 
 package org.apache.hoya.yarn.providers.hoyaam
 
+import groovy.transform.CompileStatic
 import org.apache.hadoop.conf.Configuration
 import org.apache.hoya.HoyaKeys
 import org.apache.hoya.api.ClusterDescription
@@ -31,6 +32,7 @@ import org.apache.hoya.yarn.HoyaTestBase
 import org.junit.Before
 import org.junit.Test
 
+@CompileStatic
 class TestHoyaAMCommandSetup extends HoyaTestBase
     implements RoleKeys, HoyaKeys {
   public static final int JVM_HEAP_INDEX = 2
