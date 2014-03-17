@@ -25,6 +25,8 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.RoleKeys;
+import org.apache.hoya.core.conf.AggregateConf;
+import org.apache.hoya.core.launch.AbstractLauncher;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.providers.AbstractClientProvider;
@@ -208,6 +210,35 @@ public class AgentClientProvider extends AbstractClientProvider
         HoyaKeys.PROPAGATED_CONF_DIR_NAME);
 
     return providerResources;
+  }
+
+
+  @Override
+  public void prepareAMAndConfigForLaunch(HoyaFileSystem hoyaFileSystem,
+                                          Configuration serviceConf,
+                                          AbstractLauncher launcher,
+                                          AggregateConf instanceDescription,
+                                          Path originConfDirPath,
+                                          Path generatedConfDirPath,
+                                          Configuration clientConfExtras,
+                                          String libdir,
+                                          Path tempPath) throws
+                                                         IOException,
+                                                         HoyaException {
+
+    //load in the template site config
+    log.debug("Loading template configuration from {}, saving to ",
+              originConfDirPath, generatedConfDirPath);
+
+    Path commandJson =
+      new Path(originConfDirPath, AgentKeys.COMMAND_JSON_FILENAME);
+    hoyaFileSystem.verifyFileExists(commandJson);
+
+
+    Map<String, LocalResource> providerResources;
+    launcher.submitDirectory(generatedConfDirPath,
+                             HoyaKeys.PROPAGATED_CONF_DIR_NAME);
+
   }
 
   /**

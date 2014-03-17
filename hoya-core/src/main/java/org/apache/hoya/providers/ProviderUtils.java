@@ -26,6 +26,7 @@ import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.RoleKeys;
+import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
@@ -154,6 +155,11 @@ public class ProviderUtils implements RoleKeys {
   public void propagateSiteOptions(ClusterDescription clusterSpec,
                                     Map<String, String> sitexml) {
     Map<String, String> options = clusterSpec.options;
+    propagateSiteOptions(options, sitexml);
+  }
+
+  public void propagateSiteOptions(Map<String, String> options,
+                                   Map<String, String> sitexml) {
     for (Map.Entry<String, String> entry : options.entrySet()) {
       String key = entry.getKey();
       if (key.startsWith(OptionKeys.SITE_XML_PREFIX)) {
@@ -179,6 +185,21 @@ public class ProviderUtils implements RoleKeys {
                               Map<String, String> sitexml,
                               String siteKey) throws BadConfigException {
     sitexml.put(siteKey, clusterSpec.getMandatoryOption(optionKey));
+  }
+  /**
+   * Propagate an option from the cluster specification option map
+   * to the site XML map, using the site key for the name
+   * @param clusterSpec cluster specification
+   * @param optionKey key in the option map
+   * @param sitexml  map for XML file to build up
+   * @param siteKey key to assign the value to in the site XML
+   * @throws BadConfigException if the option is missing from the cluster spec
+   */
+  public void propagateOption(MapOperations global,
+                              String optionKey,
+                              Map<String, String> sitexml,
+                              String siteKey) throws BadConfigException {
+    sitexml.put(siteKey, global.getMandatoryOption(optionKey));
   }
   
   /**

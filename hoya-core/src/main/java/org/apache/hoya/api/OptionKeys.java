@@ -126,6 +126,14 @@ public interface OptionKeys {
    */
   String INTERNAL_PROVIDER_NAME = "internal.provider.name";
   
+    
+  /**
+   * where a snapshot of the original conf dir is: {@value}
+   */
+  String INTERNAL_DATA_DIR_PATH = "internal.data.dir.path";
+  
+  
+  
   /**
    * Zookeeper quorum host list: {@value}
    */

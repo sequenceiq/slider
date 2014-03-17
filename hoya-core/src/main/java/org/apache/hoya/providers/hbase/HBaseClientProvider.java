@@ -28,6 +28,9 @@ import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.core.conf.AggregateConf;
+import org.apache.hoya.core.conf.ConfTreeOperations;
+import org.apache.hoya.core.conf.MapOperations;
+import org.apache.hoya.core.launch.AbstractLauncher;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
@@ -148,10 +151,9 @@ public class HBaseClientProvider extends AbstractClientProvider implements
     providerUtils.propagateSiteOptions(clusterSpec, sitexml);
 /*
   //this is where we'd do app-indepdenent keytabs
-
     String keytab =
       clusterSpec.getOption(OptionKeys.OPTION_KEYTAB_LOCATION, "");
-    
+
 */
 
 
@@ -170,6 +172,61 @@ public class HBaseClientProvider extends AbstractClientProvider implements
     providerUtils.propagateOption(clusterSpec, OptionKeys.ZOOKEEPER_PORT,
                                   sitexml, KEY_ZOOKEEPER_PORT);
     providerUtils.propagateOption(clusterSpec, OptionKeys.ZOOKEEPER_HOSTS,
+                                  sitexml, KEY_ZOOKEEPER_QUORUM);
+
+    return sitexml;
+  }
+
+
+  /**
+   * Build the hdfs-site.xml file
+   * This the configuration used by HBase directly
+   * @param instanceDescription this is the cluster specification used to define this
+   * @return a map of the dynamic bindings for this Hoya instance
+   */
+  public Map<String, String> buildSiteConfFromSpec(
+    AggregateConf instanceDescription)
+    throws BadConfigException {
+
+
+    ConfTreeOperations appconf =
+      instanceDescription.getAppConfOperations();
+
+    MapOperations globalAppOptions = appconf.getGlobalOptions();
+    MapOperations globalInstanceOptions = instanceDescription.getInternalOperations().getGlobalOptions();
+    MapOperations master = appconf.getMandatoryComponent(HBaseKeys.ROLE_MASTER);
+
+    MapOperations worker = appconf.getMandatoryComponent(HBaseKeys.ROLE_WORKER);
+    
+    Map<String, String> sitexml = new HashMap<String, String>();
+
+    //map all cluster-wide site. options
+    providerUtils.propagateSiteOptions(globalAppOptions, sitexml);
+/*
+  //this is where we'd do app-indepdenent keytabs
+
+    String keytab =
+      clusterSpec.getOption(OptionKeys.OPTION_KEYTAB_LOCATION, "");
+    
+*/
+
+
+    sitexml.put(KEY_HBASE_CLUSTER_DISTRIBUTED, "true");
+    sitexml.put(KEY_HBASE_MASTER_PORT, "0");
+
+    sitexml.put(KEY_HBASE_MASTER_INFO_PORT, master.get(
+      RoleKeys.APP_INFOPORT));
+    sitexml.put(KEY_HBASE_ROOTDIR,
+                globalInstanceOptions.getMandatoryOption(
+                  OptionKeys.INTERNAL_DATA_DIR_PATH) );
+    sitexml.put(KEY_REGIONSERVER_INFO_PORT,
+                worker.get(RoleKeys.APP_INFOPORT));
+    sitexml.put(KEY_REGIONSERVER_PORT, "0");
+    providerUtils.propagateOption(globalAppOptions, OptionKeys.ZOOKEEPER_PATH,
+                                  sitexml, KEY_ZNODE_PARENT);
+    providerUtils.propagateOption(globalAppOptions, OptionKeys.ZOOKEEPER_PORT,
+                                  sitexml, KEY_ZOOKEEPER_PORT);
+    providerUtils.propagateOption(globalAppOptions, OptionKeys.ZOOKEEPER_HOSTS,
                                   sitexml, KEY_ZOOKEEPER_QUORUM);
 
     return sitexml;
@@ -318,6 +375,12 @@ public class HBaseClientProvider extends AbstractClientProvider implements
       ConfigHelper.dumpConf(siteConf);
     }
     //construct the cluster configuration values
+
+    Map<String, String> master = clusterSpec.getMandatoryRole(
+      HBaseKeys.ROLE_MASTER);
+
+    Map<String, String> worker = clusterSpec.getMandatoryRole(
+      HBaseKeys.ROLE_WORKER);
     Map<String, String> clusterConfMap = buildSiteConfFromSpec(clusterSpec);
     
     //merge them
@@ -347,6 +410,66 @@ public class HBaseClientProvider extends AbstractClientProvider implements
                                        HoyaKeys.PROPAGATED_CONF_DIR_NAME);
 
     return providerResources;
+  }
+
+  @Override
+  public void prepareAMAndConfigForLaunch(HoyaFileSystem hoyaFileSystem,
+                                          Configuration serviceConf,
+                                          AbstractLauncher launcher,
+                                          AggregateConf instanceDescription,
+                                          Path originConfDirPath,
+                                          Path generatedConfDirPath,
+                                          Configuration clientConfExtras,
+                                          String libdir,
+                                          Path tempPath) throws
+                                                         IOException,
+                                                         HoyaException {
+    //load in the template site config
+    log.debug("Loading template configuration from {}", originConfDirPath);
+    Configuration siteConf = ConfigHelper.loadTemplateConfiguration(
+      serviceConf,
+      originConfDirPath,
+      HBaseKeys.SITE_XML,
+      HBaseKeys.HBASE_TEMPLATE_RESOURCE);
+
+    if (log.isDebugEnabled()) {
+      log.debug("Configuration came from {}",
+                siteConf.get(HoyaXmlConfKeys.KEY_HOYA_TEMPLATE_ORIGIN));
+      ConfigHelper.dumpConf(siteConf);
+    }
+    //construct the cluster configuration values
+
+    ConfTreeOperations appconf =
+      instanceDescription.getAppConfOperations();
+
+    
+    Map<String, String> clusterConfMap = buildSiteConfFromSpec(instanceDescription);
+
+    //merge them
+    ConfigHelper.addConfigMap(siteConf,
+                              clusterConfMap.entrySet(),
+                              "HBase Provider");
+
+    //now, if there is an extra client conf, merge it in too
+    if (clientConfExtras != null) {
+      ConfigHelper.mergeConfigurations(siteConf, clientConfExtras,
+                                       "Hoya Client");
+    }
+
+    if (log.isDebugEnabled()) {
+      log.debug("Merged Configuration");
+      ConfigHelper.dumpConf(siteConf);
+    }
+
+    Path sitePath = ConfigHelper.saveConfig(serviceConf,
+                                            siteConf,
+                                            generatedConfDirPath,
+                                            HBaseKeys.SITE_XML);
+
+    log.debug("Saving the config to {}", sitePath);
+    launcher.submitDirectory(generatedConfDirPath,
+                             HoyaKeys.PROPAGATED_CONF_DIR_NAME);
+
   }
 
   /**

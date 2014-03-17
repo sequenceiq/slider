@@ -24,6 +24,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
+import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.HoyaXmlConfKeys;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.StatusKeys;
@@ -95,9 +96,6 @@ public class InstanceBuilder {
    * Initial part of the build process
    * @param configSrcDir
    * @param provider
-   * @param internal
-   * @param resources
-   * @param app_conf
    */
   public void init(
     Path configSrcDir,
@@ -123,6 +121,13 @@ public class InstanceBuilder {
                     instancePaths.snapshotConfPath.toUri());
     internalOps.set(INTERNAL_GENERATED_CONF_PATH,
                     instancePaths.generatedConfPath.toUri());
+    internalOps.set(INTERNAL_DATA_DIR_PATH,
+                    instancePaths.dataPath.toUri());
+
+
+    internalOps.getGlobalOptions().put(OptionKeys.INTERNAL_PROVIDER_NAME,
+                                       provider);
+
   }
 
   /**
@@ -225,7 +230,8 @@ public class InstanceBuilder {
   }
 
   /**
-   * Add the ZK paths to the application options
+   * Add the ZK paths to the application options. 
+   * This is skipped if the zkhosts are not set
    * @param zkhosts
    * @param zookeeperRoot
    * @param zkport
@@ -233,11 +239,13 @@ public class InstanceBuilder {
   public void addZKPaths(String zkhosts,
                          String zookeeperRoot,
                          int zkport) {
-    MapOperations globalAppOptions =
-      instanceConf.getAppConfOperations().getGlobalOptions();
-    globalAppOptions.put(ZOOKEEPER_PATH, zookeeperRoot);
-    globalAppOptions.put(ZOOKEEPER_HOSTS, zkhosts);
-    globalAppOptions.put(ZOOKEEPER_PORT, Integer.toString(zkport));
+    if (HoyaUtils.isSet(zkhosts)) {
+      MapOperations globalAppOptions =
+        instanceConf.getAppConfOperations().getGlobalOptions();
+      globalAppOptions.put(ZOOKEEPER_PATH, zookeeperRoot);
+      globalAppOptions.put(ZOOKEEPER_HOSTS, zkhosts);
+      globalAppOptions.put(ZOOKEEPER_PORT, Integer.toString(zkport));
+    }
   }
 
 

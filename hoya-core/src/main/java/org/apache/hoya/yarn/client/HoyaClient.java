@@ -655,7 +655,9 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     AbstractClientProvider provider =
       createClientProvider(providerName);
     InstanceBuilder builder =
-      new InstanceBuilder(hoyaFileSystem, getConfig(), clustername);
+      new InstanceBuilder(hoyaFileSystem, 
+                          getConfig(),
+                          clustername);
     
 
     ConfTree internal = new ConfTree();
@@ -673,8 +675,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     ConfTreeOperations internalOps = instanceConf.getInternalOperations();
     appConfOps.putAll(cmdLineConf);
 
-    internalOps.getGlobalOptions().put(OptionKeys.INTERNAL_PROVIDER_NAME,
-                                       providerName);
 
     //all CLI role options
     Map<String, Map<String, String>> roleOptionMap =
@@ -705,7 +705,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                        zookeeperRoot,
                        buildInfo.getZKport());
 
-    
     try {
       builder.persist(appconfdir);
     } catch (LockAcquireFailedException e) {
@@ -713,6 +712,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       throw new BadClusterStateException("Failed to save " + clustername
                                          + ": " + e);
     }
+
+
     return true;
   }
   
@@ -1277,18 +1278,16 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                        clientConfExtras,
                                        libdir,
                                        tempPath);
-/*
     //add provider-specific resources
-    providerResources = provider.prepareAMAndConfigForLaunch(hoyaFileSystem,
-                                                             config,
-                                                             clusterSpec,
-                                                             snapshotConfPath,
-                                                             generatedConfDirPath,
-                                                             clientConfExtras,
-                                                             libdir,
-                                                             tempPath);
-    localResources.putAll(providerResources);
-*/
+    provider.prepareAMAndConfigForLaunch(hoyaFileSystem, 
+                                         config,
+                                         amLauncher,
+                                         instanceDefinition,
+                                         snapshotConfPath,
+                                         generatedConfDirPath,
+                                         clientConfExtras,
+                                         libdir,
+                                         tempPath);
 
     // now that the site config is fully generated, the provider gets
     // to do a quick review of them.
