@@ -6,19 +6,25 @@
   },
 
   "global": {
-
+    "yarn.vcores": "1",
+    "yarn.memory": "512"
   },
 
   "components": {
     "master": {
-      "role.instances": "1",
-      "yarn.vcores": "1",
-      "yarn.memory": "1024"
+      "role.instances": "1"
     },
-    "worker": {
-      "role.instances": "2",
-      "yarn.vcores": "1",
-      "yarn.memory": "768"
-    }
+      "tserver": {
+        "role.instances": "2"
+      },
+      "monitor": {
+        "role.instances": "0"
+      },
+      "tracer": {
+        "role.instances": "0"
+      },
+      "gc": {
+        "role.instances": "0"
+      }
   }
 }

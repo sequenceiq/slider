@@ -16,7 +16,8 @@
     "site.hbase.master.port": "0",
     "site.hbase.master.info.port": "0",
     "site.hbase.regionserver.port": "0",
-    "site.hbase.regionserver.info.port": "0"
+    "site.hbase.regionserver.info.port": "0",
+    "jvm.heapsize": "256M"
   },
 
   "components": {

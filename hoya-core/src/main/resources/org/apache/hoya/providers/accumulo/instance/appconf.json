@@ -13,13 +13,25 @@
     "site.tserver.port.client": "0",
     "site.gc.port.client": "0",
     "site.monitor.port.log4j": "0",
+    "site.instance.secret": "secret",
+    "site.accumulo.password": "secret",
+
+    "jvm.heapsize": "256M"
   },
 
 
-"components": {
+  "components": {
     "master": {
     },
-    "worker": {
+    "tserver": {
+    },
+    "monitor": {
+      "role.additional.args": "--address 0.0.0.0"
+    },
+    "tracer": {
+    },
+    "gc": {
+      "role.additional.args":"--address 0.0.0.0"
     }
   }
 }
