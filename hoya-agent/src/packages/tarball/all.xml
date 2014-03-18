@@ -22,13 +22,18 @@
     http://maven.apache.org/plugins/maven-assembly-plugin/faq.html#required-classifiers
   -->
   <formats>
-    <format>dir</format>
+    <format>tar</format>
+    <format>tar.gz</format>
   </formats>
   <includeBaseDirectory>false</includeBaseDirectory>
   <fileSets>
     <fileSet>
       <directory>src/main/python</directory>
-      <outputDirectory>/</outputDirectory>
+      <outputDirectory>slider-agent</outputDirectory>
+      <excludes>
+        <exclude>setup.cfg</exclude>
+        <exclude>setup.py</exclude>
+      </excludes>
     </fileSet>
   </fileSets>
 </assembly>

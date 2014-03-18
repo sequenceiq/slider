@@ -26,39 +26,38 @@
   <artifactId>hoya-agent</artifactId>
   <packaging>pom</packaging>
   <version>0.13.0-SNAPSHOT</version>
-  <name>Hoya Agent</name>
-  <description>Hoya Agent</description>
+  <name>Slider Agent</name>
+  <description>Slider Agent</description>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <final.name>${project.artifactId}-${project.version}</final.name>
     <package.release>1</package.release>
     <skipTests>false</skipTests>
     <python.ver>python &gt;= 2.6</python.ver>
-    <hoya.core.module>../hoya-core</hoya.core.module>
   </properties>
+
   <build>
     <plugins>
       <plugin>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.0</version>
-      </plugin>
-      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
         <configuration>
           <tarLongFileMode>gnu</tarLongFileMode>
-          <descriptors>
-            <descriptor>src/packages/tarball/all.xml</descriptor>
-          </descriptors>
+          <descriptor>src/packages/tarball/all.xml</descriptor>
         </configuration>
         <executions>
           <execution>
             <id>build-tarball</id>
-            <phase>prepare-package</phase>
+            <phase>package</phase>
             <goals>
               <goal>single</goal>
             </goals>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.0</version>
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
@@ -79,26 +78,6 @@
             </configuration>
             <id>python-test</id>
             <phase>test</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-          </execution>
-          <execution>
-            <!-- TODO: Looks like section is unused, maybe remove? -->
-            <configuration>
-              <executable>python2.6</executable>
-              <workingDirectory>target/hoya-agent-${project.version}</workingDirectory>
-              <arguments>
-                <argument>${project.basedir}/src/main/python/setup.py</argument>
-                <argument>clean</argument>
-                <argument>bdist_dumb</argument>
-              </arguments>
-              <environmentVariables>
-                <PYTHONPATH>target/hoya-agent-${project.version}:$PYTHONPATH</PYTHONPATH>
-              </environmentVariables>
-            </configuration>
-            <id>python-package</id>
-            <phase>package</phase>
             <goals>
               <goal>exec</goal>
             </goals>

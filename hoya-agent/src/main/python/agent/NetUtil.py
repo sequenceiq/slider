@@ -27,10 +27,6 @@ class NetUtil:
   HEARTBEAT_IDDLE_INTERVAL_SEC = 10
   MINIMUM_INTERVAL_BETWEEN_HEARTBEATS = 0.1
 
-  # Url within server to request during status check. This url
-  # should return HTTP code 200
-  SERVER_STATUS_REQUEST = "{0}/cert/ca"
-
   # For testing purposes
   DEBUG_STOP_RETRIES_FLAG = False
 
@@ -65,7 +61,7 @@ class NetUtil:
       logger.info("DEBUG: Trying to connect to the server at " + server_url)
     retries = 0
     while (max_retries == -1 or retries < max_retries) and not self.DEBUG_STOP_RETRIES_FLAG:
-      server_is_up = self.checkURL(self.SERVER_STATUS_REQUEST.format(server_url))
+      server_is_up = self.checkURL(server_url)
       if server_is_up:
         break
       else:

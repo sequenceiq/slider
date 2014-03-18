@@ -23,7 +23,7 @@ import os.path
 import logging
 from datetime import datetime
 import pprint
-from ambari_agent import AgentException
+from agent import AgentException
 
 HOSTS_LIST_KEY = "all_hosts"
 PING_PORTS_KEY = "all_ping_ports"

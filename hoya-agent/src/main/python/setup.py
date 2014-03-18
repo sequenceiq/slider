@@ -16,21 +16,21 @@
 from setuptools import setup
 
 setup(
-    name = "hoya-agent",
+    name = "slider-agent",
     version = "0.13.0-SNAPSHOT",
     packages = ['agent'],
     # metadata for upload to PyPI
     author = "Apache Software Foundation",
-    author_email = "hoya-dev@incubator.apache.org",
-    description = "Hoya agent",
+    author_email = "slider-dev@incubator.apache.org",
+    description = "Slider agent",
     license = "Apache License v2.0",
-    keywords = "hadoop, hoya",
-    url = "http://incubator.apache.org/hoya",
-    long_description = "This package implements Hoya for deploying and managing Apps on Yarn.",
+    keywords = "hadoop, slider",
+    url = "http://incubator.apache.org/slider",
+    long_description = "This package implements Slider for deploying and managing Apps on Yarn.",
     platforms=["any"],
     entry_points = {
         "console_scripts": [
-            "hoya-agent = agent.main:main",
+            "slider-agent = agent.main:main",
         ],
     }
 )

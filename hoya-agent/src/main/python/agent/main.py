@@ -40,6 +40,8 @@ agentPid = os.getpid()
 configFileRelPath = "infra/conf/agent.ini"
 logFileName = "agent.log"
 
+SERVER_STATUS_URL="https://{0}:{1}{2}"
+
 
 def signal_handler(signum, frame):
   #we want the handler to run only for the agent process and not
@@ -150,7 +152,7 @@ def write_pid():
 
 
 def stop_agent():
-# stop existing Ambari agent
+# stop existing Slider agent
   pid = -1
   try:
     f = open(ProcessHelper.pidfile, 'r')
@@ -198,14 +200,16 @@ def main():
   setup_logging(options.verbose, logFile)
   update_log_level(agentConfig, logFile)
 
-  server_url = 'https://' + agentConfig.get(AgentConfig.SERVER_SECTION, 'hostname') + ':' \
-               + agentConfig.get(AgentConfig.SERVER_SECTION, 'port')
+  server_url = SERVER_STATUS_URL.format(
+    agentConfig.get(AgentConfig.SERVER_SECTION, 'hostname'),
+    agentConfig.get(AgentConfig.SERVER_SECTION, 'port'),
+    agentConfig.get(AgentConfig.SERVER_SECTION, 'check_path'))
   print("Connecting to the server at " + server_url + "...")
   logger.info('Connecting to the server at: ' + server_url)
 
   # Wait until server is reachable
   netutil = NetUtil()
-  netutil.try_to_connect(server_url, -1, logger)
+  netutil.try_to_connect(server_url, -1, agentConfig, logger)
 
   # Launch Controller communication
   controller = Controller(agentConfig)

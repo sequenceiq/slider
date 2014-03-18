@@ -29,6 +29,9 @@ content = """
 hostname=localhost
 port=8440
 secured_port=8441
+check_path=/cert/ca
+register_path=/agent/v1/register/{name}
+heartbeat_path=/agent/v1/heartbeat/{name}
 
 [agent]
 app_pkg_dir=app/definition
@@ -63,7 +66,6 @@ config.readfp(s)
 
 
 class AgentConfig:
-
   SERVER_SECTION = "server"
   AGENT_SECTION = "agent"
   PYTHON_SECTION = "python"
@@ -124,7 +126,8 @@ class AgentConfig:
     relativePath = config.get(AgentConfig.AGENT_SECTION, name)
     if not os.path.isabs(relativePath):
       root_folder_to_use = self.workroot
-      if name in AgentConfig.FOLDER_MAPPING and AgentConfig.FOLDER_MAPPING[name] == "LOG":
+      if name in AgentConfig.FOLDER_MAPPING and AgentConfig.FOLDER_MAPPING[
+        name] == "LOG":
         root_folder_to_use = self.logroot
       return os.path.join(root_folder_to_use, relativePath)
     else:
