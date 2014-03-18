@@ -123,8 +123,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   private ClientArgs serviceArgs;
   public ApplicationId applicationId;
   
-  
-
   private String deployedClusterName;
   /**
    * Cluster opaerations against the deployed cluster -will be null
@@ -139,6 +137,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    */
   private HoyaYarnClientImpl yarnClient;
   private ServiceRegistryClient serviceRegistryClient;
+  private AggregateConf launchedInstanceDefinition;
 
   /**
    * Constructor
@@ -1106,7 +1105,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                           YarnException,
                                                           IOException {
     Path clusterDirectory = hoyaFileSystem.buildHoyaClusterDirPath(clustername);
-    AggregateConf instanceDefinition = loadUnresolvedInstanceDefinition(
+    AggregateConf instanceDefinition = loadInstanceDefinitionUnresolved(
       clustername,
       clusterDirectory);
 
@@ -1125,16 +1124,17 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * @return the loaded configuration
    * @throws IOException
    * @throws HoyaException
+   * @throws UnknownClusterException if the file is not found
    */
-  private AggregateConf loadUnresolvedInstanceDefinition(String name,
+  private AggregateConf loadInstanceDefinitionUnresolved(String name,
                                                          Path clusterDirectory) throws
                                                                       IOException,
                                                                       HoyaException {
 
     try {
       AggregateConf definition =
-        InstanceIO.loadInstanceDefinition(hoyaFileSystem,
-                                          clusterDirectory);
+        InstanceIO.loadInstanceDefinitionUnresolved(hoyaFileSystem,
+                                                    clusterDirectory);
       return definition;
     } catch (FileNotFoundException e) {
       throw new UnknownClusterException(name, e);
@@ -1168,6 +1168,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     HoyaAMClientProvider hoyaAM = new HoyaAMClientProvider(config);
 
     instanceDefinition.resolve();
+    launchedInstanceDefinition = instanceDefinition;
 
     ConfTreeOperations internalOperations =
       instanceDefinition.getInternalOperations();
@@ -2215,7 +2216,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     verifyManagerSet();
     HoyaUtils.validateClusterName(clustername);
     Path clusterDirectory = hoyaFileSystem.buildHoyaClusterDirPath(clustername);
-    AggregateConf instanceDefinition = loadUnresolvedInstanceDefinition(
+    AggregateConf instanceDefinition = loadInstanceDefinitionUnresolved(
       clustername,
       clusterDirectory);
 
@@ -2486,5 +2487,14 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   public ApplicationReport getApplicationReport(ApplicationId appId)
     throws YarnException, IOException {
     return yarnClient.getApplicationReport(appId);
+  }
+
+  /**
+   * The configuration used for deployment (after resolution)
+   * @return
+   */
+  @VisibleForTesting
+  public AggregateConf getLaunchedInstanceDefinition() {
+    return launchedInstanceDefinition;
   }
 }

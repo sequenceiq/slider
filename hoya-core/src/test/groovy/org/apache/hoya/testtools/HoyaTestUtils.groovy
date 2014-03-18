@@ -33,6 +33,7 @@ import org.apache.hadoop.yarn.service.launcher.ServiceLaunchException
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.ClusterNode
+import org.apache.hoya.core.conf.AggregateConf
 import org.apache.hoya.exceptions.BadClusterStateException
 import org.apache.hoya.exceptions.HoyaException
 import org.apache.hoya.exceptions.WaitTimeoutException
@@ -310,6 +311,13 @@ class HoyaTestUtils extends Assert {
     log.info(prettyPrint(status.toJsonString()))
   }
 
+  
+  public static void dumpClusterDescription(String text, AggregateConf status) {
+    describe(text)
+    log.info(status.toString())
+  }
+
+  
   /**
    * Fetch the current site config from the Hoya AM, from the 
    * <code>clientProperties</code> field of the ClusterDescription

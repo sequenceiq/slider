@@ -89,7 +89,7 @@ class TestFreezeReconfigureThawLiveRegionService
     HadoopFS dfs = HadoopFS.get(new URI(fsDefaultName), miniCluster.config)
     HoyaFileSystem hoyaFileSystem = new HoyaFileSystem(dfs, miniCluster.config)
     Path clusterDir = hoyaFileSystem.buildHoyaClusterDirPath(clustername);
-    def instanceDefinition = InstanceIO.loadInstanceDefinition(
+    def instanceDefinition = InstanceIO.loadInstanceDefinitionUnresolved(
         hoyaFileSystem,
         clusterDir)
 

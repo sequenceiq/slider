@@ -34,7 +34,15 @@ public class InstanceIO {
   protected static final Logger log =
     LoggerFactory.getLogger(InstanceIO.class);
 
-  public static AggregateConf loadInstanceDefinition(
+  /**
+   * Load in an instance definition -but do not resolve it
+   * @param hoyaFileSystem filesystem
+   * @param clusterDirectory CD
+   * @return
+   * @throws IOException
+   * @throws HoyaException
+   */
+  public static AggregateConf loadInstanceDefinitionUnresolved(
     CoreFileSystem hoyaFileSystem,
     Path clusterDirectory) throws
                            IOException,

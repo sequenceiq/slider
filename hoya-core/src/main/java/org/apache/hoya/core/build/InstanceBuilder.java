@@ -248,9 +248,10 @@ public class InstanceBuilder {
       globalAppOptions.put(ZOOKEEPER_PATH, zookeeperRoot);
       globalAppOptions.put(ZOOKEEPER_HOSTS, zkhosts);
       globalAppOptions.put(ZOOKEEPER_PORT, Integer.toString(zkport));
-      globalInternalOptions.put(ZOOKEEPER_PATH, zookeeperRoot);
+/* commented out unless/until we need ZK internally
+     globalInternalOptions.put(ZOOKEEPER_PATH, zookeeperRoot);
       globalInternalOptions.put(ZOOKEEPER_HOSTS, zkhosts);
-      globalInternalOptions.put(ZOOKEEPER_PORT, Integer.toString(zkport));
+      globalInternalOptions.put(ZOOKEEPER_PORT, Integer.toString(zkport));*/
     }
   }
 

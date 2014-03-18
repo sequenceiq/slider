@@ -49,18 +49,21 @@ public class ClusterDescriptionOperations {
     HoyaUtils.mergeMapsIgnoreDuplicateKeys(options,
                                            aggregateConf.getInternal().global);
     HoyaUtils.mergeMapsIgnoreDuplicateKeys(options,
-                                           aggregateConf.getResources().global);
-    HoyaUtils.mergeMapsIgnoreDuplicateKeys(options,
                                            aggregateConf.getAppConf().global);
+    HoyaUtils.mergeMapsIgnoreDuplicateKeys(options,
+                                           aggregateConf.getResources().global);
 
     //roles are the role values merged in the same order
-    mergeInComponentMap(cd, aggregateConf.getResources());
+    mergeInComponentMap(cd, aggregateConf.getInternal());
     mergeInComponentMap(cd, aggregateConf.getAppConf());
+    mergeInComponentMap(cd, aggregateConf.getResources());
 
     //now add the extra bits
     cd.state = ClusterDescription.STATE_LIVE;
     MapOperations internalOptions =
       aggregateConf.getInternalOperations().getGlobalOptions();
+    MapOperations appOptions =
+      aggregateConf.getAppConfOperations().getGlobalOptions();
 
     cd.type = internalOptions.getOption(OptionKeys.INTERNAL_PROVIDER_NAME,
                                 HoyaProviderFactory.DEFAULT_CLUSTER_TYPE);
@@ -71,10 +74,10 @@ public class ClusterDescriptionOperations {
     cd.generatedConfigurationPath = internalOptions.get(OptionKeys.INTERNAL_GENERATED_CONF_PATH);
     cd.setImagePath(internalOptions.get(OptionKeys.APPLICATION_IMAGE_PATH));
     cd.setApplicationHome(internalOptions.get(OptionKeys.APPLICATION_HOME));
-    cd.setZkPath(internalOptions.get(ZOOKEEPER_PATH));
-    cd.setZkPort(internalOptions.getOptionInt(ZOOKEEPER_PORT,
+    cd.setZkPath(appOptions.get(ZOOKEEPER_PATH));
+    cd.setZkPort(appOptions.getOptionInt(ZOOKEEPER_PORT,
                                               HBaseConfigFileOptions.HBASE_ZK_PORT));
-    cd.setZkHosts(internalOptions.get(ZOOKEEPER_HOSTS));
+    cd.setZkHosts(appOptions.get(ZOOKEEPER_HOSTS));
     
     return cd;
   }
@@ -86,8 +89,9 @@ public class ClusterDescriptionOperations {
     Map<String, Map<String, String>> components = confTree.components;
     for (Map.Entry<String, Map<String, String>> compEntry : components.entrySet()) {
       String name = compEntry.getKey();
-      Map<String, String> role = cd.getOrAddRole(name);
-      HoyaUtils.mergeMapsIgnoreDuplicateKeys(role, compEntry.getValue());
+      Map<String, String> destRole = cd.getOrAddRole(name);
+      Map<String, String> sourceComponent = compEntry.getValue();
+      HoyaUtils.mergeMapsIgnoreDuplicateKeys(destRole, sourceComponent);
     }
   }
 }

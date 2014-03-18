@@ -112,7 +112,7 @@ public class AppState {
    * Client properties created via the provider -static for the life
    * of the application
    */
-  private Map<String, String> clientProperties;
+  private Map<String, String> clientProperties = new HashMap<String, String>();
 
   /**
    The cluster description published to callers
@@ -337,13 +337,16 @@ public class AppState {
 
   /**
    * Set the instance definition -this also builds the (now obsolete)
-   * cluster specification from it
-   * @param instanceDefinition
+   * cluster specification from it.
+   * 
+   * Important: this is for early binding and must not be used after the build
+   * operation is complete. 
+   * @param definition
    * @throws BadConfigException
    */
-  private synchronized void setInstanceDefinition(AggregateConf instanceDefinition) throws
+  public synchronized void updateInstanceDefinition(AggregateConf definition) throws
                                                                        BadConfigException {
-    this.instanceDefinition = instanceDefinition;
+    this.instanceDefinition = definition;
     onInstanceDefinitionUpdated();
   }
 
@@ -381,6 +384,7 @@ public class AppState {
     containerMaxMemory = maxMemory;
   }
 
+
   /**
    * Build up the application state
    * @param instanceDefinition definition of the applicatin instance
@@ -415,7 +419,7 @@ public class AppState {
     // set the cluster specification (once its dependency the client properties
     // is out the way
 
-    setInstanceDefinition(instanceDefinition);
+    updateInstanceDefinition(instanceDefinition);
 
 
     //build the initial role list

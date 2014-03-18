@@ -59,7 +59,6 @@ import org.apache.hadoop.yarn.webapp.WebApps;
 import org.apache.hoya.HoyaExitCodes;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
-import org.apache.hoya.api.ClusterDescriptionOperations;
 import org.apache.hoya.api.HoyaClusterProtocol;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.RoleKeys;
@@ -69,6 +68,7 @@ import org.apache.hoya.api.proto.Messages;
 import org.apache.hoya.core.build.InstanceIO;
 import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.core.conf.ConfTree;
+import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.core.launch.AMRestartSupport;
 import org.apache.hoya.core.persist.ConfTreeSerDeser;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
@@ -377,21 +377,16 @@ public class HoyaAppMaster extends CompoundLaunchedService
     String hoyaClusterDir = serviceArgs.getHoyaClusterURI();
     URI hoyaClusterURI = new URI(hoyaClusterDir);
     Path clusterDirPath = new Path(hoyaClusterURI);
-    Path clusterSpecPath =
-      new Path(clusterDirPath, HoyaKeys.CLUSTER_SPECIFICATION_FILE);
     HoyaFileSystem fs = getClusterFS();
 
     AggregateConf instanceDefinition =
-      InstanceIO.loadInstanceDefinition(fs, clusterDirPath);
+      InstanceIO.loadInstanceDefinitionUnresolved(fs, clusterDirPath);
 
     log.info("Deploying cluster {}:", instanceDefinition);
 
-
+    appState.updateInstanceDefinition(instanceDefinition);
     ClusterDescription clusterSpec;
-    clusterSpec =
-      ClusterDescriptionOperations.buildFromInstanceDefinition(
-        instanceDefinition);
-//    clusterSpec = ClusterDescription.load(fs.getFileSystem(), clusterSpecPath);
+    clusterSpec = appState.getClusterSpec();
 
     log.info(clusterSpec.toString());
     File confDir = getLocalConfDir();
@@ -407,7 +402,10 @@ public class HoyaAppMaster extends CompoundLaunchedService
     
     conf = new YarnConfiguration(serviceConf);
     //get our provider
-    String providerType = clusterSpec.type;
+    MapOperations globalOptions =
+      instanceDefinition.getInternalOperations().getGlobalOptions();
+    String providerType = globalOptions.getMandatoryOption(
+      OptionKeys.INTERNAL_PROVIDER_NAME);
     log.info("Cluster provider type is {}", providerType);
     HoyaProviderFactory factory =
       HoyaProviderFactory.createHoyaProviderFactory(
@@ -426,20 +424,24 @@ public class HoyaAppMaster extends CompoundLaunchedService
     Path generatedConfDirPath =
       new Path(clusterDirPath, HoyaKeys.GENERATED_CONF_DIR_NAME);
     boolean clusterSecure = HoyaUtils.isClusterSecure(conf);
-    amClientProvider.preflightValidateClusterConfiguration(fs, clustername,
-                                                           conf, clusterSpec,
+/*    amClientProvider.preflightValidateClusterConfiguration(fs,
+                                                           clustername,
+                                                           conf,
+                                                           clusterSpec,
                                                            clusterDirPath,
                                                            generatedConfDirPath,
-                                                         clusterSecure
-                                                          );
-
-    providerClient.preflightValidateClusterConfiguration(fs, clustername, conf,
+                                                           clusterSecure
+                                                          );*/
+/*
+    providerClient.preflightValidateClusterConfiguration(fs,
+                                                         clustername,
+                                                         conf,
                                                          clusterSpec,
                                                          clusterDirPath,
                                                          generatedConfDirPath,
-                                                   clusterSecure
+                                                         clusterSecure
                                                         );
-    
+    */
     InetSocketAddress address = HoyaUtils.getRmSchedulerAddress(conf);
     log.info("RM is at {}", address);
     yarnRPC = YarnRPC.create(conf);
@@ -594,8 +596,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
     }
     String rolesTmpSubdir = appMasterContainerID.toString() + "/roles";
 
-    String amTmpDir =
-      clusterSpec.getMandatoryOption(OptionKeys.INTERNAL_AM_TMP_DIR);
+    String amTmpDir = globalOptions.getMandatoryOption(OptionKeys.INTERNAL_AM_TMP_DIR);
 
     Path tmpDirPath = new Path(amTmpDir);
     Path launcherTmpDirPath = new Path(tmpDirPath, rolesTmpSubdir);
