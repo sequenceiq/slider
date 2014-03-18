@@ -24,7 +24,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
-import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.HoyaXmlConfKeys;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.StatusKeys;
@@ -37,6 +36,7 @@ import org.apache.hoya.core.persist.LockAcquireFailedException;
 import org.apache.hoya.core.persist.LockHeldAction;
 import org.apache.hoya.exceptions.BadClusterStateException;
 import org.apache.hoya.exceptions.BadConfigException;
+import org.apache.hoya.exceptions.ErrorStrings;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.tools.CoreFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
@@ -145,17 +145,17 @@ public class InstanceBuilder {
     if (appImage != null) {
       if (!appHomeUnset) {
         // both args have been set
-        throw new BadConfigException("Both application image path and home dir"
-                                     + " have been provided");
+        throw new BadConfigException(
+          ErrorStrings.E_BOTH_IMAGE_AND_HOME_DIR_SPECIFIED);
       }
-      instanceConf.getInternalOperations().set(APPLICATION_HOME,
+      instanceConf.getInternalOperations().set(APPLICATION_IMAGE_PATH,
                                                appImage.toUri());
     } else {
       // the alternative is app home, which now MUST be set
       if (appHomeUnset) {
         // both args have been set
-        throw new BadConfigException(
-          "No image path or home directory provided");
+        throw new BadConfigException(ErrorStrings.E_NO_IMAGE_OR_HOME_DIR_SPECIFIED);
+          
       }
       instanceConf.getInternalOperations().set(APPLICATION_HOME,
                                                appHomeDir);

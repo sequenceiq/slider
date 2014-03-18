@@ -18,5 +18,13 @@
 
 package org.apache.hoya.core.persist;
 
-public class ConfTreeSerDeser {
+import org.apache.hoya.core.conf.ConfTree;
+
+/**
+ * Conf tree to JSON binding
+ */
+public class ConfTreeSerDeser extends JsonSerDeser<ConfTree>  {
+  public ConfTreeSerDeser() {
+    super(ConfTree.class);
+  }
 }

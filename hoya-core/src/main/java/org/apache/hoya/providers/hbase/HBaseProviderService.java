@@ -21,15 +21,17 @@ package org.apache.hoya.providers.hbase;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
+import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.api.StatusKeys;
+import org.apache.hoya.core.conf.AggregateConf;
+import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.core.launch.CommandLineBuilder;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.HoyaException;
@@ -38,9 +40,6 @@ import org.apache.hoya.providers.AbstractProviderService;
 import org.apache.hoya.providers.ProviderCore;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderUtils;
-import org.apache.hoya.servicemonitor.HttpProbe;
-import org.apache.hoya.servicemonitor.MonitorKeys;
-import org.apache.hoya.servicemonitor.Probe;
 import org.apache.hoya.tools.ConfigHelper;
 import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
@@ -51,10 +50,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -77,6 +73,7 @@ public class HBaseProviderService extends AbstractProviderService implements
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
   private HBaseClientProvider clientProvider;
   private Configuration siteConf;
+  private HoyaFileSystem hoyaFileSystem = null;
 
   public HBaseProviderService() {
     super("HBaseProviderService");
@@ -121,18 +118,21 @@ public class HBaseProviderService extends AbstractProviderService implements
     return providerUtils.buildPathToScript(cd, "bin",
                                            HBaseKeys.HBASE_SCRIPT);
   }
-  
-  @Override  // server
+
+  @Override
   public void buildContainerLaunchContext(ContainerLaunchContext ctx,
                                           Container container,
                                           String role,
                                           HoyaFileSystem hoyaFileSystem,
                                           Path generatedConfPath,
-                                          ClusterDescription clusterSpec,
-                                          Map<String, String> roleOptions,
-                                          Path containerTmpDirPath) throws
-                                           IOException,
-                                           HoyaException {
+                                          MapOperations roleOptions,
+                                          Path containerTmpDirPath,
+                                          AggregateConf instanceDefinition) throws
+                                                                            IOException,
+                                                                            HoyaException {
+
+    this.hoyaFileSystem = hoyaFileSystem;
+    this.instanceDefinition = instanceDefinition;
     // Set the environment
     Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
 
@@ -154,29 +154,29 @@ public class HBaseProviderService extends AbstractProviderService implements
     localResources.putAll(confResources);
     //Add binaries
     //now add the image if it was set
-    if (clusterSpec.isImagePathSet()) {
-      Path imagePath = new Path(clusterSpec.getImagePath());
-      log.info("using image path {}", imagePath);
-      hoyaFileSystem.maybeAddImagePath(localResources, imagePath);
-    }
+    String imageURI = instanceDefinition.getInternalOperations().get(OptionKeys.APPLICATION_IMAGE_PATH);
+      hoyaFileSystem.maybeAddImagePath(localResources, imageURI);
     ctx.setLocalResources(localResources);
     List<String> commands = new ArrayList<String>();
 
     CommandLineBuilder command = new CommandLineBuilder();
 
-    String heap = clusterSpec.getRoleOpt(role, RoleKeys.JVM_HEAP, DEFAULT_JVM_HEAP);
+    String heap = roleOptions.getOption(RoleKeys.JVM_HEAP, DEFAULT_JVM_HEAP);
     if (HoyaUtils.isSet(heap)) {
       String adjustedHeap = HoyaUtils.translateTrailingHeapUnit(heap);
       env.put("HBASE_HEAPSIZE", adjustedHeap);
     }
     
-    String gcOpts = clusterSpec.getRoleOpt(role, RoleKeys.GC_OPTS, DEFAULT_GC_OPTS);
+    String gcOpts = roleOptions.getOption(RoleKeys.GC_OPTS, DEFAULT_GC_OPTS);
     if (HoyaUtils.isSet(gcOpts)) {
       env.put("SERVER_GC_OPTS", gcOpts);
     }
     
     //this must stay relative if it is an image
-    command.add(buildHBaseScriptBinPath(clusterSpec));
+    command.add(providerUtils.buildPathToScript(
+      instanceDefinition.getInternalOperations(),
+      "bin",
+      HBaseKeys.HBASE_SCRIPT));
     //config dir is relative to the generated file
     command.add(ARG_CONFIG);
     command.add("$PROPAGATED_CONFDIR");
@@ -272,54 +272,6 @@ public class HBaseProviderService extends AbstractProviderService implements
     }
   }
 
-
-  @Override
-  public List<Probe> createProbes(ClusterDescription clusterSpec, String urlStr,
-                                  Configuration config,
-                                  int timeout)
-    throws IOException {
-    List<Probe> probes = new ArrayList<Probe>();
-    if (urlStr != null) {
-      // set up HTTP probe if a path is provided
-      String prefix = "";
-      URL url = null;
-      if (!urlStr.startsWith("http") && urlStr.contains("/proxy/")) {
-        if (!UserGroupInformation.isSecurityEnabled()) {
-          prefix = "http://proxy/relay/";
-        } else {
-          prefix = "https://proxy/relay/";
-        }
-      }
-      try {
-        url = new URL(prefix + urlStr);
-      } catch (MalformedURLException mue) {
-        log.error("tracking url: " + prefix + urlStr + " is malformed");
-      }
-      if (url != null) {
-        log.info("tracking url: " + url);
-        HttpURLConnection connection = null;
-        try {
-          connection = HttpProbe.getConnection(url, timeout);
-          // see if the host is reachable
-          connection.getResponseCode();
-
-          HttpProbe probe = new HttpProbe(url, timeout,
-                                          MonitorKeys.WEB_PROBE_DEFAULT_CODE,
-                                          MonitorKeys.WEB_PROBE_DEFAULT_CODE,
-                                          config);
-          probes.add(probe);
-        } catch (UnknownHostException uhe) {
-          log.error("host unknown: " + url);
-        } finally {
-          if (connection != null) {
-            connection.disconnect();
-            connection = null;
-          }
-        }
-      }
-    }
-    return probes;
-  }
 
   /**
    * Build the provider status, can be empty

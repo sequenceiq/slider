@@ -48,7 +48,7 @@ import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.api.StatusKeys;
 import org.apache.hoya.api.proto.Messages;
 import org.apache.hoya.core.build.InstanceBuilder;
-import org.apache.hoya.core.build.InstanceLoader;
+import org.apache.hoya.core.build.InstanceIO;
 import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.core.conf.ConfTree;
 import org.apache.hoya.core.conf.ConfTreeOperations;
@@ -298,7 +298,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   }
 
   /**
-   * Force kill a yarn application by ID. No niceities here
+   * Force kill a yarn application by ID. 
    */
   public int actionEmergencyForceKill(String appId) throws YarnException,
                                                       IOException {
@@ -714,7 +714,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                          + ": " + e);
     }
 
-
     return true;
   }
   
@@ -1091,6 +1090,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                           IOException {
     Path clusterDirectory = hoyaFileSystem.buildHoyaClusterDirPath(clustername);
     AggregateConf instanceDefinition = loadUnresolvedInstanceDefinition(
+      clustername,
       clusterDirectory);
 
     LaunchedApplication launchedApplication =
@@ -1103,19 +1103,25 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
   /**
    * Load the instance definition. It is not resolved at this point
+   * @param name
    * @param clusterDirectory cluster dir
    * @return the loaded configuration
    * @throws IOException
    * @throws HoyaException
    */
-  private AggregateConf loadUnresolvedInstanceDefinition(Path clusterDirectory) throws
+  private AggregateConf loadUnresolvedInstanceDefinition(String name,
+                                                         Path clusterDirectory) throws
                                                                       IOException,
                                                                       HoyaException {
 
-    AggregateConf definition =
-      InstanceLoader.loadInstanceDefinition(hoyaFileSystem,
-                                            clusterDirectory);
-    return definition;
+    try {
+      AggregateConf definition =
+        InstanceIO.loadInstanceDefinition(hoyaFileSystem,
+                                          clusterDirectory);
+      return definition;
+    } catch (FileNotFoundException e) {
+      throw new UnknownClusterException(name, e);
+    }
   }
 
 
@@ -1779,10 +1785,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                key, val);
       }
     }
-    if (!args.isPersist()) {
-      log.warn(
-        "Persist flag ignored: the updated specification is always persisted");
-    }
     return flex(name, roleInstances);
   }
 
@@ -2007,8 +2009,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
               waittime,
               forcekill);
     
-    //is this actually a known cluster? 
-    locateClusterSpecification(clustername);
+    //is this actually a known cluster?
+    hoyaFileSystem.locateInstanceDefinition(clustername);
     ApplicationReport app = findInstance(clustername);
     if (app == null) {
       // exit early
@@ -2195,14 +2197,20 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                    IOException {
     verifyManagerSet();
     HoyaUtils.validateClusterName(clustername);
-    Path clusterSpecPath = locateClusterSpecification(clustername);
-    ClusterDescription clusterSpec =
-      hoyaFileSystem.loadAndValidateClusterSpec(clusterSpecPath);
+    Path clusterDirectory = hoyaFileSystem.buildHoyaClusterDirPath(clustername);
+    AggregateConf instanceDefinition = loadUnresolvedInstanceDefinition(
+      clustername,
+      clusterDirectory);
 
-    HoyaUtils.addBuildInfo(clusterSpec, "flex");
+//    HoyaUtils.addBuildInfo(clusterSpec, "flex");
+/*
     clusterSpec.setInfoTime(StatusKeys.INFO_FLEX_TIME_HUMAN,
                             StatusKeys.INFO_FLEX_TIME_MILLIS,
                             System.currentTimeMillis());
+*/
+
+    ConfTreeOperations resources =
+      instanceDefinition.getResourceOperations();
     for (Map.Entry<String, Integer> entry : roleInstances.entrySet()) {
       String role = entry.getKey();
       int count = entry.getValue();
@@ -2210,24 +2218,27 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
         throw new BadCommandArgumentsException("Requested number of " + role
             + " instances is out of range");
       }
+      resources.getOrAddComponent(role).put(RoleKeys.ROLE_INSTANCES,
+                                            Integer.toString(count));
 
-      clusterSpec.setDesiredInstanceCount(role, count);
 
       log.debug("Flexed cluster specification ( {} -> {}) : \n{}",
                 role,
                 count,
-                clusterSpec);
-    }
-    Path clusterDirectory = hoyaFileSystem.buildHoyaClusterDirPath(clustername);
-    log.debug("Saving the cluster specification to {}", clusterSpecPath);
-    // save the specification
-    if (!hoyaFileSystem.updateClusterSpecification(
-      clusterDirectory,
-      clusterSpecPath,
-      clusterSpec)) {
-      log.warn("Failed to save new cluster size to {}", clusterSpecPath);
+                resources);
     }
     int exitCode = EXIT_FALSE;
+    // save the specification
+    try {
+      InstanceIO.updateInstanceDefinition(hoyaFileSystem, clusterDirectory,instanceDefinition);
+    } catch (LockAcquireFailedException e) {
+      // lock failure
+      log.debug("Failed to lock dir {}", clusterDirectory, e);
+      log.warn("Failed to save new resource definition to {} : {}", clusterDirectory,
+               e.toString());
+      
+
+    }
 
     // now see if it is actually running and bail out if not
     verifyManagerSet();
@@ -2236,14 +2247,14 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       log.info("Flexing running cluster");
       HoyaClusterProtocol appMaster = connect(instance);
       HoyaClusterOperations clusterOps = new HoyaClusterOperations(appMaster);
-      if (clusterOps.flex(clusterSpec)) {
+      if (clusterOps.flex(instanceDefinition.getResources())) {
         log.info("Cluster size updated");
         exitCode = EXIT_SUCCESS;
       } else {
-        log.info("Requested cluster size is the same as current size: no change");
+        log.info("Requested size is the same as current size: no change");
       }
     } else {
-      log.info("No running cluster to update");
+      log.info("No running instance to update");
     }
     return exitCode;
   }

@@ -23,6 +23,7 @@ import org.apache.hadoop.service.Service;
 import org.apache.hadoop.yarn.service.launcher.ExitCodeProvider;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
+import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.tools.ConfigHelper;
@@ -56,7 +57,8 @@ public abstract class AbstractProviderService
                             ProviderService {
   private static final Logger log =
     LoggerFactory.getLogger(AbstractProviderService.class);
-  
+  public AggregateConf instanceDefinition;
+
   public AbstractProviderService(String name) {
     super(name);
   }

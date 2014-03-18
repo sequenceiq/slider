@@ -26,6 +26,7 @@ import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.RoleKeys;
+import org.apache.hoya.core.conf.ConfTreeOperations;
 import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.BadConfigException;
@@ -232,9 +233,19 @@ public class ProviderUtils implements RoleKeys {
   public String buildPathToHomeDir(ClusterDescription clusterSpec,
                                   String bindir,
                                   String script) throws FileNotFoundException {
+    String applicationHome = clusterSpec.getApplicationHome();
+    String imagePath= clusterSpec.getImagePath();
+
+    return buildPathToHomeDir(imagePath, applicationHome, bindir, script);
+  }
+
+  public String buildPathToHomeDir(String imagePath,
+                                   String applicationHome,
+                                   String bindir, String script) throws
+                                                                 FileNotFoundException {
     String path;
     File scriptFile;
-    if (clusterSpec.isImagePathSet()) {
+    if (imagePath!=null) {
       File tarball = new File(HoyaKeys.LOCAL_TARBALL_INSTALL_SUBDIR);
       scriptFile = findBinScriptInExpandedArchive(tarball, bindir, script);
       // now work back from the script to build the relative path
@@ -250,7 +261,7 @@ public class ProviderUtils implements RoleKeys {
     } else {
       // using a home directory which is required to be present on 
       // the local system -so will be absolute and resolvable
-      File homedir = new File(clusterSpec.getApplicationHome());
+      File homedir = new File(applicationHome);
       path = homedir.getAbsolutePath();
 
       //this is absolute, resolve its entire path
@@ -275,6 +286,33 @@ public class ProviderUtils implements RoleKeys {
                                 String bindir,
                                 String script) throws FileNotFoundException {
     String homedir = buildPathToHomeDir(clusterSpec, bindir, script);
+    return buildScriptPath(bindir, script, homedir);
+  }
+  
+  
+  /**
+   * Build the image dir. This path is relative and only valid at the far end
+   * @param internal internal options
+   * @param bindir bin subdir
+   * @param script script in bin subdir
+   * @return the path to the script
+   * @throws FileNotFoundException if a file is not found, or it is not a directory* 
+   */
+  public String buildPathToScript(ConfTreeOperations internal,
+                                String bindir,
+                                String script) throws FileNotFoundException {
+    
+    String homedir = buildPathToHomeDir(
+      internal.get(OptionKeys.APPLICATION_IMAGE_PATH),
+      internal.get(OptionKeys.APPLICATION_HOME),
+      bindir,
+      script);
+    return buildScriptPath(bindir, script, homedir);
+  }
+  
+  
+
+  public String buildScriptPath(String bindir, String script, String homedir) {
     StringBuilder builder = new StringBuilder(homedir);
     builder.append("/");
     builder.append(bindir);
@@ -282,8 +320,7 @@ public class ProviderUtils implements RoleKeys {
     builder.append(script);
     return builder.toString();
   }
-  
-  
+
 
   public static String convertToAppRelativePath(File file) {
     return convertToAppRelativePath(file.getPath());

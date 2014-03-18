@@ -215,27 +215,6 @@ public class ClusterDescription implements Cloneable {
   public ClusterDescription() {
   }
 
-  /**
-   * Verify that a cluster specification exists
-   * @param clustername name of the cluster (For errors only)
-   * @param fs filesystem
-   * @param clusterSpecPath cluster specification path
-   * @throws IOException IO problems
-   * @throws HoyaException if the cluster specification is not present
-   */
-  public static void verifyClusterSpecExists(String clustername,
-                                             FileSystem fs,
-                                             Path clusterSpecPath) throws
-                                                                   IOException,
-                                                                   HoyaException {
-    if (!fs.isFile(clusterSpecPath)) {
-      log.debug("Missing cluster specification file {}", clusterSpecPath);
-      throw new UnknownClusterException( ErrorStrings.E_UNKNOWN_CLUSTER
-                              + clustername 
-                              + "\n (cluster definition not found at " 
-                              + clusterSpecPath);
-    }
-  }
 
   @Override
   public String toString() {

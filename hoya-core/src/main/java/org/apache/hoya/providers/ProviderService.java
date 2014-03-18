@@ -25,11 +25,13 @@ import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.service.launcher.ExitCodeProvider;
 import org.apache.hoya.api.ClusterDescription;
+import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.servicemonitor.Probe;
 import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.yarn.service.EventCallback;
+import org.apache.hoya.core.conf.MapOperations;
 
 import java.io.File;
 import java.io.IOException;
@@ -48,15 +50,16 @@ public interface ProviderService extends ProviderCore, Service,
    * @param hoyaFileSystem
    * @param generatedConfPath
    * @param containerTmpDirPath
+   * @param instanceDefinition
    */
   void buildContainerLaunchContext(ContainerLaunchContext ctx,
                                    Container container,
                                    String role,
                                    HoyaFileSystem hoyaFileSystem,
                                    Path generatedConfPath,
-                                   ClusterDescription clusterSpec,
-                                   Map<String, String> roleOptions,
-                                   Path containerTmpDirPath) throws
+                                   MapOperations roleOptions,
+                                   Path containerTmpDirPath,
+                                   AggregateConf instanceDefinition) throws
                                                                     IOException,
                                                                     HoyaException;
 
@@ -110,17 +113,6 @@ public interface ProviderService extends ProviderCore, Service,
                                         File confDir,
                                         boolean secure
                                        ) throws IOException, HoyaException;
-
-  /**
-   * @param clusterSpec cluster specification
-   * @param url the tracking URL
-   * @param config the Configuration
-   * @param timeout
-   * @return List of applicable Probe's
-   */
-  List<Probe> createProbes(ClusterDescription clusterSpec, String url,
-                           Configuration config,
-                           int timeout) throws IOException;
 
   /*
      * Build the provider status, can be empty

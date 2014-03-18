@@ -37,7 +37,7 @@ import static org.apache.hoya.api.OptionKeys.ZOOKEEPER_PORT;
 public class ClusterDescriptionOperations {
 
 
-  public static ClusterDescription buildFromAggregateConf(AggregateConf aggregateConf) throws
+  public static ClusterDescription buildFromInstanceDefinition(AggregateConf aggregateConf) throws
                                                                                        BadConfigException {
 
     ClusterDescription cd = new ClusterDescription();

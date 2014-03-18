@@ -66,7 +66,7 @@ import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.api.StatusKeys;
 import org.apache.hoya.api.proto.HoyaClusterAPI;
 import org.apache.hoya.api.proto.Messages;
-import org.apache.hoya.core.build.InstanceLoader;
+import org.apache.hoya.core.build.InstanceIO;
 import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.core.conf.ConfTree;
 import org.apache.hoya.core.launch.AMRestartSupport;
@@ -81,11 +81,6 @@ import org.apache.hoya.providers.HoyaProviderFactory;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderService;
 import org.apache.hoya.providers.hoyaam.HoyaAMClientProvider;
-import org.apache.hoya.servicemonitor.Probe;
-import org.apache.hoya.servicemonitor.ProbeFailedException;
-import org.apache.hoya.servicemonitor.ProbePhase;
-import org.apache.hoya.servicemonitor.ProbeReportHandler;
-import org.apache.hoya.servicemonitor.ProbeStatus;
 import org.apache.hoya.tools.ConfigHelper;
 import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
@@ -387,7 +382,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
     HoyaFileSystem fs = getClusterFS();
 
     AggregateConf instanceDefinition =
-      InstanceLoader.loadInstanceDefinition(fs, clusterDirPath);
+      InstanceIO.loadInstanceDefinition(fs, clusterDirPath);
 
     log.info("Deploying cluster {}:", instanceDefinition);
 

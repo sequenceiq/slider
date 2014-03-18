@@ -24,6 +24,7 @@ import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.ClusterNode;
 import org.apache.hoya.api.HoyaClusterProtocol;
 import org.apache.hoya.api.proto.Messages;
+import org.apache.hoya.core.conf.ConfTree;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.exceptions.NoSuchNodeException;
 import org.apache.hoya.exceptions.WaitTimeoutException;
@@ -267,10 +268,10 @@ public class HoyaClusterOperations {
     return state;
   }
   
-  public boolean flex(ClusterDescription clusterSpec) throws IOException, YarnException {
+  public boolean flex(ConfTree resources) throws IOException, YarnException {
     Messages.FlexClusterRequestProto request =
       Messages.FlexClusterRequestProto.newBuilder()
-              .setClusterSpec(clusterSpec.toJsonString())
+              .setClusterSpec(resources.toJson())
               .build();
     Messages.FlexClusterResponseProto response =
       appMaster.flexCluster(request);

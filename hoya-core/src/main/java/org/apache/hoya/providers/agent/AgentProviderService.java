@@ -26,13 +26,17 @@ import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
+import org.apache.hoya.api.OptionKeys;
+import org.apache.hoya.core.conf.AggregateConf;
+import org.apache.hoya.core.conf.ConfTreeOperations;
+import org.apache.hoya.core.conf.MapOperations;
+import org.apache.hoya.core.launch.CommandLineBuilder;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.providers.AbstractProviderService;
 import org.apache.hoya.providers.ProviderCore;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderUtils;
-import org.apache.hoya.servicemonitor.Probe;
 import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
 import org.apache.hoya.yarn.service.EventCallback;
@@ -61,7 +65,7 @@ public class AgentProviderService extends AbstractProviderService implements
   protected static final String NAME = "agent";
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
   private AgentClientProvider clientProvider;
-
+  private HoyaFileSystem hoyaFileSystem = null;
   public AgentProviderService() {
     super("AgentProviderService");
   }
@@ -90,19 +94,21 @@ public class AgentProviderService extends AbstractProviderService implements
     clientProvider.validateClusterSpec(clusterSpec);
   }
 
-  @Override  // server
+  @Override
   public void buildContainerLaunchContext(ContainerLaunchContext ctx,
                                           Container container,
                                           String role,
                                           HoyaFileSystem hoyaFileSystem,
                                           Path generatedConfPath,
-                                          ClusterDescription clusterSpec,
-                                          Map<String, String> roleOptions,
-                                          Path containerTmpDirPath) throws
-                                                                    IOException,
-                                                                    HoyaException {
+                                          MapOperations roleOptions,
+                                          Path containerTmpDirPath,
+                                          AggregateConf instanceDefinition) throws
+                                                                            IOException,
+                                                                            HoyaException {
+    this.hoyaFileSystem = hoyaFileSystem;
+    this.instanceDefinition = instanceDefinition;
     log.info("Build launch context for Agent");
-    log.debug(clusterSpec.toString());
+    log.debug(instanceDefinition.toString());
 
     // Set the environment
     Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
@@ -128,27 +134,28 @@ public class AgentProviderService extends AbstractProviderService implements
     localResources.putAll(confResources);
     //Add binaries
     //now add the image if it was set
-    if (clusterSpec.isImagePathSet()) {
-      Path imagePath = new Path(clusterSpec.getImagePath());
-      log.info("using image path {}", imagePath);
-      hoyaFileSystem.maybeAddImagePath(localResources, imagePath);
-    }
+
+    //Add binaries
+    //now add the image if it was set
+    String imageURI = instanceDefinition.getInternalOperations()
+                                        .get(OptionKeys.APPLICATION_IMAGE_PATH);
+    hoyaFileSystem.maybeAddImagePath(localResources, imageURI);
+    
     ctx.setLocalResources(localResources);
     List<String> commandList = new ArrayList<String>();
+    CommandLineBuilder operation = new CommandLineBuilder();
 
-    List<String> operation = new ArrayList<String>();
+    ConfTreeOperations appConf =
+      instanceDefinition.getAppConfOperations();
 
-
-    String script =
-        clusterSpec.getMandatoryRoleOpt(role, SCRIPT_PATH);
-    String packagePath = clusterSpec.getMandatoryRoleOpt(role, PACKAGE_PATH);
+    String script = roleOptions.getMandatoryOption(SCRIPT_PATH);
+    String packagePath = roleOptions.getMandatoryOption(PACKAGE_PATH);
     File packagePathFile = new File(packagePath);
     HoyaUtils.verifyIsDir(packagePathFile, log);
     File executable = new File(packagePathFile, script);
     HoyaUtils.verifyFileExists(executable, log);
 
-    String appHome =
-        clusterSpec.getMandatoryRoleOpt(role, APP_HOME);
+    String appHome = roleOptions.getMandatoryOption(APP_HOME);
     //APP_HOME == /dev/null is being used to issue direct start commands
     //This is not required once embedded Agent is available
     if (appHome.equals("/dev/null")) {
@@ -173,12 +180,10 @@ public class AgentProviderService extends AbstractProviderService implements
 
     String filename = "agent-server.txt";
 
-    operation.add(
-        "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/" + filename);
-    operation.add("2>&1");
+    operation.addOutAndErrFiles(filename, null);
 
-    String cmdStr = HoyaUtils.join(operation, " ");
-    commandList.add(cmdStr);
+
+    commandList.add(operation.build());
     ctx.setCommands(commandList);
     ctx.setEnvironment(env);
 }
@@ -234,16 +239,6 @@ public class AgentProviderService extends AbstractProviderService implements
                                                boolean secure
   ) throws IOException, HoyaException {
 
-  }
-
-  @Override
-  public List<Probe> createProbes(ClusterDescription clusterSpec, String urlStr,
-                                  Configuration config,
-                                  int timeout)
-      throws IOException {
-    List<Probe> probes = new ArrayList<Probe>();
-
-    return probes;
   }
 
   /**

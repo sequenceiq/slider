@@ -31,6 +31,10 @@ import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.RoleKeys;
+import org.apache.hoya.core.conf.AggregateConf;
+import org.apache.hoya.core.conf.ConfTreeOperations;
+import org.apache.hoya.core.conf.MapOperations;
+import org.apache.hoya.core.launch.CommandLineBuilder;
 import org.apache.hoya.exceptions.BadClusterStateException;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.BadConfigException;
@@ -39,7 +43,6 @@ import org.apache.hoya.providers.AbstractProviderService;
 import org.apache.hoya.providers.ProviderCore;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderUtils;
-import org.apache.hoya.servicemonitor.Probe;
 import org.apache.hoya.tools.BlockingZKWatcher;
 import org.apache.hoya.tools.ConfigHelper;
 import org.apache.hoya.tools.HoyaFileSystem;
@@ -113,25 +116,31 @@ public class AccumuloProviderService extends AbstractProviderService implements
    Server interface below here
    ======================================================================
   */
-  @Override //server
+
+  @Override
   public void buildContainerLaunchContext(ContainerLaunchContext ctx,
                                           Container container,
                                           String role,
                                           HoyaFileSystem hoyaFileSystem,
                                           Path generatedConfPath,
-                                          ClusterDescription clusterSpec,
-                                          Map<String, String> roleOptions,
-                                          Path containerTmpDirPath) throws
-                                           IOException,
-                                           BadConfigException {
+                                          MapOperations roleOptions,
+                                          Path containerTmpDirPath,
+                                          AggregateConf instanceDefinition) throws
+                                                                            IOException,
+                                                                            HoyaException {
+    
     this.hoyaFileSystem = hoyaFileSystem;
+    this.instanceDefinition = instanceDefinition;
     
     // Set the environment
     Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
     env.put(ACCUMULO_LOG_DIR, ApplicationConstants.LOG_DIR_EXPANSION_VAR);
+    ConfTreeOperations appConf =
+      instanceDefinition.getAppConfOperations();
     String hadoop_home =
       ApplicationConstants.Environment.HADOOP_COMMON_HOME.$();
-    hadoop_home = clusterSpec.getOption(OPTION_HADOOP_HOME, hadoop_home);
+    MapOperations appConfGlobal = appConf.getGlobalOptions();
+    hadoop_home = appConfGlobal.getOption(OPTION_HADOOP_HOME, hadoop_home);
     env.put(HADOOP_HOME, hadoop_home);
     env.put(HADOOP_PREFIX, hadoop_home);
     
@@ -141,7 +150,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
     env.put(ACCUMULO_CONF_DIR,
             ProviderUtils.convertToAppRelativePath(
               HoyaKeys.PROPAGATED_CONF_DIR_NAME));
-    env.put(ZOOKEEPER_HOME, clusterSpec.getMandatoryOption(OPTION_ZK_HOME));
+    env.put(ZOOKEEPER_HOME, appConfGlobal.getMandatoryOption(OPTION_ZK_HOME));
 
     //local resources
     Map<String, LocalResource> localResources =
@@ -156,17 +165,16 @@ public class AccumuloProviderService extends AbstractProviderService implements
 
     //Add binaries
     //now add the image if it was set
-    if (clusterSpec.isImagePathSet()) {
-      Path imagePath = new Path(clusterSpec.getImagePath());
-      log.info("using image path {}", imagePath);
-      hoyaFileSystem.maybeAddImagePath(localResources, imagePath);
-    }
+    String imageURI = instanceDefinition.getInternalOperations()
+                                        .get(OptionKeys.APPLICATION_IMAGE_PATH);
+    hoyaFileSystem.maybeAddImagePath(localResources, imageURI);
+
     ctx.setLocalResources(localResources);
 
     List<String> commands = new ArrayList<String>();
-    List<String> command = new ArrayList<String>();
+    CommandLineBuilder commandLine = new CommandLineBuilder();
     
-    String heap = "-Xmx" + clusterSpec.getRoleOpt(role, RoleKeys.JVM_HEAP, DEFAULT_JVM_HEAP);
+    String heap = "-Xmx" + roleOptions.getOption(RoleKeys.JVM_HEAP, DEFAULT_JVM_HEAP);
     String opt = "ACCUMULO_OTHER_OPTS";
     if (HoyaUtils.isSet(heap)) {
       if (AccumuloKeys.ROLE_MASTER.equals(role)) {
@@ -182,27 +190,22 @@ public class AccumuloProviderService extends AbstractProviderService implements
     }
 
     //this must stay relative if it is an image
-    command.add(
-      AccumuloClientProvider.buildScriptBinPath(clusterSpec).toString());
+    commandLine.add(providerUtils.buildPathToScript(instanceDefinition.getInternalOperations(),
+      "bin", "accumulo"));
 
     //role is translated to the accumulo one
-    command.add(AccumuloRoles.serviceForRole(role));
+    commandLine.add(AccumuloRoles.serviceForRole(role));
     
     // Add any role specific arguments to the command line
     String additionalArgs = ProviderUtils.getAdditionalArgs(roleOptions);
     if (!StringUtils.isBlank(additionalArgs)) {
-      command.add(additionalArgs);
+      commandLine.add(additionalArgs);
     }
 
-    //log details
-    command.add(
-      "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/out.txt");
-    command.add(
-      "2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/err.txt");
+    commandLine.addOutAndErrFiles(role+"-out.txt",role+"-err.txt");
+    
 
-    String cmdStr = HoyaUtils.join(command, " ");
-
-    commands.add(cmdStr);
+    commands.add(commandLine.build());
     ctx.setCommands(commands);
     ctx.setEnvironment(env);
   }
@@ -362,14 +365,6 @@ public class AccumuloProviderService extends AbstractProviderService implements
     
   }
 
-  @Override
-  public List<Probe> createProbes(ClusterDescription clusterSpec,
-                                  String url,
-                                  Configuration config,
-                                  int timeout) throws IOException {
-    return new ArrayList<Probe>(0);
-  }
-  
   @Override
   public Map<String, String> buildProviderStatus() {
     

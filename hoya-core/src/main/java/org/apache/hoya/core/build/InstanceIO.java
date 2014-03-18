@@ -30,15 +30,15 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-public class InstanceLoader {
+public class InstanceIO {
   protected static final Logger log =
-    LoggerFactory.getLogger(InstanceLoader.class);
+    LoggerFactory.getLogger(InstanceIO.class);
 
   public static AggregateConf loadInstanceDefinition(
     CoreFileSystem hoyaFileSystem,
     Path clusterDirectory) throws
-                                                                      IOException,
-                                                                      HoyaException {
+                           IOException,
+                           HoyaException {
     AggregateConf instanceDefinition = new AggregateConf();
     ConfPersister persister =
       new ConfPersister(hoyaFileSystem, clusterDirectory);
@@ -54,4 +54,22 @@ public class InstanceLoader {
     return instanceDefinition;
   }
 
+
+  /**
+   * Update an instance definition
+   * @param coreFS
+   * @param dir
+   * @param instanceDefinition
+   * @throws HoyaException
+   * @throws IOException
+   * @throws LockAcquireFailedException
+   */
+  public static void updateInstanceDefinition(CoreFileSystem coreFS,
+                                              Path dir,
+                                              AggregateConf instanceDefinition)
+      throws HoyaException, IOException, LockAcquireFailedException {
+    ConfPersister persister =
+      new ConfPersister(coreFS, dir);
+    persister.save(instanceDefinition, null);
+  }
 }

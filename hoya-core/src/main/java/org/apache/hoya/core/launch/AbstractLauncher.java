@@ -18,7 +18,6 @@
 
 package org.apache.hoya.core.launch;
 
-import org.apache.commons.cli.CommandLine;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
@@ -29,9 +28,12 @@ import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.util.Records;
+import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.RoleKeys;
+import org.apache.hoya.core.conf.ConfTree;
 import org.apache.hoya.core.conf.ConfTreeOperations;
 import org.apache.hoya.core.conf.MapOperations;
+import org.apache.hoya.exceptions.BadClusterStateException;
 import org.apache.hoya.tools.CoreFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
 import org.slf4j.Logger;
@@ -122,7 +124,12 @@ public abstract class AbstractLauncher extends Configured {
   }
 
 
-  public void addCommand(CommandLineBuilder cmd) {
+  /**
+   * Add a command line. It is converted to a single command before being
+   * added.
+   * @param cmd
+   */
+  public void addCommandLine(CommandLineBuilder cmd) {
     commands.add(cmd.build());
   }
 
@@ -130,10 +137,18 @@ public abstract class AbstractLauncher extends Configured {
     commands.add(cmd);
   }
 
-  public void addCommands(List<String> cmd) {
-    commands.addAll(cmd);
+  /**
+   * Add a list of commands. Each element in the list becomes a single command
+   * @param commandList
+   */
+  public void addCommands(List<String> commandList) {
+    commands.addAll(commandList);
   }
 
+  /**
+   * Get all commands as a string, separated by ";". This is for diagnostics
+   * @return a string descriptionof the commands
+   */
   public String getCommandsAsString() {
     return HoyaUtils.join(getCommands(), "; ");
   }
@@ -232,7 +247,7 @@ public abstract class AbstractLauncher extends Configured {
    * @param ctree config tree to work from
    */
   public boolean copyEnvVars(ConfTreeOperations ctree, String component) {
-    MapOperations options = ctree.getComponentOperations(component);
+    MapOperations options = ctree.getComponent(component);
     if (options == null) {
       return false;
     }
@@ -277,5 +292,6 @@ public abstract class AbstractLauncher extends Configured {
       destRelativeDir);
     addLocalResources(confResources);
   }
+
 
 }
