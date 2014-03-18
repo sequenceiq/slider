@@ -17,6 +17,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 '''
+
 import json
 import logging
 import os
@@ -50,7 +51,8 @@ class PythonExecutor:
     pass
 
   def run_file(self, script, script_params, tmpoutfile, tmperrfile, timeout,
-               tmpstructedoutfile, override_output_files=True, environment_vars=None):
+               tmpstructedoutfile, override_output_files=True,
+               environment_vars=None):
     """
     Executes the specified python file in a separate subprocess.
     Method returns only when the subprocess is finished.
@@ -69,7 +71,8 @@ class PythonExecutor:
     script_params += [tmpstructedoutfile]
     pythonCommand = self.python_command(script, script_params)
     logger.info("Running command " + pprint.pformat(pythonCommand))
-    process = self.launch_python_subprocess(pythonCommand, tmpout, tmperr, environment_vars)
+    process = self.launch_python_subprocess(pythonCommand, tmpout, tmperr,
+                                            environment_vars)
     logger.debug("Launching watchdog thread")
     self.event.clear()
     self.python_process_has_been_killed = False
@@ -106,7 +109,8 @@ class PythonExecutor:
     return result
 
 
-  def launch_python_subprocess(self, command, tmpout, tmperr, environment_vars=None):
+  def launch_python_subprocess(self, command, tmpout, tmperr,
+                               environment_vars=None):
     """
     Creates subprocess with given parameters. This functionality was moved to separate method
     to make possible unit testing
@@ -134,8 +138,10 @@ class PythonExecutor:
     grep = self.grep
     result = {
       "exitcode": retcode,
-      "stdout": grep.tail(stdout, log_lines_count) if log_lines_count else stdout,
-      "stderr": grep.tail(stderr, log_lines_count) if log_lines_count else stderr,
+      "stdout": grep.tail(stdout,
+                          log_lines_count) if log_lines_count else stdout,
+      "stderr": grep.tail(stderr,
+                          log_lines_count) if log_lines_count else stderr,
       "structuredOut": structured_out
     }
 

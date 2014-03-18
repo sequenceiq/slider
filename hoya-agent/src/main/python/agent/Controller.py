@@ -286,7 +286,7 @@ def main(argv=None):
 
   logger.info('Starting Server RPC Thread: %s' % ' '.join(sys.argv))
 
-  config = AgentConfig.getConfig()
+  config = AgentConfig()
   collector = Controller(config)
   collector.start()
   collector.run()

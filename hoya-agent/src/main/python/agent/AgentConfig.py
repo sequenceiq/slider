@@ -137,6 +137,10 @@ class AgentConfig:
     global config
     return config.get(category, name)
 
+  def set(self, category, name, value):
+    global config
+    return config.set(category, name, value)
+
   def setConfig(self, configFile):
     global config
     config.read(configFile)

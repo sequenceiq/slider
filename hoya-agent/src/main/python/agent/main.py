@@ -139,7 +139,6 @@ def ensure_path_exists(path):
   try:
     os.makedirs(path)
   except OSError as exception:
-    print exception
     if exception.errno != errno.EEXIST:
       raise
     pass
