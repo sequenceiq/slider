@@ -413,4 +413,21 @@ public class ProviderUtils implements RoleKeys {
 
     return "";
   }
+  
+  
+
+  public int getRoleResourceRequirement(String val,
+                                        int defVal,
+                                        int maxVal) {
+    if (val==null) {
+      val = Integer.toString(defVal);
+    }
+    Integer intVal;
+    if (RoleKeys.YARN_RESOURCE_MAX.equals(val)) {
+      intVal = maxVal;
+    } else {
+      intVal = Integer.decode(val);
+    }
+    return intVal;
+  }
 }

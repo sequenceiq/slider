@@ -23,7 +23,6 @@ import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.HoyaXmlConfKeys;
 import org.apache.hoya.api.ClusterDescription;
@@ -43,7 +42,6 @@ import org.slf4j.LoggerFactory;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -313,26 +311,6 @@ public class AccumuloClientProvider extends AbstractClientProvider implements
     return confResources;
   }
 
-  /**
-   * Update the AM resource with any local needs
-   * @param capability capability to update
-   */
-  @Override //client
-  public void prepareAMResourceRequirements(ClusterDescription clusterSpec,
-                                            Resource capability) {
-  }
-
-
-  /**
-   * Any operations to the service data before launching the AM
-   * @param clusterSpec cspec
-   * @param serviceData map of service data
-   */
-  @Override //client
-  public void prepareAMServiceData(ClusterDescription clusterSpec,
-                                   Map<String, ByteBuffer> serviceData) {
-
-  }
 
   private static Set<String> knownRoleNames = new HashSet<String>();
   static {

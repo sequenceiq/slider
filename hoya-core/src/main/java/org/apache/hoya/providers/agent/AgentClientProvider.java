@@ -21,7 +21,6 @@ package org.apache.hoya.providers.agent;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.RoleKeys;
@@ -39,7 +38,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -238,29 +236,6 @@ public class AgentClientProvider extends AbstractClientProvider
     Map<String, LocalResource> providerResources;
     launcher.submitDirectory(generatedConfDirPath,
                              HoyaKeys.PROPAGATED_CONF_DIR_NAME);
-
-  }
-
-  /**
-   * Update the AM resource with any local needs
-   *
-   * @param capability capability to update
-   */
-  @Override
-  public void prepareAMResourceRequirements(ClusterDescription clusterSpec,
-                                            Resource capability) {
-
-  }
-
-  /**
-   * Any operations to the service data before launching the AM
-   *
-   * @param clusterSpec cspec
-   * @param serviceData map of service data
-   */
-  @Override  //Client
-  public void prepareAMServiceData(ClusterDescription clusterSpec,
-                                   Map<String, ByteBuffer> serviceData) {
 
   }
 

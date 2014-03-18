@@ -107,7 +107,12 @@ public class AppState {
    * This is the status, the live model
    */
   public ClusterDescription clusterStatus = new ClusterDescription();
-  
+
+  /**
+   * Client properties created via the provider -static for the life
+   * of the application
+   */
+  private Map<String, String> clientProperties;
 
   /**
    The cluster description published to callers
@@ -395,8 +400,20 @@ public class AppState {
                                                             BadConfigException {
     this.publishedProviderConf = publishedProviderConf;
 
+    clientProperties = new HashMap<String, String>();
+
+
+    Set<String> confKeys = ConfigHelper.sortedConfigKeys(publishedProviderConf);
+
+//     Add the -site configuration properties
+    for (String key : confKeys) {
+      String val = publishedProviderConf.get(key);
+      clientProperties.put(key, val);
+    }
     
-    // set the cluster specification
+    
+    // set the cluster specification (once its dependency the client properties
+    // is out the way
 
     setInstanceDefinition(instanceDefinition);
 
@@ -423,14 +440,6 @@ public class AppState {
     //then pick up the requirements
     buildRoleRequirementsFromResources();
 
-
-    Set<String> confKeys = ConfigHelper.sortedConfigKeys(publishedProviderConf);
-
-//     Add the -site configuration properties
-    for (String key : confKeys) {
-      String val = publishedProviderConf.get(key);
-      clusterStatus.clientProperties.put(key, val);
-    }
 
     //set the livespan
     MapOperations globalInternalOpts =
@@ -502,12 +511,19 @@ public class AppState {
    *  updated the cluster spec derivative
    * @throws BadConfigException
    */
-  private void onInstanceDefinitionUpdated() throws
+  private synchronized void onInstanceDefinitionUpdated() throws
                                              BadConfigException {
     instanceDefinition.resolve();
     clusterSpec =
       ClusterDescriptionOperations.buildFromInstanceDefinition(
         instanceDefinition);
+    
+
+//     Add the -site configuration properties
+    for (Map.Entry<String, String> prop : clientProperties.entrySet()) {
+      clusterSpec.clientProperties.put(prop.getKey(), prop.getValue());
+    }
+    
   }
   
   /**

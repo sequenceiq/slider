@@ -255,7 +255,7 @@ class HoyaTestUtils extends Assert {
           if (instanceCount != desiredCount) {
             roleCountFound = false;
           }
-          details.append("[$role]: $instanceCount of $desiredCount; ")
+          details.append("[$role]: desired: $desiredCount; actual: $instanceCount  ")
         }
         if (roleCountFound) {
           //successful

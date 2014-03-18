@@ -26,9 +26,13 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.core.conf.ConfTreeOperations;
+import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.core.launch.AbstractLauncher;
+import org.apache.hoya.exceptions.BadClusterStateException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.tools.HoyaFileSystem;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -40,6 +44,10 @@ import java.util.Map;
 import static org.apache.hoya.api.RoleKeys.*;
 
 public abstract class AbstractClientProvider extends Configured {
+  protected static final Logger log =
+    LoggerFactory.getLogger(AbstractClientProvider.class);
+  protected static final ProviderUtils providerUtils =
+    new ProviderUtils(log);
 
   public static final String PROVIDER_RESOURCE_BASE =
     "org/apache/hoya/providers/";
@@ -80,12 +88,47 @@ public abstract class AbstractClientProvider extends Configured {
   }
 
   /**
+   * Validate the instance definition.
+   * @param clusterSpec
+   */
+  public void validateInstanceDefinition(AggregateConf instanceDefinition) throws
+                                                                           HoyaException {
+
+    List<ProviderRole> roles = getRoles();
+    ConfTreeOperations resources =
+      instanceDefinition.getResourceOperations();
+    for (ProviderRole role : roles) {
+      String name = role.name;
+      MapOperations component = resources.getComponent(name);
+      if (component != null) {
+        String instances = component.get(ROLE_INSTANCES);
+        if (instances != null) {
+          throw new BadClusterStateException(
+            "No instance count provide for " + name);
+        }
+        String ram = component.get(YARN_MEMORY);
+        String cores = component.get(YARN_CORES);
+
+
+        providerUtils.getRoleResourceRequirement(ram,
+                                                 DEF_YARN_MEMORY,
+                                                 Integer.MAX_VALUE);
+        providerUtils.getRoleResourceRequirement(cores,
+                                                 DEF_YARN_CORES,
+                                                 Integer.MAX_VALUE);
+      }
+    }
+  }
+  
+  
+  /**
    * Create the default cluster role instance for a named
    * cluster role; 
    *
    * @param rolename role name
    * @return a node that can be added to the JSON
    */
+  @Deprecated
   public Map<String, String> createDefaultClusterRole(String rolename) throws
                                                                          HoyaException,
                                                                          IOException {
@@ -142,22 +185,6 @@ public abstract class AbstractClientProvider extends Configured {
    */
   public abstract Configuration getDefaultClusterConfiguration() throws
                                                           FileNotFoundException;
-
-
-  /**
-   * Update the AM resource with any local needs
-   * @param capability capability to update
-   */
-  public abstract void prepareAMResourceRequirements(ClusterDescription clusterSpec,
-                                              Resource capability);
-
-  /**
-   * Any operations to the service data before launching the AM
-   * @param clusterSpec cspec
-   * @param serviceData map of service data
-   */
-  public abstract void prepareAMServiceData(ClusterDescription clusterSpec,
-                                     Map<String, ByteBuffer> serviceData);
 
 
   /**

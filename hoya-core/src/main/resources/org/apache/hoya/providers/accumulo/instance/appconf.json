@@ -1,0 +1,25 @@
+{
+  "schema": "http://example.org/specification/v2.0.0",
+
+  "metadata": {
+
+
+  },
+
+  "global": {
+
+    "site.master.port.client": "0",
+    "site.trace.port.client": "0",
+    "site.tserver.port.client": "0",
+    "site.gc.port.client": "0",
+    "site.monitor.port.log4j": "0",
+  },
+
+
+"components": {
+    "master": {
+    },
+    "worker": {
+    }
+  }
+}

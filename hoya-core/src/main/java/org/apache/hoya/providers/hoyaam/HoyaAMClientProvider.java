@@ -46,7 +46,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -256,18 +255,6 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
    * Update the AM resource with any local needs
    * @param capability capability to update
    */
-  @Override
-  public void prepareAMResourceRequirements(ClusterDescription clusterSpec,
-                                            Resource capability) {
-    MapOperations ops =
-      new MapOperations(clusterSpec.getOrAddRole(ROLE_HOYA_AM));
-    prepareAMResourceRequirements(ops, capability);
-  }
-
-  /**
-   * Update the AM resource with any local needs
-   * @param capability capability to update
-   */
   public void prepareAMResourceRequirements(MapOperations hoyaAM,
                                             Resource capability) {
     capability.setMemory(hoyaAM.getOptionInt(
@@ -308,20 +295,6 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
     if (HoyaUtils.isSet(jvmopts)) {
       cmdLine.add(jvmopts);
     }
-  }
-  
-  
-  
-
-  /**
-   * Any operations to the service data before launching the AM
-   * @param clusterSpec cspec
-   * @param serviceData map of service data
-   */
-  @Override  //Client
-  public void prepareAMServiceData(ClusterDescription clusterSpec,
-                                   Map<String, ByteBuffer> serviceData) {
-
   }
 
 

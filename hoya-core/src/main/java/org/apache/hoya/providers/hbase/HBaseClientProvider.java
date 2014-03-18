@@ -21,7 +21,6 @@ package org.apache.hoya.providers.hbase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.HoyaXmlConfKeys;
 import org.apache.hoya.api.ClusterDescription;
@@ -45,7 +44,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -64,7 +62,6 @@ public class HBaseClientProvider extends AbstractClientProvider implements
   protected static final Logger log =
     LoggerFactory.getLogger(HBaseClientProvider.class);
   protected static final String NAME = "hbase";
-  private static final ProviderUtils providerUtils = new ProviderUtils(log);
   private static final String INSTANCE_RESOURCE_BASE = PROVIDER_RESOURCE_BASE_ROOT +
                                                        "hbase/instance/";
 
@@ -136,6 +133,7 @@ public class HBaseClientProvider extends AbstractClientProvider implements
    * @param clusterSpec this is the cluster specification used to define this
    * @return a map of the dynamic bindings for this Hoya instance
    */
+  @Deprecated
   public Map<String, String> buildSiteConfFromSpec(ClusterDescription clusterSpec)
     throws BadConfigException {
 
@@ -184,7 +182,7 @@ public class HBaseClientProvider extends AbstractClientProvider implements
    * @param instanceDescription this is the cluster specification used to define this
    * @return a map of the dynamic bindings for this Hoya instance
    */
-  public Map<String, String> buildSiteConfFromSpec(
+  public Map<String, String> buildSiteConfFromInstance(
     AggregateConf instanceDescription)
     throws BadConfigException {
 
@@ -340,6 +338,35 @@ public class HBaseClientProvider extends AbstractClientProvider implements
                                       0),
                                     0,
                                     -1);
+  } 
+  
+  /**
+   * Validate the instance definition.
+   * @param clusterSpec
+   */
+  @Override 
+  public void validateInstanceDefinition(AggregateConf instanceDefinition) throws
+                                                                  HoyaException {
+    super.validateInstanceDefinition(instanceDefinition);
+    ConfTreeOperations resources =
+      instanceDefinition.getResourceOperations();
+    Set<String> unknownRoles = resources.getComponentNames();
+    unknownRoles.removeAll(knownRoleNames);
+    if (!unknownRoles.isEmpty()) {
+      throw new BadCommandArgumentsException("Unknown component: %s",
+        unknownRoles.iterator().next());
+    }
+    providerUtils.validateNodeCount(HBaseKeys.ROLE_WORKER,
+                                    resources.getRoleOptInt(
+                                      HBaseKeys.ROLE_WORKER,
+                                      RoleKeys.ROLE_INSTANCES,
+                                      0), 0, -1);
+    providerUtils.validateNodeCount(HBaseKeys.ROLE_MASTER,
+                                    resources.getRoleOptInt(
+                                      HBaseKeys.ROLE_MASTER,
+                                      RoleKeys.ROLE_INSTANCES,
+                                      0), 0, -1);
+
   }
 
   @Override
@@ -435,7 +462,8 @@ public class HBaseClientProvider extends AbstractClientProvider implements
       instanceDescription.getAppConfOperations();
 
     
-    Map<String, String> clusterConfMap = buildSiteConfFromSpec(instanceDescription);
+    Map<String, String> clusterConfMap = buildSiteConfFromInstance(
+      instanceDescription);
 
     //merge them
     ConfigHelper.addConfigMap(siteConf,
@@ -463,29 +491,6 @@ public class HBaseClientProvider extends AbstractClientProvider implements
                              HoyaKeys.PROPAGATED_CONF_DIR_NAME);
 
   }
-
-  /**
-   * Update the AM resource with any local needs
-   * @param capability capability to update
-   */
-  @Override
-  public void prepareAMResourceRequirements(ClusterDescription clusterSpec,
-                                            Resource capability) {
-
-  }
-
-
-  /**
-   * Any operations to the service data before launching the AM
-   * @param clusterSpec cspec
-   * @param serviceData map of service data
-   */
-  @Override  //Client
-  public void prepareAMServiceData(ClusterDescription clusterSpec,
-                                   Map<String, ByteBuffer> serviceData) {
-    
-  }
-
 
 
 }

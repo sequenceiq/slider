@@ -638,8 +638,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    */
   
   public boolean buildInstanceDefinition(String clustername,
-                                         AbstractClusterBuildingActionArgs buildInfo) throws YarnException,
-                                                             IOException {
+                                         AbstractClusterBuildingActionArgs buildInfo)
+        throws YarnException, IOException {
     // verify that a live cluster isn't there
     HoyaUtils.validateClusterName(clustername);
     verifyManagerSet();
@@ -676,6 +676,15 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     ConfTreeOperations internalOps = instanceConf.getInternalOperations();
     appConfOps.putAll(cmdLineConf);
 
+    // put the role counts into the resources file
+    Map<String, String> argsRoleMap = buildInfo.getRoleMap();
+    for (Map.Entry<String, String> roleEntry : argsRoleMap.entrySet()) {
+      String count = roleEntry.getValue();
+      String key = roleEntry.getKey();
+      log.debug("{} => {}", key, count);
+      resOps.getOrAddComponent(key)
+                 .put(RoleKeys.ROLE_INSTANCES, count);
+    }
 
     //all CLI role options
     Map<String, Map<String, String>> roleOptionMap =
