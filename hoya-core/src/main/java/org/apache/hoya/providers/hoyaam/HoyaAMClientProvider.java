@@ -249,6 +249,10 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
                      libdir,
                      JCOMMANDER_JAR);
     launcher.addLocalResources(providerResources);
+    //also pick up all env variables from a map
+    launcher.copyEnvVars(
+      instanceDescription.getInternalOperations().getOrAddComponent(
+        HoyaKeys.ROLE_HOYA_AM));
   }
 
   /**
@@ -303,8 +307,7 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
                                                                         HoyaException,
                                                                         IOException {
     mergeTemplates(aggregateConf,
-                   INTERNAL_JSON, RESOURCES_JSON,
-                   APPCONF_JSON
+                   INTERNAL_JSON, RESOURCES_JSON, APPCONF_JSON
                   );
   }
 }

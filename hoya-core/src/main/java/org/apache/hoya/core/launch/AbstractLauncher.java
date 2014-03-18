@@ -244,10 +244,8 @@ public abstract class AbstractLauncher extends Configured {
    * Important: the configuration must already be fully resolved 
    * in order to pick up global options
    * Copy env vars into the launch context.
-   * @param ctree config tree to work from
    */
-  public boolean copyEnvVars(ConfTreeOperations ctree, String component) {
-    MapOperations options = ctree.getComponent(component);
+  public boolean copyEnvVars(MapOperations options) {
     if (options == null) {
       return false;
     }
