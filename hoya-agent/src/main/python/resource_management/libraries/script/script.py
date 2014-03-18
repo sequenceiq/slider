@@ -29,6 +29,7 @@ from resource_management.core.environment import Environment
 from resource_management.core.exceptions import Fail, ClientComponentHasNoStatus, ComponentIsNotRunning
 from resource_management.core.resources.packaging import Package
 from resource_management.core.resources import Tarball
+from resource_management.core.resources import Directory
 from resource_management.libraries.script.config_dictionary import ConfigDictionary
 from resource_management.libraries.script.repo_installer import RepoInstaller
 
@@ -158,6 +159,8 @@ class Script(object):
               basedir = env.config.basedir
               tarball = os.path.join(basedir, name)
             install_location = config['configurations']['global']['app_install_dir']
+            Directory(install_location, action = "delete")
+            Directory(install_location)
             Tarball(tarball, location=install_location)
           else:
             if not repo_installed:

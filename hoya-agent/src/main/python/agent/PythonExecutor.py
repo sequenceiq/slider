@@ -114,6 +114,7 @@ class PythonExecutor:
     env = os.environ.copy()
     if environment_vars:
       for k, v in environment_vars:
+        logger.info("Setting env: %s to %s", k, v)
         env[k] = v
     return subprocess.Popen(command,
                             stdout=tmpout,

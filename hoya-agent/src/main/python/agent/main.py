@@ -195,10 +195,10 @@ def main():
   logFile = os.path.join(agentConfig.getResolvedPath(AgentConfig.LOG_DIR), logFileName)
   perform_prestart_checks(agentConfig)
   ensure_folder_layout(agentConfig)
-  write_pid()
 
   setup_logging(options.verbose, logFile)
   update_log_level(agentConfig, logFile)
+  write_pid()
 
   server_url = SERVER_STATUS_URL.format(
     agentConfig.get(AgentConfig.SERVER_SECTION, 'hostname'),
@@ -209,7 +209,7 @@ def main():
 
   # Wait until server is reachable
   netutil = NetUtil()
-  netutil.try_to_connect(server_url, -1, agentConfig, logger)
+  netutil.try_to_connect(server_url, -1, logger)
 
   # Launch Controller communication
   controller = Controller(agentConfig)
