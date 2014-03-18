@@ -30,7 +30,6 @@ conf_dir = format("{hbase_root}/conf")
 daemon_script = format("{hbase_root}/bin/hbase-daemon.sh")
 
 hbase_user = status_params.hbase_user
-#smokeuser = config['configurations']['global']['smokeuser']
 _authentication = config['configurations']['core-site']['hadoop.security.authentication']
 security_enabled = ( not is_empty(_authentication) and _authentication == 'kerberos')
 user_group = config['configurations']['global']['user_group']
@@ -55,12 +54,6 @@ client_jaas_config_file = default('hbase_client_jaas_config_file', format("{conf
 master_jaas_config_file = default('hbase_master_jaas_config_file', format("{conf_dir}/hbase_master_jaas.conf"))
 regionserver_jaas_config_file = default('hbase_regionserver_jaas_config_file', format("{conf_dir}/hbase_regionserver_jaas.conf"))
 
-#rs_hosts = default('hbase_rs_hosts', config['clusterHostInfo']['slave_hosts']) #if hbase_rs_hosts not given it is
-# assumed that region servers on same nodes as slaves
-
-#smoke_test_user = config['configurations']['global']['smokeuser']
-#smokeuser_permissions = default('smokeuser_permissions', "RWXCA")
-
 if security_enabled:
   
   _use_hostname_in_principal = default('instance_name', True)
@@ -79,8 +72,6 @@ if security_enabled:
     
 master_keytab_path = config['configurations']['hbase-site']['hbase.master.keytab.file']
 regionserver_keytab_path = config['configurations']['hbase-site']['hbase.regionserver.keytab.file']
-#smoke_user_keytab = config['configurations']['global']['smokeuser_keytab']
-#hbase_user_keytab = config['configurations']['global']['hbase_user_keytab']
 kinit_path_local = functions.get_kinit_path([default("kinit_path_local",None), "/usr/bin", "/usr/kerberos/bin", "/usr/sbin"])
 if security_enabled:
   kinit_cmd = format("{kinit_path_local} -kt {hbase_user_keytab} {hbase_user};")

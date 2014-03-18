@@ -35,14 +35,11 @@ from CustomServiceOrchestrator import CustomServiceOrchestrator
 logger = logging.getLogger()
 installScriptHash = -1
 
+
 class ActionQueue(threading.Thread):
   """ Action Queue for the agent. We pick one command at a time from the queue
   and execute it
-  Note: Action and command terms in this and related classes are used interchangeably
   """
-
-  # How many actions can be performed in parallel. Feel free to change
-  MAX_CONCURRENT_ACTIONS = 5
 
   STATUS_COMMAND = 'STATUS_COMMAND'
   EXECUTION_COMMAND = 'EXECUTION_COMMAND'
@@ -62,8 +59,8 @@ class ActionQueue(threading.Thread):
   def __init__(self, config, controller):
     super(ActionQueue, self).__init__()
     self.commandQueue = Queue.Queue()
-    self.commandStatuses = CommandStatusDict(callback_action =
-      self.status_update_callback)
+    self.commandStatuses = CommandStatusDict(callback_action=
+    self.status_update_callback)
     self.config = config
     self.controller = controller
     self.sh = shellRunner()
@@ -121,7 +118,7 @@ class ActionQueue(threading.Thread):
       if command['commandParams']['schema_version'] == self.COMMAND_FORMAT_V2:
         return self.COMMAND_FORMAT_V2
       else:
-        return  self.COMMAND_FORMAT_V1
+        return self.COMMAND_FORMAT_V1
     except KeyError:
       pass # ignore
     return self.COMMAND_FORMAT_V1 # Fallback
@@ -137,8 +134,8 @@ class ActionQueue(threading.Thread):
 
     message = "Executing command with id = {commandId} for role = {role} of " \
               "cluster {cluster}. Command format={command_format}".format(
-              commandId = str(commandId), role=command['role'],
-              cluster=clusterName, command_format=command_format)
+      commandId=str(commandId), role=command['role'],
+      cluster=clusterName, command_format=command_format)
     logger.info(message)
     logger.debug(pprint.pformat(command))
 
@@ -148,13 +145,17 @@ class ActionQueue(threading.Thread):
     in_progress_status.update({
       'tmpout': self.tmpdir + os.sep + 'output-' + str(taskId) + '.txt',
       'tmperr': self.tmpdir + os.sep + 'errors-' + str(taskId) + '.txt',
-      'structuredOut' : self.tmpdir + os.sep + 'structured-out-' + str(taskId) + '.json',
+      'structuredOut': self.tmpdir + os.sep + 'structured-out-' + str(
+        taskId) + '.json',
       'status': self.IN_PROGRESS_STATUS
     })
     self.commandStatuses.put_command_status(command, in_progress_status)
     # running command
     commandresult = self.customServiceOrchestrator.runCommand(command,
-      in_progress_status['tmpout'], in_progress_status['tmperr'])
+                                                              in_progress_status[
+                                                                'tmpout'],
+                                                              in_progress_status[
+                                                                'tmperr'])
     # dumping results
     status = self.COMPLETED_STATUS
     if commandresult['exitcode'] != 0:
@@ -176,7 +177,7 @@ class ActionQueue(threading.Thread):
       roleResult['structuredOut'] = str(commandresult['structuredOut'])
     else:
       roleResult['structuredOut'] = ''
-    # let server know that configuration tags were applied
+      # let server know that configuration tags were applied
     if status == self.COMPLETED_STATUS:
       if command.has_key('configurationTags'):
         roleResult['configurationTags'] = command['configurationTags']
@@ -205,9 +206,10 @@ class ActionQueue(threading.Thread):
       if command_format == self.COMMAND_FORMAT_V2:
         # For custom services, responsibility to determine service status is
         # delegated to python scripts
-        component_status = self.customServiceOrchestrator.requestComponentStatus(command)
+        component_status = self.customServiceOrchestrator.requestComponentStatus(
+          command)
 
-      result = livestatus.build(forsed_component_status= component_status)
+      result = livestatus.build(forsed_component_status=component_status)
       logger.debug("Got live status for component " + component + \
                    " of service " + str(service) + \
                    " of cluster " + str(cluster))

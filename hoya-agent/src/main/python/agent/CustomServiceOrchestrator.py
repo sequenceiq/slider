@@ -50,7 +50,8 @@ class CustomServiceOrchestrator():
                                                'status_command_stdout.txt')
     self.status_commands_stderr = os.path.join(self.tmp_dir,
                                                'status_command_stderr.txt')
-    self.base_dir = os.path.join(config.getResolvedPath(AgentConfig.APP_PACKAGE_DIR), "package")
+    self.base_dir = os.path.join(
+      config.getResolvedPath(AgentConfig.APP_PACKAGE_DIR), "package")
     # Clean up old status command files if any
     try:
       os.unlink(self.status_commands_stdout)
@@ -59,7 +60,8 @@ class CustomServiceOrchestrator():
       pass # Ignore fail
 
 
-  def runCommand(self, command, tmpoutfile, tmperrfile, forsed_command_name=None,
+  def runCommand(self, command, tmpoutfile, tmperrfile,
+                 forsed_command_name=None,
                  override_output_files=True):
     """
     forsed_command_name may be specified manually. In this case, value, defined at
@@ -98,12 +100,16 @@ class CustomServiceOrchestrator():
       ret = None
       for py_file, current_base_dir in filtered_py_file_list:
         script_params = [command_name, json_path, current_base_dir]
-        python_paths = [os.path.join(self.config.getWorkRootPath(), "infra/slider-agent/jinja2"),
-                        os.path.join(self.config.getWorkRootPath(), "infra/slider-agent")]
+        python_paths = [os.path.join(self.config.getWorkRootPath(),
+                                     "infra/slider-agent/jinja2"),
+                        os.path.join(self.config.getWorkRootPath(),
+                                     "infra/slider-agent")]
         environment_vars = [("PYTHONPATH", ":".join(python_paths))]
         ret = self.python_executor.run_file(py_file, script_params,
                                             tmpoutfile, tmperrfile, timeout,
-                                            tmpstrucoutfile, override_output_files, environment_vars)
+                                            tmpstrucoutfile,
+                                            override_output_files,
+                                            environment_vars)
         # Next run_file() invocations should always append to current output
         override_output_files = False
         if ret['exitcode'] != 0:
@@ -184,7 +190,8 @@ class CustomServiceOrchestrator():
       # patch content
       # ${AGENT_WORK_ROOT} -> AgentConfig.getWorkRootPath()
       # ${AGENT_LOG_ROOT} -> AgentConfig.getLogPath()
-      content = content.replace("${AGENT_WORK_ROOT}", self.config.getWorkRootPath())
+      content = content.replace("${AGENT_WORK_ROOT}",
+                                self.config.getWorkRootPath())
       content = content.replace("${AGENT_LOG_ROOT}", self.config.getLogPath())
       f.write(content)
     return file_path

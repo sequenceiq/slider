@@ -75,7 +75,8 @@ class CommandStatusDict():
             # Removing complete/failed command status from dict
             del self.current_state[key]
           else:
-            in_progress_report = self.generate_in_progress_report(command, report)
+            in_progress_report = \
+              self.generate_in_progress_report(command, report)
             resultReports.append(in_progress_report)
         elif command ['commandType'] == ActionQueue.STATUS_COMMAND:
           resultComponentStatus.append(report)
