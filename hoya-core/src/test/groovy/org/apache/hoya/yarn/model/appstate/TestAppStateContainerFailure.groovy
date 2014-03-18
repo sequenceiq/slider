@@ -20,18 +20,13 @@ package org.apache.hoya.yarn.model.appstate
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.apache.hadoop.yarn.api.records.ContainerId
 import org.apache.hoya.exceptions.HoyaException
 import org.apache.hoya.exceptions.TriggerClusterTeardownException
-import org.apache.hoya.yarn.appmaster.state.AppState
-import org.apache.hoya.yarn.appmaster.state.NodeEntry
-import org.apache.hoya.yarn.appmaster.state.NodeInstance
-import org.apache.hoya.yarn.appmaster.state.RoleHistory
-import org.apache.hoya.yarn.appmaster.state.RoleInstance
-import org.apache.hoya.yarn.appmaster.state.RoleStatus
+import org.apache.hoya.yarn.appmaster.state.*
 import org.apache.hoya.yarn.model.mock.BaseMockAppStateTest
 import org.apache.hoya.yarn.model.mock.MockRoles
 import org.apache.hoya.yarn.model.mock.MockYarnEngine
-import org.apache.hadoop.yarn.api.records.ContainerId
 import org.junit.Test
 
 /**

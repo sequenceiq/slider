@@ -57,7 +57,6 @@ import org.apache.hoya.core.launch.AppMasterLauncher;
 import org.apache.hoya.core.launch.CommandLineBuilder;
 import org.apache.hoya.core.launch.LaunchedApplication;
 import org.apache.hoya.core.launch.RunningApplication;
-import org.apache.hoya.core.persist.ConfPersister;
 import org.apache.hoya.core.persist.LockAcquireFailedException;
 import org.apache.hoya.core.registry.ServiceRegistryClient;
 import org.apache.hoya.exceptions.BadClusterStateException;
@@ -97,6 +96,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringWriter;
@@ -808,7 +808,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     } else {
       imagePath = null;
       if (isUnset(clusterSpec.getApplicationHome())) {
-        throw new BadClusterStateException(NO_IMAGE_OR_HOME_DIR_SPECIFIED);
+        throw new BadClusterStateException(E_NO_IMAGE_OR_HOME_DIR_SPECIFIED);
       }
     }
 
@@ -1036,7 +1036,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     String cmdStr = commandLine.build();
     log.info("Completed setting up app master command {}", cmdStr);
 
-    amLauncher.addCommand(commandLine);
+    amLauncher.addCommandLine(commandLine);
 //    amContainer.setCommands(commandLine.getArgumentList());
 
     amLauncher.setMemory(RoleKeys.DEFAULT_AM_MEMORY);
@@ -1090,7 +1090,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                           YarnException,
                                                           IOException {
     Path clusterDirectory = hoyaFileSystem.buildHoyaClusterDirPath(clustername);
-    AggregateConf instanceDefinition = loadInstanceDefinition(clusterDirectory);
+    AggregateConf instanceDefinition = loadUnresolvedInstanceDefinition(
+      clusterDirectory);
 
     LaunchedApplication launchedApplication =
       launchApplication(clustername, clusterDirectory, instanceDefinition,
@@ -1100,12 +1101,21 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     return waitForAppAccepted(launchedApplication, launchArgs.getWaittime());
   }
 
-  private AggregateConf loadInstanceDefinition(Path clusterDirectory) throws
+  /**
+   * Load the instance definition. It is not resolved at this point
+   * @param clusterDirectory cluster dir
+   * @return the loaded configuration
+   * @throws IOException
+   * @throws HoyaException
+   */
+  private AggregateConf loadUnresolvedInstanceDefinition(Path clusterDirectory) throws
                                                                       IOException,
                                                                       HoyaException {
 
-    return InstanceLoader.loadInstanceDefinition(hoyaFileSystem,
-                                                 clusterDirectory);
+    AggregateConf definition =
+      InstanceLoader.loadInstanceDefinition(hoyaFileSystem,
+                                            clusterDirectory);
+    return definition;
   }
 
 
@@ -1134,6 +1144,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     //create the Hoya AM provider -this helps set up the AM
     HoyaAMClientProvider hoyaAM = new HoyaAMClientProvider(config);
 
+    instanceDefinition.resolve();
 
     ConfTreeOperations internalOperations =
       instanceDefinition.getInternalOperations();
@@ -1160,18 +1171,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     
     // now build up the image path
     // TODO: consider supporting apps that don't have an image path
-    Path imagePath;
-    String imagePathOption =
-      internalOptions.get(OptionKeys.APPLICATION_IMAGE_PATH);
-    String appHomeOption = internalOptions.get(OptionKeys.APPLICATION_HOME);
-    if (!isUnset(imagePathOption)) {
-      imagePath = createPathThatMustExist(imagePathOption);
-    } else {
-      imagePath = null;
-      if (isUnset(appHomeOption)) {
-        throw new BadClusterStateException(NO_IMAGE_OR_HOME_DIR_SPECIFIED);
-      }
-    }
+    Path imagePath =
+      HoyaUtils.extractImagePath(hoyaFileSystem, internalOptions);
     if (log.isDebugEnabled()) {
       log.debug(instanceDefinition.toString());
     }
@@ -1400,7 +1401,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     String cmdStr = commandLine.build();
     log.info("Completed setting up app master command {}", cmdStr);
 
-    amLauncher.addCommand(commandLine);
+    amLauncher.addCommandLine(commandLine);
 
     // the Hoya AM gets to configure the AM requirements, not the custom provider
     hoyaAM.prepareAMResourceRequirements(hoyaAMComponent, amLauncher.getResource());
@@ -1526,20 +1527,12 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * Create a path that must exist in the cluster fs
    * @param uri uri to create
    * @return the path
-   * @throws HoyaException if the path does not exist
+   * @throws FileNotFoundException if the path does not exist
    */
   public Path createPathThatMustExist(String uri) throws
                                                   HoyaException,
                                                   IOException {
-    Path path = new Path(uri);
-    verifyPathExists(path);
-    return path;
-  }
-
-  public void verifyPathExists(Path path) throws HoyaException, IOException {
-    if (!hoyaFileSystem.getFileSystem().exists(path)) {
-      throw new BadClusterStateException(E_MISSING_PATH + path);
-    }
+    return hoyaFileSystem.createPathThatMustExist(uri);
   }
 
   /**

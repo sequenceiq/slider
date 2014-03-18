@@ -58,7 +58,7 @@ public class IndexBlock extends HtmlBlock {
 
   // An extra method to make testing easier since you can't make an instance of Block
   protected void doIndex(Hamlet html, String providerName) {
-    DIV<Hamlet> div = html.div("general_info").h1("index_header", providerName + " cluster: '" + appState.clusterDescription.name + "'");
+    DIV<Hamlet> div = html.div("general_info").h1("index_header", providerName + " cluster: '" + appState.clusterStatus.name + "'");
 
     UL<DIV<Hamlet>> ul = div.ul();
 
@@ -66,8 +66,8 @@ public class IndexBlock extends HtmlBlock {
     ul.li("Cluster created: " + getInfoAvoidingNulls(StatusKeys.INFO_CREATE_TIME_HUMAN));
     ul.li("Cluster last flexed: " + getInfoAvoidingNulls(StatusKeys.INFO_FLEX_TIME_HUMAN));
     ul.li("Cluster running since: " + getInfoAvoidingNulls(StatusKeys.INFO_LIVE_TIME_HUMAN));
-    ul.li("Cluster HDFS storage path: " + appState.clusterDescription.dataPath);
-    ul.li("Cluster configuration path: " + appState.clusterDescription.originConfigurationPath);
+    ul.li("Cluster HDFS storage path: " + appState.clusterStatus.dataPath);
+    ul.li("Cluster configuration path: " + appState.clusterStatus.originConfigurationPath);
 
     ul._()._();
 
@@ -89,13 +89,13 @@ public class IndexBlock extends HtmlBlock {
   }
 
   private String getInfoAvoidingNulls(String key) {
-    String createTime = appState.clusterDescription.getInfo(key);
+    String createTime = appState.clusterStatus.getInfo(key);
 
     return null == createTime ? "N/A" : createTime;
   }
 
   protected void addProviderServiceOptions(ProviderService providerService, UL<DIV<Hamlet>> ul) {
-    Map<String,URL> details = providerService.buildMonitorDetails(appState.clusterDescription);
+    Map<String,URL> details = providerService.buildMonitorDetails(appState.clusterStatus);
     if (null == details) {
       return;
     }

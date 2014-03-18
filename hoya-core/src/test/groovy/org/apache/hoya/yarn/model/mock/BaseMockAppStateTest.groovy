@@ -85,12 +85,13 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
     fs.delete(historyPath, true)
     appState = new AppState(new MockRecordFactory())
     appState.setContainerLimits(RM_MAX_RAM, RM_MAX_CORES)
-    appState.buildInstance(factory.newClusterSpec(0, 0, 0),
-                           new Configuration(false),
-                           factory.ROLES,
-                           fs,
-                           historyPath,
-                           null)
+    appState.buildInstance(
+        factory.newInstanceDefinition(0, 0, 0),
+        new Configuration(false),
+        factory.ROLES,
+        fs,
+        historyPath,
+        null)
   }
 
   abstract String getTestName();

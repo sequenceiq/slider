@@ -57,7 +57,7 @@ public class ClusterSpecificationBlock extends HtmlBlock {
    */
   private String getJson() {
     try {
-      return appState.clusterDescription.toJsonString();
+      return appState.clusterStatus.toJsonString();
     } catch (Exception e) {
       log.error("Could not create JSON from cluster description", e);
       return "Could not create JSON. See logs for more details.";

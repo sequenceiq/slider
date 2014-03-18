@@ -142,7 +142,7 @@ public class ContainerStatsBlock extends HtmlBlock {
 
           }));
 
-      ClusterDescription desc = hoya.getAppState().clusterDescription;
+      ClusterDescription desc = hoya.getAppState().clusterStatus;
       Map<String,String> options = desc.getRole(name);
       Iterable<Entry<TableContent,String>> tableContent;
       

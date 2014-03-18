@@ -40,10 +40,13 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.HoyaXmlConfKeys;
 import org.apache.hoya.api.ClusterDescription;
+import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.RoleKeys;
+import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.exceptions.BadClusterStateException;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.BadConfigException;
+import org.apache.hoya.exceptions.ErrorStrings;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.exceptions.MissingArgException;
 import org.apache.hoya.providers.hbase.HBaseConfigFileOptions;
@@ -1203,6 +1206,24 @@ public final class HoyaUtils {
                VersionInfo.getBranch() + " @" + VersionInfo.getSrcChecksum());
   }
 
+  public static Path extractImagePath(CoreFileSystem fs,  MapOperations internalOptions) throws
+                                                                                         HoyaException,
+                                                                                         IOException {
+    Path imagePath;
+    String imagePathOption =
+      internalOptions.get(OptionKeys.APPLICATION_IMAGE_PATH);
+    String appHomeOption = internalOptions.get(OptionKeys.APPLICATION_HOME);
+    if (!isUnset(imagePathOption)) {
+      imagePath = fs.createPathThatMustExist(imagePathOption);
+    } else {
+      imagePath = null;
+      if (isUnset(appHomeOption)) {
+        throw new BadClusterStateException(ErrorStrings.E_NO_IMAGE_OR_HOME_DIR_SPECIFIED);
+      }
+    }
+    return imagePath;
+  }
+  
   /**
    * trigger a  JVM halt with no clean shutdown at all
    * @param status status code for exit

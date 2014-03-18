@@ -19,28 +19,22 @@
 package org.apache.hoya.yarn.appmaster;
 
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.net.NetUtils;
-import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.security.ContainerTokenIdentifier;
-import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
-import org.apache.hoya.api.ClusterDescription;
+import org.apache.hoya.core.conf.AggregateConf;
+import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.core.launch.ContainerLauncher;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderService;
 import org.apache.hoya.tools.HoyaFileSystem;
-import org.apache.hoya.tools.HoyaUtils;
 import org.apache.hoya.yarn.appmaster.state.RoleInstance;
 import org.apache.hoya.yarn.appmaster.state.RoleStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -139,7 +133,7 @@ public class RoleLaunchService extends AbstractService {
    */
   public void launchRole(Container container,
                          RoleStatus role,
-                         ClusterDescription clusterSpec) {
+                         AggregateConf clusterSpec) {
     String roleName = role.getName();
     //emergency step: verify that this role is handled by the provider
     assert provider.isSupportedRole(roleName) : "unsupported role";
@@ -147,7 +141,8 @@ public class RoleLaunchService extends AbstractService {
       new RoleLaunchService.RoleLauncher(container,
                                          role.getProviderRole(),
                                          clusterSpec,
-                                         clusterSpec.getOrAddRole(roleName));
+                                         clusterSpec.getResourceOperations()
+                                                    .getOrAddComponent(roleName));
     launchThread(launcher,
                  String.format("%s-%s", roleName,
                                container.getId().toString())
@@ -218,14 +213,14 @@ public class RoleLaunchService extends AbstractService {
     // Allocated container
     public final Container container;
     public  final String containerRole;
-    private final Map<String, String> roleOptions;
-    private final ClusterDescription clusterSpec;
+    private final MapOperations roleOptions;
+    private final AggregateConf instanceDefinition;
     public final ProviderRole role;
 
     public RoleLauncher(Container container,
                         ProviderRole role,
-                        ClusterDescription clusterSpec,
-                        Map<String, String> roleOptions) {
+                        AggregateConf instanceDefinition,
+                        MapOperations roleOptions) {
       assert container != null;
       assert role != null;
       assert roleOptions != null;
@@ -233,7 +228,7 @@ public class RoleLaunchService extends AbstractService {
       this.containerRole = role.name;
       this.role = role;
       this.roleOptions = roleOptions;
-      this.clusterSpec = clusterSpec;
+      this.instanceDefinition = instanceDefinition;
     }
 
     @Override
@@ -254,6 +249,7 @@ public class RoleLaunchService extends AbstractService {
 
 
         containerLauncher.setupUGI();
+        containerLauncher.putEnv(envVars);
 
         log.debug("Launching container {} into role {}",
                   container.getId(),
@@ -270,9 +266,9 @@ public class RoleLaunchService extends AbstractService {
                                              containerRole,
                                              fs,
                                              generatedConfDirPath,
-                                             clusterSpec,
                                              roleOptions,
-                                             containerTmpDirPath);
+                                             containerTmpDirPath,
+                                             instanceDefinition);
 
         RoleInstance instance = new RoleInstance(container);
 
