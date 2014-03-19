@@ -149,18 +149,6 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
     throw new HoyaRuntimeException("Not implemented");
   }
 
-  /**
-   * Build time review and update of the cluster specification
-   * @param clusterSpec spec
-   */
-  @Override // Client
-  public void reviewAndUpdateClusterSpec(ClusterDescription clusterSpec) throws
-                                                                         HoyaException {
-
-    validateClusterSpec(clusterSpec);
-  }
-
-
   @Override //Client
   public void preflightValidateClusterConfiguration(HoyaFileSystem hoyaFileSystem,
                                                     String clustername,
@@ -198,33 +186,6 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
 
   }
 
-
-  /**
-   * The Hoya AM sets up all the dependency JARs above hoya.jar itself
-   * {@inheritDoc}
-   */
-  @Override
-  public Map<String, LocalResource> prepareAMAndConfigForLaunch(HoyaFileSystem hoyaFileSystem,
-                                                                Configuration serviceConf,
-                                                                ClusterDescription clusterSpec,
-                                                                Path originConfDirPath,
-                                                                Path generatedConfDirPath,
-                                                                Configuration clientConfExtras,
-                                                                String libdir,
-                                                                Path tempPath)
-    throws IOException, HoyaException {
-    
-    Map<String, LocalResource> providerResources =
-      new HashMap<String, LocalResource>();
-    HoyaUtils.putJar(providerResources,
-                     hoyaFileSystem,
-                     JCommander.class,
-                     tempPath,
-                     libdir,
-                     JCOMMANDER_JAR);
-    return providerResources;
-  }
-  
   /**
    * The Hoya AM sets up all the dependency JARs above hoya.jar itself
    * {@inheritDoc}

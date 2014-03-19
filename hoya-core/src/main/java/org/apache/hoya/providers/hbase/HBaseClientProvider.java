@@ -222,18 +222,6 @@ public class HBaseClientProvider extends AbstractClientProvider implements
     return sitexml;
   }
 
-  /**
-   * Build time review and update of the cluster specification
-   * @param clusterSpec spec
-   */
-  @Override // Client
-  public void reviewAndUpdateClusterSpec(ClusterDescription clusterSpec) throws
-                                                                         HoyaException{
-
-    validateClusterSpec(clusterSpec);
-  }
-
-
   @Override //Client
   public void preflightValidateClusterConfiguration(HoyaFileSystem hoyaFileSystem,
                                                     String clustername,
@@ -367,68 +355,6 @@ public class HBaseClientProvider extends AbstractClientProvider implements
                                       RoleKeys.ROLE_INSTANCES,
                                       0), 0, -1);
 
-  }
-
-  @Override
-  public Map<String, LocalResource> prepareAMAndConfigForLaunch(HoyaFileSystem hoyaFileSystem,
-                                                                Configuration serviceConf,
-                                                                ClusterDescription clusterSpec,
-                                                                Path originConfDirPath,
-                                                                Path generatedConfDirPath,
-                                                                Configuration clientConfExtras,
-                                                                String libdir,
-                                                                Path tempPath) throws
-                                                                               IOException,
-                                                                               HoyaException {
-    //load in the template site config
-    log.debug("Loading template configuration from {}", originConfDirPath);
-    Configuration siteConf = ConfigHelper.loadTemplateConfiguration(
-      serviceConf,
-      originConfDirPath,
-      HBaseKeys.SITE_XML,
-      HBaseKeys.HBASE_TEMPLATE_RESOURCE);
-    
-    if (log.isDebugEnabled()) {
-      log.debug("Configuration came from {}",
-                siteConf.get(HoyaXmlConfKeys.KEY_HOYA_TEMPLATE_ORIGIN));
-      ConfigHelper.dumpConf(siteConf);
-    }
-    //construct the cluster configuration values
-
-    Map<String, String> master = clusterSpec.getMandatoryRole(
-      HBaseKeys.ROLE_MASTER);
-
-    Map<String, String> worker = clusterSpec.getMandatoryRole(
-      HBaseKeys.ROLE_WORKER);
-    Map<String, String> clusterConfMap = buildSiteConfFromSpec(clusterSpec);
-    
-    //merge them
-    ConfigHelper.addConfigMap(siteConf,
-                              clusterConfMap.entrySet(),
-                              "HBase Provider");
-
-    //now, if there is an extra client conf, merge it in too
-    if (clientConfExtras != null) {
-      ConfigHelper.mergeConfigurations(siteConf, clientConfExtras,
-                                       "Hoya Client");
-    }
-    
-    if (log.isDebugEnabled()) {
-      log.debug("Merged Configuration");
-      ConfigHelper.dumpConf(siteConf);
-    }
-
-    Path sitePath = ConfigHelper.saveConfig(serviceConf,
-                                            siteConf,
-                                            generatedConfDirPath,
-                                            HBaseKeys.SITE_XML);
-
-    log.debug("Saving the config to {}", sitePath);
-    Map<String, LocalResource> providerResources;
-    providerResources = hoyaFileSystem.submitDirectory(generatedConfDirPath,
-                                       HoyaKeys.PROPAGATED_CONF_DIR_NAME);
-
-    return providerResources;
   }
 
   @Override

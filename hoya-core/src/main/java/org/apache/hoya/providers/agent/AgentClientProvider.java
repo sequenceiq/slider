@@ -100,18 +100,6 @@ public class AgentClientProvider extends AbstractClientProvider
     return rolemap;
   }
 
-  /**
-   * Build time review and update of the cluster specification
-   *
-   * @param clusterSpec spec
-   */
-  @Override // Client
-  public void reviewAndUpdateClusterSpec(ClusterDescription clusterSpec) throws
-      HoyaException {
-
-    validateClusterSpec(clusterSpec);
-  }
-
   @Override //Client
   public void preflightValidateClusterConfiguration(HoyaFileSystem hoyaFileSystem,
                                                     String clustername,
@@ -182,34 +170,6 @@ public class AgentClientProvider extends AbstractClientProvider
       priorityMap.put(priority, roleName);
     }
   }
-
-  @Override
-  public Map<String, LocalResource> prepareAMAndConfigForLaunch(HoyaFileSystem hoyaFileSystem,
-                                                                Configuration serviceConf,
-                                                                ClusterDescription clusterSpec,
-                                                                Path originConfDirPath,
-                                                                Path generatedConfDirPath,
-                                                                Configuration clientConfExtras,
-                                                                String libdir,
-                                                                Path tempPath) throws
-      IOException,
-      HoyaException {
-    //load in the template site config
-    log.debug("Loading template configuration from {}, saving to ",
-              originConfDirPath, generatedConfDirPath);
-
-    Path commandJson =
-      new Path(originConfDirPath, AgentKeys.COMMAND_JSON_FILENAME);
-    hoyaFileSystem.verifyFileExists(commandJson);
-    
-
-    Map<String, LocalResource> providerResources;
-    providerResources = hoyaFileSystem.submitDirectory(generatedConfDirPath,
-        HoyaKeys.PROPAGATED_CONF_DIR_NAME);
-
-    return providerResources;
-  }
-
 
   @Override
   public void prepareAMAndConfigForLaunch(HoyaFileSystem hoyaFileSystem,

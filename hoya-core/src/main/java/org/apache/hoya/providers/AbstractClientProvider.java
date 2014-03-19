@@ -146,43 +146,7 @@ public abstract class AbstractClientProvider extends Configured {
                                                                     IOException {
     //default: do nothing
   }
-    
-  
-  
-  /**
-   * This builds up the site configuration for the AM and downstream services;
-   * the path is added to the cluster spec so that launchers in the 
-   * AM can pick it up themselves. 
-   *
-   * @param hoyaFileSystem filesystem
-   * @param serviceConf conf used by the service
-   * @param clusterSpec cluster specification
-   * @param originConfDirPath the original config dir -treat as read only
-   * @param generatedConfDirPath path to place generated artifacts
-   * @param clientConfExtras optional extra configs to patch in last
-   * @param libdir relative directory to place resources
-   * @param tempPath path in the cluster FS for temp files
-   * @return a map of name to local resource to add to the AM launcher
-   * @throws IOException IO problems
-   * @throws HoyaException Hoya-specific issues
-   */
-  @Deprecated
-  public abstract Map<String, LocalResource> prepareAMAndConfigForLaunch(HoyaFileSystem hoyaFileSystem,
-                                                                  Configuration serviceConf,
-                                                                  ClusterDescription clusterSpec,
-                                                                  Path originConfDirPath,
-                                                                  Path generatedConfDirPath,
-                                                                  Configuration clientConfExtras,
-                                                                  String libdir,
-                                                                  Path tempPath) throws
-                                                                                 IOException,
-                                                                                 HoyaException;
 
-  /**
-   * Get a map of all the default options for the cluster; values
-   * that can be overridden by user defaults after
-   * @return a possibly empyy map of default cluster options.
-   */
   public abstract Configuration getDefaultClusterConfiguration() throws
                                                           FileNotFoundException;
 
@@ -240,13 +204,6 @@ public abstract class AbstractClientProvider extends Configured {
   }
 
   /**
-   * Build time review and update of the cluster specification
-   * @param clusterSpec spec
-   */
-  public abstract void reviewAndUpdateClusterSpec(ClusterDescription clusterSpec) throws
-                                                                           HoyaException;
-
-  /**
    * This is called pre-launch to validate that the cluster specification
    * is valid. This can include checking that the security options
    * are in the site files prior to launch, that there are no conflicting operations
@@ -270,6 +227,7 @@ public abstract class AbstractClientProvider extends Configured {
    * @throws HoyaException on any validation issue
    * @throws IOException on any IO problem
    */
+  @Deprecated
   public abstract void preflightValidateClusterConfiguration(HoyaFileSystem hoyaFileSystem,
                                                       String clustername,
                                                       Configuration configuration,

@@ -244,17 +244,6 @@ public class AccumuloClientProvider extends AbstractClientProvider implements
     sitexml.put(HoyaXmlConfKeys.FS_DEFAULT_NAME_CLASSIC, fsDefaultName);
   }
 
-    /**
-     * Build time review and update of the cluster specification
-     * @param clusterSpec spec
-     */
-  @Override // Client
-  public void reviewAndUpdateClusterSpec(ClusterDescription clusterSpec) throws
-                                                                         HoyaException {
-
-    validateClusterSpec(clusterSpec);
-  }
-
   @Override //Client
   public void preflightValidateClusterConfiguration(HoyaFileSystem hoyaFileSystem,
                                                     String clustername,
@@ -305,68 +294,6 @@ public class AccumuloClientProvider extends AbstractClientProvider implements
                                     libdir, jars,
                                     classes);
   }
-
-  /**
-   * This builds up the site configuration for the AM and downstream services;
-   * the path is added to the cluster spec so that launchers in the 
-   * AM can pick it up themselves. 
-   *
-   *
-   *
-   *
-   * @param hoyaFileSystem filesystem
-   * @param serviceConf conf used by the service
-   * @param clusterSpec cluster specification
-   * @param originConfDirPath the original config dir -treat as read only
-   * @param generatedConfDirPath path to place generated artifacts
-   * @param clientConfExtras
-   * @param libdir
-   * @param tempPath
-   * @return a map of name to local resource to add to the AM launcher
-   */
-  @Override //client
-  public Map<String, LocalResource> prepareAMAndConfigForLaunch(HoyaFileSystem hoyaFileSystem,
-                                                                Configuration serviceConf,
-                                                                ClusterDescription clusterSpec,
-                                                                Path originConfDirPath,
-                                                                Path generatedConfDirPath,
-                                                                Configuration clientConfExtras,
-                                                                String libdir,
-                                                                Path tempPath) throws
-                                                                                           IOException,
-                                                                                           HoyaException,
-                                                                                           BadConfigException {
-    //load in the template site config
-    log.debug("Loading template configuration from {}", originConfDirPath);
-    Configuration siteConf = ConfigHelper.loadTemplateConfiguration(
-      serviceConf,
-      originConfDirPath,
-      AccumuloKeys.SITE_XML,
-      AccumuloKeys.SITE_XML_RESOURCE);
-
-    //construct the cluster configuration values
-    Map<String, String> clusterConfMap = buildSiteConfFromSpec(clusterSpec);
-    //merge them
-    ConfigHelper.addConfigMap(siteConf, clusterConfMap, "Accumulo Provider");
-
-    if (log.isDebugEnabled()) {
-      ConfigHelper.dumpConf(siteConf);
-    }
-
-    Path sitePath = ConfigHelper.saveConfig(serviceConf,
-                                            siteConf,
-                                            generatedConfDirPath,
-                                            AccumuloKeys.SITE_XML);
-
-    log.debug("Saving the config to {}", sitePath);
-    Map<String, LocalResource> confResources;
-    confResources = hoyaFileSystem.submitDirectory(generatedConfDirPath, HoyaKeys.PROPAGATED_CONF_DIR_NAME);
-
-    addAccumuloDependencyJars(confResources, hoyaFileSystem, libdir, tempPath);
-    
-    return confResources;
-  }
-
 
   @Override
   public void prepareAMAndConfigForLaunch(HoyaFileSystem hoyaFileSystem,

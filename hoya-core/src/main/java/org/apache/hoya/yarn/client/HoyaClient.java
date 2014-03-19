@@ -617,7 +617,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     clusterSpec.dataPath = datapath.toUri().toString();
 
     // final specification review
-    provider.reviewAndUpdateClusterSpec(clusterSpec);
+//    provider.reviewAndUpdateClusterSpec(clusterSpec);
 
     // here the configuration is set up. Mark it
     clusterSpec.state = ClusterDescription.STATE_CREATED;
@@ -928,6 +928,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
 
     // add AM and provider specific artifacts to the resource map
+/*
     Map<String, LocalResource> providerResources;
     // standard AM resources
     providerResources = hoyaAM.prepareAMAndConfigForLaunch(hoyaFileSystem,
@@ -950,6 +951,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                          tempPath);
 
     localResources.putAll(providerResources);
+*/
 
     // now that the site config is fully generated, the provider gets
     // to do a quick review of them.
