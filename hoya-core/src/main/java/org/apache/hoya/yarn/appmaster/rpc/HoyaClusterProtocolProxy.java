@@ -90,6 +90,19 @@ public class HoyaClusterProtocolProxy implements HoyaClusterProtocol {
     }
   }
 
+
+  @Override
+  public Messages.GetInstanceDefinitionResponseProto getInstanceDefinition(
+    Messages.GetInstanceDefinitionRequestProto request) throws
+                                                        IOException,
+                                                        YarnException {
+    try {
+      return endpoint.getInstanceDefinition(NULL_CONTROLLER, request);
+    } catch (ServiceException e) {
+      throw convert(e);
+    }
+  }
+
   @Override
   public Messages.ListNodeUUIDsByRoleResponseProto listNodeUUIDsByRole(Messages.ListNodeUUIDsByRoleRequestProto request) throws
                                                                                                                          IOException,

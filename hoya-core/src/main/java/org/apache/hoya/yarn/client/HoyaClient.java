@@ -2388,6 +2388,14 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   public ClusterNode getNode(String uuid) throws IOException, YarnException {
     return createClusterOperations().getNode(uuid);
   }
+  
+  /**
+   * Get the instance definition from the far end
+   */
+  @VisibleForTesting
+  public AggregateConf getLiveInstanceDefinition() throws IOException, YarnException {
+    return createClusterOperations().getInstanceDefinition();
+  }
 
   /**
    * Bond to a running cluster

@@ -183,3 +183,19 @@ message AMSuicideResponseProto {
 
 }
 
+
+/**
+ * Ask for the instance definition details
+ */
+message GetInstanceDefinitionRequestProto {
+
+}
+
+/**
+ * Get the definition back as three separate JSON strings
+ */
+message GetInstanceDefinitionResponseProto {
+  required string internal = 1;
+  required string resources = 2;
+  required string application = 3;
+}

@@ -91,7 +91,8 @@ class TestHBaseMaster extends HBaseMiniClusterTestBase {
       HoyaClient hoyaClient = (HoyaClient) launcher.service
       addToTeardown(hoyaClient);
 
-      AggregateConf instance = hoyaClient.launchedInstanceDefinition
+      AggregateConf launchedInstance = hoyaClient.launchedInstanceDefinition
+      AggregateConf liveInstance = hoyaClient.launchedInstanceDefinition
       
       
 
@@ -101,7 +102,8 @@ class TestHBaseMaster extends HBaseMiniClusterTestBase {
       ClusterStatus clustat = getHBaseClusterStatus(hoyaClient);
       // verify that region server cannot start
       if (clustat.servers.size()) {
-        dumpClusterDescription("original",instance )
+        dumpClusterDescription("original",launchedInstance )
+        dumpClusterDescription("live", hoyaClient.liveInstanceDefinition)
         dumpClusterStatus(hoyaClient,"JVM heap option not picked up")
       }
       assert 0 == clustat.servers.size()

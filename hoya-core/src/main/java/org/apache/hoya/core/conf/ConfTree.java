@@ -42,8 +42,8 @@ public final class ConfTree {
    * Size of an initial map. This is kept low so the cost of having
    * many conf trees in a process is low.
    */
-  public static final int INITAL_MAP_CAPACITY=3;
-  
+  public static final int INITAL_MAP_CAPACITY = 3;
+
   protected static final Logger
     log = LoggerFactory.getLogger(ConfTree.class);
 

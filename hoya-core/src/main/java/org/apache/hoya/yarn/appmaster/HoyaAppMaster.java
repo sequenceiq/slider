@@ -1043,6 +1043,36 @@ public class HoyaAppMaster extends CompoundLaunchedService
     return cd;
   }
 
+
+  @Override
+  public Messages.GetInstanceDefinitionResponseProto getInstanceDefinition(
+    Messages.GetInstanceDefinitionRequestProto request) throws
+                                                        IOException,
+                                                        YarnException {
+
+    log.info("Received call to getInstanceDefinition()");
+    String internal;
+    String resources;
+    String app;
+    synchronized (appState) {
+      AggregateConf instanceDefinition = appState.getInstanceDefinition();
+      internal = instanceDefinition.getInternal().toJson();
+      resources = instanceDefinition.getResources().toJson();
+      app = instanceDefinition.getAppConf().toJson();
+    }
+    assert internal != null;
+    assert resources != null;
+    assert app != null;
+    log.info("Generating getInstanceDefinition Response");
+    Messages.GetInstanceDefinitionResponseProto.Builder builder =
+      Messages.GetInstanceDefinitionResponseProto.newBuilder();
+    builder.setInternal(internal);
+    builder.setResources(resources);
+    builder.setApplication(app);
+    return builder.build();
+  }
+
+
   @Override //HoyaClusterProtocol
   public Messages.ListNodeUUIDsByRoleResponseProto listNodeUUIDsByRole(Messages.ListNodeUUIDsByRoleRequestProto request) throws
                                                                                                                          IOException,
@@ -1136,7 +1166,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
     return builder.build();
   }
 
-/* =================================================================== */
+  /* =================================================================== */
 /* END */
 /* =================================================================== */
 

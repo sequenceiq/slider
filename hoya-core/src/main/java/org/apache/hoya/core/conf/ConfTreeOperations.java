@@ -19,10 +19,15 @@
 package org.apache.hoya.core.conf;
 
 import org.apache.hoya.core.CoreKeys;
+import org.apache.hoya.core.persist.ConfTreeSerDeser;
 import org.apache.hoya.core.persist.JsonSerDeser;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.tools.HoyaUtils;
+import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.annotate.JsonIgnore;
+import org.codehaus.jackson.map.JsonMappingException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,6 +40,9 @@ public class ConfTreeOperations {
 
   public final ConfTree confTree;
   private final MapOperations globalOptions;
+
+  protected static final Logger
+    log = LoggerFactory.getLogger(ConfTreeOperations.class);
 
 
   public ConfTreeOperations(ConfTree confTree) {
@@ -277,12 +285,12 @@ public class ConfTreeOperations {
    */
   public static ConfTreeOperations fromResource(String resource) throws
                                                                  IOException {
-    JsonSerDeser<ConfTree> confTreeSerDeser =
-      new JsonSerDeser<ConfTree>(ConfTree.class);
+    ConfTreeSerDeser confTreeSerDeser = new ConfTreeSerDeser();
     ConfTreeOperations ops = new ConfTreeOperations(
        confTreeSerDeser.fromResource(resource) );
     return ops;      
   }
+  
   /**
    * Load from a resource. The inner conf tree is the loaded data -unresolved
    * @param resource resource
@@ -291,11 +299,27 @@ public class ConfTreeOperations {
    */
   public static ConfTreeOperations fromFile(File resource) throws
                                                                  IOException {
-    JsonSerDeser<ConfTree> confTreeSerDeser =
-      new JsonSerDeser<ConfTree>(ConfTree.class);
+    ConfTreeSerDeser confTreeSerDeser = new ConfTreeSerDeser();
     ConfTreeOperations ops = new ConfTreeOperations(
        confTreeSerDeser.fromFile(resource) );
-    return ops;      
+    return ops;
+  }
+
+
+  @Override
+  public String toString() {
+    return confTree.toString();
+  }
+
+  /**
+   * Convert to a JSON string
+   * @return a JSON string description
+   * @throws IOException Problems mapping/writing the object
+   */
+  public String toJson() throws IOException,
+                                JsonGenerationException,
+                                JsonMappingException {
+    return confTree.toJson();
   }
 
   /**
@@ -349,4 +373,5 @@ public class ConfTreeOperations {
     setRoleOpt(role, option, Integer.toString(val));
   }
 
+  
 }

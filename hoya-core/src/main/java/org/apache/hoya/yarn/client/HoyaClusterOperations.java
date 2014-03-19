@@ -24,7 +24,9 @@ import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.ClusterNode;
 import org.apache.hoya.api.HoyaClusterProtocol;
 import org.apache.hoya.api.proto.Messages;
+import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.core.conf.ConfTree;
+import org.apache.hoya.core.persist.ConfTreeSerDeser;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.exceptions.NoSuchNodeException;
 import org.apache.hoya.exceptions.WaitTimeoutException;
@@ -102,9 +104,9 @@ public class HoyaClusterOperations {
    * Connect to a live cluster and get its current state
    * @return its description
    */
-  public ClusterDescription getClusterDescription() throws
-                                                                      YarnException,
-                                                                      IOException {
+  public ClusterDescription getClusterDescription()
+    throws YarnException, IOException {
+    
     Messages.GetJSONClusterStatusRequestProto req =
       Messages.GetJSONClusterStatusRequestProto.newBuilder().build();
     Messages.GetJSONClusterStatusResponseProto resp =
@@ -120,6 +122,24 @@ public class HoyaClusterOperations {
     }
   }
 
+  public AggregateConf getInstanceDefinition()
+    throws YarnException, IOException {
+    Messages.GetInstanceDefinitionRequestProto.Builder builder =
+      Messages.GetInstanceDefinitionRequestProto.newBuilder();
+
+    Messages.GetInstanceDefinitionRequestProto request = builder.build();
+    Messages.GetInstanceDefinitionResponseProto response =
+      appMaster.getInstanceDefinition(request);
+
+    ConfTreeSerDeser confTreeSerDeser = new ConfTreeSerDeser();
+
+    ConfTree internal = confTreeSerDeser.fromJson(response.getInternal());
+    ConfTree resources = confTreeSerDeser.fromJson(response.getResources());
+    ConfTree app = confTreeSerDeser.fromJson(response.getApplication());
+    AggregateConf instanceDefinition =
+      new AggregateConf(resources, app, internal);
+    return instanceDefinition;
+  }
   /**
    * Kill a container
    * @param id container ID
@@ -301,5 +321,6 @@ public class HoyaClusterOperations {
     Messages.AMSuicideResponseProto response =
       appMaster.amSuicide(req);
   }
+
 
 }
