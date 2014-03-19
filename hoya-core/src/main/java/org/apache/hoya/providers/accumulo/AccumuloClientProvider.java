@@ -27,12 +27,17 @@ import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.HoyaXmlConfKeys;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.OptionKeys;
+import org.apache.hoya.core.conf.AggregateConf;
+import org.apache.hoya.core.conf.ConfTreeOperations;
+import org.apache.hoya.core.conf.MapOperations;
+import org.apache.hoya.core.launch.AbstractLauncher;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.providers.AbstractClientProvider;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderUtils;
+import org.apache.hoya.providers.hbase.HBaseKeys;
 import org.apache.hoya.tools.ConfigHelper;
 import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
@@ -160,14 +165,7 @@ public class AccumuloClientProvider extends AbstractClientProvider implements
 
     providerUtils.propagateSiteOptions(clusterSpec, sitexml);
 
-    String fsDefaultName =
-      getConf().get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
-    if (fsDefaultName == null) {
-      throw new BadConfigException("Key not found in conf: {}",
-                                   CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY);
-    }
-    sitexml.put(CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY, fsDefaultName);
-    sitexml.put(HoyaXmlConfKeys.FS_DEFAULT_NAME_CLASSIC, fsDefaultName);
+    propagateClientFSBinding(sitexml);
 
     String dataPath = clusterSpec.dataPath;
     Path path = new Path(dataPath);
@@ -193,11 +191,63 @@ public class AccumuloClientProvider extends AbstractClientProvider implements
     return sitexml;
   }
 
-
   /**
-   * Build time review and update of the cluster specification
-   * @param clusterSpec spec
+   * Build the hdfs-site.xml file
+   * This the configuration used by HBase directly
+   * @param instanceDescription this is the cluster specification used to define this
+   * @return a map of the dynamic bindings for this Hoya instance
    */
+  public Map<String, String> buildSiteConfFromInstance(
+    AggregateConf instanceDescription)
+    throws BadConfigException {
+
+
+    ConfTreeOperations appconf =
+      instanceDescription.getAppConfOperations();
+
+    MapOperations globalAppOptions = appconf.getGlobalOptions();
+    MapOperations globalInstanceOptions =
+      instanceDescription.getInternalOperations().getGlobalOptions();
+
+
+    Map<String, String> sitexml = new HashMap<String, String>();
+
+    providerUtils.propagateSiteOptions(globalAppOptions, sitexml);
+
+    propagateClientFSBinding(sitexml);
+
+    String zkHosts =
+      globalAppOptions.getMandatoryOption(OptionKeys.ZOOKEEPER_PATH);
+    String zkPort =
+      globalAppOptions.getMandatoryOption(OptionKeys.ZOOKEEPER_PORT);
+    //parse the hosts
+    String[] hostlist = zkHosts.split(",", 0);
+    String quorum = HoyaUtils.join(hostlist, ":" + zkPort + ",");
+    //this quorum has a trailing comma
+    quorum = quorum.substring(0, quorum.length() - 1);
+    sitexml.put(AccumuloConfigFileOptions.ZOOKEEPER_HOST, quorum);
+
+    return sitexml;
+
+  }
+
+
+  public void propagateClientFSBinding(Map<String, String> sitexml) throws
+                                                                    BadConfigException {
+    String fsDefaultName =
+      getConf().get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
+    if (fsDefaultName == null) {
+      throw new BadConfigException("Key not found in conf: {}",
+                                   CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY);
+    }
+    sitexml.put(CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY, fsDefaultName);
+    sitexml.put(HoyaXmlConfKeys.FS_DEFAULT_NAME_CLASSIC, fsDefaultName);
+  }
+
+    /**
+     * Build time review and update of the cluster specification
+     * @param clusterSpec spec
+     */
   @Override // Client
   public void reviewAndUpdateClusterSpec(ClusterDescription clusterSpec) throws
                                                                          HoyaException {
@@ -286,6 +336,8 @@ public class AccumuloClientProvider extends AbstractClientProvider implements
                                                                                            IOException,
                                                                                            HoyaException,
                                                                                            BadConfigException {
+    //load in the template site config
+    log.debug("Loading template configuration from {}", originConfDirPath);
     Configuration siteConf = ConfigHelper.loadTemplateConfiguration(
       serviceConf,
       originConfDirPath,
@@ -315,6 +367,70 @@ public class AccumuloClientProvider extends AbstractClientProvider implements
     return confResources;
   }
 
+
+  @Override
+  public void prepareAMAndConfigForLaunch(HoyaFileSystem hoyaFileSystem,
+                                          Configuration serviceConf,
+                                          AbstractLauncher launcher,
+                                          AggregateConf instanceDescription,
+                                          Path originConfDirPath,
+                                          Path generatedConfDirPath,
+                                          Configuration clientConfExtras,
+                                          String libdir,
+                                          Path tempPath) throws
+                                                         IOException,
+                                                         HoyaException {
+    //load in the template site config
+    log.debug("Loading template configuration from {}", originConfDirPath);
+      Configuration siteConf = ConfigHelper.loadTemplateConfiguration(
+        serviceConf,
+        originConfDirPath,
+        AccumuloKeys.SITE_XML,
+        AccumuloKeys.SITE_XML_RESOURCE);
+
+
+
+    Map<String, LocalResource> confResources;
+    confResources = hoyaFileSystem.submitDirectory(generatedConfDirPath,
+                                                   HoyaKeys.PROPAGATED_CONF_DIR_NAME);
+
+    addAccumuloDependencyJars(confResources, hoyaFileSystem, libdir, tempPath);
+    
+    //construct the cluster configuration values
+
+    ConfTreeOperations appconf =
+      instanceDescription.getAppConfOperations();
+
+
+    Map<String, String> clusterConfMap = buildSiteConfFromInstance(
+      instanceDescription);
+
+    //merge them
+    ConfigHelper.addConfigMap(siteConf,
+                              clusterConfMap.entrySet(),
+                              "Accumulo Provider");
+
+    //now, if there is an extra client conf, merge it in too
+    if (clientConfExtras != null) {
+      ConfigHelper.mergeConfigurations(siteConf, clientConfExtras,
+                                       "Hoya Client");
+    }
+
+    if (log.isDebugEnabled()) {
+      log.debug("Merged Configuration");
+      ConfigHelper.dumpConf(siteConf);
+    }
+
+    Path sitePath = ConfigHelper.saveConfig(serviceConf,
+                                            siteConf,
+                                            generatedConfDirPath,
+                                            AccumuloKeys.SITE_XML);
+
+    log.debug("Saving the config to {}", sitePath);
+    launcher.submitDirectory(generatedConfDirPath,
+                             HoyaKeys.PROPAGATED_CONF_DIR_NAME);
+
+  }
 
   private static Set<String> knownRoleNames = new HashSet<String>();
   static {

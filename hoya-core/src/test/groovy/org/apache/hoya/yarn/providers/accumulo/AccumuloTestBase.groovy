@@ -169,9 +169,9 @@ public abstract class AccumuloTestBase extends YarnZKMiniClusterTestBase {
   }
 
   
-  public def fetchLocalPage(int port, String page) {
+  public String fetchLocalPage(int port, String page) {
     String url = "http://localhost:" + AccumuloConfigFileOptions.MONITOR_PORT_CLIENT_DEFAULT + page
-    String response = fetchWebPage(url)
+    return fetchWebPage(url)
     
   }
 
