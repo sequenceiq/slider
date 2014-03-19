@@ -114,7 +114,7 @@ public class InstanceBuilder {
     md.put(StatusKeys.INFO_CREATE_TIME_MILLIS, Long.toString(time));
 
     MapOperations globalOptions = internalOps.getGlobalOptions();
-    BuildHelper.addBuildInfo(globalOptions, "create");
+    BuildHelper.addBuildMetadata(md, "create");
 
     internalOps.set(INTERNAL_AM_TMP_DIR,
                     instancePaths.tmpPathAM.toUri());
