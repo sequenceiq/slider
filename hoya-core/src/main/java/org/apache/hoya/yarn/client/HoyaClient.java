@@ -692,6 +692,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     //internal picks up hoya. values only
     internalOps.propagateGlobalKeys(appConf, "hoya.");
+    internalOps.propagateGlobalKeys(appConf, "internal.");
     //and anything specific for the Hoya AM
     Map<String, String> hoyaOptions =
       roleOptionMap.get(HoyaKeys.ROLE_HOYA_AM);
@@ -701,9 +702,10 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
 
     //copy over role. and yarn. values ONLY to the resources
+    resOps.propagateGlobalKeys(appConf, "component.");
     resOps.propagateGlobalKeys(appConf, "role.");
     resOps.propagateGlobalKeys(appConf, "yarn.");
-    resOps.mergeComponentsPrefix(roleOptionMap, "role.", true);
+    resOps.mergeComponentsPrefix(roleOptionMap, "component.", true);
     resOps.mergeComponentsPrefix(roleOptionMap, "yarn.", true);
 
 
