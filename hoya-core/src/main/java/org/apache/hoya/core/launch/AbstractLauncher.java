@@ -28,12 +28,8 @@ import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.util.Records;
-import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.RoleKeys;
-import org.apache.hoya.core.conf.ConfTree;
-import org.apache.hoya.core.conf.ConfTreeOperations;
 import org.apache.hoya.core.conf.MapOperations;
-import org.apache.hoya.exceptions.BadClusterStateException;
 import org.apache.hoya.tools.CoreFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
 import org.slf4j.Logger;
@@ -60,7 +56,7 @@ public abstract class AbstractLauncher extends Configured {
    * Env vars; set up at final launch stage
    */
   protected final Map<String, String> envVars = new HashMap<String, String>();
-  protected final MapOperations env = new MapOperations(envVars);
+  protected final MapOperations env = new MapOperations("env", envVars);
   protected final ContainerLaunchContext containerLaunchContext =
     Records.newRecord(ContainerLaunchContext.class);
   protected final List<String> commands = new ArrayList<String>(20);
@@ -223,7 +219,7 @@ public abstract class AbstractLauncher extends Configured {
 
 
     if (map != null) {
-      MapOperations options = new MapOperations(map);
+      MapOperations options = new MapOperations("", map);
       resource.setMemory(options.getOptionInt(RoleKeys.YARN_MEMORY,
                                               resource.getMemory()));
       resource.setVirtualCores(options.getOptionInt(RoleKeys.YARN_CORES,

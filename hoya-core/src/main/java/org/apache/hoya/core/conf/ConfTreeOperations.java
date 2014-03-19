@@ -20,7 +20,6 @@ package org.apache.hoya.core.conf;
 
 import org.apache.hoya.core.CoreKeys;
 import org.apache.hoya.core.persist.ConfTreeSerDeser;
-import org.apache.hoya.core.persist.JsonSerDeser;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.tools.HoyaUtils;
 import org.codehaus.jackson.JsonGenerationException;
@@ -49,7 +48,7 @@ public class ConfTreeOperations {
     assert confTree != null : "null tree";
     assert confTree.components != null : "null tree components";
     this.confTree = confTree;
-    globalOptions = new MapOperations(confTree.global);
+    globalOptions = new MapOperations("global", confTree.global);
   }
 
   /**
@@ -112,7 +111,7 @@ public class ConfTreeOperations {
   public MapOperations getComponent(String component) {
     Map<String, String> instance = confTree.components.get(component);
     if (instance != null) {
-      return new MapOperations(instance);
+      return new MapOperations(component, instance);
     }
     return null;
   }
@@ -139,7 +138,7 @@ public class ConfTreeOperations {
     //create a new instances
     Map<String, String> map = new HashMap<String, String>();
     confTree.components.put(name, map);
-    return new MapOperations(map);
+    return new MapOperations(name, map);
   }
 
 

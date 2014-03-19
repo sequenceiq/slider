@@ -37,7 +37,6 @@ import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.providers.AbstractClientProvider;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderUtils;
-import org.apache.hoya.providers.hbase.HBaseKeys;
 import org.apache.hoya.tools.ConfigHelper;
 import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
@@ -66,7 +65,11 @@ public class AccumuloClientProvider extends AbstractClientProvider implements
     LoggerFactory.getLogger(AccumuloClientProvider.class);
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
   public static final String TEMPLATE_PATH =
-    "org/apache/hoya/providers/accumulo/";
+    PROVIDER_RESOURCE_BASE+"accumulo/";
+  private static final String INSTANCE_RESOURCE_BASE =
+    PROVIDER_RESOURCE_BASE_ROOT +
+    "accumulo/instance/";
+
 
   protected AccumuloClientProvider(Configuration conf) {
     super(conf);
@@ -85,6 +88,19 @@ public class AccumuloClientProvider extends AbstractClientProvider implements
   public List<ProviderRole> getRoles() {
     return AccumuloRoles.ROLES;
   }
+
+
+  @Override
+  public void prepareInstanceConfiguration(AggregateConf aggregateConf) throws
+                                                                        HoyaException,
+                                                                        IOException {
+    String resourceTemplate = INSTANCE_RESOURCE_BASE + "resources.json";
+    String appConfTemplate = INSTANCE_RESOURCE_BASE + "appconf.json";
+    mergeTemplates(aggregateConf, null, resourceTemplate, appConfTemplate);
+    aggregateConf.getAppConfOperations().set(OPTION_ACCUMULO_PASSWORD,
+                                             createAccumuloPassword());
+  }
+
 
   /**
    * Get a map of all the default options for the cluster; values
@@ -168,14 +184,7 @@ public class AccumuloClientProvider extends AbstractClientProvider implements
     propagateClientFSBinding(sitexml);
 
     String dataPath = clusterSpec.dataPath;
-    Path path = new Path(dataPath);
-    URI parentUri = path.toUri();
-    String authority = parentUri.getAuthority();
-    String fspath =
-      parentUri.getScheme() + "://" + (authority == null ? "" : authority) + "/";
-    sitexml.put(AccumuloConfigFileOptions.INSTANCE_DFS_URI, fspath);
-    sitexml.put(AccumuloConfigFileOptions.INSTANCE_DFS_DIR,
-                parentUri.getPath());
+    setDatabasePath(sitexml, dataPath);
 
     //fix up ZK
     int zkPort = clusterSpec.getZkPort();
@@ -191,9 +200,20 @@ public class AccumuloClientProvider extends AbstractClientProvider implements
     return sitexml;
   }
 
+  public void setDatabasePath(Map<String, String> sitexml, String dataPath) {
+    Path path = new Path(dataPath);
+    URI parentUri = path.toUri();
+    String authority = parentUri.getAuthority();
+    String fspath =
+      parentUri.getScheme() + "://" + (authority == null ? "" : authority) + "/";
+    sitexml.put(AccumuloConfigFileOptions.INSTANCE_DFS_URI, fspath);
+    sitexml.put(AccumuloConfigFileOptions.INSTANCE_DFS_DIR,
+                parentUri.getPath());
+  }
+
   /**
-   * Build the hdfs-site.xml file
-   * This the configuration used by HBase directly
+   * Build the accumulo-site.xml file
+   * This the configuration used by Accumulo directly
    * @param instanceDescription this is the cluster specification used to define this
    * @return a map of the dynamic bindings for this Hoya instance
    */
@@ -215,9 +235,12 @@ public class AccumuloClientProvider extends AbstractClientProvider implements
     providerUtils.propagateSiteOptions(globalAppOptions, sitexml);
 
     propagateClientFSBinding(sitexml);
+    setDatabasePath(sitexml,
+                    globalInstanceOptions.getMandatoryOption(OptionKeys.INTERNAL_DATA_DIR_PATH));
+
 
     String zkHosts =
-      globalAppOptions.getMandatoryOption(OptionKeys.ZOOKEEPER_PATH);
+      globalAppOptions.getMandatoryOption(OptionKeys.ZOOKEEPER_HOSTS);
     String zkPort =
       globalAppOptions.getMandatoryOption(OptionKeys.ZOOKEEPER_PORT);
     //parse the hosts
@@ -417,10 +440,9 @@ public class AccumuloClientProvider extends AbstractClientProvider implements
    * Get the path to the script
    * @return the script
    */
-  public static String buildScriptBinPath(ClusterDescription cd)
+  public static String buildScriptBinPath(AggregateConf instanceDefinition)
     throws FileNotFoundException {
-    return providerUtils.buildPathToScript(
-        cd, "bin", "accumulo");
+    return providerUtils.buildPathToScript(instanceDefinition, "bin", "accumulo");
   }
 
 

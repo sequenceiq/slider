@@ -26,6 +26,7 @@ import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.RoleKeys;
+import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.core.conf.ConfTreeOperations;
 import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
@@ -230,12 +231,18 @@ public class ProviderUtils implements RoleKeys {
    * @return the path to the script
    * @throws FileNotFoundException if a file is not found, or it is not a directory* 
    */
-  public String buildPathToHomeDir(ClusterDescription clusterSpec,
+  public String buildPathToHomeDir(AggregateConf instanceDefinition
+                                   ,
                                   String bindir,
-                                  String script) throws FileNotFoundException {
-    String applicationHome = clusterSpec.getApplicationHome();
-    String imagePath= clusterSpec.getImagePath();
-
+                                  String script) throws
+                                                 FileNotFoundException,
+                                                 BadConfigException {
+    MapOperations globalOptions =
+      instanceDefinition.getInternalOperations().getGlobalOptions();
+    String applicationHome =
+      globalOptions.get(OptionKeys.INTERNAL_APPLICATION_HOME);
+    String imagePath =
+      globalOptions.get(OptionKeys.INTERNAL_APPLICATION_IMAGE_PATH);
     return buildPathToHomeDir(imagePath, applicationHome, bindir, script);
   }
 
@@ -274,22 +281,20 @@ public class ProviderUtils implements RoleKeys {
     return path;
   }
 
+  
   /**
    * Build the image dir. This path is relative and only valid at the far end
-   * @param clusterSpec cluster spec
+   * @param internal internal options
    * @param bindir bin subdir
    * @param script script in bin subdir
    * @return the path to the script
    * @throws FileNotFoundException if a file is not found, or it is not a directory* 
    */
-  public String buildPathToScript(ClusterDescription clusterSpec,
+  public String buildPathToScript(AggregateConf instance,
                                 String bindir,
                                 String script) throws FileNotFoundException {
-    String homedir = buildPathToHomeDir(clusterSpec, bindir, script);
-    return buildScriptPath(bindir, script, homedir);
+    return buildPathToScript(instance.getInternalOperations(), bindir, script);
   }
-  
-  
   /**
    * Build the image dir. This path is relative and only valid at the far end
    * @param internal internal options
@@ -303,8 +308,8 @@ public class ProviderUtils implements RoleKeys {
                                 String script) throws FileNotFoundException {
     
     String homedir = buildPathToHomeDir(
-      internal.get(OptionKeys.APPLICATION_IMAGE_PATH),
-      internal.get(OptionKeys.APPLICATION_HOME),
+      internal.get(OptionKeys.INTERNAL_APPLICATION_IMAGE_PATH),
+      internal.get(OptionKeys.INTERNAL_APPLICATION_HOME),
       bindir,
       script);
     return buildScriptPath(bindir, script, homedir);

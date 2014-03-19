@@ -28,12 +28,12 @@ public interface OptionKeys {
    * Home dir of the app: {@value}
    * If set, implies there is a home dir to use
    */
-  String APPLICATION_HOME = "hoya.application.home";
+  String INTERNAL_APPLICATION_HOME = "hoya.application.home";
   
   /**
    * Path to an image file containing the app: {@value}
    */
-  String APPLICATION_IMAGE_PATH = "hoya.application.image.path";
+  String INTERNAL_APPLICATION_IMAGE_PATH = "hoya.application.image.path";
 
   /**
    * Time in milliseconds to wait after forking any in-AM 
@@ -44,7 +44,7 @@ public interface OptionKeys {
    * is wasted starting containers on a cluster that isn't going to come
    * up
    */
-  String CONTAINER_STARTUP_DELAY = "hoya.container.startup.delay";
+  String INTERNAL_CONTAINER_STARTUP_DELAY = "internal.container.startup.delay";
   
   /**
    * Time in milliseconds to wait after forking any in-AM 
@@ -73,7 +73,7 @@ public interface OptionKeys {
    * Shortlived containers are interpreted as a problem with the role
    * and/or the host: {@value}
    */
-  String CONTAINER_FAILURE_SHORTLIFE = "hoya.container.failure.shortlife";
+  String INTERNAL_CONTAINER_FAILURE_SHORTLIFE = "internal.container.failure.shortlife";
 
   /**
    * Default short life threshold: {@value}
@@ -84,7 +84,7 @@ public interface OptionKeys {
    * maximum number of failed containers (in a single role)
    * before the cluster is deemed to have failed {@value}
    */
-  String CONTAINER_FAILURE_THRESHOLD = "hoya.container.failure.threshold";
+  String INTERNAL_CONTAINER_FAILURE_THRESHOLD = "internal.container.failure.threshold";
 
   /**
    * Default failure threshold: {@value}
@@ -109,7 +109,7 @@ public interface OptionKeys {
   /**
    * hoya temp directory: {@value}
    */
-  String INTERNAL_AM_TMP_DIR = "hoya.tmp.dir";
+  String INTERNAL_AM_TMP_DIR = "internal.tmp.dir";
 
   /**
    * where a snapshot of the original conf dir is: {@value}
@@ -149,11 +149,5 @@ public interface OptionKeys {
    */
   String ZOOKEEPER_PATH = "zookeeper.path";
 
-  /**
-   * Is monitoring enabled on the AM?
-   */
-  String AM_MONITORING_ENABLED = "hoya.am.monitoring.enabled";
-
-  boolean AM_MONITORING_ENABLED_DEFAULT = true;
 
 }

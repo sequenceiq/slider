@@ -346,7 +346,12 @@ class HoyaTestUtils extends Assert {
     GetMethod get = new GetMethod(url);
 
     get.followRedirects = true;
-    int resultCode = client.executeMethod(get);
+    try {
+      int resultCode = client.executeMethod(get);
+    } catch (IOException e) {
+      log.error("Failed on $url: $e",e)
+      throw e;
+    }
     String body = get.responseBodyAsString;
     return body;
   }

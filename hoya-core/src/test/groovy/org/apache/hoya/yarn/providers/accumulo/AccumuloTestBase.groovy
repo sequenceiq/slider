@@ -23,6 +23,7 @@ import groovy.util.logging.Slf4j
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.RoleKeys
 import org.apache.hoya.providers.accumulo.AccumuloConfigFileOptions
+import org.apache.hoya.providers.accumulo.AccumuloKeys
 import org.apache.hoya.yarn.client.HoyaClient
 import org.apache.hoya.yarn.cluster.YarnZKMiniClusterTestBase
 import org.apache.hadoop.yarn.conf.YarnConfiguration
@@ -137,14 +138,10 @@ public abstract class AccumuloTestBase extends YarnZKMiniClusterTestBase {
     def clusterOps = [
         (OPTION_ZK_HOME): conf.getTrimmed(OPTION_ZK_HOME),
         (OPTION_HADOOP_HOME): conf.getTrimmed(OPTION_HADOOP_HOME),
+        ("site." + AccumuloConfigFileOptions.MONITOR_PORT_CLIENT): AccumuloConfigFileOptions.MONITOR_PORT_CLIENT_DEFAULT,
+        ("site." + AccumuloConfigFileOptions.MASTER_PORT_CLIENT): AccumuloConfigFileOptions.MASTER_PORT_CLIENT_DEFAULT,
     ]
 
-    extraArgs << ARG_ROLEOPT << ROLE_MASTER <<
-      RoleKeys.APP_INFOPORT <<
-      AccumuloConfigFileOptions.MASTER_PORT_CLIENT_DEFAULT
-    extraArgs << ARG_ROLEOPT << ROLE_MONITOR <<
-      RoleKeys.APP_INFOPORT <<
-      AccumuloConfigFileOptions.MONITOR_PORT_CLIENT_DEFAULT
 
     extraArgs << ARG_ROLEOPT << ROLE_MASTER <<
       RoleKeys.YARN_MEMORY << YRAM
@@ -170,7 +167,7 @@ public abstract class AccumuloTestBase extends YarnZKMiniClusterTestBase {
 
   
   public String fetchLocalPage(int port, String page) {
-    String url = "http://localhost:" + AccumuloConfigFileOptions.MONITOR_PORT_CLIENT_DEFAULT + page
+    String url = "http://localhost:" + port+ page
     return fetchWebPage(url)
     
   }

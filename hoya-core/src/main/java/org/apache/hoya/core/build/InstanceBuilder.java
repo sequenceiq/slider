@@ -148,7 +148,7 @@ public class InstanceBuilder {
         throw new BadConfigException(
           ErrorStrings.E_BOTH_IMAGE_AND_HOME_DIR_SPECIFIED);
       }
-      instanceConf.getInternalOperations().set(APPLICATION_IMAGE_PATH,
+      instanceConf.getInternalOperations().set(INTERNAL_APPLICATION_IMAGE_PATH,
                                                appImage.toUri());
     } else {
       // the alternative is app home, which now MUST be set
@@ -157,7 +157,7 @@ public class InstanceBuilder {
         throw new BadConfigException(ErrorStrings.E_NO_IMAGE_OR_HOME_DIR_SPECIFIED);
           
       }
-      instanceConf.getInternalOperations().set(APPLICATION_HOME,
+      instanceConf.getInternalOperations().set(INTERNAL_APPLICATION_HOME,
                                                appHomeDir);
 
     }

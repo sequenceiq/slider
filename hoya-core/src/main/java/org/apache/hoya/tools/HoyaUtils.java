@@ -1211,8 +1211,8 @@ public final class HoyaUtils {
                                                                                          IOException {
     Path imagePath;
     String imagePathOption =
-      internalOptions.get(OptionKeys.APPLICATION_IMAGE_PATH);
-    String appHomeOption = internalOptions.get(OptionKeys.APPLICATION_HOME);
+      internalOptions.get(OptionKeys.INTERNAL_APPLICATION_IMAGE_PATH);
+    String appHomeOption = internalOptions.get(OptionKeys.INTERNAL_APPLICATION_HOME);
     if (!isUnset(imagePathOption)) {
       imagePath = fs.createPathThatMustExist(imagePathOption);
     } else {

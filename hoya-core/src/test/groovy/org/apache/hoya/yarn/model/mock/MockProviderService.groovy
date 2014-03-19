@@ -137,7 +137,11 @@ class MockProviderService implements ProviderService {
 
 
   @Override
-  public boolean exec(ClusterDescription cd, File confDir, Map<String,String> env, EventCallback execInProgress) throws IOException, HoyaException {
+  public boolean exec(
+      AggregateConf instanceDefinition,
+      File confDir,
+      Map<String, String> env,
+      EventCallback execInProgress) throws IOException, HoyaException {
     return false;
   }
 

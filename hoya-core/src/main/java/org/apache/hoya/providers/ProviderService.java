@@ -28,7 +28,6 @@ import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.HoyaException;
-import org.apache.hoya.servicemonitor.Probe;
 import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.yarn.service.EventCallback;
 import org.apache.hoya.core.conf.MapOperations;
@@ -36,7 +35,6 @@ import org.apache.hoya.core.conf.MapOperations;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.util.List;
 import java.util.Map;
 
 public interface ProviderService extends ProviderCore, Service,
@@ -65,7 +63,7 @@ public interface ProviderService extends ProviderCore, Service,
 
   /**
    * Execute a process in the AM
-   * @param cd cluster description
+   * @param instanceDefinition cluster description
    * @param confDir configuration directory
    * @param env environment
    * @param execInProgress the callback for the exec events
@@ -73,7 +71,7 @@ public interface ProviderService extends ProviderCore, Service,
    * @throws IOException
    * @throws HoyaException
    */
-  boolean exec(ClusterDescription cd,
+  boolean exec(AggregateConf instanceDefinition,
                File confDir,
                Map<String, String> env,
                EventCallback execInProgress) throws IOException,

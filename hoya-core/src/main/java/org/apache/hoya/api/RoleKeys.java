@@ -96,6 +96,7 @@ public interface RoleKeys {
    * this is the value
    *  {@value}
    */
+  @Deprecated
   String APP_INFOPORT = "app.infoport";
 
   /**

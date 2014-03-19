@@ -449,11 +449,11 @@ public class AppState {
     MapOperations globalInternalOpts =
       instanceDefinition.getInternalOperations().getGlobalOptions();
     startTimeThreshold = globalInternalOpts.getOptionInt(
-      OptionKeys.CONTAINER_FAILURE_SHORTLIFE,
+      OptionKeys.INTERNAL_CONTAINER_FAILURE_SHORTLIFE,
       OptionKeys.DEFAULT_CONTAINER_FAILURE_SHORTLIFE);
     
     failureThreshold = globalInternalOpts.getOptionInt(
-      OptionKeys.CONTAINER_FAILURE_THRESHOLD,
+      OptionKeys.INTERNAL_CONTAINER_FAILURE_THRESHOLD,
       OptionKeys.DEFAULT_CONTAINER_FAILURE_THRESHOLD);
     initClusterStatus();
 

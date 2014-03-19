@@ -63,19 +63,6 @@ public abstract class AbstractProviderService
     super(name);
   }
 
-  /**
-   * Build a string command from a list of objects
-   * @param args arguments
-   * @return a space separated string of all the arguments' string values
-   */
-  protected String cmd(Object... args) {
-    List<String> list = new ArrayList<String>(args.length);
-    for (Object arg : args) {
-      list.add(arg.toString());
-    }
-    return HoyaUtils.join(list, " ");
-  }
-
   @Override
   public Configuration getConf() {
     return getConfig();

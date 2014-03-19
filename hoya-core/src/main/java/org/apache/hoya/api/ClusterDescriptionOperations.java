@@ -72,8 +72,8 @@ public class ClusterDescriptionOperations {
     cd.name = internalOptions.get(OptionKeys.APPLICATION_NAME);
     cd.originConfigurationPath = internalOptions.get(OptionKeys.INTERNAL_SNAPSHOT_CONF_PATH);
     cd.generatedConfigurationPath = internalOptions.get(OptionKeys.INTERNAL_GENERATED_CONF_PATH);
-    cd.setImagePath(internalOptions.get(OptionKeys.APPLICATION_IMAGE_PATH));
-    cd.setApplicationHome(internalOptions.get(OptionKeys.APPLICATION_HOME));
+    cd.setImagePath(internalOptions.get(OptionKeys.INTERNAL_APPLICATION_IMAGE_PATH));
+    cd.setApplicationHome(internalOptions.get(OptionKeys.INTERNAL_APPLICATION_HOME));
     cd.setZkPath(appOptions.get(ZOOKEEPER_PATH));
     cd.setZkPort(appOptions.getOptionInt(ZOOKEEPER_PORT,
                                               HBaseConfigFileOptions.HBASE_ZK_PORT));

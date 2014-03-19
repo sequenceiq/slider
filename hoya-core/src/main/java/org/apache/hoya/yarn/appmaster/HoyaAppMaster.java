@@ -620,7 +620,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
 
     // launch the provider; this is expected to trigger a callback that
     // brings up the service
-    launchProviderService(clusterSpec, confDir);
+    launchProviderService(instanceDefinition, confDir);
 
 
     try {
@@ -1190,11 +1190,11 @@ public class HoyaAppMaster extends CompoundLaunchedService
    * @throws IOException
    * @throws HoyaException
    */
-  protected synchronized void launchProviderService(ClusterDescription cd,
+  protected synchronized void launchProviderService(AggregateConf instanceDefinition,
                                                     File confDir)
     throws IOException, HoyaException {
     Map<String, String> env = new HashMap<String, String>();
-    boolean execStarted = providerService.exec(cd, confDir, env, this);
+    boolean execStarted = providerService.exec(instanceDefinition, confDir, env, this);
     if (execStarted) {
       providerService.registerServiceListener(this);
       providerService.start();

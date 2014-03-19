@@ -38,8 +38,8 @@ import org.junit.Test
 class TestAccumuloAMWebApp extends AccumuloTestBase {
 
   @Test
-  public void testAccM1T1GC1Mon1() throws Throwable {
-    String clustername = "test_acc_m1t1gc1mon1"
+  public void testAccumuloAMWebApp() throws Throwable {
+    String clustername = "test_accumulo_am_webapp"
     int tablets = 1
     int monitor = 1
     int gc = 1

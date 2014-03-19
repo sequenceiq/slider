@@ -236,7 +236,8 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
    */
   public void addJVMOptions(ClusterDescription clusterSpec,
                             CommandLineBuilder cmdLine) {
-    MapOperations ops = new MapOperations(clusterSpec.getOrAddRole(ROLE_HOYA_AM));
+    MapOperations ops = new MapOperations(ROLE_HOYA_AM, clusterSpec.getOrAddRole(ROLE_HOYA_AM)
+    );
     addJVMOptions(ops, cmdLine);
   }
   
