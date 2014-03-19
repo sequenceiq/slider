@@ -267,17 +267,22 @@ public class AccumuloClientProvider extends AbstractClientProvider implements
     sitexml.put(HoyaXmlConfKeys.FS_DEFAULT_NAME_CLASSIC, fsDefaultName);
   }
 
-  @Override //Client
+  @Override 
   public void preflightValidateClusterConfiguration(HoyaFileSystem hoyaFileSystem,
                                                     String clustername,
                                                     Configuration configuration,
-                                                    ClusterDescription clusterSpec,
+                                                    AggregateConf instanceDefinition,
                                                     Path clusterDirPath,
                                                     Path generatedConfDirPath,
                                                     boolean secure) throws
                                                                     HoyaException,
                                                                     IOException {
-    validateClusterSpec(clusterSpec);
+    super.preflightValidateClusterConfiguration(hoyaFileSystem, clustername,
+                                                configuration,
+                                                instanceDefinition,
+                                                clusterDirPath,
+                                                generatedConfDirPath, secure);
+
   }
 
   /**
@@ -390,49 +395,42 @@ public class AccumuloClientProvider extends AbstractClientProvider implements
     }
   }
 
-  /**
-   * Validate the cluster specification. This can be invoked on both
-   * server and client
-   * @param clusterSpec
-   */
-  @Override // Client and Server
-  public void validateClusterSpec(ClusterDescription clusterSpec) throws
-                                                                  HoyaException {
-    super.validateClusterSpec(clusterSpec);
-    Set<String> unknownRoles = clusterSpec.getRoleNames();
+  @Override
+  public void validateInstanceDefinition(AggregateConf instanceDefinition) throws
+                                                                           HoyaException {
+    super.validateInstanceDefinition(instanceDefinition);
+
+    ConfTreeOperations resources =
+      instanceDefinition.getResourceOperations();
+    Set<String> unknownRoles = resources.getComponentNames();
     unknownRoles.removeAll(knownRoleNames);
     if (!unknownRoles.isEmpty()) {
       throw new BadCommandArgumentsException("There is unknown role: %s",
-        unknownRoles.iterator().next());
+                                             unknownRoles.iterator().next());
     }
-    providerUtils.validateNodeCount(AccumuloKeys.ROLE_TABLET,
-                                    clusterSpec.getDesiredInstanceCount(
-                                      AccumuloKeys.ROLE_TABLET,
-                                      1), 1, -1);
+    providerUtils.validateNodeCount(instanceDefinition,
+                                    AccumuloKeys.ROLE_TABLET,
+                                    1, -1);
 
 
-    providerUtils.validateNodeCount(AccumuloKeys.ROLE_MASTER,
-                                    clusterSpec.getDesiredInstanceCount(
-                                      AccumuloKeys.ROLE_MASTER,
-                                      1), 1, -1);
+    providerUtils.validateNodeCount(instanceDefinition,
+                                    AccumuloKeys.ROLE_MASTER, 1, -1);
 
-    providerUtils.validateNodeCount(AccumuloKeys.ROLE_GARBAGE_COLLECTOR,
-                                    clusterSpec.getDesiredInstanceCount(
-                                      AccumuloKeys.ROLE_GARBAGE_COLLECTOR,
-                                      0), 0, -1);
+    providerUtils.validateNodeCount(instanceDefinition,
+                                    AccumuloKeys.ROLE_GARBAGE_COLLECTOR,
+                                    0, -1);
 
-    providerUtils.validateNodeCount(AccumuloKeys.ROLE_MONITOR,
-                                    clusterSpec.getDesiredInstanceCount(
-                                      AccumuloKeys.ROLE_MONITOR,
-                                      0), 0, -1);
+    providerUtils.validateNodeCount(instanceDefinition,
+                                    AccumuloKeys.ROLE_MONITOR,
+                                    0, -1);
 
-    providerUtils.validateNodeCount(AccumuloKeys.ROLE_TRACER,
-                                    clusterSpec.getDesiredInstanceCount(
-                                      AccumuloKeys.ROLE_TRACER,
-                                      0), 0, -1);
+    providerUtils.validateNodeCount(instanceDefinition,
+                                    AccumuloKeys.ROLE_TRACER , 0, -1);
 
-    clusterSpec.verifyOptionSet(AccumuloKeys.OPTION_ZK_HOME);
-    clusterSpec.verifyOptionSet(AccumuloKeys.OPTION_HADOOP_HOME);
+    MapOperations globalAppConfOptions =
+      instanceDefinition.getAppConfOperations().getGlobalOptions();
+    globalAppConfOptions.verifyOptionSet(AccumuloKeys.OPTION_ZK_HOME);
+    globalAppConfOptions.verifyOptionSet(AccumuloKeys.OPTION_HADOOP_HOME);
   }
 
 

@@ -25,15 +25,13 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
+import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.core.launch.AbstractLauncher;
 import org.apache.hoya.core.launch.CommandLineBuilder;
-import org.apache.hoya.exceptions.BadCommandArgumentsException;
-import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
-import org.apache.hoya.exceptions.HoyaRuntimeException;
 import org.apache.hoya.providers.AbstractClientProvider;
 import org.apache.hoya.providers.PlacementPolicy;
 import org.apache.hoya.providers.ProviderRole;
@@ -139,51 +137,30 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
     return rolemap;
   }
 
-  /**
-   * This shouldn't be used, but is here as the API requires it.
-   * @param clusterSpec this is the cluster specification used to define this
-   * @return a map of the dynamic bindings for this Hoya instance
-   */
-  public Map<String, String> buildSiteConfFromSpec(ClusterDescription clusterSpec)
-    throws BadConfigException {
-    throw new HoyaRuntimeException("Not implemented");
-  }
 
   @Override //Client
   public void preflightValidateClusterConfiguration(HoyaFileSystem hoyaFileSystem,
                                                     String clustername,
                                                     Configuration configuration,
-                                                    ClusterDescription clusterSpec,
+                                                    AggregateConf instanceDefinition,
                                                     Path clusterDirPath,
                                                     Path generatedConfDirPath,
                                                     boolean secure) throws
                                                                     HoyaException,
                                                                     IOException {
 
+    super.preflightValidateClusterConfiguration(hoyaFileSystem, clustername, configuration, instanceDefinition, clusterDirPath, generatedConfDirPath, secure);
     //add a check for the directory being writeable by the current user
-    String dataPath = clusterSpec.dataPath;
+    String
+      dataPath = instanceDefinition.getInternalOperations()
+                                   .getGlobalOptions()
+                                   .getMandatoryOption(
+                                     OptionKeys.INTERNAL_DATA_DIR_PATH);
+
     Path path = new Path(dataPath);
     hoyaFileSystem.verifyDirectoryWriteAccess(path);
     Path historyPath = new Path(clusterDirPath, HoyaKeys.HISTORY_DIR_NAME);
     hoyaFileSystem.verifyDirectoryWriteAccess(historyPath);
-  }
-
-  @Override
-  public void validateClusterSpec(
-    ClusterDescription clusterSpec) throws
-                                    HoyaException {
-    Map<String, String> am = clusterSpec.getRole(ROLE_HOYA_AM);
-    if (am == null) {
-      throw new BadCommandArgumentsException("No Hoya Application master declared" 
-                                             + " in cluster specification");
-    }
-    super.validateClusterSpec(clusterSpec);
-
-    providerUtils.validateNodeCount(ROLE_HOYA_AM,
-                                    clusterSpec.getDesiredInstanceCount(
-                                      ROLE_HOYA_AM,
-                                      0), 1, 1);
-
   }
 
   /**

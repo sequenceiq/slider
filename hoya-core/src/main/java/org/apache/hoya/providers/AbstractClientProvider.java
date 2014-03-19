@@ -21,9 +21,6 @@ package org.apache.hoya.providers;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.core.conf.ConfTreeOperations;
 import org.apache.hoya.core.conf.MapOperations;
@@ -36,12 +33,15 @@ import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.hoya.api.RoleKeys.*;
+import static org.apache.hoya.api.RoleKeys.DEF_YARN_CORES;
+import static org.apache.hoya.api.RoleKeys.DEF_YARN_MEMORY;
+import static org.apache.hoya.api.RoleKeys.ROLE_INSTANCES;
+import static org.apache.hoya.api.RoleKeys.YARN_CORES;
+import static org.apache.hoya.api.RoleKeys.YARN_MEMORY;
 
 public abstract class AbstractClientProvider extends Configured {
   protected static final Logger log =
@@ -66,28 +66,6 @@ public abstract class AbstractClientProvider extends Configured {
   public abstract List<ProviderRole> getRoles();
 
   /**
-   * Validation common to all roles
-   * @param clusterSpec
-   * @throws HoyaException
-   */
-  @Deprecated
-  public void validateClusterSpec(ClusterDescription clusterSpec) throws
-                                                                  HoyaException {
-    List<ProviderRole> roles = getRoles();
-    for (ProviderRole role : roles) {
-      String name = role.name;
-      clusterSpec.getRoleResourceRequirement(name,
-                                             YARN_MEMORY,
-                                             DEF_YARN_MEMORY,
-                                             Integer.MAX_VALUE);
-      clusterSpec.getRoleResourceRequirement(name,
-                                             YARN_CORES,
-                                             DEF_YARN_CORES,
-                                             Integer.MAX_VALUE);
-    }
-  }
-
-  /**
    * Validate the instance definition.
    * @param clusterSpec
    */
@@ -102,9 +80,11 @@ public abstract class AbstractClientProvider extends Configured {
       MapOperations component = resources.getComponent(name);
       if (component != null) {
         String instances = component.get(ROLE_INSTANCES);
-        if (instances != null) {
+        if (instances == null) {
+          String message = "No instance count provide for " + name;
+          log.error("{} with \n{}", message,resources.toString());
           throw new BadClusterStateException(
-            "No instance count provide for " + name);
+            message);
         }
         String ram = component.get(YARN_MEMORY);
         String cores = component.get(YARN_CORES);
@@ -220,22 +200,23 @@ public abstract class AbstractClientProvider extends Configured {
    * @param hoyaFileSystem filesystem
    * @param clustername name of the cluster
    * @param configuration cluster configuration
-   * @param clusterSpec cluster specification
+   * @param instanceDefinition cluster specification
    * @param clusterDirPath directory of the cluster
    * @param generatedConfDirPath path to place generated artifacts
    * @param secure flag to indicate that the cluster is secure
    * @throws HoyaException on any validation issue
    * @throws IOException on any IO problem
    */
-  @Deprecated
-  public abstract void preflightValidateClusterConfiguration(HoyaFileSystem hoyaFileSystem,
+  public void preflightValidateClusterConfiguration(HoyaFileSystem hoyaFileSystem,
                                                       String clustername,
                                                       Configuration configuration,
-                                                      ClusterDescription clusterSpec,
+                                                      AggregateConf instanceDefinition,
                                                       Path clusterDirPath,
                                                       Path generatedConfDirPath,
                                                       boolean secure) throws
                                                                       HoyaException,
-                                                                      IOException;
+                                                                      IOException {
+    validateInstanceDefinition(instanceDefinition);
+  }
 
 }

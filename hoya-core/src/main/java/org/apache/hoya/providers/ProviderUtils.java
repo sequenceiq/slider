@@ -124,6 +124,20 @@ public class ProviderUtils implements RoleKeys {
   }
 
 
+  public void validateNodeCount(AggregateConf instanceDescription,
+                                String name, int min, int max) throws
+                                                               BadCommandArgumentsException {
+    MapOperations component =
+      instanceDescription.getResourceOperations().getComponent(name);
+    int count;
+    if (component == null) {
+      count = 0;
+    } else {
+      count = component.getOptionInt(RoleKeys.ROLE_INSTANCES, 0);
+    }
+    validateNodeCount(name, count, min, max);
+  }
+  
   /**
    * Validate the node count and heap size values of a node class 
    *

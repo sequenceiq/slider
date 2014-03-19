@@ -102,6 +102,19 @@ public class MapOperations implements Map<String, String> {
     String val = getOption(option, Integer.toString(defVal));
     return Integer.decode(val);
   }
+  /**
+   * Get a mandatory integer option; use {@link Integer#decode(String)} so as to take hex
+   * oct and bin values too.
+   *
+   * @param option option name
+   * @return parsed value
+   * @throws NumberFormatException if the option could not be parsed.
+   * @throws BadConfigException if the option could not be found
+   */
+  public int getMandatoryOptionInt(String option) throws BadConfigException {
+    getMandatoryOption(option);
+    return getOptionInt(option, 0);
+  }
 
   /**
    * Verify that an option is set: that is defined AND non-empty

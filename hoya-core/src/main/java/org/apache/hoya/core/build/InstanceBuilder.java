@@ -57,7 +57,7 @@ public class InstanceBuilder {
   private final Configuration conf;
   private final CoreFileSystem coreFS;
   private final InstancePaths instancePaths;
-  private AggregateConf instanceConf;
+  private AggregateConf instanceDescription;
 
   private static final Logger log =
     LoggerFactory.getLogger(InstanceBuilder.class);
@@ -73,8 +73,8 @@ public class InstanceBuilder {
 
   }
 
-  public AggregateConf getInstanceConf() {
-    return instanceConf;
+  public AggregateConf getInstanceDescription() {
+    return instanceDescription;
   }
 
   public InstancePaths getInstancePaths() {
@@ -103,7 +103,7 @@ public class InstanceBuilder {
     AggregateConf instanceConf) {
 
 
-    this.instanceConf = instanceConf;
+    this.instanceDescription = instanceConf;
 
     //internal is extended
     ConfTreeOperations internalOps = instanceConf.getInternalOperations();
@@ -148,7 +148,7 @@ public class InstanceBuilder {
         throw new BadConfigException(
           ErrorStrings.E_BOTH_IMAGE_AND_HOME_DIR_SPECIFIED);
       }
-      instanceConf.getInternalOperations().set(INTERNAL_APPLICATION_IMAGE_PATH,
+      instanceDescription.getInternalOperations().set(INTERNAL_APPLICATION_IMAGE_PATH,
                                                appImage.toUri());
     } else {
       // the alternative is app home, which now MUST be set
@@ -157,7 +157,7 @@ public class InstanceBuilder {
         throw new BadConfigException(ErrorStrings.E_NO_IMAGE_OR_HOME_DIR_SPECIFIED);
           
       }
-      instanceConf.getInternalOperations().set(INTERNAL_APPLICATION_HOME,
+      instanceDescription.getInternalOperations().set(INTERNAL_APPLICATION_HOME,
                                                appHomeDir);
 
     }
@@ -171,19 +171,19 @@ public class InstanceBuilder {
     if (dfsPrincipal != null) {
       String siteDfsPrincipal = OptionKeys.SITE_XML_PREFIX +
                                 DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY;
-      instanceConf.getAppConfOperations().set(siteDfsPrincipal, dfsPrincipal);
+      instanceDescription.getAppConfOperations().set(siteDfsPrincipal, dfsPrincipal);
     }
   }
 
   public void propagateFilename() {
     String fsDefaultName = conf.get(
       CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY);
-    instanceConf.getAppConfOperations().set(OptionKeys.SITE_XML_PREFIX +
+    instanceDescription.getAppConfOperations().set(OptionKeys.SITE_XML_PREFIX +
                                             CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY,
                                             fsDefaultName
                                            );
 
-    instanceConf.getAppConfOperations().set(OptionKeys.SITE_XML_PREFIX +
+    instanceDescription.getAppConfOperations().set(OptionKeys.SITE_XML_PREFIX +
                                             HoyaXmlConfKeys.FS_DEFAULT_NAME_CLASSIC,
                                             fsDefaultName
                                            );
@@ -227,7 +227,7 @@ public class InstanceBuilder {
     if (appconfdir != null) {
       action = new ConfDirSnapshotAction(appconfdir);
     }
-    persister.save(instanceConf, action);
+    persister.save(instanceDescription, action);
   }
 
   /**
@@ -242,9 +242,9 @@ public class InstanceBuilder {
                          int zkport) {
     if (HoyaUtils.isSet(zkhosts)) {
       MapOperations globalAppOptions =
-        instanceConf.getAppConfOperations().getGlobalOptions();
+        instanceDescription.getAppConfOperations().getGlobalOptions();
       MapOperations globalInternalOptions =
-        instanceConf.getAppConfOperations().getGlobalOptions();
+        instanceDescription.getAppConfOperations().getGlobalOptions();
       globalAppOptions.put(ZOOKEEPER_PATH, zookeeperRoot);
       globalAppOptions.put(ZOOKEEPER_HOSTS, zkhosts);
       globalAppOptions.put(ZOOKEEPER_PORT, Integer.toString(zkport));

@@ -722,6 +722,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                        zookeeperRoot,
                        buildInfo.getZKport());
 
+    // provider to validate what there is
+    provider.validateInstanceDefinition(builder.getInstanceDescription());
     try {
       builder.persist(appconfdir);
     } catch (LockAcquireFailedException e) {
@@ -827,9 +829,9 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       }
     }
 
-    // final specification review
+/*    // final specification review
     hoyaAM.validateClusterSpec(clusterSpec);
-    provider.validateClusterSpec(clusterSpec);
+    provider.validateClusterSpec(clusterSpec);*/
 
     // do a quick dump of the values first
     if (log.isDebugEnabled()) {
@@ -955,6 +957,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     // now that the site config is fully generated, the provider gets
     // to do a quick review of them.
+/*
     log.debug("Preflight validation of cluster configuration");
 
     hoyaAM.preflightValidateClusterConfiguration(hoyaFileSystem, clustername, config,
@@ -971,6 +974,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                    clusterSecure
                                                   );
 
+*/
 
     // now add the image if it was set
     if (hoyaFileSystem.maybeAddImagePath(localResources, imagePath)) {
@@ -1318,10 +1322,10 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // to do a quick review of them.
     log.debug("Preflight validation of cluster configuration");
 
-/*
+    
     hoyaAM.preflightValidateClusterConfiguration(hoyaFileSystem, clustername,
                                                  config,
-                                                 clusterSpec,
+                                                 instanceDefinition,
                                                  clusterDirectory,
                                                  generatedConfDirPath,
                                                  clusterSecure
@@ -1329,12 +1333,11 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     provider.preflightValidateClusterConfiguration(hoyaFileSystem, clustername,
                                                    config,
-                                                   clusterSpec,
+                                                   instanceDefinition,
                                                    clusterDirectory,
                                                    generatedConfDirPath,
                                                    clusterSecure
                                                   );
-*/
 
 
     // now add the image if it was set

@@ -53,7 +53,7 @@ class MockProviderService implements ProviderService {
   }
 
   @Override
-  public void validateClusterSpec(ClusterDescription clusterSpec) throws HoyaException {
+  public void validateInstanceDefinition(AggregateConf instanceDefinition) throws HoyaException {
   }
 
   @Override
@@ -156,7 +156,10 @@ class MockProviderService implements ProviderService {
   }
 
   @Override
-  public void validateApplicationConfiguration(ClusterDescription clusterSpec, File confDir, boolean secure) throws IOException, HoyaException {
+  public void validateApplicationConfiguration(
+      AggregateConf instanceDefinition,
+      File confDir,
+      boolean secure) throws IOException, HoyaException {
   }
 
 

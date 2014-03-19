@@ -89,9 +89,9 @@ public class AgentProviderService extends AbstractProviderService implements
   }
 
   @Override
-  public void validateClusterSpec(ClusterDescription clusterSpec) throws
+  public void validateInstanceDefinition(AggregateConf instanceDefinition) throws
                                                                   HoyaException {
-    clientProvider.validateClusterSpec(clusterSpec);
+    clientProvider.validateInstanceDefinition(instanceDefinition);
   }
 
   @Override
@@ -188,17 +188,6 @@ public class AgentProviderService extends AbstractProviderService implements
     ctx.setEnvironment(env);
 }
 
-  public void appendOperation(List<String> commandList,
-                              String exe,
-                              String filename) {
-    List<String> operation = new ArrayList<String>();
-    operation.add(exe);
-    operation.add(
-        "1>>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/" + filename);
-    operation.add("2>&1");
-    String cmdStr = HoyaUtils.join(operation, " ");
-    commandList.add(cmdStr);
-  }
 
   /**
    * Run this service
@@ -221,25 +210,6 @@ public class AgentProviderService extends AbstractProviderService implements
     return false;
   }
 
-  /**
-   * This is a validation of the application configuration on the AM.
-   * Here is where things like the existence of keytabs and other
-   * not-seen-client-side properties can be tested, before
-   * the actual process is spawned.
-   *
-   * @param clusterSpec clusterSpecification
-   * @param confDir     configuration directory
-   * @param secure      flag to indicate that secure mode checks must exist
-   * @throws IOException   IO problemsn
-   * @throws HoyaException any failure
-   */
-  @Override
-  public void validateApplicationConfiguration(ClusterDescription clusterSpec,
-                                               File confDir,
-                                               boolean secure
-  ) throws IOException, HoyaException {
-
-  }
 
   /**
    * Build the provider status, can be empty

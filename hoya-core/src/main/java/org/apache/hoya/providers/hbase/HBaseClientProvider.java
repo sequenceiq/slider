@@ -20,7 +20,6 @@ package org.apache.hoya.providers.hbase;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.HoyaXmlConfKeys;
 import org.apache.hoya.api.ClusterDescription;
@@ -35,7 +34,6 @@ import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.providers.AbstractClientProvider;
 import org.apache.hoya.providers.ProviderRole;
-import org.apache.hoya.providers.ProviderUtils;
 import org.apache.hoya.tools.ConfigHelper;
 import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
@@ -226,13 +224,18 @@ public class HBaseClientProvider extends AbstractClientProvider implements
   public void preflightValidateClusterConfiguration(HoyaFileSystem hoyaFileSystem,
                                                     String clustername,
                                                     Configuration configuration,
-                                                    ClusterDescription clusterSpec,
+                                                    AggregateConf instanceDefinition,
                                                     Path clusterDirPath,
                                                     Path generatedConfDirPath,
                                                     boolean secure) throws
                                                                     HoyaException,
                                                                     IOException {
-    validateClusterSpec(clusterSpec);
+    super.preflightValidateClusterConfiguration(hoyaFileSystem, clustername,
+                                                configuration,
+                                                instanceDefinition,
+                                                clusterDirPath,
+                                                generatedConfDirPath, secure);
+
     Path templatePath = new Path(generatedConfDirPath, HBaseKeys.SITE_XML);
     //load the HBase site file or fail
     Configuration siteConf = ConfigHelper.loadConfiguration(hoyaFileSystem.getFileSystem(),
@@ -300,41 +303,12 @@ public class HBaseClientProvider extends AbstractClientProvider implements
   }
   
   /**
-   * Validate the cluster specification. This can be invoked on both
-   * server and client
-   * @param clusterSpec
-   */
-  @Override // Client and Server
-  public void validateClusterSpec(ClusterDescription clusterSpec) throws
-                                                                  HoyaException {
-    super.validateClusterSpec(clusterSpec);
-    Set<String> unknownRoles = clusterSpec.getRoleNames();
-    unknownRoles.removeAll(knownRoleNames);
-    if (!unknownRoles.isEmpty()) {
-      throw new BadCommandArgumentsException("There is unknown role: %s",
-        unknownRoles.iterator().next());
-    }
-    providerUtils.validateNodeCount(HBaseKeys.ROLE_WORKER,
-                                    clusterSpec.getDesiredInstanceCount(
-                                      HBaseKeys.ROLE_WORKER,
-                                      0), 0, -1);
-
-
-    providerUtils.validateNodeCount(HBaseKeys.ROLE_MASTER,
-                                    clusterSpec.getDesiredInstanceCount(
-                                      HBaseKeys.ROLE_MASTER,
-                                      0),
-                                    0,
-                                    -1);
-  } 
-  
-  /**
    * Validate the instance definition.
    * @param clusterSpec
    */
-  @Override 
+  @Override
   public void validateInstanceDefinition(AggregateConf instanceDefinition) throws
-                                                                  HoyaException {
+                                                                           HoyaException {
     super.validateInstanceDefinition(instanceDefinition);
     ConfTreeOperations resources =
       instanceDefinition.getResourceOperations();
@@ -342,18 +316,12 @@ public class HBaseClientProvider extends AbstractClientProvider implements
     unknownRoles.removeAll(knownRoleNames);
     if (!unknownRoles.isEmpty()) {
       throw new BadCommandArgumentsException("Unknown component: %s",
-        unknownRoles.iterator().next());
+                                             unknownRoles.iterator().next());
     }
-    providerUtils.validateNodeCount(HBaseKeys.ROLE_WORKER,
-                                    resources.getRoleOptInt(
-                                      HBaseKeys.ROLE_WORKER,
-                                      RoleKeys.ROLE_INSTANCES,
-                                      0), 0, -1);
-    providerUtils.validateNodeCount(HBaseKeys.ROLE_MASTER,
-                                    resources.getRoleOptInt(
-                                      HBaseKeys.ROLE_MASTER,
-                                      RoleKeys.ROLE_INSTANCES,
-                                      0), 0, -1);
+    providerUtils.validateNodeCount(instanceDefinition, HBaseKeys.ROLE_WORKER,
+                                    0, -1);
+    providerUtils.validateNodeCount(instanceDefinition, HBaseKeys.ROLE_MASTER,
+                                    0, -1);
 
   }
 

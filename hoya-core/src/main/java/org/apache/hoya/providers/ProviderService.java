@@ -26,11 +26,11 @@ import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.service.launcher.ExitCodeProvider;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.core.conf.AggregateConf;
+import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.yarn.service.EventCallback;
-import org.apache.hoya.core.conf.MapOperations;
 
 import java.io.File;
 import java.io.IOException;
@@ -101,13 +101,13 @@ public interface ProviderService extends ProviderCore, Service,
    * Here is where things like the existence of keytabs and other
    * not-seen-client-side properties can be tested, before
    * the actual process is spawned. 
-   * @param clusterSpec clusterSpecification
+   * @param instanceDefinition clusterSpecification
    * @param confDir configuration directory
    * @param secure flag to indicate that secure mode checks must exist
    * @throws IOException IO problemsn
    * @throws HoyaException any failure
    */
-  void validateApplicationConfiguration(ClusterDescription clusterSpec,
+  void validateApplicationConfiguration(AggregateConf instanceDefinition,
                                         File confDir,
                                         boolean secure
                                        ) throws IOException, HoyaException;

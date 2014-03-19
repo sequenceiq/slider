@@ -37,7 +37,6 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -100,7 +99,7 @@ public abstract class AbstractProviderService
    * {@inheritDoc}
    */
   @Override
-  public void validateApplicationConfiguration(ClusterDescription clusterSpec,
+  public void validateApplicationConfiguration(AggregateConf instanceDefinition,
                                                File confDir,
                                                boolean secure) throws
                                                                IOException,

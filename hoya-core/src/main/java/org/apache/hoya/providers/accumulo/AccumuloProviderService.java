@@ -65,7 +65,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-//import org.apache.accumulo.fate.zookeeper.ZooCache;
 
 /**
  * Server-side accumulo provider
@@ -99,9 +98,9 @@ public class AccumuloProviderService extends AbstractProviderService implements
   }
 
   @Override
-  public void validateClusterSpec(ClusterDescription clusterSpec) throws
+  public void validateInstanceDefinition(AggregateConf instanceDefinition) throws
                                                                   HoyaException {
-    clientProvider.validateClusterSpec(clusterSpec);
+    clientProvider.validateInstanceDefinition(instanceDefinition);
   }
 
   @Override

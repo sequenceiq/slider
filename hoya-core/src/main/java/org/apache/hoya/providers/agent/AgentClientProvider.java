@@ -22,9 +22,10 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hoya.HoyaKeys;
-import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.core.conf.AggregateConf;
+import org.apache.hoya.core.conf.ConfTreeOperations;
+import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.core.launch.AbstractLauncher;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
@@ -104,27 +105,32 @@ public class AgentClientProvider extends AbstractClientProvider
   public void preflightValidateClusterConfiguration(HoyaFileSystem hoyaFileSystem,
                                                     String clustername,
                                                     Configuration configuration,
-                                                    ClusterDescription clusterSpec,
+                                                    AggregateConf instanceDefinition,
                                                     Path clusterDirPath,
                                                     Path generatedConfDirPath,
                                                     boolean secure) throws
       HoyaException,
       IOException {
-    validateClusterSpec(clusterSpec);
+    super.preflightValidateClusterConfiguration(hoyaFileSystem, clustername,
+                                                configuration,
+                                                instanceDefinition,
+                                                clusterDirPath,
+                                                generatedConfDirPath, secure);
+
   }
 
 
-  /**
-   * Validate the cluster specification. This can be invoked on both
-   * server and client
-   *
-   * @param clusterSpec
-   */
-  @Override // Client and Server
-  public void validateClusterSpec(ClusterDescription clusterSpec) throws
-      HoyaException {
-    log.debug(clusterSpec.toString());
-    super.validateClusterSpec(clusterSpec);
+  @Override
+  public void validateInstanceDefinition(AggregateConf instanceDefinition) throws
+                                                                           HoyaException {
+    super.validateInstanceDefinition(instanceDefinition);
+    ConfTreeOperations resources =
+      instanceDefinition.getResourceOperations();
+
+    providerUtils.validateNodeCount(instanceDefinition, ROLE_NODE,
+                                    0, -1);
+
+  
 
     // Mandatory options for Agents
     // TODO: Enable these after CLI changes
@@ -132,40 +138,38 @@ public class AgentClientProvider extends AbstractClientProvider
     //clusterSpec.getMandatoryOption(PACKAGE_PATH);
     //clusterSpec.getMandatoryOption(AGENT_PATH);
 
-    providerUtils.validateNodeCount(ROLE_NODE,
-        clusterSpec.getDesiredInstanceCount(
-            ROLE_NODE,
-            1), 0, -1);
-    Set<String> roleNames = clusterSpec.getRoleNames();
+
+    Set<String> roleNames = resources.getComponentNames();
     roleNames.remove(HoyaKeys.ROLE_HOYA_AM);
     Map<Integer, String> priorityMap = new HashMap<Integer, String>();
     for (String roleName : roleNames) {
+      MapOperations component = resources.getComponent(roleName);
       int count =
-          clusterSpec.getMandatoryRoleOptInt(roleName, RoleKeys.ROLE_INSTANCES);
-      clusterSpec.getMandatoryRoleOpt(roleName, SCRIPT_PATH);
+        component.getMandatoryOptionInt(RoleKeys.ROLE_INSTANCES);
+      component.getMandatoryOption( SCRIPT_PATH);
       // Extra validation for directly executed START
       if (!roleName.equals(ROLE_NODE)) {
-        clusterSpec.getMandatoryRoleOpt(roleName, SERVICE_NAME);
-        clusterSpec.getMandatoryRoleOpt(roleName, APP_HOME);
+        component.getMandatoryOption(SERVICE_NAME);
+        component.getMandatoryOption(APP_HOME);
       }
 
       int priority =
-          clusterSpec.getMandatoryRoleOptInt(roleName, RoleKeys.ROLE_PRIORITY);
+        component.getMandatoryOptionInt(RoleKeys.ROLE_PRIORITY);
       if (priority <= 0) {
         throw new BadConfigException("role %s %s value out of range %d",
-            roleName,
-            RoleKeys.ROLE_PRIORITY,
-            priority);
+                                     roleName,
+                                     RoleKeys.ROLE_PRIORITY,
+                                     priority);
       }
 
       String existing = priorityMap.get(priority);
       if (existing != null) {
         throw new BadConfigException(
-            "role %s has a %s value %d which duplicates that of %s",
-            roleName,
-            RoleKeys.ROLE_PRIORITY,
-            priority,
-            existing);
+          "role %s has a %s value %d which duplicates that of %s",
+          roleName,
+          RoleKeys.ROLE_PRIORITY,
+          priority,
+          existing);
       }
       priorityMap.put(priority, roleName);
     }

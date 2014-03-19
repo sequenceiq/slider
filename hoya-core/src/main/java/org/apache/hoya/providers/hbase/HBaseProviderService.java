@@ -99,12 +99,12 @@ public class HBaseProviderService extends AbstractProviderService implements
   /**
    * Validate the cluster specification. This can be invoked on both
    * server and client
-   * @param clusterSpec
+   * @param instanceDefinition
    */
   @Override // Client and Server
-  public void validateClusterSpec(ClusterDescription clusterSpec) throws
+  public void validateInstanceDefinition(AggregateConf instanceDefinition) throws
                                                                   HoyaException {
-    clientProvider.validateClusterSpec(clusterSpec);
+    clientProvider.validateInstanceDefinition(instanceDefinition);
   }
 
   @Override
@@ -226,14 +226,14 @@ public class HBaseProviderService extends AbstractProviderService implements
    * Here is where things like the existence of keytabs and other
    * not-seen-client-side properties can be tested, before
    * the actual process is spawned. 
-   * @param clusterSpec clusterSpecification
+   * @param instanceDefinition clusterSpecification
    * @param confDir configuration directory
    * @param secure flag to indicate that secure mode checks must exist
    * @throws IOException IO problemsn
    * @throws HoyaException any failure
    */
   @Override
-  public void validateApplicationConfiguration(ClusterDescription clusterSpec,
+  public void validateApplicationConfiguration(AggregateConf instanceDefinition,
                                                File confDir,
                                                boolean secure
                                               ) throws IOException, HoyaException {

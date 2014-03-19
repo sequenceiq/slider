@@ -22,7 +22,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.HoyaXmlConfKeys;
-import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.exceptions.BadClusterStateException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.providers.hbase.HBaseKeys;
