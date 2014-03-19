@@ -84,13 +84,19 @@ class TestBuildBasicAgent extends AgentTestBase {
                 ],
                 true, false,
                 false)
-        def cd = launcher.service.loadPersistedClusterDescription(clustername)
-        dumpClusterDescription("$clustername:", cd)
-        cd.getMandatoryRoleOpt(AgentKeys.ROLE_NODE, RoleKeys.ROLE_PRIORITY)
-        assert "2" == cd.getMandatoryRoleOpt(master, RoleKeys.ROLE_PRIORITY)
-        assert "5" == cd.getMandatoryRoleOpt(rs, RoleKeys.ROLE_INSTANCES)
+        def instanceD = launcher.service.loadPersistedClusterDescription(clustername)
+        dumpClusterDescription("$clustername:", instanceD)
+      def resource = instanceD.getResourceOperations()
 
-        // now create an instance with no role priority for the rs
+      resource.getMandatoryComponent(AgentKeys.ROLE_NODE).getMandatoryOption(
+
+          RoleKeys.ROLE_PRIORITY)
+      assert "2" == resource.getMandatoryComponent(master).getMandatoryOption(
+          RoleKeys.ROLE_PRIORITY)
+      assert "5" == resource.getMandatoryComponent(
+          rs).getMandatoryOption(RoleKeys.ROLE_INSTANCES)
+
+      // now create an instance with no role priority for the rs
         try {
             buildAgentCluster(clustername + "-2",
                     [

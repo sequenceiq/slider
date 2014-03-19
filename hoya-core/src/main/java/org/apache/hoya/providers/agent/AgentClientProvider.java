@@ -124,8 +124,11 @@ public class AgentClientProvider extends AbstractClientProvider
   public void validateInstanceDefinition(AggregateConf instanceDefinition) throws
                                                                            HoyaException {
     super.validateInstanceDefinition(instanceDefinition);
+    log.debug("Validating conf {}", instanceDefinition);
     ConfTreeOperations resources =
       instanceDefinition.getResourceOperations();
+    ConfTreeOperations appConf =
+      instanceDefinition.getAppConfOperations();
 
     providerUtils.validateNodeCount(instanceDefinition, ROLE_NODE,
                                     0, -1);
@@ -139,25 +142,25 @@ public class AgentClientProvider extends AbstractClientProvider
     //clusterSpec.getMandatoryOption(AGENT_PATH);
 
 
-    Set<String> roleNames = resources.getComponentNames();
-    roleNames.remove(HoyaKeys.ROLE_HOYA_AM);
+    Set<String> names = resources.getComponentNames();
+    names.remove(HoyaKeys.ROLE_HOYA_AM);
     Map<Integer, String> priorityMap = new HashMap<Integer, String>();
-    for (String roleName : roleNames) {
-      MapOperations component = resources.getComponent(roleName);
-      int count =
-        component.getMandatoryOptionInt(RoleKeys.ROLE_INSTANCES);
-      component.getMandatoryOption( SCRIPT_PATH);
+    for (String name : names) {
+      MapOperations component = resources.getMandatoryComponent(name);
+      MapOperations appComponent = appConf.getMandatoryComponent(name);
+      int count = component.getMandatoryOptionInt(RoleKeys.ROLE_INSTANCES);
+      appComponent.getMandatoryOption( SCRIPT_PATH);
       // Extra validation for directly executed START
-      if (!roleName.equals(ROLE_NODE)) {
-        component.getMandatoryOption(SERVICE_NAME);
-        component.getMandatoryOption(APP_HOME);
+      if (!name.equals(ROLE_NODE)) {
+        appComponent.getMandatoryOption(SERVICE_NAME);
+        appComponent.getMandatoryOption(APP_HOME);
       }
 
       int priority =
         component.getMandatoryOptionInt(RoleKeys.ROLE_PRIORITY);
       if (priority <= 0) {
-        throw new BadConfigException("role %s %s value out of range %d",
-                                     roleName,
+        throw new BadConfigException("Component %s %s value out of range %d",
+                                     name,
                                      RoleKeys.ROLE_PRIORITY,
                                      priority);
       }
@@ -165,13 +168,13 @@ public class AgentClientProvider extends AbstractClientProvider
       String existing = priorityMap.get(priority);
       if (existing != null) {
         throw new BadConfigException(
-          "role %s has a %s value %d which duplicates that of %s",
-          roleName,
+          "Component %s has a %s value %d which duplicates that of %s",
+          name,
           RoleKeys.ROLE_PRIORITY,
           priority,
           existing);
       }
-      priorityMap.put(priority, roleName);
+      priorityMap.put(priority, name);
     }
   }
 

@@ -53,6 +53,7 @@ import org.apache.hoya.core.launch.AppMasterLauncher;
 import org.apache.hoya.core.launch.CommandLineBuilder;
 import org.apache.hoya.core.launch.LaunchedApplication;
 import org.apache.hoya.core.launch.RunningApplication;
+import org.apache.hoya.core.persist.ConfPersister;
 import org.apache.hoya.core.persist.LockAcquireFailedException;
 import org.apache.hoya.core.registry.ServiceRegistryClient;
 import org.apache.hoya.exceptions.BadClusterStateException;
@@ -456,6 +457,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     resOps.propagateGlobalKeys(appConf, "yarn.");
     resOps.mergeComponentsPrefix(roleOptionMap, "component.", true);
     resOps.mergeComponentsPrefix(roleOptionMap, "yarn.", true);
+    resOps.mergeComponentsPrefix(roleOptionMap, "role.", true);
 
 
     builder.init(appconfdir, provider.getName(), instanceConf);
@@ -1704,22 +1706,15 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * @throws IOException any problems loading -including a missing file
    */
   @VisibleForTesting
-  public ClusterDescription loadPersistedClusterDescription(String clustername) throws
-                                                                                IOException {
+  public AggregateConf loadPersistedClusterDescription(String clustername) throws
+                                                                           IOException,
+                                                                           HoyaException,
+                                                                           LockAcquireFailedException {
     Path clusterDirectory = hoyaFileSystem.buildHoyaClusterDirPath(clustername);
-    Path clusterSpecPath =
-      new Path(clusterDirectory, HoyaKeys.CLUSTER_SPECIFICATION_FILE);
-    return ClusterDescription.load(hoyaFileSystem.getFileSystem(), clusterSpecPath);
-  }
-
-  /**
-   * Load the persistent cluster description
-   * @return the description in the filesystem
-   * @throws IOException any problems loading -including a missing file
-   */
-  @VisibleForTesting
-  public ClusterDescription loadPersistedClusterDescription() throws IOException {
-    return loadPersistedClusterDescription(deployedClusterName);
+    ConfPersister persister = new ConfPersister(hoyaFileSystem, clusterDirectory);
+    AggregateConf instanceDescription = new AggregateConf();
+    persister.load(instanceDescription);
+    return instanceDescription;
   }
 
     /**
