@@ -565,12 +565,14 @@ public class HoyaAppMaster extends CompoundLaunchedService
         response);
       clusterSpec.setInfo(StatusKeys.INFO_AM_RESTART_SUPPORTED,
                           Boolean.toString(liveContainers != null));
-      //now validate the dir by loading in a hadoop-site.xml file from it
+      //now validate the installation
 
       Configuration providerConf =
         providerService.loadProviderConfigurationInformation(confDir);
 
-      providerService.validateApplicationConfiguration(clusterSpec, confDir, securityEnabled);
+      providerService.validateApplicationConfiguration(instanceDefinition, 
+                                                       confDir,
+                                                       securityEnabled);
 
       //determine the location for the role history data
       Path historyDir = new Path(clusterDirPath, HISTORY_DIR_NAME);
