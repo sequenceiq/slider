@@ -18,7 +18,6 @@
 
 package org.apache.hoya.core.launch;
 
-import org.apache.commons.cli.CommandLine;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
@@ -30,7 +29,6 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.hoya.api.RoleKeys;
-import org.apache.hoya.core.conf.ConfTreeOperations;
 import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.tools.CoreFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
@@ -58,7 +56,7 @@ public abstract class AbstractLauncher extends Configured {
    * Env vars; set up at final launch stage
    */
   protected final Map<String, String> envVars = new HashMap<String, String>();
-  protected final MapOperations env = new MapOperations(envVars);
+  protected final MapOperations env = new MapOperations("env", envVars);
   protected final ContainerLaunchContext containerLaunchContext =
     Records.newRecord(ContainerLaunchContext.class);
   protected final List<String> commands = new ArrayList<String>(20);
@@ -122,7 +120,12 @@ public abstract class AbstractLauncher extends Configured {
   }
 
 
-  public void addCommand(CommandLineBuilder cmd) {
+  /**
+   * Add a command line. It is converted to a single command before being
+   * added.
+   * @param cmd
+   */
+  public void addCommandLine(CommandLineBuilder cmd) {
     commands.add(cmd.build());
   }
 
@@ -130,10 +133,18 @@ public abstract class AbstractLauncher extends Configured {
     commands.add(cmd);
   }
 
-  public void addCommands(List<String> cmd) {
-    commands.addAll(cmd);
+  /**
+   * Add a list of commands. Each element in the list becomes a single command
+   * @param commandList
+   */
+  public void addCommands(List<String> commandList) {
+    commands.addAll(commandList);
   }
 
+  /**
+   * Get all commands as a string, separated by ";". This is for diagnostics
+   * @return a string descriptionof the commands
+   */
   public String getCommandsAsString() {
     return HoyaUtils.join(getCommands(), "; ");
   }
@@ -208,7 +219,7 @@ public abstract class AbstractLauncher extends Configured {
 
 
     if (map != null) {
-      MapOperations options = new MapOperations(map);
+      MapOperations options = new MapOperations("", map);
       resource.setMemory(options.getOptionInt(RoleKeys.YARN_MEMORY,
                                               resource.getMemory()));
       resource.setVirtualCores(options.getOptionInt(RoleKeys.YARN_CORES,
@@ -229,10 +240,8 @@ public abstract class AbstractLauncher extends Configured {
    * Important: the configuration must already be fully resolved 
    * in order to pick up global options
    * Copy env vars into the launch context.
-   * @param ctree config tree to work from
    */
-  public boolean copyEnvVars(ConfTreeOperations ctree, String component) {
-    MapOperations options = ctree.getComponentOperations(component);
+  public boolean copyEnvVars(MapOperations options) {
     if (options == null) {
       return false;
     }
@@ -277,5 +286,6 @@ public abstract class AbstractLauncher extends Configured {
       destRelativeDir);
     addLocalResources(confResources);
   }
+
 
 }

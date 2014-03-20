@@ -32,6 +32,8 @@
 
 package org.apache.hoya.api;
 
+import com.google.protobuf.RpcController;
+import com.google.protobuf.ServiceException;
 import org.apache.hadoop.ipc.VersionedProtocol;
 import org.apache.hadoop.security.KerberosInfo;
 import org.apache.hadoop.yarn.exceptions.YarnException;
@@ -121,4 +123,11 @@ public interface HoyaClusterProtocol extends VersionedProtocol {
   Messages.AMSuicideResponseProto amSuicide(Messages.AMSuicideRequestProto request) throws
                                                                                     IOException,
                                                                                     YarnException;
+
+  /**
+   * Get the instance definition
+   */
+  Messages.GetInstanceDefinitionResponseProto getInstanceDefinition(
+    Messages.GetInstanceDefinitionRequestProto request)
+    throws IOException, YarnException;
 }

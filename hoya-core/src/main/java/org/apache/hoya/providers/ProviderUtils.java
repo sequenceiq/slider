@@ -26,6 +26,9 @@ import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.RoleKeys;
+import org.apache.hoya.core.conf.AggregateConf;
+import org.apache.hoya.core.conf.ConfTreeOperations;
+import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
@@ -121,6 +124,20 @@ public class ProviderUtils implements RoleKeys {
   }
 
 
+  public void validateNodeCount(AggregateConf instanceDescription,
+                                String name, int min, int max) throws
+                                                               BadCommandArgumentsException {
+    MapOperations component =
+      instanceDescription.getResourceOperations().getComponent(name);
+    int count;
+    if (component == null) {
+      count = 0;
+    } else {
+      count = component.getOptionInt(RoleKeys.ROLE_INSTANCES, 0);
+    }
+    validateNodeCount(name, count, min, max);
+  }
+  
   /**
    * Validate the node count and heap size values of a node class 
    *
@@ -154,6 +171,11 @@ public class ProviderUtils implements RoleKeys {
   public void propagateSiteOptions(ClusterDescription clusterSpec,
                                     Map<String, String> sitexml) {
     Map<String, String> options = clusterSpec.options;
+    propagateSiteOptions(options, sitexml);
+  }
+
+  public void propagateSiteOptions(Map<String, String> options,
+                                   Map<String, String> sitexml) {
     for (Map.Entry<String, String> entry : options.entrySet()) {
       String key = entry.getKey();
       if (key.startsWith(OptionKeys.SITE_XML_PREFIX)) {
@@ -179,6 +201,21 @@ public class ProviderUtils implements RoleKeys {
                               Map<String, String> sitexml,
                               String siteKey) throws BadConfigException {
     sitexml.put(siteKey, clusterSpec.getMandatoryOption(optionKey));
+  }
+  /**
+   * Propagate an option from the cluster specification option map
+   * to the site XML map, using the site key for the name
+   * @param clusterSpec cluster specification
+   * @param optionKey key in the option map
+   * @param sitexml  map for XML file to build up
+   * @param siteKey key to assign the value to in the site XML
+   * @throws BadConfigException if the option is missing from the cluster spec
+   */
+  public void propagateOption(MapOperations global,
+                              String optionKey,
+                              Map<String, String> sitexml,
+                              String siteKey) throws BadConfigException {
+    sitexml.put(siteKey, global.getMandatoryOption(optionKey));
   }
   
   /**
@@ -208,12 +245,28 @@ public class ProviderUtils implements RoleKeys {
    * @return the path to the script
    * @throws FileNotFoundException if a file is not found, or it is not a directory* 
    */
-  public String buildPathToHomeDir(ClusterDescription clusterSpec,
+  public String buildPathToHomeDir(AggregateConf instanceDefinition
+                                   ,
                                   String bindir,
-                                  String script) throws FileNotFoundException {
+                                  String script) throws
+                                                 FileNotFoundException,
+                                                 BadConfigException {
+    MapOperations globalOptions =
+      instanceDefinition.getInternalOperations().getGlobalOptions();
+    String applicationHome =
+      globalOptions.get(OptionKeys.INTERNAL_APPLICATION_HOME);
+    String imagePath =
+      globalOptions.get(OptionKeys.INTERNAL_APPLICATION_IMAGE_PATH);
+    return buildPathToHomeDir(imagePath, applicationHome, bindir, script);
+  }
+
+  public String buildPathToHomeDir(String imagePath,
+                                   String applicationHome,
+                                   String bindir, String script) throws
+                                                                 FileNotFoundException {
     String path;
     File scriptFile;
-    if (clusterSpec.isImagePathSet()) {
+    if (imagePath!=null) {
       File tarball = new File(HoyaKeys.LOCAL_TARBALL_INSTALL_SUBDIR);
       scriptFile = findBinScriptInExpandedArchive(tarball, bindir, script);
       // now work back from the script to build the relative path
@@ -229,7 +282,7 @@ public class ProviderUtils implements RoleKeys {
     } else {
       // using a home directory which is required to be present on 
       // the local system -so will be absolute and resolvable
-      File homedir = new File(clusterSpec.getApplicationHome());
+      File homedir = new File(applicationHome);
       path = homedir.getAbsolutePath();
 
       //this is absolute, resolve its entire path
@@ -242,18 +295,43 @@ public class ProviderUtils implements RoleKeys {
     return path;
   }
 
+  
   /**
    * Build the image dir. This path is relative and only valid at the far end
-   * @param clusterSpec cluster spec
+   * @param internal internal options
    * @param bindir bin subdir
    * @param script script in bin subdir
    * @return the path to the script
    * @throws FileNotFoundException if a file is not found, or it is not a directory* 
    */
-  public String buildPathToScript(ClusterDescription clusterSpec,
+  public String buildPathToScript(AggregateConf instance,
                                 String bindir,
                                 String script) throws FileNotFoundException {
-    String homedir = buildPathToHomeDir(clusterSpec, bindir, script);
+    return buildPathToScript(instance.getInternalOperations(), bindir, script);
+  }
+  /**
+   * Build the image dir. This path is relative and only valid at the far end
+   * @param internal internal options
+   * @param bindir bin subdir
+   * @param script script in bin subdir
+   * @return the path to the script
+   * @throws FileNotFoundException if a file is not found, or it is not a directory* 
+   */
+  public String buildPathToScript(ConfTreeOperations internal,
+                                String bindir,
+                                String script) throws FileNotFoundException {
+    
+    String homedir = buildPathToHomeDir(
+      internal.get(OptionKeys.INTERNAL_APPLICATION_IMAGE_PATH),
+      internal.get(OptionKeys.INTERNAL_APPLICATION_HOME),
+      bindir,
+      script);
+    return buildScriptPath(bindir, script, homedir);
+  }
+  
+  
+
+  public String buildScriptPath(String bindir, String script, String homedir) {
     StringBuilder builder = new StringBuilder(homedir);
     builder.append("/");
     builder.append(bindir);
@@ -261,8 +339,7 @@ public class ProviderUtils implements RoleKeys {
     builder.append(script);
     return builder.toString();
   }
-  
-  
+
 
   public static String convertToAppRelativePath(File file) {
     return convertToAppRelativePath(file.getPath());
@@ -354,5 +431,22 @@ public class ProviderUtils implements RoleKeys {
     }
 
     return "";
+  }
+  
+  
+
+  public int getRoleResourceRequirement(String val,
+                                        int defVal,
+                                        int maxVal) {
+    if (val==null) {
+      val = Integer.toString(defVal);
+    }
+    Integer intVal;
+    if (RoleKeys.YARN_RESOURCE_MAX.equals(val)) {
+      intVal = maxVal;
+    } else {
+      intVal = Integer.decode(val);
+    }
+    return intVal;
   }
 }

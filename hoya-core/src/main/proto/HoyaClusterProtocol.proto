@@ -58,7 +58,13 @@ service HoyaClusterProtocolPB {
    */
   rpc getJSONClusterStatus(GetJSONClusterStatusRequestProto)
     returns(GetJSONClusterStatusResponseProto);
-
+      
+  /**
+   * Get the instance definition
+   */
+  rpc getInstanceDefinition(GetInstanceDefinitionRequestProto)
+   returns(GetInstanceDefinitionResponseProto);
+      
   /**
    * List all running nodes in a role
    */
@@ -90,10 +96,12 @@ service HoyaClusterProtocolPB {
     * kill a container
     */
    rpc killContainer(KillContainerRequestProto)
-     returns(KillContainerResponseProto); 
+     returns(KillContainerResponseProto);
+      
    /**
-    * kill a container
+    * kill the AM
     */
    rpc amSuicide(AMSuicideRequestProto)
-     returns(AMSuicideResponseProto); 
+     returns(AMSuicideResponseProto);
+
 }

@@ -25,13 +25,13 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
+import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.core.conf.AggregateConf;
+import org.apache.hoya.core.conf.MapOperations;
+import org.apache.hoya.core.launch.AbstractLauncher;
 import org.apache.hoya.core.launch.CommandLineBuilder;
-import org.apache.hoya.exceptions.BadCommandArgumentsException;
-import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
-import org.apache.hoya.exceptions.HoyaRuntimeException;
 import org.apache.hoya.providers.AbstractClientProvider;
 import org.apache.hoya.providers.PlacementPolicy;
 import org.apache.hoya.providers.ProviderRole;
@@ -44,7 +44,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -138,74 +137,40 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
     return rolemap;
   }
 
-  /**
-   * This shouldn't be used, but is here as the API requires it.
-   * @param clusterSpec this is the cluster specification used to define this
-   * @return a map of the dynamic bindings for this Hoya instance
-   */
-  public Map<String, String> buildSiteConfFromSpec(ClusterDescription clusterSpec)
-    throws BadConfigException {
-    throw new HoyaRuntimeException("Not implemented");
-  }
-
-  /**
-   * Build time review and update of the cluster specification
-   * @param clusterSpec spec
-   */
-  @Override // Client
-  public void reviewAndUpdateClusterSpec(ClusterDescription clusterSpec) throws
-                                                                         HoyaException {
-
-    validateClusterSpec(clusterSpec);
-  }
-
 
   @Override //Client
   public void preflightValidateClusterConfiguration(HoyaFileSystem hoyaFileSystem,
                                                     String clustername,
                                                     Configuration configuration,
-                                                    ClusterDescription clusterSpec,
+                                                    AggregateConf instanceDefinition,
                                                     Path clusterDirPath,
                                                     Path generatedConfDirPath,
                                                     boolean secure) throws
                                                                     HoyaException,
                                                                     IOException {
 
+    super.preflightValidateClusterConfiguration(hoyaFileSystem, clustername, configuration, instanceDefinition, clusterDirPath, generatedConfDirPath, secure);
     //add a check for the directory being writeable by the current user
-    String dataPath = clusterSpec.dataPath;
+    String
+      dataPath = instanceDefinition.getInternalOperations()
+                                   .getGlobalOptions()
+                                   .getMandatoryOption(
+                                     OptionKeys.INTERNAL_DATA_DIR_PATH);
+
     Path path = new Path(dataPath);
     hoyaFileSystem.verifyDirectoryWriteAccess(path);
     Path historyPath = new Path(clusterDirPath, HoyaKeys.HISTORY_DIR_NAME);
     hoyaFileSystem.verifyDirectoryWriteAccess(historyPath);
   }
 
-  @Override
-  public void validateClusterSpec(
-    ClusterDescription clusterSpec) throws
-                                    HoyaException {
-    Map<String, String> am = clusterSpec.getRole(ROLE_HOYA_AM);
-    if (am == null) {
-      throw new BadCommandArgumentsException("No Hoya Application master declared" 
-                                             + " in cluster specification");
-    }
-    super.validateClusterSpec(clusterSpec);
-
-    providerUtils.validateNodeCount(ROLE_HOYA_AM,
-                                    clusterSpec.getDesiredInstanceCount(
-                                      ROLE_HOYA_AM,
-                                      0), 1, 1);
-
-  }
-
-
   /**
    * The Hoya AM sets up all the dependency JARs above hoya.jar itself
    * {@inheritDoc}
    */
-  @Override
-  public Map<String, LocalResource> prepareAMAndConfigForLaunch(HoyaFileSystem hoyaFileSystem,
+  public void prepareAMAndConfigForLaunch(HoyaFileSystem hoyaFileSystem,
                                                                 Configuration serviceConf,
-                                                                ClusterDescription clusterSpec,
+                                                                AbstractLauncher launcher,
+                                                                AggregateConf instanceDescription,
                                                                 Path originConfDirPath,
                                                                 Path generatedConfDirPath,
                                                                 Configuration clientConfExtras,
@@ -221,22 +186,24 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
                      tempPath,
                      libdir,
                      JCOMMANDER_JAR);
-    return providerResources;
+    launcher.addLocalResources(providerResources);
+    //also pick up all env variables from a map
+    launcher.copyEnvVars(
+      instanceDescription.getInternalOperations().getOrAddComponent(
+        HoyaKeys.ROLE_HOYA_AM));
   }
 
   /**
    * Update the AM resource with any local needs
    * @param capability capability to update
    */
-  @Override
-  public void prepareAMResourceRequirements(ClusterDescription clusterSpec,
+  public void prepareAMResourceRequirements(MapOperations hoyaAM,
                                             Resource capability) {
-    capability.setMemory(clusterSpec.getRoleOptInt(
-      HoyaKeys.ROLE_HOYA_AM,
+    capability.setMemory(hoyaAM.getOptionInt(
       RoleKeys.YARN_MEMORY,
       capability.getMemory()));
-    capability.setVirtualCores(clusterSpec.getRoleOptInt(
-      HoyaKeys.ROLE_HOYA_AM, RoleKeys.YARN_CORES, capability.getVirtualCores()));
+    capability.setVirtualCores(
+      hoyaAM.getOptionInt(RoleKeys.YARN_CORES, capability.getVirtualCores()));
   }
 
   /**
@@ -246,32 +213,31 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
    */
   public void addJVMOptions(ClusterDescription clusterSpec,
                             CommandLineBuilder cmdLine) {
+    MapOperations ops = new MapOperations(ROLE_HOYA_AM, clusterSpec.getOrAddRole(ROLE_HOYA_AM)
+    );
+    addJVMOptions(ops, cmdLine);
+  }
+  
+  
+  /**
+   * Extract any JVM options from the cluster specification and
+   * add them to the command line
+   * @param clusterSpec spec
+   */
+  public void addJVMOptions(MapOperations hoyaAM,
+                            CommandLineBuilder cmdLine) {
     cmdLine.add(HoyaKeys.JVM_FORCE_IPV4);
     cmdLine.add(HoyaKeys.JVM_JAVA_HEADLESS);
-    String heap = clusterSpec.getRoleOpt(ROLE_HOYA_AM,
-                                         RoleKeys.JVM_HEAP,
+    String heap = hoyaAM.getOption(RoleKeys.JVM_HEAP,
                                          DEFAULT_JVM_HEAP);
     if (HoyaUtils.isSet(heap)) {
       cmdLine.add("-Xmx" + heap);
     }
 
-    String jvmopts = clusterSpec.getRoleOpt(ROLE_HOYA_AM,
-                                            RoleKeys.JVM_OPTS, "");
+    String jvmopts = hoyaAM.getOption(RoleKeys.JVM_OPTS, "");
     if (HoyaUtils.isSet(jvmopts)) {
       cmdLine.add(jvmopts);
     }
-
-  }
-
-  /**
-   * Any operations to the service data before launching the AM
-   * @param clusterSpec cspec
-   * @param serviceData map of service data
-   */
-  @Override  //Client
-  public void prepareAMServiceData(ClusterDescription clusterSpec,
-                                   Map<String, ByteBuffer> serviceData) {
-
   }
 
 
@@ -280,8 +246,7 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
                                                                         HoyaException,
                                                                         IOException {
     mergeTemplates(aggregateConf,
-                   INTERNAL_JSON, RESOURCES_JSON,
-                   APPCONF_JSON
+                   INTERNAL_JSON, RESOURCES_JSON, APPCONF_JSON
                   );
   }
 }

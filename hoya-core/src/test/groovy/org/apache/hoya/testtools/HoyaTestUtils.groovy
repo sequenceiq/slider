@@ -33,6 +33,7 @@ import org.apache.hadoop.yarn.service.launcher.ServiceLaunchException
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.ClusterNode
+import org.apache.hoya.core.conf.AggregateConf
 import org.apache.hoya.exceptions.BadClusterStateException
 import org.apache.hoya.exceptions.HoyaException
 import org.apache.hoya.exceptions.WaitTimeoutException
@@ -255,7 +256,7 @@ class HoyaTestUtils extends Assert {
           if (instanceCount != desiredCount) {
             roleCountFound = false;
           }
-          details.append("[$role]: $instanceCount of $desiredCount; ")
+          details.append("[$role]: desired: $desiredCount; actual: $instanceCount  ")
         }
         if (roleCountFound) {
           //successful
@@ -310,6 +311,13 @@ class HoyaTestUtils extends Assert {
     log.info(prettyPrint(status.toJsonString()))
   }
 
+  
+  public static void dumpClusterDescription(String text, AggregateConf status) {
+    describe(text)
+    log.info(status.toString())
+  }
+
+  
   /**
    * Fetch the current site config from the Hoya AM, from the 
    * <code>clientProperties</code> field of the ClusterDescription
@@ -338,7 +346,12 @@ class HoyaTestUtils extends Assert {
     GetMethod get = new GetMethod(url);
 
     get.followRedirects = true;
-    int resultCode = client.executeMethod(get);
+    try {
+      int resultCode = client.executeMethod(get);
+    } catch (IOException e) {
+      log.error("Failed on $url: $e",e)
+      throw e;
+    }
     String body = get.responseBodyAsString;
     return body;
   }

@@ -94,6 +94,15 @@ public class CoreFileSystem {
     return fileSystem;
   }
 
+  @Override
+  public String toString() {
+    final StringBuilder sb =
+      new StringBuilder("CoreFileSystem{");
+    sb.append("fileSystem=").append(fileSystem.getUri());
+    sb.append('}');
+    return sb.toString();
+  }
+
   /**
    * Build up the path string for a cluster instance -no attempt to
    * create the directory is made
@@ -352,6 +361,16 @@ public class CoreFileSystem {
       return false;
     }
   }
+  
+  public boolean maybeAddImagePath(Map<String, LocalResource> localResources,
+                                   String imagePath) throws IOException {
+    
+    return imagePath != null &&
+           maybeAddImagePath(localResources, new Path(imagePath));
+  }
+  
+  
+  
 
   /**
    * Create an AM resource from the
@@ -477,4 +496,19 @@ public class CoreFileSystem {
     out.write(bytes);
     out.close();
   }
+
+  /**
+   * Create a path that must exist in the cluster fs
+   * @param uri uri to create
+   * @return the path
+   * @throws HoyaException if the path does not exist
+   */
+  public Path createPathThatMustExist(String uri) throws
+                                                  HoyaException,
+                                                  IOException {
+    Path path = new Path(uri);
+    verifyPathExists(path);
+    return path;
+  }
+
 }

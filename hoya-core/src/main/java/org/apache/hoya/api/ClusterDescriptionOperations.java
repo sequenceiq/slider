@@ -23,9 +23,13 @@ import org.apache.hoya.core.conf.ConfTree;
 import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.providers.HoyaProviderFactory;
+import org.apache.hoya.providers.hbase.HBaseConfigFileOptions;
 import org.apache.hoya.tools.HoyaUtils;
-
 import java.util.Map;
+
+import static org.apache.hoya.api.OptionKeys.ZOOKEEPER_HOSTS;
+import static org.apache.hoya.api.OptionKeys.ZOOKEEPER_PATH;
+import static org.apache.hoya.api.OptionKeys.ZOOKEEPER_PORT;
 
 /**
  * Operations on Cluster Descriptions
@@ -33,7 +37,7 @@ import java.util.Map;
 public class ClusterDescriptionOperations {
 
 
-  public static ClusterDescription buildFromAggregateConf(AggregateConf aggregateConf) throws
+  public static ClusterDescription buildFromInstanceDefinition(AggregateConf aggregateConf) throws
                                                                                        BadConfigException {
 
     ClusterDescription cd = new ClusterDescription();
@@ -45,20 +49,35 @@ public class ClusterDescriptionOperations {
     HoyaUtils.mergeMapsIgnoreDuplicateKeys(options,
                                            aggregateConf.getInternal().global);
     HoyaUtils.mergeMapsIgnoreDuplicateKeys(options,
-                                           aggregateConf.getResources().global);
-    HoyaUtils.mergeMapsIgnoreDuplicateKeys(options,
                                            aggregateConf.getAppConf().global);
+    HoyaUtils.mergeMapsIgnoreDuplicateKeys(options,
+                                           aggregateConf.getResources().global);
 
     //roles are the role values merged in the same order
-    mergeInComponentMap(cd, aggregateConf.getResources());
+    mergeInComponentMap(cd, aggregateConf.getInternal());
     mergeInComponentMap(cd, aggregateConf.getAppConf());
+    mergeInComponentMap(cd, aggregateConf.getResources());
 
     //now add the extra bits
     cd.state = ClusterDescription.STATE_LIVE;
     MapOperations internalOptions =
       aggregateConf.getInternalOperations().getGlobalOptions();
-    cd.type = internalOptions.getOption(OptionKeys.APPLICATION_TYPE,
+    MapOperations appOptions =
+      aggregateConf.getAppConfOperations().getGlobalOptions();
+
+    cd.type = internalOptions.getOption(OptionKeys.INTERNAL_PROVIDER_NAME,
                                 HoyaProviderFactory.DEFAULT_CLUSTER_TYPE);
+
+    cd.dataPath = internalOptions.get(OptionKeys.INTERNAL_DATA_DIR_PATH);
+    cd.name = internalOptions.get(OptionKeys.APPLICATION_NAME);
+    cd.originConfigurationPath = internalOptions.get(OptionKeys.INTERNAL_SNAPSHOT_CONF_PATH);
+    cd.generatedConfigurationPath = internalOptions.get(OptionKeys.INTERNAL_GENERATED_CONF_PATH);
+    cd.setImagePath(internalOptions.get(OptionKeys.INTERNAL_APPLICATION_IMAGE_PATH));
+    cd.setApplicationHome(internalOptions.get(OptionKeys.INTERNAL_APPLICATION_HOME));
+    cd.setZkPath(appOptions.get(ZOOKEEPER_PATH));
+    cd.setZkPort(appOptions.getOptionInt(ZOOKEEPER_PORT,
+                                              HBaseConfigFileOptions.HBASE_ZK_PORT));
+    cd.setZkHosts(appOptions.get(ZOOKEEPER_HOSTS));
     
     return cd;
   }
@@ -70,8 +89,9 @@ public class ClusterDescriptionOperations {
     Map<String, Map<String, String>> components = confTree.components;
     for (Map.Entry<String, Map<String, String>> compEntry : components.entrySet()) {
       String name = compEntry.getKey();
-      Map<String, String> role = cd.getOrAddRole(name);
-      HoyaUtils.mergeMapsIgnoreDuplicateKeys(role, compEntry.getValue());
+      Map<String, String> destRole = cd.getOrAddRole(name);
+      Map<String, String> sourceComponent = compEntry.getValue();
+      HoyaUtils.mergeMapsIgnoreDuplicateKeys(destRole, sourceComponent);
     }
   }
 }

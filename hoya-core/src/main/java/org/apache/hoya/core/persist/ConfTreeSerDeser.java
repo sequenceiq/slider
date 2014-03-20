@@ -16,14 +16,15 @@
  * limitations under the License.
  */
 
-package org.apache.hoya.providers;
+package org.apache.hoya.core.persist;
+
+import org.apache.hoya.core.conf.ConfTree;
 
 /**
- * This is the client-side provider, the bit
- * that helps create the template cluster spec,  
- * preflight checks the specification,
- * and 
+ * Conf tree to JSON binding
  */
-public interface ClientProvider extends ProviderCore {
-
+public class ConfTreeSerDeser extends JsonSerDeser<ConfTree>  {
+  public ConfTreeSerDeser() {
+    super(ConfTree.class);
+  }
 }

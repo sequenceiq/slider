@@ -29,8 +29,8 @@ import org.junit.Test
 class TestClusterFlex0To1 extends HBaseMiniClusterTestBase {
 
   @Test
-  public void testClusterFlexUp() throws Throwable {
-    assert flexHBaseClusterTestRun("test_cluster_flex_up", 1, 1, 0, 1, false)
+  public void testClusterFlex0To1() throws Throwable {
+    assert flexHBaseClusterTestRun("test_cluster_flex_0To1", 1, 1, 0, 1, false)
   }
 
 }

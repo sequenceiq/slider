@@ -22,13 +22,12 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
-import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.RoleKeys
 import org.apache.hoya.avro.RoleHistoryWriter
+import org.apache.hoya.core.conf.ConfTreeOperations
 import org.apache.hoya.exceptions.BadConfigException
 import org.apache.hoya.exceptions.HoyaRuntimeException
 import org.apache.hoya.yarn.appmaster.state.AppState
-import org.apache.hoya.yarn.appmaster.state.RoleInstance
 import org.apache.hoya.yarn.model.mock.BaseMockAppStateTest
 import org.apache.hoya.yarn.model.mock.MockRecordFactory
 import org.apache.hoya.yarn.model.mock.MockRoles
@@ -64,16 +63,17 @@ class TestFlexDynamicRoles extends BaseMockAppStateTest
     appState = new AppState(new MockRecordFactory())
     appState.setContainerLimits(RM_MAX_RAM, RM_MAX_CORES)
 
-    def cd = factory.newClusterSpec(0, 0, 0)
+    def instance = factory.newInstanceDefinition(0, 0, 0)
 
     def opts = [
         (RoleKeys.ROLE_INSTANCES): "1",
         (RoleKeys.ROLE_PRIORITY): "6",
     ]
+
+    instance.resourceOperations.components["dynamic"] = opts
+
     
-    cd.roles["dynamic"]= opts
-    
-    appState.buildInstance(cd,
+    appState.buildInstance(instance,
         new Configuration(false),
         factory.ROLES,
         fs,
@@ -81,20 +81,25 @@ class TestFlexDynamicRoles extends BaseMockAppStateTest
         null)
   }
 
+  
+  private ConfTreeOperations init() {
+    createAndStartNodes();
+    def resources = appState.instanceDefinition.resources;
+    return new ConfTreeOperations(resources)
+  }
 
   @Test
   public void testDynamicFlexAddRole() throws Throwable {
-    List<RoleInstance> instances = createAndStartNodes()
-    def cd = appState.clusterSpec.clone() as ClusterDescription
+    def cd = init()
     def opts = [
         (RoleKeys.ROLE_INSTANCES): "1",
         (RoleKeys.ROLE_PRIORITY): "7",
     ]
 
-    cd.roles["role4"] = opts
-    appState.updateClusterSpec(cd);
+    cd.components["role4"] = opts
+    appState.updateResourceDefinitions(cd.confTree);
     createAndStartNodes();
-    dumpClusterDescription("updated CD", appState.getClusterDescription())
+    dumpClusterDescription("updated CD", appState.getClusterStatus())
     appState.lookupRoleStatus(7)
     appState.lookupRoleStatus(6)
     //gaps are still there
@@ -106,17 +111,16 @@ class TestFlexDynamicRoles extends BaseMockAppStateTest
   
   @Test
   public void testDynamicFlexAddRoleConflictingPriority() throws Throwable {
-    List<RoleInstance> instances = createAndStartNodes()
-    def cd = appState.clusterSpec.clone() as ClusterDescription
+    def cd = init()
     def opts = [
         (RoleKeys.ROLE_INSTANCES): "1",
         (RoleKeys.ROLE_PRIORITY): "6",
     ]
 
-    cd.roles["role4"] = opts
+    cd.components["role4"] = opts
     try {
-      appState.updateClusterSpec(cd);
-      dumpClusterDescription("updated CD", appState.getClusterDescription())
+      appState.updateResourceDefinitions(cd.confTree);
+      dumpClusterDescription("updated CD", appState.getClusterStatus())
       fail("Expected an exception")
     } catch (BadConfigException expected) {
     }
@@ -124,12 +128,11 @@ class TestFlexDynamicRoles extends BaseMockAppStateTest
   
   @Test
   public void testDynamicFlexDropRole() throws Throwable {
-    List<RoleInstance> instances = createAndStartNodes()
-    def cd = (ClusterDescription) appState.clusterSpec.clone()
-    cd.roles.remove("dynamic");
-    appState.updateClusterSpec(cd);
+    def cd = init()
+    cd.components.remove("dynamic");
+    appState.updateResourceDefinitions(cd.confTree);
 
-    def getCD = appState.getClusterDescription()
+    def getCD = appState.getClusterStatus()
     dumpClusterDescription("updated CD", getCD)
     //status is retained for future
     appState.lookupRoleStatus(6)
@@ -138,35 +141,33 @@ class TestFlexDynamicRoles extends BaseMockAppStateTest
 
   @Test
   public void testHistorySaveFlexLoad() throws Throwable {
-    List<RoleInstance> instances = createAndStartNodes()
+    def cd = init()
     def roleHistory = appState.roleHistory
     Path history = roleHistory.saveHistory(0x0001)
     RoleHistoryWriter historyWriter = new RoleHistoryWriter();
-    def cd = appState.clusterSpec.clone() as ClusterDescription
     def opts = [
         (RoleKeys.ROLE_INSTANCES): "1",
         (RoleKeys.ROLE_PRIORITY): "7",
     ]
 
-    cd.roles["role4"] = opts
-    appState.updateClusterSpec(cd);
+    cd.components["role4"] = opts
+    appState.updateResourceDefinitions(cd.confTree);
     createAndStartNodes();
     historyWriter.read(fs, history, appState.roleHistory)
   }
 
   @Test
   public void testHistoryFlexSaveLoad() throws Throwable {
-    List<RoleInstance> instances = createAndStartNodes()
-    RoleHistoryWriter historyWriter = new RoleHistoryWriter();
-    def cd = appState.clusterSpec.clone() as ClusterDescription
+    def cd = init()
     def opts = [
         (RoleKeys.ROLE_INSTANCES): "1",
         (RoleKeys.ROLE_PRIORITY): "7",
     ]
 
-    cd.roles["role4"] = opts
-    appState.updateClusterSpec(cd);
+    cd.components["role4"] = opts
+    appState.updateResourceDefinitions(cd.confTree);
     createAndStartNodes();
+    RoleHistoryWriter historyWriter = new RoleHistoryWriter();
     def roleHistory = appState.roleHistory
     Path history = roleHistory.saveHistory(0x0002)
     //now reset the app state
@@ -174,7 +175,8 @@ class TestFlexDynamicRoles extends BaseMockAppStateTest
     def historyPath2 = new Path(historyWorkDir2.toURI())
     appState = new AppState(new MockRecordFactory())
     appState.setContainerLimits(RM_MAX_RAM, RM_MAX_CORES)
-    appState.buildInstance(factory.newClusterSpec(0, 0, 0),
+    appState.buildInstance(
+        factory.newInstanceDefinition(0, 0, 0),
         new Configuration(false),
         factory.ROLES,
         fs,

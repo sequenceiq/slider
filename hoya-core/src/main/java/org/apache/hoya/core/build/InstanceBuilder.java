@@ -33,8 +33,10 @@ import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.core.persist.ConfPersister;
 import org.apache.hoya.core.persist.InstancePaths;
 import org.apache.hoya.core.persist.LockAcquireFailedException;
+import org.apache.hoya.core.persist.LockHeldAction;
 import org.apache.hoya.exceptions.BadClusterStateException;
 import org.apache.hoya.exceptions.BadConfigException;
+import org.apache.hoya.exceptions.ErrorStrings;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.tools.CoreFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
@@ -55,7 +57,7 @@ public class InstanceBuilder {
   private final Configuration conf;
   private final CoreFileSystem coreFS;
   private final InstancePaths instancePaths;
-  private AggregateConf instanceConf;
+  private AggregateConf instanceDescription;
 
   private static final Logger log =
     LoggerFactory.getLogger(InstanceBuilder.class);
@@ -71,8 +73,8 @@ public class InstanceBuilder {
 
   }
 
-  public AggregateConf getInstanceConf() {
-    return instanceConf;
+  public AggregateConf getInstanceDescription() {
+    return instanceDescription;
   }
 
   public InstancePaths getInstancePaths() {
@@ -94,9 +96,6 @@ public class InstanceBuilder {
    * Initial part of the build process
    * @param configSrcDir
    * @param provider
-   * @param internal
-   * @param resources
-   * @param app_conf
    */
   public void init(
     Path configSrcDir,
@@ -104,7 +103,7 @@ public class InstanceBuilder {
     AggregateConf instanceConf) {
 
 
-    this.instanceConf = instanceConf;
+    this.instanceDescription = instanceConf;
 
     //internal is extended
     ConfTreeOperations internalOps = instanceConf.getInternalOperations();
@@ -114,7 +113,8 @@ public class InstanceBuilder {
     md.put(StatusKeys.INFO_CREATE_TIME_HUMAN, HoyaUtils.toGMTString(time));
     md.put(StatusKeys.INFO_CREATE_TIME_MILLIS, Long.toString(time));
 
-    BuildHelper.addBuildInfo(internalOps.getGlobalOptions(), "create");
+    MapOperations globalOptions = internalOps.getGlobalOptions();
+    BuildHelper.addBuildMetadata(md, "create");
 
     internalOps.set(INTERNAL_AM_TMP_DIR,
                     instancePaths.tmpPathAM.toUri());
@@ -122,6 +122,13 @@ public class InstanceBuilder {
                     instancePaths.snapshotConfPath.toUri());
     internalOps.set(INTERNAL_GENERATED_CONF_PATH,
                     instancePaths.generatedConfPath.toUri());
+    internalOps.set(INTERNAL_DATA_DIR_PATH,
+                    instancePaths.dataPath.toUri());
+
+
+    internalOps.set(OptionKeys.INTERNAL_PROVIDER_NAME, provider);
+    internalOps.set(OptionKeys.APPLICATION_NAME, clustername);
+
   }
 
   /**
@@ -138,19 +145,19 @@ public class InstanceBuilder {
     if (appImage != null) {
       if (!appHomeUnset) {
         // both args have been set
-        throw new BadConfigException("Both application image path and home dir"
-                                     + " have been provided");
+        throw new BadConfigException(
+          ErrorStrings.E_BOTH_IMAGE_AND_HOME_DIR_SPECIFIED);
       }
-      instanceConf.getInternalOperations().set(APPLICATION_HOME,
+      instanceDescription.getInternalOperations().set(INTERNAL_APPLICATION_IMAGE_PATH,
                                                appImage.toUri());
     } else {
       // the alternative is app home, which now MUST be set
       if (appHomeUnset) {
         // both args have been set
-        throw new BadConfigException(
-          "No image path or home directory provided");
+        throw new BadConfigException(ErrorStrings.E_NO_IMAGE_OR_HOME_DIR_SPECIFIED);
+          
       }
-      instanceConf.getInternalOperations().set(APPLICATION_HOME,
+      instanceDescription.getInternalOperations().set(INTERNAL_APPLICATION_HOME,
                                                appHomeDir);
 
     }
@@ -164,19 +171,19 @@ public class InstanceBuilder {
     if (dfsPrincipal != null) {
       String siteDfsPrincipal = OptionKeys.SITE_XML_PREFIX +
                                 DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY;
-      instanceConf.getAppConfOperations().set(siteDfsPrincipal, dfsPrincipal);
+      instanceDescription.getAppConfOperations().set(siteDfsPrincipal, dfsPrincipal);
     }
   }
 
   public void propagateFilename() {
     String fsDefaultName = conf.get(
       CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY);
-    instanceConf.getAppConfOperations().set(OptionKeys.SITE_XML_PREFIX +
+    instanceDescription.getAppConfOperations().set(OptionKeys.SITE_XML_PREFIX +
                                             CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY,
                                             fsDefaultName
                                            );
 
-    instanceConf.getAppConfOperations().set(OptionKeys.SITE_XML_PREFIX +
+    instanceDescription.getAppConfOperations().set(OptionKeys.SITE_XML_PREFIX +
                                             HoyaXmlConfKeys.FS_DEFAULT_NAME_CLASSIC,
                                             fsDefaultName
                                            );
@@ -207,19 +214,25 @@ public class InstanceBuilder {
    * @throws IOException
    * @throws HoyaException
    * @throws LockAcquireFailedException
+   * @param appconfdir
    */
-  public void persist() throws
-                        IOException,
-                        HoyaException,
-                        LockAcquireFailedException {
+  public void persist(Path appconfdir) throws
+                                       IOException,
+                                       HoyaException,
+                                       LockAcquireFailedException {
     coreFS.createClusterDirectories(instancePaths);
     ConfPersister persister =
       new ConfPersister(coreFS, getInstanceDir());
-    persister.save(instanceConf);
+    ConfDirSnapshotAction action = null;
+    if (appconfdir != null) {
+      action = new ConfDirSnapshotAction(appconfdir);
+    }
+    persister.save(instanceDescription, action);
   }
 
   /**
-   * Add the ZK paths to the application options
+   * Add the ZK paths to the application options. 
+   * This is skipped if the zkhosts are not set
    * @param zkhosts
    * @param zookeeperRoot
    * @param zkport
@@ -227,11 +240,43 @@ public class InstanceBuilder {
   public void addZKPaths(String zkhosts,
                          String zookeeperRoot,
                          int zkport) {
-    MapOperations globalAppOptions =
-      instanceConf.getAppConfOperations().getGlobalOptions();
-    globalAppOptions.put(ZOOKEEPER_PATH, zookeeperRoot);
-    globalAppOptions.put(ZOOKEEPER_HOSTS, zkhosts);
-    globalAppOptions.put(ZOOKEEPER_PORT, Integer.toString(zkport));
+    if (HoyaUtils.isSet(zkhosts)) {
+      MapOperations globalAppOptions =
+        instanceDescription.getAppConfOperations().getGlobalOptions();
+      MapOperations globalInternalOptions =
+        instanceDescription.getAppConfOperations().getGlobalOptions();
+      globalAppOptions.put(ZOOKEEPER_PATH, zookeeperRoot);
+      globalAppOptions.put(ZOOKEEPER_HOSTS, zkhosts);
+      globalAppOptions.put(ZOOKEEPER_PORT, Integer.toString(zkport));
+/* commented out unless/until we need ZK internally
+     globalInternalOptions.put(ZOOKEEPER_PATH, zookeeperRoot);
+      globalInternalOptions.put(ZOOKEEPER_HOSTS, zkhosts);
+      globalInternalOptions.put(ZOOKEEPER_PORT, Integer.toString(zkport));*/
+    }
   }
 
+
+  /**
+   * Class to execute the snapshotting of the configuration directory
+   * while the persistence lock is held. 
+   * 
+   * This guarantees that there won't be an attempt to launch a cluster
+   * until the snapshot is complete -as the write lock won't be released
+   * until afterwards.
+   */
+  private class ConfDirSnapshotAction implements LockHeldAction {
+
+    private final Path appconfdir;
+
+    private ConfDirSnapshotAction(Path appconfdir) {
+      this.appconfdir = appconfdir;
+    }
+
+    @Override
+    public void execute() throws IOException, HoyaException {
+
+      takeSnapshotOfConfDir(appconfdir);
+    }
+  }
+  
 }

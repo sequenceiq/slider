@@ -23,9 +23,11 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
+import org.apache.hoya.core.persist.Filenames;
 import org.apache.hoya.exceptions.BadClusterStateException;
 import org.apache.hoya.exceptions.ErrorStrings;
 import org.apache.hoya.exceptions.HoyaException;
+import org.apache.hoya.exceptions.UnknownClusterException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -152,9 +154,46 @@ public class HoyaFileSystem extends CoreFileSystem {
     Path clusterDirectory = buildHoyaClusterDirPath(clustername);
     Path clusterSpecPath =
             new Path(clusterDirectory, HoyaKeys.CLUSTER_SPECIFICATION_FILE);
-    ClusterDescription.verifyClusterSpecExists(clustername, fileSystem,
-            clusterSpecPath);
+    verifyClusterSpecExists(clustername, clusterSpecPath);
+
     return clusterSpecPath;
   }
 
+  /**
+   * Locate an application conf json in the FS. This includes a check to verify
+   * that the file is there.
+   *
+   * @param clustername name of the cluster
+   * @return the path to the spec.
+   * @throws IOException                      IO problems
+   * @throws HoyaException if the path isn't there
+   */
+  public Path locateInstanceDefinition(String clustername) throws IOException, HoyaException {
+    Path clusterDirectory = buildHoyaClusterDirPath(clustername);
+    Path appConfPath =
+            new Path(clusterDirectory, Filenames.APPCONF);
+    verifyClusterSpecExists(clustername, appConfPath);
+    return appConfPath;
+  }
+
+
+  /**
+   * Verify that a cluster specification exists
+   * @param clustername name of the cluster (For errors only)
+   * @param fs filesystem
+   * @param clusterSpecPath cluster specification path
+   * @throws IOException IO problems
+   * @throws HoyaException if the cluster specification is not present
+   */
+  public void verifyClusterSpecExists(String clustername,
+                                             Path clusterSpecPath) throws
+                                                                   IOException,
+                                                                   HoyaException {
+    if (!fileSystem.isFile(clusterSpecPath)) {
+      log.debug("Missing specification file {}", clusterSpecPath);
+      throw UnknownClusterException.unknownCluster(clustername
+                             + "\n (definition not found at "
+                             + clusterSpecPath);
+    }
+  }
 }

@@ -31,6 +31,10 @@ import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.RoleKeys;
+import org.apache.hoya.core.conf.AggregateConf;
+import org.apache.hoya.core.conf.ConfTreeOperations;
+import org.apache.hoya.core.conf.MapOperations;
+import org.apache.hoya.core.launch.CommandLineBuilder;
 import org.apache.hoya.exceptions.BadClusterStateException;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.BadConfigException;
@@ -39,7 +43,6 @@ import org.apache.hoya.providers.AbstractProviderService;
 import org.apache.hoya.providers.ProviderCore;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderUtils;
-import org.apache.hoya.servicemonitor.Probe;
 import org.apache.hoya.tools.BlockingZKWatcher;
 import org.apache.hoya.tools.ConfigHelper;
 import org.apache.hoya.tools.HoyaFileSystem;
@@ -62,7 +65,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-//import org.apache.accumulo.fate.zookeeper.ZooCache;
 
 /**
  * Server-side accumulo provider
@@ -78,7 +80,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
   
   private HoyaFileSystem hoyaFileSystem = null;
-  
+
   public AccumuloProviderService() {
     super("accumulo");
   }
@@ -96,9 +98,9 @@ public class AccumuloProviderService extends AbstractProviderService implements
   }
 
   @Override
-  public void validateClusterSpec(ClusterDescription clusterSpec) throws
+  public void validateInstanceDefinition(AggregateConf instanceDefinition) throws
                                                                   HoyaException {
-    clientProvider.validateClusterSpec(clusterSpec);
+    clientProvider.validateInstanceDefinition(instanceDefinition);
   }
 
   @Override
@@ -113,25 +115,32 @@ public class AccumuloProviderService extends AbstractProviderService implements
    Server interface below here
    ======================================================================
   */
-  @Override //server
+
+  @Override
   public void buildContainerLaunchContext(ContainerLaunchContext ctx,
+                                          AggregateConf instanceDefinition,
                                           Container container,
                                           String role,
                                           HoyaFileSystem hoyaFileSystem,
                                           Path generatedConfPath,
-                                          ClusterDescription clusterSpec,
-                                          Map<String, String> roleOptions,
+                                          MapOperations resourceComponent,
+                                          MapOperations appComponent,
                                           Path containerTmpDirPath) throws
-                                           IOException,
-                                           BadConfigException {
+                                                                            IOException,
+                                                                            HoyaException {
+    
     this.hoyaFileSystem = hoyaFileSystem;
+    this.instanceDefinition = instanceDefinition;
     
     // Set the environment
-    Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
+    Map<String, String> env = HoyaUtils.buildEnvMap(appComponent);
     env.put(ACCUMULO_LOG_DIR, ApplicationConstants.LOG_DIR_EXPANSION_VAR);
+    ConfTreeOperations appConf =
+      instanceDefinition.getAppConfOperations();
     String hadoop_home =
       ApplicationConstants.Environment.HADOOP_COMMON_HOME.$();
-    hadoop_home = clusterSpec.getOption(OPTION_HADOOP_HOME, hadoop_home);
+    MapOperations appConfGlobal = appConf.getGlobalOptions();
+    hadoop_home = appConfGlobal.getOption(OPTION_HADOOP_HOME, hadoop_home);
     env.put(HADOOP_HOME, hadoop_home);
     env.put(HADOOP_PREFIX, hadoop_home);
     
@@ -141,7 +150,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
     env.put(ACCUMULO_CONF_DIR,
             ProviderUtils.convertToAppRelativePath(
               HoyaKeys.PROPAGATED_CONF_DIR_NAME));
-    env.put(ZOOKEEPER_HOME, clusterSpec.getMandatoryOption(OPTION_ZK_HOME));
+    env.put(ZOOKEEPER_HOME, appConfGlobal.getMandatoryOption(OPTION_ZK_HOME));
 
     //local resources
     Map<String, LocalResource> localResources =
@@ -156,17 +165,16 @@ public class AccumuloProviderService extends AbstractProviderService implements
 
     //Add binaries
     //now add the image if it was set
-    if (clusterSpec.isImagePathSet()) {
-      Path imagePath = new Path(clusterSpec.getImagePath());
-      log.info("using image path {}", imagePath);
-      hoyaFileSystem.maybeAddImagePath(localResources, imagePath);
-    }
+    String imageURI = instanceDefinition.getInternalOperations()
+                                        .get(OptionKeys.INTERNAL_APPLICATION_IMAGE_PATH);
+    hoyaFileSystem.maybeAddImagePath(localResources, imageURI);
+
     ctx.setLocalResources(localResources);
 
     List<String> commands = new ArrayList<String>();
-    List<String> command = new ArrayList<String>();
+    CommandLineBuilder commandLine = new CommandLineBuilder();
     
-    String heap = "-Xmx" + clusterSpec.getRoleOpt(role, RoleKeys.JVM_HEAP, DEFAULT_JVM_HEAP);
+    String heap = "-Xmx" + appComponent.getOption(RoleKeys.JVM_HEAP, DEFAULT_JVM_HEAP);
     String opt = "ACCUMULO_OTHER_OPTS";
     if (HoyaUtils.isSet(heap)) {
       if (AccumuloKeys.ROLE_MASTER.equals(role)) {
@@ -182,32 +190,27 @@ public class AccumuloProviderService extends AbstractProviderService implements
     }
 
     //this must stay relative if it is an image
-    command.add(
-      AccumuloClientProvider.buildScriptBinPath(clusterSpec).toString());
+    commandLine.add(providerUtils.buildPathToScript(instanceDefinition,
+      "bin", "accumulo"));
 
     //role is translated to the accumulo one
-    command.add(AccumuloRoles.serviceForRole(role));
+    commandLine.add(AccumuloRoles.serviceForRole(role));
     
     // Add any role specific arguments to the command line
-    String additionalArgs = ProviderUtils.getAdditionalArgs(roleOptions);
+    String additionalArgs = ProviderUtils.getAdditionalArgs(appComponent);
     if (!StringUtils.isBlank(additionalArgs)) {
-      command.add(additionalArgs);
+      commandLine.add(additionalArgs);
     }
 
-    //log details
-    command.add(
-      "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/out.txt");
-    command.add(
-      "2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/err.txt");
+    commandLine.addOutAndErrFiles(role + "-out.txt", role + "-err.txt");
+    
 
-    String cmdStr = HoyaUtils.join(command, " ");
-
-    commands.add(cmdStr);
+    commands.add(commandLine.build());
     ctx.setCommands(commands);
     ctx.setEnvironment(env);
   }
   
-  public List<String> buildProcessCommandList(ClusterDescription clusterSpec,
+  public List<String> buildProcessCommandList(AggregateConf instance,
                                           File confDir,
                                           Map<String, String> env,
                                           String... commands) throws
@@ -215,29 +218,31 @@ public class AccumuloProviderService extends AbstractProviderService implements
                                                                 HoyaException {
     env.put(ACCUMULO_LOG_DIR, ApplicationConstants.LOG_DIR_EXPANSION_VAR);
     String hadoop_home = System.getenv(HADOOP_HOME);
-    hadoop_home = clusterSpec.getOption(OPTION_HADOOP_HOME, hadoop_home);
+    MapOperations globalOptions =
+      instance.getAppConfOperations().getGlobalOptions();
+    hadoop_home = globalOptions.getOption(OPTION_HADOOP_HOME, hadoop_home);
     if (hadoop_home == null) {
       throw new BadConfigException(
         "Undefined env variable/config option: " + HADOOP_HOME);
     }
-    ProviderUtils.validatePathReferencesLocalDir("HADOOP_HOME",hadoop_home);
+    ProviderUtils.validatePathReferencesLocalDir("HADOOP_HOME", hadoop_home);
     env.put(HADOOP_HOME, hadoop_home);
     env.put(HADOOP_PREFIX, hadoop_home);
     //buildup accumulo home env variable to be absolute or relative
-    String accumulo_home = providerUtils.buildPathToHomeDir(
-      clusterSpec, "bin", "accumulo");
+    String accumulo_home = providerUtils.buildPathToHomeDir(instance,
+      "bin", "accumulo");
     File image = new File(accumulo_home);
     String accumuloPath = image.getAbsolutePath();
     env.put(ACCUMULO_HOME, accumuloPath);
     ProviderUtils.validatePathReferencesLocalDir("ACCUMULO_HOME", accumuloPath);
     env.put(ACCUMULO_CONF_DIR, confDir.getAbsolutePath());
-    String zkHome = clusterSpec.getMandatoryOption(OPTION_ZK_HOME);
+    String zkHome = globalOptions.getMandatoryOption(OPTION_ZK_HOME);
     ProviderUtils.validatePathReferencesLocalDir("ZOOKEEPER_HOME", zkHome);
 
     env.put(ZOOKEEPER_HOME, zkHome);
 
 
-    String accumuloScript = AccumuloClientProvider.buildScriptBinPath(clusterSpec);
+    String accumuloScript = AccumuloClientProvider.buildScriptBinPath(instance);
     List<String> launchSequence = new ArrayList<String>(8);
     launchSequence.add(0, accumuloScript);
     Collections.addAll(launchSequence, commands);
@@ -255,7 +260,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
    * a composite service that starts the Accumulo Master and, in parallel,
    * sends a delayed event to the AM
    *
-   * @param cd component description
+   * @param instanceDefinition component description
    * @param confDir local dir with the config
    * @param env environment variables above those generated by
    * @param execInProgress callback for the event notification
@@ -263,7 +268,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
    * @throws HoyaException anything internal
    */
   @Override
-  public boolean exec(ClusterDescription cd,
+  public boolean exec(AggregateConf instanceDefinition,
                       File confDir,
                       Map<String, String> env,
                       EventCallback execInProgress) throws
@@ -297,20 +302,28 @@ public class AccumuloProviderService extends AbstractProviderService implements
         "Interrupted while trying to connect to Zookeeper at %s",
         zkQuorum);
     }
-    boolean inited = isInited(cd);
+    boolean inited = isInited(instanceDefinition);
     if (inited) {
       // cluster is inited, so don't run anything
       return false;
     }
     List<String> commands;
 
-    log.info("Initializing accumulo datastore {}", cd.dataPath);
-    commands = buildProcessCommandList(cd, confDir, env,
+    log.info("Initializing accumulo datastore {}");
+    ConfTreeOperations appConfOperations =
+      instanceDefinition.getAppConfOperations();
+
+    ConfTreeOperations internalOperations =
+      instanceDefinition.getInternalOperations();
+    ConfTreeOperations resourceOperations =
+      instanceDefinition.getResourceOperations();
+    commands = buildProcessCommandList(instanceDefinition, confDir, env,
                             "init",
                             PARAM_INSTANCE_NAME,
-                            providerUtils.getUserName() + "-" + cd.name,
+                            providerUtils.getUserName() + "-" + instanceDefinition.getName(),
                             PARAM_PASSWORD,
-                            cd.getMandatoryOption(OPTION_ACCUMULO_PASSWORD),
+                            appConfOperations.getGlobalOptions().getMandatoryOption(
+                              OPTION_ACCUMULO_PASSWORD),
                             "--clear-instance-name");
 
 
@@ -318,14 +331,16 @@ public class AccumuloProviderService extends AbstractProviderService implements
       queueCommand(getName(), env, commands);
     //add a timeout to this process
     accumulo.setTimeout(
-      cd.getOptionInt(OPTION_ACCUMULO_INIT_TIMEOUT,
-                      INIT_TIMEOUT_DEFAULT), 1);
+      appConfOperations.getGlobalOptions().getOptionInt(
+        OPTION_ACCUMULO_INIT_TIMEOUT,
+        INIT_TIMEOUT_DEFAULT), 1);
     
     //callback to AM to trigger cluster review is set up to happen after
     //the init/verify action has succeeded
     EventNotifyingService notifier = new EventNotifyingService(execInProgress,
-      cd.getOptionInt( OptionKeys.CONTAINER_STARTUP_DELAY,
-                       OptionKeys.DEFAULT_CONTAINER_STARTUP_DELAY));
+           internalOperations.getGlobalOptions().getOptionInt(
+             OptionKeys.INTERNAL_CONTAINER_STARTUP_DELAY,
+             OptionKeys.DEFAULT_CONTAINER_STARTUP_DELAY));
     // register the service for lifecycle management; 
     // this service is started after the accumulo process completes
     addService(notifier);
@@ -341,8 +356,14 @@ public class AccumuloProviderService extends AbstractProviderService implements
    * @return true if the relevant data directory looks inited
    * @throws IOException IO problems
    */
-  private boolean isInited(ClusterDescription cd) throws IOException {
-    Path accumuloInited = new Path(cd.dataPath, "instance_id");
+  private boolean isInited(AggregateConf cd) throws
+                                             IOException,
+                                             BadConfigException {
+    String dataDir = cd.getInternalOperations()
+                               .getGlobalOptions()
+                               .getMandatoryOption(
+                                 OptionKeys.INTERNAL_DATA_DIR_PATH);
+    Path accumuloInited = new Path(dataDir, INSTANCE_ID);
     FileSystem fs2 = FileSystem.get(accumuloInited.toUri(), getConf());
     return fs2.exists(accumuloInited);
   }
@@ -362,14 +383,6 @@ public class AccumuloProviderService extends AbstractProviderService implements
     
   }
 
-  @Override
-  public List<Probe> createProbes(ClusterDescription clusterSpec,
-                                  String url,
-                                  Configuration config,
-                                  int timeout) throws IOException {
-    return new ArrayList<Probe>(0);
-  }
-  
   @Override
   public Map<String, String> buildProviderStatus() {
     

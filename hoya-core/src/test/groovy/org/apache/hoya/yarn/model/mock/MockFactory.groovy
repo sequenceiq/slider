@@ -23,6 +23,8 @@ import groovy.util.logging.Slf4j
 import com.google.common.collect.Maps
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.RoleKeys
+import org.apache.hoya.core.conf.AggregateConf
+import org.apache.hoya.core.conf.ConfTree
 import org.apache.hoya.providers.ProviderRole
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId
 import org.apache.hadoop.yarn.api.records.ApplicationId
@@ -32,7 +34,7 @@ import org.apache.hadoop.yarn.client.api.AMRMClient
 /**
  * Factory for creating things
  */
-@CompileStatic
+//@CompileStatic
 @Slf4j
 class MockFactory implements  MockRoles {
 
@@ -124,14 +126,52 @@ class MockFactory implements  MockRoles {
    */
   ClusterDescription newClusterSpec(int r1, int r2, int r3) {
     ClusterDescription cd = new ClusterDescription()
-    cd.roles = Maps.newHashMap([
+    cd.roles = newComponentsSection(r1, r2, r3)
+
+    return cd
+  }
+
+  public HashMap<String, LinkedHashMap<String, String>> newComponentsSection(
+      int r1,
+      int r2,
+      int r3) {
+    return Maps.newHashMap([
         (ROLE0): roleMap(r1),
         (ROLE1): roleMap(r2),
         (ROLE2): roleMap(r3),
     ])
+  }
+
+  /**
+   * Create a cluster spec with the given desired role counts
+   * @param r1
+   * @param r2
+   * @param r3
+   * @return
+   */
+  ConfTree newConfTree(int r1, int r2, int r3) {
+    ConfTree cd = new ConfTree()
+
+    cd.components = newComponentsSection(r1, r2, r3)
 
     return cd
   }
+
+  /**
+   * Create a new instance with the given components definined in the
+   * resources section
+   * @param r1
+   * @param r2
+   * @param r3
+   * @return
+   */
+  AggregateConf newInstanceDefinition(int r1, int r2, int r3) {
+    AggregateConf instance = new AggregateConf()
+    instance.setResources(newConfTree(r1, r2, r3))
+    return instance
+  }
+  
+  
   
   def roleMap(int count) {
     return [

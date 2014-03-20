@@ -25,14 +25,17 @@ import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hoya.HoyaKeys;
-import org.apache.hoya.api.ClusterDescription;
+import org.apache.hoya.api.OptionKeys;
+import org.apache.hoya.core.conf.AggregateConf;
+import org.apache.hoya.core.conf.ConfTreeOperations;
+import org.apache.hoya.core.conf.MapOperations;
+import org.apache.hoya.core.launch.CommandLineBuilder;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.providers.AbstractProviderService;
 import org.apache.hoya.providers.ProviderCore;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderUtils;
-import org.apache.hoya.servicemonitor.Probe;
 import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
 import org.apache.hoya.yarn.service.EventCallback;
@@ -61,7 +64,7 @@ public class AgentProviderService extends AbstractProviderService implements
   protected static final String NAME = "agent";
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
   private AgentClientProvider clientProvider;
-
+  private HoyaFileSystem hoyaFileSystem = null;
   public AgentProviderService() {
     super("AgentProviderService");
   }
@@ -85,27 +88,30 @@ public class AgentProviderService extends AbstractProviderService implements
   }
 
   @Override
-  public void validateClusterSpec(ClusterDescription clusterSpec) throws
+  public void validateInstanceDefinition(AggregateConf instanceDefinition) throws
                                                                   HoyaException {
-    clientProvider.validateClusterSpec(clusterSpec);
+    clientProvider.validateInstanceDefinition(instanceDefinition);
   }
 
-  @Override  // server
+  @Override
   public void buildContainerLaunchContext(ContainerLaunchContext ctx,
+                                          AggregateConf instanceDefinition,
                                           Container container,
                                           String role,
                                           HoyaFileSystem hoyaFileSystem,
                                           Path generatedConfPath,
-                                          ClusterDescription clusterSpec,
-                                          Map<String, String> roleOptions,
+                                          MapOperations resourceComponent,
+                                          MapOperations appComponent,
                                           Path containerTmpDirPath) throws
-                                                                    IOException,
-                                                                    HoyaException {
+                                                                            IOException,
+                                                                            HoyaException {
+    this.hoyaFileSystem = hoyaFileSystem;
+    this.instanceDefinition = instanceDefinition;
     log.info("Build launch context for Agent");
-    log.debug(clusterSpec.toString());
+    log.debug(instanceDefinition.toString());
 
     // Set the environment
-    Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
+    Map<String, String> env = HoyaUtils.buildEnvMap(appComponent);
 
     HoyaUtils.copyDirectory(getConf(), generatedConfPath, containerTmpDirPath,
                             null);
@@ -128,27 +134,28 @@ public class AgentProviderService extends AbstractProviderService implements
     localResources.putAll(confResources);
     //Add binaries
     //now add the image if it was set
-    if (clusterSpec.isImagePathSet()) {
-      Path imagePath = new Path(clusterSpec.getImagePath());
-      log.info("using image path {}", imagePath);
-      hoyaFileSystem.maybeAddImagePath(localResources, imagePath);
-    }
+
+    //Add binaries
+    //now add the image if it was set
+    String imageURI = instanceDefinition.getInternalOperations()
+                                        .get(OptionKeys.INTERNAL_APPLICATION_IMAGE_PATH);
+    hoyaFileSystem.maybeAddImagePath(localResources, imageURI);
+    
     ctx.setLocalResources(localResources);
     List<String> commandList = new ArrayList<String>();
+    CommandLineBuilder operation = new CommandLineBuilder();
 
-    List<String> operation = new ArrayList<String>();
+    ConfTreeOperations appConf =
+      instanceDefinition.getAppConfOperations();
 
-
-    String script =
-        clusterSpec.getMandatoryRoleOpt(role, SCRIPT_PATH);
-    String packagePath = clusterSpec.getMandatoryRoleOpt(role, PACKAGE_PATH);
+    String script = appComponent.getMandatoryOption(SCRIPT_PATH);
+    String packagePath = appComponent.getMandatoryOption(PACKAGE_PATH);
     File packagePathFile = new File(packagePath);
     HoyaUtils.verifyIsDir(packagePathFile, log);
     File executable = new File(packagePathFile, script);
     HoyaUtils.verifyFileExists(executable, log);
 
-    String appHome =
-        clusterSpec.getMandatoryRoleOpt(role, APP_HOME);
+    String appHome = appComponent.getMandatoryOption(APP_HOME);
     //APP_HOME == /dev/null is being used to issue direct start commands
     //This is not required once embedded Agent is available
     if (appHome.equals("/dev/null")) {
@@ -173,32 +180,19 @@ public class AgentProviderService extends AbstractProviderService implements
 
     String filename = "agent-server.txt";
 
-    operation.add(
-        "1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/" + filename);
-    operation.add("2>&1");
+    operation.addOutAndErrFiles(filename, null);
 
-    String cmdStr = HoyaUtils.join(operation, " ");
-    commandList.add(cmdStr);
+
+    commandList.add(operation.build());
     ctx.setCommands(commandList);
     ctx.setEnvironment(env);
 }
 
-  public void appendOperation(List<String> commandList,
-                              String exe,
-                              String filename) {
-    List<String> operation = new ArrayList<String>();
-    operation.add(exe);
-    operation.add(
-        "1>>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/" + filename);
-    operation.add("2>&1");
-    String cmdStr = HoyaUtils.join(operation, " ");
-    commandList.add(cmdStr);
-  }
 
   /**
    * Run this service
    *
-   * @param cd             component description
+   * @param instanceDefinition             component description
    * @param confDir        local dir with the config
    * @param env            environment variables above those generated by
    * @param execInProgress callback for the event notification
@@ -206,7 +200,7 @@ public class AgentProviderService extends AbstractProviderService implements
    * @throws HoyaException anything internal
    */
   @Override
-  public boolean exec(ClusterDescription cd,
+  public boolean exec(AggregateConf instanceDefinition,
                       File confDir,
                       Map<String, String> env,
                       EventCallback execInProgress) throws
@@ -216,35 +210,6 @@ public class AgentProviderService extends AbstractProviderService implements
     return false;
   }
 
-  /**
-   * This is a validation of the application configuration on the AM.
-   * Here is where things like the existence of keytabs and other
-   * not-seen-client-side properties can be tested, before
-   * the actual process is spawned.
-   *
-   * @param clusterSpec clusterSpecification
-   * @param confDir     configuration directory
-   * @param secure      flag to indicate that secure mode checks must exist
-   * @throws IOException   IO problemsn
-   * @throws HoyaException any failure
-   */
-  @Override
-  public void validateApplicationConfiguration(ClusterDescription clusterSpec,
-                                               File confDir,
-                                               boolean secure
-  ) throws IOException, HoyaException {
-
-  }
-
-  @Override
-  public List<Probe> createProbes(ClusterDescription clusterSpec, String urlStr,
-                                  Configuration config,
-                                  int timeout)
-      throws IOException {
-    List<Probe> probes = new ArrayList<Probe>();
-
-    return probes;
-  }
 
   /**
    * Build the provider status, can be empty

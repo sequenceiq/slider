@@ -21,17 +21,12 @@ package org.apache.hoya.yarn.model.appstate
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.yarn.api.records.Container
 import org.apache.hoya.api.StatusKeys
-import org.apache.hoya.yarn.appmaster.state.AbstractRMOperation
-import org.apache.hoya.yarn.appmaster.state.AppState
-import org.apache.hoya.yarn.appmaster.state.NodeEntry
-import org.apache.hoya.yarn.appmaster.state.NodeInstance
-import org.apache.hoya.yarn.appmaster.state.NodeMap
-import org.apache.hoya.yarn.appmaster.state.RoleInstance
+import org.apache.hoya.yarn.appmaster.state.*
 import org.apache.hoya.yarn.model.mock.BaseMockAppStateTest
 import org.apache.hoya.yarn.model.mock.MockRecordFactory
 import org.apache.hoya.yarn.model.mock.MockRoles
-import org.apache.hadoop.yarn.api.records.Container
 import org.junit.Test
 
 /**
@@ -74,12 +69,13 @@ class TestAppStateRebuildOnAMRestart extends BaseMockAppStateTest
     appState = new AppState(new MockRecordFactory())
 
     //and rebuild
-    appState.buildInstance(factory.newClusterSpec(r0, r1, r2),
-                           new Configuration(false),
-                           factory.ROLES,
-                           fs,
-                           historyPath,
-                           containers)
+    appState.buildInstance(
+        factory.newInstanceDefinition(r0, r1, r2),
+        new Configuration(false),
+        factory.ROLES,
+        fs,
+        historyPath,
+        containers)
 
     assert appState.getStartedCountainerCount() == clusterSize
 
@@ -115,7 +111,7 @@ class TestAppStateRebuildOnAMRestart extends BaseMockAppStateTest
     List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
     assert ops.size() == 0
 
-    def status = appState.getClusterDescription()
+    def status = appState.getClusterStatus()
     // verify the AM restart container count was set
     String restarted = status.getInfo(
         StatusKeys.INFO_CONTAINERS_AM_RESTART)

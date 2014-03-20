@@ -1,0 +1,30 @@
+{
+  "schema": "http://example.org/specification/v2.0.0",
+
+  "metadata": {
+ 
+  },
+
+  "global": {
+    "yarn.vcores": "1",
+    "yarn.memory": "512"
+  },
+
+  "components": {
+    "master": {
+      "role.instances": "1"
+    },
+      "tserver": {
+        "role.instances": "2"
+      },
+      "monitor": {
+        "role.instances": "0"
+      },
+      "tracer": {
+        "role.instances": "0"
+      },
+      "gc": {
+        "role.instances": "0"
+      }
+  }
+}

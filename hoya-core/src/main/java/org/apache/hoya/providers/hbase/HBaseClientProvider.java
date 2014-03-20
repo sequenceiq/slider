@@ -20,20 +20,20 @@ package org.apache.hoya.providers.hbase;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.HoyaXmlConfKeys;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.core.conf.AggregateConf;
+import org.apache.hoya.core.conf.ConfTreeOperations;
+import org.apache.hoya.core.conf.MapOperations;
+import org.apache.hoya.core.launch.AbstractLauncher;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.providers.AbstractClientProvider;
 import org.apache.hoya.providers.ProviderRole;
-import org.apache.hoya.providers.ProviderUtils;
 import org.apache.hoya.tools.ConfigHelper;
 import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
@@ -42,7 +42,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -61,7 +60,6 @@ public class HBaseClientProvider extends AbstractClientProvider implements
   protected static final Logger log =
     LoggerFactory.getLogger(HBaseClientProvider.class);
   protected static final String NAME = "hbase";
-  private static final ProviderUtils providerUtils = new ProviderUtils(log);
   private static final String INSTANCE_RESOURCE_BASE = PROVIDER_RESOURCE_BASE_ROOT +
                                                        "hbase/instance/";
 
@@ -133,6 +131,7 @@ public class HBaseClientProvider extends AbstractClientProvider implements
    * @param clusterSpec this is the cluster specification used to define this
    * @return a map of the dynamic bindings for this Hoya instance
    */
+  @Deprecated
   public Map<String, String> buildSiteConfFromSpec(ClusterDescription clusterSpec)
     throws BadConfigException {
 
@@ -148,10 +147,9 @@ public class HBaseClientProvider extends AbstractClientProvider implements
     providerUtils.propagateSiteOptions(clusterSpec, sitexml);
 /*
   //this is where we'd do app-indepdenent keytabs
-
     String keytab =
       clusterSpec.getOption(OptionKeys.OPTION_KEYTAB_LOCATION, "");
-    
+
 */
 
 
@@ -175,29 +173,69 @@ public class HBaseClientProvider extends AbstractClientProvider implements
     return sitexml;
   }
 
+
   /**
-   * Build time review and update of the cluster specification
-   * @param clusterSpec spec
+   * Build the hdfs-site.xml file
+   * This the configuration used by HBase directly
+   * @param instanceDescription this is the cluster specification used to define this
+   * @return a map of the dynamic bindings for this Hoya instance
    */
-  @Override // Client
-  public void reviewAndUpdateClusterSpec(ClusterDescription clusterSpec) throws
-                                                                         HoyaException{
+  public Map<String, String> buildSiteConfFromInstance(
+    AggregateConf instanceDescription)
+    throws BadConfigException {
 
-    validateClusterSpec(clusterSpec);
+
+    ConfTreeOperations appconf =
+      instanceDescription.getAppConfOperations();
+
+    MapOperations globalAppOptions = appconf.getGlobalOptions();
+    MapOperations globalInstanceOptions = instanceDescription.getInternalOperations().getGlobalOptions();
+    MapOperations master = appconf.getMandatoryComponent(HBaseKeys.ROLE_MASTER);
+
+    MapOperations worker = appconf.getMandatoryComponent(HBaseKeys.ROLE_WORKER);
+    
+    Map<String, String> sitexml = new HashMap<String, String>();
+
+    //map all cluster-wide site. options
+    providerUtils.propagateSiteOptions(globalAppOptions, sitexml);
+/*
+  //this is where we'd do app-indepdenent keytabs
+
+    String keytab =
+      clusterSpec.getOption(OptionKeys.OPTION_KEYTAB_LOCATION, "");
+    
+*/
+
+
+    sitexml.put(KEY_HBASE_ROOTDIR,
+                globalInstanceOptions.getMandatoryOption(
+                  OptionKeys.INTERNAL_DATA_DIR_PATH) );
+    providerUtils.propagateOption(globalAppOptions, OptionKeys.ZOOKEEPER_PATH,
+                                  sitexml, KEY_ZNODE_PARENT);
+    providerUtils.propagateOption(globalAppOptions, OptionKeys.ZOOKEEPER_PORT,
+                                  sitexml, KEY_ZOOKEEPER_PORT);
+    providerUtils.propagateOption(globalAppOptions, OptionKeys.ZOOKEEPER_HOSTS,
+                                  sitexml, KEY_ZOOKEEPER_QUORUM);
+
+    return sitexml;
   }
-
 
   @Override //Client
   public void preflightValidateClusterConfiguration(HoyaFileSystem hoyaFileSystem,
                                                     String clustername,
                                                     Configuration configuration,
-                                                    ClusterDescription clusterSpec,
+                                                    AggregateConf instanceDefinition,
                                                     Path clusterDirPath,
                                                     Path generatedConfDirPath,
                                                     boolean secure) throws
                                                                     HoyaException,
                                                                     IOException {
-    validateClusterSpec(clusterSpec);
+    super.preflightValidateClusterConfiguration(hoyaFileSystem, clustername,
+                                                configuration,
+                                                instanceDefinition,
+                                                clusterDirPath,
+                                                generatedConfDirPath, secure);
+
     Path templatePath = new Path(generatedConfDirPath, HBaseKeys.SITE_XML);
     //load the HBase site file or fail
     Configuration siteConf = ConfigHelper.loadConfiguration(hoyaFileSystem.getFileSystem(),
@@ -265,45 +303,40 @@ public class HBaseClientProvider extends AbstractClientProvider implements
   }
   
   /**
-   * Validate the cluster specification. This can be invoked on both
-   * server and client
+   * Validate the instance definition.
    * @param clusterSpec
    */
-  @Override // Client and Server
-  public void validateClusterSpec(ClusterDescription clusterSpec) throws
-                                                                  HoyaException {
-    super.validateClusterSpec(clusterSpec);
-    Set<String> unknownRoles = clusterSpec.getRoleNames();
+  @Override
+  public void validateInstanceDefinition(AggregateConf instanceDefinition) throws
+                                                                           HoyaException {
+    super.validateInstanceDefinition(instanceDefinition);
+    ConfTreeOperations resources =
+      instanceDefinition.getResourceOperations();
+    Set<String> unknownRoles = resources.getComponentNames();
     unknownRoles.removeAll(knownRoleNames);
     if (!unknownRoles.isEmpty()) {
-      throw new BadCommandArgumentsException("There is unknown role: %s",
-        unknownRoles.iterator().next());
+      throw new BadCommandArgumentsException("Unknown component: %s",
+                                             unknownRoles.iterator().next());
     }
-    providerUtils.validateNodeCount(HBaseKeys.ROLE_WORKER,
-                                    clusterSpec.getDesiredInstanceCount(
-                                      HBaseKeys.ROLE_WORKER,
-                                      0), 0, -1);
+    providerUtils.validateNodeCount(instanceDefinition, HBaseKeys.ROLE_WORKER,
+                                    0, -1);
+    providerUtils.validateNodeCount(instanceDefinition, HBaseKeys.ROLE_MASTER,
+                                    0, -1);
 
-
-    providerUtils.validateNodeCount(HBaseKeys.ROLE_MASTER,
-                                    clusterSpec.getDesiredInstanceCount(
-                                      HBaseKeys.ROLE_MASTER,
-                                      0),
-                                    0,
-                                    -1);
   }
 
   @Override
-  public Map<String, LocalResource> prepareAMAndConfigForLaunch(HoyaFileSystem hoyaFileSystem,
-                                                                Configuration serviceConf,
-                                                                ClusterDescription clusterSpec,
-                                                                Path originConfDirPath,
-                                                                Path generatedConfDirPath,
-                                                                Configuration clientConfExtras,
-                                                                String libdir,
-                                                                Path tempPath) throws
-                                                                               IOException,
-                                                                               HoyaException {
+  public void prepareAMAndConfigForLaunch(HoyaFileSystem hoyaFileSystem,
+                                          Configuration serviceConf,
+                                          AbstractLauncher launcher,
+                                          AggregateConf instanceDescription,
+                                          Path originConfDirPath,
+                                          Path generatedConfDirPath,
+                                          Configuration clientConfExtras,
+                                          String libdir,
+                                          Path tempPath) throws
+                                                         IOException,
+                                                         HoyaException {
     //load in the template site config
     log.debug("Loading template configuration from {}", originConfDirPath);
     Configuration siteConf = ConfigHelper.loadTemplateConfiguration(
@@ -311,15 +344,21 @@ public class HBaseClientProvider extends AbstractClientProvider implements
       originConfDirPath,
       HBaseKeys.SITE_XML,
       HBaseKeys.HBASE_TEMPLATE_RESOURCE);
-    
+
     if (log.isDebugEnabled()) {
       log.debug("Configuration came from {}",
                 siteConf.get(HoyaXmlConfKeys.KEY_HOYA_TEMPLATE_ORIGIN));
       ConfigHelper.dumpConf(siteConf);
     }
     //construct the cluster configuration values
-    Map<String, String> clusterConfMap = buildSiteConfFromSpec(clusterSpec);
+
+    ConfTreeOperations appconf =
+      instanceDescription.getAppConfOperations();
+
     
+    Map<String, String> clusterConfMap = buildSiteConfFromInstance(
+      instanceDescription);
+
     //merge them
     ConfigHelper.addConfigMap(siteConf,
                               clusterConfMap.entrySet(),
@@ -330,7 +369,7 @@ public class HBaseClientProvider extends AbstractClientProvider implements
       ConfigHelper.mergeConfigurations(siteConf, clientConfExtras,
                                        "Hoya Client");
     }
-    
+
     if (log.isDebugEnabled()) {
       log.debug("Merged Configuration");
       ConfigHelper.dumpConf(siteConf);
@@ -342,35 +381,10 @@ public class HBaseClientProvider extends AbstractClientProvider implements
                                             HBaseKeys.SITE_XML);
 
     log.debug("Saving the config to {}", sitePath);
-    Map<String, LocalResource> providerResources;
-    providerResources = hoyaFileSystem.submitDirectory(generatedConfDirPath,
-                                       HoyaKeys.PROPAGATED_CONF_DIR_NAME);
-
-    return providerResources;
-  }
-
-  /**
-   * Update the AM resource with any local needs
-   * @param capability capability to update
-   */
-  @Override
-  public void prepareAMResourceRequirements(ClusterDescription clusterSpec,
-                                            Resource capability) {
+    launcher.submitDirectory(generatedConfDirPath,
+                             HoyaKeys.PROPAGATED_CONF_DIR_NAME);
 
   }
-
-
-  /**
-   * Any operations to the service data before launching the AM
-   * @param clusterSpec cspec
-   * @param serviceData map of service data
-   */
-  @Override  //Client
-  public void prepareAMServiceData(ClusterDescription clusterSpec,
-                                   Map<String, ByteBuffer> serviceData) {
-    
-  }
-
 
 
 }

@@ -16,6 +16,8 @@
  */
 package org.apache.hoya.yarn.model.mock
 
+import org.apache.hoya.api.proto.Messages
+
 import java.io.IOException
 import org.apache.hadoop.ipc.ProtocolSignature;
 import org.apache.hadoop.yarn.exceptions.YarnException;
@@ -97,5 +99,12 @@ class MockHoyaClusterProtocol implements HoyaClusterProtocol {
   @Override
   public AMSuicideResponseProto amSuicide(AMSuicideRequestProto request) throws IOException, YarnException {
     return null;
+  }
+
+  @Override
+  Messages.GetInstanceDefinitionResponseProto getInstanceDefinition(
+      Messages.GetInstanceDefinitionRequestProto request)
+  throws IOException, YarnException {
+    return null
   }
 }

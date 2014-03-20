@@ -78,6 +78,19 @@ public class HoyaClusterProtocolPBImpl implements HoyaClusterProtocolPB {
     }
   }
 
+
+  @Override
+  public Messages.GetInstanceDefinitionResponseProto getInstanceDefinition(
+    RpcController controller,
+    Messages.GetInstanceDefinitionRequestProto request) throws
+                                                        ServiceException {
+    try {
+      return real.getInstanceDefinition(request);
+    } catch (Exception e) {
+      throw wrap(e);
+    }
+  }
+
   @Override
   public Messages.ListNodeUUIDsByRoleResponseProto listNodeUUIDsByRole(
     RpcController controller,
@@ -133,6 +146,7 @@ public class HoyaClusterProtocolPBImpl implements HoyaClusterProtocolPB {
     }
   }
 
+
   @Override
   public Messages.AMSuicideResponseProto amSuicide(RpcController controller,
                                                    Messages.AMSuicideRequestProto request) throws
@@ -143,4 +157,5 @@ public class HoyaClusterProtocolPBImpl implements HoyaClusterProtocolPB {
       throw wrap(e);
     }
   }
+  
 }

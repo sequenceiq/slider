@@ -67,7 +67,7 @@ public class TestConfPersisterReadWrite extends YarnMiniClusterTestBase {
     AggregateConf aggregateConf = new AggregateConf()
 
     def persister = createPersister("testSaveLoad")
-    persister.save(aggregateConf)
+    persister.save(aggregateConf, null)
     AggregateConf loaded = new AggregateConf()
     persister.load(loaded)
     loaded.validate()
@@ -77,7 +77,7 @@ public class TestConfPersisterReadWrite extends YarnMiniClusterTestBase {
   @Test
   public void testSaveLoadTestConf() throws Throwable {
     def persister = createPersister("testSaveLoadTestConf")
-    persister.save(aggregateConf)
+    persister.save(aggregateConf, null)
     AggregateConf loaded = new AggregateConf()
     persister.load(loaded)
     loaded.validate()
@@ -90,7 +90,7 @@ public class TestConfPersisterReadWrite extends YarnMiniClusterTestBase {
     def appConfOperations = aggregateConf.getAppConfOperations()
     appConfOperations.getMandatoryComponent("master")["PATH"]="."
     def persister = createPersister("testSaveLoadTestConf")
-    persister.save(aggregateConf)
+    persister.save(aggregateConf, null)
     AggregateConf loaded = new AggregateConf()
     persister.load(loaded)
     loaded.validate()
@@ -155,7 +155,7 @@ public class TestConfPersisterReadWrite extends YarnMiniClusterTestBase {
     def persister = createPersister("testLoadSucceedsIfReadlocked")
     persister.releaseReadlock(true)
     try {
-      persister.save(aggregateConf)
+      persister.save(aggregateConf, null)
       persister.acquireReadLock()
       AggregateConf loaded = new AggregateConf()
       persister.load(loaded)
@@ -170,7 +170,7 @@ public class TestConfPersisterReadWrite extends YarnMiniClusterTestBase {
       ConfPersister persister,
       AggregateConf aggregateConf) {
     try {
-      persister.save(aggregateConf)
+      persister.save(aggregateConf, null)
       fail "expected save to fail to get a lock"
     } catch (LockAcquireFailedException lafe) {
       //expected

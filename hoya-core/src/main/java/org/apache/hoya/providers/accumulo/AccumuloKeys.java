@@ -116,4 +116,5 @@ public interface AccumuloKeys {
   
   String MASTER_ADDRESS = StatusKeys.INFO_MASTER_ADDRESS;
   String MONITOR_ADDRESS = "monitor.address";
+  String INSTANCE_ID = "instance_id";
 }

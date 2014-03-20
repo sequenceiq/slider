@@ -23,11 +23,14 @@ import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.HoyaXmlConfKeys;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.OptionKeys;
+import org.apache.hoya.core.conf.AggregateConf;
+import org.apache.hoya.core.conf.ConfTreeOperations;
+import org.apache.hoya.core.conf.MapOperations;
+import org.apache.hoya.core.launch.AbstractLauncher;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
@@ -43,7 +46,6 @@ import org.slf4j.LoggerFactory;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -63,7 +65,11 @@ public class AccumuloClientProvider extends AbstractClientProvider implements
     LoggerFactory.getLogger(AccumuloClientProvider.class);
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
   public static final String TEMPLATE_PATH =
-    "org/apache/hoya/providers/accumulo/";
+    PROVIDER_RESOURCE_BASE+"accumulo/";
+  private static final String INSTANCE_RESOURCE_BASE =
+    PROVIDER_RESOURCE_BASE_ROOT +
+    "accumulo/instance/";
+
 
   protected AccumuloClientProvider(Configuration conf) {
     super(conf);
@@ -83,6 +89,19 @@ public class AccumuloClientProvider extends AbstractClientProvider implements
     return AccumuloRoles.ROLES;
   }
 
+
+  @Override
+  public void prepareInstanceConfiguration(AggregateConf aggregateConf) throws
+                                                                        HoyaException,
+                                                                        IOException {
+    String resourceTemplate = INSTANCE_RESOURCE_BASE + "resources.json";
+    String appConfTemplate = INSTANCE_RESOURCE_BASE + "appconf.json";
+    mergeTemplates(aggregateConf, null, resourceTemplate, appConfTemplate);
+    aggregateConf.getAppConfOperations().set(OPTION_ACCUMULO_PASSWORD,
+                                             createAccumuloPassword());
+  }
+
+
   /**
    * Get a map of all the default options for the cluster; values
    * that can be overridden by user defaults after
@@ -96,14 +115,18 @@ public class AccumuloClientProvider extends AbstractClientProvider implements
       "org/apache/hoya/providers/accumulo/accumulo.xml");
 
     //make up a password
-    conf.set(OPTION_ACCUMULO_PASSWORD, UUID.randomUUID().toString());
+    conf.set(OPTION_ACCUMULO_PASSWORD, createAccumuloPassword());
 
     //create an instance ID
     conf.set(
       OptionKeys.SITE_XML_PREFIX + INSTANCE_SECRET,
-      UUID.randomUUID().toString());
+      createAccumuloPassword());
     return conf;
 
+  }
+
+  public String createAccumuloPassword() {
+    return UUID.randomUUID().toString();
   }
 
   /**
@@ -158,24 +181,10 @@ public class AccumuloClientProvider extends AbstractClientProvider implements
 
     providerUtils.propagateSiteOptions(clusterSpec, sitexml);
 
-    String fsDefaultName =
-      getConf().get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
-    if (fsDefaultName == null) {
-      throw new BadConfigException("Key not found in conf: {}",
-                                   CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY);
-    }
-    sitexml.put(CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY, fsDefaultName);
-    sitexml.put(HoyaXmlConfKeys.FS_DEFAULT_NAME_CLASSIC, fsDefaultName);
+    propagateClientFSBinding(sitexml);
 
     String dataPath = clusterSpec.dataPath;
-    Path path = new Path(dataPath);
-    URI parentUri = path.toUri();
-    String authority = parentUri.getAuthority();
-    String fspath =
-      parentUri.getScheme() + "://" + (authority == null ? "" : authority) + "/";
-    sitexml.put(AccumuloConfigFileOptions.INSTANCE_DFS_URI, fspath);
-    sitexml.put(AccumuloConfigFileOptions.INSTANCE_DFS_DIR,
-                parentUri.getPath());
+    setDatabasePath(sitexml, dataPath);
 
     //fix up ZK
     int zkPort = clusterSpec.getZkPort();
@@ -191,29 +200,89 @@ public class AccumuloClientProvider extends AbstractClientProvider implements
     return sitexml;
   }
 
-
-  /**
-   * Build time review and update of the cluster specification
-   * @param clusterSpec spec
-   */
-  @Override // Client
-  public void reviewAndUpdateClusterSpec(ClusterDescription clusterSpec) throws
-                                                                         HoyaException {
-
-    validateClusterSpec(clusterSpec);
+  public void setDatabasePath(Map<String, String> sitexml, String dataPath) {
+    Path path = new Path(dataPath);
+    URI parentUri = path.toUri();
+    String authority = parentUri.getAuthority();
+    String fspath =
+      parentUri.getScheme() + "://" + (authority == null ? "" : authority) + "/";
+    sitexml.put(AccumuloConfigFileOptions.INSTANCE_DFS_URI, fspath);
+    sitexml.put(AccumuloConfigFileOptions.INSTANCE_DFS_DIR,
+                parentUri.getPath());
   }
 
-  @Override //Client
+  /**
+   * Build the accumulo-site.xml file
+   * This the configuration used by Accumulo directly
+   * @param instanceDescription this is the cluster specification used to define this
+   * @return a map of the dynamic bindings for this Hoya instance
+   */
+  public Map<String, String> buildSiteConfFromInstance(
+    AggregateConf instanceDescription)
+    throws BadConfigException {
+
+
+    ConfTreeOperations appconf =
+      instanceDescription.getAppConfOperations();
+
+    MapOperations globalAppOptions = appconf.getGlobalOptions();
+    MapOperations globalInstanceOptions =
+      instanceDescription.getInternalOperations().getGlobalOptions();
+
+
+    Map<String, String> sitexml = new HashMap<String, String>();
+
+    providerUtils.propagateSiteOptions(globalAppOptions, sitexml);
+
+    propagateClientFSBinding(sitexml);
+    setDatabasePath(sitexml,
+                    globalInstanceOptions.getMandatoryOption(OptionKeys.INTERNAL_DATA_DIR_PATH));
+
+
+    String zkHosts =
+      globalAppOptions.getMandatoryOption(OptionKeys.ZOOKEEPER_HOSTS);
+    String zkPort =
+      globalAppOptions.getMandatoryOption(OptionKeys.ZOOKEEPER_PORT);
+    //parse the hosts
+    String[] hostlist = zkHosts.split(",", 0);
+    String quorum = HoyaUtils.join(hostlist, ":" + zkPort + ",");
+    //this quorum has a trailing comma
+    quorum = quorum.substring(0, quorum.length() - 1);
+    sitexml.put(AccumuloConfigFileOptions.ZOOKEEPER_HOST, quorum);
+
+    return sitexml;
+
+  }
+
+
+  public void propagateClientFSBinding(Map<String, String> sitexml) throws
+                                                                    BadConfigException {
+    String fsDefaultName =
+      getConf().get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
+    if (fsDefaultName == null) {
+      throw new BadConfigException("Key not found in conf: {}",
+                                   CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY);
+    }
+    sitexml.put(CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY, fsDefaultName);
+    sitexml.put(HoyaXmlConfKeys.FS_DEFAULT_NAME_CLASSIC, fsDefaultName);
+  }
+
+  @Override 
   public void preflightValidateClusterConfiguration(HoyaFileSystem hoyaFileSystem,
                                                     String clustername,
                                                     Configuration configuration,
-                                                    ClusterDescription clusterSpec,
+                                                    AggregateConf instanceDefinition,
                                                     Path clusterDirPath,
                                                     Path generatedConfDirPath,
                                                     boolean secure) throws
                                                                     HoyaException,
                                                                     IOException {
-    validateClusterSpec(clusterSpec);
+    super.preflightValidateClusterConfiguration(hoyaFileSystem, clustername,
+                                                configuration,
+                                                instanceDefinition,
+                                                clusterDirPath,
+                                                generatedConfDirPath, secure);
+
   }
 
   /**
@@ -254,48 +323,56 @@ public class AccumuloClientProvider extends AbstractClientProvider implements
                                     classes);
   }
 
-  /**
-   * This builds up the site configuration for the AM and downstream services;
-   * the path is added to the cluster spec so that launchers in the 
-   * AM can pick it up themselves. 
-   *
-   *
-   *
-   *
-   * @param hoyaFileSystem filesystem
-   * @param serviceConf conf used by the service
-   * @param clusterSpec cluster specification
-   * @param originConfDirPath the original config dir -treat as read only
-   * @param generatedConfDirPath path to place generated artifacts
-   * @param clientConfExtras
-   * @param libdir
-   * @param tempPath
-   * @return a map of name to local resource to add to the AM launcher
-   */
-  @Override //client
-  public Map<String, LocalResource> prepareAMAndConfigForLaunch(HoyaFileSystem hoyaFileSystem,
-                                                                Configuration serviceConf,
-                                                                ClusterDescription clusterSpec,
-                                                                Path originConfDirPath,
-                                                                Path generatedConfDirPath,
-                                                                Configuration clientConfExtras,
-                                                                String libdir,
-                                                                Path tempPath) throws
-                                                                                           IOException,
-                                                                                           HoyaException,
-                                                                                           BadConfigException {
-    Configuration siteConf = ConfigHelper.loadTemplateConfiguration(
-      serviceConf,
-      originConfDirPath,
-      AccumuloKeys.SITE_XML,
-      AccumuloKeys.SITE_XML_RESOURCE);
+  @Override
+  public void prepareAMAndConfigForLaunch(HoyaFileSystem hoyaFileSystem,
+                                          Configuration serviceConf,
+                                          AbstractLauncher launcher,
+                                          AggregateConf instanceDescription,
+                                          Path originConfDirPath,
+                                          Path generatedConfDirPath,
+                                          Configuration clientConfExtras,
+                                          String libdir,
+                                          Path tempPath) throws
+                                                         IOException,
+                                                         HoyaException {
+    //load in the template site config
+    log.debug("Loading template configuration from {}", originConfDirPath);
+      Configuration siteConf = ConfigHelper.loadTemplateConfiguration(
+        serviceConf,
+        originConfDirPath,
+        AccumuloKeys.SITE_XML,
+        AccumuloKeys.SITE_XML_RESOURCE);
 
+
+
+    Map<String, LocalResource> confResources;
+    confResources = hoyaFileSystem.submitDirectory(generatedConfDirPath,
+                                                   HoyaKeys.PROPAGATED_CONF_DIR_NAME);
+
+    addAccumuloDependencyJars(confResources, hoyaFileSystem, libdir, tempPath);
+    
     //construct the cluster configuration values
-    Map<String, String> clusterConfMap = buildSiteConfFromSpec(clusterSpec);
+
+    ConfTreeOperations appconf =
+      instanceDescription.getAppConfOperations();
+
+
+    Map<String, String> clusterConfMap = buildSiteConfFromInstance(
+      instanceDescription);
+
     //merge them
-    ConfigHelper.addConfigMap(siteConf, clusterConfMap, "Accumulo Provider");
+    ConfigHelper.addConfigMap(siteConf,
+                              clusterConfMap.entrySet(),
+                              "Accumulo Provider");
+
+    //now, if there is an extra client conf, merge it in too
+    if (clientConfExtras != null) {
+      ConfigHelper.mergeConfigurations(siteConf, clientConfExtras,
+                                       "Hoya Client");
+    }
 
     if (log.isDebugEnabled()) {
+      log.debug("Merged Configuration");
       ConfigHelper.dumpConf(siteConf);
     }
 
@@ -305,32 +382,8 @@ public class AccumuloClientProvider extends AbstractClientProvider implements
                                             AccumuloKeys.SITE_XML);
 
     log.debug("Saving the config to {}", sitePath);
-    Map<String, LocalResource> confResources;
-    confResources = hoyaFileSystem.submitDirectory(generatedConfDirPath, HoyaKeys.PROPAGATED_CONF_DIR_NAME);
-
-    addAccumuloDependencyJars(confResources, hoyaFileSystem, libdir, tempPath);
-    
-    return confResources;
-  }
-
-  /**
-   * Update the AM resource with any local needs
-   * @param capability capability to update
-   */
-  @Override //client
-  public void prepareAMResourceRequirements(ClusterDescription clusterSpec,
-                                            Resource capability) {
-  }
-
-
-  /**
-   * Any operations to the service data before launching the AM
-   * @param clusterSpec cspec
-   * @param serviceData map of service data
-   */
-  @Override //client
-  public void prepareAMServiceData(ClusterDescription clusterSpec,
-                                   Map<String, ByteBuffer> serviceData) {
+    launcher.submitDirectory(generatedConfDirPath,
+                             HoyaKeys.PROPAGATED_CONF_DIR_NAME);
 
   }
 
@@ -342,49 +395,42 @@ public class AccumuloClientProvider extends AbstractClientProvider implements
     }
   }
 
-  /**
-   * Validate the cluster specification. This can be invoked on both
-   * server and client
-   * @param clusterSpec
-   */
-  @Override // Client and Server
-  public void validateClusterSpec(ClusterDescription clusterSpec) throws
-                                                                  HoyaException {
-    super.validateClusterSpec(clusterSpec);
-    Set<String> unknownRoles = clusterSpec.getRoleNames();
+  @Override
+  public void validateInstanceDefinition(AggregateConf instanceDefinition) throws
+                                                                           HoyaException {
+    super.validateInstanceDefinition(instanceDefinition);
+
+    ConfTreeOperations resources =
+      instanceDefinition.getResourceOperations();
+    Set<String> unknownRoles = resources.getComponentNames();
     unknownRoles.removeAll(knownRoleNames);
     if (!unknownRoles.isEmpty()) {
       throw new BadCommandArgumentsException("There is unknown role: %s",
-        unknownRoles.iterator().next());
+                                             unknownRoles.iterator().next());
     }
-    providerUtils.validateNodeCount(AccumuloKeys.ROLE_TABLET,
-                                    clusterSpec.getDesiredInstanceCount(
-                                      AccumuloKeys.ROLE_TABLET,
-                                      1), 1, -1);
+    providerUtils.validateNodeCount(instanceDefinition,
+                                    AccumuloKeys.ROLE_TABLET,
+                                    1, -1);
 
 
-    providerUtils.validateNodeCount(AccumuloKeys.ROLE_MASTER,
-                                    clusterSpec.getDesiredInstanceCount(
-                                      AccumuloKeys.ROLE_MASTER,
-                                      1), 1, -1);
+    providerUtils.validateNodeCount(instanceDefinition,
+                                    AccumuloKeys.ROLE_MASTER, 1, -1);
 
-    providerUtils.validateNodeCount(AccumuloKeys.ROLE_GARBAGE_COLLECTOR,
-                                    clusterSpec.getDesiredInstanceCount(
-                                      AccumuloKeys.ROLE_GARBAGE_COLLECTOR,
-                                      0), 0, -1);
+    providerUtils.validateNodeCount(instanceDefinition,
+                                    AccumuloKeys.ROLE_GARBAGE_COLLECTOR,
+                                    0, -1);
 
-    providerUtils.validateNodeCount(AccumuloKeys.ROLE_MONITOR,
-                                    clusterSpec.getDesiredInstanceCount(
-                                      AccumuloKeys.ROLE_MONITOR,
-                                      0), 0, -1);
+    providerUtils.validateNodeCount(instanceDefinition,
+                                    AccumuloKeys.ROLE_MONITOR,
+                                    0, -1);
 
-    providerUtils.validateNodeCount(AccumuloKeys.ROLE_TRACER,
-                                    clusterSpec.getDesiredInstanceCount(
-                                      AccumuloKeys.ROLE_TRACER,
-                                      0), 0, -1);
+    providerUtils.validateNodeCount(instanceDefinition,
+                                    AccumuloKeys.ROLE_TRACER , 0, -1);
 
-    clusterSpec.verifyOptionSet(AccumuloKeys.OPTION_ZK_HOME);
-    clusterSpec.verifyOptionSet(AccumuloKeys.OPTION_HADOOP_HOME);
+    MapOperations globalAppConfOptions =
+      instanceDefinition.getAppConfOperations().getGlobalOptions();
+    globalAppConfOptions.verifyOptionSet(AccumuloKeys.OPTION_ZK_HOME);
+    globalAppConfOptions.verifyOptionSet(AccumuloKeys.OPTION_HADOOP_HOME);
   }
 
 
@@ -392,10 +438,9 @@ public class AccumuloClientProvider extends AbstractClientProvider implements
    * Get the path to the script
    * @return the script
    */
-  public static String buildScriptBinPath(ClusterDescription cd)
+  public static String buildScriptBinPath(AggregateConf instanceDefinition)
     throws FileNotFoundException {
-    return providerUtils.buildPathToScript(
-        cd, "bin", "accumulo");
+    return providerUtils.buildPathToScript(instanceDefinition, "bin", "accumulo");
   }
 
 

@@ -41,6 +41,7 @@ import org.apache.hoya.HoyaXmlConfKeys
 import org.apache.hoya.api.ClusterNode
 import org.apache.hoya.exceptions.ErrorStrings
 import org.apache.hoya.exceptions.HoyaException
+import org.apache.hoya.exceptions.UnknownClusterException
 import org.apache.hoya.tools.*
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.HoyaActions
@@ -751,16 +752,6 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest {
     assertExceptionDetails(e,
         HoyaExitCodes.EXIT_CLUSTER_IN_USE,
         ErrorStrings.E_CLUSTER_RUNNING)
-  }
-
-  /**
-   * Assert that a cluster is unknown by the exit code
-   * & the {@link HoyaClient#E_UNKNOWN_CLUSTER} text
-   * @param exception
-   */
-  public static void assertUnknownClusterException(HoyaException e) {
-    assertExceptionDetails(e, HoyaExitCodes.EXIT_UNKNOWN_HOYA_CLUSTER,
-        ErrorStrings.E_UNKNOWN_CLUSTER)
   }
 
 }

@@ -24,9 +24,6 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hoya.exceptions.BadConfigException;
-import org.apache.hoya.exceptions.ErrorStrings;
-import org.apache.hoya.exceptions.HoyaException;
-import org.apache.hoya.exceptions.UnknownClusterException;
 import org.apache.hoya.providers.HoyaProviderFactory;
 import org.apache.hoya.tools.HoyaUtils;
 import org.codehaus.jackson.JsonGenerationException;
@@ -51,8 +48,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.apache.hoya.api.OptionKeys.APPLICATION_HOME;
-import static org.apache.hoya.api.OptionKeys.APPLICATION_IMAGE_PATH;
+import static org.apache.hoya.api.OptionKeys.INTERNAL_APPLICATION_HOME;
+import static org.apache.hoya.api.OptionKeys.INTERNAL_APPLICATION_IMAGE_PATH;
 import static org.apache.hoya.api.OptionKeys.ZOOKEEPER_HOSTS;
 import static org.apache.hoya.api.OptionKeys.ZOOKEEPER_PATH;
 import static org.apache.hoya.api.OptionKeys.ZOOKEEPER_PORT;
@@ -215,27 +212,6 @@ public class ClusterDescription implements Cloneable {
   public ClusterDescription() {
   }
 
-  /**
-   * Verify that a cluster specification exists
-   * @param clustername name of the cluster (For errors only)
-   * @param fs filesystem
-   * @param clusterSpecPath cluster specification path
-   * @throws IOException IO problems
-   * @throws HoyaException if the cluster specification is not present
-   */
-  public static void verifyClusterSpecExists(String clustername,
-                                             FileSystem fs,
-                                             Path clusterSpecPath) throws
-                                                                   IOException,
-                                                                   HoyaException {
-    if (!fs.isFile(clusterSpecPath)) {
-      log.debug("Missing cluster specification file {}", clusterSpecPath);
-      throw new UnknownClusterException( ErrorStrings.E_UNKNOWN_CLUSTER
-                              + clustername 
-                              + "\n (cluster definition not found at " 
-                              + clusterSpecPath);
-    }
-  }
 
   @Override
   public String toString() {
@@ -778,12 +754,12 @@ public class ClusterDescription implements Cloneable {
    */
   @JsonIgnore
   public String getApplicationHome() {
-    return getOption(APPLICATION_HOME, "");
+    return getOption(INTERNAL_APPLICATION_HOME, "");
   }
 
   @JsonIgnore
   public void setApplicationHome(String applicationHome) {
-    setOption(APPLICATION_HOME, applicationHome);
+    setOption(INTERNAL_APPLICATION_HOME, applicationHome);
   }
 
   /**
@@ -791,7 +767,7 @@ public class ClusterDescription implements Cloneable {
    */
   @JsonIgnore
   public String getImagePath() {
-    return getOption(APPLICATION_IMAGE_PATH, "");
+    return getOption(INTERNAL_APPLICATION_IMAGE_PATH, "");
   }
 
   /**
@@ -799,7 +775,7 @@ public class ClusterDescription implements Cloneable {
    */
   @JsonIgnore
   public void setImagePath(String imagePath) {
-    setOption(APPLICATION_IMAGE_PATH, imagePath);
+    setOption(INTERNAL_APPLICATION_IMAGE_PATH, imagePath);
   }
 
   /**

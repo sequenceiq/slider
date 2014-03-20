@@ -12,6 +12,9 @@
   },
 
   "components": {
-
+    "hoya": {
+      "env.MALLOC_ARENA_MAX": "4",
+      "jvm.heapsize": "256M"
+    }
   }
 }

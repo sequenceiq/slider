@@ -35,11 +35,16 @@ import org.apache.hoya.HoyaExitCodes;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.ClusterDescriptionKeys;
+import org.apache.hoya.api.ClusterDescriptionOperations;
 import org.apache.hoya.api.ClusterNode;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.api.StatusKeys;
 import org.apache.hoya.api.proto.Messages;
+import org.apache.hoya.core.conf.AggregateConf;
+import org.apache.hoya.core.conf.ConfTree;
+import org.apache.hoya.core.conf.ConfTreeOperations;
+import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.exceptions.BadClusterStateException;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.ErrorStrings;
@@ -88,8 +93,26 @@ public class AppState {
     LoggerFactory.getLogger(AppState.class);
   
   private final AbstractRecordFactory recordFactory;
-  
-  public static final String ROLE_UNKNOWN = "unknown";
+
+
+  /**
+   * The definition of the instance. Flexing updates the resources section
+   This is used as a synchronization point on activities that update
+   the CD, and also to update some of the structures that
+   feed in to the CD
+   */
+  public AggregateConf instanceDefinition;
+
+  /**
+   * This is the status, the live model
+   */
+  public ClusterDescription clusterStatus = new ClusterDescription();
+
+  /**
+   * Client properties created via the provider -static for the life
+   * of the application
+   */
+  private Map<String, String> clientProperties = new HashMap<String, String>();
 
   /**
    The cluster description published to callers
@@ -98,11 +121,7 @@ public class AppState {
    feed in to the CD
    */
   public ClusterDescription clusterSpec = new ClusterDescription();
-  
-  /**
-   * This is the status, the live model
-   */
-  public ClusterDescription clusterDescription = new ClusterDescription();
+
 
   private final Map<Integer, RoleStatus> roleStatusMap =
     new HashMap<Integer, RoleStatus>();
@@ -303,18 +322,38 @@ public class AppState {
    * Get the current cluster description 
    * @return the actual state of the cluster
    */
-  public ClusterDescription getClusterDescription() {
-    return clusterDescription;
+  public ClusterDescription getClusterStatus() {
+    return clusterStatus;
   }
 
-  public void setClusterDescription(ClusterDescription clusterDesc) {
-    this.clusterDescription = clusterDesc;
+  public void setClusterStatus(ClusterDescription clusterDesc) {
+    this.clusterStatus = clusterDesc;
   }
 
+  @Deprecated
   private void setClusterSpec(ClusterDescription clusterSpec) {
     this.clusterSpec = clusterSpec;
   }
 
+  /**
+   * Set the instance definition -this also builds the (now obsolete)
+   * cluster specification from it.
+   * 
+   * Important: this is for early binding and must not be used after the build
+   * operation is complete. 
+   * @param definition
+   * @throws BadConfigException
+   */
+  public synchronized void updateInstanceDefinition(AggregateConf definition) throws
+                                                                       BadConfigException {
+    this.instanceDefinition = definition;
+    onInstanceDefinitionUpdated();
+  }
+
+
+  public AggregateConf getInstanceDefinition() {
+    return instanceDefinition;
+  }
 
   /**
    * Get the role history of the application
@@ -345,16 +384,17 @@ public class AppState {
     containerMaxMemory = maxMemory;
   }
 
+
   /**
    * Build up the application state
-   * @param cd cluster specification
+   * @param instanceDefinition definition of the applicatin instance
    * @param publishedProviderConf any configuration info to be published by a provider
    * @param providerRoles roles offered by a provider
    * @param fs filesystem
    * @param historyDir directory containing history files
    * @param liveContainers list of live containers supplied on an AM restart
    */
-  public void buildInstance(ClusterDescription cd,
+  public void buildInstance(AggregateConf instanceDefinition,
                             Configuration publishedProviderConf,
                             List<ProviderRole> providerRoles,
                             FileSystem fs,
@@ -364,8 +404,22 @@ public class AppState {
                                                             BadConfigException {
     this.publishedProviderConf = publishedProviderConf;
 
-    // set the cluster specification
-    setClusterSpec(cd);
+    clientProperties = new HashMap<String, String>();
+
+
+    Set<String> confKeys = ConfigHelper.sortedConfigKeys(publishedProviderConf);
+
+//     Add the -site configuration properties
+    for (String key : confKeys) {
+      String val = publishedProviderConf.get(key);
+      clientProperties.put(key, val);
+    }
+    
+    
+    // set the cluster specification (once its dependency the client properties
+    // is out the way
+
+    updateInstanceDefinition(instanceDefinition);
 
 
     //build the initial role list
@@ -373,54 +427,37 @@ public class AppState {
       buildRole(providerRole);
     }
 
-    Set<String> roleNames = cd.getRoleNames();
+    ConfTreeOperations resources =
+      instanceDefinition.getResourceOperations();
+    
+    Set<String> roleNames = resources.getComponentNames();
     for (String name : roleNames) {
       if (!roles.containsKey(name)) {
         // this is a new value
         log.info("Adding new role {}", name);
-        ProviderRole dynamicRole = createDynamicProviderRole(cd, name);
+        ProviderRole dynamicRole = createDynamicProviderRole(name,
+          resources.getComponent(name));
         buildRole(dynamicRole);
         providerRoles.add(dynamicRole);
       }
     }
     //then pick up the requirements
-    buildRoleRequirementsFromClusterSpec();
+    buildRoleRequirementsFromResources();
 
-    //copy into cluster status. 
-    ClusterDescription clusterStatus = ClusterDescription.copy(cd);
-    Set<String> confKeys = ConfigHelper.sortedConfigKeys(publishedProviderConf);
-
-//     Add the -site configuration properties
-    for (String key : confKeys) {
-      String val = publishedProviderConf.get(key);
-      clusterStatus.clientProperties.put(key, val);
-    }
 
     //set the livespan
-    startTimeThreshold = cd.getOptionInt(
-      OptionKeys.CONTAINER_FAILURE_SHORTLIFE,
+    MapOperations globalInternalOpts =
+      instanceDefinition.getInternalOperations().getGlobalOptions();
+    startTimeThreshold = globalInternalOpts.getOptionInt(
+      OptionKeys.INTERNAL_CONTAINER_FAILURE_SHORTLIFE,
       OptionKeys.DEFAULT_CONTAINER_FAILURE_SHORTLIFE);
     
-    failureThreshold = cd.getOptionInt(
-      OptionKeys.CONTAINER_FAILURE_THRESHOLD,
+    failureThreshold = globalInternalOpts.getOptionInt(
+      OptionKeys.INTERNAL_CONTAINER_FAILURE_THRESHOLD,
       OptionKeys.DEFAULT_CONTAINER_FAILURE_THRESHOLD);
-    
-    clusterStatus.state = ClusterDescription.STATE_CREATED;
-    long now = now();
-    clusterStatus.setInfoTime(StatusKeys.INFO_LIVE_TIME_HUMAN,
-                              StatusKeys.INFO_LIVE_TIME_MILLIS,
-                              now);
-    if (0 == clusterStatus.createTime) {
-      clusterStatus.createTime = now;
-      clusterStatus.setInfoTime(StatusKeys.INFO_CREATE_TIME_HUMAN,
-                                StatusKeys.INFO_CREATE_TIME_MILLIS,
-                                now);
-    }
-    clusterStatus.state = ClusterDescription.STATE_LIVE;
+    initClusterStatus();
 
-    //set the app state to this status
-    setClusterDescription(clusterStatus);
-    
+
     // add the roles
     roleHistory = new RoleHistory(providerRoles);
     roleHistory.onStart(fs, historyDir);
@@ -429,61 +466,109 @@ public class AppState {
     rebuildModelFromRestart(liveContainers);
   }
 
+  public void initClusterStatus() {
+    //copy into cluster status. 
+    ClusterDescription status = ClusterDescription.copy(clusterSpec);
+    status.state = ClusterDescription.STATE_CREATED;
+    long now = now();
+    status.setInfoTime(StatusKeys.INFO_LIVE_TIME_HUMAN,
+                              StatusKeys.INFO_LIVE_TIME_MILLIS,
+                              now);
+    if (0 == status.createTime) {
+      status.createTime = now;
+      status.setInfoTime(StatusKeys.INFO_CREATE_TIME_HUMAN,
+                                StatusKeys.INFO_CREATE_TIME_MILLIS,
+                                now);
+    }
+    status.state = ClusterDescription.STATE_LIVE;
+
+    //set the app state to this status
+    setClusterStatus(status);
+  }
+
   /**
    * Build a dynamic provider role
-   * @param cd CD to derive role from
    * @param name name of role
    * @return a new provider role
    * @throws BadConfigException bad configuration
    */
-  public ProviderRole createDynamicProviderRole(ClusterDescription cd,
-                                                String name) throws
+  public ProviderRole createDynamicProviderRole(String name,
+                                                MapOperations component) throws
                                                         BadConfigException {
-    String priOpt =
-        cd.getMandatoryRoleOpt(name, RoleKeys.ROLE_PRIORITY);
+    String priOpt = component.getMandatoryOption(RoleKeys.ROLE_PRIORITY);
     int pri = HoyaUtils.parseAndValidate("value of " + name + " " +
                                          RoleKeys.ROLE_PRIORITY,
                                          priOpt, 0, 1, -1
                                         );
-    String placementOpt = cd.getRoleOpt(name,
-                                        RoleKeys.ROLE_PLACEMENT_POLICY, "0");
+    String placementOpt = component.getOption(
+      RoleKeys.ROLE_PLACEMENT_POLICY, "0");
     int placement = HoyaUtils.parseAndValidate("value of " + name + " " +
                                                    RoleKeys.ROLE_PLACEMENT_POLICY,
                                                placementOpt, 0, 0, -1);
     return new ProviderRole(name, pri, placement);
   }
 
+
+  /**
+   * Actions to perform when an instance definition is updated
+   * Currently: resolve the configuration
+   *  updated the cluster spec derivative
+   * @throws BadConfigException
+   */
+  private synchronized void onInstanceDefinitionUpdated() throws
+                                             BadConfigException {
+    instanceDefinition.resolve();
+    clusterSpec =
+      ClusterDescriptionOperations.buildFromInstanceDefinition(
+        instanceDefinition);
+    
+
+//     Add the -site configuration properties
+    for (Map.Entry<String, String> prop : clientProperties.entrySet()) {
+      clusterSpec.clientProperties.put(prop.getKey(), prop.getValue());
+    }
+    
+  }
+  
   /**
    * The cluster specification has been updated
    * @param cd updated cluster specification
    */
-  public synchronized void updateClusterSpec(ClusterDescription cd) throws
+  public synchronized void updateResourceDefinitions(ConfTree resources) throws
                                                                     BadConfigException {
-    setClusterSpec(cd);
+    log.debug("Updating resources to {}", resources);
+    
+    instanceDefinition.setResources(resources);
+    onInstanceDefinitionUpdated();
+    
+    
+    //propagate the role table
 
-    //propagate info from cluster, specifically the role table
-
-    Map<String, Map<String, String>> newroles = getClusterSpec().roles;
-    getClusterDescription().roles = HoyaUtils.deepClone(newroles);
-    getClusterDescription().updateTime = now();
-    buildRoleRequirementsFromClusterSpec();
+    Map<String, Map<String, String>> updated = resources.components;
+    getClusterStatus().roles = HoyaUtils.deepClone(updated);
+    getClusterStatus().updateTime = now();
+    buildRoleRequirementsFromResources();
   }
 
   /**
    * build the role requirements from the cluster specification
    */
-  private void buildRoleRequirementsFromClusterSpec() throws
+  private void buildRoleRequirementsFromResources() throws
                                                       BadConfigException {
     //now update every role's desired count.
     //if there are no instance values, that role count goes to zero
 
+    ConfTreeOperations resources =
+      instanceDefinition.getResourceOperations();
+
     // Add all the existing roles
-    ClusterDescription specification = getClusterSpec();
     for (RoleStatus roleStatus : getRoleStatusMap().values()) {
       int currentDesired = roleStatus.getDesired();
       String role = roleStatus.getName();
+      MapOperations comp =
+        resources.getComponent(role);
       int desiredInstanceCount =
-        specification.getDesiredInstanceCount(role, 0);
+        resources.getRoleOptInt(role, RoleKeys.ROLE_INSTANCES, 0);
       if (currentDesired != desiredInstanceCount) {
         log.info("Role {} flexed from {} to {}", role, currentDesired,
                  desiredInstanceCount);
@@ -492,12 +577,13 @@ public class AppState {
     }
     //now the dynamic ones. Iterate through the the cluster spec and
     //add any role status entries not in the role status
-    Set<String> roleNames = specification.getRoleNames();
+    Set<String> roleNames = resources.getComponentNames();
     for (String name : roleNames) {
       if (!roles.containsKey(name)) {
         // this is a new value
         log.info("Adding new role {}", name);
-        ProviderRole dynamicRole = createDynamicProviderRole(specification, name);
+        ProviderRole dynamicRole = createDynamicProviderRole(name,
+                               resources.getComponent(name));
         buildRole(dynamicRole);
         roleHistory.addNewProviderRole(dynamicRole);
       }
@@ -1161,7 +1247,7 @@ public class AppState {
    * @param providerStatus status from the provider for the cluster info section
    */
   public void refreshClusterStatus(Map<String, String> providerStatus) {
-    ClusterDescription cd = getClusterDescription();
+    ClusterDescription cd = getClusterStatus();
     long now = now();
     cd.setInfoTime(StatusKeys.INFO_STATUS_TIME_HUMAN,
                    StatusKeys.INFO_STATUS_TIME_MILLIS,
@@ -1461,7 +1547,7 @@ public class AppState {
     for (Container container : liveContainers) {
       addRestartedContainer(container);
     }
-    clusterDescription.setInfo(StatusKeys.INFO_CONTAINERS_AM_RESTART,
+    clusterStatus.setInfo(StatusKeys.INFO_CONTAINERS_AM_RESTART,
                                Integer.toString(liveContainers.size()));
     return true;
   }

@@ -24,7 +24,8 @@ import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.HoyaXmlConfKeys
 import org.apache.hoya.api.ClusterDescription
-import org.apache.hoya.api.RoleKeys;
+import org.apache.hoya.api.RoleKeys
+import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.hoya.tools.ZKIntegration
 import org.apache.hoya.yarn.Arguments
@@ -90,11 +91,21 @@ class TestHBaseMaster extends HBaseMiniClusterTestBase {
       HoyaClient hoyaClient = (HoyaClient) launcher.service
       addToTeardown(hoyaClient);
 
+      AggregateConf launchedInstance = hoyaClient.launchedInstanceDefinition
+      AggregateConf liveInstance = hoyaClient.launchedInstanceDefinition
+      
+      
+
       basicHBaseClusterStartupSequence(hoyaClient)
-      waitForClusterLive(hoyaClient)
+      def report = waitForClusterLive(hoyaClient)
 
       ClusterStatus clustat = getHBaseClusterStatus(hoyaClient);
       // verify that region server cannot start
+      if (clustat.servers.size()) {
+        dumpClusterDescription("original",launchedInstance )
+        dumpClusterDescription("live", hoyaClient.liveInstanceDefinition)
+        dumpClusterStatus(hoyaClient,"JVM heap option not picked up")
+      }
       assert 0 == clustat.servers.size()
     } catch (ServiceLaunchException e) {
       assertExceptionDetails(e, HoyaExitCodes.EXIT_CLUSTER_FAILED)

@@ -19,19 +19,14 @@
 package org.apache.hoya.yarn.model.appstate
 
 import groovy.util.logging.Slf4j
+import org.apache.hadoop.yarn.api.records.Container
+import org.apache.hadoop.yarn.client.api.AMRMClient
 import org.apache.hoya.exceptions.HoyaRuntimeException
-import org.apache.hoya.yarn.appmaster.state.AbstractRMOperation
-import org.apache.hoya.yarn.appmaster.state.ContainerAssignment
-import org.apache.hoya.yarn.appmaster.state.ContainerReleaseOperation
-import org.apache.hoya.yarn.appmaster.state.ContainerRequestOperation
-import org.apache.hoya.yarn.appmaster.state.RMOperationHandler
-import org.apache.hoya.yarn.appmaster.state.RoleInstance
+import org.apache.hoya.yarn.appmaster.state.*
 import org.apache.hoya.yarn.model.mock.BaseMockAppStateTest
 import org.apache.hoya.yarn.model.mock.MockFactory
 import org.apache.hoya.yarn.model.mock.MockRMOperationHandler
 import org.apache.hoya.yarn.model.mock.MockRoles
-import org.apache.hadoop.yarn.api.records.Container
-import org.apache.hadoop.yarn.client.api.AMRMClient
 import org.junit.Test
 
 import static org.apache.hoya.yarn.appmaster.state.ContainerPriority.buildPriority

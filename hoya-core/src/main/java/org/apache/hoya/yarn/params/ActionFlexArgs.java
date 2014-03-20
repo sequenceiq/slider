@@ -54,8 +54,4 @@ public class ActionFlexArgs extends AbstractActionArgs {
     return roleDelegate.getRoleTuples();
   }
 
-
-  public boolean isPersist() {
-    return persist;
-  }
 }

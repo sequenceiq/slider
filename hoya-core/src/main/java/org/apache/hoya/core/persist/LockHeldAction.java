@@ -16,14 +16,23 @@
  * limitations under the License.
  */
 
-package org.apache.hoya.providers;
+package org.apache.hoya.core.persist;
+
+import org.apache.hoya.exceptions.HoyaException;
+
+import java.io.IOException;
 
 /**
- * This is the client-side provider, the bit
- * that helps create the template cluster spec,  
- * preflight checks the specification,
- * and 
+ * Optional action to add while the lock is held; this is needed to execute
+ * some other persistent operations within the scope at the same lock
+ * without inserting too much code into the persister
  */
-public interface ClientProvider extends ProviderCore {
+public interface LockHeldAction {
 
+  /**
+   * Execute the action
+   * @throws IOException on any failure
+   */
+  public void execute() throws IOException, HoyaException;
+  
 }

@@ -19,11 +19,10 @@
 package org.apache.hoya.providers;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hoya.api.ClusterDescription;
+import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.exceptions.HoyaException;
 
 import java.util.List;
-
 public interface ProviderCore {
 
   String getName();
@@ -32,6 +31,6 @@ public interface ProviderCore {
   
   Configuration getConf();
 
-  void validateClusterSpec(ClusterDescription clusterSpec) throws
+  void validateInstanceDefinition(AggregateConf instanceDefinition) throws
                                                            HoyaException;
 }

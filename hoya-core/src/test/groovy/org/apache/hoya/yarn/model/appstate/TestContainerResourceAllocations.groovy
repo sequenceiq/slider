@@ -20,14 +20,17 @@ package org.apache.hoya.yarn.model.appstate
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.apache.hadoop.yarn.api.records.Resource
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.RoleKeys
+import org.apache.hoya.core.conf.ConfTree
+import org.apache.hoya.core.conf.ConfTreeOperations
 import org.apache.hoya.yarn.appmaster.state.AbstractRMOperation
 import org.apache.hoya.yarn.appmaster.state.ContainerRequestOperation
 import org.apache.hoya.yarn.model.mock.BaseMockAppStateTest
 import org.apache.hoya.yarn.model.mock.MockRoles
-import org.apache.hadoop.yarn.api.records.Resource
 import org.junit.Test
+
 /**
  * Test the container resource allocation logic
  */
@@ -42,10 +45,12 @@ class TestContainerResourceAllocations extends BaseMockAppStateTest {
 
   @Test
   public void testNormalAllocations() throws Throwable {
-    ClusterDescription clusterSpec = factory.newClusterSpec(1, 0, 0)
-    clusterSpec.setRoleOpt(MockRoles.ROLE0, RoleKeys.YARN_MEMORY, 512)
-    clusterSpec.setRoleOpt(MockRoles.ROLE0, RoleKeys.YARN_CORES, 2)
-    appState.updateClusterSpec(clusterSpec)
+    ConfTree clusterSpec = factory.newConfTree(1, 0, 0)
+    ConfTreeOperations cto = new ConfTreeOperations(clusterSpec)
+
+    cto.setRoleOpt(MockRoles.ROLE0, RoleKeys.YARN_MEMORY, 512)
+    cto.setRoleOpt(MockRoles.ROLE0, RoleKeys.YARN_CORES, 2)
+    appState.updateResourceDefinitions(clusterSpec)
     List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
     assert ops.size() == 1
     ContainerRequestOperation operation = (ContainerRequestOperation) ops[0]
@@ -56,11 +61,13 @@ class TestContainerResourceAllocations extends BaseMockAppStateTest {
 
   @Test
   public void testMaxMemAllocations() throws Throwable {
-    ClusterDescription clusterSpec = factory.newClusterSpec(1, 0, 0)
-    clusterSpec.setRoleOpt(MockRoles.ROLE0, RoleKeys.YARN_MEMORY,
+    ConfTree clusterSpec = factory.newConfTree(1, 0, 0)
+    ConfTreeOperations cto = new ConfTreeOperations(clusterSpec)
+
+    cto.setRoleOpt(MockRoles.ROLE0, RoleKeys.YARN_MEMORY,
                            RoleKeys.YARN_RESOURCE_MAX)
-    clusterSpec.setRoleOpt(MockRoles.ROLE0, RoleKeys.YARN_CORES, 2)
-    appState.updateClusterSpec(clusterSpec)
+    cto.setRoleOpt(MockRoles.ROLE0, RoleKeys.YARN_CORES, 2)
+    appState.updateResourceDefinitions(clusterSpec)
     List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
     assert ops.size() == 1
     ContainerRequestOperation operation = (ContainerRequestOperation) ops[0]
@@ -71,12 +78,13 @@ class TestContainerResourceAllocations extends BaseMockAppStateTest {
   
   @Test
   public void testMaxCoreAllocations() throws Throwable {
-    ClusterDescription clusterSpec = factory.newClusterSpec(1, 0, 0)
-    clusterSpec.setRoleOpt(MockRoles.ROLE0, RoleKeys.YARN_MEMORY,
-                           512)
-    clusterSpec.setRoleOpt(MockRoles.ROLE0, RoleKeys.YARN_CORES,
-                           RoleKeys.YARN_RESOURCE_MAX)
-    appState.updateClusterSpec(clusterSpec)
+    ConfTree clusterSpec = factory.newConfTree(1, 0, 0)
+    ConfTreeOperations cto = new ConfTreeOperations(clusterSpec)
+    cto.setRoleOpt(MockRoles.ROLE0, RoleKeys.YARN_MEMORY,
+        512)
+    cto.setRoleOpt(MockRoles.ROLE0, RoleKeys.YARN_CORES,
+        RoleKeys.YARN_RESOURCE_MAX)
+    appState.updateResourceDefinitions(clusterSpec)
     List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
     assert ops.size() == 1
     ContainerRequestOperation operation = (ContainerRequestOperation) ops[0]
@@ -87,8 +95,9 @@ class TestContainerResourceAllocations extends BaseMockAppStateTest {
   
   @Test
   public void testMaxDefaultAllocations() throws Throwable {
-    ClusterDescription clusterSpec = factory.newClusterSpec(1, 0, 0)
-    appState.updateClusterSpec(clusterSpec)
+
+    ConfTree clusterSpec = factory.newConfTree(1, 0, 0)
+    appState.updateResourceDefinitions(clusterSpec)
     List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
     assert ops.size() == 1
     ContainerRequestOperation operation = (ContainerRequestOperation) ops[0]
@@ -100,7 +109,7 @@ class TestContainerResourceAllocations extends BaseMockAppStateTest {
   @Test
   public void testLimitsInClusterStatus() throws Throwable {
     appState.refreshClusterStatus(null)
-    ClusterDescription cd = appState.clusterDescription
+    ClusterDescription cd = appState.clusterStatus
     assert cd.info[RoleKeys.YARN_MEMORY] == Integer.toString(RM_MAX_RAM)
     assert cd.info[RoleKeys.YARN_CORES] == Integer.toString(RM_MAX_CORES)
   }

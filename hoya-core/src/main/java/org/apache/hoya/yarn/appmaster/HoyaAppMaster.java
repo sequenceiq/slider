@@ -65,7 +65,12 @@ import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.api.StatusKeys;
 import org.apache.hoya.api.proto.HoyaClusterAPI;
 import org.apache.hoya.api.proto.Messages;
+import org.apache.hoya.core.build.InstanceIO;
+import org.apache.hoya.core.conf.AggregateConf;
+import org.apache.hoya.core.conf.ConfTree;
+import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.core.launch.AMRestartSupport;
+import org.apache.hoya.core.persist.ConfTreeSerDeser;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
@@ -76,12 +81,6 @@ import org.apache.hoya.providers.HoyaProviderFactory;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderService;
 import org.apache.hoya.providers.hoyaam.HoyaAMClientProvider;
-import org.apache.hoya.servicemonitor.Probe;
-import org.apache.hoya.servicemonitor.ProbeFailedException;
-import org.apache.hoya.servicemonitor.ProbePhase;
-import org.apache.hoya.servicemonitor.ProbeReportHandler;
-import org.apache.hoya.servicemonitor.ProbeStatus;
-import org.apache.hoya.servicemonitor.ReportingLoop;
 import org.apache.hoya.tools.ConfigHelper;
 import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
@@ -139,17 +138,14 @@ public class HoyaAppMaster extends CompoundLaunchedService
              ServiceStateChangeListener,
              RoleKeys,
              EventCallback,
-             ContainerStartOperation,
-             ProbeReportHandler {
+             ContainerStartOperation {
   protected static final Logger log =
     LoggerFactory.getLogger(HoyaAppMaster.class);
 
   /**
    * log for YARN events
    */
-  protected static final Logger LOG_YARN =
-    LoggerFactory.getLogger(
-      "org.apache.hoya.yarn.appmaster.HoyaAppMaster.yarn");
+  protected static final Logger LOG_YARN = log;
 
   /**
    * time to wait from shutdown signal being rx'd to telling
@@ -381,19 +377,23 @@ public class HoyaAppMaster extends CompoundLaunchedService
     String hoyaClusterDir = serviceArgs.getHoyaClusterURI();
     URI hoyaClusterURI = new URI(hoyaClusterDir);
     Path clusterDirPath = new Path(hoyaClusterURI);
-    Path clusterSpecPath =
-      new Path(clusterDirPath, HoyaKeys.CLUSTER_SPECIFICATION_FILE);
     HoyaFileSystem fs = getClusterFS();
-    ClusterDescription.verifyClusterSpecExists(clustername,
-                                               fs.getFileSystem(),
-                                               clusterSpecPath);
 
-    ClusterDescription clusterSpec = ClusterDescription.load(fs.getFileSystem(), clusterSpecPath);
+    AggregateConf instanceDefinition =
+      InstanceIO.loadInstanceDefinitionUnresolved(fs, clusterDirPath);
 
-    log.info("Deploying cluster from {}:", clusterSpecPath);
+    log.info("Deploying cluster {}:", instanceDefinition);
+
+    appState.updateInstanceDefinition(instanceDefinition);
+    ClusterDescription clusterSpec;
+    clusterSpec = appState.getClusterSpec();
+
     log.info(clusterSpec.toString());
     File confDir = getLocalConfDir();
     if (!confDir.exists() || !confDir.isDirectory()) {
+      log.error("Bad conf dir {}", confDir);
+      File parentFile = confDir.getParentFile();
+      log.error("Parent dir {}:\n{}", parentFile, HoyaUtils.listDir(parentFile));
       throw new BadCommandArgumentsException(
         "Configuration directory %s doesn't exist", confDir);
     }
@@ -405,7 +405,10 @@ public class HoyaAppMaster extends CompoundLaunchedService
     
     conf = new YarnConfiguration(serviceConf);
     //get our provider
-    String providerType = clusterSpec.type;
+    MapOperations globalOptions =
+      instanceDefinition.getInternalOperations().getGlobalOptions();
+    String providerType = globalOptions.getMandatoryOption(
+      OptionKeys.INTERNAL_PROVIDER_NAME);
     log.info("Cluster provider type is {}", providerType);
     HoyaProviderFactory factory =
       HoyaProviderFactory.createHoyaProviderFactory(
@@ -424,20 +427,24 @@ public class HoyaAppMaster extends CompoundLaunchedService
     Path generatedConfDirPath =
       new Path(clusterDirPath, HoyaKeys.GENERATED_CONF_DIR_NAME);
     boolean clusterSecure = HoyaUtils.isClusterSecure(conf);
-    amClientProvider.preflightValidateClusterConfiguration(fs, clustername,
-                                                           conf, clusterSpec,
+/*    amClientProvider.preflightValidateClusterConfiguration(fs,
+                                                           clustername,
+                                                           conf,
+                                                           clusterSpec,
                                                            clusterDirPath,
                                                            generatedConfDirPath,
-                                                         clusterSecure
-                                                          );
-
-    providerClient.preflightValidateClusterConfiguration(fs, clustername, conf,
+                                                           clusterSecure
+                                                          );*/
+/*
+    providerClient.preflightValidateClusterConfiguration(fs,
+                                                         clustername,
+                                                         conf,
                                                          clusterSpec,
                                                          clusterDirPath,
                                                          generatedConfDirPath,
-                                                   clusterSecure
+                                                         clusterSecure
                                                         );
-    
+    */
     InetSocketAddress address = HoyaUtils.getRmSchedulerAddress(conf);
     log.info("RM is at {}", address);
     yarnRPC = YarnRPC.create(conf);
@@ -558,18 +565,20 @@ public class HoyaAppMaster extends CompoundLaunchedService
         response);
       clusterSpec.setInfo(StatusKeys.INFO_AM_RESTART_SUPPORTED,
                           Boolean.toString(liveContainers != null));
-      //now validate the dir by loading in a hadoop-site.xml file from it
+      //now validate the installation
 
       Configuration providerConf =
         providerService.loadProviderConfigurationInformation(confDir);
 
-      providerService.validateApplicationConfiguration(clusterSpec, confDir, securityEnabled);
+      providerService.validateApplicationConfiguration(instanceDefinition, 
+                                                       confDir,
+                                                       securityEnabled);
 
       //determine the location for the role history data
       Path historyDir = new Path(clusterDirPath, HISTORY_DIR_NAME);
 
       //build the instance
-      appState.buildInstance(clusterSpec,
+      appState.buildInstance(instanceDefinition,
                              providerConf,
                              providerRoles,
                              fs.getFileSystem(),
@@ -592,8 +601,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
     }
     String rolesTmpSubdir = appMasterContainerID.toString() + "/roles";
 
-    String amTmpDir =
-      clusterSpec.getMandatoryOption(OptionKeys.INTERNAL_AM_TMP_DIR);
+    String amTmpDir = globalOptions.getMandatoryOption(OptionKeys.INTERNAL_AM_TMP_DIR);
 
     Path tmpDirPath = new Path(amTmpDir);
     Path launcherTmpDirPath = new Path(tmpDirPath, rolesTmpSubdir);
@@ -603,8 +611,9 @@ public class HoyaAppMaster extends CompoundLaunchedService
     launchService = new RoleLaunchService(this,
                                           providerService,
                                           fs,
-                                          new Path(getDFSConfDir()),
-                                          envVars, launcherTmpDirPath);
+                                          new Path(getGeneratedConfDir()),
+                                          envVars,
+                                          launcherTmpDirPath);
 
     runChildService(launchService);
 
@@ -613,7 +622,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
 
     // launch the provider; this is expected to trigger a callback that
     // brings up the service
-    launchProviderService(clusterSpec, confDir);
+    launchProviderService(instanceDefinition, confDir);
 
 
     try {
@@ -662,8 +671,10 @@ public class HoyaAppMaster extends CompoundLaunchedService
    * Get the path to the DFS configuration that is defined in the cluster specification 
    * @return
    */
-  public String getDFSConfDir() {
-    return getClusterSpec().generatedConfigurationPath;
+  public String getGeneratedConfDir() {
+    return getInstanceDefinition()
+      .getInternalOperations().
+      getGlobalOptions().get(OptionKeys.INTERNAL_GENERATED_CONF_PATH);
   }
 
   /**
@@ -828,7 +839,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
     for (ContainerAssignment assignment : assignments) {
       RoleStatus role = assignment.role;
       Container container = assignment.container;
-      launchService.launchRole(container, role, getClusterSpec());
+      launchService.launchRole(container, role, getInstanceDefinition());
     }
     
     //for all the operations, exec them
@@ -875,19 +886,15 @@ public class HoyaAppMaster extends CompoundLaunchedService
 
   /**
    * Implementation of cluster flexing.
-   * This is synchronized so that it doesn't get confused by other requests coming
-   * in.
    * It should be the only way that anything -even the AM itself on startup-
    * asks for nodes. 
-   * @param workers #of workers to add
-   * @param masters #of masters to request (if supported)
-   * @return true if the number of workers changed
+   * @return true if the any requests were made
    * @throws IOException
    */
-  private boolean flexCluster(ClusterDescription updated)
+  private boolean flexCluster(ConfTree updated)
     throws IOException, HoyaInternalStateException, BadConfigException {
 
-    appState.updateClusterSpec(updated);
+    appState.updateResourceDefinitions(updated);
 
     // ask for more containers if needed
     return reviewRequestAndReleaseNodes();
@@ -1003,8 +1010,9 @@ public class HoyaAppMaster extends CompoundLaunchedService
                                                                                                  YarnException {
     HoyaUtils.getCurrentUser();
 
-    ClusterDescription updated =
-      ClusterDescription.fromJson(request.getClusterSpec());
+    String payload = request.getClusterSpec();
+    ConfTreeSerDeser confTreeSerDeser = new ConfTreeSerDeser();
+    ConfTree updated = confTreeSerDeser.fromJson(payload);
     boolean flexed = flexCluster(updated);
     return Messages.FlexClusterResponseProto.newBuilder().setResponse(flexed).build();
   }
@@ -1039,6 +1047,36 @@ public class HoyaAppMaster extends CompoundLaunchedService
     }
     return cd;
   }
+
+
+  @Override
+  public Messages.GetInstanceDefinitionResponseProto getInstanceDefinition(
+    Messages.GetInstanceDefinitionRequestProto request) throws
+                                                        IOException,
+                                                        YarnException {
+
+    log.info("Received call to getInstanceDefinition()");
+    String internal;
+    String resources;
+    String app;
+    synchronized (appState) {
+      AggregateConf instanceDefinition = appState.getInstanceDefinition();
+      internal = instanceDefinition.getInternal().toJson();
+      resources = instanceDefinition.getResources().toJson();
+      app = instanceDefinition.getAppConf().toJson();
+    }
+    assert internal != null;
+    assert resources != null;
+    assert app != null;
+    log.info("Generating getInstanceDefinition Response");
+    Messages.GetInstanceDefinitionResponseProto.Builder builder =
+      Messages.GetInstanceDefinitionResponseProto.newBuilder();
+    builder.setInternal(internal);
+    builder.setResources(resources);
+    builder.setApplication(app);
+    return builder.build();
+  }
+
 
   @Override //HoyaClusterProtocol
   public Messages.ListNodeUUIDsByRoleResponseProto listNodeUUIDsByRole(Messages.ListNodeUUIDsByRoleRequestProto request) throws
@@ -1133,7 +1171,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
     return builder.build();
   }
 
-/* =================================================================== */
+  /* =================================================================== */
 /* END */
 /* =================================================================== */
 
@@ -1154,11 +1192,11 @@ public class HoyaAppMaster extends CompoundLaunchedService
    * @throws IOException
    * @throws HoyaException
    */
-  protected synchronized void launchProviderService(ClusterDescription cd,
+  protected synchronized void launchProviderService(AggregateConf instanceDefinition,
                                                     File confDir)
     throws IOException, HoyaException {
     Map<String, String> env = new HashMap<String, String>();
-    boolean execStarted = providerService.exec(cd, confDir, env, this);
+    boolean execStarted = providerService.exec(instanceDefinition, confDir, env, this);
     if (execStarted) {
       providerService.registerServiceListener(this);
       providerService.start();
@@ -1171,109 +1209,6 @@ public class HoyaAppMaster extends CompoundLaunchedService
   }
 
 
-  /**
-   * Monitor operation
-   * TODO: implement.
-   * @return true if the monitor started
-   * @throws YarnException
-   * @throws IOException
-   */
-  public boolean startReportingLoop() throws YarnException,
-                                                IOException {
-    
-    if (!getClusterSpec().getOptionBool(OptionKeys.AM_MONITORING_ENABLED,
-                                        OptionKeys.AM_MONITORING_ENABLED_DEFAULT)) {
-      log.debug("AM Monitoring disabled");
-      return false;
-    }
-    
-    ClusterDescription clusterSpec = getClusterSpec();
-    ReportingLoop masterReportingLoop;
-    Thread loopThread;
-
-    // build the probes
-    int timeout = 60000;
-    ProviderService provider = getProviderService();
-    List<Probe> probes =
-      provider.createProbes(clusterSpec, appMasterTrackingUrl, getConfig(),
-                            timeout);
-
-    // start ReportingLoop only when there're probes
-    if (!probes.isEmpty()) {
-      masterReportingLoop =
-        new ReportingLoop("MasterStatusCheck", this, probes, null, 1000, 1000,
-                          timeout, -1);
-      if (!masterReportingLoop.startReporting()) {
-        masterReportingLoop.close();
-        throw new HoyaInternalStateException("failed to start monitoring");
-      }
-      loopThread = new Thread(masterReportingLoop, "MasterStatusCheck");
-      loopThread.setDaemon(true);
-      loopThread.start();
-      int waittime = 0;
-      // now wait until finished
-      try {
-        loopThread.join(waittime * 1000L);
-      } catch (InterruptedException e) {
-        //interrupted
-      }
-      masterReportingLoop.close();
-    }
-    return false;
-  }
-
-  @Override // ProbeReportHandler
-  public void probeFailure(ProbeFailedException exception) {
-  }
-
-  @Override // ProbeReportHandler
-  public void probeBooted(ProbeStatus status) {
-
-  }
-
-  @Override // ProbeReportHandler
-  public boolean commence(String name, String description) {
-    return true;
-  }
-
-  @Override // ProbeReportHandler
-  public void unregister() {
-
-  }
-
-  @Override // ProbeReportHandler
-  public void probeTimedOut(ProbePhase currentPhase,
-                            Probe probe,
-                            ProbeStatus lastStatus,
-                            long currentTime) {
-
-  }
-
-  @Override // ProbeReportHandler
-  public void liveProbeCycleCompleted() {
-
-  }
-
-  @Override // ProbeReportHandler
-
-  public void heartbeat(ProbeStatus status) {
-
-  }
-
-  /*
-   * Methods for ProbeReportHandler
-   */
-  @Override // ProbeReportHandler
-  public void probeProcessStateChange(ProbePhase probePhase) {
-  }
-
-  @Override // ProbeReportHandler
-
-  public void probeResult(ProbePhase phase, ProbeStatus status) {
-    if (!status.isSuccess()) {
-      log.warn("Failed probe {}", status);
-    }
-  }
   /* =================================================================== */
   /* EventCallback  from the child or ourselves directly */
   /* =================================================================== */
@@ -1284,7 +1219,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
     appState.noteAMLive();
     // now ask for the cluster nodes
     try {
-      flexCluster(getClusterSpec());
+      flexCluster(getInstanceDefinition().getResources());
     } catch (Exception e) {
       //this may happen in a separate thread, so the ability to act is limited
       log.error("Failed to flex cluster nodes", e);
@@ -1425,11 +1360,15 @@ public class HoyaAppMaster extends CompoundLaunchedService
     return appState.getClusterSpec();
   }
 
+  public AggregateConf getInstanceDefinition() {
+    return appState.getInstanceDefinition();
+  }
+  
   /**
    * This is the status, the live model
    */
   public ClusterDescription getClusterDescription() {
-    return appState.getClusterDescription();
+    return appState.getClusterStatus();
   }
 
   public ProviderService getProviderService() {

@@ -76,7 +76,7 @@ public class TestClusterSpecificationBlock {
   private static class MyAppState extends MockAppState {
     public MyAppState(AbstractRecordFactory recordFactory) {
       super(recordFactory);
-      this.clusterDescription = new MockClusterDescription();
+      this.clusterStatus = new MockClusterDescription();
     }
   }
   

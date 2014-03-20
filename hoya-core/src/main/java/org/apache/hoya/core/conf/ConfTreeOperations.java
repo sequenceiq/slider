@@ -19,10 +19,14 @@
 package org.apache.hoya.core.conf;
 
 import org.apache.hoya.core.CoreKeys;
-import org.apache.hoya.core.persist.JsonSerDeser;
+import org.apache.hoya.core.persist.ConfTreeSerDeser;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.tools.HoyaUtils;
+import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.annotate.JsonIgnore;
+import org.codehaus.jackson.map.JsonMappingException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,12 +40,15 @@ public class ConfTreeOperations {
   public final ConfTree confTree;
   private final MapOperations globalOptions;
 
+  protected static final Logger
+    log = LoggerFactory.getLogger(ConfTreeOperations.class);
+
 
   public ConfTreeOperations(ConfTree confTree) {
     assert confTree != null : "null tree";
     assert confTree.components != null : "null tree components";
     this.confTree = confTree;
-    globalOptions = new MapOperations(confTree.global);
+    globalOptions = new MapOperations("global", confTree.global);
   }
 
   /**
@@ -101,12 +108,20 @@ public class ConfTreeOperations {
    * @param component component name
    * @return component mapping or null
    */
-  public MapOperations getComponentOperations(String component) {
+  public MapOperations getComponent(String component) {
     Map<String, String> instance = confTree.components.get(component);
     if (instance != null) {
-      return new MapOperations(instance);
+      return new MapOperations(component, instance);
     }
     return null;
+  }
+
+  /**
+   * Get at the underlying component map
+   * @return a map of components. This is the raw ConfTree data structure
+   */
+  public Map<String, Map<String, String>> getComponents() {
+    return confTree.components;
   }
 
   /**
@@ -116,14 +131,14 @@ public class ConfTreeOperations {
    * @return role mapping
    */
   public MapOperations getOrAddComponent(String name) {
-    MapOperations operations = getComponentOperations(name);
+    MapOperations operations = getComponent(name);
     if (operations != null) {
       return operations;
     }
     //create a new instances
     Map<String, String> map = new HashMap<String, String>();
     confTree.components.put(name, map);
-    return new MapOperations(map);
+    return new MapOperations(name, map);
   }
 
 
@@ -134,6 +149,8 @@ public class ConfTreeOperations {
   public Set<String> getComponentNames() {
     return new HashSet<String>(confTree.components.keySet());
   }
+  
+  
 
   /**
    * Get a component whose presence is mandatory
@@ -143,7 +160,7 @@ public class ConfTreeOperations {
    */
   public MapOperations getMandatoryComponent(String name) throws
                                                           BadConfigException {
-    MapOperations ops = getComponentOperations(name);
+    MapOperations ops = getComponent(name);
     if (ops == null) {
       throw new BadConfigException("Missing component " + name);
     }
@@ -157,6 +174,15 @@ public class ConfTreeOperations {
    */
   public void set(String key, Object value) {
     globalOptions.put(key, value.toString());
+  }
+  /**
+   * get a global option
+   * @param key key
+   * @return value or null
+   * 
+   */
+  public String get(String key) {
+    return globalOptions.get(key);
   }
 
   /**
@@ -258,12 +284,12 @@ public class ConfTreeOperations {
    */
   public static ConfTreeOperations fromResource(String resource) throws
                                                                  IOException {
-    JsonSerDeser<ConfTree> confTreeSerDeser =
-      new JsonSerDeser<ConfTree>(ConfTree.class);
+    ConfTreeSerDeser confTreeSerDeser = new ConfTreeSerDeser();
     ConfTreeOperations ops = new ConfTreeOperations(
        confTreeSerDeser.fromResource(resource) );
     return ops;      
   }
+  
   /**
    * Load from a resource. The inner conf tree is the loaded data -unresolved
    * @param resource resource
@@ -272,11 +298,78 @@ public class ConfTreeOperations {
    */
   public static ConfTreeOperations fromFile(File resource) throws
                                                                  IOException {
-    JsonSerDeser<ConfTree> confTreeSerDeser =
-      new JsonSerDeser<ConfTree>(ConfTree.class);
+    ConfTreeSerDeser confTreeSerDeser = new ConfTreeSerDeser();
     ConfTreeOperations ops = new ConfTreeOperations(
        confTreeSerDeser.fromFile(resource) );
-    return ops;      
+    return ops;
+  }
+
+
+  @Override
+  public String toString() {
+    return confTree.toString();
+  }
+
+  /**
+   * Convert to a JSON string
+   * @return a JSON string description
+   * @throws IOException Problems mapping/writing the object
+   */
+  public String toJson() throws IOException,
+                                JsonGenerationException,
+                                JsonMappingException {
+    return confTree.toJson();
+  }
+
+  /**
+   * Get a role option
+   * @param role role to get from
+   * @param option option name
+   * @param defVal default value
+   * @return resolved value
+   */
+  public String getRoleOpt(String role, String option, String defVal) {
+    MapOperations roleopts = getComponent(role);
+    if (roleopts == null) {
+      return defVal;
+    }
+    return roleopts.getOption(option, defVal);
+  }
+
+  /**
+   * Get a role opt; use {@link Integer#decode(String)} so as to take hex
+   * oct and bin values too.
+   *
+   * @param role role to get from
+   * @param option option name
+   * @param defVal default value
+   * @return parsed value
+   * @throws NumberFormatException if the role could not be parsed.
+   */
+  public int getRoleOptInt(String role, String option, int defVal) {
+    String val = getRoleOpt(role, option, Integer.toString(defVal));
+    return Integer.decode(val);
+  }
+
+  /**
+   * Set a role option, creating the role if necessary
+   * @param role role name
+   * @param option option name
+   * @param val value
+   */
+  public void setRoleOpt(String role, String option, String val) {
+    Map<String, String> roleopts = getOrAddComponent(role);
+    roleopts.put(option, val);
+  }
+
+  /**
+   * Set an integer role option, creating the role if necessary
+   * @param role role name
+   * @param option option name
+   * @param val integer value
+   */
+  public void setRoleOpt(String role, String option, int val) {
+    setRoleOpt(role, option, Integer.toString(val));
   }
 
   

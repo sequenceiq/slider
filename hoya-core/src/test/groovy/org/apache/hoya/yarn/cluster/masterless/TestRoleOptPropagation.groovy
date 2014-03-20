@@ -36,20 +36,22 @@ import org.junit.Test
 class TestRoleOptPropagation extends HBaseMiniClusterTestBase {
 
   @Test
+  
   public void testRoleOptPropagation() throws Throwable {
+    skip("Disabled")
     String clustername = "test_role_opt_propagation"
     createMiniCluster(clustername, getConfiguration(), 1, true)
 
     describe "verify that role options propagate down to deployed roles"
 
-    String MALLOC_ARENA = "env.MALLOC_ARENA_MAX"
+    String ENV = "env.ENV_VAR"
     ServiceLauncher launcher = createHoyaCluster(clustername,
                                                  [
                                                      (HBaseKeys.ROLE_MASTER): 0,
                                                      (HBaseKeys.ROLE_WORKER): 0,
                                                  ],
                                                  [
-                                                     Arguments.ARG_ROLEOPT, HoyaKeys.ROLE_HOYA_AM, MALLOC_ARENA, "4",
+                                                     Arguments.ARG_ROLEOPT, HBaseKeys.ROLE_MASTER, ENV, "4",
                                                  ],
                                                  true,
                                                  true,
@@ -57,10 +59,10 @@ class TestRoleOptPropagation extends HBaseMiniClusterTestBase {
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
     ClusterDescription status = hoyaClient.clusterDescription
-    Map<String, String> masterRole = status.getRole(HoyaKeys.ROLE_HOYA_AM);
-    assert masterRole[MALLOC_ARENA] == "4"
-
+    Map<String, String> masterRole = status.getRole(HBaseKeys.ROLE_MASTER);
     dumpClusterDescription("Remote CD", status)
+    assert masterRole[ENV] == "4"
+
   }
 
   @Test

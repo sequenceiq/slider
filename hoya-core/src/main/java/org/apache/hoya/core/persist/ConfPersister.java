@@ -24,6 +24,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.core.conf.ConfTree;
+import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.tools.CoreFileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,8 +70,7 @@ public class ConfPersister {
     LoggerFactory.getLogger(ConfPersister.class);
 
 
-  private final JsonSerDeser<ConfTree> confTreeSerDeser =
-    new JsonSerDeser<ConfTree>(ConfTree.class);
+  private final ConfTreeSerDeser confTreeSerDeser =new ConfTreeSerDeser();
 
   private final CoreFileSystem coreFS;
   private final FileSystem fileSystem;
@@ -101,9 +101,8 @@ public class ConfPersister {
    * @throws LockAcquireFailedException
    */
   @VisibleForTesting
-  void acquireWritelock() throws
-                                  IOException,
-                                  LockAcquireFailedException {
+  void acquireWritelock() throws IOException,
+                                 LockAcquireFailedException {
     long now = System.currentTimeMillis();
     try {
       coreFS.cat(writelock, false, new Date(now).toGMTString());
@@ -212,18 +211,30 @@ public class ConfPersister {
     conf.setAppConf(confTreeSerDeser.load(fileSystem, app_conf));
   }
 
+
+  private void maybeExecLockHeldAction(LockHeldAction action) throws
+                                                              IOException,
+                                                              HoyaException {
+    if (action != null) {
+      action.execute();
+    }
+  }
+  
   /**
    * Save the configuration
    * @param conf configuration to fill in
+   * @param action
    * @throws IOException IO problems
    * @throws LockAcquireFailedException the lock could not be acquired
    */
-  public void save(AggregateConf conf) throws
+  public void save(AggregateConf conf, LockHeldAction action) throws
                                         IOException,
+                                        HoyaException,
                                         LockAcquireFailedException {
     acquireWritelock();
     try {
       saveConf(conf);
+      maybeExecLockHeldAction(action);
     } finally {
       releaseWritelock();
     }
@@ -239,6 +250,7 @@ public class ConfPersister {
    */
   public void load(AggregateConf conf) throws
                                         IOException,
+                                        HoyaException,
                                         LockAcquireFailedException {
     boolean owner = acquireReadLock();
     try {
@@ -248,4 +260,5 @@ public class ConfPersister {
     }
   }
   
+
 }

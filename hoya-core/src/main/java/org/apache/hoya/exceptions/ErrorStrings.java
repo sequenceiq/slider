@@ -27,7 +27,7 @@ public interface ErrorStrings {
   String E_MISSING_PATH = "Missing path ";
   String E_INCOMPLETE_CLUSTER_SPEC =
     "Cluster specification is marked as incomplete: ";
-  String E_UNKNOWN_CLUSTER = "Unknown cluster ";
+  String E_UNKNOWN_CLUSTER = "Unknown application instance ";
   String E_DESTROY_CREATE_RACE_CONDITION =
       "created while it was being destroyed";
   String E_UNKNOWN_ROLE = "Unknown role ";
@@ -48,8 +48,10 @@ public interface ErrorStrings {
   String ERROR_DUPLICATE_ENTRY = "Duplicate entry for ";
   String E_APPLICATION_NOT_RUNNING = "Application not running";
   String E_FINISHED_APPLICATION = E_APPLICATION_NOT_RUNNING + ": %s state=%s ";
-  String NO_IMAGE_OR_HOME_DIR_SPECIFIED =
+  String E_NO_IMAGE_OR_HOME_DIR_SPECIFIED =
     "Neither an image path nor binary home directory were specified";
+  String E_BOTH_IMAGE_AND_HOME_DIR_SPECIFIED =
+    "Both application image path and home dir have been provided";
   String HOYA_CONFIGURATION_DIRECTORY_NOT_FOUND =
     "Hoya configuration directory \"%s\" not found";
 }

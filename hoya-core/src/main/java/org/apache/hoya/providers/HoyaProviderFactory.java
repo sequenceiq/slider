@@ -22,7 +22,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.HoyaXmlConfKeys;
-import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.exceptions.BadClusterStateException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.providers.hbase.HBaseKeys;
@@ -55,17 +54,6 @@ public abstract class HoyaProviderFactory extends Configured {
 
   public abstract ProviderService createServerProvider();
 
-  /**
-   * Create the relevant provider 
-   * @param cd
-   * @return
-   * @throws HoyaException
-   */
-  public static HoyaProviderFactory createHoyaProviderFactory(ClusterDescription cd) throws
-                                                                                        HoyaException {
-    return createHoyaProviderFactory(cd.type);
-  }
-  
   /**
    * Create a provider for a specific application
    * @param application app

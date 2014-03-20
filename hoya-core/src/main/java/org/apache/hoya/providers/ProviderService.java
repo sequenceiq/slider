@@ -25,16 +25,16 @@ import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.service.launcher.ExitCodeProvider;
 import org.apache.hoya.api.ClusterDescription;
+import org.apache.hoya.core.conf.AggregateConf;
+import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.HoyaException;
-import org.apache.hoya.servicemonitor.Probe;
 import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.yarn.service.EventCallback;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.util.List;
 import java.util.Map;
 
 public interface ProviderService extends ProviderCore, Service,
@@ -43,26 +43,29 @@ public interface ProviderService extends ProviderCore, Service,
   /**
    * Set up the entire container launch context
    * @param ctx
+   * @param instanceDefinition
    * @param container
    * @param role
    * @param hoyaFileSystem
    * @param generatedConfPath
+   * @param appComponent
    * @param containerTmpDirPath
    */
   void buildContainerLaunchContext(ContainerLaunchContext ctx,
+                                   AggregateConf instanceDefinition,
                                    Container container,
                                    String role,
                                    HoyaFileSystem hoyaFileSystem,
                                    Path generatedConfPath,
-                                   ClusterDescription clusterSpec,
-                                   Map<String, String> roleOptions,
+                                   MapOperations resourceComponent,
+                                   MapOperations appComponent,
                                    Path containerTmpDirPath) throws
                                                                     IOException,
                                                                     HoyaException;
 
   /**
    * Execute a process in the AM
-   * @param cd cluster description
+   * @param instanceDefinition cluster description
    * @param confDir configuration directory
    * @param env environment
    * @param execInProgress the callback for the exec events
@@ -70,7 +73,7 @@ public interface ProviderService extends ProviderCore, Service,
    * @throws IOException
    * @throws HoyaException
    */
-  boolean exec(ClusterDescription cd,
+  boolean exec(AggregateConf instanceDefinition,
                File confDir,
                Map<String, String> env,
                EventCallback execInProgress) throws IOException,
@@ -100,27 +103,16 @@ public interface ProviderService extends ProviderCore, Service,
    * Here is where things like the existence of keytabs and other
    * not-seen-client-side properties can be tested, before
    * the actual process is spawned. 
-   * @param clusterSpec clusterSpecification
+   * @param instanceDefinition clusterSpecification
    * @param confDir configuration directory
    * @param secure flag to indicate that secure mode checks must exist
    * @throws IOException IO problemsn
    * @throws HoyaException any failure
    */
-  void validateApplicationConfiguration(ClusterDescription clusterSpec,
+  void validateApplicationConfiguration(AggregateConf instanceDefinition,
                                         File confDir,
                                         boolean secure
                                        ) throws IOException, HoyaException;
-
-  /**
-   * @param clusterSpec cluster specification
-   * @param url the tracking URL
-   * @param config the Configuration
-   * @param timeout
-   * @return List of applicable Probe's
-   */
-  List<Probe> createProbes(ClusterDescription clusterSpec, String url,
-                           Configuration config,
-                           int timeout) throws IOException;
 
   /*
      * Build the provider status, can be empty

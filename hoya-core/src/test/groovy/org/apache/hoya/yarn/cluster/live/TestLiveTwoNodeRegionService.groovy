@@ -60,8 +60,6 @@ class TestLiveTwoNodeRegionService extends HBaseMiniClusterTestBase {
     addToTeardown(hoyaClient);
     ClusterDescription status = hoyaClient.getClusterDescription(clustername)
     dumpClusterDescription("initial status", status)
-    assert ZKHosts == status.zkHosts
-    assert ZKPort == status.zkPort
 
     ClusterStatus clustat = basicHBaseClusterStartupSequence(hoyaClient)
 

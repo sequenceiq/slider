@@ -23,6 +23,7 @@ import org.apache.hadoop.service.Service;
 import org.apache.hadoop.yarn.service.launcher.ExitCodeProvider;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
+import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.tools.ConfigHelper;
@@ -36,7 +37,6 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -56,22 +56,10 @@ public abstract class AbstractProviderService
                             ProviderService {
   private static final Logger log =
     LoggerFactory.getLogger(AbstractProviderService.class);
-  
+  public AggregateConf instanceDefinition;
+
   public AbstractProviderService(String name) {
     super(name);
-  }
-
-  /**
-   * Build a string command from a list of objects
-   * @param args arguments
-   * @return a space separated string of all the arguments' string values
-   */
-  protected String cmd(Object... args) {
-    List<String> list = new ArrayList<String>(args.length);
-    for (Object arg : args) {
-      list.add(arg.toString());
-    }
-    return HoyaUtils.join(list, " ");
   }
 
   @Override
@@ -111,7 +99,7 @@ public abstract class AbstractProviderService
    * {@inheritDoc}
    */
   @Override
-  public void validateApplicationConfiguration(ClusterDescription clusterSpec,
+  public void validateApplicationConfiguration(AggregateConf instanceDefinition,
                                                File confDir,
                                                boolean secure) throws
                                                                IOException,

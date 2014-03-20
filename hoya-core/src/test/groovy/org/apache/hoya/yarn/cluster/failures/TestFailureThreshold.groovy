@@ -63,7 +63,7 @@ class TestFailureThreshold extends HBaseMiniClusterTestBase {
     ServiceLauncher launcher = createHBaseCluster(
         clustername,
         regionServerCount,
-        [Arguments.ARG_OPTION, OptionKeys.CONTAINER_FAILURE_THRESHOLD,
+        [Arguments.ARG_OPTION, OptionKeys.INTERNAL_CONTAINER_FAILURE_THRESHOLD,
             Integer.toString(threshold)],
         true,
         true)

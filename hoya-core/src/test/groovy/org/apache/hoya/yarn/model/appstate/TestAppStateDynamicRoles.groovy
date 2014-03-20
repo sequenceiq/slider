@@ -21,8 +21,6 @@ package org.apache.hoya.yarn.model.appstate
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.yarn.api.records.ContainerId
-import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.RoleKeys
 import org.apache.hoya.yarn.appmaster.state.AbstractRMOperation
 import org.apache.hoya.yarn.appmaster.state.AppState
@@ -62,16 +60,18 @@ class TestAppStateDynamicRoles extends BaseMockAppStateTest
     appState = new AppState(new MockRecordFactory())
     appState.setContainerLimits(RM_MAX_RAM, RM_MAX_CORES)
 
-    def cd = factory.newClusterSpec(0, 0, 0)
+    def instance = factory.newInstanceDefinition(0,0,0)
 
     def opts = [
         (RoleKeys.ROLE_INSTANCES): "1",
         (RoleKeys.ROLE_PRIORITY): "4",
     ]
+
+    instance.resourceOperations.components["dynamic"]= opts
     
-    cd.roles["dynamic"]= opts
     
-    appState.buildInstance(cd,
+    appState.buildInstance(
+        instance,
         new Configuration(false),
         factory.ROLES,
         fs,

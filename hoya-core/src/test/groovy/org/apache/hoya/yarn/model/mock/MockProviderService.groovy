@@ -26,11 +26,12 @@ import org.apache.hadoop.service.Service.STATE
 import org.apache.hadoop.yarn.api.records.Container
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext
 import org.apache.hoya.api.ClusterDescription
+import org.apache.hoya.core.conf.AggregateConf
+import org.apache.hoya.core.conf.MapOperations
 import org.apache.hoya.exceptions.BadCommandArgumentsException
 import org.apache.hoya.exceptions.HoyaException
 import org.apache.hoya.providers.ProviderRole
 import org.apache.hoya.providers.ProviderService
-import org.apache.hoya.servicemonitor.Probe
 import org.apache.hoya.tools.HoyaFileSystem
 import org.apache.hoya.yarn.service.EventCallback
 
@@ -52,7 +53,7 @@ class MockProviderService implements ProviderService {
   }
 
   @Override
-  public void validateClusterSpec(ClusterDescription clusterSpec) throws HoyaException {
+  public void validateInstanceDefinition(AggregateConf instanceDefinition) throws HoyaException {
   }
 
   @Override
@@ -136,7 +137,11 @@ class MockProviderService implements ProviderService {
 
 
   @Override
-  public boolean exec(ClusterDescription cd, File confDir, Map<String,String> env, EventCallback execInProgress) throws IOException, HoyaException {
+  public boolean exec(
+      AggregateConf instanceDefinition,
+      File confDir,
+      Map<String, String> env,
+      EventCallback execInProgress) throws IOException, HoyaException {
     return false;
   }
 
@@ -151,14 +156,12 @@ class MockProviderService implements ProviderService {
   }
 
   @Override
-  public void validateApplicationConfiguration(ClusterDescription clusterSpec, File confDir, boolean secure) throws IOException, HoyaException {
+  public void validateApplicationConfiguration(
+      AggregateConf instanceDefinition,
+      File confDir,
+      boolean secure) throws IOException, HoyaException {
   }
 
-
-  @Override
-  public List<Probe> createProbes(ClusterDescription clusterSpec, String url, Configuration config, int timeout) throws IOException {
-    return null;
-  }
 
   @Override
   public Map<String,String> buildProviderStatus() {
@@ -166,11 +169,17 @@ class MockProviderService implements ProviderService {
   }
 
   @Override
-  public void buildContainerLaunchContext(ContainerLaunchContext ctx,
-      Container container, String role, HoyaFileSystem hoyaFileSystem,
-      Path generatedConfPath, ClusterDescription clusterSpec,
-      Map<String, String> roleOptions, Path containerTmpDirPath)
-  throws IOException, HoyaException {
+  void buildContainerLaunchContext(
+      ContainerLaunchContext ctx,
+      AggregateConf instanceDefinition,
+      Container container,
+      String role,
+      HoyaFileSystem hoyaFileSystem,
+      Path generatedConfPath,
+      MapOperations resourceComponent,
+      MapOperations appComponent,
+      Path containerTmpDirPath) throws IOException, HoyaException {
+
   }
 
   @Override

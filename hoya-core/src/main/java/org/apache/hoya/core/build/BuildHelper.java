@@ -22,15 +22,19 @@ import org.apache.hadoop.util.VersionInfo;
 import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.tools.HoyaVersionInfo;
 
+import java.util.Map;
 import java.util.Properties;
 
+/**
+ * classes to help with the build
+ */
 public class BuildHelper {
   /**
    * Add the cluster build information; this will include Hadoop details too
    * @param dest map to insert this too
    * @param prefix prefix for the build info
    */
-  public static void addBuildInfo(MapOperations dest, String prefix) {
+  public static void addBuildMetadata(Map dest, String prefix) {
 
     Properties props = HoyaVersionInfo.loadVersionProperties();
     dest.put(prefix + "." + HoyaVersionInfo.APP_BUILD_INFO, props.getProperty(

@@ -31,6 +31,11 @@ import java.util.List;
 public class CommandLineBuilder {
   protected final List<String> argumentList = new ArrayList<String>(20);
 
+  public void addJavaBinary() {
+    add(
+      ApplicationConstants.Environment.JAVA_HOME.$() + "/bin/java");
+  }
+  
 
   /**
    * Add an entry to the command list

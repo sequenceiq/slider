@@ -64,7 +64,7 @@ class TestHoyaConfDirToMasterlessAM extends HBaseMiniClusterTestBase {
     YarnConfiguration conf = getConfiguration()
     createMiniCluster(clustername, conf, 1, true)
 
-    describe "kill a masterless AM and verify that it shuts down"
+    describe "verify that a conf dir will propagate via the sytem proerpty"
 
     File localConf = File.createTempDir("conf","dir")
     String name = "hoya.xml"
@@ -81,7 +81,8 @@ class TestHoyaConfDirToMasterlessAM extends HBaseMiniClusterTestBase {
       addToTeardown(hoyaClient);
       ApplicationReport report = waitForClusterLive(hoyaClient)
 
-      ClusterDescription cd = waitForRoleCount(hoyaClient,HoyaKeys.ROLE_HOYA_AM,1, HBASE_CLUSTER_STARTUP_TIME)
+      ClusterDescription cd = waitForRoleCount(hoyaClient,HoyaKeys.ROLE_HOYA_AM,
+          1, HBASE_CLUSTER_STARTUP_TIME)
       HadoopFS fs = HadoopFS.getLocal(conf);
       
       Path clusterDir = new HoyaFileSystem(fs, conf).buildHoyaClusterDirPath(clustername)

@@ -20,6 +20,8 @@ package org.apache.hoya.core.conf;
 
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.tools.HoyaUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -33,21 +35,25 @@ import java.util.Set;
  * so it can be used to add more actions to the map.
  */
 public class MapOperations implements Map<String, String> {
-
+  private static final Logger log =
+    LoggerFactory.getLogger(MapOperations.class);
 
   /**
    * Global options
    */
   public final Map<String, String> options;
 
+  public final String name;
 
   /**
    * Create an instance
+   * @param name
    * @param options
    */
-  public MapOperations(Map<String, String> options) {
+  public MapOperations(String name, Map<String, String> options) {
     assert options != null : "null map";
     this.options = options;
+    this.name = name;
   }
 
 
@@ -74,6 +80,10 @@ public class MapOperations implements Map<String, String> {
   public String getMandatoryOption(String key) throws BadConfigException {
     String val = options.get(key);
     if (val == null) {
+      if (log.isDebugEnabled()) {
+        log.debug("Missing key {} from config containing {}",
+                  key, this);
+      }
       throw new BadConfigException("Missing option " + key);
     }
     return val;
@@ -91,6 +101,19 @@ public class MapOperations implements Map<String, String> {
   public int getOptionInt(String option, int defVal) {
     String val = getOption(option, Integer.toString(defVal));
     return Integer.decode(val);
+  }
+  /**
+   * Get a mandatory integer option; use {@link Integer#decode(String)} so as to take hex
+   * oct and bin values too.
+   *
+   * @param option option name
+   * @return parsed value
+   * @throws NumberFormatException if the option could not be parsed.
+   * @throws BadConfigException if the option could not be found
+   */
+  public int getMandatoryOptionInt(String option) throws BadConfigException {
+    getMandatoryOption(option);
+    return getOptionInt(option, 0);
   }
 
   /**
@@ -124,6 +147,17 @@ public class MapOperations implements Map<String, String> {
           put(key, entry.getValue());
         }
       }
+    }
+  }
+
+  /**
+   * Set a property if it is not already set
+   * @param key key
+   * @param value value
+   */
+  public void putIfUnset(String key, String value) {
+    if (get(key) == null) {
+      put(key, value);
     }
   }
 
@@ -183,5 +217,24 @@ public class MapOperations implements Map<String, String> {
   @Override
   public int hashCode() {
     return options.hashCode();
+  }
+
+  public boolean isSet(String key) {
+    return HoyaUtils.isSet(get(key));
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+    builder.append(name).append("=\n");
+
+    for (Entry<String, String> entry : options.entrySet()) {
+      builder.append("  ")
+             .append(entry.getKey())
+             .append('=')
+             .append(entry.getValue())
+             .append('\n');
+    }
+    return builder.toString();
   }
 }

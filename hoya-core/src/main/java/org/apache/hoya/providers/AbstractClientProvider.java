@@ -21,24 +21,33 @@ package org.apache.hoya.providers;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.core.conf.ConfTreeOperations;
+import org.apache.hoya.core.conf.MapOperations;
+import org.apache.hoya.core.launch.AbstractLauncher;
+import org.apache.hoya.exceptions.BadClusterStateException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.tools.HoyaFileSystem;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.hoya.api.RoleKeys.*;
+import static org.apache.hoya.api.RoleKeys.DEF_YARN_CORES;
+import static org.apache.hoya.api.RoleKeys.DEF_YARN_MEMORY;
+import static org.apache.hoya.api.RoleKeys.ROLE_INSTANCES;
+import static org.apache.hoya.api.RoleKeys.YARN_CORES;
+import static org.apache.hoya.api.RoleKeys.YARN_MEMORY;
 
 public abstract class AbstractClientProvider extends Configured {
+  protected static final Logger log =
+    LoggerFactory.getLogger(AbstractClientProvider.class);
+  protected static final ProviderUtils providerUtils =
+    new ProviderUtils(log);
 
   public static final String PROVIDER_RESOURCE_BASE =
     "org/apache/hoya/providers/";
@@ -57,27 +66,41 @@ public abstract class AbstractClientProvider extends Configured {
   public abstract List<ProviderRole> getRoles();
 
   /**
-   * Validation common to all roles
+   * Validate the instance definition.
    * @param clusterSpec
-   * @throws HoyaException
    */
-  @Deprecated
-  public void validateClusterSpec(ClusterDescription clusterSpec) throws
-                                                                  HoyaException {
+  public void validateInstanceDefinition(AggregateConf instanceDefinition) throws
+                                                                           HoyaException {
+
     List<ProviderRole> roles = getRoles();
+    ConfTreeOperations resources =
+      instanceDefinition.getResourceOperations();
     for (ProviderRole role : roles) {
       String name = role.name;
-      clusterSpec.getRoleResourceRequirement(name,
-                                             YARN_MEMORY,
-                                             DEF_YARN_MEMORY,
-                                             Integer.MAX_VALUE);
-      clusterSpec.getRoleResourceRequirement(name,
-                                             YARN_CORES,
-                                             DEF_YARN_CORES,
-                                             Integer.MAX_VALUE);
+      MapOperations component = resources.getComponent(name);
+      if (component != null) {
+        String instances = component.get(ROLE_INSTANCES);
+        if (instances == null) {
+          String message = "No instance count provide for " + name;
+          log.error("{} with \n{}", message,resources.toString());
+          throw new BadClusterStateException(
+            message);
+        }
+        String ram = component.get(YARN_MEMORY);
+        String cores = component.get(YARN_CORES);
+
+
+        providerUtils.getRoleResourceRequirement(ram,
+                                                 DEF_YARN_MEMORY,
+                                                 Integer.MAX_VALUE);
+        providerUtils.getRoleResourceRequirement(cores,
+                                                 DEF_YARN_CORES,
+                                                 Integer.MAX_VALUE);
+      }
     }
   }
-
+  
+  
   /**
    * Create the default cluster role instance for a named
    * cluster role; 
@@ -85,6 +108,7 @@ public abstract class AbstractClientProvider extends Configured {
    * @param rolename role name
    * @return a node that can be added to the JSON
    */
+  @Deprecated
   public Map<String, String> createDefaultClusterRole(String rolename) throws
                                                                          HoyaException,
                                                                          IOException {
@@ -102,62 +126,28 @@ public abstract class AbstractClientProvider extends Configured {
                                                                     IOException {
     //default: do nothing
   }
-    
-  
-  
-  /**
-   * This builds up the site configuration for the AM and downstream services;
-   * the path is added to the cluster spec so that launchers in the 
-   * AM can pick it up themselves. 
-   *
-   * @param hoyaFileSystem filesystem
-   * @param serviceConf conf used by the service
-   * @param clusterSpec cluster specification
-   * @param originConfDirPath the original config dir -treat as read only
-   * @param generatedConfDirPath path to place generated artifacts
-   * @param clientConfExtras optional extra configs to patch in last
-   * @param libdir relative directory to place resources
-   * @param tempPath path in the cluster FS for temp files
-   * @return a map of name to local resource to add to the AM launcher
-   * @throws IOException IO problems
-   * @throws HoyaException Hoya-specific issues
-   */
-  public abstract Map<String, LocalResource> prepareAMAndConfigForLaunch(HoyaFileSystem hoyaFileSystem,
-                                                                  Configuration serviceConf,
-                                                                  ClusterDescription clusterSpec,
-                                                                  Path originConfDirPath,
-                                                                  Path generatedConfDirPath,
-                                                                  Configuration clientConfExtras,
-                                                                  String libdir,
-                                                                  Path tempPath) throws
-                                                                                 IOException,
-                                                                                 HoyaException;
 
-  /**
-   * Get a map of all the default options for the cluster; values
-   * that can be overridden by user defaults after
-   * @return a possibly empyy map of default cluster options.
-   */
   public abstract Configuration getDefaultClusterConfiguration() throws
                                                           FileNotFoundException;
 
 
   /**
-   * Update the AM resource with any local needs
-   * @param capability capability to update
+   * The Hoya AM sets up all the dependency JARs above hoya.jar itself
+   * {@inheritDoc}
    */
-  public abstract void prepareAMResourceRequirements(ClusterDescription clusterSpec,
-                                              Resource capability);
-
-  /**
-   * Any operations to the service data before launching the AM
-   * @param clusterSpec cspec
-   * @param serviceData map of service data
-   */
-  public abstract void prepareAMServiceData(ClusterDescription clusterSpec,
-                                     Map<String, ByteBuffer> serviceData);
-
-
+  public void prepareAMAndConfigForLaunch(HoyaFileSystem hoyaFileSystem,
+                                          Configuration serviceConf,
+                                          AbstractLauncher launcher,
+                                          AggregateConf instanceDescription,
+                                          Path originConfDirPath,
+                                          Path generatedConfDirPath,
+                                          Configuration clientConfExtras,
+                                          String libdir,
+                                          Path tempPath)
+    throws IOException, HoyaException {
+    
+  }
+  
   /**
    * Load in and merge in templates. Null arguments means "no such template"
    * @param instanceConf instance to patch 
@@ -194,13 +184,6 @@ public abstract class AbstractClientProvider extends Configured {
   }
 
   /**
-   * Build time review and update of the cluster specification
-   * @param clusterSpec spec
-   */
-  public abstract void reviewAndUpdateClusterSpec(ClusterDescription clusterSpec) throws
-                                                                           HoyaException;
-
-  /**
    * This is called pre-launch to validate that the cluster specification
    * is valid. This can include checking that the security options
    * are in the site files prior to launch, that there are no conflicting operations
@@ -217,21 +200,23 @@ public abstract class AbstractClientProvider extends Configured {
    * @param hoyaFileSystem filesystem
    * @param clustername name of the cluster
    * @param configuration cluster configuration
-   * @param clusterSpec cluster specification
+   * @param instanceDefinition cluster specification
    * @param clusterDirPath directory of the cluster
    * @param generatedConfDirPath path to place generated artifacts
    * @param secure flag to indicate that the cluster is secure
    * @throws HoyaException on any validation issue
    * @throws IOException on any IO problem
    */
-  public abstract void preflightValidateClusterConfiguration(HoyaFileSystem hoyaFileSystem,
+  public void preflightValidateClusterConfiguration(HoyaFileSystem hoyaFileSystem,
                                                       String clustername,
                                                       Configuration configuration,
-                                                      ClusterDescription clusterSpec,
+                                                      AggregateConf instanceDefinition,
                                                       Path clusterDirPath,
                                                       Path generatedConfDirPath,
                                                       boolean secure) throws
                                                                       HoyaException,
-                                                                      IOException;
+                                                                      IOException {
+    validateInstanceDefinition(instanceDefinition);
+  }
 
 }

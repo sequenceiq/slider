@@ -21,6 +21,7 @@ package org.apache.hoya.yarn.cluster.freezethaw
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hoya.exceptions.HoyaException
+import org.apache.hoya.exceptions.UnknownClusterException
 import org.apache.hoya.yarn.HoyaActions
 import org.apache.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.conf.YarnConfiguration
@@ -52,8 +53,8 @@ class TestFreezeUnknownCluster extends HBaseMiniClusterTestBase {
                                                     "no-such-cluster"
                                                 ]);
       fail("Expected an error, got an exit code of ${command.serviceExitCode}")
-    } catch (HoyaException e) {
-      assertUnknownClusterException(e)
+    } catch (UnknownClusterException e) {
+      //expected
     }
   }
 
