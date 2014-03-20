@@ -26,7 +26,10 @@ import org.apache.hoya.yarn.HoyaActions;
             commandDescription = HoyaActions.DESCRIBE_ACTION_STATUS)
 
 public class ActionStatusArgs extends AbstractActionArgs {
-
+  @Override
+  public String getActionName() {
+    return HoyaActions.ACTION_STATUS;
+  }
 
   @Parameter(names = {ARG_OUTPUT, ARG_OUTPUT_SHORT},
              description = "Output file for the configuration data")

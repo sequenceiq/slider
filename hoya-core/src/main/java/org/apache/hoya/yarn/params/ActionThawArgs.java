@@ -30,6 +30,11 @@ public class ActionThawArgs extends AbstractActionArgs implements
 
 
   @Override
+  public String getActionName() {
+    return HoyaActions.ACTION_THAW;
+  }
+
+  @Override
   public int getWaittime() {
     return launchArgs.getWaittime();
   }

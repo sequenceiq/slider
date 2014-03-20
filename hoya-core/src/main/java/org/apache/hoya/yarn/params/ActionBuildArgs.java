@@ -26,4 +26,8 @@ import org.apache.hoya.yarn.HoyaActions;
 
 public class ActionBuildArgs extends AbstractClusterBuildingActionArgs {
 
+  @Override
+  public String getActionName() {
+    return HoyaActions.ACTION_BUILD;
+  }
 }

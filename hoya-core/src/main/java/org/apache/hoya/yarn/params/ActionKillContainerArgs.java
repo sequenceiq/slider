@@ -26,6 +26,10 @@ import org.apache.hoya.yarn.HoyaActions;
             commandDescription = HoyaActions.DESCRIBE_ACTION_KILL_CONTAINER)
 
 public class ActionKillContainerArgs extends AbstractActionArgs {
+  @Override
+  public String getActionName() {
+    return HoyaActions.ACTION_KILL_CONTAINER;
+  }
 
   @Parameter(names = {ARG_ID},
              description = "ID of the container")

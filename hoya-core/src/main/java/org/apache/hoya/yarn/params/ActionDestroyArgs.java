@@ -25,4 +25,8 @@ import org.apache.hoya.yarn.HoyaActions;
             commandDescription = HoyaActions.DESCRIBE_ACTION_DESTROY)
 
 public class ActionDestroyArgs extends AbstractActionArgs {
+  @Override
+  public String getActionName() {
+    return HoyaActions.ACTION_DESTROY;
+  }
 }

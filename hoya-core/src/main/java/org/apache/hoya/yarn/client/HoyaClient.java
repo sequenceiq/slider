@@ -83,6 +83,7 @@ import org.apache.hoya.yarn.params.ActionFlexArgs;
 import org.apache.hoya.yarn.params.ActionFreezeArgs;
 import org.apache.hoya.yarn.params.ActionGetConfArgs;
 import org.apache.hoya.yarn.params.ActionKillContainerArgs;
+import org.apache.hoya.yarn.params.ActionStatusArgs;
 import org.apache.hoya.yarn.params.ActionThawArgs;
 import org.apache.hoya.yarn.params.ClientArgs;
 import org.apache.hoya.yarn.params.HoyaAMArgs;
@@ -207,39 +208,33 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     } else if (HoyaActions.ACTION_THAW.equals(action)) {
       exitCode = actionThaw(clusterName, serviceArgs.getActionThawArgs());
     } else if (HoyaActions.ACTION_DESTROY.equals(action)) {
-      HoyaUtils.validateClusterName(clusterName);
       exitCode = actionDestroy(clusterName);
     } else if (HoyaActions.ACTION_EMERGENCY_FORCE_KILL.equals(action)) {
       exitCode = actionEmergencyForceKill(clusterName);
     } else if (HoyaActions.ACTION_EXISTS.equals(action)) {
-      HoyaUtils.validateClusterName(clusterName);
       exitCode = actionExists(clusterName,
                               serviceArgs.getActionExistsArgs().live);
     } else if (HoyaActions.ACTION_FLEX.equals(action)) {
-      HoyaUtils.validateClusterName(clusterName);
       exitCode = actionFlex(clusterName, serviceArgs.getActionFlexArgs());
     } else if (HoyaActions.ACTION_GETCONF.equals(action)) {
       exitCode = actionGetConf(clusterName, serviceArgs.getActionGetConfArgs());
     } else if (HoyaActions.ACTION_HELP.equals(action) ||
                HoyaActions.ACTION_USAGE.equals(action)) {
-      log.info("HoyaClient {}", serviceArgs.usage());
+      log.info(serviceArgs.usage());
 
     } else if (HoyaActions.ACTION_KILL_CONTAINER.equals(action)) {
-      exitCode = actionGetConf(clusterName, serviceArgs.getActionGetConfArgs());
+      exitCode = actionKillContainer(clusterName,
+                                     serviceArgs.getActionKillContainerArgs());
 
     } else if (HoyaActions.ACTION_AM_SUICIDE.equals(action)) {
       exitCode = actionAmSuicide(clusterName,
                                  serviceArgs.getActionAMSuicideArgs());
 
     } else if (HoyaActions.ACTION_LIST.equals(action)) {
-      if (!isUnset(clusterName)) {
-        HoyaUtils.validateClusterName(clusterName);
-      }
       exitCode = actionList(clusterName);
-    } else if (HoyaActions.ACTION_STATUS.equals(action)) {
-      
+    } else if (HoyaActions.ACTION_STATUS.equals(action)) {     
       exitCode = actionStatus(clusterName,
-                              serviceArgs.getActionStatusArgs().getOutput());
+                              serviceArgs.getActionStatusArgs());
     } else if (HoyaActions.ACTION_VERSION.equals(action)) {
       
       exitCode = actionVersion();
@@ -1179,6 +1174,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   @VisibleForTesting
   public int actionFlex(String name, ActionFlexArgs args) throws YarnException, IOException {
     verifyManagerSet();
+    HoyaUtils.validateClusterName(name);
     log.debug("actionFlex({})", name);
     Map<String, Integer> roleInstances = new HashMap<String, Integer>();
     Map<String, String> roleMap = args.getRoleMap();
@@ -1204,6 +1200,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   @VisibleForTesting
   public int actionExists(String name, boolean live) throws YarnException, IOException {
     verifyManagerSet();
+    HoyaUtils.validateClusterName(name);
     log.debug("actionExists({}, {})", name, live);
 
     //initial probe for a cluster in the filesystem
@@ -1372,11 +1369,12 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * @throws IOException
    */
   @VisibleForTesting
-  public int actionStatus(String clustername, String outfile) throws
+  public int actionStatus(String clustername, ActionStatusArgs statusArgs) throws
                                               YarnException,
                                               IOException {
     verifyManagerSet();
     HoyaUtils.validateClusterName(clustername);
+    String outfile = statusArgs.getOutput();
     ClusterDescription status = getClusterDescription(clustername);
     String text = status.toJsonString();
     if (outfile == null) {

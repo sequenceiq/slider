@@ -27,7 +27,12 @@ import org.apache.hoya.yarn.HoyaActions;
 
 public class ActionCreateArgs extends AbstractClusterBuildingActionArgs
   implements WaitTimeAccessor, LaunchArgsAccessor {
-
+  
+  @Override
+  public String getActionName() {
+    return HoyaActions.ACTION_CREATE;
+  }
+  
   @ParametersDelegate
   LaunchArgsDelegate launchArgs = new LaunchArgsDelegate();
 

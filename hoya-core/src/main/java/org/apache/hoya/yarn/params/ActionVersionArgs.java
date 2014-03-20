@@ -25,6 +25,10 @@ import org.apache.hoya.yarn.HoyaActions;
             commandDescription = HoyaActions.DESCRIBE_ACTION_VERSION)
 
 public class ActionVersionArgs extends AbstractActionArgs {
+  @Override
+  public String getActionName() {
+    return HoyaActions.ACTION_VERSION;
+  }
 
   public int getMinParams() {
     return 0;

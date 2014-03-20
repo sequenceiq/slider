@@ -26,6 +26,10 @@ import org.apache.hoya.yarn.HoyaActions;
             commandDescription = HoyaActions.DESCRIBE_ACTION_GETCONF)
 
 public class ActionGetConfArgs extends AbstractActionArgs {
+  @Override
+  public String getActionName() {
+    return HoyaActions.ACTION_GETCONF;
+  }
 
   //--format 
   @Parameter(names = ARG_FORMAT,

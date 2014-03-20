@@ -26,7 +26,12 @@ import org.apache.hoya.yarn.HoyaActions;
 @Parameters(commandNames = {HoyaActions.ACTION_AM_SUICIDE},
             commandDescription = HoyaActions.DESCRIBE_ACTION_AM_SUICIDE)
 public class ActionAMSuicideArgs extends AbstractActionArgs {
-
+  
+  @Override
+  public String getActionName() {
+    return HoyaActions.ACTION_AM_SUICIDE;
+  }
+  
   @Parameter(names = {ARG_MESSAGE},
              description = "reason for the action")
   public String message;
