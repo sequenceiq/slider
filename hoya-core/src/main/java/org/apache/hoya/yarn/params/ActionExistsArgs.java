@@ -27,6 +27,10 @@ import org.apache.hoya.yarn.HoyaActions;
 
 public class ActionExistsArgs extends AbstractActionArgs {
 
+  @Override
+  public String getActionName() {
+    return HoyaActions.ACTION_EXISTS;
+  }
   @Parameter(names = {ARG_LIVE},
              description = "verify that the cluster is running")
   public boolean live;

@@ -27,6 +27,10 @@ import org.apache.hoya.yarn.HoyaActions;
             commandDescription = HoyaActions.DESCRIBE_ACTION_KILL_CONTAINER)
 */
 public class ActionEchoArgs extends AbstractActionArgs {
+  @Override
+  public String getActionName() {
+    return HoyaActions.ACTION_DESTROY;
+  }
 
   @Parameter(names = {ARG_MESSAGE},
              description = "reason for the operation")

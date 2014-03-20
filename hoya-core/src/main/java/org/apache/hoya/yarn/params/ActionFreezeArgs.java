@@ -28,7 +28,11 @@ import org.apache.hoya.yarn.HoyaActions;
 
 public class ActionFreezeArgs extends AbstractActionArgs implements
                                                          WaitTimeAccessor {
-
+  @Override
+  public String getActionName() {
+    return HoyaActions.ACTION_FREEZE;
+  }
+  
   public static final String FREEZE_COMMAND_ISSUED = "freeze command issued";
   @ParametersDelegate
   public WaitArgsDelegate waitDelegate = new WaitArgsDelegate();

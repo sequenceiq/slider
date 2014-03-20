@@ -25,6 +25,10 @@ import org.apache.hoya.yarn.HoyaActions;
             commandDescription = HoyaActions.DESCRIBE_ACTION_LIST)
 
 public class ActionListArgs extends AbstractActionArgs {
+  @Override
+  public String getActionName() {
+    return HoyaActions.ACTION_LIST;
+  }
 
   /**
    * Get the min #of params expected

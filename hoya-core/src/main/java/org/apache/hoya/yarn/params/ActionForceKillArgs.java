@@ -25,5 +25,10 @@ import org.apache.hoya.yarn.HoyaActions;
             commandDescription = HoyaActions.DESCRIBE_ACTION_FORCE_KILL)
 
 public class ActionForceKillArgs extends AbstractActionArgs {
+  @Override
+  public String getActionName() {
+    return HoyaActions.ACTION_EMERGENCY_FORCE_KILL;
+  }
+  
   public static final String ALL = "all";
 }

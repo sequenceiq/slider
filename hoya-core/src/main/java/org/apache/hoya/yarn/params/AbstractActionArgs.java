@@ -33,11 +33,14 @@ import java.util.List;
 /**
  * Base args for all actions
  */
-public class AbstractActionArgs extends ArgOps implements Arguments {
+public abstract class AbstractActionArgs extends ArgOps implements Arguments {
   protected static final Logger log =
     LoggerFactory.getLogger(AbstractActionArgs.class);
   private static final String UNKNOWN = "unknown";
 
+
+  protected AbstractActionArgs() {
+  }
 
   /**
    * URI of the filesystem
@@ -107,14 +110,11 @@ public class AbstractActionArgs extends ArgOps implements Arguments {
     return 1;
   }
 
-  public String getAction() {
-    Parameter annotation = this.getClass().getAnnotation(Parameter.class);
-    if (annotation == null) {
-      return UNKNOWN;
-    }
-    String[] names = annotation.names();
-    return names.length > 0 ? names[0] : UNKNOWN;
-  }
+  /**
+   * Get the name of the action
+   * @return
+   */
+  public abstract String getActionName() ;
 
   /**
    * Get the max #of params expected
@@ -126,12 +126,11 @@ public class AbstractActionArgs extends ArgOps implements Arguments {
 
   public void validate() throws BadCommandArgumentsException {
     
-
     int minArgs = getMinParams();
     int actionArgSize = parameters.size();
     if (minArgs > actionArgSize) {
       throw new BadCommandArgumentsException(
-        ErrorStrings.ERROR_NOT_ENOUGH_ARGUMENTS + getAction());
+        ErrorStrings.ERROR_NOT_ENOUGH_ARGUMENTS + getActionName());
     }
     int maxArgs = getMaxParams();
     if (maxArgs == -1) {
@@ -140,7 +139,7 @@ public class AbstractActionArgs extends ArgOps implements Arguments {
     if (actionArgSize > maxArgs) {
       String message = String.format("%s for action %s: limit is %d but saw %d",
                                      ErrorStrings.ERROR_TOO_MANY_ARGUMENTS,
-                                     getAction(), maxArgs,
+                                     getActionName(), maxArgs,
                                      actionArgSize);
       log.error(message);
       int index = 1;
@@ -153,6 +152,6 @@ public class AbstractActionArgs extends ArgOps implements Arguments {
 
   @Override
   public String toString() {
-    return super.toString() + ": " + getAction();
+    return super.toString() + ": " + getActionName();
   }
 }

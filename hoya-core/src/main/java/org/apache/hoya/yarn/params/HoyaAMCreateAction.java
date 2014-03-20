@@ -31,6 +31,11 @@ public class HoyaAMCreateAction extends AbstractActionArgs implements
                                                            LaunchArgsAccessor {
 
 
+  @Override
+  public String getActionName() {
+    return HoyaActions.ACTION_CREATE;
+  }
+
   @Parameter(names = ARG_IMAGE, description = "image", required = false)
   public String image;
 

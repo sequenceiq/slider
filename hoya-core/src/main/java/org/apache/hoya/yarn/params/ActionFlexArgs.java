@@ -32,7 +32,11 @@ import java.util.Map;
 
 public class ActionFlexArgs extends AbstractActionArgs {
 
-
+  @Override
+  public String getActionName() {
+    return HoyaActions.ACTION_FLEX;
+  }
+  
   @ParametersDelegate
   public RoleArgsDelegate roleDelegate = new RoleArgsDelegate();
 

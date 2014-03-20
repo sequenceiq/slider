@@ -35,7 +35,7 @@ import java.util.Map;
  * Abstract Action to build things; shares args across build and
  * list
  */
-public class AbstractClusterBuildingActionArgs extends AbstractActionArgs {
+public abstract class AbstractClusterBuildingActionArgs extends AbstractActionArgs {
 
   /**
    *    Declare the image configuration directory to use when creating or reconfiguring a hoya cluster. The path must be on a filesystem visible to all nodes in the YARN cluster.
@@ -45,7 +45,6 @@ public class AbstractClusterBuildingActionArgs extends AbstractActionArgs {
              description = "Path to cluster configuration directory in HDFS",
              converter = PathArgumentConverter.class)
   public Path confdir;
-
 
   @Parameter(names = ARG_APP_ZKPATH,
              description = "Zookeeper path for the application")
@@ -58,7 +57,6 @@ public class AbstractClusterBuildingActionArgs extends AbstractActionArgs {
   @Parameter(names = ARG_ZKPORT,
              description = "Zookeeper port")
   public int zkport = HBaseConfigFileOptions.HBASE_ZK_PORT;
-
 
   /**
    * --image path
@@ -96,12 +94,10 @@ public class AbstractClusterBuildingActionArgs extends AbstractActionArgs {
                            " <role> <name> <option>")
   public List<String> roleOptTriples = new ArrayList<String>(0);
 
-
   public Map<String, String> getOptionsMap() throws
                                              BadCommandArgumentsException {
     return convertTupleListToMap("options", optionTuples);
   }
-
 
   /**
    * Get the role heap mapping (may be empty, but never null)
