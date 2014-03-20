@@ -41,7 +41,6 @@ import org.apache.hoya.HoyaXmlConfKeys
 import org.apache.hoya.api.ClusterNode
 import org.apache.hoya.exceptions.ErrorStrings
 import org.apache.hoya.exceptions.HoyaException
-import org.apache.hoya.exceptions.UnknownClusterException
 import org.apache.hoya.tools.*
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.HoyaActions
@@ -633,8 +632,9 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest {
   public static ApplicationReport waitForAppToFinish(
       HoyaClient hoyaClient,
       int waitTime) {
-    ApplicationReport report = hoyaClient.monitorAppToState(new Duration(
-        waitTime), YarnApplicationState.FINISHED);
+    ApplicationReport report = hoyaClient.monitorAppToState(
+        YarnApplicationState.FINISHED,
+        new Duration(waitTime));
     if (report == null) {
       log.info("Forcibly killing application")
       dumpClusterStatus(hoyaClient, "final application status")

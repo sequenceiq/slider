@@ -38,6 +38,8 @@ public class LaunchedApplication {
 
   public LaunchedApplication(ApplicationId applicationId,
                              HoyaYarnClientImpl yarnClient) {
+    assert applicationId != null;
+    assert yarnClient != null;
     this.applicationId = applicationId;
     this.yarnClient = yarnClient;
   }
@@ -92,5 +94,9 @@ public class LaunchedApplication {
                                                      IOException {
     return yarnClient.killRunningApplication(applicationId, reason);
   }
-  
+
+  public ApplicationReport getApplicationReport()
+    throws YarnException, IOException {
+    return yarnClient.getApplicationReport(applicationId);
+  }
 }

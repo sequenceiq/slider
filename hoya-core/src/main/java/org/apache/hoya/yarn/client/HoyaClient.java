@@ -892,10 +892,9 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     assert launchedApplication != null;
     int exitCode;
     // wait for the submit state to be reached
-    ApplicationReport report = monitorAppToState(new Duration(
-                                                   Constants.ACCEPT_TIME),
-                                                 YarnApplicationState.ACCEPTED
-                                                );
+    ApplicationReport report = launchedApplication.monitorAppToState(
+      YarnApplicationState.ACCEPTED,
+      new Duration(Constants.ACCEPT_TIME));
 
 
     // may have failed, so check that
@@ -909,8 +908,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
         // waiting for state to change
         Duration duration = new Duration(waittime * 1000);
         duration.start();
-        report = monitorAppToState(duration,
-                                   YarnApplicationState.RUNNING);
+        report = launchedApplication.monitorAppToState(
+          YarnApplicationState.RUNNING, duration);
         if (report != null &&
             report.getYarnApplicationState() == YarnApplicationState.RUNNING) {
           exitCode = EXIT_SUCCESS;
@@ -1042,8 +1041,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   @VisibleForTesting
   public ApplicationReport monitorAppToRunning(Duration duration)
     throws YarnException, IOException {
-    return monitorAppToState(duration,
-                             YarnApplicationState.RUNNING);
+    return monitorAppToState(YarnApplicationState.RUNNING, duration);
   }
 
   /**
@@ -1094,17 +1092,21 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * Monitor the submitted application for reaching the requested state.
    * Will also report if the app reaches a later state (failed, killed, etc)
    * Kill application if duration!= null & time expires. 
-   * @param duration how long to wait -must be more than 0
+   * Prerequisite: the applicatin was launched.
    * @param desiredState desired state.
+   * @param duration how long to wait -must be more than 0
    * @return the application report -null on a timeout
    * @throws YarnException
    * @throws IOException
    */
   @VisibleForTesting
   public ApplicationReport monitorAppToState(
-    Duration duration, YarnApplicationState desiredState)
+    YarnApplicationState desiredState,
+    Duration duration)
     throws YarnException, IOException {
-    return monitorAppToState(applicationId, desiredState, duration);
+    LaunchedApplication launchedApplication =
+      new LaunchedApplication(applicationId, yarnClient);
+    return launchedApplication.monitorAppToState(desiredState, duration);
   }
 
   /**
@@ -1116,25 +1118,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   public ApplicationReport getApplicationReport() throws
                                                   IOException,
                                                   YarnException {
-    return yarnClient.getApplicationReport(applicationId);
-  }
-
-  /**
-   * Monitor the submitted application for reaching the requested state.
-   * Will also report if the app reaches a later state (failed, killed, etc)
-   * Kill application if duration!= null & time expires. 
-   * @param appId Application Id of application to be monitored
-   * @param duration how long to wait -must be more than 0
-   * @param desiredState desired state.
-   * @return the application report -null on a timeout
-   * @throws YarnException
-   * @throws IOException
-   */
-  @VisibleForTesting
-  public ApplicationReport monitorAppToState(
-    ApplicationId appId, YarnApplicationState desiredState, Duration duration)
-    throws YarnException, IOException {
-    return yarnClient.monitorAppToState(appId, desiredState, duration);
+    return getApplicationReport(applicationId);
   }
 
   /**
@@ -1466,6 +1450,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       return EXIT_SUCCESS;
     }
     LaunchedApplication application = new LaunchedApplication(yarnClient, app);
+    applicationId = application.getApplicationId();
     
 
     if (forcekill) {
@@ -1498,9 +1483,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     try {
       if (waittime > 0) {
         ApplicationReport applicationReport =
-          monitorAppToState(applicationId,
-                            YarnApplicationState.FINISHED,
-                            new Duration(waittime * 1000));
+          application.monitorAppToState(YarnApplicationState.FINISHED,
+                                        new Duration(waittime * 1000));
         if (applicationReport == null) {
           log.info("application did not shut down in time");
           return EXIT_FALSE;
@@ -1907,7 +1891,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   @VisibleForTesting
   public ApplicationReport getApplicationReport(ApplicationId appId)
     throws YarnException, IOException {
-    return yarnClient.getApplicationReport(appId);
+    return new LaunchedApplication(appId, yarnClient).getApplicationReport();
+
   }
 
   /**
