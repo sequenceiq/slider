@@ -142,7 +142,9 @@ public class RoleLaunchService extends AbstractService {
                                          role.getProviderRole(),
                                          clusterSpec,
                                          clusterSpec.getResourceOperations()
-                                                    .getOrAddComponent(roleName));
+                                                    .getOrAddComponent(roleName),
+                                         clusterSpec.getAppConfOperations()
+                                                    .getOrAddComponent(roleName) );
     launchThread(launcher,
                  String.format("%s-%s", roleName,
                                container.getId().toString())
@@ -213,21 +215,25 @@ public class RoleLaunchService extends AbstractService {
     // Allocated container
     public final Container container;
     public  final String containerRole;
-    private final MapOperations roleOptions;
+    private final MapOperations resourceComponent;
+    private final MapOperations appComponent;
     private final AggregateConf instanceDefinition;
     public final ProviderRole role;
 
     public RoleLauncher(Container container,
                         ProviderRole role,
                         AggregateConf instanceDefinition,
-                        MapOperations roleOptions) {
+                        MapOperations resourceComponent,
+                        MapOperations appComponent) {
       assert container != null;
       assert role != null;
-      assert roleOptions != null;
+      assert resourceComponent != null;
+      assert appComponent != null;
       this.container = container;
       this.containerRole = role.name;
       this.role = role;
-      this.roleOptions = roleOptions;
+      this.resourceComponent = resourceComponent;
+      this.appComponent = appComponent;
       this.instanceDefinition = instanceDefinition;
     }
 
@@ -262,13 +268,14 @@ public class RoleLaunchService extends AbstractService {
         Path containerTmpDirPath =
           new Path(launcherTmpDirPath, container.getId().toString());
         provider.buildContainerLaunchContext(ctx,
-                                             container,
+                                             instanceDefinition, container,
                                              containerRole,
                                              fs,
                                              generatedConfDirPath,
-                                             roleOptions,
-                                             containerTmpDirPath,
-                                             instanceDefinition);
+                                             resourceComponent,
+                                             appComponent,
+                                             containerTmpDirPath
+                                            );
 
         RoleInstance instance = new RoleInstance(container);
 

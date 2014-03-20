@@ -25,7 +25,6 @@ import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hoya.HoyaKeys;
-import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.core.conf.ConfTreeOperations;
@@ -96,13 +95,14 @@ public class AgentProviderService extends AbstractProviderService implements
 
   @Override
   public void buildContainerLaunchContext(ContainerLaunchContext ctx,
+                                          AggregateConf instanceDefinition,
                                           Container container,
                                           String role,
                                           HoyaFileSystem hoyaFileSystem,
                                           Path generatedConfPath,
-                                          MapOperations roleOptions,
-                                          Path containerTmpDirPath,
-                                          AggregateConf instanceDefinition) throws
+                                          MapOperations resourceComponent,
+                                          MapOperations appComponent,
+                                          Path containerTmpDirPath) throws
                                                                             IOException,
                                                                             HoyaException {
     this.hoyaFileSystem = hoyaFileSystem;
@@ -111,7 +111,7 @@ public class AgentProviderService extends AbstractProviderService implements
     log.debug(instanceDefinition.toString());
 
     // Set the environment
-    Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
+    Map<String, String> env = HoyaUtils.buildEnvMap(appComponent);
 
     HoyaUtils.copyDirectory(getConf(), generatedConfPath, containerTmpDirPath,
                             null);
@@ -148,14 +148,14 @@ public class AgentProviderService extends AbstractProviderService implements
     ConfTreeOperations appConf =
       instanceDefinition.getAppConfOperations();
 
-    String script = roleOptions.getMandatoryOption(SCRIPT_PATH);
-    String packagePath = roleOptions.getMandatoryOption(PACKAGE_PATH);
+    String script = appComponent.getMandatoryOption(SCRIPT_PATH);
+    String packagePath = appComponent.getMandatoryOption(PACKAGE_PATH);
     File packagePathFile = new File(packagePath);
     HoyaUtils.verifyIsDir(packagePathFile, log);
     File executable = new File(packagePathFile, script);
     HoyaUtils.verifyFileExists(executable, log);
 
-    String appHome = roleOptions.getMandatoryOption(APP_HOME);
+    String appHome = appComponent.getMandatoryOption(APP_HOME);
     //APP_HOME == /dev/null is being used to issue direct start commands
     //This is not required once embedded Agent is available
     if (appHome.equals("/dev/null")) {

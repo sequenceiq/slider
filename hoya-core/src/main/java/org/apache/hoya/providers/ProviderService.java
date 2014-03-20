@@ -43,21 +43,23 @@ public interface ProviderService extends ProviderCore, Service,
   /**
    * Set up the entire container launch context
    * @param ctx
+   * @param instanceDefinition
    * @param container
    * @param role
    * @param hoyaFileSystem
    * @param generatedConfPath
+   * @param appComponent
    * @param containerTmpDirPath
-   * @param instanceDefinition
    */
   void buildContainerLaunchContext(ContainerLaunchContext ctx,
+                                   AggregateConf instanceDefinition,
                                    Container container,
                                    String role,
                                    HoyaFileSystem hoyaFileSystem,
                                    Path generatedConfPath,
-                                   MapOperations roleOptions,
-                                   Path containerTmpDirPath,
-                                   AggregateConf instanceDefinition) throws
+                                   MapOperations resourceComponent,
+                                   MapOperations appComponent,
+                                   Path containerTmpDirPath) throws
                                                                     IOException,
                                                                     HoyaException;
 

@@ -109,20 +109,21 @@ public class HBaseProviderService extends AbstractProviderService implements
 
   @Override
   public void buildContainerLaunchContext(ContainerLaunchContext ctx,
+                                          AggregateConf instanceDefinition,
                                           Container container,
                                           String role,
                                           HoyaFileSystem hoyaFileSystem,
                                           Path generatedConfPath,
-                                          MapOperations roleOptions,
-                                          Path containerTmpDirPath,
-                                          AggregateConf instanceDefinition) throws
+                                          MapOperations resourceComponent,
+                                          MapOperations appComponent,
+                                          Path containerTmpDirPath) throws
                                                                             IOException,
                                                                             HoyaException {
 
     this.hoyaFileSystem = hoyaFileSystem;
     this.instanceDefinition = instanceDefinition;
     // Set the environment
-    Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
+    Map<String, String> env = HoyaUtils.buildEnvMap(appComponent);
 
     env.put(HBASE_LOG_DIR, providerUtils.getLogdir());
 
@@ -149,13 +150,13 @@ public class HBaseProviderService extends AbstractProviderService implements
 
     CommandLineBuilder command = new CommandLineBuilder();
 
-    String heap = roleOptions.getOption(RoleKeys.JVM_HEAP, DEFAULT_JVM_HEAP);
+    String heap = appComponent.getOption(RoleKeys.JVM_HEAP, DEFAULT_JVM_HEAP);
     if (HoyaUtils.isSet(heap)) {
       String adjustedHeap = HoyaUtils.translateTrailingHeapUnit(heap);
       env.put("HBASE_HEAPSIZE", adjustedHeap);
     }
     
-    String gcOpts = roleOptions.getOption(RoleKeys.GC_OPTS, DEFAULT_GC_OPTS);
+    String gcOpts = appComponent.getOption(RoleKeys.GC_OPTS, DEFAULT_GC_OPTS);
     if (HoyaUtils.isSet(gcOpts)) {
       env.put("SERVER_GC_OPTS", gcOpts);
     }

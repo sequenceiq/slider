@@ -118,13 +118,14 @@ public class AccumuloProviderService extends AbstractProviderService implements
 
   @Override
   public void buildContainerLaunchContext(ContainerLaunchContext ctx,
+                                          AggregateConf instanceDefinition,
                                           Container container,
                                           String role,
                                           HoyaFileSystem hoyaFileSystem,
                                           Path generatedConfPath,
-                                          MapOperations roleOptions,
-                                          Path containerTmpDirPath,
-                                          AggregateConf instanceDefinition) throws
+                                          MapOperations resourceComponent,
+                                          MapOperations appComponent,
+                                          Path containerTmpDirPath) throws
                                                                             IOException,
                                                                             HoyaException {
     
@@ -132,7 +133,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
     this.instanceDefinition = instanceDefinition;
     
     // Set the environment
-    Map<String, String> env = HoyaUtils.buildEnvMap(roleOptions);
+    Map<String, String> env = HoyaUtils.buildEnvMap(appComponent);
     env.put(ACCUMULO_LOG_DIR, ApplicationConstants.LOG_DIR_EXPANSION_VAR);
     ConfTreeOperations appConf =
       instanceDefinition.getAppConfOperations();
@@ -173,7 +174,7 @@ public class AccumuloProviderService extends AbstractProviderService implements
     List<String> commands = new ArrayList<String>();
     CommandLineBuilder commandLine = new CommandLineBuilder();
     
-    String heap = "-Xmx" + roleOptions.getOption(RoleKeys.JVM_HEAP, DEFAULT_JVM_HEAP);
+    String heap = "-Xmx" + appComponent.getOption(RoleKeys.JVM_HEAP, DEFAULT_JVM_HEAP);
     String opt = "ACCUMULO_OTHER_OPTS";
     if (HoyaUtils.isSet(heap)) {
       if (AccumuloKeys.ROLE_MASTER.equals(role)) {
@@ -196,12 +197,12 @@ public class AccumuloProviderService extends AbstractProviderService implements
     commandLine.add(AccumuloRoles.serviceForRole(role));
     
     // Add any role specific arguments to the command line
-    String additionalArgs = ProviderUtils.getAdditionalArgs(roleOptions);
+    String additionalArgs = ProviderUtils.getAdditionalArgs(appComponent);
     if (!StringUtils.isBlank(additionalArgs)) {
       commandLine.add(additionalArgs);
     }
 
-    commandLine.addOutAndErrFiles(role+"-out.txt",role+"-err.txt");
+    commandLine.addOutAndErrFiles(role + "-out.txt", role + "-err.txt");
     
 
     commands.add(commandLine.build());

@@ -171,13 +171,14 @@ class MockProviderService implements ProviderService {
   @Override
   void buildContainerLaunchContext(
       ContainerLaunchContext ctx,
+      AggregateConf instanceDefinition,
       Container container,
       String role,
       HoyaFileSystem hoyaFileSystem,
       Path generatedConfPath,
-      MapOperations roleOptions,
-      Path containerTmpDirPath,
-      AggregateConf instanceDefinition) throws IOException, HoyaException {
+      MapOperations resourceComponent,
+      MapOperations appComponent,
+      Path containerTmpDirPath) throws IOException, HoyaException {
 
   }
 
