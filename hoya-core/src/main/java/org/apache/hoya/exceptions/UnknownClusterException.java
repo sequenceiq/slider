@@ -31,4 +31,21 @@ public class UnknownClusterException extends HoyaException {
                                  Object... args) {
     super(EXIT_UNKNOWN_HOYA_CLUSTER, message, args);
   }
+
+  /**
+   * Create an instance with the standard exception name
+   * @param clustername name
+   * @return an instance to throw
+   */
+  public static UnknownClusterException unknownCluster(String clustername) {
+    return new UnknownClusterException(ErrorStrings.E_UNKNOWN_CLUSTER
+                                   + ": " + clustername);
+  }
+  public static UnknownClusterException unknownCluster(String clustername,
+                                                       Throwable throwable) {
+    UnknownClusterException exception =
+      unknownCluster(clustername);
+    exception.initCause(throwable);
+    return exception;
+  }
 }

@@ -191,10 +191,9 @@ public class HoyaFileSystem extends CoreFileSystem {
                                                                    HoyaException {
     if (!fileSystem.isFile(clusterSpecPath)) {
       log.debug("Missing specification file {}", clusterSpecPath);
-      throw new UnknownClusterException(ErrorStrings.E_UNKNOWN_CLUSTER
-                                        + clustername
-                                        + "\n (definition not found at "
-                                        + clusterSpecPath);
+      throw UnknownClusterException.unknownCluster(clustername
+                             + "\n (definition not found at "
+                             + clusterSpecPath);
     }
   }
 }

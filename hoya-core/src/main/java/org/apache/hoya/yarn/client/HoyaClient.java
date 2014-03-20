@@ -559,7 +559,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                     clusterDirectory);
       return definition;
     } catch (FileNotFoundException e) {
-      throw new UnknownClusterException(name, e);
+      throw UnknownClusterException.unknownCluster(name, e);
     }
   }
 
@@ -1822,7 +1822,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                                   IOException {
     verifyManagerSet();
     if (clustername == null) {
-      throw unknownClusterException("");
+      throw unknownClusterException("(undefined)");
     }
     ApplicationReport instance = findInstance(clustername);
     if (null == instance) {
@@ -1884,8 +1884,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
    * @return an exception with text and a relevant exit code
    */
   public UnknownClusterException unknownClusterException(String clustername) {
-    return new UnknownClusterException(E_UNKNOWN_CLUSTER 
-                             +": \""+ clustername+ "\"");
+    return UnknownClusterException.unknownCluster(clustername);
   }
 
   @Override

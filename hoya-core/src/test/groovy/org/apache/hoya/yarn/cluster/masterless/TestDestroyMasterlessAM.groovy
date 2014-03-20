@@ -22,6 +22,7 @@ import groovy.util.logging.Slf4j
 import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.exceptions.ErrorStrings
 import org.apache.hoya.exceptions.HoyaException
+import org.apache.hoya.exceptions.UnknownClusterException
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.params.CommonArgs
 import org.apache.hoya.yarn.client.HoyaClient
@@ -94,11 +95,11 @@ class TestDestroyMasterlessAM extends HBaseMiniClusterTestBase {
                             Arguments.ARG_MANAGER, RMAddr,
                         ])
       fail("expected an exception")
-    } catch (HoyaException e) {
-      assertUnknownClusterException(e)
+    } catch (UnknownClusterException e) {
+      //expected
     }
 
-      //and create a new cluster
+    //and create a new cluster
     launcher = createMasterlessAM(clustername, 0, false, false)
     HoyaClient cluster2 = launcher.service as HoyaClient
     

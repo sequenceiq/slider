@@ -20,6 +20,7 @@ package org.apache.hoya.yarn.cluster.actions
 
 import groovy.util.logging.Slf4j
 import org.apache.hoya.exceptions.HoyaException
+import org.apache.hoya.exceptions.UnknownClusterException
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.HoyaActions
 import org.apache.hoya.yarn.client.HoyaClient
@@ -132,8 +133,8 @@ class TestActionList extends HBaseMiniClusterTestBase {
           ]
       )
       fail("expected an exception, got a status code " + launcher.serviceExitCode)
-    } catch (HoyaException e) {
-      assertUnknownClusterException(e)
+    } catch (UnknownClusterException e) {
+      //expected
     }
   }
 

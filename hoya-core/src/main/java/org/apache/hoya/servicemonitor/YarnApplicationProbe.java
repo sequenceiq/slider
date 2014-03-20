@@ -78,9 +78,7 @@ public class YarnApplicationProbe extends Probe {
       ApplicationReport instance =
         yarnClient.findClusterInInstanceList(instances, clustername);
       if (null == instance) {
-        throw new UnknownClusterException(ErrorStrings.E_UNKNOWN_CLUSTER
-                                           + ": \"" + clustername + "\"");
-
+        throw UnknownClusterException.unknownCluster(clustername);
       }
 
       status.succeed(this);
