@@ -313,21 +313,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     clusterOperations.amSuicide(args.message, args.exitcode, args.waittime);
     return EXIT_SUCCESS;
   }
-  
-  
-
-  /**
-   * Get the provider for this cluster
-   * @param clusterSpec cluster spec
-   * @return the provider instance
-   * @throws HoyaException problems building the provider
-   */
-  private AbstractClientProvider createClientProvider(ClusterDescription clusterSpec)
-    throws HoyaException {
-    HoyaProviderFactory factory =
-      HoyaProviderFactory.createHoyaProviderFactory(clusterSpec.type);
-    return factory.createClientProvider();
-  }
 
   /**
    * Get the provider for this cluster
