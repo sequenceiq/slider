@@ -167,39 +167,6 @@ public class AccumuloClientProvider extends AbstractClientProvider implements
     return rolemap;
   }
 
-
-  /**
-   * Build the accumulo-site.xml file
-   * @param clusterSpec this is the cluster specification used to define this
-   * @return a map of the dynamic bindings for this Hoya instance
-   */
-  public Map<String, String> buildSiteConfFromSpec(ClusterDescription clusterSpec)
-    throws BadConfigException {
-
-    Map<String, String> sitexml = new HashMap<String, String>();
-
-
-    providerUtils.propagateSiteOptions(clusterSpec, sitexml);
-
-    propagateClientFSBinding(sitexml);
-
-    String dataPath = clusterSpec.dataPath;
-    setDatabasePath(sitexml, dataPath);
-
-    //fix up ZK
-    int zkPort = clusterSpec.getZkPort();
-    String zkHosts = clusterSpec.getZkHosts();
-
-    //parse the hosts
-    String[] hostlist = zkHosts.split(",", 0);
-    String quorum = HoyaUtils.join(hostlist, ":" + zkPort + ",");
-    //this quorum has a trailing comma
-    quorum = quorum.substring(0, quorum.length() - 1);
-    sitexml.put(AccumuloConfigFileOptions.ZOOKEEPER_HOST, quorum);
-
-    return sitexml;
-  }
-
   public void setDatabasePath(Map<String, String> sitexml, String dataPath) {
     Path path = new Path(dataPath);
     URI parentUri = path.toUri();

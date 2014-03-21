@@ -33,6 +33,7 @@ import org.junit.Before
 import org.junit.Test
 
 @CompileStatic
+@Deprecated
 class TestHoyaAMCommandSetup extends HoyaTestBase
     implements RoleKeys, HoyaKeys {
   public static final int JVM_HEAP_INDEX = 2

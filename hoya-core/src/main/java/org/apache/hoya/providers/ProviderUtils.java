@@ -104,12 +104,6 @@ public class ProviderUtils implements RoleKeys {
     
   }
 
-  public int validateAndGetYARNMemory(Map<String, String> role) throws
-                                                             BadConfigException {
-    return HoyaUtils.getIntValue(role, RoleKeys.YARN_MEMORY, 0, 0, -1);
-  }
-
-
   /**
    * build the log directory
    * @return the log dir
@@ -164,45 +158,6 @@ public class ProviderUtils implements RoleKeys {
   }
 
   /**
-   * copy all options beginning site. into the site.xml
-   * @param clusterSpec cluster specification
-   * @param sitexml map for XML file to build up
-   */
-  public void propagateSiteOptions(ClusterDescription clusterSpec,
-                                    Map<String, String> sitexml) {
-    Map<String, String> options = clusterSpec.options;
-    propagateSiteOptions(options, sitexml);
-  }
-
-  public void propagateSiteOptions(Map<String, String> options,
-                                   Map<String, String> sitexml) {
-    for (Map.Entry<String, String> entry : options.entrySet()) {
-      String key = entry.getKey();
-      if (key.startsWith(OptionKeys.SITE_XML_PREFIX)) {
-        String envName = key.substring(OptionKeys.SITE_XML_PREFIX.length());
-        if (!envName.isEmpty()) {
-          sitexml.put(envName, entry.getValue());
-        }
-      }
-    }
-  }
-
-  /**
-   * Propagate an option from the cluster specification option map
-   * to the site XML map, using the site key for the name
-   * @param clusterSpec cluster specification
-   * @param optionKey key in the option map
-   * @param sitexml  map for XML file to build up
-   * @param siteKey key to assign the value to in the site XML
-   * @throws BadConfigException if the option is missing from the cluster spec
-   */
-  public void propagateOption(ClusterDescription clusterSpec,
-                              String optionKey,
-                              Map<String, String> sitexml,
-                              String siteKey) throws BadConfigException {
-    sitexml.put(siteKey, clusterSpec.getMandatoryOption(optionKey));
-  }
-  /**
    * Propagate an option from the cluster specification option map
    * to the site XML map, using the site key for the name
    * @param clusterSpec cluster specification
@@ -216,24 +171,6 @@ public class ProviderUtils implements RoleKeys {
                               Map<String, String> sitexml,
                               String siteKey) throws BadConfigException {
     sitexml.put(siteKey, global.getMandatoryOption(optionKey));
-  }
-  
-  /**
-   * Build the image dir. This path is relative and only valid at the far end
-   * @param clusterSpec cluster spec
-   * @param archiveSubdir subdir
-   * @return a relative path to the tar
-   */
-  public File buildImageDir(ClusterDescription clusterSpec,
-                                   String archiveSubdir) {
-    File basedir;
-    if (clusterSpec.isImagePathSet()) {
-      basedir = new File(new File(HoyaKeys.LOCAL_TARBALL_INSTALL_SUBDIR),
-                         archiveSubdir);
-    } else {
-      basedir = new File(clusterSpec.getApplicationHome());
-    }
-    return basedir;
   }
 
 
@@ -433,8 +370,6 @@ public class ProviderUtils implements RoleKeys {
     return "";
   }
   
-  
-
   public int getRoleResourceRequirement(String val,
                                         int defVal,
                                         int maxVal) {

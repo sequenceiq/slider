@@ -34,6 +34,7 @@ import org.junit.Test
  */
 @Slf4j
 @CompileStatic
+@Deprecated
 class TestClusterSpecUpdate extends YarnMiniClusterTestBase {
   private Path testDirPath
   private URI testDirURI

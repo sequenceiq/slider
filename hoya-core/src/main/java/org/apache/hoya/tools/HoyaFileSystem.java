@@ -61,6 +61,7 @@ public class HoyaFileSystem extends CoreFileSystem {
    * @param clusterSpecPath
    * @return true if the original cluster specification was updated.
    */
+  @Deprecated
   public boolean updateClusterSpecification(Path clusterDirectory,
                                             Path clusterSpecPath,
                                             ClusterDescription clusterSpec) throws IOException {
@@ -99,6 +100,7 @@ public class HoyaFileSystem extends CoreFileSystem {
     return true;
   }
 
+  @Deprecated
   public boolean writeSpecWithoutOverwriting(Path clusterSpecPath,
                                              ClusterDescription clusterSpec) {
     try {
@@ -109,54 +111,6 @@ public class HoyaFileSystem extends CoreFileSystem {
       return false;
     }
     return true;
-  }
-
-  /**
-   * Perform any post-load cluster validation. This may include loading
-   * a provider and having it check it
-   *
-   * @param clusterSpecPath path to cspec
-   * @param clusterSpec     the cluster spec to validate
-   */
-  public void verifySpecificationValidity(Path clusterSpecPath,
-                                          ClusterDescription clusterSpec) throws HoyaException {
-    if (clusterSpec.state == ClusterDescription.STATE_INCOMPLETE) {
-      throw new BadClusterStateException(ErrorStrings.E_INCOMPLETE_CLUSTER_SPEC + clusterSpecPath);
-    }
-  }
-
-  /**
-   * Load a cluster spec then validate it
-   *
-   * @param clusterSpecPath path to cspec
-   * @return the cluster spec
-   * @throws java.io.IOException                      IO problems
-   * @throws org.apache.hoya.exceptions.HoyaException cluster location, spec problems
-   */
-  public ClusterDescription loadAndValidateClusterSpec(Path clusterSpecPath) throws IOException, HoyaException {
-    ClusterDescription clusterSpec =
-            ClusterDescription.load(fileSystem, clusterSpecPath);
-    //spec is loaded, just look at its state;
-    verifySpecificationValidity(clusterSpecPath, clusterSpec);
-    return clusterSpec;
-  }
-
-  /**
-   * Locate a cluster specification in the FS. This includes a check to verify
-   * that the file is there.
-   *
-   * @param clustername name of the cluster
-   * @return the path to the spec.
-   * @throws java.io.IOException                      IO problems
-   * @throws org.apache.hoya.exceptions.HoyaException if the path isn't there
-   */
-  public Path locateClusterSpecification(String clustername) throws IOException, HoyaException {
-    Path clusterDirectory = buildHoyaClusterDirPath(clustername);
-    Path clusterSpecPath =
-            new Path(clusterDirectory, HoyaKeys.CLUSTER_SPECIFICATION_FILE);
-    verifyClusterSpecExists(clustername, clusterSpecPath);
-
-    return clusterSpecPath;
   }
 
   /**

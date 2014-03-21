@@ -23,7 +23,4 @@ public enum PlacementPolicyOptions {
   EXCLUDE_FROM_FLEXING,
   NO_DATA_LOCALITY,
   ANTI_AFFINITY_REQUIRED,
-
-
-
-  }
+}

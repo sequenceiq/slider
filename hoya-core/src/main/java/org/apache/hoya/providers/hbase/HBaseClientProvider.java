@@ -128,55 +128,6 @@ public class HBaseClientProvider extends AbstractClientProvider implements
   /**
    * Build the hdfs-site.xml file
    * This the configuration used by HBase directly
-   * @param clusterSpec this is the cluster specification used to define this
-   * @return a map of the dynamic bindings for this Hoya instance
-   */
-  @Deprecated
-  public Map<String, String> buildSiteConfFromSpec(ClusterDescription clusterSpec)
-    throws BadConfigException {
-
-    Map<String, String> master = clusterSpec.getMandatoryRole(
-      HBaseKeys.ROLE_MASTER);
-
-    Map<String, String> worker = clusterSpec.getMandatoryRole(
-      HBaseKeys.ROLE_WORKER);
-
-    Map<String, String> sitexml = new HashMap<String, String>();
-    
-    //map all cluster-wide site. options
-    providerUtils.propagateSiteOptions(clusterSpec, sitexml);
-/*
-  //this is where we'd do app-indepdenent keytabs
-    String keytab =
-      clusterSpec.getOption(OptionKeys.OPTION_KEYTAB_LOCATION, "");
-
-*/
-
-
-    sitexml.put(KEY_HBASE_CLUSTER_DISTRIBUTED, "true");
-    sitexml.put(KEY_HBASE_MASTER_PORT, "0");
-
-    sitexml.put(KEY_HBASE_MASTER_INFO_PORT, master.get(
-      RoleKeys.APP_INFOPORT));
-    sitexml.put(KEY_HBASE_ROOTDIR,
-                clusterSpec.dataPath);
-    sitexml.put(KEY_REGIONSERVER_INFO_PORT,
-                worker.get(RoleKeys.APP_INFOPORT));
-    sitexml.put(KEY_REGIONSERVER_PORT, "0");
-    providerUtils.propagateOption(clusterSpec, OptionKeys.ZOOKEEPER_PATH,
-                                  sitexml, KEY_ZNODE_PARENT);
-    providerUtils.propagateOption(clusterSpec, OptionKeys.ZOOKEEPER_PORT,
-                                  sitexml, KEY_ZOOKEEPER_PORT);
-    providerUtils.propagateOption(clusterSpec, OptionKeys.ZOOKEEPER_HOSTS,
-                                  sitexml, KEY_ZOOKEEPER_QUORUM);
-
-    return sitexml;
-  }
-
-
-  /**
-   * Build the hdfs-site.xml file
-   * This the configuration used by HBase directly
    * @param instanceDescription this is the cluster specification used to define this
    * @return a map of the dynamic bindings for this Hoya instance
    */

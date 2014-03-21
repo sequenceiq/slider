@@ -1578,18 +1578,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   }
 
   /**
-   * get the path of a cluster
-   * @param clustername name of the cluster
-   * @return the path to the cluster specification
-   * @throws HoyaException if the specification is not there
-   */
-  public Path locateClusterSpecification(String clustername) throws
-                                                             YarnException,
-                                                             IOException {
-    return hoyaFileSystem.locateClusterSpecification(clustername);
-  }
-
-  /**
    * Implement flexing
    * @param clustername name of the cluster
    * @param roleInstances map of new role instances
