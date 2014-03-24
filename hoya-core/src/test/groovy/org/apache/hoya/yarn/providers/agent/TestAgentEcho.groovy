@@ -20,6 +20,7 @@ package org.apache.hoya.yarn.providers.agent
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hoya.providers.agent.AgentKeys
 import org.apache.hoya.yarn.Arguments
@@ -36,6 +37,12 @@ import org.junit.Test
 @CompileStatic
 @Slf4j
 class TestAgentEcho extends AgentTestBase {
+
+
+  @Override
+  void checkTestAssumptions(YarnConfiguration conf) {
+    
+  }
 
   @Test
   public void testEchoOperation() throws Throwable {

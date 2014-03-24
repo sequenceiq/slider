@@ -37,10 +37,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -276,7 +273,7 @@ public class ClusterDescription implements Cloneable {
   /**
    * Write the json as bytes -then close the file
    * @param dataOutputStream an outout stream that will always be closed
-   * @throws IOExceptionon any failure
+   * @throws IOException any failure
    */
   private void writeJsonAsBytes(DataOutputStream dataOutputStream) throws
                                                                    IOException {
@@ -348,6 +345,24 @@ public class ClusterDescription implements Cloneable {
       return mapper.readValue(json, ClusterDescription.class);
     } catch (IOException e) {
       log.error("Exception while parsing json : " + e + "\n" + json, e);
+      throw e;
+    }
+  }
+
+    /**
+     * Convert from input stream
+     * @param is input stream of cluster description
+     * @return the parsed JSON
+     * @throws IOException IO
+     * @throws JsonMappingException failure to map from the JSON to this class
+     */
+    public static ClusterDescription fromStream(InputStream is)
+            throws IOException, JsonParseException, JsonMappingException {
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            return mapper.readValue(is, ClusterDescription.class);
+        } catch (IOException e) {
+            log.error("Exception while parsing input stream : " + e, e);
       throw e;
     }
   }
@@ -673,8 +688,7 @@ public class ClusterDescription implements Cloneable {
    */
   
   public void setInfoTime(String keyHumanTime, String keyMachineTime, long time) {
-    setInfo(keyHumanTime, HoyaUtils.toGMTString(time));
-    setInfo(keyMachineTime, Long.toString(time));
+    HoyaUtils.setInfoTime(info, keyHumanTime, keyMachineTime, time );
   }
 
   /**

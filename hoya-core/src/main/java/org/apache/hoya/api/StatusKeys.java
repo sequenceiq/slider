@@ -53,7 +53,7 @@ public interface StatusKeys {
   /**
    * No of containers provided on AM restart
    */
-  String INFO_CONTAINERS_AM_RESTART = "containers.am-restart";
+  String INFO_CONTAINERS_AM_RESTART = "containers.at.am-restart";
 
   String INFO_CREATE_TIME_MILLIS = "create.time.millis";
   String INFO_CREATE_TIME_HUMAN = "create.time";
@@ -62,7 +62,7 @@ public interface StatusKeys {
   String INFO_FLEX_TIME_MILLIS = "flex.time.millis";
   String INFO_FLEX_TIME_HUMAN = "flex.time";
 
-  String INFO_MASTER_ADDRESS = "master.address";
+  String INFO_MASTER_ADDRESS = "info.master.address";
 
   /**
    * System time in millis when the status report was generated
@@ -74,5 +74,13 @@ public interface StatusKeys {
    */
   String INFO_STATUS_TIME_HUMAN = "status.time";
 
-  String INFO_AM_RESTART_SUPPORTED = "hoya.am.restart.supported";
+  String INFO_AM_RESTART_SUPPORTED = "info.am.restart.supported";
+
+  String INFO_AM_APP_ID = "info.am.app.id";
+  String INFO_AM_ATTEMPT_ID = "info.am.attempt.id";
+  String INFO_AM_CONTAINER_ID = "info.am.container.id";
+  String INFO_AM_HOSTNAME = "info.am.hostname";
+  String INFO_AM_RPC_PORT = "info.am.rpc.port";
+  String INFO_AM_WEB_PORT = "info.am.web.port";
+  String INFO_AM_WEB_URL = "info.am.web.url";
 }

@@ -20,6 +20,7 @@ package org.apache.hoya.yarn.providers.agent
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hoya.api.RoleKeys
 import org.apache.hoya.exceptions.BadConfigException
@@ -36,7 +37,12 @@ import static org.apache.hoya.yarn.Arguments.ARG_OPTION
 class TestBuildBasicAgent extends AgentTestBase {
 
 
-    @Test
+  @Override
+  void checkTestAssumptions(YarnConfiguration conf) {
+
+  }
+
+  @Test
     public void testBuildMultipleRoles() throws Throwable {
 
         def clustername = "test_build_basic_agent"

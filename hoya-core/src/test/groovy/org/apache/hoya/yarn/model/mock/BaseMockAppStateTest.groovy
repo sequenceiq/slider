@@ -91,7 +91,7 @@ abstract class BaseMockAppStateTest extends HoyaTestBase implements MockRoles {
         factory.ROLES,
         fs,
         historyPath,
-        null)
+        null, null)
   }
 
   abstract String getTestName();

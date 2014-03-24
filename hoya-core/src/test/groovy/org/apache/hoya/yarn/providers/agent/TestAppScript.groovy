@@ -20,6 +20,7 @@ package org.apache.hoya.yarn.providers.agent
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hoya.yarn.client.HoyaClient
 import org.junit.Test
@@ -36,7 +37,12 @@ import static org.apache.hoya.yarn.Arguments.ARG_ROLEOPT
 @Slf4j
 class TestAppScript extends AgentTestBase {
 
-    @Test
+  @Override
+  void checkTestAssumptions(YarnConfiguration conf) {
+
+  }
+
+  @Test
     public void testEchoOperation() throws Throwable {
         def clustername = "test_app_script"
         createMiniCluster(

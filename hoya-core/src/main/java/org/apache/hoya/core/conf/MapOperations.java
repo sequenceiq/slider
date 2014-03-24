@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -44,6 +45,11 @@ public class MapOperations implements Map<String, String> {
   public final Map<String, String> options;
 
   public final String name;
+
+  public MapOperations() {
+    options = new HashMap<String, String>();
+    name = "";
+  }
 
   /**
    * Create an instance
@@ -159,6 +165,11 @@ public class MapOperations implements Map<String, String> {
     if (get(key) == null) {
       put(key, value);
     }
+  }
+  
+  public void set(String key, Object value) {
+    assert value != null;
+    put(key, value.toString());
   }
 
   public int size() {

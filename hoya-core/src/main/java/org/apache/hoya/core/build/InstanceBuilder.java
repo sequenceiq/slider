@@ -115,6 +115,10 @@ public class InstanceBuilder {
 
     MapOperations globalOptions = internalOps.getGlobalOptions();
     BuildHelper.addBuildMetadata(md, "create");
+    HoyaUtils.setInfoTime(md,
+                          StatusKeys.INFO_CREATE_TIME_HUMAN,
+                          StatusKeys.INFO_CREATE_TIME_MILLIS,
+                          System.currentTimeMillis());
 
     internalOps.set(INTERNAL_AM_TMP_DIR,
                     instancePaths.tmpPathAM.toUri());

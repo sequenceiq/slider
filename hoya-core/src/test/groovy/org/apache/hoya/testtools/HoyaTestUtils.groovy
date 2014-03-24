@@ -297,9 +297,10 @@ class HoyaTestUtils extends Assert {
     return state == ClusterDescription.STATE_LIVE;
   }
 
-  public static void dumpClusterStatus(HoyaClient hoyaClient, String text) {
+  public static ClusterDescription dumpClusterStatus(HoyaClient hoyaClient, String text) {
     ClusterDescription status = hoyaClient.clusterDescription;
     dumpClusterDescription(text, status)
+    return status;
   }
 
   public static List<ClusterNode> listNodesInRole(HoyaClient hoyaClient, String role) {
@@ -373,10 +374,14 @@ class HoyaTestUtils extends Assert {
     
     get.followRedirects = true;
     int resultCode = client.executeMethod(get);
-    
-    assert resultCode < 400 && resultCode >= 200;
-    
-    return get.responseBodyAsString;
+
+    def body = get.responseBodyAsString
+    if (!(resultCode >= 200 && resultCode < 400)) {
+      def message = "Request to $url failed with exit code $resultCode, body length ${body?.length()}:\n$body"
+      log.error(message)
+      fail(message)
+    }
+    return body;
   }
 
   /**

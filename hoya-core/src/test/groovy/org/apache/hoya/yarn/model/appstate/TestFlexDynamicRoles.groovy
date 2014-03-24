@@ -78,7 +78,7 @@ class TestFlexDynamicRoles extends BaseMockAppStateTest
         factory.ROLES,
         fs,
         historyPath,
-        null)
+        null, null)
   }
 
   
@@ -181,7 +181,7 @@ class TestFlexDynamicRoles extends BaseMockAppStateTest
         factory.ROLES,
         fs,
         historyPath2,
-        null)
+        null, null)
     historyWriter.read(fs, history, appState.roleHistory)
   }
 

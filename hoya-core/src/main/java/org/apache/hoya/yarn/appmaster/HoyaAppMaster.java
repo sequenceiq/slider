@@ -379,16 +379,16 @@ public class HoyaAppMaster extends CompoundLaunchedService
     Path clusterDirPath = new Path(hoyaClusterURI);
     HoyaFileSystem fs = getClusterFS();
 
+    // build up information about the running application -this
+    // will be passed down to the cluster status
+    MapOperations appInformation = new MapOperations(); 
+
     AggregateConf instanceDefinition =
       InstanceIO.loadInstanceDefinitionUnresolved(fs, clusterDirPath);
 
     log.info("Deploying cluster {}:", instanceDefinition);
 
     appState.updateInstanceDefinition(instanceDefinition);
-    ClusterDescription clusterSpec;
-    clusterSpec = appState.getClusterSpec();
-
-    log.info(clusterSpec.toString());
     File confDir = getLocalConfDir();
     if (!confDir.exists() || !confDir.isDirectory()) {
       log.error("Bad conf dir {}", confDir);
@@ -427,24 +427,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
     Path generatedConfDirPath =
       new Path(clusterDirPath, HoyaKeys.GENERATED_CONF_DIR_NAME);
     boolean clusterSecure = HoyaUtils.isClusterSecure(conf);
-/*    amClientProvider.preflightValidateClusterConfiguration(fs,
-                                                           clustername,
-                                                           conf,
-                                                           clusterSpec,
-                                                           clusterDirPath,
-                                                           generatedConfDirPath,
-                                                           clusterSecure
-                                                          );*/
-/*
-    providerClient.preflightValidateClusterConfiguration(fs,
-                                                         clustername,
-                                                         conf,
-                                                         clusterSpec,
-                                                         clusterDirPath,
-                                                         generatedConfDirPath,
-                                                         clusterSecure
-                                                        );
-    */
+
     InetSocketAddress address = HoyaUtils.getRmSchedulerAddress(conf);
     log.info("RM is at {}", address);
     yarnRPC = YarnRPC.create(conf);
@@ -460,6 +443,13 @@ public class HoyaAppMaster extends CompoundLaunchedService
 
     ApplicationId appid = appAttemptID.getApplicationId();
     log.info("Hoya AM for ID {}", appid.getId());
+
+    appInformation.put(StatusKeys.INFO_AM_CONTAINER_ID,
+                       appMasterContainerID.toString());
+    appInformation.put(StatusKeys.INFO_AM_APP_ID,
+                       appid.toString());
+    appInformation.put(StatusKeys.INFO_AM_ATTEMPT_ID,
+                       appAttemptID.toString());
 
     UserGroupInformation currentUser = UserGroupInformation.getCurrentUser();
     Credentials credentials =
@@ -515,7 +505,9 @@ public class HoyaAppMaster extends CompoundLaunchedService
       appMasterTrackingUrl = null;
       log.info("HoyaAM Server is listening at {}:{}", appMasterHostname,
                appMasterRpcPort);
-
+      appInformation.put(StatusKeys.INFO_AM_HOSTNAME, appMasterHostname);
+      appInformation.set(StatusKeys.INFO_AM_RPC_PORT, appMasterRpcPort);
+      
       //build the role map
       List<ProviderRole> providerRoles =
         new ArrayList<ProviderRole>(providerService.getRoles());
@@ -524,7 +516,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
       // Start up the WebApp and track the URL for it
       webApp = new HoyaAMWebApp();
       WebApps.$for("hoyaam", WebAppApi.class,
-                            new WebAppApiImpl(this, appState, providerService))
+                            new WebAppApiImpl(this, appState, providerService), "ws")
                       .with(serviceConf)
                       .start(webApp);
       appMasterTrackingUrl = "http://" + appMasterHostname + ":" + webApp.port();
@@ -534,6 +526,9 @@ public class HoyaAppMaster extends CompoundLaunchedService
       webAppService.init(conf);
       webAppService.start();
       addService(webAppService);
+
+      appInformation.put(StatusKeys.INFO_AM_WEB_URL, appMasterTrackingUrl + "/");
+      appInformation.set(StatusKeys.INFO_AM_WEB_PORT, webApp.port());      
 
       // Register self with ResourceManager
       // This will start heartbeating to the RM
@@ -550,6 +545,10 @@ public class HoyaAppMaster extends CompoundLaunchedService
       containerMaxCores = maxResources.getVirtualCores();
       appState.setContainerLimits(maxResources.getMemory(),
                                   maxResources.getVirtualCores());
+      // set the RM-defined maximum cluster values
+      appInformation.put(RoleKeys.YARN_CORES, Integer.toString(containerMaxCores));
+      appInformation.put(RoleKeys.YARN_MEMORY, Integer.toString(containerMaxMemory));
+      
       boolean securityEnabled = UserGroupInformation.isSecurityEnabled();
       if (securityEnabled) {
         secretManager.setMasterKey(
@@ -563,10 +562,11 @@ public class HoyaAppMaster extends CompoundLaunchedService
       // extract container list
       List<Container> liveContainers = AMRestartSupport.retrieveContainersFromPreviousAttempt(
         response);
-      clusterSpec.setInfo(StatusKeys.INFO_AM_RESTART_SUPPORTED,
-                          Boolean.toString(liveContainers != null));
-      //now validate the installation
+      String amRestartSupported = Boolean.toString(liveContainers != null);
+      appInformation.put(StatusKeys.INFO_AM_RESTART_SUPPORTED,
+                         amRestartSupported);
 
+      //now validate the installation
       Configuration providerConf =
         providerService.loadProviderConfigurationInformation(confDir);
 
@@ -583,7 +583,8 @@ public class HoyaAppMaster extends CompoundLaunchedService
                              providerRoles,
                              fs.getFileSystem(),
                              historyDir,
-                             liveContainers);
+                             liveContainers,
+                             appInformation);
 
       // add the AM to the list of nodes in the cluster
       

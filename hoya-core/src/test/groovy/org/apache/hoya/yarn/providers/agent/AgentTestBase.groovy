@@ -20,10 +20,8 @@ package org.apache.hoya.yarn.providers.agent
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import org.apache.hadoop.ha.HAAdmin
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
-import org.apache.hoya.api.RoleKeys
 import org.apache.hoya.yarn.HoyaActions
 import org.apache.hoya.yarn.client.HoyaClient
 import org.apache.hoya.yarn.cluster.YarnZKMiniClusterTestBase
@@ -59,11 +57,9 @@ public abstract class AgentTestBase extends YarnZKMiniClusterTestBase {
   @Override
   void setup() {
     super.setup()
-//    assumeBoolOption(HOYA_CONFIG, KEY_HOYA_TEST_AGENT_ENABLED, true)
-//    assumeArchiveDefined();
-//    assumeApplicationHome();
+
     YarnConfiguration conf = testConfiguration
-    assumeOtherSettings(conf)
+    checkTestAssumptions(conf)
   }
 
 
@@ -87,8 +83,10 @@ public abstract class AgentTestBase extends YarnZKMiniClusterTestBase {
    * HBase home to be set.
    */
 
-  public void assumeOtherSettings(YarnConfiguration conf) {
-
+  public void checkTestAssumptions(YarnConfiguration conf) {
+    assumeBoolOption(HOYA_CONFIG, KEY_HOYA_TEST_AGENT_ENABLED, true)
+//    assumeArchiveDefined();
+    assumeApplicationHome();
   }
 
   /**

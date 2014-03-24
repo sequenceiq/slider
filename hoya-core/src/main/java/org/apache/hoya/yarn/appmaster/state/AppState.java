@@ -108,6 +108,8 @@ public class AppState {
    */
   public ClusterDescription clusterStatus = new ClusterDescription();
 
+  public Map<String, String> applicationInfo;
+  
   /**
    * Client properties created via the provider -static for the life
    * of the application
@@ -326,13 +328,9 @@ public class AppState {
     return clusterStatus;
   }
 
-  public void setClusterStatus(ClusterDescription clusterDesc) {
+  @VisibleForTesting
+  protected void setClusterStatus(ClusterDescription clusterDesc) {
     this.clusterStatus = clusterDesc;
-  }
-
-  @Deprecated
-  private void setClusterSpec(ClusterDescription clusterSpec) {
-    this.clusterSpec = clusterSpec;
   }
 
   /**
@@ -349,7 +347,6 @@ public class AppState {
     this.instanceDefinition = definition;
     onInstanceDefinitionUpdated();
   }
-
 
   public AggregateConf getInstanceDefinition() {
     return instanceDefinition;
@@ -393,16 +390,20 @@ public class AppState {
    * @param fs filesystem
    * @param historyDir directory containing history files
    * @param liveContainers list of live containers supplied on an AM restart
+   * @param applicationInfo
    */
   public void buildInstance(AggregateConf instanceDefinition,
                             Configuration publishedProviderConf,
                             List<ProviderRole> providerRoles,
                             FileSystem fs,
                             Path historyDir,
-                            List<Container> liveContainers) throws
+                            List<Container> liveContainers,
+                            Map<String, String> applicationInfo) throws
                                                             BadClusterStateException,
                                                             BadConfigException {
     this.publishedProviderConf = publishedProviderConf;
+    this.applicationInfo = applicationInfo != null ? applicationInfo 
+                                         : new HashMap<String, String>();
 
     clientProperties = new HashMap<String, String>();
 
@@ -470,19 +471,28 @@ public class AppState {
     //copy into cluster status. 
     ClusterDescription status = ClusterDescription.copy(clusterSpec);
     status.state = ClusterDescription.STATE_CREATED;
+    MapOperations infoOps = new MapOperations("info", status.info);
+    infoOps.mergeWithoutOverwrite(applicationInfo);
+    HoyaUtils.addBuildInfo(infoOps, "status");
+
     long now = now();
     status.setInfoTime(StatusKeys.INFO_LIVE_TIME_HUMAN,
                               StatusKeys.INFO_LIVE_TIME_MILLIS,
                               now);
+    HoyaUtils.setInfoTime(infoOps,
+                          StatusKeys.INFO_LIVE_TIME_HUMAN,
+                          StatusKeys.INFO_LIVE_TIME_MILLIS,
+                          now);
     if (0 == status.createTime) {
       status.createTime = now;
-      status.setInfoTime(StatusKeys.INFO_CREATE_TIME_HUMAN,
-                                StatusKeys.INFO_CREATE_TIME_MILLIS,
-                                now);
+      HoyaUtils.setInfoTime(infoOps,
+                            StatusKeys.INFO_CREATE_TIME_HUMAN,
+                            StatusKeys.INFO_CREATE_TIME_MILLIS,
+                            now);
     }
     status.state = ClusterDescription.STATE_LIVE;
 
-    //set the app state to this status
+      //set the app state to this status
     setClusterStatus(status);
   }
 
@@ -1257,10 +1267,9 @@ public class AppState {
         cd.setInfo(entry.getKey(),entry.getValue());
       }
     }
-    // set the RM-defined maximum cluster values
-    cd.setInfo(RoleKeys.YARN_CORES, Integer.toString(containerMaxCores));
-    cd.setInfo(RoleKeys.YARN_MEMORY, Integer.toString(containerMaxMemory));
-    HoyaUtils.addBuildInfo(cd,"status");
+    MapOperations infoOps = new MapOperations("info",cd.info);
+    infoOps.mergeWithoutOverwrite(applicationInfo);
+    HoyaUtils.addBuildInfo(infoOps, "status");
     cd.statistics = new HashMap<String, Map<String, Integer>>();
 
     // build the map of node -> container IDs

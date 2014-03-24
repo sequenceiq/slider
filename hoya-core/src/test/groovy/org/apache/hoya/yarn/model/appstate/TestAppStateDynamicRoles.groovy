@@ -76,7 +76,7 @@ class TestAppStateDynamicRoles extends BaseMockAppStateTest
         factory.ROLES,
         fs,
         historyPath,
-        null)
+        null, null)
   }
 
   @Test
