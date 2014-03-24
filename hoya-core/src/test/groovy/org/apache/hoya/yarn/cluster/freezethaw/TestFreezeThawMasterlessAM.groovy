@@ -64,7 +64,8 @@ class TestFreezeThawMasterlessAM extends HBaseMiniClusterTestBase {
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
 
-    clusterActionFreeze(hoyaClient, clustername)
+    assert 0 == clusterActionFreeze(hoyaClient, clustername)
+    
 
     // here we do something devious: delete our copy of the configuration
     // this makes sure the remote config gets picked up
@@ -75,6 +76,13 @@ class TestFreezeThawMasterlessAM extends HBaseMiniClusterTestBase {
     ServiceLauncher launcher2 = thawHoyaCluster(clustername, [], true);
     HoyaClient newCluster = launcher.getService() as HoyaClient
     newCluster.getClusterDescription(clustername);
+    
+    //freeze
+    assert 0 == clusterActionFreeze(hoyaClient, clustername)
+
+    //freeze again
+    assert 0 == clusterActionFreeze(hoyaClient, clustername)
+
   }
 
 }

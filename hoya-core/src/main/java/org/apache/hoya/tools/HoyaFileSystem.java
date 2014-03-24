@@ -39,8 +39,6 @@ import java.io.IOException;
  */
 public class HoyaFileSystem extends CoreFileSystem {
 
-  private static final Logger log = LoggerFactory.getLogger(HoyaFileSystem.class);
-
   public HoyaFileSystem(FileSystem fileSystem,
                         Configuration configuration) {
     super(fileSystem, configuration);
@@ -50,104 +48,5 @@ public class HoyaFileSystem extends CoreFileSystem {
     super(configuration);
   }
 
-  /**
-   * Overwrite a cluster specification. This code
-   * attempts to do this atomically by writing the updated specification
-   * to a new file, renaming the original and then updating the original.
-   * There's special handling for one case: the original file doesn't exist
-   *
-   * @param clusterSpec
-   * @param clusterDirectory
-   * @param clusterSpecPath
-   * @return true if the original cluster specification was updated.
-   */
-  @Deprecated
-  public boolean updateClusterSpecification(Path clusterDirectory,
-                                            Path clusterSpecPath,
-                                            ClusterDescription clusterSpec) throws IOException {
 
-    //it is not currently there -do a write with overwrite disabled, so that if
-    //it appears at this point this is picked up
-    if (!fileSystem.exists(clusterSpecPath) &&
-            writeSpecWithoutOverwriting(clusterSpecPath, clusterSpec)) {
-      return true;
-    }
-
-    //save to a renamed version
-    String specTimestampedFilename = "spec-" + System.currentTimeMillis();
-    Path specSavePath =
-            new Path(clusterDirectory, specTimestampedFilename + ".json");
-    Path specOrigPath =
-            new Path(clusterDirectory, specTimestampedFilename + "-orig.json");
-
-    //roll the specification. The (atomic) rename may fail if there is
-    //an overwrite, which is how we catch re-entrant calls to this
-    if (!writeSpecWithoutOverwriting(specSavePath, clusterSpec)) {
-      return false;
-    }
-    if (!fileSystem.rename(clusterSpecPath, specOrigPath)) {
-      return false;
-    }
-    try {
-      if (!fileSystem.rename(specSavePath, clusterSpecPath)) {
-        return false;
-      }
-    } finally {
-      if (!fileSystem.delete(specOrigPath, false)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  @Deprecated
-  public boolean writeSpecWithoutOverwriting(Path clusterSpecPath,
-                                             ClusterDescription clusterSpec) {
-    try {
-      clusterSpec.save(fileSystem, clusterSpecPath, false);
-    } catch (IOException e) {
-      HoyaFileSystem.log.debug("Failed to save cluster specification -race condition? " + e,
-              e);
-      return false;
-    }
-    return true;
-  }
-
-  /**
-   * Locate an application conf json in the FS. This includes a check to verify
-   * that the file is there.
-   *
-   * @param clustername name of the cluster
-   * @return the path to the spec.
-   * @throws IOException                      IO problems
-   * @throws HoyaException if the path isn't there
-   */
-  public Path locateInstanceDefinition(String clustername) throws IOException, HoyaException {
-    Path clusterDirectory = buildHoyaClusterDirPath(clustername);
-    Path appConfPath =
-            new Path(clusterDirectory, Filenames.APPCONF);
-    verifyClusterSpecExists(clustername, appConfPath);
-    return appConfPath;
-  }
-
-
-  /**
-   * Verify that a cluster specification exists
-   * @param clustername name of the cluster (For errors only)
-   * @param fs filesystem
-   * @param clusterSpecPath cluster specification path
-   * @throws IOException IO problems
-   * @throws HoyaException if the cluster specification is not present
-   */
-  public void verifyClusterSpecExists(String clustername,
-                                             Path clusterSpecPath) throws
-                                                                   IOException,
-                                                                   HoyaException {
-    if (!fileSystem.isFile(clusterSpecPath)) {
-      log.debug("Missing specification file {}", clusterSpecPath);
-      throw UnknownClusterException.unknownCluster(clustername
-                             + "\n (definition not found at "
-                             + clusterSpecPath);
-    }
-  }
 }
