@@ -23,6 +23,8 @@ import com.sun.jersey.api.client.WebResource
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
+import org.apache.hoya.api.StatusKeys
+import org.apache.hoya.yarn.appmaster.web.HoyaAMWebApp
 import org.apache.hoya.yarn.appmaster.web.rest.agent.RegistrationResponse
 import org.apache.hoya.yarn.appmaster.web.rest.agent.RegistrationStatus
 import org.apache.hoya.yarn.client.HoyaClient
@@ -40,8 +42,8 @@ import static org.apache.hoya.yarn.providers.agent.AgentTestUtils.*;
 @Slf4j
 class TestAgentAMManagementWS extends AgentTestBase {
 
-  public static final String MANAGEMENT_URI = "hoyaam/ws/v1/slider/mgmt/";
-  public static final String AGENT_URI = "hoyaam/ws/v1/slider/agent/";
+  public static final String MANAGEMENT_URI = HoyaAMWebApp.BASE_PATH +"/ws/v1/slider/mgmt/";
+  public static final String AGENT_URI = HoyaAMWebApp.BASE_PATH + "/ws/v1/slider/agent/";
 
   @Test
   public void testAgentAMManagementWS() throws Throwable {
@@ -70,11 +72,17 @@ class TestAgentAMManagementWS extends AgentTestBase {
     log.info("tracking URL is $trackingUrl")
     def agent_url = trackingUrl + AGENT_URI
 
+    
+    def status = dumpClusterStatus(hoyaClient, "agent AM")
+    def liveURL = status.getInfo(StatusKeys.INFO_AM_WEB_URL) 
+    if (liveURL) {
+      agent_url = liveURL + AGENT_URI
+    }
+    
     log.info("Agent URL is $agent_url")
     
-    dumpClusterStatus(hoyaClient, "agent AM")
 
-    String page = fetchWebPageWithoutError(agent_url + "register");
+    String page = fetchWebPageWithoutError(agent_url);
     log.info(page);
     
     //WS get

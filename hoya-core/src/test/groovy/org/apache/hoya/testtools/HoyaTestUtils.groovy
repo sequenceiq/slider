@@ -297,9 +297,10 @@ class HoyaTestUtils extends Assert {
     return state == ClusterDescription.STATE_LIVE;
   }
 
-  public static void dumpClusterStatus(HoyaClient hoyaClient, String text) {
+  public static ClusterDescription dumpClusterStatus(HoyaClient hoyaClient, String text) {
     ClusterDescription status = hoyaClient.clusterDescription;
     dumpClusterDescription(text, status)
+    return status;
   }
 
   public static List<ClusterNode> listNodesInRole(HoyaClient hoyaClient, String role) {

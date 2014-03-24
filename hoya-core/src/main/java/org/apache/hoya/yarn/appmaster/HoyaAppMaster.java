@@ -527,7 +527,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
       webAppService.start();
       addService(webAppService);
 
-      appInformation.put(StatusKeys.INFO_AM_WEB_URL, appMasterTrackingUrl);
+      appInformation.put(StatusKeys.INFO_AM_WEB_URL, appMasterTrackingUrl + "/");
       appInformation.set(StatusKeys.INFO_AM_WEB_PORT, webApp.port());      
 
       // Register self with ResourceManager
