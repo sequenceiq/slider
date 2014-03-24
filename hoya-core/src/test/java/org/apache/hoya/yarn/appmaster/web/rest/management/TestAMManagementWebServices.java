@@ -41,6 +41,7 @@ import org.apache.hoya.tools.HoyaUtils;
 import org.apache.hoya.yarn.appmaster.state.AppState;
 import org.apache.hoya.yarn.appmaster.web.WebAppApi;
 import org.apache.hoya.yarn.appmaster.web.WebAppApiImpl;
+import org.apache.hoya.yarn.appmaster.web.rest.AMWebServices;
 import org.apache.hoya.yarn.appmaster.web.rest.SliderJacksonJaxbJsonProvider;
 import org.apache.hoya.yarn.model.mock.MockFactory;
 import org.apache.hoya.yarn.model.mock.MockHoyaClusterProtocol;
@@ -85,11 +86,23 @@ public class TestAMManagementWebServices extends JerseyTest {
     }
   }
 
-  @Path("/ws/v1/slider/mgmt")
-  public static class MockSliderAMWebServices extends AMManagementWebServices {
+  @Path("/ws/v1/slider")
+  public static class MockSliderAMWebServices extends AMWebServices {
 
     @Inject
     public MockSliderAMWebServices(WebAppApi slider) {
+      super(slider);
+    }
+
+    @Override
+    public ManagementResource getManagementResource() {
+      return new MockManagementResource(slider);
+    }
+
+  }
+
+  public static class MockManagementResource extends ManagementResource {
+    public MockManagementResource(WebAppApi slider) {
       super(slider);
     }
 
@@ -119,8 +132,8 @@ public class TestAMManagementWebServices extends JerseyTest {
       aggregateConf.setName("test");
       return aggregateConf;
     }
-  }
 
+  }
   @Before
   @Override
   public void setUp() throws Exception {

@@ -16,25 +16,42 @@
  */
 package org.apache.hoya.yarn.appmaster.web.rest.agent;
 
-import com.google.inject.Inject;
 import org.apache.hoya.yarn.appmaster.web.WebAppApi;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.hoya.yarn.appmaster.web.rest.agent.HeartBeat;
+import org.apache.hoya.yarn.appmaster.web.rest.agent.HeartBeatResponse;
+import org.apache.hoya.yarn.appmaster.web.rest.agent.Register;
+import org.apache.hoya.yarn.appmaster.web.rest.agent.RegistrationResponse;
+import org.apache.hoya.yarn.appmaster.web.rest.agent.RegistrationStatus;
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
 
-import javax.ws.rs.*;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-/** The available REST services exposed by a slider AM. */
-public class AMAgentWebServices {
-  protected static final Logger log =
-    LoggerFactory.getLogger(AMAgentWebServices.class);
-  /** AM/WebApp info object */
-  private WebAppApi slider;
+/**
+ *
+ */
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
+public class AgentResource {
 
-  @Inject
-  public AMAgentWebServices(WebAppApi slider) {
+  private final WebAppApi slider;
+  private String agent_name;
+
+  public AgentResource(WebAppApi slider) {
     this.slider = slider;
+  }
+
+  private void init(HttpServletResponse res) {
+    res.setContentType(null);
   }
 
   @GET
@@ -57,32 +74,33 @@ public class AMAgentWebServices {
     return response;
   }
 
-
   @POST
-  @Path("/agent/register/{agent_name: [a-zA-Z][a-zA-Z_0-9]*}")
-  @Consumes(MediaType.APPLICATION_JSON)
-  @Produces(MediaType.APPLICATION_JSON)
+  @Path("/{agent_name: [a-zA-Z][a-zA-Z_0-9]*}/register")
+  @Consumes({MediaType.APPLICATION_JSON})
+  @Produces({MediaType.APPLICATION_JSON})
   public RegistrationResponse register(Register registration,
+                                       @Context HttpServletResponse res,
                                        @PathParam("agent_name") String agent_name) {
-    log.info("Registration of {}", agent_name);
-    validateRegistration(registration);
+    init(res);
+    this.agent_name = agent_name;
 
+    // dummy impl
     RegistrationResponse response = new RegistrationResponse();
     response.setResponseStatus(RegistrationStatus.OK);
     return response;
 
   }
 
-  protected void validateRegistration(Register registration) {
-
-  }
-
   @POST
-  @Path("/agent/heartbeat/{agent_name}")
+  @Path("/{agent_name: [a-zA-Z][a-zA-Z_0-9]*}/heartbeat")
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces({MediaType.APPLICATION_JSON})
   public HeartBeatResponse heartbeat(HeartBeat message,
+                                     @Context HttpServletResponse res,
                                      @PathParam("agent_name") String agent_name) {
+    init(res);
+
+    // dummy impl
     return new HeartBeatResponse();
   }
 }

@@ -25,4 +25,18 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class DiskInfo {
+
+  private String info;
+
+  public DiskInfo(String info) {
+    this.info = info;
+  }
+
+  public String getInfo() {
+    return info;
+  }
+
+  public void setInfo(String info) {
+    this.info = info;
+  }
 }

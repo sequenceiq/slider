@@ -16,39 +16,29 @@
  */
 package org.apache.hoya.yarn.appmaster.web.rest.management;
 
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
-import org.apache.hoya.api.ClusterDescription;
-import org.apache.hoya.api.proto.Messages;
 import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.yarn.appmaster.web.WebAppApi;
-import org.apache.hoya.yarn.appmaster.web.rest.agent.HeartBeat;
-import org.apache.hoya.yarn.appmaster.web.rest.agent.HeartBeatResponse;
-import org.apache.hoya.yarn.appmaster.web.rest.agent.Register;
-import org.apache.hoya.yarn.appmaster.web.rest.agent.RegistrationResponse;
-import org.apache.hoya.yarn.appmaster.web.rest.agent.RegistrationStatus;
+import org.apache.hoya.yarn.appmaster.web.rest.AMWebServices;
 import org.apache.hoya.yarn.appmaster.web.rest.management.resources.AggregateConfResource;
 import org.apache.hoya.yarn.appmaster.web.rest.management.resources.ConfTreeResource;
 import org.apache.hoya.yarn.appmaster.web.rest.management.resources.ResourceFactory;
 
 import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.*;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
-import java.io.InputStream;
 
-/** The available REST services exposed by a slider AM. */
-@Singleton
-@Path(AMManagementWebServices.MANAGEMENT_CONTEXT_ROOT)
-public class AMManagementWebServices {
-  public static final String MANAGEMENT_CONTEXT_ROOT = "/ws/v1/slider";
-  /** AM/WebApp info object */
-  private WebAppApi slider;
+/**
+ *
+ */
+public class ManagementResource {
+  private final WebAppApi slider;
 
-  @Inject
-  public AMManagementWebServices(WebAppApi slider) {
+  public ManagementResource(WebAppApi slider) {
     this.slider = slider;
   }
 
@@ -57,7 +47,7 @@ public class AMManagementWebServices {
   }
 
   @GET
-  @Path("/mgmt/app")
+  @Path("/app")
   @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
   public AggregateConfResource getAggregateConfiguration(@Context UriInfo uriInfo,
                                                          @Context HttpServletResponse res) {
@@ -67,7 +57,7 @@ public class AMManagementWebServices {
   }
 
   @GET
-  @Path("/mgmt/app/configurations/{config}")
+  @Path("/app/configurations/{config}")
   @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
   public ConfTreeResource getConfTreeResource(@PathParam("config") String config,
                                               @Context UriInfo uriInfo,
@@ -76,44 +66,12 @@ public class AMManagementWebServices {
     AggregateConfResource aggregateConf =
         ResourceFactory.createAggregateConfResource(getAggregateConf(),
                                                     uriInfo.getBaseUriBuilder()
-                                                        .path(
-                                                            MANAGEMENT_CONTEXT_ROOT).path(
-                                                        "app"));
+                                                    .path(AMWebServices.WS_CONTEXT_ROOT).path(
+                                                    "mgmt/app"));
     return aggregateConf.getConfTree(config);
   }
 
   protected AggregateConf getAggregateConf() {
     return slider.getAppState().getInstanceDefinition();
-  }
-
-  @POST
-  @Path("/agent/register")
-  @Consumes(MediaType.APPLICATION_JSON)
-  public RegistrationResponse register(Register registration,
-                                       @Context HttpServletResponse res) {
-    init(res);
-    validateRegistration(registration);
-
-    // dummy impl
-    RegistrationResponse response = new RegistrationResponse();
-    response.setResponseStatus(RegistrationStatus.OK);
-    return response;
-
-  }
-
-  protected void validateRegistration(Register registration) {
-
-  }
-
-  @POST
-  @Path("/agent/heartbeat/{agent_name}")
-  @Consumes(MediaType.APPLICATION_JSON)
-  public HeartBeatResponse heartbeat(HeartBeat message,
-                                     @Context HttpServletResponse res,
-                                     @PathParam("agent_name") String agent_name) {
-    init(res);
-
-    // dummy impl
-    return new HeartBeatResponse();
   }
 }

@@ -25,4 +25,18 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class CommandReport {
+
+  private String report;
+
+  public CommandReport(String report) {
+    this.report = report;
+  }
+
+  public String getReport() {
+    return report;
+  }
+
+  public void setReport(String report) {
+    this.report = report;
+  }
 }

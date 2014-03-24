@@ -48,6 +48,9 @@ public class RegistrationResponse {
   @JsonProperty("statusCommands")
   private List<StatusCommand> statusCommands = null;
 
+  public RegistrationResponse() {
+  }
+
   public RegistrationStatus getResponseStatus() {
     return response;
   }

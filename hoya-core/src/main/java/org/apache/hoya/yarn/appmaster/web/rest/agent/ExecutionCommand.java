@@ -25,4 +25,17 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class ExecutionCommand {
+  private String command;
+
+  public ExecutionCommand(String command) {
+    this.command = command;
+  }
+
+  public String getCommand() {
+    return command;
+  }
+
+  public void setCommand(String command) {
+    this.command = command;
+  }
 }

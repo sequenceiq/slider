@@ -22,4 +22,17 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class AgentEnv {
+  private String env;
+
+  public AgentEnv(String env) {
+    this.env = env;
+  }
+
+  public String getEnv() {
+    return env;
+  }
+
+  public void setEnv(String env) {
+    this.env = env;
+  }
 }

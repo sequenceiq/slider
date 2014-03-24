@@ -41,6 +41,7 @@ import org.apache.hoya.tools.HoyaUtils;
 import org.apache.hoya.yarn.appmaster.state.AppState;
 import org.apache.hoya.yarn.appmaster.web.WebAppApi;
 import org.apache.hoya.yarn.appmaster.web.WebAppApiImpl;
+import org.apache.hoya.yarn.appmaster.web.rest.AMWebServices;
 import org.apache.hoya.yarn.appmaster.web.rest.SliderJacksonJaxbJsonProvider;
 import org.apache.hoya.yarn.model.mock.MockFactory;
 import org.apache.hoya.yarn.model.mock.MockHoyaClusterProtocol;
@@ -69,7 +70,7 @@ public class TestAMAgentWebServices extends JerseyTest {
   public static final int RM_MAX_RAM = 4096;
   public static final int RM_MAX_CORES = 64;
   public static final String AGENT_URL =
-    "http://localhost:9998/hoyaam/ws/v1/slider/agent/";
+    "http://localhost:9998/hoyaam/ws/v1/slider/agents/";
   
   static MockFactory factory = new MockFactory();
   private static Configuration conf = new Configuration();
@@ -91,11 +92,11 @@ public class TestAMAgentWebServices extends JerseyTest {
   }
 
 //  @Path("/ws/v1/slider/agent")
-  @Path("/ws/v1/slider/")
-  public static class MockAMAgentWebServices extends AMAgentWebServices {
+  @Path("/ws/v1/slider")
+  public static class MockAMWebServices extends AMWebServices {
 
     @Inject
-    public MockAMAgentWebServices(WebAppApi slider) {
+    public MockAMWebServices(WebAppApi slider) {
       super(slider);
     }
 
@@ -142,7 +143,7 @@ public class TestAMAgentWebServices extends JerseyTest {
 
         bind(SliderJacksonJaxbJsonProvider.class);
         bind(GenericExceptionHandler.class);
-        bind(MockAMAgentWebServices.class);
+        bind(MockAMWebServices.class);
         bind(WebAppApi.class).toInstance(slider);
         bind(Configuration.class).toInstance(conf);
 
@@ -171,7 +172,7 @@ public class TestAMAgentWebServices extends JerseyTest {
   public void testRegistration() throws JSONException, Exception {
     RegistrationResponse response;
     Client client = createTestClient();
-    WebResource webResource = client.resource(AGENT_URL + "register/test");
+    WebResource webResource = client.resource(AGENT_URL + "test/register");
     response = webResource.type(MediaType.APPLICATION_JSON)
         .post(RegistrationResponse.class, createDummyJSONRegister());
     Assert.assertEquals(RegistrationStatus.OK, response.getResponseStatus());
@@ -187,7 +188,7 @@ public class TestAMAgentWebServices extends JerseyTest {
   public void testHeartbeat() throws JSONException, Exception {
     HeartBeatResponse response;
     Client client = createTestClient();
-    WebResource webResource = client.resource(AGENT_URL + "heartbeat/test");
+    WebResource webResource = client.resource(AGENT_URL + "test/heartbeat");
     response = webResource.type(MediaType.APPLICATION_JSON)
         .post(HeartBeatResponse.class, createDummyHeartBeat());
     assertEquals(response.getResponseId(), 0L);
@@ -201,13 +202,6 @@ public class TestAMAgentWebServices extends JerseyTest {
                                          .head();
     assertEquals(200, response.getStatus());
   }
-
-  @Test
-  public void testFetchRoot() throws JSONException, Exception {
-    String page = fetchWebPageWithoutError(AGENT_URL + "register/");
-    log.info(page);
-  }
-
 
   @Test
   public void testSleepForAWhile() throws Throwable {

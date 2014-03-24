@@ -21,12 +21,10 @@ import com.sun.jersey.api.core.ResourceConfig;
 import com.sun.jersey.core.util.FeaturesAndProperties;
 import com.sun.jersey.guice.spi.container.servlet.GuiceContainer;
 import com.sun.jersey.spi.container.servlet.ServletContainer;
-import org.apache.hadoop.yarn.webapp.DefaultWrapperServlet;
 import org.apache.hadoop.yarn.webapp.Dispatcher;
 import org.apache.hadoop.yarn.webapp.GenericExceptionHandler;
 import org.apache.hadoop.yarn.webapp.WebApp;
-import org.apache.hoya.yarn.appmaster.web.rest.agent.AMAgentWebServices;
-import org.apache.hoya.yarn.appmaster.web.rest.management.AMManagementWebServices;
+import org.apache.hoya.yarn.appmaster.web.rest.AMWebServices;
 import org.apache.hoya.yarn.appmaster.web.rest.SliderJacksonJaxbJsonProvider;
 
 import java.util.HashMap;
@@ -52,7 +50,7 @@ public class HoyaAMWebApp extends WebApp {
     // Get exceptions printed to the screen
     bind(GenericExceptionHandler.class);
     // bind the REST interface
-    bind(AMManagementWebServices.class);
+    bind(AMWebServices.class);
     //bind(AMAgentWebServices.class);
 
     route("/", HoyaAMController.class);
