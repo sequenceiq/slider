@@ -68,11 +68,9 @@ public class TestAMAgentWebServices extends JerseyTest {
   
   public static final int RM_MAX_RAM = 4096;
   public static final int RM_MAX_CORES = 64;
-//  public static final String AGENT_URL =
-//    "http://localhost:9998/hoyaam/ws/v1/slider/agent/";
-  
   public static final String AGENT_URL =
-    "http://localhost:9998/hoyaam/ws/agent/";
+    "http://localhost:9998/hoyaam/ws/v1/slider/agent/";
+  
   static MockFactory factory = new MockFactory();
   private static Configuration conf = new Configuration();
   private static WebAppApi slider;
