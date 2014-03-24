@@ -104,9 +104,6 @@ public interface HoyaKeys extends HoyaXmlConfKeys {
    */
   String HISTORY_FILENAME_GLOB_PATTERN = HISTORY_FILENAME_PREFIX +"*."+
                                     HISTORY_FILENAME_SUFFIX;
-  
-  String CLUSTER_SPECIFICATION_FILE = "cluster.json";
-
   /**
    * XML resource listing the standard Hoya providers
    * {@value}

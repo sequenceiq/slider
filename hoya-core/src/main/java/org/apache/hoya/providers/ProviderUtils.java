@@ -158,6 +158,30 @@ public class ProviderUtils implements RoleKeys {
   }
 
   /**
+   * copy all options beginning site. into the site.xml
+   * @param clusterSpec cluster specification
+   * @param sitexml map for XML file to build up
+   */
+  public void propagateSiteOptions(ClusterDescription clusterSpec,
+                                    Map<String, String> sitexml) {
+    Map<String, String> options = clusterSpec.options;
+    propagateSiteOptions(options, sitexml);
+  }
+
+  public void propagateSiteOptions(Map<String, String> options,
+                                   Map<String, String> sitexml) {
+    for (Map.Entry<String, String> entry : options.entrySet()) {
+      String key = entry.getKey();
+      if (key.startsWith(OptionKeys.SITE_XML_PREFIX)) {
+        String envName = key.substring(OptionKeys.SITE_XML_PREFIX.length());
+        if (!envName.isEmpty()) {
+          sitexml.put(envName, entry.getValue());
+        }
+      }
+    }
+  }
+
+  /**
    * Propagate an option from the cluster specification option map
    * to the site XML map, using the site key for the name
    * @param clusterSpec cluster specification
