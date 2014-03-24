@@ -190,6 +190,7 @@ public class TestAMManagementWebServices extends JerseyTest {
     WebResource r = resource();
     ClientResponse response = r.path("ws").path("v1").path("slider").path("mgmt").path("app")
         .accept(MediaType.APPLICATION_JSON).get(ClientResponse.class);
+    assertEquals(200, response.getStatus());
     assertEquals(MediaType.APPLICATION_JSON_TYPE, response.getType());
     JSONObject json = response.getEntity(JSONObject.class);
     assertEquals("incorrect number of elements", 4, json.length());
@@ -209,6 +210,7 @@ public class TestAMManagementWebServices extends JerseyTest {
         r.path("ws").path("v1").path("slider").path("mgmt").path("app").path("configurations").path(
             "internal")
             .accept(MediaType.APPLICATION_JSON).get(ClientResponse.class);
+    assertEquals(200, response.getStatus());
     assertEquals(MediaType.APPLICATION_JSON_TYPE, response.getType());
     JSONObject json = response.getEntity(JSONObject.class);
     assertEquals("incorrect number of elements", 4, json.length());
@@ -228,6 +230,8 @@ public class TestAMManagementWebServices extends JerseyTest {
         r.path("ws").path("v1").path("slider").path("mgmt").path("app").path("configurations").path(
             "resources")
             .accept(MediaType.APPLICATION_JSON).get(ClientResponse.class);
+
+    assertEquals(200, response.getStatus());
     assertEquals(MediaType.APPLICATION_JSON_TYPE, response.getType());
     JSONObject json = response.getEntity(JSONObject.class);
     assertEquals("incorrect number of elements", 4, json.length());
@@ -248,6 +252,7 @@ public class TestAMManagementWebServices extends JerseyTest {
         r.path("ws").path("v1").path("slider").path("mgmt").path("app").path("configurations").path(
             "appConf")
             .accept(MediaType.APPLICATION_JSON).get(ClientResponse.class);
+    assertEquals(200, response.getStatus());
     assertEquals(MediaType.APPLICATION_JSON_TYPE, response.getType());
     JSONObject json = response.getEntity(JSONObject.class);
     assertEquals("incorrect number of elements", 4, json.length());
