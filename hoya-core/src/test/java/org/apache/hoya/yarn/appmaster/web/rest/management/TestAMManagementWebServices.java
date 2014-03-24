@@ -153,7 +153,7 @@ public class TestAMManagementWebServices extends JerseyTest {
               factory.ROLES,
               fs,
               historyPath,
-              null);
+              null, null);
         } catch (IOException e) {
           e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         } catch (URISyntaxException e) {

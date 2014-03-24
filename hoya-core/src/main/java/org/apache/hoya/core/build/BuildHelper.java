@@ -37,7 +37,8 @@ public class BuildHelper {
   public static void addBuildMetadata(Map dest, String prefix) {
 
     Properties props = HoyaVersionInfo.loadVersionProperties();
-    dest.put(prefix + "." + HoyaVersionInfo.APP_BUILD_INFO, props.getProperty(
+    dest.put(prefix + "." + HoyaVersionInfo.APP_BUILD_INFO,
+             props.getProperty(
       HoyaVersionInfo.APP_BUILD_INFO));
     dest.put(prefix + "." + HoyaVersionInfo.HADOOP_BUILD_INFO,
              props.getProperty(HoyaVersionInfo.HADOOP_BUILD_INFO));

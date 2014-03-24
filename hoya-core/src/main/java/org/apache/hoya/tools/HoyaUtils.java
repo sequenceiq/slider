@@ -1194,16 +1194,32 @@ public final class HoyaUtils {
    * @param cd cluster
    * @param prefix prefix for the build info
    */
-  public static void addBuildInfo(ClusterDescription cd, String prefix) {
+  public static void addBuildInfo(Map<String, String> info, String prefix) {
 
     Properties props = HoyaVersionInfo.loadVersionProperties();
-    cd.setInfo(prefix + "." + HoyaVersionInfo.APP_BUILD_INFO,props.getProperty(
+    info.put(prefix + "." + HoyaVersionInfo.APP_BUILD_INFO, props.getProperty(
       HoyaVersionInfo.APP_BUILD_INFO));
-    cd.setInfo(prefix + "." + HoyaVersionInfo.HADOOP_BUILD_INFO,
-               props.getProperty(HoyaVersionInfo.HADOOP_BUILD_INFO));
+    info.put(prefix + "." + HoyaVersionInfo.HADOOP_BUILD_INFO,
+             props.getProperty(HoyaVersionInfo.HADOOP_BUILD_INFO));
 
-    cd.setInfo(prefix + "." + HoyaVersionInfo.HADOOP_DEPLOYED_INFO,
-               VersionInfo.getBranch() + " @" + VersionInfo.getSrcChecksum());
+    info.put(prefix + "." + HoyaVersionInfo.HADOOP_DEPLOYED_INFO,
+             VersionInfo.getBranch() + " @" + VersionInfo.getSrcChecksum());
+  }
+
+  /**
+   * Set the time for an information (human, machine) timestamp pair of fields.
+   * The human time is the time in millis converted via the {@link Date} class.
+   * @param info info fields
+   * @param keyHumanTime name of human time key
+   * @param keyMachineTime name of machine time
+   * @param time timestamp
+   */
+  public static void setInfoTime(Map info,
+                                 String keyHumanTime,
+                          String keyMachineTime,
+                          long time) {
+    info.put(keyHumanTime, HoyaUtils.toGMTString(time));
+    info.put(keyMachineTime, Long.toString(time));
   }
 
   public static Path extractImagePath(CoreFileSystem fs,  MapOperations internalOptions) throws

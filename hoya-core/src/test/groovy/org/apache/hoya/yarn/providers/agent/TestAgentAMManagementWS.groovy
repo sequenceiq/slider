@@ -18,35 +18,34 @@
 
 package org.apache.hoya.yarn.providers.agent
 
+import com.sun.jersey.api.client.Client
+import com.sun.jersey.api.client.WebResource
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
-import org.apache.hoya.providers.agent.AgentKeys
-import org.apache.hoya.yarn.Arguments
+import org.apache.hoya.yarn.appmaster.web.rest.agent.RegistrationResponse
+import org.apache.hoya.yarn.appmaster.web.rest.agent.RegistrationStatus
+import org.apache.hoya.yarn.client.HoyaClient
+import org.junit.Test
+
+import javax.ws.rs.core.MediaType
 
 import static org.apache.hoya.api.RoleKeys.*
 import static org.apache.hoya.providers.agent.AgentKeys.*
 import static org.apache.hoya.yarn.Arguments.*
-import org.apache.hoya.yarn.client.HoyaClient
-import org.junit.Test
+import static org.apache.hoya.testtools.HoyaTestUtils.*;
+import static org.apache.hoya.yarn.providers.agent.AgentTestUtils.*;
 
-/**
- * Tests an echo command
- */
 @CompileStatic
 @Slf4j
-class TestAgentEcho extends AgentTestBase {
+class TestAgentAMManagementWS extends AgentTestBase {
 
-
-  @Override
-  void checkTestAssumptions(YarnConfiguration conf) {
-    
-  }
+  public static final String MANAGEMENT_URI = "hoyaam/ws/v1/slider/mgmt/";
+  public static final String AGENT_URI = "hoyaam/ws/v1/slider/agent/";
 
   @Test
-  public void testEchoOperation() throws Throwable {
-    def clustername = "test_agent_echo"
+  public void testAgentAMManagementWS() throws Throwable {
+    def clustername = "test_agentammanagementws"
     createMiniCluster(
         clustername,
         configuration,
@@ -55,37 +54,39 @@ class TestAgentEcho extends AgentTestBase {
         1,
         true,
         false)
-
+    Map<String, Integer> roles = [:]
     File hoya_core = new File(".").absoluteFile
-    String echo_py = "src/test/python/echo.py"
-    File echo_py_path = new File(hoya_core, echo_py)
-    assert echo_py_path.exists()
-
-    def role = "echo"
-    Map<String, Integer> roles = [
-        (role): 1,
-    ];
     ServiceLauncher<HoyaClient> launcher = buildAgentCluster(clustername,
         roles,
         [
             ARG_OPTION, CONTROLLER_URL, "http://localhost",
             ARG_OPTION, PACKAGE_PATH, hoya_core.absolutePath,
-
-            ARG_ROLEOPT, role, PACKAGE_PATH, hoya_core.absolutePath,
-            ARG_ROLEOPT, role, ROLE_PRIORITY, "1",
-            ARG_ROLEOPT, role, SCRIPT_PATH, echo_py,
-            ARG_ROLEOPT, role, SERVICE_NAME, "Agent",
-            ARG_ROLEOPT, role, APP_HOME, "agent/home",
         ],
         true, true,
         true)
     HoyaClient hoyaClient = launcher.service
+    def report = waitForClusterLive(hoyaClient)
+    def trackingUrl = report.trackingUrl
+    log.info("tracking URL is $trackingUrl")
+    def agent_url = trackingUrl + AGENT_URI
 
-    waitForRoleCount(hoyaClient, roles, AGENT_CLUSTER_STARTUP_TIME)
-    //sleep a bit
-    sleep(20000)
-    //expect the role count to be the same
-    waitForRoleCount(hoyaClient, roles, 1000)
+    log.info("Agent URL is $agent_url")
+    
+    dumpClusterStatus(hoyaClient, "agent AM")
 
+    String page = fetchWebPageWithoutError(agent_url + "register");
+    log.info(page);
+    
+    //WS get
+    Client client = createTestClient();
+
+
+    WebResource webResource = client.resource(agent_url + "register/test");
+    RegistrationResponse response = webResource.type(MediaType.APPLICATION_JSON)
+                          .post(
+        RegistrationResponse.class,
+        createDummyJSONRegister());
+    assert RegistrationStatus.OK == response.getResponseStatus();
+    
   }
 }

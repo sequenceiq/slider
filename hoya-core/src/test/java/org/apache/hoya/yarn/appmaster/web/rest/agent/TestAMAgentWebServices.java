@@ -37,8 +37,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.webapp.GenericExceptionHandler;
-import org.apache.hoya.exceptions.BadClusterStateException;
-import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.tools.HoyaUtils;
 import org.apache.hoya.yarn.appmaster.state.AppState;
 import org.apache.hoya.yarn.appmaster.web.WebAppApi;
@@ -60,9 +58,7 @@ import org.slf4j.LoggerFactory;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.MediaType;
 import java.io.File;
-import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -139,7 +135,7 @@ public class TestAMAgentWebServices extends JerseyTest {
               factory.ROLES,
               fs,
               historyPath,
-              null);
+              null, null);
         } catch (Exception e) {
           log.error("Failed to set up app {}", e);
         }

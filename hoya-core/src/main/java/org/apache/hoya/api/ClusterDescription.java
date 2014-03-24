@@ -688,8 +688,7 @@ public class ClusterDescription implements Cloneable {
    */
   
   public void setInfoTime(String keyHumanTime, String keyMachineTime, long time) {
-    setInfo(keyHumanTime, HoyaUtils.toGMTString(time));
-    setInfo(keyMachineTime, Long.toString(time));
+    HoyaUtils.setInfoTime(info, keyHumanTime, keyMachineTime, time );
   }
 
   /**
