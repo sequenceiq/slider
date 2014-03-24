@@ -79,7 +79,14 @@ class TestAgentAMManagementWS extends AgentTestBase {
       agent_url = liveURL + AGENT_URI
     }
     
-    log.info("Agent URL is $agent_url")
+    log.info("Agent  is $agent_url")
+    log.info("stacks is ${liveURL}stacks")
+    log.info("conf   is ${liveURL}conf")
+
+
+    def sleeptime = 60
+    log.info "sleeping for $sleeptime seconds"
+    Thread.sleep(sleeptime * 1000)
     
 
     String page = fetchWebPageWithoutError(agent_url);
