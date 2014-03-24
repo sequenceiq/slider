@@ -373,10 +373,14 @@ class HoyaTestUtils extends Assert {
     
     get.followRedirects = true;
     int resultCode = client.executeMethod(get);
-    
-    assert resultCode < 400 && resultCode >= 200;
-    
-    return get.responseBodyAsString;
+
+    def body = get.responseBodyAsString
+    if (!(resultCode >= 200 && resultCode < 400)) {
+      def message = "Request to $url failed with exit code $resultCode, body length ${body?.length()}:\n$body"
+      log.error(message)
+      fail(message)
+    }
+    return body;
   }
 
   /**

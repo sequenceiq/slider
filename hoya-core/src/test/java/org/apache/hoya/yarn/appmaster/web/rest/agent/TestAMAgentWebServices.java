@@ -24,6 +24,7 @@ import com.google.inject.Injector;
 import com.google.inject.servlet.GuiceServletContextListener;
 import com.google.inject.servlet.ServletModule;
 import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
@@ -49,8 +50,12 @@ import org.apache.hoya.yarn.model.mock.MockProviderService;
 import org.apache.hoya.yarn.model.mock.MockRecordFactory;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
+import static org.junit.Assert.*;
+import static org.apache.hoya.testtools.HoyaTestUtils.*;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.Path;
 import javax.ws.rs.core.MediaType;
@@ -62,9 +67,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class TestAMAgentWebServices extends JerseyTest {
-
+  protected static final Logger log =
+    LoggerFactory.getLogger(TestAMAgentWebServices.class);
+  
   public static final int RM_MAX_RAM = 4096;
   public static final int RM_MAX_CORES = 64;
+//  public static final String AGENT_URL =
+//    "http://localhost:9998/hoyaam/ws/v1/slider/agent/";
+  
+  public static final String AGENT_URL =
+    "http://localhost:9998/hoyaam/ws/agent/";
   static MockFactory factory = new MockFactory();
   private static Configuration conf = new Configuration();
   private static WebAppApi slider;
@@ -84,7 +96,8 @@ public class TestAMAgentWebServices extends JerseyTest {
     }
   }
 
-  @Path("/ws/v1/slider/agent")
+//  @Path("/ws/v1/slider/agent")
+  @Path("/ws/v1/slider/")
   public static class MockAMAgentWebServices extends AMAgentWebServices {
 
     @Inject
@@ -127,65 +140,87 @@ public class TestAMAgentWebServices extends JerseyTest {
               fs,
               historyPath,
               null);
-        } catch (IOException e) {
-          e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        } catch (URISyntaxException e) {
-          e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        } catch (BadClusterStateException e) {
-          e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        } catch (BadConfigException e) {
-          e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        } catch (Exception e) {
+          log.error("Failed to set up app {}", e);
         }
         slider = new WebAppApiImpl(new MockHoyaClusterProtocol(), appState,
                                    new MockProviderService());
 
         bind(SliderJacksonJaxbJsonProvider.class);
-        bind(MockAMAgentWebServices.class);
         bind(GenericExceptionHandler.class);
+        bind(MockAMAgentWebServices.class);
         bind(WebAppApi.class).toInstance(slider);
         bind(Configuration.class).toInstance(conf);
 
         Map<String, String> params = new HashMap<String, String>();
-        params.put("com.sun.jersey.spi.container.ContainerRequestFilters", "com.sun.jersey.api.container.filter.LoggingFilter");
-        params.put("com.sun.jersey.spi.container.ContainerResponseFilters", "com.sun.jersey.api.container.filter.LoggingFilter");
+        addLoggingFilter(params);
         serve("/*").with(GuiceContainer.class, params);
       }
     });
   }
 
+  private static void addLoggingFilter(Map<String, String> params) {
+    params.put("com.sun.jersey.spi.container.ContainerRequestFilters", "com.sun.jersey.api.container.filter.LoggingFilter");
+    params.put("com.sun.jersey.spi.container.ContainerResponseFilters", "com.sun.jersey.api.container.filter.LoggingFilter");
+  }
+
   public TestAMAgentWebServices() {
     super(new WebAppDescriptor.Builder(
-        "org.apache.hadoop.yarn.appmaster.web")
-              .contextListenerClass(GuiceServletConfig.class)
-              .filterClass(com.google.inject.servlet.GuiceFilter.class)
-              .initParam("com.sun.jersey.api.json.POJOMappingFeature", "true")
-              .contextPath("hoyaam").servletPath("/").build());
+      "org.apache.hadoop.yarn.appmaster.web")
+            .contextListenerClass(GuiceServletConfig.class)
+            .filterClass(com.google.inject.servlet.GuiceFilter.class)
+            .initParam("com.sun.jersey.api.json.POJOMappingFeature", "true")
+            .contextPath("hoyaam").servletPath("/").build());
   }
 
   @Test
   public void testRegistration() throws JSONException, Exception {
     RegistrationResponse response;
-    ClientConfig clientConfig = new DefaultClientConfig();
-    clientConfig.getFeatures().put(JSONConfiguration.FEATURE_POJO_MAPPING, Boolean.TRUE);
-    Client client = Client.create(clientConfig);
-    WebResource webResource = client.resource("http://localhost:9998/hoyaam/ws/v1/slider/agent/register/test");
+    Client client = createTestClient();
+    WebResource webResource = client.resource(AGENT_URL + "register/test");
     response = webResource.type(MediaType.APPLICATION_JSON)
         .post(RegistrationResponse.class, createDummyJSONRegister());
     Assert.assertEquals(RegistrationStatus.OK, response.getResponseStatus());
   }
 
+  protected Client createTestClient() {
+    ClientConfig clientConfig = new DefaultClientConfig();
+    clientConfig.getFeatures().put(JSONConfiguration.FEATURE_POJO_MAPPING, Boolean.TRUE);
+    return Client.create(clientConfig);
+  }
+
   @Test
   public void testHeartbeat() throws JSONException, Exception {
     HeartBeatResponse response;
-    ClientConfig clientConfig = new DefaultClientConfig();
-    clientConfig.getFeatures().put(JSONConfiguration.FEATURE_POJO_MAPPING, Boolean.TRUE);
-    Client client = Client.create(clientConfig);
-    WebResource webResource = client.resource("http://localhost:9998/hoyaam/ws/v1/slider/agent/heartbeat/test");
+    Client client = createTestClient();
+    WebResource webResource = client.resource(AGENT_URL + "heartbeat/test");
     response = webResource.type(MediaType.APPLICATION_JSON)
         .post(HeartBeatResponse.class, createDummyHeartBeat());
-    Assert.assertEquals(response.getResponseId(), 0L);
+    assertEquals(response.getResponseId(), 0L);
   }
 
+  @Test
+  public void testHeadURL() throws JSONException, Exception {
+    Client client = createTestClient();
+    WebResource webResource = client.resource(AGENT_URL);
+    ClientResponse response = webResource.type(MediaType.APPLICATION_JSON)
+                                         .head();
+    assertEquals(200, response.getStatus());
+  }
+
+  @Test
+  public void testFetchRoot() throws JSONException, Exception {
+    String page = fetchWebPageWithoutError(AGENT_URL + "register/");
+    log.info(page);
+  }
+
+
+  @Test
+  public void testSleepForAWhile() throws Throwable {
+    log.info("Agent is running at {}", AGENT_URL);
+    Thread.sleep(60 * 1000);
+  }
+  
   private Register createDummyJSONRegister() throws JSONException {
     Register register = new Register();
     register.setResponseId(-1);
