@@ -19,3 +19,4 @@ hoya/hoya-core/src/test/resources/hoya-test.xml
 release.properties
 *.backup
 *.versionsBackup
+hoya-test.xml
