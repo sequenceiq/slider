@@ -12,20 +12,20 @@
 ~~ limitations under the License. See accompanying LICENSE file.
 -->
 
-# hoya: HBase on YARN
+# slider: HBase on YARN
 
 ## NAME
 
-hoya - HBase on YARN
+slider - HBase on YARN
 
 ## SYNOPSIS
 
-Hoya enables HBase and Accumulo clusters do be dynamically created on a YARN-managed datacenter.
-The program can be used to create, pause, and shutdown Hoya clusters. It can also be used to list current clusters.
+Slider enables HBase and Accumulo clusters do be dynamically created on a YARN-managed datacenter.
+The program can be used to create, pause, and shutdown Slider clusters. It can also be used to list current clusters.
  
 ## CONCEPTS
 
-1. A *Hoya cluster* represents a short-lived or long-lived set of HBase servers; one HBase Master and one or more HBase Region Servers
+1. A *Slider cluster* represents a short-lived or long-lived set of HBase servers; one HBase Master and one or more HBase Region Servers
 
 1. A *cluster* is built by deploying an *image* across multiple nodes in a YARN cluster.
 
@@ -43,7 +43,7 @@ The program can be used to create, pause, and shutdown Hoya clusters. It can als
 
 1. Late-binding properties can also be provided to a cluster at create time.
 
-1. Hoya will overwrite some of the HBase configuration properties to configure the dynamically created HBase cluster nodes to bind correctly to each other.
+1. Slider will overwrite some of the HBase configuration properties to configure the dynamically created HBase cluster nodes to bind correctly to each other.
 
 1. A *cluster state directory* is a directory created in HDFS describing the cluster; it records user-specified properties including the image and image configuration paths, overridden properties, and creation-time node requirements.
 
@@ -63,7 +63,7 @@ The program can be used to create, pause, and shutdown Hoya clusters. It can als
 
 1. A cluster consists of a set of role instances; 
 
-1. The supported roles depends upon the provider behind Hoya: HBase only has `worker` and `master`
+1. The supported roles depends upon the provider behind Slider: HBase only has `worker` and `master`
 
 1. the number of instances of each role must be specified when a cluster is created.
 
@@ -77,10 +77,10 @@ started.
 
 <!--- ======================================================================= -->
 
-## Invoking Hoya
+## Invoking Slider
 
  
-    hoya <ACTION> [<CLUSTER>] [<OPTIONS>]
+    slider <ACTION> [<CLUSTER>] [<OPTIONS>]
 
 
 <!--- ======================================================================= -->
@@ -89,7 +89,7 @@ started.
 
 ### `--conf configuration.xml`
 
-Configure the Hoya client. This allows the filesystem, zookeeper instance and other properties to be picked up from the configuration file, rather than on the command line.
+Configure the Slider client. This allows the filesystem, zookeeper instance and other properties to be picked up from the configuration file, rather than on the command line.
 
 Important: *this configuration file is not propagated to the HBase cluster configuration*. It is purely for configuring the client itself. 
 
@@ -149,7 +149,7 @@ the HDFS replication factor to 2. (
 
     --option site.dfs.blocksize 128m
     
-Increase the number of YARN containers which must fail before the Hoya cluster
+Increase the number of YARN containers which must fail before the Slider cluster
 itself fails.
     
     -O hoya.container.failure.threshold 16
@@ -163,14 +163,14 @@ A URI path to the configuration directory containing the template cluster specif
 
 Example:
 
-    --appconf hdfs://namenode/users/hoya/conf/hbase-template
+    --appconf hdfs://namenode/users/slider/conf/hbase-template
     --appconf file://users/accumulo/conf/template
 
 
 
 ##### `--apphome localpath`
 
-A path to the home dir of a pre-installed application. If set when a Hoya
+A path to the home dir of a pre-installed application. If set when a Slider
 cluster is created, the cluster will run with the binaries pre-installed
 on the nodes at this location
 
@@ -235,11 +235,11 @@ Important: This deletes all the database data as well as the cluster information
 
 Example
 
-    hoya destroy cluster1
+    slider destroy cluster1
 
 ### `exists \<cluster> [--live]`
 
-Probe the existence of the named Hoya cluster. If the `--live` flag is set, the cluster
+Probe the existence of the named Slider cluster. If the `--live` flag is set, the cluster
 must be running
 
 If not, an error code is returned.
@@ -254,14 +254,14 @@ Return codes
 
 Example:
 
-    hoya exists cluster4
+    slider exists cluster4
 
 ### Live Tests
 
 When the --live` flag is set, the cluster must be running for the command
 to succeed
 
-1. The probe does not check the status of any Hoya-deployed services, merely that a cluster has been deployed
+1. The probe does not check the status of any Slider-deployed services, merely that a cluster has been deployed
 1. A cluster that is finished or failed is not considered to be live.
 
 Return codes
@@ -273,7 +273,7 @@ Return codes
 
 Example:
 
-    hoya exists cluster4 --live
+    slider exists cluster4 --live
 
 ### `flex <cluster> [--role rolename count]* `
 
@@ -285,8 +285,8 @@ It returns -1 if there is no running cluster, or the size of the flexed cluster 
 
 Example
 
-    hoya flex cluster1 --role worker 8 --filesystem hdfs://host:port
-    hoya flex cluster1 --role master 2 --filesystem hdfs://host:port
+    slider flex cluster1 --role worker 8 --filesystem hdfs://host:port
+    slider flex cluster1 --role master 2 --filesystem hdfs://host:port
     
 
 ### `freeze <cluster>  [--force] [--wait time] [--message text]`
@@ -295,7 +295,7 @@ freeze the cluster. The HBase cluster is scheduled to be destroyed. The cluster 
 
 The `--wait` argument can specify a time in seconds to wait for the cluster to be frozen.
 
-The `--force` flag causes the HoyaAM to be bypassed, and YARN asked directly
+The `--force` flag causes the SliderAM to be bypassed, and YARN asked directly
 to terminate the application. This will freeze a cluster that has hung or
 is otherwise not responding.
 
@@ -306,8 +306,8 @@ If an unknown (or already frozen) cluster is named, no error is returned.
 
 Examples
 
-    hoya freeze cluster1 --wait 30
-    hoya freeze cluster2 --force --message "maintenance session"
+    slider freeze cluster1 --wait 30
+    slider freeze cluster2 --force --message "maintenance session"
 
 
 ### `getconf <cluster>  [--out file] [--format xml|properties]`
@@ -324,25 +324,25 @@ Container IDs can be determined from the cluster status JSON document.
 
 ### `list <cluster>`
 
-List running Hoya clusters visible to the user.
+List running Slider clusters visible to the user.
 
 If a cluster name is given and there is no running cluster with that name, an error is returned. 
 
 Example
 
-    hoya list
-    hoya list cluster1
+    slider list
+    slider list cluster1
 
 ### `status <cluster> [--out <filename>]`
 
-Get the status of the named Hoya cluster in JSON format. A filename can be used to 
+Get the status of the named Slider cluster in JSON format. A filename can be used to 
 specify the destination.
 
 Examples:
 
-    hoya status cluster1 --manager host:port
+    slider status cluster1 --manager host:port
     
-    hoya status cluster2 --manager host:port --out status.json
+    slider status cluster2 --manager host:port --out status.json
 
 
 
@@ -353,30 +353,20 @@ The same zookeeper bindings as before will be used.
 
 Examples:
 
-    hoya thaw cluster2
-    hoya thaw cluster1 --wait 60
+    slider thaw cluster2
+    slider thaw cluster1 --wait 60
 
 
 If a cluster is already running, this is a no-op
 
 ### `version`
 
-The command `hoya version` prints out information about the compiled
-Hoya application, the version of Hadoop against which it was built -and
+The command `slider version` prints out information about the compiled
+Slider application, the version of Hadoop against which it was built -and
 the version of Hadoop that is currently on its classpath.
 
 Note that this is the client-side Hadoop version, not that running on the server, though
 that can be obtained in the cluster status operation
-
-
-Example
-
-
-    > hadoop version
-    
-    2013-12-10 14:28:17,624 [JUnit] INFO  client.HoyaClient - Hoya Core-0.7.1-SNAPSHOT Built against 1dd69 on Java 1.7.0_45 by stevel
-    2013-12-10 14:28:17,624 [JUnit] INFO  client.HoyaClient - Compiled against Hadoop 2.2.0
-    2013-12-10 14:28:17,625 [JUnit] INFO  client.HoyaClient - Hadoop runtime version branch-2.2.0 with source checksum 79e53ce7994d1628b240f09af91e1af4 and build date 2013-10-07T06:28Z
 
 
 ### `emergency-force-kill <applicationID>`
@@ -384,7 +374,7 @@ Example
 This attempts to force kill any YARN application referenced by application ID.
 There is no attempt to notify the running AM. 
 
-If the application ID is `all` then all hoya instances belonging to the current
+If the application ID is `all` then all slider instances belonging to the current
 user are killed.
 
 These are clearly abnormal operations; they are here primarily for testing
@@ -393,11 +383,11 @@ These are clearly abnormal operations; they are here primarily for testing
 
 Example
 
-    hoya emergency-force-kill application_1386596138212_0001
+    slider emergency-force-kill application_1386596138212_0001
 
 ### `am-suicide <cluster> [--exitcode code] [--message message] [--wait time]`
 
-This operation is purely for testing Hoya Application Master restart;
+This operation is purely for testing Slider Application Master restart;
 it triggers an asynchronous self-destruct operation in the AM -an 
 operation that does not make any attempt to cleanly shut down the process. 
 
@@ -406,7 +396,7 @@ If the application has not exceeded its restart limit (as set by
 
 Example
 
-    hoya am-suicide --exitcode 1 --wait 5000 -message "test"
+    slider am-suicide --exitcode 1 --wait 5000 -message "test"
 
 <!--- ======================================================================= -->
 
@@ -422,7 +412,7 @@ Cluster names must:
  
 Example valid names:
 
-    hoya1
+    slider1
     hbase-cluster
     hbase_cluster
     accumulo_m1_tserve4
@@ -444,7 +434,7 @@ for example, if the parameter was
   
     -O hbase.master.command version
 
-Hoya would would run the HBase master with the command
+Slider would would run the HBase master with the command
 
     hbase version start
 
@@ -481,7 +471,7 @@ the web port to use. A value of "0" means that an arbitrary port should be picke
 
 ### YARN parameters
 
-YARN parameters are interpreted by Hoya itself -so will always be read, validated
+YARN parameters are interpreted by Slider itself -so will always be read, validated
 and acted on.
 
 * `yarn.app.retries`: number of times to attempt to retry application execution.
