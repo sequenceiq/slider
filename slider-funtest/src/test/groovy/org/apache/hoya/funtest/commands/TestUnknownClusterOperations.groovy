@@ -23,9 +23,8 @@ import groovy.util.logging.Slf4j
 import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.HoyaActions
-import org.apache.hoya.funtest.framework.HoyaCommandTestBase
-import org.apache.hoya.funtest.framework.HoyaShell
-import org.junit.AfterClass
+import org.apache.hoya.funtest.framework.CommandTestBase
+import org.apache.hoya.funtest.framework.SliderShell
 import org.junit.BeforeClass
 import org.junit.Test
 
@@ -34,7 +33,7 @@ import org.junit.Test
  */
 @CompileStatic
 @Slf4j
-public class TestUnknownClusterOperations extends HoyaCommandTestBase {
+public class TestUnknownClusterOperations extends CommandTestBase {
 
   public static final String UNKNOWN = "unknown_cluster"
 
@@ -45,7 +44,7 @@ public class TestUnknownClusterOperations extends HoyaCommandTestBase {
 
   @Test
   public void testFreezeUnknownCluster() throws Throwable {
-    HoyaShell shell = freeze(UNKNOWN)
+    SliderShell shell = freeze(UNKNOWN)
     assertUnknownCluster(shell)
   }
 
@@ -61,13 +60,13 @@ public class TestUnknownClusterOperations extends HoyaCommandTestBase {
 
   @Test
   public void testFreezeForceUnknownCluster() throws Throwable {
-    HoyaShell shell = freezeForce(UNKNOWN)
+    SliderShell shell = freezeForce(UNKNOWN)
     assertUnknownCluster(shell)
   }
 
   @Test
   public void testDestroyUnknownCluster() throws Throwable {
-    HoyaShell shell = destroy(UNKNOWN)
+    SliderShell shell = destroy(UNKNOWN)
     assertSuccess(shell)
   }
 

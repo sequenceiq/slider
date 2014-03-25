@@ -24,7 +24,7 @@ import org.apache.hoya.exceptions.HoyaException
 
 @Slf4j
 
-class HoyaShell extends Shell {
+class SliderShell extends Shell {
 
 
   public static final String BASH = '/bin/bash -s'
@@ -33,21 +33,21 @@ class HoyaShell extends Shell {
    * Configuration directory, shared across all instances. Not marked as volatile,
    * assumed set up during @BeforeClass
    */
-  public static File hoyaConfDir;
+  public static File confDir;
   
-  public static File hoyaScript;
+  public static File script;
 
-  final String hoyaCommand
+  final String command
 
   /**
    * Build the command
    * @param commands
    */
-  HoyaShell(List<String> commands) {
+  SliderShell(List<String> commands) {
     super(BASH)
-    assert hoyaConfDir != null;
-    assert hoyaScript != null;
-    hoyaCommand = hoyaScript.absolutePath + " " + commands.join(" ")
+    assert confDir != null;
+    assert script != null;
+    command = script.absolutePath + " " + commands.join(" ")
   }
 
   /**
@@ -55,11 +55,11 @@ class HoyaShell extends Shell {
    * @return the script exit code
    */
   int execute() {
-    String confDirCmd = "export HOYA_CONF_DIR=${hoyaConfDir.toString()};"
-    log.info(hoyaCommand)
+    String confDirCmd = "export "+ FuntestProperties.ENV_CONF_DIR +"=${confDir.toString()};"
+    log.info(command)
     List<String> commandLine = [
         confDirCmd,
-        hoyaCommand
+        command
     ]
     String script = commandLine.join("\n")
     log.debug(script)
@@ -87,8 +87,8 @@ class HoyaShell extends Shell {
    * @param commands
    * @return the shell
    */
-  public static HoyaShell run(List<String> commands, int exitCode) {
-    HoyaShell shell = new HoyaShell(commands)
+  public static SliderShell run(List<String> commands, int exitCode) {
+    SliderShell shell = new SliderShell(commands)
     shell.execute(exitCode);
     return shell
   }
@@ -99,7 +99,7 @@ class HoyaShell extends Shell {
   
   @Override
   public String toString() {
-    return ret + " =>" + hoyaCommand
+    return ret + " =>" + command
   }
 
   public void dump() {
@@ -130,7 +130,7 @@ class HoyaShell extends Shell {
    * @throws HoyaException if the exit code is wrong (the value in the exception
    * is the exit code received)
    */
-  public static int assertExitCode(HoyaShell shell, int errorCode) throws
+  public static int assertExitCode(SliderShell shell, int errorCode) throws
       HoyaException {
     assert shell != null
     if (shell.ret != errorCode) {

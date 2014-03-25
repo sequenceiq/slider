@@ -19,8 +19,8 @@
 package org.apache.hoya.funtest.accumulo
 
 import org.apache.hadoop.yarn.conf.YarnConfiguration
-import org.apache.hoya.funtest.framework.HoyaCommandTestBase
-import org.apache.hoya.funtest.framework.HoyaShell
+import org.apache.hoya.funtest.framework.CommandTestBase
+import org.apache.hoya.funtest.framework.SliderShell
 import org.apache.hoya.yarn.Arguments
 import org.junit.Before
 
@@ -34,7 +34,7 @@ import static org.apache.hoya.yarn.Arguments.ARG_ROLEOPT
 /**
  * Anything specific to accumulo tests
  */
-abstract class AccumuloCommandTestBase extends HoyaCommandTestBase {
+abstract class AccumuloCommandTestBase extends CommandTestBase {
 
   @Before
   public void verifyPreconditions() {
@@ -56,7 +56,7 @@ abstract class AccumuloCommandTestBase extends HoyaCommandTestBase {
    * @param containerMemory
    * @return
    */
-  public HoyaShell createAccumuloCluster(String clustername,
+  public SliderShell createAccumuloCluster(String clustername,
                                          Map<String, Integer> roles,
                                          List<String> argsList,
                                          boolean blockUntilRunning,

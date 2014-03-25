@@ -20,7 +20,7 @@ package org.apache.hoya.funtest.basic
 
 import org.junit.Test
 
-import static org.apache.hoya.funtest.framework.HoyaShell.signCorrect
+import static org.apache.hoya.funtest.framework.SliderShell.signCorrect
 
 /**
  * This just verifies the two's complement sign correction that will

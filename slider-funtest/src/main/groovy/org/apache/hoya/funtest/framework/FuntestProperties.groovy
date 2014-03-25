@@ -25,7 +25,7 @@ import org.apache.hoya.HoyaXMLConfKeysForTesting
  * Properties unique to the functional tests
  */
 @CompileStatic
-public interface HoyaFuntestProperties extends HoyaXMLConfKeysForTesting {
+public interface FuntestProperties extends HoyaXMLConfKeysForTesting {
 
   /**
    * Maven Property of location of hoya conf dir: {@value}
@@ -50,5 +50,10 @@ public interface HoyaFuntestProperties extends HoyaXMLConfKeysForTesting {
   int DEFAULT_AM_RESTART_SLEEP_TIME = 30000
 
   String KEY_HOYA_FUNTESTS_ENABLED = "hoya.funtest.enabled"
+
+  String CLIENT_CONFIG_FILENAME = "hoya-client.xml"
   
+  String ENV_CONF_DIR = "SLIDER_CONF_DIR"
+
+  String SCRIPT_NAME = "slider"
 }

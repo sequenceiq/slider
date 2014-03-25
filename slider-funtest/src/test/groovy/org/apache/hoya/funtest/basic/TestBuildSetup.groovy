@@ -23,7 +23,7 @@ import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.hadoop.yarn.conf.YarnConfiguration
-import org.apache.hoya.funtest.framework.HoyaFuntestProperties
+import org.apache.hoya.funtest.framework.FuntestProperties
 import org.apache.hoya.testtools.HoyaTestUtils
 import org.apache.hoya.tools.HoyaUtils
 import org.junit.Test
@@ -38,7 +38,7 @@ import org.junit.Test
  */
 @CompileStatic
 @Slf4j
-class TestBuildSetup extends HoyaTestUtils implements HoyaFuntestProperties {
+class TestBuildSetup extends HoyaTestUtils implements FuntestProperties {
 
 /*
   String HOYA_BIN_DIR = System.getProperty(
@@ -92,11 +92,11 @@ class TestBuildSetup extends HoyaTestUtils implements HoyaFuntestProperties {
   }
 
   public File getHoyaConfXML() {
-    new File(hoyaConfDirectory, "hoya-client.xml").canonicalFile
+    new File(hoyaConfDirectory, CLIENT_CONFIG_FILENAME).canonicalFile
   }
 
   public File getHoyaScript() {
-    new File(hoyaBinDirectory, "bin/hoya").canonicalFile
+    new File(hoyaBinDirectory, "bin/" + SCRIPT_NAME).canonicalFile
   }
 
   /**
@@ -127,7 +127,6 @@ class TestBuildSetup extends HoyaTestUtils implements HoyaFuntestProperties {
   public void testBinDirExists() throws Throwable {
     log.info("Hoya binaries dir = $hoyaBinDirectory")
   }
-
 
   @Test
   public void testBinScriptExists() throws Throwable {

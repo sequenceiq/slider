@@ -18,19 +18,18 @@
 
 package org.apache.hoya.funtest.hbase
 
-import org.apache.hoya.funtest.framework.HoyaCommandTestBase
-import org.apache.hoya.funtest.framework.HoyaShell
+import org.apache.hoya.funtest.framework.CommandTestBase
+import org.apache.hoya.funtest.framework.SliderShell
 import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.hoya.yarn.Arguments
 import org.junit.Before
 
-import static org.apache.hoya.funtest.framework.HoyaFuntestProperties.*
-import static org.apache.hoya.testtools.HoyaTestUtils.*
+import static org.apache.hoya.funtest.framework.FuntestProperties.*
 
 /**
  * Anything specific to HBase tests
  */
-abstract class HBaseCommandTestBase extends HoyaCommandTestBase {
+abstract class HBaseCommandTestBase extends CommandTestBase {
 
   @Before 
   public void verifyPreconditions() {
@@ -67,7 +66,7 @@ abstract class HBaseCommandTestBase extends HoyaCommandTestBase {
     argsList << Arguments.ARG_CONFDIR <<
     HOYA_CONFIG.getTrimmed(KEY_HOYA_TEST_HBASE_APPCONF)
 
-    HoyaShell shell = createHoyaCluster(
+    SliderShell shell = createHoyaCluster(
         name,
         roleMap,
         argsList,

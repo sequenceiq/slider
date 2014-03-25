@@ -39,14 +39,27 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * A class to launch any service by name.
- * It is assumed that the service starts 
- *
+ * 
+ * It's designed to be subclassed for custom entry points.
+ * 
+ * 
  * Workflow
  * <ol>
  *   <li>An instance of the class is created</li>
- *   <li>It's service.init() and service.start() methods are called.</li>
- *   <li></li>
+ *   <li>If it implements RunService, it is given the binding args off the CLI</li>
+ *   <li>Its service.init() and service.start() methods are called.</li>
+ *   <li>If it implements RunService, runService() is called and its return
+ *   code used as the exit code.</li>
+ *   <li>Otherwise: it waits for the service to stop, assuming in its start() method
+ *   it begins work</li>
+ *   <li>If an exception returned an exit code, that becomes the exit code of the
+ *   command.</li>
  * </ol>
+ * Error and warning messages are logged to stderr. Why? If the classpath
+ * is wrong & logger configurations not on it, then no error messages by
+ * the started app will be seen and the caller is left trying to debug
+ * using exit codes. 
+ * 
  */
 @SuppressWarnings("UseOfSystemOutOrSystemErr")
 public class ServiceLauncher<S extends Service>
@@ -54,15 +67,16 @@ public class ServiceLauncher<S extends Service>
   private static final Log LOG = LogFactory.getLog(ServiceLauncher.class);
   protected static final int PRIORITY = 30;
 
+  public static final String NAME = "ServiceLauncher";
   /**
    * name of class for entry point strings: {@value}
    */
   public static final String ENTRY_POINT =
-    "org.apache.hadoop.yarn.service.launcher.ServiceLauncher";
+    "org.apache.hadoop.yarn.service.launcher." + NAME;
 
 
   public static final String USAGE_MESSAGE =
-    "Usage: ServiceLauncher classname [--conf <conf file>] <service arguments> | ";
+    "Usage: " + NAME + " classname [--conf <conf file>] <service arguments> | ";
 
   /**
    * Name of the "--conf" argument. 
@@ -231,7 +245,7 @@ public class ServiceLauncher<S extends Service>
       interruptHandlers.add(new IrqHandler(IrqHandler.CONTROL_C, this));
       interruptHandlers.add(new IrqHandler(IrqHandler.SIGTERM, this));
     } catch (IOException e) {
-      LOG.warn("Signal handler setup failed : " + e, e);
+      error("Signal handler setup failed : " + e, e);
     }
   }
 
@@ -244,9 +258,9 @@ public class ServiceLauncher<S extends Service>
   @Override
   public void interrupted(IrqHandler.InterruptData interruptData) {
     String message = "Service interrupted by " + interruptData.toString();
-    LOG.info(message);
+    warn(message);
     if (!signalAlreadyReceived.compareAndSet(false, true)) {
-      LOG.info("Repeated interrupt: escalating to a JVM halt");
+      warn("Repeated interrupt: escalating to a JVM halt");
       // signal already received. On a second request to a hard JVM
       // halt and so bypass any blocking shutdown hooks.
       ExitUtil.halt(EXIT_INTERRUPTED, message);
@@ -265,11 +279,22 @@ public class ServiceLauncher<S extends Service>
       //ignored
     }
     if (!forcedShutdown.isServiceStopped()) {
-      LOG.warn("Service did not shut down in time");
+      warn("Service did not shut down in time");
     }
     exit(EXIT_INTERRUPTED, message);
   }
 
+  protected void warn(String text) {
+    System.err.println(text);
+  }
+
+
+  protected void error(String message, Throwable thrown) {
+    String text = "Exception:" + message;
+    System.err.println(text);
+    LOG.error(text, thrown);
+  }
+  
   /**
    * Exit the code.
    * This is method can be overridden for testing, throwing an 
@@ -431,7 +456,7 @@ public class ServiceLauncher<S extends Service>
         }
       } else {
         //not any of the service launcher exceptions -assume something worse
-        LOG.error(" Exception:" + message, thrown);
+        error(message, thrown);
         exitCode = EXIT_EXCEPTION_THROWN;
         }
       exitException = new ExitUtil.ExitException(exitCode, message);
@@ -439,6 +464,7 @@ public class ServiceLauncher<S extends Service>
     }
     return exitException;
   }
+
 
   /**
    * Build a log message for starting up and shutting down. 

@@ -21,12 +21,12 @@ package org.apache.hoya.funtest.basic
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.Path
-import org.apache.hoya.funtest.framework.HoyaCommandTestBase
-import org.apache.hoya.funtest.framework.HoyaFuntestProperties
+import org.apache.hoya.funtest.framework.CommandTestBase
+import org.apache.hoya.funtest.framework.FuntestProperties
 import org.junit.Before
 import org.junit.Test
 
-class TestImages extends HoyaCommandTestBase implements HoyaFuntestProperties {
+class TestImages extends CommandTestBase implements FuntestProperties {
 
 
   @Before

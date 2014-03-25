@@ -23,7 +23,6 @@ import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.zookeeper.ZKConfig
 import org.apache.hoya.providers.hbase.HBaseConfigFileOptions
-import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.zookeeper.WatchedEvent
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZKUtil;
@@ -33,8 +32,7 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.RoleKeys
-import org.apache.hoya.funtest.framework.HoyaFuntestProperties
-import static org.apache.hoya.funtest.framework.HoyaFuntestProperties.KEY_HOYA_TEST_HBASE_ENABLED
+import org.apache.hoya.funtest.framework.FuntestProperties
 import org.apache.hoya.tools.ConfigHelper
 import org.junit.After
 import org.junit.Before
@@ -50,7 +48,7 @@ import static org.apache.hoya.providers.hbase.HBaseKeys.*
 @CompileStatic
 @Slf4j
 public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
-    implements HoyaFuntestProperties, Arguments, HoyaExitCodes {
+    implements FuntestProperties, Arguments, HoyaExitCodes {
 
 
   public static final String HBASE_HEAP = "96m"

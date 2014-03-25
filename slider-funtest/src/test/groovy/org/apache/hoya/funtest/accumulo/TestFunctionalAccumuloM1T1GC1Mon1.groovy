@@ -22,12 +22,8 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.api.ClusterDescription
-import org.apache.hoya.api.RoleKeys
-import org.apache.hoya.funtest.framework.HoyaFuntestProperties
+import org.apache.hoya.funtest.framework.FuntestProperties
 import org.apache.hoya.funtest.framework.PortAssignments
-import org.apache.hoya.providers.accumulo.AccumuloConfigFileOptions
-import org.apache.hoya.providers.accumulo.AccumuloKeys
-import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.HoyaActions
 import org.apache.hoya.yarn.client.HoyaClient
@@ -37,13 +33,11 @@ import org.junit.Test
 
 import static org.apache.hoya.providers.accumulo.AccumuloKeys.*
 import static org.apache.hoya.providers.accumulo.AccumuloConfigFileOptions.*
-import static org.apache.hoya.testtools.HoyaTestUtils.describe
-import static org.apache.hoya.testtools.HoyaTestUtils.waitForRoleCount
 
 @CompileStatic
 @Slf4j
 public class TestFunctionalAccumuloM1T1GC1Mon1 extends AccumuloCommandTestBase
-    implements HoyaFuntestProperties, Arguments, HoyaExitCodes {
+    implements FuntestProperties, Arguments, HoyaExitCodes {
 
 
   static String CLUSTER = "test_functional_accumulo_m1t1gc1mon1"

@@ -21,11 +21,10 @@ package org.apache.hoya.funtest.hbase
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hoya.HoyaExitCodes
-import org.apache.hoya.HoyaXMLConfKeysForTesting
 import org.apache.hoya.HoyaXmlConfKeys
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.StatusKeys
-import org.apache.hoya.funtest.framework.HoyaFuntestProperties
+import org.apache.hoya.funtest.framework.FuntestProperties
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.HoyaActions
 import org.apache.hoya.yarn.client.HoyaClient
@@ -36,7 +35,7 @@ import org.junit.Test
 @CompileStatic
 @Slf4j
 public class TestClusterLifecycle extends HBaseCommandTestBase
-    implements HoyaFuntestProperties, Arguments, HoyaExitCodes {
+    implements FuntestProperties, Arguments, HoyaExitCodes {
 
 
   static String CLUSTER = "test_cluster_lifecycle"
@@ -55,7 +54,7 @@ public class TestClusterLifecycle extends HBaseCommandTestBase
   @Test
   public void testClusterLifecycle() throws Throwable {
 
-    describe "Walk a 0-role Hoya cluster through its lifecycle"
+    describe "Walk a 0-role cluster through its lifecycle"
 
 
     def clusterpath = buildClusterPath(CLUSTER)
@@ -94,7 +93,7 @@ public class TestClusterLifecycle extends HBaseCommandTestBase
     status(0, CLUSTER)
 
     //now status to a temp file
-    File jsonStatus = File.createTempFile("hoya", ".json")
+    File jsonStatus = File.createTempFile("tempfile", ".json")
     try {
       hoya(0,
            [

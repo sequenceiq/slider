@@ -20,17 +20,13 @@ package org.apache.hoya.funtest.commands
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import org.apache.bigtop.itest.shell.Shell
-import org.apache.hoya.funtest.framework.HoyaCommandTestBase
-import org.apache.hoya.funtest.framework.HoyaShell
-import org.apache.hoya.yarn.HoyaActions
-import org.junit.AfterClass
+import org.apache.hoya.funtest.framework.CommandTestBase
 import org.junit.BeforeClass
 import org.junit.Test
 
 @CompileStatic
 @Slf4j
-public class TestListCommand extends HoyaCommandTestBase {
+public class TestListCommand extends CommandTestBase {
 
   @BeforeClass
   public static void prepareCluster() {

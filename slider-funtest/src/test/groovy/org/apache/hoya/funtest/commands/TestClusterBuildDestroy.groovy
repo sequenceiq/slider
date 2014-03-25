@@ -25,16 +25,16 @@ import org.apache.hadoop.yarn.service.launcher.LauncherExitCodes
 import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.HoyaActions
-import org.apache.hoya.funtest.framework.HoyaCommandTestBase
-import org.apache.hoya.funtest.framework.HoyaFuntestProperties
+import org.apache.hoya.funtest.framework.CommandTestBase
+import org.apache.hoya.funtest.framework.FuntestProperties
 import org.junit.AfterClass
 import org.junit.BeforeClass
 import org.junit.Test
 
 @CompileStatic
 @Slf4j
-public class TestClusterBuildDestroy extends HoyaCommandTestBase
-    implements HoyaFuntestProperties, Arguments {
+public class TestClusterBuildDestroy extends CommandTestBase
+    implements FuntestProperties, Arguments {
 
 
   static String CLUSTER = "test_cluster_build_destroy"

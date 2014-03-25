@@ -37,18 +37,15 @@ import org.junit.rules.Timeout
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import static org.apache.hoya.HoyaExitCodes.*
-import static HoyaFuntestProperties.*
-import static org.apache.hoya.providers.accumulo.AccumuloKeys.OPTION_HADOOP_HOME
-import static org.apache.hoya.providers.accumulo.AccumuloKeys.OPTION_ZK_HOME
+import static FuntestProperties.*
 import static org.apache.hoya.yarn.Arguments.*
-import static org.apache.hoya.yarn.HoyaActions.*;
-import static org.apache.hoya.testtools.HoyaTestUtils.*
+import static org.apache.hoya.yarn.HoyaActions.*
 import static org.apache.hoya.HoyaXMLConfKeysForTesting.*
 
 @CompileStatic
-abstract class HoyaCommandTestBase extends HoyaTestUtils {
+abstract class CommandTestBase extends HoyaTestUtils {
   private static final Logger log =
-      LoggerFactory.getLogger(HoyaCommandTestBase.class);
+      LoggerFactory.getLogger(CommandTestBase.class);
   
   public static final String BASH = '/bin/bash -s'
   public static final String HOYA_CONF_DIR = System.getProperty(
@@ -59,11 +56,11 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
       HOYA_BIN_DIR).canonicalFile
   public static final File HOYA_SCRIPT = new File(
       HOYA_BIN_DIRECTORY,
-      "bin/hoya").canonicalFile
+      "bin/slider").canonicalFile
   public static final File HOYA_CONF_DIRECTORY = new File(
       HOYA_CONF_DIR).canonicalFile
   public static final File HOYA_CONF_XML = new File(HOYA_CONF_DIRECTORY,
-                                                    "hoya-client.xml").canonicalFile
+      CLIENT_CONFIG_FILENAME).canonicalFile
 
   public static final YarnConfiguration HOYA_CONFIG
   public static final int THAW_WAIT_TIME
@@ -74,7 +71,8 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
   public static final boolean ACCUMULO_TESTS_ENABLED
   public static final boolean HBASE_TESTS_ENABLED
   public static final boolean FUNTESTS_ENABLED
-  
+  public static final boolean AGENTESTS_ENABLED
+
 
   static {
     HOYA_CONFIG = new YarnConfiguration()
@@ -115,8 +113,8 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
     } else {
       log.info "Security off, making cluster dirs broadly accessible"
     }
-    HoyaShell.hoyaConfDir = HOYA_CONF_DIRECTORY
-    HoyaShell.hoyaScript = HOYA_SCRIPT
+    SliderShell.confDir = HOYA_CONF_DIRECTORY
+    SliderShell.script = HOYA_SCRIPT
     log.info("Test using ${HadoopFS.getDefaultUri(HOYA_CONFIG)} " +
              "and YARN RM @ ${HOYA_CONFIG.get(YarnConfiguration.RM_ADDRESS)}")
   }
@@ -127,8 +125,8 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
    * @param commands
    * @return the shell
    */
-  public static HoyaShell hoya(List<String> commands) {
-    HoyaShell shell = new HoyaShell(commands)
+  public static SliderShell hoya(List<String> commands) {
+    SliderShell shell = new SliderShell(commands)
     shell.execute()
     return shell
   }
@@ -139,8 +137,8 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
    * @param commands commands
    * @return
    */
-  public static HoyaShell hoya(int exitCode, List<String> commands) {
-    return HoyaShell.run(commands, exitCode)
+  public static SliderShell hoya(int exitCode, List<String> commands) {
+    return SliderShell.run(commands, exitCode)
   }
 
   /**
@@ -158,19 +156,19 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
   }
 
 
-  static HoyaShell destroy(String name) {
+  static SliderShell destroy(String name) {
     hoya([
         ACTION_DESTROY, name
     ])
   }
 
-  static HoyaShell destroy(int result, String name) {
+  static SliderShell destroy(int result, String name) {
     hoya(result, [
         ACTION_DESTROY, name
     ])
   }
 
-  static HoyaShell exists(String name, boolean live = true) {
+  static SliderShell exists(String name, boolean live = true) {
 
     List<String> args = [
         ACTION_EXISTS, name
@@ -181,7 +179,7 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
     hoya(args)
   }
 
-  static HoyaShell exists(int result, String name, boolean live = true) {
+  static SliderShell exists(int result, String name, boolean live = true) {
     List<String> args = [
         ACTION_EXISTS, name
     ]
@@ -191,26 +189,26 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
     hoya(result, args)
   }
 
-  static HoyaShell freeze(String name) {
+  static SliderShell freeze(String name) {
     hoya([
         ACTION_FREEZE, name
     ])
   }
 
-  static HoyaShell getConf(String name) {
+  static SliderShell getConf(String name) {
     hoya([
         ACTION_GETCONF, name
     ])
   }
 
-  static HoyaShell getConf(int result, String name) {
+  static SliderShell getConf(int result, String name) {
     hoya(result,
          [
              ACTION_GETCONF, name
          ])
   }
 
-  static HoyaShell killContainer(String name, String containerID) {
+  static SliderShell killContainer(String name, String containerID) {
     hoya(0,
          [
              ACTION_KILL_CONTAINER,
@@ -219,13 +217,13 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
          ])
   }
   
-  static HoyaShell freezeForce(String name) {
+  static SliderShell freezeForce(String name) {
     hoya([
         ACTION_FREEZE, ARG_FORCE, name
     ])
   }
 
-  static HoyaShell list(String name) {
+  static SliderShell list(String name) {
     List<String> cmd = [
         ACTION_LIST
     ]
@@ -235,7 +233,7 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
     hoya(cmd)
   }
 
-  static HoyaShell list(int result, String name) {
+  static SliderShell list(int result, String name) {
     List<String> cmd = [
         ACTION_LIST
     ]
@@ -245,26 +243,26 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
     hoya(result, cmd)
   }
 
-  static HoyaShell status(String name) {
+  static SliderShell status(String name) {
     hoya([
         ACTION_STATUS, name
     ])
   }
 
-  static HoyaShell status(int result, String name) {
+  static SliderShell status(int result, String name) {
     hoya(result,
          [
              ACTION_STATUS, name
          ])
   }
 
-  static HoyaShell thaw(String name) {
+  static SliderShell thaw(String name) {
     hoya([
         ACTION_THAW, name
     ])
   }
 
-  static HoyaShell thaw(int result, String name) {
+  static SliderShell thaw(int result, String name) {
     hoya(result,
          [
              ACTION_THAW, name
@@ -311,14 +309,14 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
    * Assert the exit code is that the cluster is unknown
    * @param shell shell
    */
-  public static void assertSuccess(HoyaShell shell) {
+  public static void assertSuccess(SliderShell shell) {
     assertExitCode(shell, 0)
   }
   /**
    * Assert the exit code is that the cluster is unknown
    * @param shell shell
    */
-  public static void assertUnknownCluster(HoyaShell shell) {
+  public static void assertUnknownCluster(SliderShell shell) {
     assertExitCode(shell, EXIT_UNKNOWN_HOYA_CLUSTER)
   }
 
@@ -328,7 +326,7 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
    * @param shell shell
    * @param errorCode expected error code
    */
-  public static void assertExitCode(HoyaShell shell, int errorCode) {
+  public static void assertExitCode(SliderShell shell, int errorCode) {
     shell.assertExitCode(errorCode)
   }
 
@@ -368,7 +366,7 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
    * @param clusterOps map of key=value cluster options to set with the --option arg
    * @return shell which will have executed the command.
    */
-  public HoyaShell createOrBuildHoyaCluster(
+  public SliderShell createOrBuildHoyaCluster(
       String action,
       String clustername,
       Map<String, Integer> roles,
@@ -418,7 +416,7 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
    * @param clusterOps map of key=value cluster options to set with the --option arg
    * @return launcher which will have executed the command.
    */
-  public HoyaShell createHoyaCluster(
+  public SliderShell createHoyaCluster(
       String clustername,
       Map<String, Integer> roles,
       List<String> extraArgs,
@@ -442,10 +440,12 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
       HoyaClient hoyaClient, String cluster) {
     
     assert cluster
-    hoya(0, [ACTION_AM_SUICIDE, cluster,
+    hoya(0, [
+        ACTION_AM_SUICIDE, cluster,
         ARG_EXITCODE, "1",
         ARG_WAIT, "1000",
-        ARG_MESSAGE, "suicide"])
+        ARG_MESSAGE, "suicide"
+    ])
 
 
 
@@ -483,6 +483,11 @@ abstract class HoyaCommandTestBase extends HoyaTestUtils {
   }
 
   public void assumeHBaseTestsEnabled() {
+    assumeFunctionalTestsEnabled()
+    assume(HBASE_TESTS_ENABLED, "HBase tests disabled")
+  }
+  
+  public void assumeAgentTestsEnabled() {
     assumeFunctionalTestsEnabled()
     assume(HBASE_TESTS_ENABLED, "HBase tests disabled")
   }
