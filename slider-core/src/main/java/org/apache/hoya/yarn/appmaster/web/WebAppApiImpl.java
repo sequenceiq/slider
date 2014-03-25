@@ -31,6 +31,7 @@ import org.apache.hoya.providers.ProviderService;
 import org.apache.hoya.yarn.appmaster.state.AppState;
 import org.apache.hoya.yarn.appmaster.state.RoleStatus;
 import org.apache.hoya.yarn.appmaster.state.StateAccessForProviders;
+import org.apache.hoya.yarn.appmaster.web.rest.agent.AgentRestOperations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -128,5 +129,9 @@ public class WebAppApiImpl implements WebAppApi {
 
     return statusByName;
   }
-  
+
+  @Override
+  public AgentRestOperations getAgentRestOperations() {
+    return provider.getAgentRestOperations();
+  }
 }

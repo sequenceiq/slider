@@ -31,6 +31,7 @@ import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.yarn.appmaster.state.StateAccessForProviders;
+import org.apache.hoya.yarn.appmaster.web.rest.agent.AgentRestOperations;
 import org.apache.hoya.yarn.service.EventCallback;
 
 import java.io.File;
@@ -136,4 +137,10 @@ public interface ProviderService extends ProviderCore, Service,
    * @param stateAccessor interface offering read access to the state
    */
   void bind(StateAccessForProviders stateAccessor);
+
+  /**
+   * Returns the agent rest operations interface.
+   * @return  the interface if available, null otherwise.
+   */
+  AgentRestOperations getAgentRestOperations();
 }

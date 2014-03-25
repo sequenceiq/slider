@@ -38,6 +38,12 @@ import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderUtils;
 import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
+import org.apache.hoya.yarn.appmaster.web.rest.agent.AgentRestOperations;
+import org.apache.hoya.yarn.appmaster.web.rest.agent.HeartBeat;
+import org.apache.hoya.yarn.appmaster.web.rest.agent.HeartBeatResponse;
+import org.apache.hoya.yarn.appmaster.web.rest.agent.Register;
+import org.apache.hoya.yarn.appmaster.web.rest.agent.RegistrationResponse;
+import org.apache.hoya.yarn.appmaster.web.rest.agent.RegistrationStatus;
 import org.apache.hoya.yarn.service.EventCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +62,7 @@ import java.util.Map;
 public class AgentProviderService extends AbstractProviderService implements
                                                                   ProviderCore,
                                                                   AgentKeys,
-                                                                  HoyaKeys {
+                                                                  HoyaKeys, AgentRestOperations {
 
 
   protected static final Logger log =
@@ -67,6 +73,7 @@ public class AgentProviderService extends AbstractProviderService implements
   private HoyaFileSystem hoyaFileSystem = null;
   public AgentProviderService() {
     super("AgentProviderService");
+    setAgentRestOperations(this);
   }
 
   @Override
@@ -224,5 +231,19 @@ public class AgentProviderService extends AbstractProviderService implements
   @Override
   public boolean isSupportedRole(String role) {
     return true;
+  }
+
+  @Override
+  public RegistrationResponse handleRegistration(Register registration) {
+    // dummy impl
+    RegistrationResponse response = new RegistrationResponse();
+    response.setResponseStatus(RegistrationStatus.OK);
+    return response;
+  }
+
+  @Override
+  public HeartBeatResponse handleHeartBeat(HeartBeat heartBeat) {
+    // dummy impl
+    return new HeartBeatResponse();
   }
 }

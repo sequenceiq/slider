@@ -34,6 +34,12 @@ import org.apache.hoya.providers.ProviderRole
 import org.apache.hoya.providers.ProviderService
 import org.apache.hoya.tools.HoyaFileSystem
 import org.apache.hoya.yarn.appmaster.state.StateAccessForProviders
+import org.apache.hoya.yarn.appmaster.web.rest.agent.AgentRestOperations
+import org.apache.hoya.yarn.appmaster.web.rest.agent.HeartBeat
+import org.apache.hoya.yarn.appmaster.web.rest.agent.HeartBeatResponse
+import org.apache.hoya.yarn.appmaster.web.rest.agent.Register
+import org.apache.hoya.yarn.appmaster.web.rest.agent.RegistrationResponse
+import org.apache.hoya.yarn.appmaster.web.rest.agent.RegistrationStatus
 import org.apache.hoya.yarn.service.EventCallback
 
 class MockProviderService implements ProviderService {
@@ -192,4 +198,24 @@ class MockProviderService implements ProviderService {
   void bind(StateAccessForProviders stateAccessor) {
 
   }
+
+    @Override
+    AgentRestOperations getAgentRestOperations() {
+        return new AgentRestOperations() {
+            @Override
+            public RegistrationResponse handleRegistration(Register registration) {
+                // dummy impl
+                RegistrationResponse response = new RegistrationResponse();
+                response.setResponseStatus(RegistrationStatus.OK);
+                return response;
+            }
+
+            @Override
+            public HeartBeatResponse handleHeartBeat(HeartBeat heartBeat) {
+                // dummy impl
+                return new HeartBeatResponse();
+            }
+        }
+    }
+
 }

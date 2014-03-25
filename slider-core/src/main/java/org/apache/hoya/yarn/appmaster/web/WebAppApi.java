@@ -23,6 +23,7 @@ import org.apache.hoya.providers.ProviderService;
 import org.apache.hoya.yarn.appmaster.state.AppState;
 import org.apache.hoya.yarn.appmaster.state.RoleStatus;
 import org.apache.hoya.yarn.appmaster.state.StateAccessForProviders;
+import org.apache.hoya.yarn.appmaster.web.rest.agent.AgentRestOperations;
 
 /**
  * Interface to pass information from the Hoya AppMaster to the WebApp
@@ -49,4 +50,9 @@ public interface WebAppApi {
    * is a computed value and not just a getter
    */
   public Map<String,RoleStatus> getRoleStatusByName();
+
+  /**
+   * Returns an interface that can support the agent-based REST operations.
+   */
+  public AgentRestOperations getAgentRestOperations();
 }

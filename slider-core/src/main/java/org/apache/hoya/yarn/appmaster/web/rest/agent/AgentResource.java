@@ -83,11 +83,8 @@ public class AgentResource {
                                        @PathParam("agent_name") String agent_name) {
     init(res);
     this.agent_name = agent_name;
-
-    // dummy impl
-    RegistrationResponse response = new RegistrationResponse();
-    response.setResponseStatus(RegistrationStatus.OK);
-    return response;
+    AgentRestOperations ops = slider.getAgentRestOperations();
+    return ops.handleRegistration(registration);
 
   }
 
@@ -99,8 +96,7 @@ public class AgentResource {
                                      @Context HttpServletResponse res,
                                      @PathParam("agent_name") String agent_name) {
     init(res);
-
-    // dummy impl
-    return new HeartBeatResponse();
+    AgentRestOperations ops = slider.getAgentRestOperations();
+    return ops.handleHeartBeat(message);
   }
 }

@@ -29,6 +29,7 @@ import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.tools.ConfigHelper;
 import org.apache.hoya.tools.HoyaUtils;
 import org.apache.hoya.yarn.appmaster.state.StateAccessForProviders;
+import org.apache.hoya.yarn.appmaster.web.rest.agent.AgentRestOperations;
 import org.apache.hoya.yarn.service.ForkedProcessService;
 import org.apache.hoya.yarn.service.Parent;
 import org.apache.hoya.yarn.service.SequenceService;
@@ -59,6 +60,7 @@ public abstract class AbstractProviderService
     LoggerFactory.getLogger(AbstractProviderService.class);
   protected  AggregateConf instanceDefinition;
   protected StateAccessForProviders stateAccessor;
+  protected AgentRestOperations restOps;
 
   public AbstractProviderService(String name) {
     super(name);
@@ -80,6 +82,15 @@ public abstract class AbstractProviderService
   @Override
   public void bind(StateAccessForProviders stateAccessor) {
     this.stateAccessor = stateAccessor;
+  }
+
+  @Override
+  public AgentRestOperations getAgentRestOperations() {
+    return restOps;
+  }
+
+  public void setAgentRestOperations(AgentRestOperations agentRestOperations) {
+    this.restOps = agentRestOperations;
   }
 
   /**
