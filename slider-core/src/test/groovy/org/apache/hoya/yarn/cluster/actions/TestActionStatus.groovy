@@ -27,6 +27,7 @@ import org.apache.hoya.exceptions.HoyaException
 import org.apache.hoya.exceptions.UnknownClusterException
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.client.HoyaClient
+import org.apache.hoya.yarn.params.ActionStatusArgs
 import org.apache.hoya.yarn.params.ClientArgs
 import org.apache.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.api.records.ApplicationReport
@@ -88,7 +89,8 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
 
     //now look for the explicit sevice
 
-    int status = hoyaClient.actionStatus(clustername, null)
+    ActionStatusArgs statusArgs = new ActionStatusArgs()
+    int status = hoyaClient.actionStatus(clustername, statusArgs)
     assert status == HoyaExitCodes.EXIT_SUCCESS
 
     //now exec the status command
