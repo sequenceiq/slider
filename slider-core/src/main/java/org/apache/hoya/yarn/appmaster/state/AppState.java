@@ -60,7 +60,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -88,12 +87,17 @@ import static org.apache.hoya.api.RoleKeys.YARN_MEMORY;
  * is not synchronized and intended to be used during
  * initialization.
  */
-public class AppState {
+public class AppState implements StateAccessForProviders {
   protected static final Logger log =
     LoggerFactory.getLogger(AppState.class);
   
   private final AbstractRecordFactory recordFactory;
 
+  /**
+   * Flag set to indicate the application is live -this only happens
+   * after the buildInstance operation
+   */
+  boolean applicationLive = false;
 
   /**
    * The definition of the instance. Flexing updates the resources section
@@ -101,14 +105,27 @@ public class AppState {
    the CD, and also to update some of the structures that
    feed in to the CD
    */
-  public AggregateConf instanceDefinition;
+  private AggregateConf instanceDefinition;
+  
+  private long snapshotTime;
+  private AggregateConf instanceDefinitionSnapshot;
 
+  /**
+   * snapshot of resources as of last update time
+   */
+  private ConfTreeOperations resourcesSnapshot;
+  private ConfTreeOperations appConfSnapshot;
+  private ConfTreeOperations internalsSnapshot;
+  
   /**
    * This is the status, the live model
    */
-  public ClusterDescription clusterStatus = new ClusterDescription();
+  private ClusterDescription clusterStatus = new ClusterDescription();
 
-  public Map<String, String> applicationInfo;
+  /**
+   * Metadata provided by the AM for use in filling in status requests
+   */
+  private Map<String, String> applicationInfo;
   
   /**
    * Client properties created via the provider -static for the life
@@ -122,15 +139,14 @@ public class AppState {
    the CD, and also to update some of the structures that
    feed in to the CD
    */
-  public ClusterDescription clusterSpec = new ClusterDescription();
+  private ClusterDescription clusterSpec = new ClusterDescription();
 
 
   private final Map<Integer, RoleStatus> roleStatusMap =
-    new HashMap<Integer, RoleStatus>();
+    new ConcurrentHashMap<Integer, RoleStatus>();
 
   private final Map<String, ProviderRole> roles =
-    new HashMap<String, ProviderRole>();
-
+    new ConcurrentHashMap<String, ProviderRole>();
 
   /**
    * The master node.
@@ -288,6 +304,7 @@ public class AppState {
     return completionOfUnknownContainerEvent;
   }
 
+  @Override
   public Map<Integer, RoleStatus> getRoleStatusMap() {
     return roleStatusMap;
   }
@@ -304,11 +321,13 @@ public class AppState {
     return completedNodes;
   }
 
+  @Override
   public Map<ContainerId, RoleInstance> getFailedNodes() {
     return failedNodes;
   }
 
-  private Map<ContainerId, RoleInstance> getLiveNodes() {
+  @Override
+  public Map<ContainerId, RoleInstance> getLiveNodes() {
     return liveNodes;
   }
 
@@ -320,10 +339,7 @@ public class AppState {
     return clusterSpec;
   }
 
-  /**
-   * Get the current cluster description 
-   * @return the actual state of the cluster
-   */
+  @Override
   public ClusterDescription getClusterStatus() {
     return clusterStatus;
   }
@@ -343,7 +359,8 @@ public class AppState {
    * @throws BadConfigException
    */
   public synchronized void updateInstanceDefinition(AggregateConf definition) throws
-                                                                       BadConfigException {
+                                                                              BadConfigException,
+                                                                              IOException {
     this.instanceDefinition = definition;
     onInstanceDefinitionUpdated();
   }
@@ -381,6 +398,36 @@ public class AppState {
     containerMaxMemory = maxMemory;
   }
 
+  @Override
+  public ConfTreeOperations getResourcesSnapshot() {
+    return resourcesSnapshot;
+  }
+
+  @Override
+  public ConfTreeOperations getAppConfSnapshot() {
+    return appConfSnapshot;
+  }
+
+  @Override
+  public ConfTreeOperations getInternalsSnapshot() {
+    return internalsSnapshot;
+  }
+
+  @Override
+  public boolean isApplicationLive() {
+    return applicationLive;
+  }
+
+
+  @Override
+  public long getSnapshotTime() {
+    return snapshotTime;
+  }
+
+  @Override
+  public AggregateConf getInstanceDefinitionSnapshot() {
+    return instanceDefinitionSnapshot;
+  }
 
   /**
    * Build up the application state
@@ -392,15 +439,16 @@ public class AppState {
    * @param liveContainers list of live containers supplied on an AM restart
    * @param applicationInfo
    */
-  public void buildInstance(AggregateConf instanceDefinition,
+  public synchronized void buildInstance(AggregateConf instanceDefinition,
                             Configuration publishedProviderConf,
                             List<ProviderRole> providerRoles,
                             FileSystem fs,
                             Path historyDir,
                             List<Container> liveContainers,
                             Map<String, String> applicationInfo) throws
-                                                            BadClusterStateException,
-                                                            BadConfigException {
+                                                                 BadClusterStateException,
+                                                                 BadConfigException,
+                                                                 IOException {
     this.publishedProviderConf = publishedProviderConf;
     this.applicationInfo = applicationInfo != null ? applicationInfo 
                                          : new HashMap<String, String>();
@@ -465,6 +513,9 @@ public class AppState {
     
     //rebuild any live containers
     rebuildModelFromRestart(liveContainers);
+    
+    //mark as live
+    applicationLive = true;
   }
 
   public void initClusterStatus() {
@@ -526,8 +577,24 @@ public class AppState {
    * @throws BadConfigException
    */
   private synchronized void onInstanceDefinitionUpdated() throws
-                                             BadConfigException {
+                                                          BadConfigException,
+                                                          IOException {
     instanceDefinition.resolve();
+
+    //note the time 
+    snapshotTime = now();
+    //snapshot all three sectons
+    resourcesSnapshot =
+      ConfTreeOperations.fromInstance(instanceDefinition.getResources());
+    appConfSnapshot =
+      ConfTreeOperations.fromInstance(instanceDefinition.getAppConf());
+    internalsSnapshot =
+      ConfTreeOperations.fromInstance(instanceDefinition.getInternal());
+    //build a new aggregate from the snapshots
+    instanceDefinitionSnapshot = new AggregateConf(resourcesSnapshot.confTree,
+                                                   appConfSnapshot.confTree,
+                                                   internalsSnapshot.confTree);
+
     clusterSpec =
       ClusterDescriptionOperations.buildFromInstanceDefinition(
         instanceDefinition);
@@ -541,11 +608,12 @@ public class AppState {
   }
   
   /**
-   * The cluster specification has been updated
-   * @param cd updated cluster specification
+   * The resource configuration is updated -review and update state
+   * @param resources updated resources specification
    */
   public synchronized void updateResourceDefinitions(ConfTree resources) throws
-                                                                    BadConfigException {
+                                                                         BadConfigException,
+                                                                         IOException {
     log.debug("Updating resources to {}", resources);
     
     instanceDefinition.setResources(resources);
@@ -667,13 +735,7 @@ public class AppState {
     return appMasterNode;
   }
 
-  /**
-   * Look up a role from its key -or fail 
-   *
-   * @param key key to resolve
-   * @return the status
-   * @throws YarnRuntimeException on no match
-   */
+  @Override
   public RoleStatus lookupRoleStatus(int key) throws HoyaRuntimeException {
     RoleStatus rs = getRoleStatusMap().get(key);
     if (rs == null) {
@@ -682,25 +744,13 @@ public class AppState {
     return rs;
   }
 
-  /**
-   * Look up a role from its key -or fail 
-   *
-   * @param c container in a role
-   * @return the status
-   * @throws YarnRuntimeException on no match
-   */
+  @Override
   public RoleStatus lookupRoleStatus(Container c) throws YarnRuntimeException {
     return lookupRoleStatus(ContainerPriority.extractRole(c));
   }
 
 
-  /**
-   * Look up a role from its key -or fail 
-   *
-   * @param name container in a role
-   * @return the status
-   * @throws YarnRuntimeException on no match
-   */
+  @Override
   public RoleStatus lookupRoleStatus(String name) throws YarnRuntimeException {
     ProviderRole providerRole = roles.get(name);
     if (providerRole == null) {
@@ -709,37 +759,23 @@ public class AppState {
     return lookupRoleStatus(providerRole.id);
   }
 
-  /**
-   * Clone a list of active containers
-   * @return the active containers at the time
-   * the call was made
-   */
+  @Override
   public synchronized List<RoleInstance> cloneActiveContainerList() {
     Collection<RoleInstance> values = activeContainers.values();
     return new ArrayList<RoleInstance>(values);
   }
   
-  /**
-   * Get the number of active containers
-   * @return the number of active containers the time the call was made
-   */
+  @Override
   public int getNumActiveContainers() {
     return activeContainers.size();
   }
   
-  /**
-   * Get any active container with the given ID
-   * @param id container Id
-   * @return the active container or null if it is not found
-   */
+  @Override
   public RoleInstance getActiveContainer(ContainerId id) {
     return activeContainers.get(id);
   }
 
-  /**
-   * Create a clone of the list of live cluster nodes.
-   * @return the list of nodes, may be empty
-   */
+  @Override
   public synchronized List<RoleInstance> cloneLiveContainerInfoList() {
     List<RoleInstance> allRoleInstances;
     Collection<RoleInstance> values = getLiveNodes().values();
@@ -748,47 +784,24 @@ public class AppState {
   }
 
 
-  /**
-   * Get the {@link RoleInstance} details on a node
-   * @param uuid the UUID
-   * @return null if there is no such node
-   * @throws NoSuchNodeException if the node cannot be found
-   */
-  public synchronized RoleInstance getLiveInstanceByUUID(String uuid)
+  @Override
+  public synchronized RoleInstance getLiveInstanceByContainerID(String containerId)
     throws NoSuchNodeException {
     Collection<RoleInstance> nodes = getLiveNodes().values();
     for (RoleInstance node : nodes) {
-      if (uuid.equals(node.id)) {
+      if (containerId.equals(node.id)) {
         return node;
       }
     }
     //at this point: no node
-    throw new NoSuchNodeException(uuid);
+    throw new NoSuchNodeException(containerId);
   }
 
-  /**
-   * Get the details on a list of instaces referred to by UUID.
-   * Unknown nodes are not returned
-   * <i>Important: the order of the results are undefined</i>
-   * @param uuids the UUIDs
-   * @return list of instances
-   * @throws IOException IO problems
-   */
-  public List<RoleInstance> getLiveContainerInfosByUUID(String[] uuids) throws IOException {
-    Collection<String> strings = Arrays.asList(uuids);
-    return getLiveContainerInfosByUUID(strings);
-  }
-
-  /**
-   * Get the details on a list of instaces referred to by UUID.
-   * Unknown nodes are not returned
-   * <i>Important: the order of the results are undefined</i>
-   * @param uuids the UUIDs
-   * @return list of instances
-   */
-  public List<RoleInstance> getLiveContainerInfosByUUID(Collection<String> uuids) {
-    //first, a hashmap of those uuids is built up
-    Set<String> uuidSet = new HashSet<String>(uuids);
+  @Override
+  public synchronized List<RoleInstance> getLiveInstancesByContainerIDs(
+    Collection<String> containerIDs) {
+    //first, a hashmap of those containerIDs is built up
+    Set<String> uuidSet = new HashSet<String>(containerIDs);
     List<RoleInstance> nodes = new ArrayList<RoleInstance>(uuidSet.size());
     Collection<RoleInstance> clusterNodes = getLiveNodes().values();
 
@@ -1252,6 +1265,11 @@ public class AppState {
     return percentage;
   }
 
+  @Override
+  public void refreshClusterStatus() {
+    refreshClusterStatus(null);
+  }
+  
   /**
    * Update the cluster description with anything interesting
    * @param providerStatus status from the provider for the cluster info section

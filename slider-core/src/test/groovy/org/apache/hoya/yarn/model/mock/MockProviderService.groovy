@@ -33,6 +33,7 @@ import org.apache.hoya.exceptions.HoyaException
 import org.apache.hoya.providers.ProviderRole
 import org.apache.hoya.providers.ProviderService
 import org.apache.hoya.tools.HoyaFileSystem
+import org.apache.hoya.yarn.appmaster.state.StateAccessForProviders
 import org.apache.hoya.yarn.service.EventCallback
 
 class MockProviderService implements ProviderService {
@@ -185,5 +186,10 @@ class MockProviderService implements ProviderService {
   @Override
   public Map<String, URL> buildMonitorDetails(ClusterDescription clusterSpec) {
     return null;
+  }
+
+  @Override
+  void bind(StateAccessForProviders stateAccessor) {
+
   }
 }

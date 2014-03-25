@@ -76,7 +76,6 @@ import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.exceptions.HoyaInternalStateException;
 import org.apache.hoya.exceptions.TriggerClusterTeardownException;
-import org.apache.hoya.providers.AbstractClientProvider;
 import org.apache.hoya.providers.HoyaProviderFactory;
 import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderService;
@@ -266,7 +265,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
    * Service Constructor
    */
   public HoyaAppMaster() {
-    super("HoyaMasterService");
+    super("AppMasterService");
   }
 
 
@@ -388,6 +387,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
 
     log.info("Deploying cluster {}:", instanceDefinition);
 
+    //REVISIT: why is this done?
     appState.updateInstanceDefinition(instanceDefinition);
     File confDir = getLocalConfDir();
     if (!confDir.exists() || !confDir.isDirectory()) {
@@ -414,20 +414,10 @@ public class HoyaAppMaster extends CompoundLaunchedService
       HoyaProviderFactory.createHoyaProviderFactory(
         providerType);
     providerService = factory.createServerProvider();
-    AbstractClientProvider providerClient = factory.createClientProvider();
     // init the provider BUT DO NOT START IT YET
     providerService.init(getConfig());
     addService(providerService);
     
-    
-    HoyaAMClientProvider amClientProvider = new HoyaAMClientProvider(conf);
-
-    //check with the Hoya and Cluster-specific providers that the cluster state
-    // looks good from the perspective of the AM
-    Path generatedConfDirPath =
-      new Path(clusterDirPath, HoyaKeys.GENERATED_CONF_DIR_NAME);
-    boolean clusterSecure = HoyaUtils.isClusterSecure(conf);
-
     InetSocketAddress address = HoyaUtils.getRmSchedulerAddress(conf);
     log.info("RM is at {}", address);
     yarnRPC = YarnRPC.create(conf);
@@ -479,6 +469,11 @@ public class HoyaAppMaster extends CompoundLaunchedService
     }
 
     Map<String, String> envVars;
+
+    /**
+     * It is critical this section is synchronized, to stop async AM events
+     * arriving while registering a restarting AM.
+     */
     synchronized (appState) {
       int heartbeatInterval = HEARTBEAT_INTERVAL;
 
@@ -493,7 +488,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
 
 
       //nmclient relays callbacks back to this class
-      nmClientAsync = new NMClientAsyncImpl("hoya", this);
+      nmClientAsync = new NMClientAsyncImpl("nmclient", this);
       runChildService(nmClientAsync);
 
       //bring up the Hoya RPC service
@@ -503,7 +498,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
       appMasterHostname = rpcServiceAddr.getHostName();
       appMasterRpcPort = rpcServiceAddr.getPort();
       appMasterTrackingUrl = null;
-      log.info("HoyaAM Server is listening at {}:{}", appMasterHostname,
+      log.info("AM Server is listening at {}:{}", appMasterHostname,
                appMasterRpcPort);
       appInformation.put(StatusKeys.INFO_AM_HOSTNAME, appMasterHostname);
       appInformation.set(StatusKeys.INFO_AM_RPC_PORT, appMasterRpcPort);
@@ -511,7 +506,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
       //build the role map
       List<ProviderRole> providerRoles =
         new ArrayList<ProviderRole>(providerService.getRoles());
-      providerRoles.addAll(amClientProvider.getRoles());
+      providerRoles.addAll(HoyaAMClientProvider.ROLES);
 
       // Start up the WebApp and track the URL for it
       webApp = new HoyaAMWebApp();
@@ -621,6 +616,10 @@ public class HoyaAppMaster extends CompoundLaunchedService
     appState.noteAMLaunched();
 
 
+    //Give the provider restricted access to the state
+    providerService.bind(appState);
+    
+    
     // launch the provider; this is expected to trigger a callback that
     // brings up the service
     launchProviderService(instanceDefinition, confDir);
@@ -1099,7 +1098,8 @@ public class HoyaAppMaster extends CompoundLaunchedService
                                                                                      IOException,
                                                                                      YarnException {
     HoyaUtils.getCurrentUser();
-    RoleInstance instance = appState.getLiveInstanceByUUID(request.getUuid());
+    RoleInstance instance = appState.getLiveInstanceByContainerID(
+      request.getUuid());
     return Messages.GetNodeResponseProto.newBuilder()
                    .setClusterNode(instance.toProtobuf())
                    .build();
@@ -1111,7 +1111,8 @@ public class HoyaAppMaster extends CompoundLaunchedService
                                                                                                              YarnException {
     HoyaUtils.getCurrentUser();
     List<RoleInstance>
-      clusterNodes = appState.getLiveContainerInfosByUUID(request.getUuidList());
+      clusterNodes = appState.getLiveInstancesByContainerIDs(
+      request.getUuidList());
 
     Messages.GetClusterNodesResponseProto.Builder builder =
       Messages.GetClusterNodesResponseProto.newBuilder();
@@ -1144,7 +1145,7 @@ public class HoyaAppMaster extends CompoundLaunchedService
     log.info("Kill Container {}", containerID);
     //throws NoSuchNodeException if it is missing
     RoleInstance instance =
-      appState.getLiveInstanceByUUID(containerID);
+      appState.getLiveInstanceByContainerID(containerID);
     List<AbstractRMOperation> opsList =
       new LinkedList<AbstractRMOperation>();
     ContainerReleaseOperation release =

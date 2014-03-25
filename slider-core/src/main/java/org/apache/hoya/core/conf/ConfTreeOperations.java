@@ -303,6 +303,20 @@ public class ConfTreeOperations {
        confTreeSerDeser.fromFile(resource) );
     return ops;
   }
+  
+  /**
+   * Build from an existing instance -which is cloned via JSON ser/deser
+   * @param instance the source instance
+   * @return loaded value
+   * @throws IOException load failure
+   */
+  public static ConfTreeOperations fromInstance(ConfTree instance) throws
+                                                                 IOException {
+    ConfTreeSerDeser confTreeSerDeser = new ConfTreeSerDeser();
+    ConfTreeOperations ops = new ConfTreeOperations(
+       confTreeSerDeser.fromJson(confTreeSerDeser.toJson(instance)) );
+    return ops;
+  }
 
 
   @Override

@@ -28,7 +28,7 @@ import org.apache.hadoop.yarn.webapp.hamlet.Hamlet.UL;
 import org.apache.hadoop.yarn.webapp.view.HtmlBlock;
 import org.apache.hoya.api.StatusKeys;
 import org.apache.hoya.providers.ProviderService;
-import org.apache.hoya.yarn.appmaster.state.AppState;
+import org.apache.hoya.yarn.appmaster.state.StateAccessForProviders;
 import org.apache.hoya.yarn.appmaster.web.WebAppApi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +40,7 @@ public class IndexBlock extends HtmlBlock {
   private static final String HBASE = "HBase";
   private static final Logger log = LoggerFactory.getLogger(IndexBlock.class);
 
-  private AppState appState;
+  private StateAccessForProviders appState;
   private ProviderService providerService;
 
   @Inject
@@ -58,7 +58,7 @@ public class IndexBlock extends HtmlBlock {
 
   // An extra method to make testing easier since you can't make an instance of Block
   protected void doIndex(Hamlet html, String providerName) {
-    DIV<Hamlet> div = html.div("general_info").h1("index_header", providerName + " cluster: '" + appState.clusterStatus.name + "'");
+    DIV<Hamlet> div = html.div("general_info").h1("index_header", providerName + " cluster: '" + appState.getClusterStatus().name + "'");
 
     UL<DIV<Hamlet>> ul = div.ul();
 
@@ -66,8 +66,8 @@ public class IndexBlock extends HtmlBlock {
     ul.li("Cluster created: " + getInfoAvoidingNulls(StatusKeys.INFO_CREATE_TIME_HUMAN));
     ul.li("Cluster last flexed: " + getInfoAvoidingNulls(StatusKeys.INFO_FLEX_TIME_HUMAN));
     ul.li("Cluster running since: " + getInfoAvoidingNulls(StatusKeys.INFO_LIVE_TIME_HUMAN));
-    ul.li("Cluster HDFS storage path: " + appState.clusterStatus.dataPath);
-    ul.li("Cluster configuration path: " + appState.clusterStatus.originConfigurationPath);
+    ul.li("Cluster HDFS storage path: " + appState.getClusterStatus().dataPath);
+    ul.li("Cluster configuration path: " + appState.getClusterStatus().originConfigurationPath);
 
     ul._()._();
 
@@ -89,13 +89,13 @@ public class IndexBlock extends HtmlBlock {
   }
 
   private String getInfoAvoidingNulls(String key) {
-    String createTime = appState.clusterStatus.getInfo(key);
+    String createTime = appState.getClusterStatus().getInfo(key);
 
     return null == createTime ? "N/A" : createTime;
   }
 
   protected void addProviderServiceOptions(ProviderService providerService, UL<DIV<Hamlet>> ul) {
-    Map<String,URL> details = providerService.buildMonitorDetails(appState.clusterStatus);
+    Map<String,URL> details = providerService.buildMonitorDetails(appState.getClusterStatus());
     if (null == details) {
       return;
     }

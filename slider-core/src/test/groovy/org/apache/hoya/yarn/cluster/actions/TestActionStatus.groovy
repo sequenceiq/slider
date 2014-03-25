@@ -27,6 +27,7 @@ import org.apache.hoya.exceptions.HoyaException
 import org.apache.hoya.exceptions.UnknownClusterException
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.client.HoyaClient
+import org.apache.hoya.yarn.params.ActionStatusArgs
 import org.apache.hoya.yarn.params.ClientArgs
 import org.apache.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.api.records.ApplicationReport
@@ -88,7 +89,8 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
 
     //now look for the explicit sevice
 
-    int status = hoyaClient.actionStatus(clustername, null)
+    ActionStatusArgs statusArgs = new ActionStatusArgs()
+    int status = hoyaClient.actionStatus(clustername, statusArgs)
     assert status == HoyaExitCodes.EXIT_SUCCESS
 
     //now exec the status command
@@ -107,7 +109,8 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
 
     //status to a file
     File tfile = new File("target/" + clustername + "/status.json")
-    hoyaClient.actionStatus(clustername, tfile.absolutePath)
+    statusArgs.output = tfile.absolutePath
+    hoyaClient.actionStatus(clustername, statusArgs)
     def text = tfile.text
     ClusterDescription cd = new ClusterDescription();
     cd.fromJson(text)
@@ -135,7 +138,7 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
 
     //now expect the status to fail
     try {
-      status = hoyaClient.actionStatus(clustername, null)
+      status = hoyaClient.actionStatus(clustername, new ActionStatusArgs())
       fail("expected an exception, but got the status $status")
     } catch (BadClusterStateException e) {
       assert e.toString().contains(ErrorStrings.E_APPLICATION_NOT_RUNNING)
