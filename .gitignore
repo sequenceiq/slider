@@ -17,3 +17,4 @@
 release.properties
 *.backup
 *.versionsBackup
+hoya-test.xml
