@@ -30,6 +30,7 @@ import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.tools.HoyaFileSystem;
+import org.apache.hoya.yarn.appmaster.state.StateAccessForProviders;
 import org.apache.hoya.yarn.service.EventCallback;
 
 import java.io.File;
@@ -129,4 +130,10 @@ public interface ProviderService extends ProviderCore, Service,
    * @return
    */
   Map<String,URL> buildMonitorDetails(ClusterDescription clusterSpec);
+
+  /**
+   * bind operation -invoked before the service is started
+   * @param stateAccessor interface offering read access to the state
+   */
+  void bind(StateAccessForProviders stateAccessor);
 }

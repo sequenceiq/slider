@@ -28,7 +28,7 @@ import org.apache.hoya.tools.HoyaUtils;
 import java.util.Arrays;
 
 /**
- * Info about a continer to keep around when deciding which container to release
+ * Tracking information about a container
  */
 public final class RoleInstance implements Cloneable {
 
@@ -80,6 +80,12 @@ public final class RoleInstance implements Cloneable {
   
   public String host;
   public String hostURL;
+
+  /**
+   * Any information the provider wishes to retain on the state of
+   * an instance
+   */
+  public Object providerInfo;
 
   public RoleInstance(Container container) {
     this.container = container;
@@ -182,7 +188,8 @@ public final class RoleInstance implements Cloneable {
    */
   @Override
   public Object clone() throws CloneNotSupportedException {
-    return super.clone();
+    RoleInstance cloned = (RoleInstance) super.clone();
+    return cloned;
   }
 
 

@@ -19,6 +19,7 @@
 package org.apache.hoya.core.conf;
 
 import org.apache.hoya.core.CoreKeys;
+import org.apache.hoya.core.persist.ConfTreeSerDeser;
 import org.apache.hoya.core.persist.JsonSerDeser;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
@@ -102,7 +103,7 @@ public final class ConfTree {
   public String toJson() throws IOException,
                                 JsonGenerationException,
                                 JsonMappingException {
-    return JsonSerDeser.toJson(this);
+    return ConfTreeSerDeser.toString(this);
   }
 
 }

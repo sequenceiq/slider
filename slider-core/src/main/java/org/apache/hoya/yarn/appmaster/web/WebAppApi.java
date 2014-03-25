@@ -22,6 +22,7 @@ import org.apache.hoya.api.HoyaClusterProtocol;
 import org.apache.hoya.providers.ProviderService;
 import org.apache.hoya.yarn.appmaster.state.AppState;
 import org.apache.hoya.yarn.appmaster.state.RoleStatus;
+import org.apache.hoya.yarn.appmaster.state.StateAccessForProviders;
 
 /**
  * Interface to pass information from the Hoya AppMaster to the WebApp
@@ -31,7 +32,7 @@ public interface WebAppApi {
   /**
    * The {@link AppState} for the current cluster
    */
-  public AppState getAppState();
+  public StateAccessForProviders getAppState();
   
   /**
    * The {@link ProviderService} for the current cluster

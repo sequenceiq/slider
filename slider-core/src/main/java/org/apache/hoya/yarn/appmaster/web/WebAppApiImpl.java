@@ -30,6 +30,7 @@ import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderService;
 import org.apache.hoya.yarn.appmaster.state.AppState;
 import org.apache.hoya.yarn.appmaster.state.RoleStatus;
+import org.apache.hoya.yarn.appmaster.state.StateAccessForProviders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,10 +43,11 @@ public class WebAppApiImpl implements WebAppApi {
   protected static final ProviderRole HOYA_AM_ROLE = new ProviderRole("Hoya Application Master", HoyaKeys.ROLE_HOYA_AM_PRIORITY_INDEX);
 
   protected final HoyaClusterProtocol clusterProto;
-  protected final AppState appState;
+  protected final StateAccessForProviders appState;
   protected final ProviderService provider;
   
-  public WebAppApiImpl(HoyaClusterProtocol clusterProto, AppState appState, ProviderService provider) {
+  public WebAppApiImpl(HoyaClusterProtocol clusterProto,
+                       StateAccessForProviders appState, ProviderService provider) {
     checkNotNull(clusterProto);
     checkNotNull(appState);
     checkNotNull(provider);
@@ -59,7 +61,7 @@ public class WebAppApiImpl implements WebAppApi {
    * @see org.apache.hoya.yarn.appmaster.web.WebAppApi#getAppState()
    */
   @Override
-  public AppState getAppState() {
+  public StateAccessForProviders getAppState() {
     return appState;
   }
 

@@ -65,13 +65,7 @@ public class HoyaAMController extends Controller {
 
   private void updateAppState() {
     //TODO don't do this on every request?
-    Map<String,String> providerStatus = hoya.getProviderService().buildProviderStatus();
-    
-    if (null != providerStatus) {
-      log.info("Updating AppState with status from provider: {}", providerStatus.toString());
-      
-      hoya.getAppState().refreshClusterStatus(providerStatus);
-    }
+    hoya.getAppState().refreshClusterStatus();
   }
   
 }

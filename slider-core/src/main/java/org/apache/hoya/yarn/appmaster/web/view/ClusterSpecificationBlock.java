@@ -19,7 +19,7 @@ package org.apache.hoya.yarn.appmaster.web.view;
 import com.google.inject.Inject;
 import org.apache.hadoop.yarn.webapp.hamlet.Hamlet;
 import org.apache.hadoop.yarn.webapp.view.HtmlBlock;
-import org.apache.hoya.yarn.appmaster.state.AppState;
+import org.apache.hoya.yarn.appmaster.state.StateAccessForProviders;
 import org.apache.hoya.yarn.appmaster.web.WebAppApi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 public class ClusterSpecificationBlock extends HtmlBlock {
   private static final Logger log = LoggerFactory.getLogger(ClusterSpecificationBlock.class);
 
-  private AppState appState;
+  private StateAccessForProviders appState;
 
   @Inject
   public ClusterSpecificationBlock(WebAppApi hoya) {
@@ -56,12 +56,7 @@ public class ClusterSpecificationBlock extends HtmlBlock {
    * @return
    */
   private String getJson() {
-    try {
-      return appState.clusterStatus.toJsonString();
-    } catch (Exception e) {
-      log.error("Could not create JSON from cluster description", e);
-      return "Could not create JSON. See logs for more details.";
-    }
+    return appState.getClusterStatus().toString();
   }
 
 }

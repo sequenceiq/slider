@@ -81,7 +81,7 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
   /**
    * List of roles
    */
-  protected static final List<ProviderRole> ROLES =
+  public static final List<ProviderRole> ROLES =
     new ArrayList<ProviderRole>();
 
   public static final int KEY_AM = ROLE_HOYA_AM_PRIORITY_INDEX;

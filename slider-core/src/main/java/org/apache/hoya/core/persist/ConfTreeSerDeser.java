@@ -19,12 +19,36 @@
 package org.apache.hoya.core.persist;
 
 import org.apache.hoya.core.conf.ConfTree;
+import org.codehaus.jackson.JsonGenerationException;
+import org.codehaus.jackson.JsonParseException;
+import org.codehaus.jackson.map.JsonMappingException;
+
+import java.io.IOException;
 
 /**
  * Conf tree to JSON binding
  */
-public class ConfTreeSerDeser extends JsonSerDeser<ConfTree>  {
+public class ConfTreeSerDeser extends JsonSerDeser<ConfTree> {
   public ConfTreeSerDeser() {
     super(ConfTree.class);
+  }
+
+
+  private static final ConfTreeSerDeser staticinstance = new ConfTreeSerDeser();
+
+  /**
+   * Convert a tree instance to a JSON string -sync access to a shared ser/deser
+   * object instance
+   * @param instance object to convert
+   * @return a JSON string description
+   * @throws JsonParseException parse problems
+   * @throws JsonMappingException O/J mapping problems
+   */
+  public static String toString(ConfTree instance) throws IOException,
+                                                          JsonGenerationException,
+                                                          JsonMappingException {
+    synchronized (staticinstance) {
+      return staticinstance.toJson(instance);
+    }
   }
 }

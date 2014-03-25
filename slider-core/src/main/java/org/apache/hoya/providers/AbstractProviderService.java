@@ -28,6 +28,7 @@ import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.tools.ConfigHelper;
 import org.apache.hoya.tools.HoyaUtils;
+import org.apache.hoya.yarn.appmaster.state.StateAccessForProviders;
 import org.apache.hoya.yarn.service.ForkedProcessService;
 import org.apache.hoya.yarn.service.Parent;
 import org.apache.hoya.yarn.service.SequenceService;
@@ -56,7 +57,8 @@ public abstract class AbstractProviderService
                             ProviderService {
   private static final Logger log =
     LoggerFactory.getLogger(AbstractProviderService.class);
-  public AggregateConf instanceDefinition;
+  protected  AggregateConf instanceDefinition;
+  protected StateAccessForProviders stateAccessor;
 
   public AbstractProviderService(String name) {
     super(name);
@@ -65,6 +67,19 @@ public abstract class AbstractProviderService
   @Override
   public Configuration getConf() {
     return getConfig();
+  }
+
+  public StateAccessForProviders getStateAccessor() {
+    return stateAccessor;
+  }
+
+  public void setStateAccessor(StateAccessForProviders stateAccessor) {
+    this.stateAccessor = stateAccessor;
+  }
+
+  @Override
+  public void bind(StateAccessForProviders stateAccessor) {
+    this.stateAccessor = stateAccessor;
   }
 
   /**

@@ -50,7 +50,7 @@ public class JsonSerDeser<T> {
   private static final String UTF_8 = "UTF-8";
 
   private final Class classType;
-  private static final ObjectMapper mapper = new ObjectMapper();
+  private final ObjectMapper mapper = new ObjectMapper();
 
   /**
    * Create an instance bound to a specific type
@@ -120,6 +120,17 @@ public class JsonSerDeser<T> {
   }
 
   /**
+   * clone by converting to JSON and back again.
+   * This is much less efficient than any Java clone process.
+   * @param instance instance to duplicate
+   * @return a new instance
+   * @throws IOException problems.
+   */
+  public T fromInstance(T instance) throws IOException {
+    return fromJson(toJson(instance));
+  }
+  
+  /**
    * Load from a Hadoop filesystem
    * @param fs filesystem
    * @param path path
@@ -178,10 +189,10 @@ public class JsonSerDeser<T> {
    * @throws JsonParseException parse problems
    * @throws JsonMappingException O/J mapping problems
    */
-  public static String toJson(Object o) throws IOException,
+  public String toJson(T instance) throws IOException,
                                                JsonGenerationException,
                                                JsonMappingException {
     mapper.configure(SerializationConfig.Feature.INDENT_OUTPUT, true);
-    return mapper.writeValueAsString(o);
+    return mapper.writeValueAsString(instance);
   }
 }

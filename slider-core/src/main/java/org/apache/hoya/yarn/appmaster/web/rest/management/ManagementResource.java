@@ -72,6 +72,6 @@ public class ManagementResource {
   }
 
   protected AggregateConf getAggregateConf() {
-    return slider.getAppState().getInstanceDefinition();
+    return slider.getAppState().getInstanceDefinitionSnapshot();
   }
 }
