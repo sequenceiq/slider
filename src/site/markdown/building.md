@@ -150,7 +150,7 @@ tests just work directly with the untarred file as it saves time uploading
 and downloading then expanding the file.
 
 (and if you set `HBASE_VERSION` to something else, you can pick up that version
--making sure that hoya is in sync)
+-making sure that slider is in sync)
 
 For more information (including recommended Maven memory configuration options),
 see [HBase building](http://hbase.apache.org/book/build.html)
@@ -206,16 +206,16 @@ a path such as `target/accumulo-$ACCUMULO_VERSION-dev/accumulo-$ACCUMULO_VERSION
 
 ## Testing
 
-### Configuring Hoya to locate the relevant artifacts
+### Configuring Slider to locate the relevant artifacts
 
-You must have the file `src/test/resources/hoya-test.xml` (this
+You must have the file `src/test/resources/slider-test.xml` (this
 is ignored by git), declaring where HBase, accumulo, Hadoop and zookeeper are:
 
     <configuration>
     
       <property>
         <name>hoya.test.hbase.home</name>
-        <value>/home/hoya/hbase/hbase-assembly/target/hbase-0.98.0-SNAPSHOT</value>
+        <value>/home/slider/hbase/hbase-assembly/target/hbase-0.98.0-SNAPSHOT</value>
         <description>HBASE Home</description>
       </property>
     
