@@ -109,7 +109,8 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
 
     //status to a file
     File tfile = new File("target/" + clustername + "/status.json")
-    hoyaClient.actionStatus(clustername, tfile.absolutePath)
+    statusArgs.output = tfile.absolutePath
+    hoyaClient.actionStatus(clustername, statusArgs)
     def text = tfile.text
     ClusterDescription cd = new ClusterDescription();
     cd.fromJson(text)
@@ -137,7 +138,7 @@ class TestActionStatus extends HBaseMiniClusterTestBase {
 
     //now expect the status to fail
     try {
-      status = hoyaClient.actionStatus(clustername, null)
+      status = hoyaClient.actionStatus(clustername, new ActionStatusArgs())
       fail("expected an exception, but got the status $status")
     } catch (BadClusterStateException e) {
       assert e.toString().contains(ErrorStrings.E_APPLICATION_NOT_RUNNING)
