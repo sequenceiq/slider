@@ -14,18 +14,18 @@
 
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <artifactId>hoya-assembly</artifactId>
+  <artifactId>slider-assembly</artifactId>
   <version>0.14.0</version>
-  <name>Hoya Assembly</name>
+  <name>Slider Assembly</name>
   <packaging>pom</packaging>
   <description>
     
     This is the module that does the packaging and shell entry
-    points for Hoya
+    points for Slider
   </description>
   <parent>
-    <groupId>org.apache.hoya</groupId>
-    <artifactId>hoya</artifactId>
+    <groupId>org.apache.slider</groupId>
+    <artifactId>slider</artifactId>
     <version>0.14.0</version>
   </parent>
 
@@ -58,9 +58,9 @@
         <version>${maven-assembly-plugin.version}</version>
         <configuration>
           <descriptors>
-            <descriptor>src/assembly/hoya-bin.xml</descriptor>
+            <descriptor>src/assembly/slider-bin.xml</descriptor>
           </descriptors>
-            <finalName>hoya-${project.version}</finalName>
+            <finalName>slider-${project.version}</finalName>
         </configuration>
         <executions>
           <execution>
@@ -129,8 +129,8 @@
   <dependencies>
 
     <dependency>
-      <groupId>org.apache.hoya</groupId>
-      <artifactId>hoya-core</artifactId>
+      <groupId>org.apache.slider</groupId>
+      <artifactId>slider-core</artifactId>
       <version>${project.version}</version>
     </dependency>
 
