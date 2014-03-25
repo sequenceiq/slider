@@ -1,21 +1,21 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>org.apache.hoya</groupId>
-  <artifactId>hoya</artifactId>
-  <name>Hoya: HBase on YARN</name>
+  <groupId>org.apache.slider</groupId>
+  <artifactId>slider</artifactId>
+  <name>Slider</name>
   <version>0.14.0</version>
   <packaging>pom</packaging>
 
   <description>
-    Hoya is designed to deploy Apache HBase on YARN; it can also
-    support other applications for which *Providers* have been written.
+    Slider is designed to deploy existing applications onto a YARN cluster without
+    rewriting the application to be YARN-ready.
   </description>
-  <url>https://github.com/hortonworks/hoya/tree/master/</url>
+  <url>https://github.com/hortonworks/slider/tree/master/</url>
   <modules>
-    <module>hoya-core</module>
-    <module>hoya-agent</module>
-    <module>hoya-assembly</module>
-    <module>hoya-funtest</module>
+    <module>slider-core</module>
+    <module>slider-agent</module>
+    <module>slider-assembly</module>
+    <module>slider-funtest</module>
   </modules>
 
   <licenses>
@@ -27,11 +27,11 @@
 
 
   <scm>
-    <url>https://github.com/hortonworks/hoya</url>
-    <connection>scm:git:git://github.com/hortonworks/hoya.git
+    <url>https://github.com/hortonworks/slider</url>
+    <connection>scm:git:git://github.com/hortonworks/slider.git
     </connection>
     <developerConnection>
-      scm:git:git@github.com:hortonworks/hoya.git
+      scm:git:git@github.com:hortonworks/slider.git
     </developerConnection>
   </scm>
   
@@ -76,16 +76,32 @@
       <organizationUrl>http://www.hortonworks.com</organizationUrl>
     </developer>
 
+    <developer>
+      <id>sumitmohanty</id>
+      <name>Sumit Mohanty</name>
+      <timezone>-8</timezone>
+      <organization>Hortonworks</organization>
+      <organizationUrl>http://www.hortonworks.com</organizationUrl>
+    </developer>
+
+    <developer>
+      <id>jmaron</id>
+      <name>Jon Maron</name>
+      <timezone>-5</timezone>
+      <organization>Hortonworks</organization>
+      <organizationUrl>http://www.hortonworks.com</organizationUrl>
+    </developer>
+
   </developers>
 
 
   <distributionManagement>
     <site>
-      <id>hoya.website</id>
-      <name>Hoya Website</name>
-      <url>file:///tmp/hoya/public_html/</url>
+      <id>slider.website</id>
+      <name>Slider Website</name>
+      <url>file:///tmp/slider/public_html/</url>
     </site>
-    <downloadUrl>https://github.com/hortonworks/hoya/releases</downloadUrl>
+    <downloadUrl>https://github.com/hortonworks/slider/releases</downloadUrl>
   </distributionManagement>
   
   <properties>
