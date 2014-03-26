@@ -52,13 +52,18 @@ public class TestConfPersisterReadWrite extends YarnMiniClusterTestBase {
     dfsClient = HadoopFS.get(fsURI, conf);
     coreFileSystem = new CoreFileSystem(dfsClient, conf)
   }
-  
 
+  /**
+   * Create the persister. This also creates the destination directory
+   * @param name name of cluster
+   * @return a conf persister
+   */
   public ConfPersister createPersister(String name) {
     def path = coreFileSystem.buildHoyaClusterDirPath(name);
     ConfPersister persister = new ConfPersister(
         coreFileSystem,
         path)
+    coreFileSystem.getFileSystem().mkdirs(path)
     return persister
   }
 

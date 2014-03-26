@@ -74,24 +74,40 @@ public class ConfPersister {
 
   private final CoreFileSystem coreFS;
   private final FileSystem fileSystem;
-  private final Path dir;
+  private final Path persistDir;
   private final Path internal, resources, app_conf;
   private final Path writelock, readlock;
 
-  public ConfPersister(CoreFileSystem coreFS, Path dir) {
+  public ConfPersister(CoreFileSystem coreFS, Path persistDir) {
     this.coreFS = coreFS;
-    this.dir = dir;
-    internal = new Path(dir, Filenames.INTERNAL);
-    resources = new Path(dir, Filenames.RESOURCES);
-    app_conf = new Path(dir, Filenames.APPCONF);
-    writelock = new Path(dir, Filenames.WRITELOCK);
-    readlock = new Path(dir, Filenames.READLOCK);
+    this.persistDir = persistDir;
+    internal = new Path(persistDir, Filenames.INTERNAL);
+    resources = new Path(persistDir, Filenames.RESOURCES);
+    app_conf = new Path(persistDir, Filenames.APPCONF);
+    writelock = new Path(persistDir, Filenames.WRITELOCK);
+    readlock = new Path(persistDir, Filenames.READLOCK);
     fileSystem = coreFS.getFileSystem();
   }
 
+  /**
+   * Get the target directory
+   * @return the directory for persistence
+   */
+  public Path getPersistDir() {
+    return persistDir;
+  }
+
+  /**
+   * Make the persistent directory
+   * @throws IOException IO failure
+   */
+  private void mkPersistDir() throws IOException {
+    coreFS.getFileSystem().mkdirs(persistDir);
+  }
+  
   @Override
   public String toString() {
-    return "Persister to " + dir;
+    return "Persister to " + persistDir;
   }
 
   /**
@@ -102,6 +118,7 @@ public class ConfPersister {
   @VisibleForTesting
   void acquireWritelock() throws IOException,
                                  LockAcquireFailedException {
+    mkPersistDir();
     long now = System.currentTimeMillis();
     try {
       coreFS.cat(writelock, false, new Date(now).toGMTString());
@@ -154,8 +171,8 @@ public class ConfPersister {
   boolean acquireReadLock() throws FileNotFoundException,
                                   IOException,
                                   LockAcquireFailedException {
-    if (!coreFS.getFileSystem().exists(dir)) {
-      throw new FileNotFoundException(dir.toString());
+    if (!coreFS.getFileSystem().exists(persistDir)) {
+      throw new FileNotFoundException(persistDir.toString());
     }
     long now = System.currentTimeMillis();
     boolean owner;
