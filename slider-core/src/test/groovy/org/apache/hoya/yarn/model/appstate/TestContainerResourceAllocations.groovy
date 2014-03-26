@@ -22,7 +22,7 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.yarn.api.records.Resource
 import org.apache.hoya.api.ClusterDescription
-import org.apache.hoya.api.RoleKeys
+import org.apache.hoya.api.ResourceKeys
 import org.apache.hoya.core.conf.ConfTree
 import org.apache.hoya.core.conf.ConfTreeOperations
 import org.apache.hoya.yarn.appmaster.state.AbstractRMOperation
@@ -48,8 +48,8 @@ class TestContainerResourceAllocations extends BaseMockAppStateTest {
     ConfTree clusterSpec = factory.newConfTree(1, 0, 0)
     ConfTreeOperations cto = new ConfTreeOperations(clusterSpec)
 
-    cto.setRoleOpt(MockRoles.ROLE0, RoleKeys.YARN_MEMORY, 512)
-    cto.setRoleOpt(MockRoles.ROLE0, RoleKeys.YARN_CORES, 2)
+    cto.setRoleOpt(MockRoles.ROLE0, ResourceKeys.YARN_MEMORY, 512)
+    cto.setRoleOpt(MockRoles.ROLE0, ResourceKeys.YARN_CORES, 2)
     appState.updateResourceDefinitions(clusterSpec)
     List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
     assert ops.size() == 1
@@ -64,9 +64,9 @@ class TestContainerResourceAllocations extends BaseMockAppStateTest {
     ConfTree clusterSpec = factory.newConfTree(1, 0, 0)
     ConfTreeOperations cto = new ConfTreeOperations(clusterSpec)
 
-    cto.setRoleOpt(MockRoles.ROLE0, RoleKeys.YARN_MEMORY,
-                           RoleKeys.YARN_RESOURCE_MAX)
-    cto.setRoleOpt(MockRoles.ROLE0, RoleKeys.YARN_CORES, 2)
+    cto.setComponentOpt(MockRoles.ROLE0, ResourceKeys.YARN_MEMORY,
+                           ResourceKeys.YARN_RESOURCE_MAX)
+    cto.setRoleOpt(MockRoles.ROLE0, ResourceKeys.YARN_CORES, 2)
     appState.updateResourceDefinitions(clusterSpec)
     List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
     assert ops.size() == 1
@@ -80,10 +80,10 @@ class TestContainerResourceAllocations extends BaseMockAppStateTest {
   public void testMaxCoreAllocations() throws Throwable {
     ConfTree clusterSpec = factory.newConfTree(1, 0, 0)
     ConfTreeOperations cto = new ConfTreeOperations(clusterSpec)
-    cto.setRoleOpt(MockRoles.ROLE0, RoleKeys.YARN_MEMORY,
+    cto.setRoleOpt(MockRoles.ROLE0, ResourceKeys.YARN_MEMORY,
         512)
-    cto.setRoleOpt(MockRoles.ROLE0, RoleKeys.YARN_CORES,
-        RoleKeys.YARN_RESOURCE_MAX)
+    cto.setComponentOpt(MockRoles.ROLE0, ResourceKeys.YARN_CORES,
+        ResourceKeys.YARN_RESOURCE_MAX)
     appState.updateResourceDefinitions(clusterSpec)
     List<AbstractRMOperation> ops = appState.reviewRequestAndReleaseNodes()
     assert ops.size() == 1
@@ -102,15 +102,15 @@ class TestContainerResourceAllocations extends BaseMockAppStateTest {
     assert ops.size() == 1
     ContainerRequestOperation operation = (ContainerRequestOperation) ops[0]
     Resource requirements = operation.request.capability
-    assert requirements.memory == RoleKeys.DEF_YARN_MEMORY
-    assert requirements.virtualCores == RoleKeys.DEF_YARN_CORES
+    assert requirements.memory == ResourceKeys.DEF_YARN_MEMORY
+    assert requirements.virtualCores == ResourceKeys.DEF_YARN_CORES
   }
 
   @Test
   public void testLimitsInClusterStatus() throws Throwable {
     appState.refreshClusterStatus(null)
     ClusterDescription cd = appState.clusterStatus
-    assert cd.info[RoleKeys.YARN_MEMORY] == Integer.toString(RM_MAX_RAM)
-    assert cd.info[RoleKeys.YARN_CORES] == Integer.toString(RM_MAX_CORES)
+    assert cd.info[ResourceKeys.YARN_MEMORY] == Integer.toString(RM_MAX_RAM)
+    assert cd.info[ResourceKeys.YARN_CORES] == Integer.toString(RM_MAX_CORES)
   }
 }

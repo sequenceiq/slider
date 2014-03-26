@@ -28,6 +28,7 @@ import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.util.Records;
+import org.apache.hoya.api.ResourceKeys;
 import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.tools.CoreFileSystem;
@@ -220,9 +221,9 @@ public abstract class AbstractLauncher extends Configured {
 
     if (map != null) {
       MapOperations options = new MapOperations("", map);
-      resource.setMemory(options.getOptionInt(RoleKeys.YARN_MEMORY,
+      resource.setMemory(options.getOptionInt(ResourceKeys.YARN_MEMORY,
                                               resource.getMemory()));
-      resource.setVirtualCores(options.getOptionInt(RoleKeys.YARN_CORES,
+      resource.setVirtualCores(options.getOptionInt(ResourceKeys.YARN_CORES,
                                                     resource.getVirtualCores()));
     }
   }

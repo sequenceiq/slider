@@ -21,9 +21,8 @@ package org.apache.hoya.yarn.providers.accumulo
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hoya.api.ClusterDescription
-import org.apache.hoya.api.RoleKeys
+import org.apache.hoya.api.ResourceKeys
 import org.apache.hoya.providers.accumulo.AccumuloConfigFileOptions
-import org.apache.hoya.providers.accumulo.AccumuloKeys
 import org.apache.hoya.yarn.client.HoyaClient
 import org.apache.hoya.yarn.cluster.YarnZKMiniClusterTestBase
 import org.apache.hadoop.yarn.conf.YarnConfiguration
@@ -143,14 +142,10 @@ public abstract class AccumuloTestBase extends YarnZKMiniClusterTestBase {
     ]
 
 
-    extraArgs << ARG_ROLEOPT << ROLE_MASTER <<
-      RoleKeys.YARN_MEMORY << YRAM
-    extraArgs << ARG_ROLEOPT << ROLE_TABLET <<
-      RoleKeys.YARN_MEMORY << YRAM
-    extraArgs << ARG_ROLEOPT << ROLE_MONITOR <<
-      RoleKeys.YARN_MEMORY << YRAM
-    extraArgs << ARG_ROLEOPT << ROLE_GARBAGE_COLLECTOR <<
-     RoleKeys.YARN_MEMORY << YRAM
+    extraArgs << ARG_RES_COMP_OPT << ROLE_MASTER << ResourceKeys.YARN_MEMORY << YRAM; 
+    extraArgs << ARG_RES_COMP_OPT << ROLE_TABLET << ResourceKeys.YARN_MEMORY << YRAM
+    extraArgs << ARG_RES_COMP_OPT << ROLE_MONITOR << ResourceKeys.YARN_MEMORY << YRAM
+    extraArgs << ARG_RES_COMP_OPT << ROLE_GARBAGE_COLLECTOR << ResourceKeys.YARN_MEMORY << YRAM
 
     return createHoyaCluster(clustername,
                              roles,

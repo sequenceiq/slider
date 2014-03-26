@@ -22,7 +22,7 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
-import org.apache.hoya.api.RoleKeys
+import org.apache.hoya.api.ResourceKeys
 import org.apache.hoya.avro.RoleHistoryWriter
 import org.apache.hoya.core.conf.ConfTreeOperations
 import org.apache.hoya.exceptions.BadConfigException
@@ -66,8 +66,8 @@ class TestFlexDynamicRoles extends BaseMockAppStateTest
     def instance = factory.newInstanceDefinition(0, 0, 0)
 
     def opts = [
-        (RoleKeys.ROLE_INSTANCES): "1",
-        (RoleKeys.ROLE_PRIORITY): "6",
+        (ResourceKeys.COMPONENT_INSTANCES): "1",
+        (ResourceKeys.COMPONENT_PRIORITY): "6",
     ]
 
     instance.resourceOperations.components["dynamic"] = opts
@@ -92,8 +92,8 @@ class TestFlexDynamicRoles extends BaseMockAppStateTest
   public void testDynamicFlexAddRole() throws Throwable {
     def cd = init()
     def opts = [
-        (RoleKeys.ROLE_INSTANCES): "1",
-        (RoleKeys.ROLE_PRIORITY): "7",
+        (ResourceKeys.COMPONENT_INSTANCES): "1",
+        (ResourceKeys.COMPONENT_PRIORITY): "7",
     ]
 
     cd.components["role4"] = opts
@@ -113,8 +113,8 @@ class TestFlexDynamicRoles extends BaseMockAppStateTest
   public void testDynamicFlexAddRoleConflictingPriority() throws Throwable {
     def cd = init()
     def opts = [
-        (RoleKeys.ROLE_INSTANCES): "1",
-        (RoleKeys.ROLE_PRIORITY): "6",
+        (ResourceKeys.COMPONENT_INSTANCES): "1",
+        (ResourceKeys.COMPONENT_PRIORITY): "6",
     ]
 
     cd.components["role4"] = opts
@@ -146,8 +146,8 @@ class TestFlexDynamicRoles extends BaseMockAppStateTest
     Path history = roleHistory.saveHistory(0x0001)
     RoleHistoryWriter historyWriter = new RoleHistoryWriter();
     def opts = [
-        (RoleKeys.ROLE_INSTANCES): "1",
-        (RoleKeys.ROLE_PRIORITY): "7",
+        (ResourceKeys.COMPONENT_INSTANCES): "1",
+        (ResourceKeys.COMPONENT_PRIORITY): "7",
     ]
 
     cd.components["role4"] = opts
@@ -160,8 +160,8 @@ class TestFlexDynamicRoles extends BaseMockAppStateTest
   public void testHistoryFlexSaveLoad() throws Throwable {
     def cd = init()
     def opts = [
-        (RoleKeys.ROLE_INSTANCES): "1",
-        (RoleKeys.ROLE_PRIORITY): "7",
+        (ResourceKeys.COMPONENT_INSTANCES): "1",
+        (ResourceKeys.COMPONENT_PRIORITY): "7",
     ]
 
     cd.components["role4"] = opts

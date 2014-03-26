@@ -72,9 +72,9 @@ public class TestClusterBuildDestroy extends CommandTestBase
             HOYA_CONFIG.get(KEY_HOYA_TEST_HBASE_TAR),
             ARG_CONFDIR,
             HOYA_CONFIG.get(KEY_HOYA_TEST_HBASE_APPCONF),
-            ARG_ROLE, HBaseKeys.ROLE_MASTER, "1",
-            ARG_ROLE, HBaseKeys.ROLE_WORKER, "1",
-            ARG_ROLEOPT, HBaseKeys.ROLE_MASTER, "app.infoport", "8180",
+            ARG_COMPONENT, HBaseKeys.ROLE_MASTER, "1",
+            ARG_COMPONENT, HBaseKeys.ROLE_WORKER, "1",
+            ARG_OPTION, "site.hbase.master.info.port", "8180",
         ])
 
     assert clusterFS.exists(new Path(clusterFS.homeDirectory, ".hoya/cluster/$CLUSTER"))

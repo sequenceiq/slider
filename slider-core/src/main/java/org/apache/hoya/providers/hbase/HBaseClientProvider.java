@@ -22,9 +22,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.HoyaXmlConfKeys;
-import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.OptionKeys;
-import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.core.conf.ConfTreeOperations;
 import org.apache.hoya.core.conf.MapOperations;
@@ -247,7 +245,7 @@ public class HBaseClientProvider extends AbstractClientProvider implements
   private static Set<String> knownRoleNames = new HashSet<String>();
   static {
     List<ProviderRole> roles = HBaseRoles.getRoles();
-    knownRoleNames.add(HoyaKeys.ROLE_HOYA_AM);
+    knownRoleNames.add(HoyaKeys.COMPONENT_AM);
     for (ProviderRole role : roles) {
       knownRoleNames.add(role.name);
     }

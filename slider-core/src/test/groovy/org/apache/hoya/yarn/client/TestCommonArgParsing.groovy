@@ -25,6 +25,7 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hdfs.DFSConfigKeys
 import org.apache.hoya.HoyaXmlConfKeys
+import org.apache.hoya.api.ResourceKeys
 import org.apache.hoya.api.RoleKeys
 import org.apache.hoya.exceptions.BadCommandArgumentsException
 import org.apache.hoya.exceptions.ErrorStrings
@@ -396,9 +397,9 @@ class TestCommonArgParsing implements HoyaActions, Arguments {
   public void testSingleRoleArg() throws Throwable {
     def createArgs = createAction([
         ACTION_CREATE, 'cluster1',
-        ARG_ROLE,"master","5",
+        ARG_COMPONENT,"master","5",
     ])
-    def tuples = createArgs.roleTuples;
+    def tuples = createArgs.componentTuples;
     assert tuples.size() == 2;
     Map<String, String> roleMap = ArgOps.convertTupleListToMap("roles", tuples);
     assert roleMap["master"] == "5"
@@ -409,7 +410,7 @@ class TestCommonArgParsing implements HoyaActions, Arguments {
     ActionCreateArgs createArgs = createAction([
         ACTION_CREATE, 'cluster1',
     ])
-    def tuples = createArgs.roleTuples;
+    def tuples = createArgs.componentTuples;
     Map<String, String> roleMap = ArgOps.convertTupleListToMap("roles", tuples);
     assert roleMap["master"] == null
   }
@@ -419,14 +420,14 @@ class TestCommonArgParsing implements HoyaActions, Arguments {
   public void testMultiRoleArgBuild() throws Throwable {
     def ca = createClientArgs([
         ACTION_BUILD, 'cluster1',
-        ARG_ROLE, "master", "1",
-        ARG_ROLE, "worker", "2",
+        ARG_COMPONENT, "master", "1",
+        ARG_COMPONENT, "worker", "2",
     ])
     assert ca.action == ACTION_BUILD
     assert ca.coreAction instanceof ActionBuildArgs
     assert ca.buildingActionArgs instanceof ActionBuildArgs
     AbstractClusterBuildingActionArgs args = ca.actionBuildArgs
-    def tuples = args.roleTuples;
+    def tuples = args.componentTuples;
     assert tuples.size() == 4;
     Map<String, String> roleMap = ArgOps.convertTupleListToMap("roles", tuples);
     assert roleMap["master"] == "1"
@@ -437,11 +438,11 @@ class TestCommonArgParsing implements HoyaActions, Arguments {
   public void testFlexArgs() throws Throwable {
     def ca = createClientArgs([
         ACTION_FLEX, 'cluster1',
-        ARG_ROLE, "master", "1",
-        ARG_ROLE, "worker", "2",
+        ARG_COMPONENT, "master", "1",
+        ARG_COMPONENT, "worker", "2",
     ])
     assert ca.coreAction instanceof ActionFlexArgs
-    def tuples = ca.actionFlexArgs.roleTuples;
+    def tuples = ca.actionFlexArgs.componentTuples;
     assert tuples.size() == 4;
     Map<String, String> roleMap = ArgOps.convertTupleListToMap("roles", tuples);
     assert roleMap["master"] == "1"
@@ -452,10 +453,10 @@ class TestCommonArgParsing implements HoyaActions, Arguments {
   public void testDuplicateRole() throws Throwable {
     ActionCreateArgs createArgs = createAction([
         ACTION_CREATE, 'cluster1',
-        ARG_ROLE, "master", "1",
-        ARG_ROLE, "master", "2",
+        ARG_COMPONENT, "master", "1",
+        ARG_COMPONENT, "master", "2",
     ])
-    def tuples = createArgs.roleTuples;
+    def tuples = createArgs.componentTuples;
     assert tuples.size() == 4;
     try {
       Map<String, String> roleMap = ArgOps.convertTupleListToMap(
@@ -471,10 +472,10 @@ class TestCommonArgParsing implements HoyaActions, Arguments {
   public void testOddRoleCount() throws Throwable {
     ActionCreateArgs createArgs = createAction([
         ACTION_CREATE, 'cluster1',
-        ARG_ROLE,"master","1",
-        ARG_ROLE,"master","2",
+        ARG_COMPONENT,"master","1",
+        ARG_COMPONENT,"master","2",
     ])
-    List<String> tuples = createArgs.roleTuples
+    List<String> tuples = createArgs.componentTuples
     tuples += "loggers";
     assert tuples.size() == 5;
     try {
@@ -492,15 +493,15 @@ class TestCommonArgParsing implements HoyaActions, Arguments {
   public ActionCreateArgs createRoleOptClientArgs() {
     ActionCreateArgs createArgs = createAction([
         ACTION_CREATE, 'cluster1',
-        ARG_ROLE, "master", "1",
-        ARG_ROLEOPT, "master", "cheese", "swiss",
-        ARG_ROLEOPT, "master", "env.CHEESE", "cheddar",
-        ARG_ROLEOPT, "master", RoleKeys.YARN_CORES, 3,
+        ARG_COMPONENT, "master", "1",
+        ARG_COMP_OPT, "master", "cheese", "swiss",
+        ARG_COMP_OPT, "master", "env.CHEESE", "cheddar",
+        ARG_COMP_OPT, "master", ResourceKeys.YARN_CORES, 3,
 
-        ARG_ROLE, "worker", "2",
-        ARG_ROLEOPT, "worker", RoleKeys.YARN_CORES, 2,
-        ARG_ROLEOPT, "worker", RoleKeys.JVM_HEAP, "65536",
-        ARG_ROLEOPT, "worker", "env.CHEESE", "stilton",
+        ARG_COMPONENT, "worker", "2",
+        ARG_COMP_OPT, "worker", ResourceKeys.YARN_CORES, 2,
+        ARG_COMP_OPT, "worker", RoleKeys.JVM_HEAP, "65536",
+        ARG_COMP_OPT, "worker", "env.CHEESE", "stilton",
     ])
     return createArgs
   }
@@ -508,15 +509,15 @@ class TestCommonArgParsing implements HoyaActions, Arguments {
   @Test
   public void testRoleOptionParse() throws Throwable {
     ActionCreateArgs createArgs = createRoleOptClientArgs()
-    def tripleMaps = createArgs.roleOptionMap
+    def tripleMaps = createArgs.compOptionMap
     def workerOpts = tripleMaps["worker"];
     assert workerOpts.size() == 3
-    assert workerOpts[RoleKeys.YARN_CORES] == "2"
+    assert workerOpts[ResourceKeys.YARN_CORES] == "2"
     assert workerOpts[RoleKeys.JVM_HEAP] == "65536"
     
     def masterOpts = tripleMaps["master"];
     assert masterOpts.size() == 3
-    assert masterOpts[RoleKeys.YARN_CORES] == "3"
+    assert masterOpts[ResourceKeys.YARN_CORES] == "3"
 
   }
 
@@ -524,7 +525,7 @@ class TestCommonArgParsing implements HoyaActions, Arguments {
   public void testRoleOptionsMerge() throws Throwable {
     ActionCreateArgs createArgs = createRoleOptClientArgs()
 
-    def roleOpts = createArgs.roleOptionMap
+    def roleOpts = createArgs.compOptionMap
 
     def clusterRoleMap = Maps.newHashMap([
         "master":["cheese":"french"],
@@ -544,7 +545,7 @@ class TestCommonArgParsing implements HoyaActions, Arguments {
     ActionCreateArgs createArgs = createRoleOptClientArgs()
 
     
-    def roleOpts = createArgs.roleOptionMap
+    def roleOpts = createArgs.compOptionMap
     Map<String, Map<String, String>> clusterRoleMap = Maps.newHashMap([
         "master": ["cheese": "french"],
         "worker": ["env.CHEESE": "french"]

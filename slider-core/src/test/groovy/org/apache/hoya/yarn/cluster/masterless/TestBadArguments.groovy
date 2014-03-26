@@ -53,7 +53,7 @@ class TestBadArguments extends HBaseMiniClusterTestBase {
                (HBaseKeys.ROLE_WORKER): 0,
            ],
            [
-               Arguments.ARG_ROLEOPT, HoyaKeys.ROLE_HOYA_AM, RoleKeys.JVM_HEAP, "invalid",
+               Arguments.ARG_COMP_OPT, HoyaKeys.COMPONENT_AM, RoleKeys.JVM_HEAP, "invalid",
            ],
            true,
            false,

@@ -18,7 +18,6 @@
 
 package org.apache.hoya.yarn.params;
 
-import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.beust.jcommander.ParametersDelegate;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
@@ -38,24 +37,19 @@ public class ActionFlexArgs extends AbstractActionArgs {
   }
   
   @ParametersDelegate
-  public RoleArgsDelegate roleDelegate = new RoleArgsDelegate();
-
-  @Parameter(names = {ARG_PERSIST},
-             description = "Unused parameter to indicate persistence",
-             arity = 1)
-  public boolean persist = true;
+  public ComponentArgsDelegate componentDelegate = new ComponentArgsDelegate();
 
   /**
-   * Get the role mapping (may be empty, but never null)
-   * @return role mapping
+   * Get the component mapping (may be empty, but never null)
+   * @return mapping
    * @throws BadCommandArgumentsException parse problem
    */
-  public Map<String, String> getRoleMap() throws BadCommandArgumentsException {
-    return roleDelegate.getRoleMap();
+  public Map<String, String> getComponentMap() throws BadCommandArgumentsException {
+    return componentDelegate.getComponentMap();
   }
 
-  public List<String> getRoleTuples() {
-    return roleDelegate.getRoleTuples();
+  public List<String> getComponentTuples() {
+    return componentDelegate.getComponentTuples();
   }
 
 }

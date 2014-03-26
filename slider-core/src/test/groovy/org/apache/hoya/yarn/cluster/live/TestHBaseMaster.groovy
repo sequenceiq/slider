@@ -52,8 +52,8 @@ class TestHBaseMaster extends HBaseMiniClusterTestBase {
     int regionServerCount = 1
     ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount,
       [
-        Arguments.ARG_ROLEOPT, HBaseKeys.ROLE_MASTER, RoleKeys.JVM_HEAP, "1G",
-        Arguments.ARG_DEFINE, HoyaXmlConfKeys.KEY_HOYA_YARN_QUEUE+"=default"
+          Arguments.ARG_COMP_OPT, HBaseKeys.ROLE_MASTER, RoleKeys.JVM_HEAP, "1G",
+          Arguments.ARG_DEFINE, HoyaXmlConfKeys.KEY_HOYA_YARN_QUEUE + "=default"
       ], 
       true,
       true) 
@@ -87,7 +87,7 @@ class TestHBaseMaster extends HBaseMiniClusterTestBase {
     int regionServerCount = 1
     try {
       ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount,
-        [Arguments.ARG_ROLEOPT, HBaseKeys.ROLE_WORKER, RoleKeys.JVM_HEAP, "invalid"], true, true) 
+        [Arguments.ARG_COMP_OPT, HBaseKeys.ROLE_WORKER, RoleKeys.JVM_HEAP, "invalid"], true, true) 
       HoyaClient hoyaClient = (HoyaClient) launcher.service
       addToTeardown(hoyaClient);
 

@@ -48,7 +48,7 @@ class TestFreezeThawLiveRegionService extends HBaseMiniClusterTestBase {
     //use a smaller AM HEAP to include it in the test cycle
     ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount,
           [
-              Arguments.ARG_ROLEOPT, HoyaKeys.ROLE_HOYA_AM, RoleKeys.JVM_HEAP, "96M",
+              Arguments.ARG_COMP_OPT, HoyaKeys.COMPONENT_AM, RoleKeys.JVM_HEAP, "96M",
           ],
                                                   true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service

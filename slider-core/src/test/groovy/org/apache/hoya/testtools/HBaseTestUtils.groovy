@@ -143,7 +143,7 @@ class HBaseTestUtils extends HoyaTestUtils {
 
   public static ClusterStatus basicHBaseClusterStartupSequence(
       HoyaClient hoyaClient, int startupTime, int startupToLiveTime ) {
-    int state = hoyaClient.waitForRoleInstanceLive(HoyaKeys.ROLE_HOYA_AM,
+    int state = hoyaClient.waitForRoleInstanceLive(HoyaKeys.COMPONENT_AM,
                                                    startupTime);
     assert state == ClusterDescription.STATE_LIVE;
     state = hoyaClient.waitForRoleInstanceLive(HBaseKeys.ROLE_MASTER,

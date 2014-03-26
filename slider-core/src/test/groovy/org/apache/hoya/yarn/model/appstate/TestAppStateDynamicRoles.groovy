@@ -21,7 +21,7 @@ package org.apache.hoya.yarn.model.appstate
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.conf.Configuration
-import org.apache.hoya.api.RoleKeys
+import org.apache.hoya.api.ResourceKeys
 import org.apache.hoya.yarn.appmaster.state.AbstractRMOperation
 import org.apache.hoya.yarn.appmaster.state.AppState
 import org.apache.hoya.yarn.appmaster.state.RoleInstance
@@ -63,8 +63,8 @@ class TestAppStateDynamicRoles extends BaseMockAppStateTest
     def instance = factory.newInstanceDefinition(0,0,0)
 
     def opts = [
-        (RoleKeys.ROLE_INSTANCES): "1",
-        (RoleKeys.ROLE_PRIORITY): "4",
+        (ResourceKeys.COMPONENT_INSTANCES): "1",
+        (ResourceKeys.COMPONENT_PRIORITY): "4",
     ]
 
     instance.resourceOperations.components["dynamic"]= opts

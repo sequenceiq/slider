@@ -38,6 +38,7 @@ import org.apache.hoya.api.ClusterDescriptionKeys;
 import org.apache.hoya.api.ClusterDescriptionOperations;
 import org.apache.hoya.api.ClusterNode;
 import org.apache.hoya.api.OptionKeys;
+import org.apache.hoya.api.ResourceKeys;
 import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.api.StatusKeys;
 import org.apache.hoya.api.proto.Messages;
@@ -70,14 +71,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.apache.hoya.api.RoleKeys.DEF_YARN_CORES;
-import static org.apache.hoya.api.RoleKeys.DEF_YARN_MEMORY;
+import static org.apache.hoya.api.ResourceKeys.DEF_YARN_CORES;
+import static org.apache.hoya.api.ResourceKeys.DEF_YARN_MEMORY;
 import static org.apache.hoya.api.RoleKeys.ROLE_FAILED_INSTANCES;
 import static org.apache.hoya.api.RoleKeys.ROLE_FAILED_STARTING_INSTANCES;
 import static org.apache.hoya.api.RoleKeys.ROLE_RELEASING_INSTANCES;
 import static org.apache.hoya.api.RoleKeys.ROLE_REQUESTED_INSTANCES;
-import static org.apache.hoya.api.RoleKeys.YARN_CORES;
-import static org.apache.hoya.api.RoleKeys.YARN_MEMORY;
+import static org.apache.hoya.api.ResourceKeys.YARN_CORES;
+import static org.apache.hoya.api.ResourceKeys.YARN_MEMORY;
 
 
 /**
@@ -484,8 +485,8 @@ public class AppState implements StateAccessForProviders {
       if (!roles.containsKey(name)) {
         // this is a new value
         log.info("Adding new role {}", name);
-        ProviderRole dynamicRole = createDynamicProviderRole(name,
-          resources.getComponent(name));
+        MapOperations resComponent = resources.getComponent(name);
+        ProviderRole dynamicRole = createDynamicProviderRole(name, resComponent);
         buildRole(dynamicRole);
         providerRoles.add(dynamicRole);
       }
@@ -556,15 +557,15 @@ public class AppState implements StateAccessForProviders {
   public ProviderRole createDynamicProviderRole(String name,
                                                 MapOperations component) throws
                                                         BadConfigException {
-    String priOpt = component.getMandatoryOption(RoleKeys.ROLE_PRIORITY);
+    String priOpt = component.getMandatoryOption(ResourceKeys.COMPONENT_PRIORITY);
     int pri = HoyaUtils.parseAndValidate("value of " + name + " " +
-                                         RoleKeys.ROLE_PRIORITY,
+                                         ResourceKeys.COMPONENT_PRIORITY,
                                          priOpt, 0, 1, -1
                                         );
     String placementOpt = component.getOption(
-      RoleKeys.ROLE_PLACEMENT_POLICY, "0");
+      ResourceKeys.COMPONENT_PLACEMENT_POLICY, "0");
     int placement = HoyaUtils.parseAndValidate("value of " + name + " " +
-                                                   RoleKeys.ROLE_PLACEMENT_POLICY,
+                                                   ResourceKeys.COMPONENT_PLACEMENT_POLICY,
                                                placementOpt, 0, 0, -1);
     return new ProviderRole(name, pri, placement);
   }
@@ -646,7 +647,7 @@ public class AppState implements StateAccessForProviders {
       MapOperations comp =
         resources.getComponent(role);
       int desiredInstanceCount =
-        resources.getRoleOptInt(role, RoleKeys.ROLE_INSTANCES, 0);
+        resources.getComponentOptInt(role, ResourceKeys.COMPONENT_INSTANCES, 0);
       if (currentDesired != desiredInstanceCount) {
         log.info("Role {} flexed from {} to {}", role, currentDesired,
                  desiredInstanceCount);
@@ -705,7 +706,7 @@ public class AppState implements StateAccessForProviders {
     container.setNodeId(nodeId);
     container.setNodeHttpAddress(nodeHttpAddress);
     RoleInstance am = new RoleInstance(container);
-    am.role = HoyaKeys.ROLE_HOYA_AM;
+    am.role = HoyaKeys.COMPONENT_AM;
     appMasterNode = am;
     //it is also added to the set of live nodes
     getLiveNodes().put(containerId, am);
@@ -952,6 +953,36 @@ public class AppState implements StateAccessForProviders {
     return request;
   }
 
+
+  /**
+   * Get the value of a YARN requirement (cores, RAM, etc).
+   * These are returned as integers, but there is special handling of the 
+   * string {@link ResourceKeys#YARN_RESOURCE_MAX}, which triggers
+   * the return of the maximum value.
+   * @param name component to get from
+   * @param option option name
+   * @param defVal default value
+   * @param maxVal value to return if the max val is requested
+   * @return parsed value
+   * @throws NumberFormatException if the role could not be parsed.
+   */
+  private int getResourceRequirement(ConfTreeOperations resources,
+                                     String name,
+                                     String option,
+                                     int defVal,
+                                     int maxVal) {
+    
+    String val = resources.getComponentOpt(name, option,
+                                           Integer.toString(defVal));
+    Integer intVal;
+    if (ResourceKeys.YARN_RESOURCE_MAX.equals(val)) {
+      intVal = maxVal;
+    } else {
+      intVal = Integer.decode(val);
+    }
+    return intVal;
+  }
+  
   /**
    * Build up the resource requirements for this role from the
    * cluster specification, including substituing max allowed values
@@ -962,15 +993,17 @@ public class AppState implements StateAccessForProviders {
   public void buildResourceRequirements(RoleStatus role, Resource capability) {
     // Set up resource requirements from role values
     String name = role.getName();
-    int cores = getClusterSpec().getRoleResourceRequirement(name,
-                                               YARN_CORES,
-                                               DEF_YARN_CORES,
-                                               containerMaxCores);
+    ConfTreeOperations resources = getResourcesSnapshot();
+    int cores = getResourceRequirement(resources,
+                                       name,
+                                       YARN_CORES,
+                                       DEF_YARN_CORES,
+                                       containerMaxCores);
     capability.setVirtualCores(cores);
-    int ram = getClusterSpec().getRoleResourceRequirement(name,
-                                             YARN_MEMORY,
-                                             DEF_YARN_MEMORY,
-                                             containerMaxMemory);
+    int ram = getResourceRequirement(resources, name,
+                                     YARN_MEMORY,
+                                     DEF_YARN_MEMORY,
+                                     containerMaxMemory);
     capability.setMemory(ram);
   }
 
@@ -1305,8 +1338,9 @@ public class AppState implements StateAccessForProviders {
       String rolename = role.getName();
       List<String> instances = instanceMap.get(rolename);
       int nodeCount = instances != null ? instances.size(): 0;
-      cd.setDesiredInstanceCount(rolename, role.getDesired());
-      cd.setActualInstanceCount(rolename, nodeCount);
+      cd.setRoleOpt(rolename, ResourceKeys.COMPONENT_INSTANCES,
+                    role.getDesired());
+      cd.setRoleOpt(rolename, RoleKeys.ROLE_ACTUAL_INSTANCES, nodeCount);
       cd.setRoleOpt(rolename, ROLE_REQUESTED_INSTANCES, role.getRequested());
       cd.setRoleOpt(rolename, ROLE_RELEASING_INSTANCES, role.getReleasing());
       cd.setRoleOpt(rolename, ROLE_FAILED_INSTANCES, role.getFailed());
@@ -1324,7 +1358,7 @@ public class AppState implements StateAccessForProviders {
     hoyastats.put(StatusKeys.STATISTICS_CONTAINERS_SURPLUS, surplusContainers.get());
     hoyastats.put(StatusKeys.STATISTICS_CONTAINERS_UNKNOWN_COMPLETED,
                   completionOfUnknownContainerEvent.get());
-    cd.statistics.put(HoyaKeys.ROLE_HOYA_AM, hoyastats);
+    cd.statistics.put(HoyaKeys.COMPONENT_AM, hoyastats);
     
   }
 

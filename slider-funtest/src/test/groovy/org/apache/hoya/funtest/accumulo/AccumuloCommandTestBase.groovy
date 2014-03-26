@@ -26,9 +26,10 @@ import org.junit.Before
 
 import static org.apache.hoya.HoyaXMLConfKeysForTesting.KEY_HOYA_TEST_ACCUMULO_APPCONF
 import static org.apache.hoya.HoyaXMLConfKeysForTesting.KEY_HOYA_TEST_ACCUMULO_TAR
-import static org.apache.hoya.api.RoleKeys.YARN_MEMORY
+import static org.apache.hoya.api.ResourceKeys.YARN_MEMORY
 import static org.apache.hoya.providers.accumulo.AccumuloKeys.*
 import static org.apache.hoya.yarn.Arguments.ARG_PROVIDER
+import static org.apache.hoya.yarn.Arguments.ARG_RES_COMP_OPT
 import static org.apache.hoya.yarn.Arguments.ARG_ROLEOPT
 
 /**
@@ -77,13 +78,13 @@ abstract class AccumuloCommandTestBase extends CommandTestBase {
     argsList << Arguments.ARG_CONFDIR <<
     getRequiredConfOption(HOYA_CONFIG, KEY_HOYA_TEST_ACCUMULO_APPCONF)
 
-    argsList << ARG_ROLEOPT << ROLE_MASTER <<
+    argsList << ARG_RES_COMP_OPT << ROLE_MASTER <<
     YARN_MEMORY << containerMemory
-    argsList << ARG_ROLEOPT << ROLE_TABLET <<
+    argsList << ARG_RES_COMP_OPT << ROLE_TABLET <<
     YARN_MEMORY << containerMemory
-    argsList << ARG_ROLEOPT << ROLE_MONITOR <<
+    argsList << ARG_RES_COMP_OPT << ROLE_MONITOR <<
     YARN_MEMORY << containerMemory
-    argsList << ARG_ROLEOPT << ROLE_GARBAGE_COLLECTOR <<
+    argsList << ARG_RES_COMP_OPT << ROLE_GARBAGE_COLLECTOR <<
     YARN_MEMORY << containerMemory
 
     return createHoyaCluster(clustername,

@@ -62,25 +62,25 @@ class TestCreateMasterlessAM extends HBaseMiniClusterTestBase {
     //get some of its status
     dumpClusterStatus(hoyaClient,"masterless application status")
     List<ClusterNode> clusterNodes = hoyaClient.listClusterNodesInRole(
-        HoyaKeys.ROLE_HOYA_AM)
+        HoyaKeys.COMPONENT_AM)
     assert clusterNodes.size() == 1
 
     ClusterNode masterNode = clusterNodes[0]
     log.info("Master node = ${masterNode}");
 
     List<ClusterNode> nodes
-    String[] uuids = hoyaClient.listNodeUUIDsByRole(HoyaKeys.ROLE_HOYA_AM)
+    String[] uuids = hoyaClient.listNodeUUIDsByRole(HoyaKeys.COMPONENT_AM)
     assert uuids.length == 1;
     nodes = hoyaClient.listClusterNodes(uuids);
     assert nodes.size() == 1;
     describe "AM Node UUID=${uuids[0]}"
 
-    nodes = listNodesInRole(hoyaClient, HoyaKeys.ROLE_HOYA_AM)
+    nodes = listNodesInRole(hoyaClient, HoyaKeys.COMPONENT_AM)
     assert nodes.size() == 1;
     nodes = listNodesInRole(hoyaClient, "")
     assert nodes.size() == 1;
     ClusterNode master = nodes[0]
-    assert master.role == HoyaKeys.ROLE_HOYA_AM
+    assert master.role == HoyaKeys.COMPONENT_AM
 
 
 

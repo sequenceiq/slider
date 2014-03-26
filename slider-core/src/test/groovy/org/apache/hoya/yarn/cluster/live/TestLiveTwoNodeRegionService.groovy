@@ -51,8 +51,8 @@ class TestLiveTwoNodeRegionService extends HBaseMiniClusterTestBase {
     //now launch the cluster
     ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount,
         [
-            Arguments.ARG_ROLEOPT,  HBaseKeys.ROLE_MASTER, RoleKeys.JVM_HEAP , HB_HEAP,
-            Arguments.ARG_ROLEOPT,  HBaseKeys.ROLE_WORKER, RoleKeys.JVM_HEAP , HB_HEAP
+            Arguments.ARG_COMP_OPT,  HBaseKeys.ROLE_MASTER, RoleKeys.JVM_HEAP , HB_HEAP,
+            Arguments.ARG_COMP_OPT,  HBaseKeys.ROLE_WORKER, RoleKeys.JVM_HEAP , HB_HEAP
         ],
         true,
         true)

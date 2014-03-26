@@ -41,7 +41,7 @@ import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.ClusterNode;
 import org.apache.hoya.api.HoyaClusterProtocol;
 import org.apache.hoya.api.OptionKeys;
-import org.apache.hoya.api.RoleKeys;
+import org.apache.hoya.api.ResourceKeys;
 import org.apache.hoya.api.proto.Messages;
 import org.apache.hoya.core.build.InstanceBuilder;
 import org.apache.hoya.core.build.InstanceIO;
@@ -397,7 +397,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     ConfTree internal = new ConfTree();
     ConfTree resources = new ConfTree();
     ConfTree appConf = new ConfTree();
-    ConfTree cmdLineConf = buildInfo.buildConfTree();
+    ConfTree cmdLineAppOptions = buildInfo.buildAppOptionsConfTree();
+    ConfTree cmdLineResourceOptions = buildInfo.buildResourceOptionsConfTree();
 
     AggregateConf instanceConf = new AggregateConf(internal, appConf, resources);
     
@@ -407,42 +408,41 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     ConfTreeOperations appConfOps = instanceConf.getAppConfOperations();
     ConfTreeOperations resOps = instanceConf.getResourceOperations();
     ConfTreeOperations internalOps = instanceConf.getInternalOperations();
-    appConfOps.putAll(cmdLineConf);
+    appConfOps.putAll(cmdLineAppOptions);
 
     // put the role counts into the resources file
-    Map<String, String> argsRoleMap = buildInfo.getRoleMap();
+    Map<String, String> argsRoleMap = buildInfo.getComponentMap();
     for (Map.Entry<String, String> roleEntry : argsRoleMap.entrySet()) {
       String count = roleEntry.getValue();
       String key = roleEntry.getKey();
       log.debug("{} => {}", key, count);
       resOps.getOrAddComponent(key)
-                 .put(RoleKeys.ROLE_INSTANCES, count);
+                 .put(ResourceKeys.COMPONENT_INSTANCES, count);
     }
 
     //all CLI role options
-    Map<String, Map<String, String>> roleOptionMap =
-      buildInfo.getRoleOptionMap();
-    appConfOps.mergeComponents(roleOptionMap);
+    Map<String, Map<String, String>> appOptionMap =
+      buildInfo.getCompOptionMap();
+    appConfOps.mergeComponents(appOptionMap);
 
     //internal picks up hoya. values only
     internalOps.propagateGlobalKeys(appConf, "hoya.");
+    internalOps.propagateGlobalKeys(appConf, "slider.");
     internalOps.propagateGlobalKeys(appConf, "internal.");
-    //and anything specific for the Hoya AM
-    Map<String, String> hoyaOptions =
-      roleOptionMap.get(HoyaKeys.ROLE_HOYA_AM);
-    if (hoyaOptions != null) {
-      internalOps.mergeSingleComponentMap(HoyaKeys.ROLE_HOYA_AM, hoyaOptions);
-    }
-
 
     //copy over role. and yarn. values ONLY to the resources
-    resOps.propagateGlobalKeys(appConf, "component.");
-    resOps.propagateGlobalKeys(appConf, "role.");
-    resOps.propagateGlobalKeys(appConf, "yarn.");
-    resOps.mergeComponentsPrefix(roleOptionMap, "component.", true);
-    resOps.mergeComponentsPrefix(roleOptionMap, "yarn.", true);
-    resOps.mergeComponentsPrefix(roleOptionMap, "role.", true);
+    if (PROPAGATE_RESOURCE_OPTION) {
+      resOps.propagateGlobalKeys(appConf, "component.");
+      resOps.propagateGlobalKeys(appConf, "role.");
+      resOps.propagateGlobalKeys(appConf, "yarn.");
+      resOps.mergeComponentsPrefix(appOptionMap, "component.", true);
+      resOps.mergeComponentsPrefix(appOptionMap, "yarn.", true);
+      resOps.mergeComponentsPrefix(appOptionMap, "role.", true);
+    }
 
+    // resource component args
+    appConfOps.putAll(cmdLineResourceOptions);
+    resOps.mergeComponents(buildInfo.getResourceCompOptionMap());
 
     builder.init(appconfdir, provider.getName(), instanceConf);
     builder.propagateFilename();
@@ -606,15 +606,15 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     if (log.isDebugEnabled()) {
       log.debug(instanceDefinition.toString());
     }
-    MapOperations hoyaAMComponent =
-      internalOperations.getOrAddComponent(HoyaKeys.ROLE_HOYA_AM);
+    MapOperations hoyaAMResourceComponent =
+      resourceOperations.getOrAddComponent(HoyaKeys.COMPONENT_AM);
     AppMasterLauncher amLauncher = new AppMasterLauncher(clustername,
                                                          HoyaKeys.APP_TYPE,
                                                          config,
                                                          hoyaFileSystem,
                                                          yarnClient,
                                                          clusterSecure,
-                                                         hoyaAMComponent);
+                                                         hoyaAMResourceComponent);
 
     ApplicationId appId = amLauncher.getApplicationId();
     // set the application name;
@@ -748,7 +748,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     // build the environment
     amLauncher.putEnv(
-      HoyaUtils.buildEnvMap(hoyaAMComponent));
+      HoyaUtils.buildEnvMap(hoyaAMResourceComponent));
     String classpath = HoyaUtils.buildClasspath(relativeHoyaConfDir,
                                                 libdir,
                                                 getConfig(),
@@ -779,7 +779,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     CommandLineBuilder commandLine = new CommandLineBuilder();
     commandLine.addJavaBinary();
     // insert any JVM options);
-    hoyaAM.addJVMOptions(hoyaAMComponent, commandLine);
+    hoyaAM.addJVMOptions(hoyaAMResourceComponent, commandLine);
     // enable asserts if the text option is set
     if (debugAM) {
       commandLine.add(HoyaKeys.JVM_ENABLE_ASSERTIONS);
@@ -833,7 +833,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     amLauncher.addCommandLine(commandLine);
 
     // the Hoya AM gets to configure the AM requirements, not the custom provider
-    hoyaAM.prepareAMResourceRequirements(hoyaAMComponent, amLauncher.getResource());
+    hoyaAM.prepareAMResourceRequirements(hoyaAMResourceComponent, amLauncher.getResource());
 
 
     // Set the priority for the application master
@@ -1181,7 +1181,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     HoyaUtils.validateClusterName(name);
     log.debug("actionFlex({})", name);
     Map<String, Integer> roleInstances = new HashMap<String, Integer>();
-    Map<String, String> roleMap = args.getRoleMap();
+    Map<String, String> roleMap = args.getComponentMap();
     for (Map.Entry<String, String> roleEntry : roleMap.entrySet()) {
       String key = roleEntry.getKey();
       String val = roleEntry.getValue();
@@ -1600,13 +1600,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       clustername,
       clusterDirectory);
 
-//    HoyaUtils.addBuildInfo(clusterSpec, "flex");
-/*
-    clusterSpec.setInfoTime(StatusKeys.INFO_FLEX_TIME_HUMAN,
-                            StatusKeys.INFO_FLEX_TIME_MILLIS,
-                            System.currentTimeMillis());
-*/
-
     ConfTreeOperations resources =
       instanceDefinition.getResourceOperations();
     for (Map.Entry<String, Integer> entry : roleInstances.entrySet()) {
@@ -1616,7 +1609,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
         throw new BadCommandArgumentsException("Requested number of " + role
             + " instances is out of range");
       }
-      resources.getOrAddComponent(role).put(RoleKeys.ROLE_INSTANCES,
+      resources.getOrAddComponent(role).put(ResourceKeys.COMPONENT_INSTANCES,
                                             Integer.toString(count));
 
 
@@ -1638,8 +1631,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     }
 
-    // now see if it is actually running and bail out if not
-    verifyManagerSet();
+    // now see if it is actually running and tell it about the update if it is
     ApplicationReport instance = findInstance(clustername);
     if (instance != null) {
       log.info("Flexing running cluster");

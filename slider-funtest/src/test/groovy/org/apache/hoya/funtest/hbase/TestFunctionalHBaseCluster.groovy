@@ -102,11 +102,11 @@ public class TestFunctionalHBaseCluster extends HBaseCommandTestBase
             ARG_OPTION,
               HBaseConfigFileOptions.KEY_HBASE_MASTER_INFO_PORT,
             Integer.toString(masterPortAssignment),
-            ARG_ROLEOPT, ROLE_MASTER, RoleKeys.JVM_HEAP, HBASE_HEAP,
+            ARG_COMP_OPT, ROLE_MASTER, RoleKeys.JVM_HEAP, HBASE_HEAP,
             ARG_OPTION,
             HBaseConfigFileOptions.KEY_REGIONSERVER_PORT,
               Integer.toString(workerPortAssignment),
-            ARG_ROLEOPT, ROLE_WORKER, RoleKeys.JVM_HEAP, HBASE_HEAP,
+            ARG_COMP_OPT, ROLE_WORKER, RoleKeys.JVM_HEAP, HBASE_HEAP,
         ],
         [:]
     )

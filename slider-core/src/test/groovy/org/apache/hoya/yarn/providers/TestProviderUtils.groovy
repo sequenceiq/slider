@@ -71,7 +71,6 @@ class TestProviderUtils extends HoyaTestBase {
   public void testAdditionalArgs() {
     final String extraArgs = "--address 0.0.0.0";
     Map<String,String> roleOptions = [ (RoleKeys.ROLE_NAME):"foo", 
-      (RoleKeys.ROLE_INSTANCES):"1", 
       (RoleKeys.ROLE_ADDITIONAL_ARGS):(extraArgs)
     ];
     
@@ -83,7 +82,7 @@ class TestProviderUtils extends HoyaTestBase {
   @Test
   public void testUndefinedAdditionalArgs() {
     Map<String,String> roleOptions = [ (RoleKeys.ROLE_NAME):"foo", 
-      (RoleKeys.ROLE_INSTANCES):"1",
+      ("newkey"):"1",
     ];
     
     String actualExtraArgs = ProviderUtils.getAdditionalArgs(roleOptions);

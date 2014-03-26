@@ -52,7 +52,7 @@ class TestInvalidMonitorAddress extends AccumuloTestBase {
     try {
       ServiceLauncher launcher = createAccCluster(clustername, roles,
            [
-               Arguments.ARG_ROLEOPT, AccumuloKeys.ROLE_MONITOR, RoleKeys.ROLE_ADDITIONAL_ARGS, "--address foobar",
+               Arguments.ARG_COMP_OPT, AccumuloKeys.ROLE_MONITOR, RoleKeys.ROLE_ADDITIONAL_ARGS, "--address foobar",
            ],
            true,
            true)

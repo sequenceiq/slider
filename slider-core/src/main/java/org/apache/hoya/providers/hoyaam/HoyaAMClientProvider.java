@@ -26,6 +26,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.OptionKeys;
+import org.apache.hoya.api.ResourceKeys;
 import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.core.conf.MapOperations;
@@ -90,7 +91,7 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
    * Initialize role list
    */
   static {
-    ROLES.add(new ProviderRole(ROLE_HOYA_AM, KEY_AM,
+    ROLES.add(new ProviderRole(COMPONENT_AM, KEY_AM,
                                PlacementPolicy.EXCLUDE_FROM_FLEXING));
   }
 
@@ -129,7 +130,7 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
                                                                        HoyaException,
                                                                        FileNotFoundException {
     Map<String, String> rolemap = new HashMap<String, String>();
-    if (rolename.equals(ROLE_HOYA_AM)) {
+    if (rolename.equals(COMPONENT_AM)) {
       Configuration conf = ConfigHelper.loadMandatoryResource(
         AM_ROLE_CONFIG_RESOURCE);
       HoyaUtils.mergeEntries(rolemap, conf);
@@ -190,7 +191,7 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
     //also pick up all env variables from a map
     launcher.copyEnvVars(
       instanceDescription.getInternalOperations().getOrAddComponent(
-        HoyaKeys.ROLE_HOYA_AM));
+        HoyaKeys.COMPONENT_AM));
   }
 
   /**
@@ -200,10 +201,10 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
   public void prepareAMResourceRequirements(MapOperations hoyaAM,
                                             Resource capability) {
     capability.setMemory(hoyaAM.getOptionInt(
-      RoleKeys.YARN_MEMORY,
+      ResourceKeys.YARN_MEMORY,
       capability.getMemory()));
     capability.setVirtualCores(
-      hoyaAM.getOptionInt(RoleKeys.YARN_CORES, capability.getVirtualCores()));
+      hoyaAM.getOptionInt(ResourceKeys.YARN_CORES, capability.getVirtualCores()));
   }
 
   /**
@@ -213,7 +214,8 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
    */
   public void addJVMOptions(ClusterDescription clusterSpec,
                             CommandLineBuilder cmdLine) {
-    MapOperations ops = new MapOperations(ROLE_HOYA_AM, clusterSpec.getOrAddRole(ROLE_HOYA_AM)
+    MapOperations ops = new MapOperations(
+      COMPONENT_AM, clusterSpec.getOrAddRole(COMPONENT_AM)
     );
     addJVMOptions(ops, cmdLine);
   }
