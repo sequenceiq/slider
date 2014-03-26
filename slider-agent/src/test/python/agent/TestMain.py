@@ -265,6 +265,46 @@ class TestMain(unittest.TestCase):
     try_to_connect_mock.assert_called_once_with(ANY, -1, ANY)
     self.assertTrue(start_mock.called)
 
+  class AgentOptions:
+      def __init__(self, label, host, port, verbose):
+          self.label = label
+          self.host = host
+          self.port = port
+          self.verbose = verbose
+
+  @patch.object(main, "setup_logging")
+  @patch.object(main, "bind_signal_handlers")
+  @patch.object(main, "stop_agent")
+  @patch.object(main, "update_config_from_file")
+  @patch.object(main, "perform_prestart_checks")
+  @patch.object(main, "write_pid")
+  @patch.object(main, "update_log_level")
+  @patch.object(NetUtil.NetUtil, "try_to_connect")
+  @patch.object(AgentConfig, 'set')
+  @patch.object(Controller, "__init__")
+  @patch.object(Controller, "start")
+  @patch.object(Controller, "join")
+  @patch("optparse.OptionParser.parse_args")
+  def test_main(self, parse_args_mock, join_mock, start_mock,
+                Controller_init_mock, AgentConfig_set_mock,
+                try_to_connect_mock,
+                update_log_level_mock, write_pid_mock,
+                perform_prestart_checks_mock,
+                update_config_from_file_mock, stop_mock,
+                bind_signal_handlers_mock, setup_logging_mock):
+      Controller_init_mock.return_value = None
+      parse_args_mock.return_value = (
+          TestMain.AgentOptions("agent", "host1", "8080", True), [])
+      tmpdir = tempfile.gettempdir()
+
+      #testing call without command-line arguments
+      os.environ["AGENT_WORK_ROOT"] = os.path.join(tmpdir, "work")
+      os.environ["AGENT_LOG_ROOT"] = os.path.join(tmpdir, "log")
+      main.main()
+      self.assertTrue(AgentConfig_set_mock.call_count == 2)
+      AgentConfig_set_mock.assert_any_call("server", "hostname", "host1")
+      AgentConfig_set_mock.assert_any_call("server", "port", "8080")
+
 
 if __name__ == "__main__":
   unittest.main()

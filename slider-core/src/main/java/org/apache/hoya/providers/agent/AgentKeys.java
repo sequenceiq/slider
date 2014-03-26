@@ -79,41 +79,15 @@ public interface AgentKeys {
 
   String COMMAND_JSON_FILENAME = "command.json";
 
-  //hbase-site and hdfs-site parameters
-  String DFS_NAMENODE_HTTPS_ADDRESS = "site.dfs.namenode.https-address";
-  String DFS_NAMENODE_HTTP_ADDRESS = "site.dfs.namenode.http-address";
-  String HBASE_ROOTDIR = "site.hbase.rootdir";
-  String HBASE_STAGINGDIR = "site.hbase.stagingdir";
-  String HBASE_ZNODE_PARENT = "site.zookeeper.znode.parent";
-  String HBASE_RS_INFO_PORT = "site.hbase.regionserver.info.port";
-  String HBASE_MASTER_INFO_PORT = "site.hbase.master.info.port";
-  // Keys to replace json
-  String COMMAND_KEY = "COMMAND";
-  String CLUSTER_NAME_KEY = "CLUSTER_NAME";
-  String HOST_NAME_KEY = "HOST_NAME";
-  String COMMAND_ID_KEY = "COMMAND_ID";
-  String SERVICE_NAME_KEY = "SERVICE_NAME";
-  String ROLE_NAME_KEY = "ROLE_NAME";
-  String HABSE_HOME_KEY = "HBASE_HOME";
-  String PID_DIR_KEY = "PID_DIR";
-  String LOG_DIR_KEY = "LOG_DIR";
-  String REGION_SERVER_HEAP_SIZE_KEY = "REGION_SERVER_HEAP_SIZE";
-  String MASTER_HEAP_SIZE_KEY = "MASTER_HEAP_SIZE";
-  String GROUP_NAME_KEY = "GROUP_NAME";
-  String USER_NAME_KEY = "USER_NAME";
-  String NAMENODE_HTTPS_ADDRESS_KEY = "NAMENODE_HTTPS_ADDRESS";
-  String NAMENODE_HTTP_ADDRESS_KEY = "NAMENODE_HTTP_ADDRESS";
-  String DEFAULT_FS_KEY = "DEFAULT_FS";
-  String HBASE_ROOT_DIR_KEY = "HBASE_ROOT_DIR";
-  String HBASE_STAGING_DIR_KEY = "HBASE_STAGING_DIR";
-  String HBASE_SUPERUSER_KEY = "HBASE_SUPERUSER";
-  String ZK_CLIENT_PORT_KEY = "ZK_CLIENT_PORT";
-  String ZK_HOSTS_KEY = "ZK_HOSTS";
-  String ZK_NODE_PARENT_KEY = "ZK_NODE_PARENT";
-  String REGSION_SERVER_INFO_PORT_KEY = "REGION_SERVER_INFO_PORT";
-  String MASTER_INFO_PORT = "MASTER_INFO_PORT";
+  String AGENT_CONFIG_FILENAME = "agent.ini";
+
   String ARG_COMMAND = "--command";
   String ARG_LOG = "--log";
+
+  String ARG_LABEL = "--label";
+  String ARG_HOST = "--host";
+  String ARG_PORT = "--port";
+  String AGENT_MAIN_SCRIPT = "./infra/slider-agent/agent/main.py";
 }
 
 

@@ -16,30 +16,40 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-Slider Agent
-
 """
 
-from __future__ import with_statement
+import sys
+from resource_management import *
+from storm import storm
+from service import service
 
-from resource_management.core import shell
-from resource_management.core.providers import Provider
-from resource_management.core.logger import Logger
+class Nimbus(Script):
+  def install(self, env):
+    self.install_packages(env)
 
-TAR_CMD = "tar -xvf %s -C %s"
-ZIP_CMD = "unzip %s -d %s"
+  def configure(self, env):
+    import params
+    env.set_params(params)
 
-class TarballProvider(Provider):
-  def action_install(self):
-    package_name = self.resource.package_name
-    location = self.resource.location
-    if not self._check_existence(package_name, location):
-      cmd = TAR_CMD % (package_name, location)
-      if package_name.lower().endswith("zip"):
-        cmd = ZIP_CMD % (package_name, location)
-      Logger.info("Installing tarball %s at %s (%s)" % (package_name, location, cmd))
-      shell.checked_call(cmd)
+    storm()
 
-  def _check_existence(self, name, location):
-    return False
+  def start(self, env):
+    import params
+    env.set_params(params)
+    self.configure(env)
 
+    service("nimbus", action="start")
+
+  def stop(self, env):
+    import params
+    env.set_params(params)
+
+    service("nimbus", action="stop")
+
+  def status(self, env):
+    import status_params
+    env.set_params(status_params)
+    check_process_status(status_params.pid_nimbus)
+
+if __name__ == "__main__":
+  Nimbus().execute()

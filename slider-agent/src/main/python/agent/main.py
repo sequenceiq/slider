@@ -117,8 +117,8 @@ def update_config_from_file(agentConfig):
 
 def perform_prestart_checks(config):
   if os.path.isfile(ProcessHelper.pidfile):
-    print("%s already exists, exiting" % ProcessHelper.pidfile)
-    sys.exit(1)
+    print("%s already exists, deleting" % ProcessHelper.pidfile)
+    os.remove(ProcessHelper.pidfile)
   # check if the key folders exist
   elif not os.path.isdir(config.getResolvedPath(AgentConfig.APP_PACKAGE_DIR)):
     msg = "Package dir %s does not exists, can't continue" \
@@ -175,6 +175,8 @@ def main():
   parser = OptionParser()
   parser.add_option("-v", "--verbose", dest="verbose", help="verbose log output", default=False)
   parser.add_option("-l", "--label", dest="label", help="label of the agent", default=None)
+  parser.add_option("--host", dest="host", help="AppMaster host", default=None)
+  parser.add_option("--port", dest="port", help="AppMaster port", default=None)
   (options, args) = parser.parse_args()
 
   if not 'AGENT_WORK_ROOT' in os.environ:
@@ -191,6 +193,14 @@ def main():
   # Check for configuration file.
   agentConfig = AgentConfig(options.root_folder, options.log_folder, options.label)
   update_config_from_file(agentConfig)
+
+  # update configurations if needed
+  if options.host:
+      agentConfig.set(AgentConfig.SERVER_SECTION, "hostname", options.host)
+
+  if options.port:
+      agentConfig.set(AgentConfig.SERVER_SECTION, "port", options.port)
+
   logFile = os.path.join(agentConfig.getResolvedPath(AgentConfig.LOG_DIR), logFileName)
   perform_prestart_checks(agentConfig)
   ensure_folder_layout(agentConfig)
@@ -198,6 +208,9 @@ def main():
   setup_logging(options.verbose, logFile)
   update_log_level(agentConfig, logFile)
   write_pid()
+
+  logger.info("Using AGENT_WORK_ROOT = " + options.root_folder)
+  logger.info("Using AGENT_LOG_ROOT = " + options.log_folder)
 
   server_url = SERVER_STATUS_URL.format(
     agentConfig.get(AgentConfig.SERVER_SECTION, 'hostname'),

@@ -80,6 +80,7 @@ public interface HoyaKeys extends HoyaXmlConfKeys {
    *  {@value}
    */
   String PROPAGATED_CONF_DIR_NAME = "propagatedconf";
+  String INFRA_DIR_NAME = "infra";
   String GENERATED_CONF_DIR_NAME = "generated";
   String SNAPSHOT_CONF_DIR_NAME = "snapshot";
   String DATA_DIR_NAME = "database";
