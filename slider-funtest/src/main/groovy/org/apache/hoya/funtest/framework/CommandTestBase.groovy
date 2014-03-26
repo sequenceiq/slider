@@ -381,7 +381,7 @@ abstract class CommandTestBase extends HoyaTestUtils {
     List<String> roleList = [];
     roles.each { String role, Integer val ->
       log.info("Role $role := $val")
-      roleList << ARG_ROLE << role << Integer.toString(val)
+      roleList << ARG_COMPONENT << role << Integer.toString(val)
     }
 
     List<String> argsList = [action, clustername]

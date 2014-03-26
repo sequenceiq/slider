@@ -22,7 +22,7 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
-import org.apache.hoya.api.RoleKeys
+import org.apache.hoya.api.ResourceKeys
 import org.apache.hoya.exceptions.BadConfigException
 import org.apache.hoya.providers.agent.AgentKeys
 import org.apache.hoya.yarn.Arguments
@@ -30,7 +30,7 @@ import org.apache.hoya.yarn.client.HoyaClient
 import org.junit.Test
 
 import static org.apache.hoya.providers.agent.AgentKeys.*
-import static org.apache.hoya.yarn.Arguments.ARG_OPTION
+import static org.apache.hoya.yarn.Arguments.*
 
 @CompileStatic
 @Slf4j
@@ -61,7 +61,7 @@ class TestBuildBasicAgent extends AgentTestBase {
                         ARG_OPTION, PACKAGE_PATH, ".",
                         ARG_OPTION, SCRIPT_PATH, "agent/scripts/agent.py",
                         Arguments.ARG_ROLEOPT, AgentKeys.ROLE_NODE, SCRIPT_PATH, "agent/scripts/agent.py",
-                        Arguments.ARG_ROLEOPT, AgentKeys.ROLE_NODE, RoleKeys.ROLE_PRIORITY, "1",
+                        ARG_RES_COMP_OPT, AgentKeys.ROLE_NODE, ResourceKeys.COMPONENT_PRIORITY, "1",
                 ],
                 true, false,
                 false)
@@ -79,14 +79,14 @@ class TestBuildBasicAgent extends AgentTestBase {
                         ARG_OPTION, PACKAGE_PATH, ".",
                         Arguments.ARG_ROLEOPT, master, SCRIPT_PATH, "agent/scripts/agent.py",
                         Arguments.ARG_ROLEOPT, rs, SCRIPT_PATH, "agent/scripts/agent.py",
-                        Arguments.ARG_ROLEOPT, master, RoleKeys.ROLE_PRIORITY, "2",
-                        Arguments.ARG_ROLEOPT, rs, RoleKeys.ROLE_PRIORITY, "3",
+                        ARG_RES_COMP_OPT, master, ResourceKeys.COMPONENT_PRIORITY, "2",
+                        ARG_RES_COMP_OPT, rs, ResourceKeys.COMPONENT_PRIORITY, "3",
                         Arguments.ARG_ROLEOPT, master, AgentKeys.SERVICE_NAME, "HBASE",
                         Arguments.ARG_ROLEOPT, rs, AgentKeys.SERVICE_NAME, "HBASE",
                         Arguments.ARG_ROLEOPT, master, AgentKeys.APP_HOME, "/share/hbase/hbase-0.96.1-hadoop2",
                         Arguments.ARG_ROLEOPT, rs, AgentKeys.APP_HOME, "/share/hbase/hbase-0.96.1-hadoop2",
                         Arguments.ARG_ROLEOPT, AgentKeys.ROLE_NODE, SCRIPT_PATH, "agent/scripts/agent.py",
-                        Arguments.ARG_ROLEOPT, AgentKeys.ROLE_NODE, RoleKeys.ROLE_PRIORITY, "1",
+                        ARG_RES_COMP_OPT, AgentKeys.ROLE_NODE, ResourceKeys.COMPONENT_PRIORITY, "1",
                 ],
                 true, false,
                 false)
@@ -94,13 +94,15 @@ class TestBuildBasicAgent extends AgentTestBase {
         dumpClusterDescription("$clustername:", instanceD)
       def resource = instanceD.getResourceOperations()
 
-      resource.getMandatoryComponent(AgentKeys.ROLE_NODE).getMandatoryOption(
 
-          RoleKeys.ROLE_PRIORITY)
-      assert "2" == resource.getMandatoryComponent(master).getMandatoryOption(
-          RoleKeys.ROLE_PRIORITY)
-      assert "5" == resource.getMandatoryComponent(
-          rs).getMandatoryOption(RoleKeys.ROLE_INSTANCES)
+    def agentComponent = resource.getMandatoryComponent(AgentKeys.ROLE_NODE)
+    agentComponent.getMandatoryOption(ResourceKeys.COMPONENT_PRIORITY)
+
+    def masterC = resource.getMandatoryComponent(master)
+    assert "2" == masterC.getMandatoryOption(ResourceKeys.COMPONENT_PRIORITY)
+
+    def rscomponent = resource.getMandatoryComponent(rs)
+    assert "5" == rscomponent.getMandatoryOption(ResourceKeys.COMPONENT_INSTANCES)
 
       // now create an instance with no role priority for the rs
         try {
@@ -111,7 +113,7 @@ class TestBuildBasicAgent extends AgentTestBase {
                             (rs): 5
                     ],
                     [
-                            Arguments.ARG_ROLEOPT, master, RoleKeys.ROLE_PRIORITY, "2",
+                        ARG_RES_COMP_OPT, master, ResourceKeys.COMPONENT_PRIORITY, "2",
                     ],
                     true, false,
                     false)
@@ -126,8 +128,8 @@ class TestBuildBasicAgent extends AgentTestBase {
                             (rs): 5
                     ],
                     [
-                            Arguments.ARG_ROLEOPT, master, RoleKeys.ROLE_PRIORITY, "2",
-                            Arguments.ARG_ROLEOPT, rs, RoleKeys.ROLE_PRIORITY, "2"],
+                        ARG_RES_COMP_OPT, master, ResourceKeys.COMPONENT_PRIORITY, "2",
+                        ARG_RES_COMP_OPT, rs, ResourceKeys.COMPONENT_PRIORITY, "2"],
 
                     true, false,
                     false)

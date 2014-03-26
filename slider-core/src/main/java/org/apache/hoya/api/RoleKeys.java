@@ -28,11 +28,6 @@ public interface RoleKeys {
    * The name of a role: {@value}
    */
   String ROLE_NAME = "role.name";
-  
-  /**
-   * Number of instances of a role needed: {@value} 
-   */
-  String ROLE_INSTANCES = "role.instances";
 
   /**
    * Status report: number actually granted : {@value} 
@@ -65,43 +60,8 @@ public interface RoleKeys {
   String ROLE_ADDITIONAL_ARGS = "role.additional.args";
 
   /**
-   *  Amount of memory to ask YARN for in MB.
-   *  <i>Important:</i> this may be a hard limit on the
-   *  amount of RAM that the service can use
-   *  {@value}
-   */
-  String YARN_MEMORY = "yarn.memory";
-
-  /** {@value} */
-  int DEF_YARN_MEMORY = 256;
-
-  
-  /**
-   * Number of cores/virtual cores to ask YARN for
-   *  {@value}
-   */
-  String YARN_CORES = "yarn.vcores";
-
-  /** {@value} */
-  int DEF_YARN_CORES = 1;
-
-  /**
-   * Constant to indicate that the requirements of a YARN resource limit
-   * (cores, memory, ...) should be set to the maximum allowed by
-   * the queue into which the YARN container requests are placed.
-   */
-  String YARN_RESOURCE_MAX = "max";
-  /**
-   * For applications that support a web port that can be externally configured,
-   * this is the value
-   *  {@value}
-   */
-  @Deprecated
-  String APP_INFOPORT = "app.infoport";
-
-  /**
    *  JVM heap size for Java applications in MB.  Only relevant for Java applications.
-   *  This MUST be less than or equal to the {@link #YARN_MEMORY} option
+   *  This MUST be less than or equal to the {@link ResourceKeys#YARN_MEMORY} option
    *  {@value}
    */
   String JVM_HEAP = "jvm.heapsize";
@@ -138,15 +98,4 @@ public interface RoleKeys {
    * The default heap of the AM:  {@value}
    */
   String DEFAULT_AM_HEAP = "512M";
-  /**
-   * Mandatory property for all roles
-   * 1. this must be defined.
-   * 2. this must be >= 1
-   * 3. this must not match any other role priority in the cluster.
-   */
-  String ROLE_PRIORITY = "role.priority";
-  /**
-   * placement policy
-   */
-  String ROLE_PLACEMENT_POLICY = "role.placement.policy";
 }

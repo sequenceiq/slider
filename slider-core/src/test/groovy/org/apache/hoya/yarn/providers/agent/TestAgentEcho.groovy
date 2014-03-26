@@ -22,10 +22,8 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
-import org.apache.hoya.providers.agent.AgentKeys
-import org.apache.hoya.yarn.Arguments
+import org.apache.hoya.api.ResourceKeys
 
-import static org.apache.hoya.api.RoleKeys.*
 import static org.apache.hoya.providers.agent.AgentKeys.*
 import static org.apache.hoya.yarn.Arguments.*
 import org.apache.hoya.yarn.client.HoyaClient
@@ -71,11 +69,11 @@ class TestAgentEcho extends AgentTestBase {
             ARG_OPTION, CONTROLLER_URL, "http://localhost",
             ARG_OPTION, PACKAGE_PATH, hoya_core.absolutePath,
 
-            ARG_ROLEOPT, role, PACKAGE_PATH, hoya_core.absolutePath,
-            ARG_ROLEOPT, role, ROLE_PRIORITY, "1",
-            ARG_ROLEOPT, role, SCRIPT_PATH, echo_py,
-            ARG_ROLEOPT, role, SERVICE_NAME, "Agent",
-            ARG_ROLEOPT, role, APP_HOME, "agent/home",
+            ARG_COMP_OPT, role, PACKAGE_PATH, hoya_core.absolutePath,
+            ARG_RES_COMP_OPT, role, ResourceKeys.COMPONENT_PRIORITY, "1",
+            ARG_COMP_OPT, role, SCRIPT_PATH, echo_py,
+            ARG_COMP_OPT, role, SERVICE_NAME, "Agent",
+            ARG_COMP_OPT, role, APP_HOME, "agent/home",
         ],
         true, true,
         true)

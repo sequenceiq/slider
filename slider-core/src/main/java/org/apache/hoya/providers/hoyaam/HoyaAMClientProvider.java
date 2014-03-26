@@ -26,6 +26,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.OptionKeys;
+import org.apache.hoya.api.ResourceKeys;
 import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.core.conf.MapOperations;
@@ -200,10 +201,10 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
   public void prepareAMResourceRequirements(MapOperations hoyaAM,
                                             Resource capability) {
     capability.setMemory(hoyaAM.getOptionInt(
-      RoleKeys.YARN_MEMORY,
+      ResourceKeys.YARN_MEMORY,
       capability.getMemory()));
     capability.setVirtualCores(
-      hoyaAM.getOptionInt(RoleKeys.YARN_CORES, capability.getVirtualCores()));
+      hoyaAM.getOptionInt(ResourceKeys.YARN_CORES, capability.getVirtualCores()));
   }
 
   /**

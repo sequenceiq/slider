@@ -25,7 +25,7 @@ import org.apache.hadoop.hbase.ClusterStatus
 import org.apache.hadoop.hbase.client.HConnection
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.api.ClusterNode
-import org.apache.hoya.api.RoleKeys
+import org.apache.hoya.api.ResourceKeys
 import org.apache.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hoya.testtools.HBaseTestUtils
@@ -211,8 +211,8 @@ public abstract class HBaseMiniClusterTestBase extends YarnZKMiniClusterTestBase
         (ROLE_MASTER): masters,
         (ROLE_WORKER): workers,
     ];
-    extraArgs << ARG_ROLEOPT << ROLE_MASTER << RoleKeys.YARN_MEMORY << YRAM
-    extraArgs << ARG_ROLEOPT << ROLE_WORKER << RoleKeys.YARN_MEMORY << YRAM
+    extraArgs << ARG_RES_COMP_OPT << ROLE_MASTER << ResourceKeys.YARN_MEMORY << YRAM
+    extraArgs << ARG_RES_COMP_OPT << ROLE_WORKER << ResourceKeys.YARN_MEMORY << YRAM
     return createHoyaCluster(clustername,
         roles,
         extraArgs,
@@ -279,23 +279,17 @@ public abstract class HBaseMiniClusterTestBase extends YarnZKMiniClusterTestBase
     //now launch the cluster
     HoyaClient hoyaClient = null;
     ServiceLauncher<HoyaClient> launcher = createHoyaCluster(clustername,
-                         [
-                             (ROLE_MASTER): masters,
-                             (ROLE_WORKER): workers,
-                         ],
-                         [
-                             ARG_ROLEOPT ,
-                             ROLE_MASTER ,
-                             RoleKeys.YARN_MEMORY ,
-                             YRAM,
-                             ARG_ROLEOPT ,
-                             ROLE_WORKER ,
-                             RoleKeys.YARN_MEMORY ,
-                             YRAM
-                         ],
-                         true,
-                         true,
-                         [:]);
+           [
+               (ROLE_MASTER): masters,
+               (ROLE_WORKER): workers,
+           ],
+           [
+               ARG_RES_COMP_OPT , ROLE_MASTER, ResourceKeys.YARN_MEMORY, YRAM,
+               ARG_RES_COMP_OPT , ROLE_WORKER, ResourceKeys.YARN_MEMORY, YRAM
+           ],
+           true,
+           true,
+           [:]);
     hoyaClient = launcher.service;
     try {
       basicHBaseClusterStartupSequence(hoyaClient);

@@ -25,6 +25,7 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.OptionKeys;
+import org.apache.hoya.api.ResourceKeys;
 import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.core.conf.ConfTreeOperations;
@@ -127,7 +128,7 @@ public class ProviderUtils implements RoleKeys {
     if (component == null) {
       count = 0;
     } else {
-      count = component.getOptionInt(RoleKeys.ROLE_INSTANCES, 0);
+      count = component.getOptionInt(ResourceKeys.COMPONENT_INSTANCES, 0);
     }
     validateNodeCount(name, count, min, max);
   }
@@ -401,7 +402,7 @@ public class ProviderUtils implements RoleKeys {
       val = Integer.toString(defVal);
     }
     Integer intVal;
-    if (RoleKeys.YARN_RESOURCE_MAX.equals(val)) {
+    if (ResourceKeys.YARN_RESOURCE_MAX.equals(val)) {
       intVal = maxVal;
     } else {
       intVal = Integer.decode(val);

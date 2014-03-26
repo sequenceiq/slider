@@ -52,7 +52,6 @@ import org.junit.Assume
 import org.junit.Rule
 import org.junit.rules.Timeout
 
-import static org.apache.hoya.HoyaXMLConfKeysForTesting.*
 import static org.apache.hoya.testtools.HoyaTestUtils.*
 import static org.apache.hoya.testtools.KeysForTests.*
 
@@ -407,7 +406,7 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest {
     List<String> roleList = [];
     roles.each { String role, Integer val ->
       log.info("Role $role := $val")
-      roleList << Arguments.ARG_ROLE << role << Integer.toString(val)
+      roleList << Arguments.ARG_COMPONENT << role << Integer.toString(val)
     }
 
     List<String> argsList = [

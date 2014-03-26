@@ -24,6 +24,7 @@ package org.apache.hoya;
  */
 public interface HoyaKeys extends HoyaXmlConfKeys {
 
+  
   String ROLE_HOYA_AM = "hoya";
   /**
    * Hoya role is "special"
@@ -152,5 +153,6 @@ public interface HoyaKeys extends HoyaXmlConfKeys {
 
   String HADOOP_USER_NAME = "HADOOP_USER_NAME";
   String HADOOP_PROXY_USER = "HADOOP_PROXY_USER";
-  
+
+  boolean PROPAGATE_RESOURCE_OPTION = true;
 }

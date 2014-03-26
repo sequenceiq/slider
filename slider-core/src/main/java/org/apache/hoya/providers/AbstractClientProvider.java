@@ -37,11 +37,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.hoya.api.RoleKeys.DEF_YARN_CORES;
-import static org.apache.hoya.api.RoleKeys.DEF_YARN_MEMORY;
-import static org.apache.hoya.api.RoleKeys.ROLE_INSTANCES;
-import static org.apache.hoya.api.RoleKeys.YARN_CORES;
-import static org.apache.hoya.api.RoleKeys.YARN_MEMORY;
+import static org.apache.hoya.api.ResourceKeys.COMPONENT_INSTANCES;
+import static org.apache.hoya.api.ResourceKeys.DEF_YARN_CORES;
+import static org.apache.hoya.api.ResourceKeys.DEF_YARN_MEMORY;
+import static org.apache.hoya.api.ResourceKeys.YARN_CORES;
+import static org.apache.hoya.api.ResourceKeys.YARN_MEMORY;
 
 public abstract class AbstractClientProvider extends Configured {
   protected static final Logger log =
@@ -79,7 +79,7 @@ public abstract class AbstractClientProvider extends Configured {
       String name = role.name;
       MapOperations component = resources.getComponent(name);
       if (component != null) {
-        String instances = component.get(ROLE_INSTANCES);
+        String instances = component.get(COMPONENT_INSTANCES);
         if (instances == null) {
           String message = "No instance count provide for " + name;
           log.error("{} with \n{}", message,resources.toString());

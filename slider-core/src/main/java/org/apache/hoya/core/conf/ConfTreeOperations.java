@@ -327,7 +327,6 @@ public class ConfTreeOperations {
   /**
    * Convert to a JSON string
    * @return a JSON string description
-   * @throws IOException Problems mapping/writing the object
    */
   public String toJson() throws IOException,
                                 JsonGenerationException,
@@ -336,14 +335,14 @@ public class ConfTreeOperations {
   }
 
   /**
-   * Get a role option
-   * @param role role to get from
+   * Get a component option
+   * @param name component name
    * @param option option name
    * @param defVal default value
    * @return resolved value
    */
-  public String getRoleOpt(String role, String option, String defVal) {
-    MapOperations roleopts = getComponent(role);
+  public String getComponentOpt(String name, String option, String defVal) {
+    MapOperations roleopts = getComponent(name);
     if (roleopts == null) {
       return defVal;
     }
@@ -351,28 +350,28 @@ public class ConfTreeOperations {
   }
 
   /**
-   * Get a role opt; use {@link Integer#decode(String)} so as to take hex
+   * Get a component opt; use {@link Integer#decode(String)} so as to take hex
    * oct and bin values too.
    *
-   * @param role role to get from
+   * @param name component name
    * @param option option name
    * @param defVal default value
    * @return parsed value
    * @throws NumberFormatException if the role could not be parsed.
    */
-  public int getRoleOptInt(String role, String option, int defVal) {
-    String val = getRoleOpt(role, option, Integer.toString(defVal));
+  public int getComponentOptInt(String name, String option, int defVal) {
+    String val = getComponentOpt(name, option, Integer.toString(defVal));
     return Integer.decode(val);
   }
 
   /**
-   * Set a role option, creating the role if necessary
-   * @param role role name
+   * Set a component option, creating the component if necessary
+   * @param component component name
    * @param option option name
    * @param val value
    */
-  public void setRoleOpt(String role, String option, String val) {
-    Map<String, String> roleopts = getOrAddComponent(role);
+  public void setComponentOpt(String component, String option, String val) {
+    Map<String, String> roleopts = getOrAddComponent(component);
     roleopts.put(option, val);
   }
 
@@ -383,7 +382,7 @@ public class ConfTreeOperations {
    * @param val integer value
    */
   public void setRoleOpt(String role, String option, int val) {
-    setRoleOpt(role, option, Integer.toString(val));
+    setComponentOpt(role, option, Integer.toString(val));
   }
 
   

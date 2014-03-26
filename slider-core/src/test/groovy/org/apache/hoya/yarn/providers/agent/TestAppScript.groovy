@@ -25,9 +25,13 @@ import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.apache.hoya.yarn.client.HoyaClient
 import org.junit.Test
 
-import static org.apache.hoya.api.RoleKeys.ROLE_PRIORITY
+import static org.apache.hoya.api.ResourceKeys.COMPONENT_PRIORITY
 import static org.apache.hoya.providers.agent.AgentKeys.*
+import static org.apache.hoya.yarn.Arguments.ARG_COMP_OPT
+import static org.apache.hoya.yarn.Arguments.ARG_COMP_OPT_SHORT
 import static org.apache.hoya.yarn.Arguments.ARG_OPTION
+import static org.apache.hoya.yarn.Arguments.ARG_RES_COMP_OPT
+import static org.apache.hoya.yarn.Arguments.ARG_RES_COMP_OPT_SHORT
 import static org.apache.hoya.yarn.Arguments.ARG_ROLEOPT
 
 /**
@@ -74,17 +78,17 @@ class TestAppScript extends AgentTestBase {
                         ARG_OPTION, CONTROLLER_URL, "http://localhost",
                         ARG_OPTION, PACKAGE_PATH, hoya_core.absolutePath,
 
-                        ARG_ROLEOPT, master_role, PACKAGE_PATH, hoya_core.absolutePath,
-                        ARG_ROLEOPT, master_role, ROLE_PRIORITY, "1",
-                        ARG_ROLEOPT, master_role, SCRIPT_PATH, master_script_py,
-                        ARG_ROLEOPT, master_role, SERVICE_NAME, "HBASE",
-                        ARG_ROLEOPT, master_role, APP_HOME, "/dev/null",
+                        ARG_COMP_OPT, master_role, PACKAGE_PATH, hoya_core.absolutePath,
+                        ARG_RES_COMP_OPT, master_role, COMPONENT_PRIORITY, "1",
+                        ARG_COMP_OPT_SHORT, master_role, SCRIPT_PATH, master_script_py,
+                        ARG_COMP_OPT, master_role, SERVICE_NAME, "HBASE",
+                        ARG_COMP_OPT, master_role, APP_HOME, "/dev/null",
 
-                        ARG_ROLEOPT, rs_role, PACKAGE_PATH, hoya_core.absolutePath,
-                        ARG_ROLEOPT, rs_role, ROLE_PRIORITY, "2",
-                        ARG_ROLEOPT, rs_role, SCRIPT_PATH, rs_script_py,
-                        ARG_ROLEOPT, rs_role, SERVICE_NAME, "HBASE",
-                        ARG_ROLEOPT, rs_role, APP_HOME, "/dev/null",
+                        ARG_COMP_OPT, rs_role, PACKAGE_PATH, hoya_core.absolutePath,
+                        ARG_RES_COMP_OPT, rs_role, COMPONENT_PRIORITY, "2",
+                        ARG_COMP_OPT, rs_role, SCRIPT_PATH, rs_script_py,
+                        ARG_COMP_OPT, rs_role, SERVICE_NAME, "HBASE",
+                        ARG_COMP_OPT, rs_role, APP_HOME, "/dev/null",
                 ],
                 true, true,
                 true)

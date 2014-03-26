@@ -61,6 +61,7 @@ import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.HoyaClusterProtocol;
 import org.apache.hoya.api.OptionKeys;
+import org.apache.hoya.api.ResourceKeys;
 import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.api.StatusKeys;
 import org.apache.hoya.api.proto.HoyaClusterAPI;
@@ -541,8 +542,8 @@ public class HoyaAppMaster extends CompoundLaunchedService
       appState.setContainerLimits(maxResources.getMemory(),
                                   maxResources.getVirtualCores());
       // set the RM-defined maximum cluster values
-      appInformation.put(RoleKeys.YARN_CORES, Integer.toString(containerMaxCores));
-      appInformation.put(RoleKeys.YARN_MEMORY, Integer.toString(containerMaxMemory));
+      appInformation.put(ResourceKeys.YARN_CORES, Integer.toString(containerMaxCores));
+      appInformation.put(ResourceKeys.YARN_MEMORY, Integer.toString(containerMaxMemory));
       
       boolean securityEnabled = UserGroupInformation.isSecurityEnabled();
       if (securityEnabled) {

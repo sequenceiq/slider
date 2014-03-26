@@ -22,6 +22,7 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import com.google.common.collect.Maps
 import org.apache.hoya.api.ClusterDescription
+import org.apache.hoya.api.ResourceKeys
 import org.apache.hoya.api.RoleKeys
 import org.apache.hoya.core.conf.AggregateConf
 import org.apache.hoya.core.conf.ConfTree
@@ -175,7 +176,7 @@ class MockFactory implements  MockRoles {
   
   def roleMap(int count) {
     return [
-        (RoleKeys.ROLE_INSTANCES):count.toString()
+        (ResourceKeys.COMPONENT_INSTANCES):count.toString()
     ]
   }
 

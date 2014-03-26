@@ -20,6 +20,7 @@ package org.apache.hoya.yarn.params;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.fs.Path;
 import org.apache.hoya.core.conf.ConfTree;
 import org.apache.hoya.core.conf.ConfTreeOperations;
@@ -27,7 +28,6 @@ import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.providers.HoyaProviderFactory;
 import org.apache.hoya.providers.hbase.HBaseConfigFileOptions;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -46,7 +46,7 @@ public abstract class AbstractClusterBuildingActionArgs extends AbstractActionAr
              converter = PathArgumentConverter.class)
   public Path confdir;
 
-  @Parameter(names = ARG_APP_ZKPATH,
+  @Parameter(names = ARG_ZKPATH,
              description = "Zookeeper path for the application")
   public String appZKPath;
 
@@ -75,28 +75,19 @@ public abstract class AbstractClusterBuildingActionArgs extends AbstractActionAr
              description = "Provider of the specific cluster application")
   public String provider = HoyaProviderFactory.DEFAULT_CLUSTER_TYPE;
 
-  /**
-   * Options key value
-   */
-  @Parameter(names = {ARG_OPTION, ARG_OPTION_SHORT}, arity = 2,
-             description = "option <name> <value>")
-  public List<String> optionTuples = new ArrayList<String>(0);
 
 
   @ParametersDelegate
-  public RoleArgsDelegate roleDelegate = new RoleArgsDelegate();
+  public ComponentArgsDelegate componentDelegate = new ComponentArgsDelegate();
 
-  /**
-   * All the role option triples
-   */
-  @Parameter(names = {ARG_ROLEOPT}, arity = 3,
-             description = "Role option " + ARG_ROLEOPT +
-                           " <role> <name> <option>")
-  public List<String> roleOptTriples = new ArrayList<String>(0);
+  
+  @ParametersDelegate
+  public AppAndResouceOptionArgsDelegate optionsDelegate = new AppAndResouceOptionArgsDelegate();
+
 
   public Map<String, String> getOptionsMap() throws
                                              BadCommandArgumentsException {
-    return convertTupleListToMap("options", optionTuples);
+    return optionsDelegate.getOptionsMap();
   }
 
   /**
@@ -104,13 +95,30 @@ public abstract class AbstractClusterBuildingActionArgs extends AbstractActionAr
    * @return role heap mapping
    * @throws BadCommandArgumentsException parse problem
    */
-  public Map<String, Map<String, String>> getRoleOptionMap() throws
+  public Map<String, Map<String, String>> getCompOptionMap() throws
                                                              BadCommandArgumentsException {
-    return convertTripleListToMaps(ARG_ROLEOPT, roleOptTriples);
+    return optionsDelegate.getCompOptionMap();
   }
 
-  public List<String> getRoleTuples() {
-    return roleDelegate.getRoleTuples();
+
+  public Map<String, String> getResourceOptionsMap() throws
+                                             BadCommandArgumentsException {
+    return optionsDelegate.getResourceOptionsMap();
+  }
+
+  /**
+   * Get the role heap mapping (may be empty, but never null)
+   * @return role heap mapping
+   * @throws BadCommandArgumentsException parse problem
+   */
+  public Map<String, Map<String, String>> getResourceCompOptionMap() throws
+                                                             BadCommandArgumentsException {
+    return optionsDelegate.getResourceCompOptionMap();
+  }
+
+  @VisibleForTesting
+  public List<String> getComponentTuples() {
+    return componentDelegate.getComponentTuples();
   }
 
   /**
@@ -118,8 +126,8 @@ public abstract class AbstractClusterBuildingActionArgs extends AbstractActionAr
    * @return role mapping
    * @throws BadCommandArgumentsException parse problem
    */
-  public Map<String, String> getRoleMap() throws BadCommandArgumentsException {
-    return roleDelegate.getRoleMap();
+  public Map<String, String> getComponentMap() throws BadCommandArgumentsException {
+    return componentDelegate.getComponentMap();
   }
 
   public Path getConfdir() {
@@ -154,7 +162,7 @@ public abstract class AbstractClusterBuildingActionArgs extends AbstractActionAr
     ConfTree confTree = new ConfTree();
     ConfTreeOperations ops = new ConfTreeOperations(confTree);
     confTree.global.putAll(getOptionsMap());
-    Map<String, Map<String, String>> roleOptionMap = getRoleOptionMap();
+    Map<String, Map<String, String>> roleOptionMap = getCompOptionMap();
     for (Map.Entry<String, Map<String, String>> entry : roleOptionMap.entrySet()) {
       String key = entry.getKey();
       Map<String, String> value = entry.getValue();

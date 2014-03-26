@@ -51,7 +51,7 @@ class TestRoleOptPropagation extends HBaseMiniClusterTestBase {
                                                      (HBaseKeys.ROLE_WORKER): 0,
                                                  ],
                                                  [
-                                                     Arguments.ARG_ROLEOPT, HBaseKeys.ROLE_MASTER, ENV, "4",
+                                                     Arguments.ARG_COMP_OPT, HBaseKeys.ROLE_MASTER, ENV, "4",
                                                  ],
                                                  true,
                                                  true,
@@ -79,8 +79,8 @@ class TestRoleOptPropagation extends HBaseMiniClusterTestBase {
                                                      (HBaseKeys.ROLE_WORKER): 0,
                                                  ],
                                                  [
-                                                     Arguments.ARG_ROLEOPT, HoyaKeys.ROLE_HOYA_AM, MALLOC_ARENA, "4",
-                                                     Arguments.ARG_ROLEOPT, "unknown", MALLOC_ARENA, "3",
+                                                     Arguments.ARG_COMP_OPT, HoyaKeys.ROLE_HOYA_AM, MALLOC_ARENA, "4",
+                                                     Arguments.ARG_COMP_OPT, "unknown", MALLOC_ARENA, "3",
                                                  ],
                                                  true,
                                                  true,

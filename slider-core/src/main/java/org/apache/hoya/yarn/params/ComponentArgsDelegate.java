@@ -25,14 +25,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class RoleArgsDelegate extends AbstractArgsDelegate {
+public class ComponentArgsDelegate extends AbstractArgsDelegate {
 
   /**
    * This is a listing of the roles to create
    */
-  @Parameter(names = {ARG_ROLE}, arity = 2,
-             description = "role <name> <count>")
-  public List<String> roleTuples = new ArrayList<String>(0);
+  @Parameter(names = {ARG_COMPONENT,  ARG_COMPONENT_SHORT, ARG_ROLE}, arity = 2,
+             description = "--component <name> <count>")
+  public List<String> componentTuples = new ArrayList<String>(0);
 
 
   /**
@@ -40,11 +40,11 @@ public class RoleArgsDelegate extends AbstractArgsDelegate {
    * @return role mapping
    * @throws BadCommandArgumentsException parse problem
    */
-  public Map<String, String> getRoleMap() throws BadCommandArgumentsException {
-    return convertTupleListToMap("roles", roleTuples);
+  public Map<String, String> getComponentMap() throws BadCommandArgumentsException {
+    return convertTupleListToMap("component", componentTuples);
   }
 
-  public List<String> getRoleTuples() {
-    return roleTuples;
+  public List<String> getComponentTuples() {
+    return componentTuples;
   }
 }

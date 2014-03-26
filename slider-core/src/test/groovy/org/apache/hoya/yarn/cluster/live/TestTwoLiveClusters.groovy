@@ -59,7 +59,7 @@ class TestTwoLiveClusters extends HBaseMiniClusterTestBase {
 
     launcher = createHBaseCluster(clustername2, regionServerCount,
                                  [
-                                     Arguments.ARG_APP_ZKPATH, "/$clustername2",
+                                     Arguments.ARG_ZKPATH, "/$clustername2",
                                  ],
                                  true,
                                  true)

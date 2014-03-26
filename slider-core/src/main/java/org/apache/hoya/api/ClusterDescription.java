@@ -623,7 +623,7 @@ public class ClusterDescription implements Cloneable {
   /**
    * Get the value of a role requirement (cores, RAM, etc).
    * These are returned as integers, but there is special handling of the 
-   * string {@link RoleKeys#YARN_RESOURCE_MAX}, which triggers
+   * string {@link ResourceKeys#YARN_RESOURCE_MAX}, which triggers
    * the return of the maximum value.
    * @param role role to get from
    * @param option option name
@@ -635,7 +635,7 @@ public class ClusterDescription implements Cloneable {
   public int getRoleResourceRequirement(String role, String option, int defVal, int maxVal) {
     String val = getRoleOpt(role, option, Integer.toString(defVal));
     Integer intVal;
-    if (RoleKeys.YARN_RESOURCE_MAX.equals(val)) {
+    if (ResourceKeys.YARN_RESOURCE_MAX.equals(val)) {
       intVal = maxVal;
     } else {
       intVal = Integer.decode(val);
@@ -643,41 +643,6 @@ public class ClusterDescription implements Cloneable {
     return intVal;
   }
 
-  /**
-   * Set the desired instance count for a role
-   * @param role role
-   * @param count number of instances of a role desired
-   */
-  public void setDesiredInstanceCount(String role, int count) {
-    setRoleOpt(role, RoleKeys.ROLE_INSTANCES, count);
-  }
-
-  /**
-   * Get the desired instance count;
-   * @param role role
-   * @return the desired count -falling back to the default value
-   */
-  public int getDesiredInstanceCount(String role, int defVal) {
-    return getRoleOptInt(role, RoleKeys.ROLE_INSTANCES, defVal);
-  }
-
-  /**
-   * Set the actual instance count
-   * @param role role
-   * @param val value
-   */
-  public void setActualInstanceCount(String role, int val) {
-    setRoleOpt(role, RoleKeys.ROLE_ACTUAL_INSTANCES, val);
-  }
-
-  /**
-   * Get the actual instance count;
-   * @param role role
-   * @return the current count -falling back to 0
-   */
-  public int getActualInstanceCount(String role) {
-    return getRoleOptInt(role, RoleKeys.ROLE_ACTUAL_INSTANCES, 0);
-  }
 
   /**
    * Set the time for an information (human, machine) timestamp pair of fields.

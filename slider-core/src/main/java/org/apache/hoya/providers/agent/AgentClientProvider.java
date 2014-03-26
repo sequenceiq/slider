@@ -22,7 +22,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hoya.HoyaKeys;
-import org.apache.hoya.api.RoleKeys;
+import org.apache.hoya.api.ResourceKeys;
 import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.core.conf.ConfTreeOperations;
 import org.apache.hoya.core.conf.MapOperations;
@@ -148,7 +148,8 @@ public class AgentClientProvider extends AbstractClientProvider
     for (String name : names) {
       MapOperations component = resources.getMandatoryComponent(name);
       MapOperations appComponent = appConf.getMandatoryComponent(name);
-      int count = component.getMandatoryOptionInt(RoleKeys.ROLE_INSTANCES);
+      int count = component.getMandatoryOptionInt(
+        ResourceKeys.COMPONENT_INSTANCES);
       appComponent.getMandatoryOption( SCRIPT_PATH);
       // Extra validation for directly executed START
       if (!name.equals(ROLE_NODE)) {
@@ -157,11 +158,11 @@ public class AgentClientProvider extends AbstractClientProvider
       }
 
       int priority =
-        component.getMandatoryOptionInt(RoleKeys.ROLE_PRIORITY);
+        component.getMandatoryOptionInt(ResourceKeys.COMPONENT_PRIORITY);
       if (priority <= 0) {
         throw new BadConfigException("Component %s %s value out of range %d",
                                      name,
-                                     RoleKeys.ROLE_PRIORITY,
+                                     ResourceKeys.COMPONENT_PRIORITY,
                                      priority);
       }
 
@@ -170,7 +171,7 @@ public class AgentClientProvider extends AbstractClientProvider
         throw new BadConfigException(
           "Component %s has a %s value %d which duplicates that of %s",
           name,
-          RoleKeys.ROLE_PRIORITY,
+          ResourceKeys.COMPONENT_PRIORITY,
           priority,
           existing);
       }

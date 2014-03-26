@@ -20,8 +20,7 @@ package org.apache.hoya.yarn.model.history
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import org.apache.hoya.api.RoleKeys
-import org.apache.hoya.providers.PlacementPolicy;
+import org.apache.hoya.api.ResourceKeys
 import org.apache.hoya.providers.ProviderRole
 import org.apache.hoya.yarn.appmaster.state.ContainerPriority
 import org.apache.hoya.yarn.appmaster.state.NodeEntry
@@ -73,8 +72,8 @@ class TestRoleHistoryContainerEvents extends BaseMockAppStateTest {
     roleHistory.onStart(fs, historyPath)
     roleHistory.insert(nodes)
     roleHistory.buildAvailableNodeLists();
-    resource = Resource.newInstance(RoleKeys.DEF_YARN_CORES,
-                                    RoleKeys.DEF_YARN_MEMORY);
+    resource = Resource.newInstance(ResourceKeys.DEF_YARN_CORES,
+                                    ResourceKeys.DEF_YARN_MEMORY);
   }
 
   @Test
