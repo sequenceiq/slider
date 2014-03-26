@@ -79,7 +79,7 @@ class TestRoleOptPropagation extends HBaseMiniClusterTestBase {
                                                      (HBaseKeys.ROLE_WORKER): 0,
                                                  ],
                                                  [
-                                                     Arguments.ARG_COMP_OPT, HoyaKeys.ROLE_HOYA_AM, MALLOC_ARENA, "4",
+                                                     Arguments.ARG_COMP_OPT, HoyaKeys.COMPONENT_AM, MALLOC_ARENA, "4",
                                                      Arguments.ARG_COMP_OPT, "unknown", MALLOC_ARENA, "3",
                                                  ],
                                                  true,

@@ -25,7 +25,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.HoyaXmlConfKeys;
-import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.core.conf.ConfTreeOperations;
@@ -356,7 +355,7 @@ public class AccumuloClientProvider extends AbstractClientProvider implements
 
   private static Set<String> knownRoleNames = new HashSet<String>();
   static {
-    knownRoleNames.add(HoyaKeys.ROLE_HOYA_AM);
+    knownRoleNames.add(HoyaKeys.COMPONENT_AM);
     for (ProviderRole role : AccumuloRoles.ROLES) {
       knownRoleNames.add(role.name);
     }

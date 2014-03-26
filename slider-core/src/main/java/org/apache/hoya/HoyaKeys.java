@@ -25,7 +25,8 @@ package org.apache.hoya;
 public interface HoyaKeys extends HoyaXmlConfKeys {
 
   
-  String ROLE_HOYA_AM = "hoya";
+  String COMPONENT_AM = "slider-appmaster";
+  
   /**
    * Hoya role is "special"
    */

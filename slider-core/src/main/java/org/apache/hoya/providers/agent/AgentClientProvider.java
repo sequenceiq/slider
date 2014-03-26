@@ -143,7 +143,7 @@ public class AgentClientProvider extends AbstractClientProvider
 
 
     Set<String> names = resources.getComponentNames();
-    names.remove(HoyaKeys.ROLE_HOYA_AM);
+    names.remove(HoyaKeys.COMPONENT_AM);
     Map<Integer, String> priorityMap = new HashMap<Integer, String>();
     for (String name : names) {
       MapOperations component = resources.getMandatoryComponent(name);

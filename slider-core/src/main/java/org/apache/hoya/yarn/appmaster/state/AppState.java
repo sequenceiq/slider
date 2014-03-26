@@ -706,7 +706,7 @@ public class AppState implements StateAccessForProviders {
     container.setNodeId(nodeId);
     container.setNodeHttpAddress(nodeHttpAddress);
     RoleInstance am = new RoleInstance(container);
-    am.role = HoyaKeys.ROLE_HOYA_AM;
+    am.role = HoyaKeys.COMPONENT_AM;
     appMasterNode = am;
     //it is also added to the set of live nodes
     getLiveNodes().put(containerId, am);
@@ -1358,7 +1358,7 @@ public class AppState implements StateAccessForProviders {
     hoyastats.put(StatusKeys.STATISTICS_CONTAINERS_SURPLUS, surplusContainers.get());
     hoyastats.put(StatusKeys.STATISTICS_CONTAINERS_UNKNOWN_COMPLETED,
                   completionOfUnknownContainerEvent.get());
-    cd.statistics.put(HoyaKeys.ROLE_HOYA_AM, hoyastats);
+    cd.statistics.put(HoyaKeys.COMPONENT_AM, hoyastats);
     
   }
 

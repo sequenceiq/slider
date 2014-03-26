@@ -42,7 +42,6 @@ import org.apache.hoya.api.ClusterNode;
 import org.apache.hoya.api.HoyaClusterProtocol;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.ResourceKeys;
-import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.api.proto.Messages;
 import org.apache.hoya.core.build.InstanceBuilder;
 import org.apache.hoya.core.build.InstanceIO;
@@ -398,7 +397,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     ConfTree internal = new ConfTree();
     ConfTree resources = new ConfTree();
     ConfTree appConf = new ConfTree();
-    ConfTree cmdLineConf = buildInfo.buildConfTree();
+    ConfTree cmdLineAppOptions = buildInfo.buildAppOptionsConfTree();
+    ConfTree cmdLineResourceOptions = buildInfo.buildResourceOptionsConfTree();
 
     AggregateConf instanceConf = new AggregateConf(internal, appConf, resources);
     
@@ -408,7 +408,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     ConfTreeOperations appConfOps = instanceConf.getAppConfOperations();
     ConfTreeOperations resOps = instanceConf.getResourceOperations();
     ConfTreeOperations internalOps = instanceConf.getInternalOperations();
-    appConfOps.putAll(cmdLineConf);
+    appConfOps.putAll(cmdLineAppOptions);
 
     // put the role counts into the resources file
     Map<String, String> argsRoleMap = buildInfo.getComponentMap();
@@ -429,14 +429,6 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     internalOps.propagateGlobalKeys(appConf, "hoya.");
     internalOps.propagateGlobalKeys(appConf, "slider.");
     internalOps.propagateGlobalKeys(appConf, "internal.");
-    //and anything specific for the Hoya AM
-    Map<String, String> hoyaOptions =
-      appOptionMap.get(HoyaKeys.ROLE_HOYA_AM);
-    if (hoyaOptions != null) {
-      internalOps.mergeSingleComponentMap(HoyaKeys.ROLE_HOYA_AM, hoyaOptions);
-    }
-
-    
 
     //copy over role. and yarn. values ONLY to the resources
     if (PROPAGATE_RESOURCE_OPTION) {
@@ -448,9 +440,9 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       resOps.mergeComponentsPrefix(appOptionMap, "role.", true);
     }
 
-    // resource component issues
+    // resource component args
+    appConfOps.putAll(cmdLineResourceOptions);
     resOps.mergeComponents(buildInfo.getResourceCompOptionMap());
-
 
     builder.init(appconfdir, provider.getName(), instanceConf);
     builder.propagateFilename();
@@ -614,15 +606,15 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     if (log.isDebugEnabled()) {
       log.debug(instanceDefinition.toString());
     }
-    MapOperations hoyaAMComponent =
-      internalOperations.getOrAddComponent(HoyaKeys.ROLE_HOYA_AM);
+    MapOperations hoyaAMResourceComponent =
+      resourceOperations.getOrAddComponent(HoyaKeys.COMPONENT_AM);
     AppMasterLauncher amLauncher = new AppMasterLauncher(clustername,
                                                          HoyaKeys.APP_TYPE,
                                                          config,
                                                          hoyaFileSystem,
                                                          yarnClient,
                                                          clusterSecure,
-                                                         hoyaAMComponent);
+                                                         hoyaAMResourceComponent);
 
     ApplicationId appId = amLauncher.getApplicationId();
     // set the application name;
@@ -756,7 +748,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     // build the environment
     amLauncher.putEnv(
-      HoyaUtils.buildEnvMap(hoyaAMComponent));
+      HoyaUtils.buildEnvMap(hoyaAMResourceComponent));
     String classpath = HoyaUtils.buildClasspath(relativeHoyaConfDir,
                                                 libdir,
                                                 getConfig(),
@@ -787,7 +779,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     CommandLineBuilder commandLine = new CommandLineBuilder();
     commandLine.addJavaBinary();
     // insert any JVM options);
-    hoyaAM.addJVMOptions(hoyaAMComponent, commandLine);
+    hoyaAM.addJVMOptions(hoyaAMResourceComponent, commandLine);
     // enable asserts if the text option is set
     if (debugAM) {
       commandLine.add(HoyaKeys.JVM_ENABLE_ASSERTIONS);
@@ -841,7 +833,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     amLauncher.addCommandLine(commandLine);
 
     // the Hoya AM gets to configure the AM requirements, not the custom provider
-    hoyaAM.prepareAMResourceRequirements(hoyaAMComponent, amLauncher.getResource());
+    hoyaAM.prepareAMResourceRequirements(hoyaAMResourceComponent, amLauncher.getResource());
 
 
     // Set the priority for the application master

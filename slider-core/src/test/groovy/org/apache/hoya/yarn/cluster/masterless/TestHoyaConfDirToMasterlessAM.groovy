@@ -81,7 +81,7 @@ class TestHoyaConfDirToMasterlessAM extends HBaseMiniClusterTestBase {
       addToTeardown(hoyaClient);
       ApplicationReport report = waitForClusterLive(hoyaClient)
 
-      ClusterDescription cd = waitForRoleCount(hoyaClient,HoyaKeys.ROLE_HOYA_AM,
+      ClusterDescription cd = waitForRoleCount(hoyaClient,HoyaKeys.COMPONENT_AM,
           1, HBASE_CLUSTER_STARTUP_TIME)
       HadoopFS fs = HadoopFS.getLocal(conf);
       

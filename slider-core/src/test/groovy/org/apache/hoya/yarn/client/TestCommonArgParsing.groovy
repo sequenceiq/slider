@@ -494,14 +494,14 @@ class TestCommonArgParsing implements HoyaActions, Arguments {
     ActionCreateArgs createArgs = createAction([
         ACTION_CREATE, 'cluster1',
         ARG_COMPONENT, "master", "1",
-        ARG_COMPONENTOPT, "master", "cheese", "swiss",
-        ARG_COMPONENTOPT, "master", "env.CHEESE", "cheddar",
-        ARG_COMPONENTOPT, "master", ResourceKeys.YARN_CORES, 3,
+        ARG_COMP_OPT, "master", "cheese", "swiss",
+        ARG_COMP_OPT, "master", "env.CHEESE", "cheddar",
+        ARG_COMP_OPT, "master", ResourceKeys.YARN_CORES, 3,
 
         ARG_COMPONENT, "worker", "2",
-        ARG_COMPONENTOPT, "worker", ResourceKeys.YARN_CORES, 2,
-        ARG_COMPONENTOPT, "worker", RoleKeys.JVM_HEAP, "65536",
-        ARG_COMPONENTOPT, "worker", "env.CHEESE", "stilton",
+        ARG_COMP_OPT, "worker", ResourceKeys.YARN_CORES, 2,
+        ARG_COMP_OPT, "worker", RoleKeys.JVM_HEAP, "65536",
+        ARG_COMP_OPT, "worker", "env.CHEESE", "stilton",
     ])
     return createArgs
   }

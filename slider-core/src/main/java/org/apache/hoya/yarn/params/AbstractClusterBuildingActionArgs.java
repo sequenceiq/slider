@@ -158,10 +158,19 @@ public abstract class AbstractClusterBuildingActionArgs extends AbstractActionAr
     return provider;
   }
   
-  public ConfTree buildConfTree() throws BadCommandArgumentsException {
+  public ConfTree buildAppOptionsConfTree() throws BadCommandArgumentsException {
+    return buildConfTree(getOptionsMap());
+  }
+
+  public ConfTree buildResourceOptionsConfTree() throws BadCommandArgumentsException {
+    return buildConfTree(getResourceOptionsMap());
+  }
+
+  protected ConfTree buildConfTree(Map<String, String> optionsMap) throws
+                                                                   BadCommandArgumentsException {
     ConfTree confTree = new ConfTree();
     ConfTreeOperations ops = new ConfTreeOperations(confTree);
-    confTree.global.putAll(getOptionsMap());
+    confTree.global.putAll(optionsMap);
     Map<String, Map<String, String>> roleOptionMap = getCompOptionMap();
     for (Map.Entry<String, Map<String, String>> entry : roleOptionMap.entrySet()) {
       String key = entry.getKey();
