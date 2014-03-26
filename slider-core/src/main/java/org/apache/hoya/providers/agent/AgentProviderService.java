@@ -25,7 +25,9 @@ import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hoya.HoyaKeys;
+import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.OptionKeys;
+import org.apache.hoya.api.StatusKeys;
 import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.core.conf.ConfTreeOperations;
 import org.apache.hoya.core.conf.MapOperations;
@@ -38,6 +40,7 @@ import org.apache.hoya.providers.ProviderRole;
 import org.apache.hoya.providers.ProviderUtils;
 import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
+import org.apache.hoya.yarn.appmaster.state.StateAccessForProviders;
 import org.apache.hoya.yarn.appmaster.web.rest.agent.AgentRestOperations;
 import org.apache.hoya.yarn.appmaster.web.rest.agent.HeartBeat;
 import org.apache.hoya.yarn.appmaster.web.rest.agent.HeartBeatResponse;
@@ -71,6 +74,7 @@ public class AgentProviderService extends AbstractProviderService implements
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
   private AgentClientProvider clientProvider;
   private HoyaFileSystem hoyaFileSystem = null;
+
   public AgentProviderService() {
     super("AgentProviderService");
     setAgentRestOperations(this);
@@ -89,14 +93,15 @@ public class AgentProviderService extends AbstractProviderService implements
 
   @Override
   public Configuration loadProviderConfigurationInformation(File confDir) throws
-                                                                          BadCommandArgumentsException,
-                                                                          IOException {
+      BadCommandArgumentsException,
+      IOException {
     return new Configuration(false);
   }
 
   @Override
-  public void validateInstanceDefinition(AggregateConf instanceDefinition) throws
-                                                                  HoyaException {
+  public void validateInstanceDefinition(AggregateConf instanceDefinition)
+      throws
+      HoyaException {
     clientProvider.validateInstanceDefinition(instanceDefinition);
   }
 
@@ -112,6 +117,7 @@ public class AgentProviderService extends AbstractProviderService implements
                                           Path containerTmpDirPath) throws
                                                                             IOException,
                                                                             HoyaException {
+
     this.hoyaFileSystem = hoyaFileSystem;
     this.instanceDefinition = instanceDefinition;
     log.info("Build launch context for Agent");
@@ -123,12 +129,15 @@ public class AgentProviderService extends AbstractProviderService implements
     HoyaUtils.copyDirectory(getConf(), generatedConfPath, containerTmpDirPath,
                             null);
     Path targetConfDir = containerTmpDirPath;
-    //TODO: PATCH THE CONFIG FOR THE TARGET
 
 
-    String propagatedConfDir = ApplicationConstants.Environment.PWD.$() + "/" +
-        HoyaKeys.PROPAGATED_CONF_DIR_NAME;
-    env.put("PROPAGATED_CONFDIR", propagatedConfDir);
+    String workDir = ApplicationConstants.Environment.PWD.$();
+    env.put("AGENT_WORK_ROOT", workDir);
+    log.info("AGENT_WORK_ROOT set to " + workDir);
+    String logDir = ApplicationConstants.Environment.LOG_DIRS.$();
+    env.put("AGENT_LOG_ROOT", logDir);
+    log.info("AGENT_LOG_ROOT set to " + logDir);
+
     //local resources
     Map<String, LocalResource> localResources =
         new HashMap<String, LocalResource>();
@@ -139,70 +148,53 @@ public class AgentProviderService extends AbstractProviderService implements
         targetConfDir,
         HoyaKeys.PROPAGATED_CONF_DIR_NAME);
     localResources.putAll(confResources);
-    //Add binaries
-    //now add the image if it was set
 
-    //Add binaries
     //now add the image if it was set
-    String imageURI = instanceDefinition.getInternalOperations()
-                                        .get(OptionKeys.INTERNAL_APPLICATION_IMAGE_PATH);
+    String
+        imageURI = instanceDefinition.getInternalOperations().
+            get(OptionKeys.INTERNAL_APPLICATION_IMAGE_PATH);
     hoyaFileSystem.maybeAddImagePath(localResources, imageURI);
-    
+    log.info("Number of local resources" + localResources.size());
+    for(String key : localResources.keySet()) {
+      log.info("Resource key: " + key + " value: " + localResources.get(key));
+    }
     ctx.setLocalResources(localResources);
+
     List<String> commandList = new ArrayList<String>();
     CommandLineBuilder operation = new CommandLineBuilder();
 
-    ConfTreeOperations appConf =
-      instanceDefinition.getAppConfOperations();
+    operation.add("python");
 
-    String script = appComponent.getMandatoryOption(SCRIPT_PATH);
-    String packagePath = appComponent.getMandatoryOption(PACKAGE_PATH);
-    File packagePathFile = new File(packagePath);
-    HoyaUtils.verifyIsDir(packagePathFile, log);
-    File executable = new File(packagePathFile, script);
-    HoyaUtils.verifyFileExists(executable, log);
-
-    String appHome = appComponent.getMandatoryOption(APP_HOME);
-    //APP_HOME == /dev/null is being used to issue direct start commands
-    //This is not required once embedded Agent is available
-    if (appHome.equals("/dev/null")) {
-      operation.add("python");
-      operation.add(executable.getCanonicalPath());
-      operation.add("START");
-      operation.add(propagatedConfDir + "/" + AgentKeys.COMMAND_JSON_FILENAME);
-      operation.add(packagePathFile.getCanonicalPath());
-      operation.add("/tmp/strout.txt");
-    } else {
-      //this must stay relative if it is an image
-      operation.add("python");
-      operation.add(executable.getCanonicalPath());
-      operation.add(ARG_LOG);
-      operation.add(ApplicationConstants.LOG_DIR_EXPANSION_VAR);
-      operation.add(ARG_COMMAND);
-      operation.add(propagatedConfDir + "/" + AgentKeys.COMMAND_JSON_FILENAME);
-
-      operation.add(ARG_CONFIG);
-      operation.add("$PROPAGATED_CONFDIR");
-    }
-
-    String filename = "agent-server.txt";
-
-    operation.addOutAndErrFiles(filename, null);
-
+    operation.add(AgentKeys.AGENT_MAIN_SCRIPT);
+    operation.add(ARG_LABEL);
+    operation.add(
+        getClusterInfoPropertyValue(StatusKeys.INFO_AM_APP_ID) + "." +
+            getClusterInfoPropertyValue(StatusKeys.INFO_AM_CONTAINER_ID));
+    operation.add(ARG_HOST);
+    operation.add(getClusterInfoPropertyValue(StatusKeys.INFO_AM_HOSTNAME));
+    operation.add(ARG_PORT);
+    operation.add(getClusterInfoPropertyValue(StatusKeys.INFO_AM_WEB_PORT));
 
     commandList.add(operation.build());
     ctx.setCommands(commandList);
     ctx.setEnvironment(env);
-}
+  }
 
+  protected String getClusterInfoPropertyValue(String name) {
+    StateAccessForProviders accessor = getStateAccessor();
+    assert accessor.isApplicationLive();
+    ClusterDescription description = accessor.getClusterStatus();
+    return description.getInfo(name);
+  }
 
   /**
    * Run this service
    *
-   * @param instanceDefinition             component description
-   * @param confDir        local dir with the config
-   * @param env            environment variables above those generated by
-   * @param execInProgress callback for the event notification
+   * @param instanceDefinition component description
+   * @param confDir            local dir with the config
+   * @param env                environment variables above those generated by
+   * @param execInProgress     callback for the event notification
+   *
    * @throws IOException   IO problems
    * @throws HoyaException anything internal
    */
@@ -211,12 +203,11 @@ public class AgentProviderService extends AbstractProviderService implements
                       File confDir,
                       Map<String, String> env,
                       EventCallback execInProgress) throws
-                                                    IOException,
-                                                    HoyaException {
+      IOException,
+      HoyaException {
 
     return false;
   }
-
 
   /**
    * Build the provider status, can be empty

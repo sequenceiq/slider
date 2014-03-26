@@ -87,7 +87,7 @@ public interface AgentKeys {
   String ARG_LABEL = "--label";
   String ARG_HOST = "--host";
   String ARG_PORT = "--port";
-  String AGENT_MAIN_SCRIPT = "./infra/slider-agent/agent/main.py";
+  String AGENT_MAIN_SCRIPT = "./infra/agent/slider-agent/agent/main.py";
 }
 
 

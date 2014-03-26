@@ -148,14 +148,8 @@ public class AgentClientProvider extends AbstractClientProvider
     for (String name : names) {
       MapOperations component = resources.getMandatoryComponent(name);
       MapOperations appComponent = appConf.getMandatoryComponent(name);
-      int count = component.getMandatoryOptionInt(
-        ResourceKeys.COMPONENT_INSTANCES);
-      appComponent.getMandatoryOption( SCRIPT_PATH);
-      // Extra validation for directly executed START
-      if (!name.equals(ROLE_NODE)) {
-        appComponent.getMandatoryOption(SERVICE_NAME);
-        appComponent.getMandatoryOption(APP_HOME);
-      }
+      int count = component.getMandatoryOptionInt(RoleKeys.ROLE_INSTANCES);
+      // Validate count against the metainfo.xml
 
       int priority =
         component.getMandatoryOptionInt(ResourceKeys.COMPONENT_PRIORITY);
@@ -196,16 +190,8 @@ public class AgentClientProvider extends AbstractClientProvider
     log.debug("Loading template configuration from {}, saving to ",
               originConfDirPath, generatedConfDirPath);
 
-    Path commandJson =
-      new Path(originConfDirPath, AgentKeys.COMMAND_JSON_FILENAME);
-    hoyaFileSystem.verifyFileExists(commandJson);
-
-
     Map<String, LocalResource> providerResources;
     launcher.submitDirectory(generatedConfDirPath,
                              HoyaKeys.PROPAGATED_CONF_DIR_NAME);
-
   }
-
-
 }
