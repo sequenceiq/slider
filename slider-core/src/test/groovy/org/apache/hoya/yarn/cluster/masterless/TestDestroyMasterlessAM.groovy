@@ -23,6 +23,7 @@ import org.apache.hoya.HoyaExitCodes
 import org.apache.hoya.exceptions.ErrorStrings
 import org.apache.hoya.exceptions.HoyaException
 import org.apache.hoya.exceptions.UnknownClusterException
+import org.apache.hoya.tools.HoyaFileSystem
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.params.CommonArgs
 import org.apache.hoya.yarn.client.HoyaClient
@@ -55,16 +56,28 @@ class TestDestroyMasterlessAM extends HBaseMiniClusterTestBase {
             Arguments.ARG_FILESYSTEM, fsDefaultName,
         ])
     assert launcher1.serviceExitCode == 0
-    
+
+
+
     ServiceLauncher launcher = createMasterlessAM(clustername, 0, true, true)
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
 
+    HoyaFileSystem hoyaFileSystem = createHoyaFileSystem()
+    def hdfs = hoyaFileSystem.fileSystem
+    def instanceDir = hoyaFileSystem.buildHoyaClusterDirPath(clustername)
+
+    assertPathExists(
+        hdfs,
+        "cluster path not found",
+        instanceDir)
+
+    hoyaFileSystem.locateInstanceDefinition(clustername)
     clusterActionFreeze(hoyaClient, clustername,"stopping first cluster")
     waitForAppToFinish(hoyaClient)
-    
 
     
+    describe "Warnings below are expected"
     
     //now try to create instance #2, and expect an in-use failure
     try {
@@ -76,14 +89,19 @@ class TestDestroyMasterlessAM extends HBaseMiniClusterTestBase {
                              ErrorStrings.E_ALREADY_EXISTS)
     }
 
-    
-    
-    
+    describe "END EXPECTED WARNINGS"
+
+
+    describe "destroying $clustername"
     //now: destroy it
+    
     int exitCode = hoyaClient.actionDestroy(clustername);
     assert 0 == exitCode
-    
-    
+
+    describe "post destroy checks"
+    hoyaFileSystem.verifyDirectoryNonexistent(instanceDir)
+
+    describe "thaw expected to fail"
     //expect thaw to now fail
     try {
       launcher = launch(HoyaClient,
@@ -99,9 +117,15 @@ class TestDestroyMasterlessAM extends HBaseMiniClusterTestBase {
       //expected
     }
 
+    describe "thaw completed, checking dir is still absent"
+    hoyaFileSystem.verifyDirectoryNonexistent(instanceDir)
+
+
+    describe "recreating $clustername"
+
     //and create a new cluster
     launcher = createMasterlessAM(clustername, 0, false, false)
-    HoyaClient cluster2 = launcher.service as HoyaClient
+    HoyaClient cluster2 = launcher.service 
     
     //try to destroy it while live
     try {

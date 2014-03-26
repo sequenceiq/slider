@@ -265,11 +265,15 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // delete the directory;
     boolean exists = hoyaFileSystem.getFileSystem().exists(clusterDirectory);
     if (exists) {
-      log.info("Cluster found: destroying");
+      log.info("Application Instance {} found at {}: destroying", clustername, clusterDirectory);
     } else {
-      log.info("Cluster already destroyed");
+      log.info("Application Instance {} already destroyed", clustername);
     }
-    hoyaFileSystem.getFileSystem().delete(clusterDirectory, true);
+    boolean deleted =
+      hoyaFileSystem.getFileSystem().delete(clusterDirectory, true);
+    if (!deleted) {
+      log.warn("Filesystem returned false from delete() operation");
+    }
 
     List<ApplicationReport> instances = findAllLiveInstances(clustername);
     // detect any race leading to cluster creation during the check/destroy process

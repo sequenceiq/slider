@@ -247,7 +247,7 @@ public class CoreFileSystem {
           IOException,
           HoyaException {
     if (fileSystem.exists(clusterDirectory)) {
-      log.warn("Dir {} exists: {}",
+      log.error("Dir {} exists: {}",
                clusterDirectory,
                listFSDir(clusterDirectory));
       throw new HoyaException(HoyaExitCodes.EXIT_CLUSTER_EXISTS,

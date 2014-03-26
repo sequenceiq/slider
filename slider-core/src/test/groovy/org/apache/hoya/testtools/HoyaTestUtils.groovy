@@ -39,6 +39,7 @@ import org.apache.hoya.exceptions.HoyaException
 import org.apache.hoya.exceptions.WaitTimeoutException
 import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.hoya.tools.Duration
+import org.apache.hoya.tools.HoyaFileSystem
 import org.apache.hoya.yarn.Arguments
 import org.apache.hoya.yarn.client.HoyaClient
 import org.apache.hadoop.yarn.api.records.ApplicationReport
@@ -549,6 +550,7 @@ class HoyaTestUtils extends Assert {
       Path path) throws IOException {
     try {
       FileStatus status = fileSystem.getFileStatus(path);
+      // a status back implies there is a file here
       fail(message + ": unexpectedly found " + path + " as  " + status);
     } catch (FileNotFoundException expected) {
       //this is expected

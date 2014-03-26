@@ -754,4 +754,18 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest {
         ErrorStrings.E_CLUSTER_RUNNING)
   }
 
+  /**
+   * Create a HoyaFileSystem instance bonded to the running FS.
+   * The YARN cluster must be up and running already
+   * @return
+   */
+  public HoyaFileSystem createHoyaFileSystem() {
+    assert miniCluster != null
+
+    def config = miniCluster.config
+    HadoopFS dfs = HadoopFS.get(new URI(fsDefaultName), config)
+    HoyaFileSystem hfs = new HoyaFileSystem(dfs, config)
+    return hfs
+  }
+
 }

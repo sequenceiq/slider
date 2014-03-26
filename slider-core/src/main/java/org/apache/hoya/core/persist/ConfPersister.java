@@ -23,12 +23,12 @@ import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hoya.core.conf.AggregateConf;
-import org.apache.hoya.core.conf.ConfTree;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.tools.CoreFileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Date;
 
@@ -87,7 +87,6 @@ public class ConfPersister {
     writelock = new Path(dir, Filenames.WRITELOCK);
     readlock = new Path(dir, Filenames.READLOCK);
     fileSystem = coreFS.getFileSystem();
-
   }
 
   @Override
@@ -149,11 +148,15 @@ public class ConfPersister {
    * Acquire the writelock
    * @throws IOException IO
    * @throws LockAcquireFailedException
+   * @throws FileNotFoundException if the target dir does not exist
    */
   @VisibleForTesting
-  boolean acquireReadLock() throws
+  boolean acquireReadLock() throws FileNotFoundException,
                                   IOException,
                                   LockAcquireFailedException {
+    if (!coreFS.getFileSystem().exists(dir)) {
+      throw new FileNotFoundException(dir.toString());
+    }
     long now = System.currentTimeMillis();
     boolean owner;
     try {
@@ -177,7 +180,6 @@ public class ConfPersister {
   }
 
   @VisibleForTesting
-
   boolean writelockExists() throws IOException {
     return fileSystem.exists(writelock);
   }
@@ -249,6 +251,7 @@ public class ConfPersister {
    * @throws LockAcquireFailedException the lock could not be acquired
    */
   public void load(AggregateConf conf) throws
+                                       FileNotFoundException,
                                         IOException,
                                         HoyaException,
                                         LockAcquireFailedException {
