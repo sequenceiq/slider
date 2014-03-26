@@ -19,24 +19,102 @@ package org.apache.hoya.yarn.appmaster.web.rest.agent;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
+import java.util.Map;
+
 /**
  *
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class ComponentStatus {
+  String componentName;
+  String msg;
+  String status;
+  String serviceName;
+  String clusterName;
+  String stackVersion;
+  private Map<String, Map<String, String>> configurationTags;
 
-  private String status;
+  public String getComponentName() {
+    return this.componentName;
+  }
 
-  public ComponentStatus(String status) {
-    this.status = status;
+  public void setComponentName(String componentName) {
+    this.componentName = componentName;
+  }
+
+  public String getMessage() {
+    return this.msg;
+  }
+
+  public void setMessage(String msg) {
+    this.msg = msg;
   }
 
   public String getStatus() {
-    return status;
+    return this.status;
   }
 
   public void setStatus(String status) {
     this.status = status;
+  }
+
+  public String getStackVersion() {
+    return this.stackVersion;
+  }
+
+  public void setStackVersion(String stackVersion) {
+    this.stackVersion = stackVersion;
+  }
+
+  public String getMsg() {
+    return msg;
+  }
+
+  public void setMsg(String msg) {
+    this.msg = msg;
+  }
+
+  public String getServiceName() {
+    return serviceName;
+  }
+
+  public void setServiceName(String serviceName) {
+    this.serviceName = serviceName;
+  }
+
+  public String getClusterName() {
+    return clusterName;
+  }
+
+  public void setClusterName(String clusterName) {
+    this.clusterName = clusterName;
+  }
+
+  /**
+   * @param tags the config tags that match this status
+   */
+  public void setConfigTags(Map<String, Map<String,String>> tags) {
+    configurationTags = tags;
+  }
+
+  /**
+   * @return the config tags that match this command, or <code>null</code>
+   * if none are present
+   */
+  public Map<String, Map<String,String>> getConfigTags() {
+    return configurationTags;
+  }
+
+  @Override
+  public String toString() {
+    return "ComponentStatus{" +
+           "componentName='" + componentName + '\'' +
+           ", msg='" + msg + '\'' +
+           ", status='" + status + '\'' +
+           ", serviceName='" + serviceName + '\'' +
+           ", clusterName='" + clusterName + '\'' +
+           ", stackVersion='" + stackVersion + '\'' +
+           '}';
   }
 }

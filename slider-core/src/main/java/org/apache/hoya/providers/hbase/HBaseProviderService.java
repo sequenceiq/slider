@@ -43,6 +43,12 @@ import org.apache.hoya.providers.ProviderUtils;
 import org.apache.hoya.tools.ConfigHelper;
 import org.apache.hoya.tools.HoyaFileSystem;
 import org.apache.hoya.tools.HoyaUtils;
+import org.apache.hoya.yarn.appmaster.web.rest.agent.AgentRestOperations;
+import org.apache.hoya.yarn.appmaster.web.rest.agent.HeartBeat;
+import org.apache.hoya.yarn.appmaster.web.rest.agent.HeartBeatResponse;
+import org.apache.hoya.yarn.appmaster.web.rest.agent.Register;
+import org.apache.hoya.yarn.appmaster.web.rest.agent.RegistrationResponse;
+import org.apache.hoya.yarn.appmaster.web.rest.agent.RegistrationStatus;
 import org.apache.hoya.yarn.service.EventCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,7 +69,8 @@ import java.util.TreeMap;
 public class HBaseProviderService extends AbstractProviderService implements
                                                                   ProviderCore,
                                                                   HBaseKeys,
-                                                                  HoyaKeys {
+                                                                  HoyaKeys,
+    AgentRestOperations{
 
   public static final String ERROR_UNKNOWN_ROLE = "Unknown role ";
   protected static final Logger log =
@@ -76,6 +83,7 @@ public class HBaseProviderService extends AbstractProviderService implements
 
   public HBaseProviderService() {
     super("HBaseProviderService");
+    setAgentRestOperations(this);
   }
 
   @Override
@@ -282,5 +290,22 @@ public class HBaseProviderService extends AbstractProviderService implements
     map.put("Active HBase Master (RPC): " + getInfoAvoidingNull(clusterDesc, StatusKeys.INFO_MASTER_ADDRESS), null);
 
     return map;
+  }
+
+  @Override
+  public RegistrationResponse handleRegistration(Register registration) {
+    // dummy impl
+    RegistrationResponse response = new RegistrationResponse();
+    response.setResponseStatus(RegistrationStatus.OK);
+    return response;
+  }
+
+  @Override
+  public HeartBeatResponse handleHeartBeat(HeartBeat heartBeat) {
+    // dummy impl
+    long id = heartBeat.getResponseId();
+    HeartBeatResponse response = new HeartBeatResponse();
+    response.setResponseId(id + 1L);
+    return response;
   }
 }

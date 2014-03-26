@@ -25,18 +25,39 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class HostStatus {
-  private String status;
+  public HostStatus(Status status, String cause) {
+    super();
+    this.status = status;
+    this.cause = cause;
+  }
+  public HostStatus() {
+    super();
+  }
 
-  public String getStatus() {
+  public enum Status {
+    HEALTHY,
+    UNHEALTHY
+  }
+  Status status;
+  String cause;
+  public Status getStatus() {
     return status;
   }
-
-  public void setStatus(String status) {
+  public void setStatus(Status status) {
     this.status = status;
   }
+  public String getCause() {
+    return cause;
+  }
+  public void setCause(String cause) {
+    this.cause = cause;
+  }
 
-  public HostStatus(String status) {
-
-    this.status = status;
+  @Override
+  public String toString() {
+    return "HostStatus{" +
+           "status=" + status +
+           ", cause='" + cause + '\'' +
+           '}';
   }
 }

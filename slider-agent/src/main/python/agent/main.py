@@ -40,7 +40,7 @@ agentPid = os.getpid()
 configFileRelPath = "infra/conf/agent.ini"
 logFileName = "agent.log"
 
-SERVER_STATUS_URL="https://{0}:{1}{2}"
+SERVER_STATUS_URL="http://{0}:{1}{2}"
 
 
 def signal_handler(signum, frame):

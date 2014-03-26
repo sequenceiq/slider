@@ -55,14 +55,14 @@ public class AgentResource {
   }
 
   @GET
-  @Path("/agent/register")
+  @Path("/agents/register")
   public Response endpointAgentRegister() {
     Response response = Response.status(200).entity("/agent/register").build();
     return response;
   }
 
   @GET
-  @Path("/agent")
+  @Path("/agents")
   public Response endpointAgent() {
     Response response = Response.status(200).entity("/agent").build();
     return response;

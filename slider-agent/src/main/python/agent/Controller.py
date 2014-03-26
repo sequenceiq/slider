@@ -52,12 +52,12 @@ class Controller(threading.Thread):
     self.credential = None
     self.config = config
     self.hostname = config.getLabel()
-    server_secured_url = 'https://' + config.get(AgentConfig.SERVER_SECTION,
+    server_url = 'http://' + config.get(AgentConfig.SERVER_SECTION,
                                                  'hostname') + \
                          ':' + config.get(AgentConfig.SERVER_SECTION,
-                                          'secured_port')
-    self.registerUrl = server_secured_url + '/agent/v1/register/' + self.hostname
-    self.heartbeatUrl = server_secured_url + '/agent/v1/heartbeat/' + self.hostname
+                                          'port')
+    self.registerUrl = server_url + '/ws/v1/slider/agents/' + self.hostname + '/register'
+    self.heartbeatUrl = server_url + '/ws/v1/slider/agents/' + self.hostname + '/heartbeat'
     self.netutil = NetUtil()
     self.responseId = -1
     self.repeatRegistration = False
@@ -276,10 +276,10 @@ class Controller(threading.Thread):
     pass
 
   def sendRequest(self, url, data):
-    if self.cachedconnect is None: # Lazy initialization
-      self.cachedconnect = security.CachedHTTPSConnection(self.config)
     req = urllib2.Request(url, data, {'Content-Type': 'application/json'})
-    response = self.cachedconnect.request(req)
+    f = urllib2.urlopen(req)
+    response = f.read()
+    f.close()
     return response
 
 

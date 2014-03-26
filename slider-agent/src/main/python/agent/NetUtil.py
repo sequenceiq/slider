@@ -37,7 +37,7 @@ class NetUtil:
     logger.info("Connecting to the following url " + url);
     try:
       parsedurl = urlparse(url)
-      ca_connection = httplib.HTTPSConnection(parsedurl[1])
+      ca_connection = httplib.HTTPConnection(parsedurl[1])
       ca_connection.request("GET", parsedurl[2])
       response = ca_connection.getresponse()  
       status = response.status    
