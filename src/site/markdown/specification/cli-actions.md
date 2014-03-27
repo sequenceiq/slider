@@ -165,6 +165,15 @@ in the relevant configuration file
 
     forall (name, opt, val) in resourceComponentOptions :
         resourceComponentOptions.components[name][opt] == val
+
+To avoid some confusion as to where keys go, all options beginning with the
+prefix `component.` are automatically copied into the resources file:
+
+    forall (opt, val) in options where startswith(name, "component.") :
+        resource.global[opt] == val
+
+    forall (name, opt, val) in componentOptions where startswith(name, "component.") :
+        resourceComponentOptions.components[name][opt] == val
           
 
 There's no explicit rejection of duplicate options, the outcome of that
