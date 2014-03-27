@@ -20,12 +20,16 @@ package org.apache.hoya.yarn.cluster.masterless
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.apache.hoya.HoyaKeys
+import org.apache.hoya.api.RoleKeys
+import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.hoya.yarn.client.HoyaClient
 import org.apache.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
+import static org.apache.hoya.yarn.Arguments.*
 
 /**
  * create masterless AMs and work with them. This is faster than
@@ -44,7 +48,18 @@ class TestKillMasterlessAM extends HBaseMiniClusterTestBase {
 
     describe "kill a masterless AM and verify that it shuts down"
 
-    ServiceLauncher launcher = createMasterlessAM(clustername, 0, true, true)
+    Map<String, Integer> roles = [
+        (HBaseKeys.ROLE_MASTER): 0,
+        (HBaseKeys.ROLE_WORKER): 0,
+    ]
+    ServiceLauncher launcher = createHoyaCluster(clustername,
+        roles,
+        [
+            ARG_COMP_OPT, HoyaKeys.COMPONENT_AM, RoleKeys.JVM_OPTS, "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
+        ],
+        true,
+        true,
+        [:])
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
     describe("listing services")
