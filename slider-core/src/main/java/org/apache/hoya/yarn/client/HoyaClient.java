@@ -395,21 +395,29 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                           clustername);
     
 
-    ConfTree internal = new ConfTree();
-    ConfTree resources = new ConfTree();
-    ConfTree appConf = new ConfTree();
+
+    
+    AggregateConf instanceDefinition = new AggregateConf();
+    ConfTreeOperations appConf = instanceDefinition.getAppConfOperations();
+    ConfTreeOperations resources = instanceDefinition.getResourceOperations();
+    ConfTreeOperations internal = instanceDefinition.getInternalOperations();
+    //initial definition is set by the providers 
+    hoyaAM.prepareInstanceConfiguration(instanceDefinition);
+    provider.prepareInstanceConfiguration(instanceDefinition);
+
+    //load in any specified on the command line
+    if (buildInfo.resources != null) {
+      resources.mergeFile(buildInfo.resources);
+    }
+    if (buildInfo.template != null) {
+      appConf.mergeFile(buildInfo.template);
+    }
+
+    //get the command line options
     ConfTree cmdLineAppOptions = buildInfo.buildAppOptionsConfTree();
     ConfTree cmdLineResourceOptions = buildInfo.buildResourceOptionsConfTree();
 
-    AggregateConf instanceConf = new AggregateConf(internal, appConf, resources);
-    
-    hoyaAM.prepareInstanceConfiguration(instanceConf);
-    provider.prepareInstanceConfiguration(instanceConf);
-    
-    ConfTreeOperations appConfOps = instanceConf.getAppConfOperations();
-    ConfTreeOperations resOps = instanceConf.getResourceOperations();
-    ConfTreeOperations internalOps = instanceConf.getInternalOperations();
-    appConfOps.putAll(cmdLineAppOptions);
+    appConf.merge(cmdLineAppOptions);
 
     // put the role counts into the resources file
     Map<String, String> argsRoleMap = buildInfo.getComponentMap();
@@ -417,35 +425,35 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       String count = roleEntry.getValue();
       String key = roleEntry.getKey();
       log.debug("{} => {}", key, count);
-      resOps.getOrAddComponent(key)
+      resources.getOrAddComponent(key)
                  .put(ResourceKeys.COMPONENT_INSTANCES, count);
     }
 
     //all CLI role options
     Map<String, Map<String, String>> appOptionMap =
       buildInfo.getCompOptionMap();
-    appConfOps.mergeComponents(appOptionMap);
+    appConf.mergeComponents(appOptionMap);
 
     //internal picks up core. values only
-    internalOps.propagateGlobalKeys(appConf, "hoya.");
-    internalOps.propagateGlobalKeys(appConf, "slider.");
-    internalOps.propagateGlobalKeys(appConf, "internal.");
+    internal.propagateGlobalKeys(appConf, "hoya.");
+    internal.propagateGlobalKeys(appConf, "slider.");
+    internal.propagateGlobalKeys(appConf, "internal.");
 
     //copy over role. and yarn. values ONLY to the resources
     if (PROPAGATE_RESOURCE_OPTION) {
-      resOps.propagateGlobalKeys(appConf, "component.");
-      resOps.propagateGlobalKeys(appConf, "role.");
-      resOps.propagateGlobalKeys(appConf, "yarn.");
-      resOps.mergeComponentsPrefix(appOptionMap, "component.", true);
-      resOps.mergeComponentsPrefix(appOptionMap, "yarn.", true);
-      resOps.mergeComponentsPrefix(appOptionMap, "role.", true);
+      resources.propagateGlobalKeys(appConf, "component.");
+      resources.propagateGlobalKeys(appConf, "role.");
+      resources.propagateGlobalKeys(appConf, "yarn.");
+      resources.mergeComponentsPrefix(appOptionMap, "component.", true);
+      resources.mergeComponentsPrefix(appOptionMap, "yarn.", true);
+      resources.mergeComponentsPrefix(appOptionMap, "role.", true);
     }
 
     // resource component args
-    appConfOps.putAll(cmdLineResourceOptions);
-    resOps.mergeComponents(buildInfo.getResourceCompOptionMap());
+    appConf.merge(cmdLineResourceOptions);
+    resources.mergeComponents(buildInfo.getResourceCompOptionMap());
 
-    builder.init(appconfdir, provider.getName(), instanceConf);
+    builder.init(appconfdir, provider.getName(), instanceDefinition);
     builder.propagateFilename();
     builder.propagatePrincipals();
     builder.setImageDetails(buildInfo.getImage(), buildInfo.getAppHomeDir());
@@ -462,7 +470,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     //then propagate any package URI
     if (buildInfo.packageURI != null) {
-      appConfOps.set(AgentKeys.PACKAGE_PATH, buildInfo.packageURI.toString());
+      appConf.set(AgentKeys.PACKAGE_PATH, buildInfo.packageURI.toString());
     }
 
     // provider to validate what there is

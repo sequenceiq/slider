@@ -28,6 +28,7 @@ import org.apache.hoya.exceptions.BadCommandArgumentsException;
 import org.apache.hoya.providers.HoyaProviderFactory;
 import org.apache.hoya.providers.hbase.HBaseConfigFileOptions;
 
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 
@@ -84,8 +85,15 @@ public abstract class AbstractClusterBuildingActionArgs extends AbstractActionAr
 */
   @Parameter(names = {ARG_PACKAGE},
            description = "URI to a slider package")
-  public String packageURI; 
+  public String packageURI;
 
+  @Parameter(names = {ARG_RESOURCES},
+             description = "File defining the resources of this instance")
+  public File resources;
+
+  @Parameter(names = {ARG_TEMPLATE},
+             description = "Template application configuration")
+  public File template;
 
   @ParametersDelegate
   public ComponentArgsDelegate componentDelegate = new ComponentArgsDelegate();

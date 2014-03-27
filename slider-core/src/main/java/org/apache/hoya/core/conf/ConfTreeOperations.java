@@ -23,6 +23,7 @@ import org.apache.hoya.core.persist.ConfTreeSerDeser;
 import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.tools.HoyaUtils;
 import org.codehaus.jackson.JsonGenerationException;
+import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.slf4j.Logger;
@@ -201,6 +202,15 @@ public class ConfTreeOperations {
   }
 
   /**
+   * Propagate all global keys matching a prefix
+   * @param src source
+   * @param prefix prefix
+   */
+  public void propagateGlobalKeys(ConfTreeOperations src, String prefix) {
+    propagateGlobalKeys(src.confTree, prefix);
+  }
+
+  /**
    * Merge the map of a single component
    * @param component component name
    * @param map map to merge
@@ -265,7 +275,7 @@ public class ConfTreeOperations {
    * Merge in another tree with overwrites
    * @param that the other tree
    */
-  public void putAll(ConfTree that) {
+  public void merge(ConfTree that) {
 
     getGlobalOptions().putAll(that.global);
     confTree.metadata.putAll(that.metadata);
@@ -275,6 +285,7 @@ public class ConfTreeOperations {
       comp.putAll(entry.getValue());
     }
   }
+
   
   /**
    * Load from a resource. The inner conf tree is the loaded data -unresolved
@@ -318,6 +329,19 @@ public class ConfTreeOperations {
     return ops;
   }
 
+  /**
+   * Load from a file and merge it in
+   * @param file file
+   * @throws IOException any IO problem
+   * @throws BadConfigException if the file is invalid
+   */
+  public void mergeFile(File file) throws IOException, BadConfigException {
+    ConfTreeSerDeser confTreeSerDeser = new ConfTreeSerDeser();
+    ConfTree tree = confTreeSerDeser.fromFile(file);
+    ConfTreeOperations ops = new ConfTreeOperations(tree);
+    ops.validate();
+    merge(ops.confTree);
+  }
 
   @Override
   public String toString() {
