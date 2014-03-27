@@ -218,6 +218,7 @@ class TestBuildBasicAgent extends AgentTestBase {
       fail("Expected an exception from a bad app conf")
     } catch (BadConfigException expected) {
     }
+    
     try {
       
       //initial: get the two mixed up
@@ -233,9 +234,27 @@ class TestBuildBasicAgent extends AgentTestBase {
           false)
 
       fail("Expected a file not found exception")
-    } catch (FileNotFoundException expected) {
+    } catch (BadConfigException expected) {
     }
 
+
+    try {
+
+      //initial: get the two mixed up
+      buildAgentCluster("test_build_template_args_bad-4",
+          [:],
+          [
+
+              ARG_OPTION, CONTROLLER_URL, "http://localhost",
+              ARG_PACKAGE, ".",
+              ARG_TEMPLATE, TEST_FILES + "bad/appconf-2.json",
+          ],
+          true, false,
+          false)
+
+      fail("Expected an exception from a bad app conf")
+    } catch (BadConfigException expected) {
+    }
 
   }
   

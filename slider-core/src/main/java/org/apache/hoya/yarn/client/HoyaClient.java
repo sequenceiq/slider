@@ -90,6 +90,7 @@ import org.apache.hoya.yarn.params.ClientArgs;
 import org.apache.hoya.yarn.params.HoyaAMArgs;
 import org.apache.hoya.yarn.params.LaunchArgsAccessor;
 import org.apache.hoya.yarn.service.CompoundLaunchedService;
+import org.codehaus.jackson.JsonProcessingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -407,10 +408,27 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     //load in any specified on the command line
     if (buildInfo.resources != null) {
-      resources.mergeFile(buildInfo.resources);
+      try {
+        resources.mergeFile(buildInfo.resources);
+
+      } catch (IOException e) {
+        throw new BadConfigException(e,
+               "incorrect argument to %s: \"%s\" : %s ", 
+                                     Arguments.ARG_RESOURCES,
+                                     buildInfo.resources,
+                                     e.toString());
+      }
     }
     if (buildInfo.template != null) {
-      appConf.mergeFile(buildInfo.template);
+      try {
+        appConf.mergeFile(buildInfo.template);
+      } catch (IOException e) {
+        throw new BadConfigException(e,
+                                     "incorrect argument to %s: \"%s\" : %s ",
+                                     Arguments.ARG_TEMPLATE,
+                                     buildInfo.template,
+                                     e.toString());
+      }
     }
 
     //get the command line options
