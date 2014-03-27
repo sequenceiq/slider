@@ -30,7 +30,6 @@ and existing but not running "frozen" application instances.
 
 1. A *Slider application instance*  is a slider application configured to be deployable on a specific YARN cluster, with a specific configuration. An instance can be *live* -actually running- or *frozen*. When frozen all its configuration details and instance-specific data are preserved on HDFS.
 
-
 1. An *image* is a *tar.gz* file containing binaries used to create the application.  1. Images are kept in the HDFS filesystem and identified by their path names; filesystem permissions can be used to share images amongst users.
 
 1. An *image configuration* is a directory that is overlaid file-by-file onto the conf/ directory inside the HBase image.
