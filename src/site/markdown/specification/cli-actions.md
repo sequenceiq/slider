@@ -169,10 +169,14 @@ in the relevant configuration file
 To avoid some confusion as to where keys go, all options beginning with the
 prefix `component.` are automatically copied into the resources file:
 
-    forall (opt, val) in options where startswith(name, "component.") :
+    forall (opt, val) in options where startswith(opt, "component.") 
+            or startswith(opt, "role.") 
+            or startswith(opt, "yarn."): 
         resource.global[opt] == val
 
-    forall (name, opt, val) in componentOptions where startswith(name, "component.") :
+    forall (name, opt, val) in componentOptions where startswith(opt, "component.") 
+            or startswith(opt, "role.") 
+            or startswith(opt, "yarn."):
         resourceComponentOptions.components[name][opt] == val
           
 
