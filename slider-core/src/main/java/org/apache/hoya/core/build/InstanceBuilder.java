@@ -247,15 +247,9 @@ public class InstanceBuilder {
     if (HoyaUtils.isSet(zkhosts)) {
       MapOperations globalAppOptions =
         instanceDescription.getAppConfOperations().getGlobalOptions();
-      MapOperations globalInternalOptions =
-        instanceDescription.getAppConfOperations().getGlobalOptions();
       globalAppOptions.put(ZOOKEEPER_PATH, zookeeperRoot);
       globalAppOptions.put(ZOOKEEPER_HOSTS, zkhosts);
       globalAppOptions.put(ZOOKEEPER_PORT, Integer.toString(zkport));
-/* commented out unless/until we need ZK internally
-     globalInternalOptions.put(ZOOKEEPER_PATH, zookeeperRoot);
-      globalInternalOptions.put(ZOOKEEPER_HOSTS, zkhosts);
-      globalInternalOptions.put(ZOOKEEPER_PORT, Integer.toString(zkport));*/
     }
   }
 

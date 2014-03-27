@@ -66,6 +66,7 @@ import org.apache.hoya.exceptions.UnknownClusterException;
 import org.apache.hoya.exceptions.WaitTimeoutException;
 import org.apache.hoya.providers.AbstractClientProvider;
 import org.apache.hoya.providers.HoyaProviderFactory;
+import org.apache.hoya.providers.agent.AgentKeys;
 import org.apache.hoya.providers.hoyaam.HoyaAMClientProvider;
 import org.apache.hoya.tools.ConfigHelper;
 import org.apache.hoya.tools.Duration;
@@ -425,7 +426,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       buildInfo.getCompOptionMap();
     appConfOps.mergeComponents(appOptionMap);
 
-    //internal picks up hoya. values only
+    //internal picks up core. values only
     internalOps.propagateGlobalKeys(appConf, "hoya.");
     internalOps.propagateGlobalKeys(appConf, "slider.");
     internalOps.propagateGlobalKeys(appConf, "internal.");
@@ -458,6 +459,11 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     builder.addZKPaths(buildInfo.getZKhosts(),
                        zookeeperRoot,
                        buildInfo.getZKport());
+
+    //then propagate any package URI
+    if (buildInfo.packageURI != null) {
+      appConfOps.set(AgentKeys.PACKAGE_PATH, buildInfo.packageURI.toString());
+    }
 
     // provider to validate what there is
     provider.validateInstanceDefinition(builder.getInstanceDescription());

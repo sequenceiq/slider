@@ -128,9 +128,14 @@ if the validation fails.
 
 Fields in the cluster description have been filled in
 
-    clusterspec["type"] == provider
-    internal.global["zookeeper.port"]  == zkport
-    internal.global["zookeeper.hosts"]  == zkhosts
+    internal.global["internal.provider.name"] == provider
+    app_conf.global["zookeeper.port"]  == zkport
+    app_conf.global["zookeeper.hosts"]  == zkhosts
+    
+
+    package => app_conf.global["agent.package"] = package
+    
+    
 
 Any `apphome` and `image` properties have propagated
 

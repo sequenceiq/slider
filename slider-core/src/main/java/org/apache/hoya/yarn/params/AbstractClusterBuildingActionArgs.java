@@ -75,6 +75,16 @@ public abstract class AbstractClusterBuildingActionArgs extends AbstractActionAr
              description = "Provider of the specific cluster application")
   public String provider = HoyaProviderFactory.DEFAULT_CLUSTER_TYPE;
 
+/*
+
+  @Parameter(names = {ARG_PACKAGE},
+             description = "URI to a slider package",
+             converter = URIArgumentConverter.class  )
+  public URI packageURI; 
+*/
+  @Parameter(names = {ARG_PACKAGE},
+           description = "URI to a slider package")
+  public String packageURI; 
 
 
   @ParametersDelegate

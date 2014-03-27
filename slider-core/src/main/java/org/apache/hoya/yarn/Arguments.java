@@ -67,6 +67,7 @@ public interface Arguments {
   //  String ARG_NAME = "--name";
   String ARG_OUTPUT = "--out";
   String ARG_OUTPUT_SHORT = "-o";
+  String ARG_PACKAGE = "--package";
   String ARG_PROVIDER = "--provider";
   String ARG_RES_COMP_OPT = "--rescompopt";
   String ARG_RES_COMP_OPT_SHORT = "--rco";
