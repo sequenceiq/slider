@@ -126,6 +126,12 @@ The `--wait` parameter, if provided, specifies the time to wait until the YARN a
 ### Arguments for `build` and `create` 
 
 
+
+##### `--package <uri-to-package>`  
+
+This define the slider application package to be deployed.
+
+
 ##### `--option <name> <value>`  
 
 Set a application instance option. 

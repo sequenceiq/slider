@@ -128,9 +128,14 @@ if the validation fails.
 
 Fields in the cluster description have been filled in
 
-    clusterspec["type"] == provider
-    internal.global["zookeeper.port"]  == zkport
-    internal.global["zookeeper.hosts"]  == zkhosts
+    internal.global["internal.provider.name"] == provider
+    app_conf.global["zookeeper.port"]  == zkport
+    app_conf.global["zookeeper.hosts"]  == zkhosts
+    
+
+    package => app_conf.global["agent.package"] = package
+    
+    
 
 Any `apphome` and `image` properties have propagated
 
@@ -169,10 +174,14 @@ in the relevant configuration file
 To avoid some confusion as to where keys go, all options beginning with the
 prefix `component.` are automatically copied into the resources file:
 
-    forall (opt, val) in options where startswith(name, "component.") :
+    forall (opt, val) in options where startswith(opt, "component.") 
+            or startswith(opt, "role.") 
+            or startswith(opt, "yarn."): 
         resource.global[opt] == val
 
-    forall (name, opt, val) in componentOptions where startswith(name, "component.") :
+    forall (name, opt, val) in componentOptions where startswith(opt, "component.") 
+            or startswith(opt, "role.") 
+            or startswith(opt, "yarn."):
         resourceComponentOptions.components[name][opt] == val
           
 
