@@ -37,16 +37,16 @@ public interface FuntestProperties extends HoyaXMLConfKeysForTesting {
    */
   String HOYA_BIN_DIR_PROP = "hoya.bin.dir"
 
-  String KEY_HOYA_TEST_NUM_WORKERS = "hoya.test.cluster.size"
+  String KEY_HOYA_TEST_NUM_WORKERS = "slider.test.cluster.size"
   int DEFAULT_HOYA_NUM_WORKERS = 1
 
-  String KEY_HOYA_TEST_ZK_HOSTS = "hoya.test.zkhosts";
+  String KEY_HOYA_TEST_ZK_HOSTS = "slider.test.zkhosts";
   String DEFAULT_HOYA_ZK_HOSTS = "localhost";
 
   /**
    * Time to sleep waiting for the AM to come back up
    */
-  String KEY_AM_RESTART_SLEEP_TIME = "hoya.test.am.restart.time"
+  String KEY_AM_RESTART_SLEEP_TIME = "slider.test.am.restart.time"
   int DEFAULT_AM_RESTART_SLEEP_TIME = 30000
 
   String KEY_HOYA_FUNTESTS_ENABLED = "hoya.funtest.enabled"

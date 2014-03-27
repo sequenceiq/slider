@@ -24,13 +24,12 @@ import org.apache.hoya.funtest.framework.SliderShell
 import org.apache.hoya.yarn.Arguments
 import org.junit.Before
 
-import static org.apache.hoya.HoyaXMLConfKeysForTesting.KEY_HOYA_TEST_ACCUMULO_APPCONF
-import static org.apache.hoya.HoyaXMLConfKeysForTesting.KEY_HOYA_TEST_ACCUMULO_TAR
+import static org.apache.hoya.HoyaXMLConfKeysForTesting.KEY_TEST_ACCUMULO_APPCONF
+import static org.apache.hoya.HoyaXMLConfKeysForTesting.KEY_TEST_ACCUMULO_TAR
 import static org.apache.hoya.api.ResourceKeys.YARN_MEMORY
 import static org.apache.hoya.providers.accumulo.AccumuloKeys.*
 import static org.apache.hoya.yarn.Arguments.ARG_PROVIDER
 import static org.apache.hoya.yarn.Arguments.ARG_RES_COMP_OPT
-import static org.apache.hoya.yarn.Arguments.ARG_ROLEOPT
 
 /**
  * Anything specific to accumulo tests
@@ -73,10 +72,10 @@ abstract class AccumuloCommandTestBase extends CommandTestBase {
         HOYA_CONFIG,
         OPTION_HADOOP_HOME)
     argsList << Arguments.ARG_IMAGE <<
-    getRequiredConfOption(HOYA_CONFIG, KEY_HOYA_TEST_ACCUMULO_TAR)
+    getRequiredConfOption(HOYA_CONFIG, KEY_TEST_ACCUMULO_TAR)
 
     argsList << Arguments.ARG_CONFDIR <<
-    getRequiredConfOption(HOYA_CONFIG, KEY_HOYA_TEST_ACCUMULO_APPCONF)
+    getRequiredConfOption(HOYA_CONFIG, KEY_TEST_ACCUMULO_APPCONF)
 
     argsList << ARG_RES_COMP_OPT << ROLE_MASTER <<
     YARN_MEMORY << containerMemory

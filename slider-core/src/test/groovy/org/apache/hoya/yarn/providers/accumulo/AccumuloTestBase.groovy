@@ -58,7 +58,7 @@ public abstract class AccumuloTestBase extends YarnZKMiniClusterTestBase {
   @Override
   void setup() {
     super.setup()
-    assumeBoolOption(HOYA_CONFIG, KEY_HOYA_TEST_ACCUMULO_ENABLED, true)
+    assumeBoolOption(HOYA_CONFIG, KEY_TEST_ACCUMULO_ENABLED, true)
     assumeArchiveDefined();
     assumeApplicationHome();
     YarnConfiguration conf = testConfiguration
@@ -80,7 +80,7 @@ public abstract class AccumuloTestBase extends YarnZKMiniClusterTestBase {
 
   @Override
   public String getArchiveKey() {
-    return KEY_HOYA_TEST_ACCUMULO_TAR
+    return KEY_TEST_ACCUMULO_TAR
   }
 
   /**
@@ -89,7 +89,7 @@ public abstract class AccumuloTestBase extends YarnZKMiniClusterTestBase {
    */
   @Override
   public String getApplicationHomeKey() {
-    return KEY_HOYA_TEST_ACCUMULO_HOME
+    return KEY_TEST_ACCUMULO_HOME
   }
 
   /**

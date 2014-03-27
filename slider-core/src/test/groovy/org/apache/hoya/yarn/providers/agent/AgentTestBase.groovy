@@ -38,7 +38,7 @@ import static org.apache.hoya.yarn.Arguments.ARG_PROVIDER
 public abstract class AgentTestBase extends YarnZKMiniClusterTestBase {
 
   public static
-  final int AGENT_CLUSTER_STARTUP_TIME = DEFAULT_HOYA_AGENT_LAUNCH_TIME
+  final int AGENT_CLUSTER_STARTUP_TIME = DEFAULT_AGENT_LAUNCH_TIME
 
   /**
    * The time to sleep before trying to talk to the HBase Master and
@@ -65,7 +65,7 @@ public abstract class AgentTestBase extends YarnZKMiniClusterTestBase {
 
   @Override
   public String getArchiveKey() {
-    return KEY_HOYA_TEST_AGENT_TAR
+    return KEY_TEST_AGENT_TAR
   }
 
   /**
@@ -74,7 +74,7 @@ public abstract class AgentTestBase extends YarnZKMiniClusterTestBase {
    */
   @Override
   public String getApplicationHomeKey() {
-    return KEY_HOYA_TEST_AGENT_HOME
+    return KEY_TEST_AGENT_HOME
   }
 
   /**
@@ -84,7 +84,7 @@ public abstract class AgentTestBase extends YarnZKMiniClusterTestBase {
    */
 
   public void checkTestAssumptions(YarnConfiguration conf) {
-    assumeBoolOption(HOYA_CONFIG, KEY_HOYA_TEST_AGENT_ENABLED, true)
+    assumeBoolOption(HOYA_CONFIG, KEY_TEST_AGENT_ENABLED, true)
 //    assumeArchiveDefined();
     assumeApplicationHome();
   }

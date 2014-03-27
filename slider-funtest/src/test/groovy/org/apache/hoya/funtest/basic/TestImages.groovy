@@ -32,14 +32,14 @@ class TestImages extends CommandTestBase implements FuntestProperties {
   @Before
   public void verifyPreconditions() {
     assumeBoolOption(HOYA_CONFIG, KEY_HOYA_FUNTESTS_ENABLED, true)
-    assumeBoolOption(HOYA_CONFIG, KEY_HOYA_TEST_HBASE_ENABLED, true)
+    assumeBoolOption(HOYA_CONFIG, KEY_TEST_HBASE_ENABLED, true)
   }
   
   @Test
   public void testImageExists() throws Throwable {
 
     Configuration conf = loadHoyaConf()
-    String testImage = conf.get(KEY_HOYA_TEST_HBASE_TAR)
+    String testImage = conf.get(KEY_TEST_HBASE_TAR)
     assert testImage
     Path path = new Path(testImage)
     HadoopFS fs = HadoopFS.get(
@@ -51,9 +51,9 @@ class TestImages extends CommandTestBase implements FuntestProperties {
   @Test
   public void testAppConfExists() throws Throwable {
     Configuration conf = loadHoyaConf()
-    String dir = conf.get(KEY_HOYA_TEST_HBASE_APPCONF)
+    String dir = conf.get(KEY_TEST_HBASE_APPCONF)
 
-    assert conf.get(KEY_HOYA_TEST_HBASE_APPCONF)
+    assert conf.get(KEY_TEST_HBASE_APPCONF)
     Path path = new Path(dir)
     HadoopFS fs = HadoopFS.get(
         path.toUri(),
