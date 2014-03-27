@@ -723,7 +723,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     log.debug("Preflight validation of cluster configuration");
 
     
-    hoyaAM.preflightValidateClusterConfiguration(hoyaFileSystem, clustername,
+    hoyaAM.preflightValidateClusterConfiguration(hoyaFileSystem,
+                                                 clustername,
                                                  config,
                                                  instanceDefinition,
                                                  clusterDirectory,
@@ -731,7 +732,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                                                  clusterSecure
                                                 );
 
-    provider.preflightValidateClusterConfiguration(hoyaFileSystem, clustername,
+    provider.preflightValidateClusterConfiguration(hoyaFileSystem,
+                                                   clustername,
                                                    config,
                                                    instanceDefinition,
                                                    clusterDirectory,
@@ -779,15 +781,9 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     CommandLineBuilder commandLine = new CommandLineBuilder();
     commandLine.addJavaBinary();
     // insert any JVM options);
-    hoyaAM.addJVMOptions(hoyaAMResourceComponent, commandLine);
+    hoyaAM.addJVMOptions(instanceDefinition, commandLine);
     // enable asserts if the text option is set
-    if (debugAM) {
-      commandLine.add(HoyaKeys.JVM_ENABLE_ASSERTIONS);
-      commandLine.add(HoyaKeys.JVM_ENABLE_SYSTEM_ASSERTIONS);
-    }
-    commandLine.add(String.format(HoyaKeys.FORMAT_D_CLUSTER_NAME, clustername));
-    commandLine.add(
-      String.format(HoyaKeys.FORMAT_D_CLUSTER_TYPE, provider.getName()));
+    commandLine.enableJavaAssertions();
     // add the hoya AM sevice entry point
     commandLine.add(HoyaAMArgs.CLASSNAME);
 

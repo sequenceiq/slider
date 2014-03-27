@@ -72,9 +72,6 @@ public interface HoyaKeys extends HoyaXmlConfKeys {
    */
 
   String JVM_JAVA_HEADLESS = "-Djava.awt.headless=true";
-  String FORMAT_D_CLUSTER_NAME = "-Dhoya.cluster.name=%s";
-  String FORMAT_D_CLUSTER_TYPE = "-Dhoya.app.type=%s";
-
 
   /**
    * This is the name of the dir/subdir containing

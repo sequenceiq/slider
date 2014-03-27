@@ -24,7 +24,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hoya.HoyaKeys;
-import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.ResourceKeys;
 import org.apache.hoya.api.RoleKeys;
@@ -32,6 +31,7 @@ import org.apache.hoya.core.conf.AggregateConf;
 import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.core.launch.AbstractLauncher;
 import org.apache.hoya.core.launch.CommandLineBuilder;
+import org.apache.hoya.exceptions.BadConfigException;
 import org.apache.hoya.exceptions.HoyaException;
 import org.apache.hoya.providers.AbstractClientProvider;
 import org.apache.hoya.providers.PlacementPolicy;
@@ -206,36 +206,23 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
     capability.setVirtualCores(
       hoyaAM.getOptionInt(ResourceKeys.YARN_CORES, capability.getVirtualCores()));
   }
-
-  /**
-   * Extract any JVM options from the cluster specification and
-   * add them to the command line
-   * @param clusterSpec spec
-   */
-  public void addJVMOptions(ClusterDescription clusterSpec,
-                            CommandLineBuilder cmdLine) {
-    MapOperations ops = new MapOperations(
-      COMPONENT_AM, clusterSpec.getOrAddRole(COMPONENT_AM)
-    );
-    addJVMOptions(ops, cmdLine);
-  }
-  
   
   /**
    * Extract any JVM options from the cluster specification and
    * add them to the command line
    * @param clusterSpec spec
    */
-  public void addJVMOptions(MapOperations hoyaAM,
-                            CommandLineBuilder cmdLine) {
-    cmdLine.add(HoyaKeys.JVM_FORCE_IPV4);
-    cmdLine.add(HoyaKeys.JVM_JAVA_HEADLESS);
+  public void addJVMOptions(AggregateConf aggregateConf,
+                            CommandLineBuilder cmdLine) throws
+                                                        BadConfigException {
+    MapOperations hoyaAM =
+      aggregateConf.getAppConfOperations().getMandatoryComponent(
+        HoyaKeys.COMPONENT_AM);
+    cmdLine.sysprop("java.net.preferIPv4Stack", "true");
+    cmdLine.sysprop("java.awt.headless", "true");
     String heap = hoyaAM.getOption(RoleKeys.JVM_HEAP,
-                                         DEFAULT_JVM_HEAP);
-    if (HoyaUtils.isSet(heap)) {
-      cmdLine.add("-Xmx" + heap);
-    }
-
+                                   DEFAULT_JVM_HEAP);
+    cmdLine.setJVMHeap(heap);
     String jvmopts = hoyaAM.getOption(RoleKeys.JVM_OPTS, "");
     if (HoyaUtils.isSet(jvmopts)) {
       cmdLine.add(jvmopts);

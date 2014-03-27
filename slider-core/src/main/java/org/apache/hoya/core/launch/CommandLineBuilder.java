@@ -27,6 +27,7 @@ import java.util.List;
 
 /**
  * Build a single command line to include in the container commands;
+ * Special support for JVM command buildup.
  */
 public class CommandLineBuilder {
   protected final List<String> argumentList = new ArrayList<String>(20);
@@ -104,6 +105,24 @@ public class CommandLineBuilder {
   public List<String> getArgumentList() {
     return argumentList;
   }
+
+  /**
+   * Set the size of the heap if a non-empty heap is passed in. 
+   * @param heap empty string or something like "128M" ,"1G" etc. The value is
+   * trimmed.
+   */
+  public void setJVMHeap(String heap) {
+    if (HoyaUtils.isSet(heap)) {
+      add("-Xmx" + heap.trim());
+    }
+  }
   
+  public void enableJavaAssertions() {
+    add("-ea");
+    add("-esa");
+  }
   
+  public void sysprop(String property, String value) {
+    add("-D" + property + "=" + value);
+  }
 }
