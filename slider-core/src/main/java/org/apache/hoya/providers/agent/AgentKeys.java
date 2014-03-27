@@ -77,10 +77,6 @@ public interface AgentKeys {
    */
   String SERVICE_PID_PATH = "app.pid.path";
 
-  String COMMAND_JSON_FILENAME = "command.json";
-
-  String AGENT_CONFIG_FILENAME = "agent.ini";
-
   String ARG_COMMAND = "--command";
   String ARG_LOG = "--log";
 
@@ -88,6 +84,16 @@ public interface AgentKeys {
   String ARG_HOST = "--host";
   String ARG_PORT = "--port";
   String AGENT_MAIN_SCRIPT = "./infra/agent/slider-agent/agent/main.py";
+
+  String APP_DEF = "application.def";
+  String AGENT_IMAGE = "agent.image";
+  String AGENT_VERSION = "agent.version";
+  String AGENT_CONF = "agent.conf";
+
+  String AGENT_INSTALL_DIR = "infra/agent";
+  String APP_DEFINITION_DIR = "app/definition";
+  String AGENT_CONFIG_FILE = "infra/conf/agent.ini";
+  String AGENT_VERSION_FILE = "infra/version";
 }
 
 

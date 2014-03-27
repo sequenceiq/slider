@@ -101,9 +101,9 @@ class CustomServiceOrchestrator():
       for py_file, current_base_dir in filtered_py_file_list:
         script_params = [command_name, json_path, current_base_dir]
         python_paths = [os.path.join(self.config.getWorkRootPath(),
-                                     "infra/slider-agent/jinja2"),
+                                     "infra/agent/slider-agent/jinja2"),
                         os.path.join(self.config.getWorkRootPath(),
-                                     "infra/slider-agent")]
+                                     "infra/agent/slider-agent")]
         environment_vars = [("PYTHONPATH", ":".join(python_paths))]
         ret = self.python_executor.run_file(py_file, script_params,
                                             tmpoutfile, tmperrfile, timeout,
