@@ -35,7 +35,7 @@
   
 
   <property>
-    <name>hoya.yarn.queue</name>
+    <name>slider.yarn.queue</name>
     <value>default</value>
     <description>YARN queue for the Application Master</description>
   </property>
@@ -58,7 +58,7 @@
   </property>
 
   <property>
-    <name>hoya.security.enabled</name>
+    <name>slider.security.enabled</name>
     <value>true</value>
   </property>
 

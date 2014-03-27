@@ -66,7 +66,7 @@ public abstract class HoyaProviderFactory extends Configured {
     if (application == null) {
       application = DEFAULT_CLUSTER_TYPE;
     }
-    String providerKey = String.format(HoyaXmlConfKeys.KEY_HOYA_PROVIDER, application);
+    String providerKey = String.format(HoyaXmlConfKeys.KEY_PROVIDER, application);
     String classname = conf.getTrimmed(providerKey);
     if (classname == null) {
       throw new BadClusterStateException(PROVIDER_NOT_FOUND, application,

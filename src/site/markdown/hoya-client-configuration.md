@@ -103,7 +103,7 @@ Multiple definitions are of course allowed on the command line
 
 Slider-specific options can be made the same way
 
-    -D hoya.kerberos.principal=
+    -D slider.kerberos.principal=
 
 If duplicate declarations are made the order of assignment is undefined.
 
@@ -178,28 +178,28 @@ a limited number of hoya-specific configuration parameters.
     </property>
     
     <property>
-      <name>hoya.yarn.queue</name>
+      <name>slider.yarn.queue</name>
       <value>default</value>
     </property>
 
     <property>
-      <name>hoya.yarn.queue</name>
+      <name>slider.yarn.queue</name>
       <value>1</value>
     </property>
 
     <property>
-      <name>hoya.yarn.restart.limit</name>
+      <name>slider.yarn.restart.limit</name>
       <value>5</value>
       <description>How many times to start/restart the Slider AM</description>
     </property>
 
 
-### `hoya.security.enabled` - enable security.
+### `slider.security.enabled` - enable security.
 
 This turns security on; consult [Security](security.html) for more information.
 
 
-### `hoya.yarn.restart.limit` - set limit on Application Master Restarts
+### `slider.yarn.restart.limit` - set limit on Application Master Restarts
 
 This limits how many times YARN should start a failed application master.
 
@@ -215,7 +215,7 @@ places an upper limit on the number of retries that any application can request.
 If the application fails after less restarts than requested, check this cluster
 setting.
 
-### `hoya.yarn.queue` - the name of the YARN queue for the cluster.
+### `slider.yarn.queue` - the name of the YARN queue for the cluster.
 
 This identifies the queue submit the application creation request to, which can
 define the priority, resource limits and other values of an application. All
@@ -223,34 +223,34 @@ containers created in the Slider cluster will share this same queue.
 
 Default value: `default`.
 
-### `hoya.yarn.queue.priority` - the name of the YARN queue for the cluster.
+### `slider.yarn.queue.priority` - the name of the YARN queue for the cluster.
 
 This identifies the priority within the queue. The lower the value, the higher the
 priority
 
 Default value: `1`.
 
-    bin/hoya thaw cl1 -D hoya.yarn.queue.priority=5
+    bin/hoya thaw cl1 -D slider.yarn.queue.priority=5
 
 
 
-#### `hoya.cluster.directory.permissions`
+#### `slider.cluster.directory.permissions`
 
 An octal-format (`chmod`-style) permissions mask for the directory
 that contains the cluster specification `${user.home}/.hoya/clusters/${clustername}`
 
     <property>
-      <name>hoya.cluster.directory.permissions</name>
+      <name>slider.cluster.directory.permissions</name>
       <value>750</value>
     </property>
 
-#### `hoya.data.directory.permissions`
+#### `slider.data.directory.permissions`
 
 An octal-format (`chmod`-style) permissions mask for the directory
 that contains the application data `${user.home}/.hoya/clusters/${clustername}/database`
 
     <property>
-      <name>hoya.data.directory.permissions</name>
+      <name>slider.data.directory.permissions</name>
       <value>750</value>
     </property>
 
@@ -268,6 +268,6 @@ not passed down to the XML site specification of the created cluster.
 
 The sole options passed down are the HDFS bindings: `fs.defaultFS`,
 which is passed down both as that property and as `fs.default.name`,
-and, in a secure cluster, the security flag (`hoya.security.enabled`)
+and, in a secure cluster, the security flag (`slider.security.enabled`)
 and the HDFS Kerberos principal.
 

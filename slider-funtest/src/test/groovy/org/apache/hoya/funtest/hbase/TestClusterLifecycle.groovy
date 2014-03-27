@@ -158,7 +158,7 @@ public class TestClusterLifecycle extends HBaseCommandTestBase
            [
                HoyaActions.ACTION_THAW, CLUSTER,
                ARG_WAIT, Integer.toString(THAW_WAIT_TIME),
-               ARG_DEFINE, HoyaXmlConfKeys.KEY_HOYA_RESTART_LIMIT + "=3"
+               ARG_DEFINE, HoyaXmlConfKeys.KEY_AM_RESTART_LIMIT + "=3"
            ])
 
 

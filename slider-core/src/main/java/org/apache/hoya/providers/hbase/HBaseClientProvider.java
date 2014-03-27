@@ -296,7 +296,7 @@ public class HBaseClientProvider extends AbstractClientProvider implements
 
     if (log.isDebugEnabled()) {
       log.debug("Configuration came from {}",
-                siteConf.get(HoyaXmlConfKeys.KEY_HOYA_TEMPLATE_ORIGIN));
+                siteConf.get(HoyaXmlConfKeys.KEY_TEMPLATE_ORIGIN));
       ConfigHelper.dumpConf(siteConf);
     }
     //construct the cluster configuration values

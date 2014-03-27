@@ -40,7 +40,7 @@
   </property>
   
   <property>
-    <name>hoya.security.enabled</name>
+    <name>slider.security.enabled</name>
     <value>false</value>
   </property>
   

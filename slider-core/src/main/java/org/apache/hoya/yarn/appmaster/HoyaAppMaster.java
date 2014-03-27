@@ -280,8 +280,8 @@ public class HoyaAppMaster extends CompoundLaunchedService
 
     // Load in the server configuration - if it is actually on the Classpath
     Configuration serverConf =
-      ConfigHelper.loadFromResource(HOYA_SERVER_RESOURCE);
-    ConfigHelper.mergeConfigurations(conf, serverConf, HOYA_SERVER_RESOURCE);
+      ConfigHelper.loadFromResource(SERVER_RESOURCE);
+    ConfigHelper.mergeConfigurations(conf, serverConf, SERVER_RESOURCE);
 
     AbstractActionArgs action = serviceArgs.getCoreAction();
     HoyaAMCreateAction createAction = (HoyaAMCreateAction) action;

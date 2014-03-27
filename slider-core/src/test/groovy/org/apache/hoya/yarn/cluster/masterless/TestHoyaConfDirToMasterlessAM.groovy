@@ -75,7 +75,7 @@ class TestHoyaConfDirToMasterlessAM extends HBaseMiniClusterTestBase {
     out.flush()
     out.close()
     try {
-      System.setProperty(HoyaKeys.PROPERTY_HOYA_CONF_DIR,localConf.absolutePath);
+      System.setProperty(HoyaKeys.PROPERTY_CONF_DIR,localConf.absolutePath);
       ServiceLauncher launcher = createMasterlessAM(clustername, 0, true, true)
       HoyaClient hoyaClient = (HoyaClient) launcher.service
       addToTeardown(hoyaClient);
@@ -87,7 +87,7 @@ class TestHoyaConfDirToMasterlessAM extends HBaseMiniClusterTestBase {
       
       Path clusterDir = new HoyaFileSystem(fs, conf).buildHoyaClusterDirPath(clustername)
       assert fs.exists(clusterDir);
-      Path hoyaConfDir = new Path(clusterDir, HoyaKeys.SUBMITTED_HOYA_CONF_DIR)
+      Path hoyaConfDir = new Path(clusterDir, HoyaKeys.SUBMITTED_CONF_DIR)
       assert fs.exists(hoyaConfDir);
       Path remoteXml = new Path(hoyaConfDir,name)
       assert fs.exists(remoteXml)

@@ -51,8 +51,8 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.apache.hoya.HoyaXmlConfKeys.DEFAULT_HOYA_CLUSTER_DIRECTORY_PERMISSIONS;
-import static org.apache.hoya.HoyaXmlConfKeys.HOYA_CLUSTER_DIRECTORY_PERMISSIONS;
+import static org.apache.hoya.HoyaXmlConfKeys.DEFAULT_CLUSTER_DIRECTORY_PERMISSIONS;
+import static org.apache.hoya.HoyaXmlConfKeys.CLUSTER_DIRECTORY_PERMISSIONS;
 
 public class CoreFileSystem {
   private static final Logger
@@ -84,7 +84,7 @@ public class CoreFileSystem {
    */
   public Path getTempPathForCluster(String clustername) {
     Path clusterDir = buildHoyaClusterDirPath(clustername);
-    return new Path(clusterDir, HoyaKeys.HOYA_TMP_DIR_PREFIX);
+    return new Path(clusterDir, HoyaKeys.TMP_DIR_PREFIX);
   }
 
   /**
@@ -166,8 +166,8 @@ public class CoreFileSystem {
 
     // Data Directory
     String dataOpts =
-      configuration.get(HoyaXmlConfKeys.HOYA_DATA_DIRECTORY_PERMISSIONS,
-               HoyaXmlConfKeys.DEFAULT_HOYA_DATA_DIRECTORY_PERMISSIONS);
+      configuration.get(HoyaXmlConfKeys.DATA_DIRECTORY_PERMISSIONS,
+               HoyaXmlConfKeys.DEFAULT_DATA_DIRECTORY_PERMISSIONS);
     log.debug("Setting data directory permissions to {}", dataOpts);
     createWithPermissions(instancePaths.dataPath, new FsPermission(dataOpts));
 
@@ -211,8 +211,8 @@ public class CoreFileSystem {
 
   public FsPermission getInstanceDirectoryPermissions() {
     String clusterDirPermsOct =
-      configuration.get(HOYA_CLUSTER_DIRECTORY_PERMISSIONS,
-               DEFAULT_HOYA_CLUSTER_DIRECTORY_PERMISSIONS);
+      configuration.get(CLUSTER_DIRECTORY_PERMISSIONS,
+                        DEFAULT_CLUSTER_DIRECTORY_PERMISSIONS);
     return new FsPermission(clusterDirPermsOct);
   }
 
@@ -248,8 +248,8 @@ public class CoreFileSystem {
           HoyaException {
     if (fileSystem.exists(clusterDirectory)) {
       log.error("Dir {} exists: {}",
-               clusterDirectory,
-               listFSDir(clusterDirectory));
+                clusterDirectory,
+                listFSDir(clusterDirectory));
       throw new HoyaException(HoyaExitCodes.EXIT_CLUSTER_EXISTS,
               ErrorStrings.PRINTF_E_INSTANCE_DIR_ALREADY_EXISTS,
               clusterDirectory);
@@ -345,7 +345,7 @@ public class CoreFileSystem {
   public Path getBaseHoyaPath() {
     String configuredHoyaBasePath = configuration.get(HoyaXmlConfKeys.KEY_BASE_HOYA_PATH);
     return configuredHoyaBasePath != null ? new Path(configuredHoyaBasePath) :
-           new Path(getHomeDirectory(), ".hoya");
+           new Path(getHomeDirectory(), HoyaKeys.HOYA_BASE_DIRECTORY);
   }
 
   public Path getHomeDirectory() {

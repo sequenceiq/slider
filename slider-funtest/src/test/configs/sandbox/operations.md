@@ -23,7 +23,7 @@
 
     
     hoya-assembly/target/hoya-assembly-0.5.1-SNAPSHOT-bin/bin/hoya \
-      --manager sandbox:8032 --filesystem hdfs://sandbox.hortonworks.com:8020 list -D hoya.security.enabled=true
+      --manager sandbox:8032 --filesystem hdfs://sandbox.hortonworks.com:8020 list -D slider.security.enabled=true
       
       hoya create cluster1 \
          --role worker 4\
@@ -160,12 +160,12 @@
     
 ### thaw
 
-    bin/hoya  thaw cl1 -D hoya.yarn.queue.priority=5 -D hoya.yarn.queue=default
+    bin/hoya  thaw cl1 -D slider.yarn.queue.priority=5 -D slider.yarn.queue=default
     
     
 ### thaw with bad queue: _MUST_ fail
     
-    bin/hoya  thaw cl1 -D hoya.yarn.queue=unknown
+    bin/hoya  thaw cl1 -D slider.yarn.queue=unknown
      
 ### monitor
 

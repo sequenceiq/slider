@@ -83,7 +83,7 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest {
 
   public static final YarnConfiguration HOYA_CONFIG = HoyaUtils.createConfiguration();
   static {
-    HOYA_CONFIG.setInt(HoyaXmlConfKeys.KEY_HOYA_RESTART_LIMIT, 1)
+    HOYA_CONFIG.setInt(HoyaXmlConfKeys.KEY_AM_RESTART_LIMIT, 1)
     HOYA_CONFIG.setInt(YarnConfiguration.RM_AM_MAX_ATTEMPTS, 100)
     HOYA_CONFIG.setBoolean(YarnConfiguration.NM_PMEM_CHECK_ENABLED, false)
     HOYA_CONFIG.setBoolean(YarnConfiguration.NM_VMEM_CHECK_ENABLED, false)

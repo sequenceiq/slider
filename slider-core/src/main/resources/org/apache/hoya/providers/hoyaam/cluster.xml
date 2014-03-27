@@ -49,14 +49,14 @@
   
    
   <property>
-    <name>hoya.cluster.directory.permissions</name>
+    <name>slider.cluster.directory.permissions</name>
     <value>0770</value>
     <description>Permissions for the cluster directory</description>
   </property>
   
   
   <property>
-    <name>hoya.data.directory.permissions</name>
+    <name>slider.data.directory.permissions</name>
     <value>0770</value>
     <description>Permissions for the data directory</description>
   </property>

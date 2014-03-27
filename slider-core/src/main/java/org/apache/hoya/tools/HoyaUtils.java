@@ -39,7 +39,6 @@ import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.HoyaXmlConfKeys;
-import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.RoleKeys;
 import org.apache.hoya.core.conf.MapOperations;
@@ -827,7 +826,7 @@ public final class HoyaUtils {
    * @return true if the hoya client/service should be in secure mode
    */
   public static boolean isClusterSecure(Configuration conf) {
-    return conf.getBoolean(HoyaXmlConfKeys.KEY_HOYA_SECURITY_ENABLED, false);
+    return conf.getBoolean(HoyaXmlConfKeys.KEY_SECURITY_ENABLED, false);
   }
 
   /**
@@ -1009,13 +1008,13 @@ public final class HoyaUtils {
 
   /**
    * Register the client resource in
-   * {@link HoyaKeys#HOYA_CLIENT_RESOURCE}
+   * {@link HoyaKeys#CLIENT_RESOURCE}
    * for Configuration instances.
    *
    * @return true if the resource could be loaded
    */
   public static URL registerHoyaClientResource() {
-    return ConfigHelper.registerDefaultResource(HoyaKeys.HOYA_CLIENT_RESOURCE);
+    return ConfigHelper.registerDefaultResource(HoyaKeys.CLIENT_RESOURCE);
   }
 
 
@@ -1025,7 +1024,7 @@ public final class HoyaUtils {
    * @return a config
    */
   public static Configuration loadHoyaClientConfigurationResource() {
-    return ConfigHelper.loadFromResource(HoyaKeys.HOYA_CLIENT_RESOURCE);
+    return ConfigHelper.loadFromResource(HoyaKeys.CLIENT_RESOURCE);
   }
 
   /**

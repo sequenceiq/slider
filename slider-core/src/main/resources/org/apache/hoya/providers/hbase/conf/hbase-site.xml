@@ -29,7 +29,7 @@
   -->
 <configuration>
  <property>
-   <name>hoya.template.origin</name>
+   <name>slider.template.origin</name>
    <value>resource</value>
  </property>
   <property>

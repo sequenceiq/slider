@@ -20,7 +20,7 @@
 -->
 <configuration>
   <property>
-    <name>hoya.client.resource.origin</name>
+    <name>slider.client.resource.origin</name>
     <value>ubuntu-secure/conf/hoya-client.xml</value>
     <description>This is just for diagnostics</description>
   </property>
@@ -36,7 +36,7 @@
   </property>
 
   <property>
-    <name>hoya.security.enabled</name>
+    <name>slider.security.enabled</name>
     <value>true</value>
   </property>
 

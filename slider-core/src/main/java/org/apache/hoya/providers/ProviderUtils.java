@@ -113,7 +113,7 @@ public class ProviderUtils implements RoleKeys {
     String logdir = System.getenv("LOGDIR");
     if (logdir == null) {
       logdir =
-        HoyaKeys.HOYA_TMP_LOGDIR_PREFIX + UserGroupInformation.getCurrentUser().getShortUserName();
+        HoyaKeys.TMP_LOGDIR_PREFIX + UserGroupInformation.getCurrentUser().getShortUserName();
     }
     return logdir;
   }

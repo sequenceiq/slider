@@ -397,7 +397,7 @@ it triggers an asynchronous self-destruct operation in the AM -an
 operation that does not make any attempt to cleanly shut down the process. 
 
 If the application has not exceeded its restart limit (as set by
-`hoya.yarn.restart.limit`), YARN will attempt to restart the failed application.
+`slider.yarn.restart.limit`), YARN will attempt to restart the failed application.
 
 Example
 

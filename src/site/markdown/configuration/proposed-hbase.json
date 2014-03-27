@@ -11,8 +11,8 @@
     "generatedConfigurationPath": "hdfs://sandbox.hortonworks.com:8020/user/hoya/.hoya/cluster/test_cluster_lifecycle/generated",
     "dataPath": "hdfs://sandbox.hortonworks.com:8020/user/hoya/.hoya/cluster/test_cluster_lifecycle/database",
     "hoya.tmp.dir": "hdfs://sandbox.hortonworks.com:8020/user/hoya/.hoya/cluster/test_cluster_lifecycle/tmp/am",
-    "hoya.cluster.directory.permissions": "0770",
-    "hoya.data.directory.permissions": "0770"
+    "slider.cluster.directory.permissions": "0770",
+    "slider.data.directory.permissions": "0770"
   },
   
   "options": {
