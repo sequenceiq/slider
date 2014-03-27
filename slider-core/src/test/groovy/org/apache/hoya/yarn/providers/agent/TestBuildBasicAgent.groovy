@@ -60,7 +60,7 @@ class TestBuildBasicAgent extends AgentTestBase {
                         ARG_OPTION, CONTROLLER_URL, "http://localhost",
                         ARG_OPTION, PACKAGE_PATH, ".",
                         ARG_OPTION, SCRIPT_PATH, "agent/scripts/agent.py",
-                        Arguments.ARG_ROLEOPT, AgentKeys.ROLE_NODE, SCRIPT_PATH, "agent/scripts/agent.py",
+                        ARG_OPTION, AgentKeys.ROLE_NODE, SCRIPT_PATH, "agent/scripts/agent.py",
                         ARG_RES_COMP_OPT, AgentKeys.ROLE_NODE, ResourceKeys.COMPONENT_PRIORITY, "1",
                 ],
                 true, false,
