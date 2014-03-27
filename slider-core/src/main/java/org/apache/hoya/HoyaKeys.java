@@ -50,7 +50,7 @@ public interface HoyaKeys extends HoyaXmlConfKeys {
   /**
    * Application type for YARN  {@value}
    */
-  String APP_TYPE = "hoya";
+  String APP_TYPE = "slider";
 
   /**
    * JVM arg to force IPv4  {@value}
