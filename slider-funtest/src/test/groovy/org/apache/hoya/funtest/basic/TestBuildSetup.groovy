@@ -173,10 +173,10 @@ class TestBuildSetup extends HoyaTestUtils implements FuntestProperties {
     Configuration conf = loadHoyaConf();
     assumeBoolOption(conf, KEY_HOYA_FUNTESTS_ENABLED, true)
 
-    assumeBoolOption(conf, KEY_HOYA_TEST_HBASE_ENABLED, true)
+    assumeBoolOption(conf, KEY_TEST_HBASE_ENABLED, true)
 
-    assertStringOptionSet(conf, KEY_HOYA_TEST_HBASE_APPCONF)
-    assertStringOptionSet(conf, KEY_HOYA_TEST_HBASE_TAR)
+    assertStringOptionSet(conf, KEY_TEST_HBASE_APPCONF)
+    assertStringOptionSet(conf, KEY_TEST_HBASE_TAR)
   }
   
   @Test
@@ -184,10 +184,10 @@ class TestBuildSetup extends HoyaTestUtils implements FuntestProperties {
     Configuration conf = loadHoyaConf();
     assumeBoolOption(conf, KEY_HOYA_FUNTESTS_ENABLED, true)
 
-    assumeBoolOption(conf, KEY_HOYA_TEST_ACCUMULO_ENABLED, true)
+    assumeBoolOption(conf, KEY_TEST_ACCUMULO_ENABLED, true)
 
-    assertStringOptionSet(conf, KEY_HOYA_TEST_ACCUMULO_APPCONF)
-    assertStringOptionSet(conf, KEY_HOYA_TEST_ACCUMULO_TAR)
+    assertStringOptionSet(conf, KEY_TEST_ACCUMULO_APPCONF)
+    assertStringOptionSet(conf, KEY_TEST_ACCUMULO_TAR)
   }
   
 }

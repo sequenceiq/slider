@@ -41,44 +41,44 @@ Here's
     <configuration>
     
       <property>
-        <name>hoya.test.hbase.enabled</name>
+        <name>slider.test.hbase.enabled</name>
         <description>Flag to enable/disable HBase tests</description>
         <value>true</value>
       </property>
       
       <property>
-        <name>hoya.test.hbase.home</name>
+        <name>slider.test.hbase.home</name>
         <value>/home/hoya/hbase-0.96.0</value>
         <description>HBASE Home</description>
       </property>
     
       <property>
-        <name>hoya.test.hbase.tar</name>
+        <name>slider.test.hbase.tar</name>
         <value>/home/hoya/Projects/hbase-0.96.0-bin.tar.gz</value>
         <description>HBASE archive URI</description>
       </property>
     
       <property>
-        <name>hoya.test.accumulo.enabled</name>
+        <name>slider.test.accumulo.enabled</name>
         <description>Flag to enable/disable Accumulo tests</description>
         <value>true</value>
       </property>
     
       <property>
-        <name>hoya.test.accumulo.home</name>
+        <name>slider.test.accumulo.home</name>
         <value>
           /home/hoya/accumulo-1.6.0-SNAPSHOT/</value>
         <description>Accumulo Home</description>
       </property>
     
       <property>
-        <name>hoya.test.accumulo.tar</name>
+        <name>slider.test.accumulo.tar</name>
         <value>/home/hoya/accumulo-1.6.0-SNAPSHOT-bin.tar</value>
         <description>Accumulo archive URI</description>
       </property>
 
       <property>
-        <name>hoya.test.am.restart.time</name>
+        <name>slider.test.am.restart.time</name>
         <description>Time in millis to await an AM restart</description>
         <value>30000</value>
       </property>
@@ -169,25 +169,25 @@ The following test options may be added to `hoya-client.xml` if the defaults
 need to be changed
                    
     <property>
-      <name>hoya.test.zkhosts</name>
+      <name>slider.test.zkhosts</name>
       <description>comma separated list of ZK hosts</description>
       <value>localhost</value>
     </property>
        
     <property>
-      <name>hoya.test.thaw.wait.seconds</name>
+      <name>slider.test.thaw.wait.seconds</name>
       <description>Time to wait in seconds for a thaw to result in a running AM</description>
       <value>60000</value>
     </property>
     
     <property>
-      <name>hoya.test.freeze.wait.seconds</name>
+      <name>slider.test.freeze.wait.seconds</name>
       <description>Time to wait in seconds for a freeze to halt the cluster</description>
       <value>60000</value>
     </property>
             
      <property>
-      <name>hoya.test.timeout.millisec</name>
+      <name>slider.test.timeout.millisec</name>
       <description>Time out in milliseconds before a test is considered to have failed.
       There are some maven properties which also define limits and may need adjusting</description>
       <value>180000</value>
@@ -207,7 +207,7 @@ during cluster creation.
 The HBase tests can be enabled or disabled
     
     <property>
-      <name>hoya.test.hbase.enabled</name>
+      <name>slider.test.hbase.enabled</name>
       <description>Flag to enable/disable HBase tests</description>
       <value>true</value>
     </property>
@@ -216,13 +216,13 @@ Mandatory test parameters must be added to `hoya-client.xml`
 
   
     <property>
-      <name>hoya.test.hbase.tar</name>
+      <name>slider.test.hbase.tar</name>
       <description>Path to the HBase Tar file in HDFS</description>
       <value>hdfs://sandbox.hortonworks.com:8020/user/hoya/hbase.tar.gz</value>
     </property>
     
     <property>
-      <name>hoya.test.hbase.appconf</name>
+      <name>slider.test.hbase.appconf</name>
       <description>Path to the directory containing the HBase application config</description>
       <value>file://${user.dir}/src/test/configs/sandbox/hbase</value>
     </property>
@@ -230,7 +230,7 @@ Mandatory test parameters must be added to `hoya-client.xml`
 Optional parameters:  
   
      <property>
-      <name>hoya.test.hbase.launch.wait.seconds</name>
+      <name>slider.test.hbase.launch.wait.seconds</name>
       <description>Time to wait in seconds for HBase to start</description>
       <value>180000</value>
     </property>  
@@ -241,7 +241,7 @@ Optional parameters:
 Enable/disable the tests
 
      <property>
-      <name>hoya.test.accumulo.enabled</name>
+      <name>slider.test.accumulo.enabled</name>
       <description>Flag to enable/disable Accumulo tests</description>
       <value>true</value>
      </property>
@@ -250,7 +250,7 @@ Enable/disable the tests
 Optional parameters
          
      <property>
-      <name>hoya.test.accumulo.launch.wait.seconds</name>
+      <name>slider.test.accumulo.launch.wait.seconds</name>
       <description>Time to wait in seconds for Accumulo to start</description>
       <value>180000</value>
      </property>

@@ -28,7 +28,7 @@ import org.apache.hoya.providers.hbase.HBaseConfigFileOptions;
 /* Runs IntegrationTestIngest on cluster
  *
  * Note: this test runs for about 20 minutes
- * please set hoya.test.timeout.seconds accordingly
+ * please set slider.test.timeout.seconds accordingly
  */
 class TestHBaseIntegration extends TestFunctionalHBaseCluster {
 

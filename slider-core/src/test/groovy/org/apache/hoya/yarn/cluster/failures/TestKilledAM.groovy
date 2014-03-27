@@ -55,7 +55,7 @@ class TestKilledAM extends HBaseMiniClusterTestBase {
 
     def conf = configuration
     // patch the configuration for AM restart
-    conf.setInt(HoyaXmlConfKeys.KEY_HOYA_RESTART_LIMIT, 3)
+    conf.setInt(HoyaXmlConfKeys.KEY_AM_RESTART_LIMIT, 3)
 
     conf.setClass(YarnConfiguration.RM_SCHEDULER,
                   FifoScheduler, ResourceScheduler);

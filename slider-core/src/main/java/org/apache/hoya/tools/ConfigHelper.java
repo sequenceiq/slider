@@ -306,7 +306,7 @@ public class ConfigHelper {
   /**
    * looks for the config under $confdir/$templateFilename; if not there
    * loads it from /conf/templateFile.
-   * The property {@link HoyaKeys#KEY_HOYA_TEMPLATE_ORIGIN} is set to the
+   * The property {@link HoyaKeys#KEY_TEMPLATE_ORIGIN} is set to the
    * origin to help debug what's happening
    * @param systemConf system conf
    * @param confdir conf dir in FS
@@ -329,7 +329,7 @@ public class ConfigHelper {
   /**
    * looks for the config under $confdir/$templateFilename; if not there
    * loads it from /conf/templateFile.
-   * The property {@link HoyaKeys#KEY_HOYA_TEMPLATE_ORIGIN} is set to the
+   * The property {@link HoyaKeys#KEY_TEMPLATE_ORIGIN} is set to the
    * origin to help debug what's happening.
    * @param fs Filesystem
    * @param templatePath HDFS path for template
@@ -360,8 +360,8 @@ public class ConfigHelper {
       origin = "Resource " + fallbackResource;
     }
     //force a get
-    conf.get(HoyaXmlConfKeys.KEY_HOYA_TEMPLATE_ORIGIN);
-    conf.set(HoyaXmlConfKeys.KEY_HOYA_TEMPLATE_ORIGIN, origin);
+    conf.get(HoyaXmlConfKeys.KEY_TEMPLATE_ORIGIN);
+    conf.set(HoyaXmlConfKeys.KEY_TEMPLATE_ORIGIN, origin);
     //now set the origin
     return conf;
   }

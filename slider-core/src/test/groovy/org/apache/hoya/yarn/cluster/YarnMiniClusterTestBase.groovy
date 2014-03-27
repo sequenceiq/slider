@@ -83,7 +83,7 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest {
 
   public static final YarnConfiguration HOYA_CONFIG = HoyaUtils.createConfiguration();
   static {
-    HOYA_CONFIG.setInt(HoyaXmlConfKeys.KEY_HOYA_RESTART_LIMIT, 1)
+    HOYA_CONFIG.setInt(HoyaXmlConfKeys.KEY_AM_RESTART_LIMIT, 1)
     HOYA_CONFIG.setInt(YarnConfiguration.RM_AM_MAX_ATTEMPTS, 100)
     HOYA_CONFIG.setBoolean(YarnConfiguration.NM_PMEM_CHECK_ENABLED, false)
     HOYA_CONFIG.setBoolean(YarnConfiguration.NM_VMEM_CHECK_ENABLED, false)
@@ -101,24 +101,24 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest {
   public static final boolean HBASE_TESTS_ENABLED
   static {
     THAW_WAIT_TIME = HOYA_CONFIG.getInt(
-        KEY_HOYA_THAW_WAIT_TIME,
-        DEFAULT_HOYA_THAW_WAIT_TIME)
+        KEY_TEST_THAW_WAIT_TIME,
+        DEFAULT_THAW_WAIT_TIME)
     FREEZE_WAIT_TIME = HOYA_CONFIG.getInt(
-        KEY_HOYA_FREEZE_WAIT_TIME,
-        DEFAULT_HOYA_FREEZE_WAIT_TIME)
+        KEY_TEST_FREEZE_WAIT_TIME,
+        DEFAULT_TEST_FREEZE_WAIT_TIME)
     HBASE_LAUNCH_WAIT_TIME = HOYA_CONFIG.getInt(
-        KEY_HOYA_HBASE_LAUNCH_TIME,
-        DEFAULT_HOYA_HBASE_LAUNCH_TIME)
+        KEY_TEST_HBASE_LAUNCH_TIME,
+        DEFAULT_HBASE_LAUNCH_TIME)
     HOYA_TEST_TIMEOUT = HOYA_CONFIG.getInt(
-        KEY_HOYA_TEST_TIMEOUT,
-        DEFAULT_HOYA_TEST_TIMEOUT)
+        KEY_TEST_TIMEOUT,
+        DEFAULT_TEST_TIMEOUT)
     ACCUMULO_LAUNCH_WAIT_TIME = HOYA_CONFIG.getInt(
-        KEY_HOYA_ACCUMULO_LAUNCH_TIME,
-        DEFAULT_HOYA_ACCUMULO_LAUNCH_TIME)
+        KEY_ACCUMULO_LAUNCH_TIME,
+        DEFAULT_ACCUMULO_LAUNCH_TIME)
     ACCUMULO_TESTS_ENABLED =
-        HOYA_CONFIG.getBoolean(KEY_HOYA_TEST_ACCUMULO_ENABLED, true)
+        HOYA_CONFIG.getBoolean(KEY_TEST_ACCUMULO_ENABLED, true)
     HBASE_TESTS_ENABLED =
-        HOYA_CONFIG.getBoolean(KEY_HOYA_TEST_HBASE_ENABLED, true)
+        HOYA_CONFIG.getBoolean(KEY_TEST_HBASE_ENABLED, true)
 
   }
 

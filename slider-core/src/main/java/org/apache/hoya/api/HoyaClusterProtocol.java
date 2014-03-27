@@ -32,8 +32,6 @@
 
 package org.apache.hoya.api;
 
-import com.google.protobuf.RpcController;
-import com.google.protobuf.ServiceException;
 import org.apache.hadoop.ipc.VersionedProtocol;
 import org.apache.hadoop.security.KerberosInfo;
 import org.apache.hadoop.yarn.exceptions.YarnException;
@@ -47,7 +45,7 @@ import java.io.IOException;
  * endpoint or be relayed via protobuf
  */
 @KerberosInfo(
-  serverPrincipal = HoyaXmlConfKeys.KEY_HOYA_KERBEROS_PRINCIPAL)
+  serverPrincipal = HoyaXmlConfKeys.KEY_KERBEROS_PRINCIPAL)
 public interface HoyaClusterProtocol extends VersionedProtocol {
   public static final long versionID = 0x01;
 

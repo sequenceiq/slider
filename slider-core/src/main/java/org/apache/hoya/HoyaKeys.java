@@ -116,38 +116,39 @@ public interface HoyaKeys extends HoyaXmlConfKeys {
    * JVM property to define the hoya configuration directory;
    * this is set by the hoya script: {@value}
    */
-  String PROPERTY_HOYA_CONF_DIR = "hoya.confdir";
+  String PROPERTY_CONF_DIR = "slider.confdir";
 
   /**
    * name of generated dir for this conf: {@value}
    */
-  String SUBMITTED_HOYA_CONF_DIR = "hoya_confdir";
+  String SUBMITTED_CONF_DIR = "confdir";
 
   /**
    * name of the Hoya client resource
    * loaded when the service is loaded.
    */
-  String HOYA_CLIENT_RESOURCE = "hoya-client.xml";
+  String CLIENT_RESOURCE = "hoya-client.xml";
 
   /**
    * The name of the resource to put on the classpath
    * This only goes up on a real cluster, not a test run.
    */
-  String HOYA_SERVER_RESOURCE = "hoya-server.xml";
+  String SERVER_RESOURCE = "hoya-server.xml";
 
-  String HOYA_TMP_LOGDIR_PREFIX = "/tmp/hoya-";
-  String HOYA_TMP_DIR_PREFIX = "tmp";
+  String TMP_LOGDIR_PREFIX = "/tmp/slider-";
+  String TMP_DIR_PREFIX = "tmp";
   
-  String HOYA_JAR = "hoya.jar";
+  String SLIDER_JAR = "slider.jar";
   String JCOMMANDER_JAR = "jcommander.jar";
   String SLF4J_JAR = "slf4j.jar";
   String SLF4J_LOG4J_JAR = "slf4j-log4j.jar";
   String ZOOKEEPER_JAR = "zookeeper.jar";
+  String GSON_JAR = "gson.jar";
 
   String DEFAULT_JVM_HEAP = "256M";
   int DEFAULT_YARN_MEMORY = 256;
-  String STDOUT_HOYAAM = "hoyaam.txt";
-  String STDERR_HOYAAM = "hoyaam-err.txt";
+  String STDOUT_AM = "slider-out.txt";
+  String STDERR_AM = "slider-err.txt";
   String DEFAULT_GC_OPTS = "";
 
   String HADOOP_USER_NAME = "HADOOP_USER_NAME";

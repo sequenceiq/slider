@@ -34,8 +34,8 @@ abstract class HBaseCommandTestBase extends CommandTestBase {
   @Before 
   public void verifyPreconditions() {
     assumeHBaseTestsEnabled()
-    getRequiredConfOption(HOYA_CONFIG, KEY_HOYA_TEST_HBASE_TAR)
-    getRequiredConfOption(HOYA_CONFIG, KEY_HOYA_TEST_HBASE_APPCONF)
+    getRequiredConfOption(HOYA_CONFIG, KEY_TEST_HBASE_TAR)
+    getRequiredConfOption(HOYA_CONFIG, KEY_TEST_HBASE_APPCONF)
 
   }
 
@@ -61,10 +61,10 @@ abstract class HBaseCommandTestBase extends CommandTestBase {
     ]
 
     argsList << Arguments.ARG_IMAGE <<
-    HOYA_CONFIG.getTrimmed(KEY_HOYA_TEST_HBASE_TAR)
+    HOYA_CONFIG.getTrimmed(KEY_TEST_HBASE_TAR)
 
     argsList << Arguments.ARG_CONFDIR <<
-    HOYA_CONFIG.getTrimmed(KEY_HOYA_TEST_HBASE_APPCONF)
+    HOYA_CONFIG.getTrimmed(KEY_TEST_HBASE_APPCONF)
 
     SliderShell shell = createHoyaCluster(
         name,

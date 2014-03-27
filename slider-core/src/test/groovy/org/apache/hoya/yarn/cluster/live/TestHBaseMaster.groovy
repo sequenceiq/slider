@@ -53,7 +53,7 @@ class TestHBaseMaster extends HBaseMiniClusterTestBase {
     ServiceLauncher launcher = createHBaseCluster(clustername, regionServerCount,
       [
           Arguments.ARG_COMP_OPT, HBaseKeys.ROLE_MASTER, RoleKeys.JVM_HEAP, "1G",
-          Arguments.ARG_DEFINE, HoyaXmlConfKeys.KEY_HOYA_YARN_QUEUE + "=default"
+          Arguments.ARG_DEFINE, HoyaXmlConfKeys.KEY_YARN_QUEUE + "=default"
       ], 
       true,
       true) 

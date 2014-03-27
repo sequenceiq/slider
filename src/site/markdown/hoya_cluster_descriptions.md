@@ -48,13 +48,6 @@ A boolean value to indicate this is a test run, not a production run. In this
 mode Hoya opts to fail fast, rather than retry container deployments when
 they fail. It is primarily used for internal tests.
 
-####  `hoya.test.master.command`
-
-list the single argument to invoke in the AM when starting a cluster.
-For HBase and Accumulo, the command is `version` -which is sufficient to
-validate that the installed application tar file (or specified home directory)
-is valid. It may be changed to another verb which the application supports
-on the command line -though other parameters cannot be appended.
 
 #### `hoya.container.failure.shortlife`
 

@@ -163,7 +163,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   @Override
   protected void serviceInit(Configuration conf) throws Exception {
     Configuration clientConf = HoyaUtils.loadHoyaClientConfigurationResource();
-    ConfigHelper.mergeConfigurations(conf, clientConf, HOYA_CLIENT_RESOURCE);
+    ConfigHelper.mergeConfigurations(conf, clientConf, CLIENT_RESOURCE);
     serviceArgs.applyDefinitions(conf);
     serviceArgs.applyFileSystemURL(conf);
     // init security with our conf
@@ -473,8 +473,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
   
   public FsPermission getClusterDirectoryPermissions(Configuration conf) {
     String clusterDirPermsOct =
-      conf.get(HOYA_CLUSTER_DIRECTORY_PERMISSIONS,
-               DEFAULT_HOYA_CLUSTER_DIRECTORY_PERMISSIONS);
+      conf.get(CLUSTER_DIRECTORY_PERMISSIONS,
+               DEFAULT_CLUSTER_DIRECTORY_PERMISSIONS);
     return new FsPermission(clusterDirPermsOct);
   }
 
@@ -620,8 +620,8 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // set the application name;
     amLauncher.setKeepContainersOverRestarts(true);
 
-    amLauncher.setMaxAppAttempts(config.getInt(KEY_HOYA_RESTART_LIMIT,
-                                               DEFAULT_HOYA_RESTART_LIMIT));
+    amLauncher.setMaxAppAttempts(config.getInt(KEY_AM_RESTART_LIMIT,
+                                               DEFAULT_AM_RESTART_LIMIT));
 
     hoyaFileSystem.purgeHoyaAppInstanceTempFiles(clustername);
     Path tempPath = hoyaFileSystem.createHoyaAppInstanceTempPath(
@@ -637,23 +637,23 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // In this scenario, the jar file for the application master is part of the local resources
     Map<String, LocalResource> localResources = amLauncher.getLocalResources();
     // conf directory setup
-    Path remoteHoyaConfPath = null;
-    String relativeHoyaConfDir = null;
-    String hoyaConfdirProp =
-      System.getProperty(HoyaKeys.PROPERTY_HOYA_CONF_DIR);
-    if (hoyaConfdirProp == null || hoyaConfdirProp.isEmpty()) {
+    Path remoteConfPath = null;
+    String relativeConfDir = null;
+    String confdirProp =
+      System.getProperty(HoyaKeys.PROPERTY_CONF_DIR);
+    if (confdirProp == null || confdirProp.isEmpty()) {
       log.debug("No local configuration directory provided as system property");
     } else {
-      File hoyaConfDir = new File(hoyaConfdirProp);
-      if (!hoyaConfDir.exists()) {
+      File confDir = new File(confdirProp);
+      if (!confDir.exists()) {
         throw new BadConfigException(HOYA_CONFIGURATION_DIRECTORY_NOT_FOUND,
-                                     hoyaConfDir);
+                                     confDir);
       }
-      Path localConfDirPath = HoyaUtils.createLocalPath(hoyaConfDir);
-      log.debug("Copying Hoya AM configuration data from {}", localConfDirPath);
-      remoteHoyaConfPath = new Path(clusterDirectory,
-                                    HoyaKeys.SUBMITTED_HOYA_CONF_DIR);
-      HoyaUtils.copyDirectory(config, localConfDirPath, remoteHoyaConfPath,
+      Path localConfDirPath = HoyaUtils.createLocalPath(confDir);
+      log.debug("Copying AM configuration data from {}", localConfDirPath);
+      remoteConfPath = new Path(clusterDirectory,
+                                    HoyaKeys.SUBMITTED_CONF_DIR);
+      HoyaUtils.copyDirectory(config, localConfDirPath, remoteConfPath,
                               null);
     }
     // the assumption here is that minimr cluster => this is a test run
@@ -664,11 +664,11 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       log.debug("Destination is not a MiniYARNCluster -copying full classpath");
 
       // insert conf dir first
-      if (remoteHoyaConfPath != null) {
-        relativeHoyaConfDir = HoyaKeys.SUBMITTED_HOYA_CONF_DIR;
+      if (remoteConfPath != null) {
+        relativeConfDir = HoyaKeys.SUBMITTED_CONF_DIR;
         Map<String, LocalResource> submittedConfDir =
-          hoyaFileSystem.submitDirectory(remoteHoyaConfPath,
-                                         relativeHoyaConfDir);
+          hoyaFileSystem.submitDirectory(remoteConfPath,
+                                         relativeConfDir);
         HoyaUtils.mergeMaps(localResources, submittedConfDir);
       }
 
@@ -681,7 +681,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
                        this.getClass(),
                        tempPath,
                        libdir,
-                       HOYA_JAR);
+                       SLIDER_JAR);
     }
     // build up the configuration 
     // IMPORTANT: it is only after this call that site configurations
@@ -751,7 +751,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // build the environment
     amLauncher.putEnv(
       HoyaUtils.buildEnvMap(hoyaAMResourceComponent));
-    String classpath = HoyaUtils.buildClasspath(relativeHoyaConfDir,
+    String classpath = HoyaUtils.buildClasspath(relativeConfDir,
                                                 libdir,
                                                 getConfig(),
                                                 getUsingMiniMRCluster());
@@ -815,13 +815,13 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       // the relevant security settings go over
       propagateConfOption(commandLine,
                           config,
-                          HoyaXmlConfKeys.KEY_HOYA_SECURITY_ENABLED);
+                          HoyaXmlConfKeys.KEY_SECURITY_ENABLED);
       propagateConfOption(commandLine,
                           config,
                           DFSConfigKeys.DFS_NAMENODE_USER_NAME_KEY);
     }
     // write out the path output
-    commandLine.addOutAndErrFiles(STDOUT_HOYAAM, STDERR_HOYAAM);
+    commandLine.addOutAndErrFiles(STDOUT_AM, STDERR_AM);
 
     String cmdStr = commandLine.build();
     log.info("Completed setting up app master command {}", cmdStr);
@@ -834,15 +834,15 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
 
     // Set the priority for the application master
 
-    int amPriority = config.getInt(KEY_HOYA_YARN_QUEUE_PRIORITY,
-                                   DEFAULT_HOYA_YARN_QUEUE_PRIORITY);
+    int amPriority = config.getInt(KEY_YARN_QUEUE_PRIORITY,
+                                   DEFAULT_YARN_QUEUE_PRIORITY);
 
 
     amLauncher.setPriority(amPriority);
 
     // Set the queue to which this application is to be submitted in the RM
     // Queue for App master
-    String amQueue = config.get(KEY_HOYA_YARN_QUEUE, DEFAULT_HOYA_YARN_QUEUE);
+    String amQueue = config.get(KEY_YARN_QUEUE, DEFAULT_HOYA_YARN_QUEUE);
 
     amLauncher.setQueue(amQueue);
 

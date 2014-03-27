@@ -23,44 +23,43 @@ package org.apache.hoya;
  */
 public interface HoyaXMLConfKeysForTesting {
 
-  String KEY_HOYA_TEST_HBASE_HOME = "hoya.test.hbase.home";
-  String KEY_HOYA_TEST_HBASE_TAR = "hoya.test.hbase.tar";
-  String KEY_HOYA_TEST_HBASE_APPCONF = "hoya.test.hbase.appconf";
-  String KEY_HOYA_TEST_ACCUMULO_HOME = "hoya.test.accumulo.home";
-  String KEY_HOYA_TEST_ACCUMULO_TAR = "hoya.test.accumulo.tar";
-  String KEY_HOYA_TEST_ACCUMULO_APPCONF = "hoya.test.accumulo.appconf";
+  String KEY_TEST_HBASE_HOME = "slider.test.hbase.home";
+  String KEY_TEST_HBASE_TAR = "slider.test.hbase.tar";
+  String KEY_TEST_HBASE_APPCONF = "slider.test.hbase.appconf";
+  String KEY_TEST_ACCUMULO_HOME = "slider.test.accumulo.home";
+  String KEY_TEST_ACCUMULO_TAR = "slider.test.accumulo.tar";
+  String KEY_TEST_ACCUMULO_APPCONF = "slider.test.accumulo.appconf";
 
-  String KEY_HOYA_THAW_WAIT_TIME = "hoya.test.thaw.wait.seconds";
+  String KEY_TEST_THAW_WAIT_TIME = "slider.test.thaw.wait.seconds";
 
-  int DEFAULT_HOYA_THAW_WAIT_TIME = 60000;
-
-
-  String KEY_HOYA_FREEZE_WAIT_TIME = "hoya.test.freeze.wait.seconds";
-
-  int DEFAULT_HOYA_FREEZE_WAIT_TIME = 60000;
-
-  String KEY_HOYA_TEST_TIMEOUT = "hoya.test.timeout.millisec";
-
-  int DEFAULT_HOYA_TEST_TIMEOUT = 10 * 60 * 1000;
+  int DEFAULT_THAW_WAIT_TIME = 60000;
 
 
-  String KEY_HOYA_HBASE_LAUNCH_TIME = "hoya.test.hbase.launch.wait.seconds";
+  String KEY_TEST_FREEZE_WAIT_TIME = "slider.test.freeze.wait.seconds";
 
-  String KEY_HOYA_TEST_HBASE_ENABLED = "hoya.test.hbase.enabled";
+  int DEFAULT_TEST_FREEZE_WAIT_TIME = 60000;
 
-  int DEFAULT_HOYA_HBASE_LAUNCH_TIME = 60 * 3 * 1000;
+  String KEY_TEST_TIMEOUT = "slider.test.timeout.millisec";
 
-  String KEY_HOYA_TEST_ACCUMULO_ENABLED = "hoya.test.accumulo.enabled";
+  int DEFAULT_TEST_TIMEOUT = 10 * 60 * 1000;
 
-  String KEY_HOYA_ACCUMULO_LAUNCH_TIME =
-    "hoya.test.accumulo.launch.wait.seconds";
+  String KEY_TEST_HBASE_LAUNCH_TIME = "slider.test.hbase.launch.wait.seconds";
 
-  int DEFAULT_HOYA_ACCUMULO_LAUNCH_TIME = 60 * 3 * 1000;
-  String KEY_HOYA_TEST_AGENT_ENABLED = "hoya.test.agent.enabled";
+  String KEY_TEST_HBASE_ENABLED = "slider.test.hbase.enabled";
 
-  int DEFAULT_HOYA_AGENT_LAUNCH_TIME = 60 * 3 * 1000;
+  int DEFAULT_HBASE_LAUNCH_TIME = 60 * 3 * 1000;
 
-  String KEY_HOYA_TEST_AGENT_HOME = "hoya.test.agent.home";
-  String KEY_HOYA_TEST_AGENT_TAR = "hoya.test.agent.tar";
+  String KEY_TEST_ACCUMULO_ENABLED = "slider.test.accumulo.enabled";
+
+  String KEY_ACCUMULO_LAUNCH_TIME =
+    "slider.test.accumulo.launch.wait.seconds";
+
+  int DEFAULT_ACCUMULO_LAUNCH_TIME = 60 * 3 * 1000;
+  String KEY_TEST_AGENT_ENABLED = "slider.test.agent.enabled";
+
+  int DEFAULT_AGENT_LAUNCH_TIME = 60 * 3 * 1000;
+
+  String KEY_TEST_AGENT_HOME = "slider.test.agent.home";
+  String KEY_TEST_AGENT_TAR = "slider.test.agent.tar";
 
 }

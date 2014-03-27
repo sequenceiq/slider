@@ -43,7 +43,7 @@ public class InstancePaths {
       new Path(instanceDir, HoyaKeys.GENERATED_CONF_DIR_NAME);
     historyPath = new Path(instanceDir, HoyaKeys.HISTORY_DIR_NAME);
     dataPath = new Path(instanceDir, HoyaKeys.DATA_DIR_NAME);
-    tmpPath = new Path(instanceDir, HoyaKeys.HOYA_TMP_DIR_PREFIX);
+    tmpPath = new Path(instanceDir, HoyaKeys.TMP_DIR_PREFIX);
     tmpPathAM = new Path(tmpPath, "appmaster");
   }
 

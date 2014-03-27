@@ -88,7 +88,7 @@ class TestBadArguments extends HBaseMiniClusterTestBase {
            ],
            [
                Arguments.ARG_DEFINE,
-               HoyaXmlConfKeys.KEY_HOYA_YARN_QUEUE + "=noqueue"
+               HoyaXmlConfKeys.KEY_YARN_QUEUE + "=noqueue"
            ],
            true,
            false,

@@ -63,7 +63,7 @@ public abstract class HBaseMiniClusterTestBase extends YarnZKMiniClusterTestBase
   @Override
   void setup() {
     super.setup()
-    assumeBoolOption(HOYA_CONFIG, KEY_HOYA_TEST_HBASE_ENABLED, true)
+    assumeBoolOption(HOYA_CONFIG, KEY_TEST_HBASE_ENABLED, true)
     assumeArchiveDefined();
     assumeApplicationHome();
   }
@@ -145,11 +145,11 @@ public abstract class HBaseMiniClusterTestBase extends YarnZKMiniClusterTestBase
   }
 
   public String getApplicationHomeKey() {
-    return KEY_HOYA_TEST_HBASE_HOME
+    return KEY_TEST_HBASE_HOME
   }
 
   public String getArchiveKey() {
-    return KEY_HOYA_TEST_HBASE_TAR
+    return KEY_TEST_HBASE_TAR
   }
 
   /**
