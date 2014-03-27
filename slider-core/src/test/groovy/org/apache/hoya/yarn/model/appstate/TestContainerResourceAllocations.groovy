@@ -106,11 +106,4 @@ class TestContainerResourceAllocations extends BaseMockAppStateTest {
     assert requirements.virtualCores == ResourceKeys.DEF_YARN_CORES
   }
 
-  @Test
-  public void testLimitsInClusterStatus() throws Throwable {
-    appState.refreshClusterStatus(null)
-    ClusterDescription cd = appState.clusterStatus
-    assert cd.info[ResourceKeys.YARN_MEMORY] == Integer.toString(RM_MAX_RAM)
-    assert cd.info[ResourceKeys.YARN_CORES] == Integer.toString(RM_MAX_CORES)
-  }
 }
