@@ -34,7 +34,7 @@ import static org.apache.hoya.yarn.Arguments.*
 @CompileStatic
 @Slf4j
 class TestBuildBasicAgent extends AgentTestBase {
-
+  static String TEST_FILES = "./src/test/resources/org/apache/hoya/providers/agent/tests/"
 
   @Override
   void checkTestAssumptions(YarnConfiguration conf) {
@@ -102,8 +102,7 @@ class TestBuildBasicAgent extends AgentTestBase {
     assert "2" == masterC.getMandatoryOption(ResourceKeys.COMPONENT_PRIORITY)
 
     def rscomponent = resource.getMandatoryComponent(rs)
-    assert "5" ==
-           rscomponent.getMandatoryOption(ResourceKeys.COMPONENT_INSTANCES)
+    assert "5" == rscomponent.getMandatoryOption(ResourceKeys.COMPONENT_INSTANCES)
 
     // now create an instance with no role priority for the rs
     try {
@@ -137,6 +136,108 @@ class TestBuildBasicAgent extends AgentTestBase {
       fail("Expected an exception")
     } catch (BadConfigException expected) {
     }
+    
+    
+    
   }
+  
+  @Test
+  public void testTemplateArgs() throws Throwable {
 
+
+    def clustername = "test_build_template_args"
+    createMiniCluster(
+        clustername,
+        configuration,
+        1,
+        1,
+        1,
+        true,
+        false)
+    buildAgentCluster("test_build_template_args_good",
+        [:],
+        [
+
+            ARG_OPTION, CONTROLLER_URL, "http://localhost",
+            ARG_PACKAGE, ".",
+            ARG_RESOURCES, TEST_FILES + "good/resources.json",
+            ARG_TEMPLATE, TEST_FILES + "good/appconf.json"
+        ],
+        true, false,
+        false)
+  }
+  
+  
+  @Test
+  public void testBadTemplates() throws Throwable {
+
+
+    def clustername = "test_bad_template_args"
+    createMiniCluster(
+        clustername,
+        configuration,
+        1,
+        1,
+        1,
+        true,
+        false)
+    
+    try {
+      
+      //initial: get the two mixed up
+      buildAgentCluster("test_build_template_args_bad-1",
+          [:],
+          [
+
+              ARG_OPTION, CONTROLLER_URL, "http://localhost",
+              ARG_PACKAGE, ".",
+              ARG_TEMPLATE, TEST_FILES + "good/resources.json",
+              ARG_RESOURCES, TEST_FILES + "good/appconf.json"
+          ],
+          true, false,
+          false)
+
+      fail("Expected an exception from an incomplete instance definition")
+    } catch (BadConfigException expected) {
+    }
+
+    try {
+      
+      //initial: get the two mixed up
+      buildAgentCluster("test_build_template_args_bad-2",
+          [:],
+          [
+
+              ARG_OPTION, CONTROLLER_URL, "http://localhost",
+              ARG_PACKAGE, ".",
+              ARG_TEMPLATE, TEST_FILES + "bad/appconf-1.json",
+          ],
+          true, false,
+          false)
+
+      fail("Expected an exception from a bad app conf")
+    } catch (BadConfigException expected) {
+    }
+    try {
+      
+      //initial: get the two mixed up
+      buildAgentCluster("test_build_template_args_bad-3",
+          [:],
+          [
+
+              ARG_OPTION, CONTROLLER_URL, "http://localhost",
+              ARG_PACKAGE, ".",
+              ARG_TEMPLATE, "unknown.json",
+          ],
+          true, false,
+          false)
+
+      fail("Expected a file not found exception")
+    } catch (FileNotFoundException expected) {
+    }
+
+
+  }
+  
+  
 }

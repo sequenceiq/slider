@@ -175,6 +175,21 @@ Example
 
     --apphome /usr/hadoop/hbase
 
+##### `--template <filename>`
+
+Filename for the template application instance configuration. This
+will be merged with -and can overwrite- the built-in configuration options, and can
+then be overwritten by any command line `--option` and `--compopt` arguments to
+generate the final application configuration.
+
+##### `--resources <filename>`
+
+Filename for the resources configuration. This
+will be merged with -and can overwrite- the built-in resource options, and can
+then be overwritten by any command line `--resopt`, `--rescompopt` and `--component`
+arguments to generate the final resource configuration.
+
+
 ##### `--image path`
 
 The full path in Hadoop HDFS  to a `.tar` or `.tar.gz` file containing 

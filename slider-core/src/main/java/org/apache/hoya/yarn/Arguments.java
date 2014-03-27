@@ -69,12 +69,14 @@ public interface Arguments {
   String ARG_OUTPUT_SHORT = "-o";
   String ARG_PACKAGE = "--package";
   String ARG_PROVIDER = "--provider";
+  String ARG_RESOURCES = "--resources";
   String ARG_RES_COMP_OPT = "--rescompopt";
   String ARG_RES_COMP_OPT_SHORT = "--rco";
   String ARG_RESOURCE_MANAGER = "--rm";
   String ARG_RESOURCE_OPT = "--resopt";
   String ARG_RESOURCE_OPT_SHORT = "-ro";
   String ARG_SYSPROP = "-S";
+  String ARG_TEMPLATE = "--template";
   String ARG_WAIT = "--wait";
   String ARG_ZKPATH = "--zkpath";
   String ARG_ZKPORT = "--zkport";
