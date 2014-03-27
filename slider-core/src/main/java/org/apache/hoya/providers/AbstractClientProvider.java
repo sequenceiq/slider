@@ -81,7 +81,7 @@ public abstract class AbstractClientProvider extends Configured {
       if (component != null) {
         String instances = component.get(COMPONENT_INSTANCES);
         if (instances == null) {
-          String message = "No instance count provide for " + name;
+          String message = "No instance count provided for " + name;
           log.error("{} with \n{}", message,resources.toString());
           throw new BadClusterStateException(
             message);

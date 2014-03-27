@@ -141,11 +141,10 @@ public final class AggregateConf {
   @Override
   public String toString() {
     final StringBuilder sb =
-      new StringBuilder("AggregateConf{");
-    sb.append("name='").append(name).append('\'');
-    sb.append("\nresources=").append(resources);
-    sb.append("\ninternal=").append(internal);
-    sb.append("\nappConf=").append(appConf);
+      new StringBuilder("{");
+    sb.append(",\n\"internal\": ").append(internal);
+    sb.append(",\n\"resources\": ").append(resources);
+    sb.append(",\n\"appConf\" :").append(appConf);
     sb.append('}');
     return sb.toString();
   }
