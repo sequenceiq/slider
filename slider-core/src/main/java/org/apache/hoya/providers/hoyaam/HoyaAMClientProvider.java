@@ -19,6 +19,7 @@
 package org.apache.hoya.providers.hoyaam;
 
 import com.beust.jcommander.JCommander;
+import com.google.gson.GsonBuilder;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -187,6 +188,12 @@ public class HoyaAMClientProvider extends AbstractClientProvider implements
                      tempPath,
                      libdir,
                      JCOMMANDER_JAR);
+    HoyaUtils.putJar(providerResources,
+                     hoyaFileSystem,
+                     GsonBuilder.class,
+                     tempPath,
+                     libdir,
+                     GSON_JAR);
     launcher.addLocalResources(providerResources);
     //also pick up all env variables from a map
     launcher.copyEnvVars(

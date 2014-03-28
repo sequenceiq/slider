@@ -140,9 +140,6 @@ public interface HoyaKeys extends HoyaXmlConfKeys {
   
   String SLIDER_JAR = "slider.jar";
   String JCOMMANDER_JAR = "jcommander.jar";
-  String SLF4J_JAR = "slf4j.jar";
-  String SLF4J_LOG4J_JAR = "slf4j-log4j.jar";
-  String ZOOKEEPER_JAR = "zookeeper.jar";
   String GSON_JAR = "gson.jar";
 
   String DEFAULT_JVM_HEAP = "256M";
