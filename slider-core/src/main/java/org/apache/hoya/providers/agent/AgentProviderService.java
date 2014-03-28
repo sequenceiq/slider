@@ -439,7 +439,16 @@ public class AgentProviderService extends AbstractProviderService implements
                                      Map<String, Map<String, String>> configurations,
                                      Map<String,String> tokens) {
     Map<String, String> config = new HashMap<String, String>();
+    if(configName.equals("global")) {
+      addDefaultGlobalConfig(config);
+    }
     providerUtils.propagateSiteOptions(sourceConfig, config, configName, tokens);
     configurations.put(configName, config);
+  }
+
+  private void addDefaultGlobalConfig(Map<String, String> config) {
+    config.put("app_log_dir", "${AGENT_LOG_ROOT}/app/log");
+    config.put("app_pid_dir", "${AGENT_WORK_ROOT}/app/run");
+    config.put("app_install_dir", "${AGENT_WORK_ROOT}/app/install");
   }
 }

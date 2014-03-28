@@ -22,7 +22,6 @@ import sys
 from resource_management import *
 from storm import storm
 from service import service
-from service_check import ServiceCheck
 
 
 class StormRestApi(Script):

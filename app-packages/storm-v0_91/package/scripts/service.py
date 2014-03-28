@@ -66,7 +66,7 @@ def service(
       )
     else:
       content = None
-      for i in xrange(6):
+      for i in xrange(12):
         Execute(pid_chk_cmd,
                 user=params.storm_user,
                 logoutput=True

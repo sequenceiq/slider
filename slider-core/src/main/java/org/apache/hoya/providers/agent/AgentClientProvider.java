@@ -133,15 +133,6 @@ public class AgentClientProvider extends AbstractClientProvider
     providerUtils.validateNodeCount(instanceDefinition, ROLE_NODE,
                                     0, -1);
 
-  
-
-    // Mandatory options for Agents
-    // TODO: Enable these after CLI changes
-    //clusterSpec.getMandatoryOption(CONTROLLER_URL);
-    //clusterSpec.getMandatoryOption(PACKAGE_PATH);
-    //clusterSpec.getMandatoryOption(AGENT_PATH);
-
-
     Set<String> names = resources.getComponentNames();
     names.remove(HoyaKeys.COMPONENT_AM);
     Map<Integer, String> priorityMap = new HashMap<Integer, String>();
