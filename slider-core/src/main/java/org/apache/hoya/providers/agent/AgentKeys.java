@@ -94,6 +94,9 @@ public interface AgentKeys {
   String APP_DEFINITION_DIR = "app/definition";
   String AGENT_CONFIG_FILE = "infra/conf/agent.ini";
   String AGENT_VERSION_FILE = "infra/version";
+
+  String JAVA_HOME = "java_home";
+  String PACKAGE_LIST = "package_list";
 }
 
 
