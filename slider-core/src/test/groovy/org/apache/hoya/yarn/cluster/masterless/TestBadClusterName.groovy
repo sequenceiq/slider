@@ -28,6 +28,9 @@ import org.apache.hadoop.yarn.service.launcher.ServiceLaunchException
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
+import static org.apache.hoya.providers.hbase.HBaseKeys.PROVIDER_HBASE
+import static org.apache.hoya.yarn.Arguments.ARG_PROVIDER
+
 @CompileStatic
 @Slf4j
 
@@ -47,7 +50,7 @@ class TestBadClusterName extends HBaseMiniClusterTestBase {
                (HBaseKeys.ROLE_WORKER): 0,
            ],
            [
-               
+               ARG_PROVIDER, PROVIDER_HBASE
            ],
            true,
            false,

@@ -30,6 +30,9 @@ import org.apache.hoya.yarn.providers.hbase.HBaseMiniClusterTestBase
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
+import static org.apache.hoya.providers.hbase.HBaseKeys.PROVIDER_HBASE
+import static org.apache.hoya.yarn.Arguments.ARG_PROVIDER
+
 @CompileStatic
 @Slf4j
 
@@ -46,16 +49,17 @@ class TestRoleOptPropagation extends HBaseMiniClusterTestBase {
 
     String ENV = "env.ENV_VAR"
     ServiceLauncher launcher = createHoyaCluster(clustername,
-                                                 [
-                                                     (HBaseKeys.ROLE_MASTER): 0,
-                                                     (HBaseKeys.ROLE_WORKER): 0,
-                                                 ],
-                                                 [
-                                                     Arguments.ARG_COMP_OPT, HBaseKeys.ROLE_MASTER, ENV, "4",
-                                                 ],
-                                                 true,
-                                                 true,
-                                                 [:])
+                   [
+                       (HBaseKeys.ROLE_MASTER): 0,
+                       (HBaseKeys.ROLE_WORKER): 0,
+                   ],
+                   [
+                       Arguments.ARG_COMP_OPT, HBaseKeys.ROLE_MASTER, ENV, "4",
+                       ARG_PROVIDER, PROVIDER_HBASE
+                   ],
+                   true,
+                   true,
+                   [:])
     HoyaClient hoyaClient = (HoyaClient) launcher.service
     addToTeardown(hoyaClient);
     ClusterDescription status = hoyaClient.clusterDescription
@@ -74,17 +78,18 @@ class TestRoleOptPropagation extends HBaseMiniClusterTestBase {
     try {
       String MALLOC_ARENA = "env.MALLOC_ARENA_MAX"
       ServiceLauncher launcher = createHoyaCluster(clustername,
-                                                 [
-                                                     (HBaseKeys.ROLE_MASTER): 0,
-                                                     (HBaseKeys.ROLE_WORKER): 0,
-                                                 ],
-                                                 [
-                                                     Arguments.ARG_COMP_OPT, HoyaKeys.COMPONENT_AM, MALLOC_ARENA, "4",
-                                                     Arguments.ARG_COMP_OPT, "unknown", MALLOC_ARENA, "3",
-                                                 ],
-                                                 true,
-                                                 true,
-                                                 [:])
+         [
+             (HBaseKeys.ROLE_MASTER): 0,
+             (HBaseKeys.ROLE_WORKER): 0,
+         ],
+         [
+             Arguments.ARG_COMP_OPT, HoyaKeys.COMPONENT_AM, MALLOC_ARENA, "4",
+             Arguments.ARG_COMP_OPT, "unknown", MALLOC_ARENA, "3",
+             ARG_PROVIDER, PROVIDER_HBASE
+         ],
+         true,
+         true,
+         [:])
       assert false
     } catch (BadCommandArgumentsException bcae) {
       /* expected */

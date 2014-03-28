@@ -28,13 +28,16 @@ import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
 
+import static org.apache.hoya.providers.hbase.HBaseKeys.PROVIDER_HBASE
+import static org.apache.hoya.yarn.Arguments.ARG_PROVIDER
+
 @CompileStatic
 @Slf4j
 
 class TestBuildThawClusterM1W1 extends HBaseMiniClusterTestBase {
 
   @Test
-  public void testBuildCluster() throws Throwable {
+  public void test_build_thaw_cluster_m1_w1() throws Throwable {
     String clustername = "test_build_thaw_cluster_m1_w1"
     createMiniCluster(clustername, getConfiguration(), 1, true)
 
@@ -47,7 +50,9 @@ class TestBuildThawClusterM1W1 extends HBaseMiniClusterTestBase {
             (HBaseKeys.ROLE_MASTER): 1,
             (HBaseKeys.ROLE_WORKER): 1,
         ],
-        [],
+        [
+            ARG_PROVIDER, PROVIDER_HBASE
+        ],
         true,
         false,
         [:])

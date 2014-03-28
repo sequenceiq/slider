@@ -105,7 +105,7 @@ public abstract class AgentTestBase extends YarnZKMiniClusterTestBase {
       boolean deleteExistingData,
       boolean create,
       boolean blockUntilRunning) {
-    extraArgs << ARG_PROVIDER << PROVIDER_AGENT;
+    
 
     YarnConfiguration conf = testConfiguration
 

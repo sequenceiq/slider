@@ -32,11 +32,6 @@ class TestProviderFactory {
 
 
   @Test
-  public void testLoadHoyaConfig() throws Throwable {
-    Configuration conf = HoyaProviderFactory.loadHoyaConfiguration();
-    assert conf.getBoolean("hoya.config.loaded", false)
-  }
-  @Test
   public void testLoadHBaseProvider() throws Throwable {
     HoyaProviderFactory factory = HoyaProviderFactory.createHoyaProviderFactory(HBaseKeys.PROVIDER_HBASE);
     assert factory instanceof HBaseProviderFactory
@@ -51,6 +46,12 @@ class TestProviderFactory {
   @Test
   public void testCreateHBaseServerProvider() throws Throwable {
     HoyaProviderFactory factory = HoyaProviderFactory.createHoyaProviderFactory(HBaseKeys.PROVIDER_HBASE);
+    assert null != factory.createServerProvider();
+  }
+  
+  @Test
+  public void testCreateProviderByClassname() throws Throwable {
+    HoyaProviderFactory factory = HoyaProviderFactory.createHoyaProviderFactory("org.apache.hoya.providers.hbase.HBaseProviderFactory");
     assert null != factory.createServerProvider();
   }
   

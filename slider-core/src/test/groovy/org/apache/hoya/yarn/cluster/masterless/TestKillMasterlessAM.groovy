@@ -29,6 +29,8 @@ import org.apache.hadoop.yarn.api.records.ApplicationReport
 import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
 import org.junit.Test
+
+import static org.apache.hoya.providers.hbase.HBaseKeys.PROVIDER_HBASE
 import static org.apache.hoya.yarn.Arguments.*
 
 /**
@@ -55,7 +57,11 @@ class TestKillMasterlessAM extends HBaseMiniClusterTestBase {
     ServiceLauncher launcher = createHoyaCluster(clustername,
         roles,
         [
-            ARG_COMP_OPT, HoyaKeys.COMPONENT_AM, RoleKeys.JVM_OPTS, "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
+/*
+            ARG_COMP_OPT, HoyaKeys.COMPONENT_AM,
+            RoleKeys.JVM_OPTS, "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005",
+*/
+            ARG_PROVIDER, PROVIDER_HBASE
         ],
         true,
         true,

@@ -24,7 +24,7 @@ import org.apache.hoya.HoyaKeys;
 import org.apache.hoya.HoyaXmlConfKeys;
 import org.apache.hoya.exceptions.BadClusterStateException;
 import org.apache.hoya.exceptions.HoyaException;
-import org.apache.hoya.providers.hbase.HBaseKeys;
+import org.apache.hoya.providers.agent.AgentKeys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,15 +33,12 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class HoyaProviderFactory extends Configured {
 
-  public static final String DEFAULT_CLUSTER_TYPE = HBaseKeys.PROVIDER_HBASE;
+  public static final String DEFAULT_CLUSTER_TYPE = AgentKeys.PROVIDER_AGENT;
   
-  protected static final Logger LOG =
+  protected static final Logger log =
     LoggerFactory.getLogger(HoyaProviderFactory.class);
   public static final String PROVIDER_NOT_FOUND =
-    "Unable to find provider of Hoya application type %s, which should have its classname defined in the property %s";
-
-  public static final String PROVIDER_NOT_LOADED=
-    "Failed to load of Hoya provider %s, defined in the property %s - classname %s";
+    "Unable to find provider of application type %s";
 
   public HoyaProviderFactory(Configuration conf) {
     super(conf);
@@ -66,31 +63,28 @@ public abstract class HoyaProviderFactory extends Configured {
     if (application == null) {
       application = DEFAULT_CLUSTER_TYPE;
     }
-    String providerKey = String.format(HoyaXmlConfKeys.KEY_PROVIDER, application);
-    String classname = conf.getTrimmed(providerKey);
-    if (classname == null) {
-      throw new BadClusterStateException(PROVIDER_NOT_FOUND, application,
-                                            providerKey);
+    String providerKey =
+      String.format(HoyaXmlConfKeys.KEY_PROVIDER, application);
+    if (application.contains(".")) {
+      log.debug("Treating {} as a classname", application);
+      String name = "classname.key";
+      conf.set(name, application);
+      providerKey = name;
     }
-    LOG.debug("Provider key {}: value {}", providerKey, classname);
-    Class<?> providerClass;
+    
+    Class<? extends HoyaProviderFactory> providerClass;
     try {
-      providerClass = Class.forName(classname, true,
-                                    HoyaProviderFactory.class.getClassLoader());
-    } catch (ClassNotFoundException e) {
-      LOG.debug("Failed to load class " + classname, e);
-      providerClass = null;
+      providerClass = conf.getClass(providerKey, null, HoyaProviderFactory.class);
+    } catch (RuntimeException e) {
+      throw new BadClusterStateException(e, "Failed to load provider %s: %s", application, e);
     }
     if (providerClass == null) {
-      throw new BadClusterStateException(PROVIDER_NOT_LOADED,
-                                            application,
-                                            providerKey,
-                                            classname);
+      throw new BadClusterStateException(PROVIDER_NOT_FOUND, application);
     }
+
     Exception ex;
     try {
-      HoyaProviderFactory providerFactory =
-        (HoyaProviderFactory) providerClass.newInstance();
+      HoyaProviderFactory providerFactory = providerClass.newInstance();
       providerFactory.setConf(conf);
       return providerFactory;
     } catch (InstantiationException e) {
