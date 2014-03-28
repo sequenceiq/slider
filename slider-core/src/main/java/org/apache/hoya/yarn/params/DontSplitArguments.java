@@ -18,35 +18,17 @@
 
 package org.apache.hoya.yarn.params;
 
-import com.beust.jcommander.Parameter;
-import org.apache.hoya.exceptions.BadCommandArgumentsException;
+import com.beust.jcommander.converters.IParameterSplitter;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-public class ComponentArgsDelegate extends AbstractArgsDelegate {
+public class DontSplitArguments implements IParameterSplitter {
 
-  /**
-   * This is a listing of the roles to create
-   */
-  @Parameter(names = {ARG_COMPONENT,  ARG_COMPONENT_SHORT, ARG_ROLE},
-             arity = 2,
-             description = "--component <name> <count>",
-             splitter = DontSplitArguments.class)
-  public List<String> componentTuples = new ArrayList<String>(0);
-
-
-  /**
-   * Get the role mapping (may be empty, but never null)
-   * @return role mapping
-   * @throws BadCommandArgumentsException parse problem
-   */
-  public Map<String, String> getComponentMap() throws BadCommandArgumentsException {
-    return convertTupleListToMap("component", componentTuples);
-  }
-
-  public List<String> getComponentTuples() {
-    return componentTuples;
+  @Override
+  public List<String> split(String value) {
+    ArrayList<String> list = new ArrayList<String>(1);
+    list.add(value);
+    return list;
   }
 }

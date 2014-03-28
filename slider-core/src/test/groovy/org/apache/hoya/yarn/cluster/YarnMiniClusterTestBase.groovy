@@ -760,11 +760,8 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest {
    * @return
    */
   public HoyaFileSystem createHoyaFileSystem() {
-    assert miniCluster != null
-
-    def config = miniCluster.config
-    HadoopFS dfs = HadoopFS.get(new URI(fsDefaultName), config)
-    HoyaFileSystem hfs = new HoyaFileSystem(dfs, config)
+    HadoopFS dfs = HadoopFS.get(new URI(fsDefaultName), configuration)
+    HoyaFileSystem hfs = new HoyaFileSystem(dfs, configuration)
     return hfs
   }
 

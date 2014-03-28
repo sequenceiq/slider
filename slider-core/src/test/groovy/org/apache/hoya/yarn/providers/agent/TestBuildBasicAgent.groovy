@@ -22,7 +22,11 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
+import org.apache.hoya.HoyaKeys
 import org.apache.hoya.api.ResourceKeys
+import org.apache.hoya.api.RoleKeys
+import org.apache.hoya.core.conf.AggregateConf
+import org.apache.hoya.core.persist.ConfPersister
 import org.apache.hoya.exceptions.BadConfigException
 import org.apache.hoya.providers.agent.AgentKeys
 import org.apache.hoya.yarn.client.HoyaClient
@@ -120,6 +124,8 @@ class TestBuildBasicAgent extends AgentTestBase {
       fail("Expected an exception")
     } catch (BadConfigException expected) {
     }
+    
+    //duplicate priorities
     try {
       buildAgentCluster(clustername + "-3",
           [
@@ -136,11 +142,45 @@ class TestBuildBasicAgent extends AgentTestBase {
       fail("Expected an exception")
     } catch (BadConfigException expected) {
     }
-    
-    
-    
+
+
+
+    def cluster4 = clustername + "-4"
+
+    def jvmopts = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
+    buildAgentCluster(cluster4,
+        [
+            (master)             : 1,
+            (rs)                 : 5
+        ],
+        [
+            ARG_COMP_OPT, HoyaKeys.COMPONENT_AM, RoleKeys.JVM_OPTS,
+            jvmopts
+        ],
+
+        true, false,
+        false)
+
+    //now we want to look at the value
+    AggregateConf instanceDefinition = loadInstanceDefinition(cluster4)
+    def opt = instanceDefinition.getAppConfOperations().getComponentOpt(
+        HoyaKeys.COMPONENT_AM,
+        RoleKeys.JVM_OPTS,
+        "")
+
+    assert jvmopts == opt
   }
-  
+
+  public AggregateConf loadInstanceDefinition(String name) {
+    def cluster4
+    def hoyaFS = createHoyaFileSystem()
+    def dirPath = hoyaFS.buildHoyaClusterDirPath(name)
+    ConfPersister persister = new ConfPersister(hoyaFS, dirPath)
+    AggregateConf instanceDefinition = new AggregateConf();
+    persister.load(instanceDefinition)
+    return instanceDefinition
+  }
+
   @Test
   public void testTemplateArgs() throws Throwable {
 
@@ -185,7 +225,9 @@ class TestBuildBasicAgent extends AgentTestBase {
     try {
       
       //initial: get the two mixed up
-      buildAgentCluster("test_build_template_args_bad-1",
+
+      def badArgs1 = "test_build_template_args_bad-1"
+      buildAgentCluster(badArgs1,
           [:],
           [
 
@@ -196,7 +238,8 @@ class TestBuildBasicAgent extends AgentTestBase {
           ],
           true, false,
           false)
-
+      AggregateConf instanceDefinition = loadInstanceDefinition(badArgs1)
+      log.error("configuration was not rejected ", instanceDefinition)
       fail("Expected an exception from an incomplete instance definition")
     } catch (BadConfigException expected) {
     }
