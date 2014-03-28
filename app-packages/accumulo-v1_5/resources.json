@@ -1,0 +1,42 @@
+{
+  "schema": "http://example.org/specification/v2.0.0",
+  "metadata": {
+  },
+  "global": {
+  },
+  "components": {
+    "ACCUMULO_MASTER": {
+      "wait.heartbeat": "5",
+      "role.priority": "1",
+      "component.instances": "1",
+      "role.script": "scripts/accumulo_master.py"
+    },
+    "slider-appmaster": {
+      "jvm.heapsize": "256M"
+    },
+    "ACCUMULO_TSERVER": {
+      "wait.heartbeat": "3",
+      "role.priority": "2",
+      "component.instances": "1",
+      "role.script": "scripts/accumulo_tserver.py"
+    },
+    "ACCUMULO_MONITOR": {
+      "wait.heartbeat": "3",
+      "role.priority": "2",
+      "component.instances": "1",
+      "role.script": "scripts/accumulo_monitor.py"
+    },
+    "ACCUMULO_GC": {
+      "wait.heartbeat": "3",
+      "role.priority": "2",
+      "component.instances": "1",
+      "role.script": "scripts/accumulo_gc.py"
+    },
+    "ACCUMULO_TRACER": {
+      "wait.heartbeat": "3",
+      "role.priority": "2",
+      "component.instances": "1",
+      "role.script": "scripts/accumulo_tracer.py"
+    }
+  }
+}
