@@ -492,7 +492,16 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     }
 
     // provider to validate what there is
-    provider.validateInstanceDefinition(builder.getInstanceDescription());
+    try {
+      hoyaAM.validateInstanceDefinition(builder.getInstanceDescription());
+      provider.validateInstanceDefinition(builder.getInstanceDescription());
+    } catch (HoyaException e) {
+      //problem, reject it
+      log.info("Error {} validating application instance definition ", e.toString());
+      log.debug("Error {} validating application instance definition ", e);
+      log.info(instanceDefinition.toString());
+      
+    }
     try {
       builder.persist(appconfdir);
     } catch (LockAcquireFailedException e) {
