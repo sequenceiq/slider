@@ -22,7 +22,11 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
+import org.apache.hoya.HoyaKeys
 import org.apache.hoya.api.ResourceKeys
+import org.apache.hoya.api.RoleKeys
+import org.apache.hoya.core.conf.AggregateConf
+import org.apache.hoya.core.persist.ConfPersister
 import org.apache.hoya.exceptions.BadConfigException
 import org.apache.hoya.providers.agent.AgentKeys
 import org.apache.hoya.yarn.client.HoyaClient
@@ -106,22 +110,28 @@ class TestBuildBasicAgent extends AgentTestBase {
 
     // now create an instance with no role priority for the rs
     try {
-      buildAgentCluster(clustername + "-2",
+      def name2 = clustername + "-2"
+      buildAgentCluster(name2,
           [
               (AgentKeys.ROLE_NODE): 5,
-              (master)             : 1,
-              (rs)                 : 5
+              "role3"             : 1,
+              "newnode"                 : 5
           ],
           [
-              ARG_RES_COMP_OPT, master, ResourceKeys.COMPONENT_PRIORITY, "2",
+              ARG_RES_COMP_OPT, "role3", ResourceKeys.COMPONENT_PRIORITY, "2",
           ],
           true, false,
           false)
+      failWithBuildSucceeding(name2, "no priority for one role")
+
       fail("Expected an exception")
     } catch (BadConfigException expected) {
     }
+    
+    //duplicate priorities
     try {
-      buildAgentCluster(clustername + "-3",
+      def name3 = clustername + "-3"
+      buildAgentCluster(name3,
           [
               (AgentKeys.ROLE_NODE): 5,
               (master)             : 1,
@@ -133,14 +143,48 @@ class TestBuildBasicAgent extends AgentTestBase {
 
           true, false,
           false)
-      fail("Expected an exception")
+      failWithBuildSucceeding(name3, "duplicate priorities")
     } catch (BadConfigException expected) {
     }
-    
-    
-    
+
+
+
+    def cluster4 = clustername + "-4"
+
+    def jvmopts = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
+    buildAgentCluster(cluster4,
+        [
+            (master)             : 1,
+            (rs)                 : 5
+        ],
+        [
+            ARG_COMP_OPT, HoyaKeys.COMPONENT_AM, RoleKeys.JVM_OPTS,
+            jvmopts
+        ],
+
+        true, false,
+        false)
+
+    //now we want to look at the value
+    AggregateConf instanceDefinition = loadInstanceDefinition(cluster4)
+    def opt = instanceDefinition.getAppConfOperations().getComponentOpt(
+        HoyaKeys.COMPONENT_AM,
+        RoleKeys.JVM_OPTS,
+        "")
+
+    assert jvmopts == opt
   }
-  
+
+  public AggregateConf loadInstanceDefinition(String name) {
+    def cluster4
+    def hoyaFS = createHoyaFileSystem()
+    def dirPath = hoyaFS.buildHoyaClusterDirPath(name)
+    ConfPersister persister = new ConfPersister(hoyaFS, dirPath)
+    AggregateConf instanceDefinition = new AggregateConf();
+    persister.load(instanceDefinition)
+    return instanceDefinition
+  }
+
   @Test
   public void testTemplateArgs() throws Throwable {
 
@@ -184,27 +228,27 @@ class TestBuildBasicAgent extends AgentTestBase {
     
     try {
       
-      //initial: get the two mixed up
-      buildAgentCluster("test_build_template_args_bad-1",
+
+      def badArgs1 = "test_build_template_args_bad-1"
+      buildAgentCluster(badArgs1,
           [:],
           [
 
               ARG_OPTION, CONTROLLER_URL, "http://localhost",
               ARG_PACKAGE, ".",
-              ARG_TEMPLATE, TEST_FILES + "good/resources.json",
-              ARG_RESOURCES, TEST_FILES + "good/appconf.json"
+              ARG_RESOURCES, TEST_FILES + "bad/appconf-1.json",
+              ARG_TEMPLATE, TEST_FILES + "good/appconf.json"
           ],
           true, false,
           false)
-
-      fail("Expected an exception from an incomplete instance definition")
+      failWithBuildSucceeding(badArgs1, "bad resource template")
     } catch (BadConfigException expected) {
     }
 
     try {
-      
-      //initial: get the two mixed up
-      buildAgentCluster("test_build_template_args_bad-2",
+
+      def bad2 = "test_build_template_args_bad-2"
+      buildAgentCluster(bad2,
           [:],
           [
 
@@ -215,14 +259,14 @@ class TestBuildBasicAgent extends AgentTestBase {
           true, false,
           false)
 
-      fail("Expected an exception from a bad app conf")
+      failWithBuildSucceeding(bad2, "a bad app conf")
     } catch (BadConfigException expected) {
     }
     
     try {
       
-      //initial: get the two mixed up
-      buildAgentCluster("test_build_template_args_bad-3",
+      def bad3 = "test_build_template_args_bad-3"
+      buildAgentCluster(bad3,
           [:],
           [
 
@@ -232,16 +276,15 @@ class TestBuildBasicAgent extends AgentTestBase {
           ],
           true, false,
           false)
-
-      fail("Expected a file not found exception")
+      failWithBuildSucceeding(bad3, "missing template file")
     } catch (BadConfigException expected) {
     }
 
 
     try {
 
-      //initial: get the two mixed up
-      buildAgentCluster("test_build_template_args_bad-4",
+      def bad4 = "test_build_template_args_bad-4"
+      buildAgentCluster(bad4,
           [:],
           [
 
@@ -252,11 +295,19 @@ class TestBuildBasicAgent extends AgentTestBase {
           true, false,
           false)
 
-      fail("Expected an exception from a bad app conf")
+      failWithBuildSucceeding(bad4, "Unparseable JSON")
     } catch (BadConfigException expected) {
     }
 
   }
-  
-  
+
+  public void failWithBuildSucceeding(String name, String reason) {
+    def badArgs1
+    AggregateConf instanceDefinition = loadInstanceDefinition(name)
+    log.error(
+        "Build operation should have failed from $reason : \n$instanceDefinition")
+    fail("Build operation should have failed from $reason")
+  }
+
+
 }

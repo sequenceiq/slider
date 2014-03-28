@@ -35,7 +35,8 @@ public class AppAndResouceOptionArgsDelegate extends AbstractArgsDelegate {
    * Options key value
    */
   @Parameter(names = {ARG_OPTION, ARG_OPTION_SHORT}, arity = 2,
-             description = ARG_OPTION + "<name> <value>")
+             description = ARG_OPTION + "<name> <value>",
+             splitter = DontSplitArguments.class)
   public List<String> optionTuples = new ArrayList<String>(0);
 
 
@@ -44,14 +45,16 @@ public class AppAndResouceOptionArgsDelegate extends AbstractArgsDelegate {
    */
   @Parameter(names = {ARG_COMP_OPT,  ARG_COMP_OPT_SHORT,  ARG_ROLEOPT}, arity = 3,
              description = "Component option " + ARG_COMP_OPT +
-                           " <component> <name> <option>")
+                           " <component> <name> <option>",
+             splitter = DontSplitArguments.class)
   public List<String> compOptTriples = new ArrayList<String>(0);
 
   /**
    * Resource Options
    */
   @Parameter(names = {ARG_RESOURCE_OPT, ARG_RESOURCE_OPT_SHORT}, arity = 2,
-             description = "Resource option "+ ARG_RESOURCE_OPT + "<name> <value>")
+             description = "Resource option "+ ARG_RESOURCE_OPT + "<name> <value>",
+             splitter = DontSplitArguments.class)
   public List<String> resOptionTuples = new ArrayList<String>(0);
 
 
@@ -60,7 +63,8 @@ public class AppAndResouceOptionArgsDelegate extends AbstractArgsDelegate {
    */
   @Parameter(names = {ARG_RES_COMP_OPT, ARG_RES_COMP_OPT_SHORT,}, arity = 3,
              description = "Component resource option " + ARG_RES_COMP_OPT +
-                           " <component> <name> <option>")
+                           " <component> <name> <option>",
+             splitter = DontSplitArguments.class)
   public List<String> resCompOptTriples = new ArrayList<String>(0);
 
 
