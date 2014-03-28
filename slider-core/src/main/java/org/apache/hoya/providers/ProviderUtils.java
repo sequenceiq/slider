@@ -44,6 +44,7 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * this is a factoring out of methods handy for providers. It's bonded to a log at
@@ -171,12 +172,34 @@ public class ProviderUtils implements RoleKeys {
 
   public void propagateSiteOptions(Map<String, String> options,
                                    Map<String, String> sitexml) {
+    propagateSiteOptions(options, sitexml, "");
+  }
+
+  public void propagateSiteOptions(Map<String, String> options,
+                                   Map<String, String> sitexml,
+                                   String configName) {
+    propagateSiteOptions(options, sitexml, configName, null);
+  }
+
+  public void propagateSiteOptions(Map<String, String> options,
+                                   Map<String, String> sitexml,
+                                   String configName,
+                                   Map<String,String> tokenMap) {
+    String prefix = OptionKeys.SITE_XML_PREFIX +
+                    (configName.length() > 0 ? configName + "." : "");
     for (Map.Entry<String, String> entry : options.entrySet()) {
       String key = entry.getKey();
-      if (key.startsWith(OptionKeys.SITE_XML_PREFIX)) {
-        String envName = key.substring(OptionKeys.SITE_XML_PREFIX.length());
+      if (key.startsWith(prefix)) {
+        String envName = key.substring(prefix.length());
         if (!envName.isEmpty()) {
-          sitexml.put(envName, entry.getValue());
+          String value = entry.getValue();
+          if (tokenMap != null) {
+            for (Map.Entry<String,String> token : tokenMap.entrySet()) {
+              value = value.replaceAll(Pattern.quote(token.getKey()),
+                                       token.getValue());
+            }
+          }
+          sitexml.put(envName, value);
         }
       }
     }

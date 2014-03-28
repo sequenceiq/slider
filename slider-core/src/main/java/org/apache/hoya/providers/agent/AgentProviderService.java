@@ -30,6 +30,7 @@ import org.apache.hoya.api.ClusterDescription;
 import org.apache.hoya.api.OptionKeys;
 import org.apache.hoya.api.StatusKeys;
 import org.apache.hoya.core.conf.AggregateConf;
+import org.apache.hoya.core.conf.ConfTreeOperations;
 import org.apache.hoya.core.conf.MapOperations;
 import org.apache.hoya.core.launch.CommandLineBuilder;
 import org.apache.hoya.exceptions.BadCommandArgumentsException;
@@ -57,8 +58,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -77,6 +81,8 @@ public class AgentProviderService extends AbstractProviderService implements
       LoggerFactory.getLogger(AgentProviderService.class);
   protected static final String NAME = "agent";
   private static final ProviderUtils providerUtils = new ProviderUtils(log);
+  public static final String INSTALL_COMMAND = "INSTALL";
+  private static final String START_COMMAND = "START";
   private static int COMPONENT_NOT_INSTALLED = 0;
   private static int COMPONENT_INSTALLING = 1;
   private static int COMPONENT_INSTALLED = 2;
@@ -300,14 +306,19 @@ public class AgentProviderService extends AbstractProviderService implements
       return response;
     }
 
-    if (componentStatus == COMPONENT_NOT_INSTALLED) {
-      log.info("Installing component ...");
-      addInstallCommand(response, scriptPath);
-      componentStatus = COMPONENT_INSTALLING;
-    } else if (componentStatus == COMPONENT_INSTALLED) {
-      log.info("Starting component ...");
-      addStartCommand(response, scriptPath);
-      componentStatus = COMPONENT_STARTING;
+    try {
+      if (componentStatus == COMPONENT_NOT_INSTALLED) {
+        log.info("Installing component ...");
+        addInstallCommand(roleName, response, scriptPath);
+        componentStatus = COMPONENT_INSTALLING;
+      } else if (componentStatus == COMPONENT_INSTALLED) {
+        log.info("Starting component ...");
+        addStartCommand(roleName, response, scriptPath);
+        componentStatus = COMPONENT_STARTING;
+      }
+    } catch (HoyaException e) {
+      componentStatus = COMPONENT_FAILED;
+      log.warn("Component instance failed operation.", e);
     }
 
     componentStatuses.put(roleName, componentStatus);
@@ -318,53 +329,37 @@ public class AgentProviderService extends AbstractProviderService implements
     return label.substring(label.indexOf(LABEL_MAKER) + LABEL_MAKER.length());
   }
 
-  private void addInstallCommand(HeartBeatResponse response, String scriptPath) {
+  private void addInstallCommand(String roleName, HeartBeatResponse response, String scriptPath) throws HoyaException{
+    assert getStateAccessor().isApplicationLive();
+    ConfTreeOperations appConf = getStateAccessor().getAppConfSnapshot();
+    ConfTreeOperations resourcesConf = getStateAccessor().getResourcesSnapshot();
+    ConfTreeOperations internalsConf = getStateAccessor().getInternalsSnapshot();
+
     ExecutionCommand cmd = new ExecutionCommand(AgentCommandType.EXECUTION_COMMAND);
-    cmd.setClusterName("cl1");
-    cmd.setRoleCommand("INSTALL");
-    cmd.setServiceName("HBASE");
-    cmd.setComponentName("HBASE_MASTER");
-    cmd.setRole("HBASE_MASTER");
+    String clusterName = internalsConf.get(OptionKeys.APPLICATION_NAME);
+    cmd.setClusterName(clusterName);
+    cmd.setRoleCommand(INSTALL_COMMAND);
+    cmd.setServiceName(clusterName);
+    cmd.setComponentName(roleName);
+    cmd.setRole(roleName);
     cmd.setTaskId(1);
     cmd.setCommandId("1-1");
     Map<String, String> hostLevelParams = new TreeMap<String, String>();
-    hostLevelParams.put("java_home", "/usr/jdk64/jdk1.7.0_45");
-    hostLevelParams.put("package_list", "[{\"type\":\"tarball\",\"name\":\"files/hbase-0.96.1-hadoop2-bin.tar.tar.tar.gz\"}]");
+    hostLevelParams.put(JAVA_HOME, appConf.getGlobalOptions().getMandatoryOption(JAVA_HOME));
+    hostLevelParams.put(PACKAGE_LIST, "[{\"type\":\"tarball\",\"name\":\"" +
+                                        appConf.getGlobalOptions().getMandatoryOption(
+                                            PACKAGE_LIST) +"\"}]");
     cmd.setHostLevelParams(hostLevelParams);
 
-    Map<String, Map<String, String>> configurations = new TreeMap<String, Map<String, String>>();
-    Map<String, String> config = new HashMap<String, String>();
-    config.put("app_install_dir", "${AGENT_WORK_ROOT}/app/install");
-    configurations.put("global", config);
-    cmd.setConfigurations(configurations);
+    setInstallCommandConfigurations(cmd);
 
-    Map<String, String> cmdParams = new TreeMap<String, String>();
-    cmdParams.put("service_package_folder", "${AGENT_WORK_ROOT}/work/app/definition/package");
-    cmdParams.put("script", scriptPath);
-    cmdParams.put("schema_version", "2.0");
-    cmdParams.put("command_timeout", "300");
-    cmdParams.put("script_type", "PYTHON");
-    cmd.setCommandParams(cmdParams);
+    setCommandParameters(scriptPath, cmd);
 
     cmd.setHostname(getClusterInfoPropertyValue(StatusKeys.INFO_AM_HOSTNAME));
     response.addExecutionCommand(cmd);
   }
 
-  private void addStartCommand(HeartBeatResponse response, String scriptPath) {
-    ExecutionCommand cmd = new ExecutionCommand(AgentCommandType.EXECUTION_COMMAND);
-    String hostName = getClusterInfoPropertyValue(StatusKeys.INFO_AM_HOSTNAME);
-    cmd.setHostname(hostName);
-    cmd.setClusterName("cl1");
-    cmd.setRoleCommand("START");
-    cmd.setServiceName("HBASE");
-    cmd.setComponentName("HBASE_MASTER");
-    cmd.setRole("HBASE_MASTER");
-    cmd.setTaskId(2);
-    cmd.setCommandId("1-2");
-    Map<String, String> hostLevelParams = new TreeMap<String, String>();
-    hostLevelParams.put("java_home", "/usr/jdk64/jdk1.7.0_45");
-    cmd.setHostLevelParams(hostLevelParams);
-
+  private void setCommandParameters(String scriptPath, ExecutionCommand cmd) {
     Map<String, String> cmdParams = new TreeMap<String, String>();
     cmdParams.put("service_package_folder", "${AGENT_WORK_ROOT}/work/app/definition/package");
     cmdParams.put("script", scriptPath);
@@ -372,69 +367,88 @@ public class AgentProviderService extends AbstractProviderService implements
     cmdParams.put("command_timeout", "300");
     cmdParams.put("script_type", "PYTHON");
     cmd.setCommandParams(cmdParams);
+  }
+
+  private void setInstallCommandConfigurations(ExecutionCommand cmd) {
+    Map<String, Map<String, String>> configurations = new TreeMap<String, Map<String, String>>();
+    Map<String, String> config = new HashMap<String, String>();
+    config.put("app_install_dir", "${AGENT_WORK_ROOT}/app/install");
+    configurations.put("global", config);
+    cmd.setConfigurations(configurations);
+  }
+
+  private void addStartCommand(String roleName, HeartBeatResponse response, String scriptPath) throws HoyaException {
+    assert getStateAccessor().isApplicationLive();
+    ConfTreeOperations appConf = getStateAccessor().getAppConfSnapshot();
+    ConfTreeOperations resourcesConf = getStateAccessor().getResourcesSnapshot();
+    ConfTreeOperations internalsConf = getStateAccessor().getInternalsSnapshot();
+
+    ExecutionCommand cmd = new ExecutionCommand(AgentCommandType.EXECUTION_COMMAND);
+    String clusterName = internalsConf.get(OptionKeys.APPLICATION_NAME);
+    String hostName = getClusterInfoPropertyValue(StatusKeys.INFO_AM_HOSTNAME);
+    cmd.setHostname(hostName);
+    cmd.setClusterName(clusterName);
+    cmd.setRoleCommand(START_COMMAND);
+    cmd.setServiceName(clusterName);
+    cmd.setComponentName(roleName);
+    cmd.setRole(roleName);
+    cmd.setTaskId(2);
+    cmd.setCommandId("2-1");
+    Map<String, String> hostLevelParams = new TreeMap<String, String>();
+    hostLevelParams.put(JAVA_HOME, appConf.getGlobalOptions().getMandatoryOption(JAVA_HOME));
+    cmd.setHostLevelParams(hostLevelParams);
+
+    setCommandParameters(scriptPath, cmd);
 
     Map<String, Map<String, String>> configurations = new TreeMap<String, Map<String, String>>();
+
+    Map<String,String> tokens = new HashMap<String, String>();
+    String nnuri = appConf.get("site.fs.defaultFS");
+    tokens.put("${NN_URI}", nnuri);
+    tokens.put("${NN_HOST}", URI.create(nnuri).getHost());
+    tokens.put("${ZK_HOST}", appConf.get("zookeeper.hosts"));
+
+    List<String> configs = getApplicationConfigurationTypes(appConf);
+
     //Add global
-    Map<String, String> config = new HashMap<String, String>();
-    config.put("app_user", "yarn");
-    config.put("app_log_dir", "${AGENT_LOG_ROOT}/app/log");
-    config.put("app_pid_dir", "${AGENT_WORK_ROOT}/app/run");
-    config.put("app_root", "${AGENT_WORK_ROOT}/app/install/hbase-0.96.1-hadoop2");
-    config.put("app_install_dir", "${AGENT_WORK_ROOT}/app/install");
-    config.put("hbase_master_heapsize", "1024m");
-    config.put("hbase_regionserver_heapsize", "1024m");
-    config.put("user_group", "hadoop");
-    config.put("security_enabled", "false");
-    configurations.put("global", config);
-
-    //Add hbase-site
-    config = new HashMap<String, String>();
-    config.put("hbase.hstore.flush.retries.number", "120");
-    config.put("hbase.client.keyvalue.maxsize", "10485760");
-    config.put("hbase.hstore.compactionThreshold", "3");
-    config.put("hbase.rootdir", "hdfs://" + hostName + ":8020/apps/hbase/data");
-    config.put("hbase.stagingdir", "hdfs://" + hostName + ":8020/apps/hbase/staging");
-    config.put("hbase.regionserver.handler.count", "60");
-    config.put("hbase.regionserver.global.memstore.lowerLimit", "0.38");
-    config.put("hbase.hregion.memstore.block.multiplier", "2");
-    config.put("hbase.hregion.memstore.flush.size", "134217728");
-    config.put("hbase.superuser", "yarn");
-    config.put("hbase.zookeeper.property.clientPort", "2181");
-    config.put("hbase.regionserver.global.memstore.upperLimit", "0.4");
-    config.put("zookeeper.session.timeout", "30000");
-    config.put("hbase.tmp.dir", "${AGENT_WORK_ROOT}/work/app/tmp");
-    config.put("hbase.local.dir", "${hbase.tmp.dir}/local");
-    config.put("hbase.hregion.max.filesize", "10737418240");
-    config.put("hfile.block.cache.size", "0.40");
-    config.put("hbase.security.authentication", "simple");
-    config.put("hbase.defaults.for.version.skip", "true");
-    config.put("hbase.zookeeper.quorum", "" + hostName + "");
-    config.put("zookeeper.znode.parent", "/hbase-unsecure");
-    config.put("hbase.hstore.blockingStoreFiles", "10");
-    config.put("hbase.hregion.majorcompaction", "86400000");
-    config.put("hbase.security.authorization", "false");
-    config.put("hbase.cluster.distributed", "true");
-    config.put("hbase.hregion.memstore.mslab.enabled", "true");
-    config.put("hbase.client.scanner.caching", "100");
-    config.put("hbase.zookeeper.useMulti", "true");
-    config.put("hbase.regionserver.info.port", "0");
-    config.put("hbase.master.info.port", "60010");
-    config.put("hbase.regionserver.port", "0");
-
-    configurations.put("hbase-site", config);
-
-    //Add core-site
-    config = new HashMap<String, String>();
-    config.put("fs.defaultFS", "hdfs://" + hostName + ":8020");
-    configurations.put("core-site", config);
-
-    //Add hdfs-site
-    config = new HashMap<String, String>();
-    config.put("dfs.namenode.https-address", hostName + ":50470");
-    config.put("dfs.namenode.http-address", hostName + ":50070");
-    configurations.put("hdfs-site", config);
+    for (String configType : configs ) {
+      addNamedConfiguration(configType, appConf.getGlobalOptions().options,
+                            configurations, tokens);
+    }
 
     cmd.setConfigurations(configurations);
     response.addExecutionCommand(cmd);
+  }
+
+  private List<String> getApplicationConfigurationTypes(ConfTreeOperations appConf) {
+    // for now, reading this from appConf.  In the future, modify this method to
+    // process metainfo.xml
+    List<String> configList = new ArrayList<String>();
+    configList.add("global");
+
+    String configTypes = appConf.get("config_types");
+    String[] configs = configTypes.split(",");
+
+    configList.addAll(Arrays.asList(configs));
+
+    // remove duplicates.  mostly worried about 'global' being listed
+    return new ArrayList<String>(new HashSet<String>(configList));
+  }
+
+  private void addNamedConfiguration(String configName, Map<String,String> sourceConfig,
+                                     Map<String, Map<String, String>> configurations,
+                                     Map<String,String> tokens) {
+    Map<String, String> config = new HashMap<String, String>();
+    if(configName.equals("global")) {
+      addDefaultGlobalConfig(config);
+    }
+    providerUtils.propagateSiteOptions(sourceConfig, config, configName, tokens);
+    configurations.put(configName, config);
+  }
+
+  private void addDefaultGlobalConfig(Map<String, String> config) {
+    config.put("app_log_dir", "${AGENT_LOG_ROOT}/app/log");
+    config.put("app_pid_dir", "${AGENT_WORK_ROOT}/app/run");
+    config.put("app_install_dir", "${AGENT_WORK_ROOT}/app/install");
   }
 }
