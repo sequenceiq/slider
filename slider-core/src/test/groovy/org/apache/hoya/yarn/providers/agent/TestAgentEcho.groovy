@@ -54,10 +54,19 @@ class TestAgentEcho extends AgentTestBase {
         true,
         false)
 
-    File hoya_core = new File(".").absoluteFile
-    String echo_py = "src/test/python/echo.py"
+    File hoya_core = new File(new File(".").absoluteFile, "src/test/python");
+    String echo_py = "echo.py"
     File echo_py_path = new File(hoya_core, echo_py)
+    String app_def = "appdef_1.tar"
+    File app_def_path = new File(hoya_core, app_def)
+    String agt_ver = "version"
+    File agt_ver_path = new File(hoya_core, agt_ver)
+    String agt_conf = "agent.ini"
+    File agt_conf_path = new File(hoya_core, agt_conf)
     assert echo_py_path.exists()
+    assert app_def_path.exists()
+    assert agt_ver_path.exists()
+    assert agt_conf_path.exists()
 
     def role = "echo"
     Map<String, Integer> roles = [
@@ -66,14 +75,13 @@ class TestAgentEcho extends AgentTestBase {
     ServiceLauncher<HoyaClient> launcher = buildAgentCluster(clustername,
         roles,
         [
-            ARG_OPTION, CONTROLLER_URL, "http://localhost",
             ARG_OPTION, PACKAGE_PATH, hoya_core.absolutePath,
-
-            ARG_COMP_OPT, role, PACKAGE_PATH, hoya_core.absolutePath,
+            ARG_OPTION, APP_DEF, "file://" + app_def_path.absolutePath,
+            ARG_OPTION, AGENT_CONF, "file://" + agt_conf_path.absolutePath,
+            ARG_OPTION, AGENT_VERSION, "file://" + agt_ver_path.absolutePath,
             ARG_RES_COMP_OPT, role, ResourceKeys.COMPONENT_PRIORITY, "1",
             ARG_COMP_OPT, role, SCRIPT_PATH, echo_py,
             ARG_COMP_OPT, role, SERVICE_NAME, "Agent",
-            ARG_COMP_OPT, role, APP_HOME, "agent/home",
         ],
         true, true,
         true)

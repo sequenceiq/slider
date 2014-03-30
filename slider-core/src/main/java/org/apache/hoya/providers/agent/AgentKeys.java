@@ -68,25 +68,13 @@ public interface AgentKeys {
    * Name of the service.
    */
   String SERVICE_NAME = "app.name";
-  /**
-   * Optional log location for the application.
-   */
-  String SERVICE_LOG_PATH = "app.log.path";
-  /**
-   * Optional PID location for the application.
-   */
-  String SERVICE_PID_PATH = "app.pid.path";
-
-  String ARG_COMMAND = "--command";
-  String ARG_LOG = "--log";
-
   String ARG_LABEL = "--label";
   String ARG_HOST = "--host";
   String ARG_PORT = "--port";
-  String AGENT_MAIN_SCRIPT = "./infra/agent/slider-agent/agent/main.py";
+  String AGENT_MAIN_SCRIPT_ROOT = "./infra/agent/slider-agent/";
+  String AGENT_MAIN_SCRIPT = "agent/main.py";
 
   String APP_DEF = "application.def";
-  String AGENT_IMAGE = "agent.image";
   String AGENT_VERSION = "agent.version";
   String AGENT_CONF = "agent.conf";
 
@@ -97,6 +85,9 @@ public interface AgentKeys {
 
   String JAVA_HOME = "java_home";
   String PACKAGE_LIST = "package_list";
+  String COMPONENT_SCRIPT = "role.script";
+  String WAIT_HEARTBEAT = "wait.heartbeat";
+  String PYTHON_EXE = "python";
 }
 
 

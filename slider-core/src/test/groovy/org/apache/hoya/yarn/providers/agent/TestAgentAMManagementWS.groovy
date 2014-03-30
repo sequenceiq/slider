@@ -23,6 +23,7 @@ import com.sun.jersey.api.client.WebResource
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
+import org.apache.hoya.api.ResourceKeys
 import org.apache.hoya.api.StatusKeys
 import org.apache.hoya.yarn.appmaster.web.HoyaAMWebApp
 import org.apache.hoya.yarn.appmaster.web.rest.agent.RegistrationResponse
@@ -43,7 +44,7 @@ import static org.apache.hoya.yarn.providers.agent.AgentTestUtils.*;
 class TestAgentAMManagementWS extends AgentTestBase {
 
   public static final String MANAGEMENT_URI = HoyaAMWebApp.BASE_PATH +"/ws/v1/slider/mgmt/";
-  public static final String AGENT_URI = HoyaAMWebApp.BASE_PATH + "/ws/v1/slider/agent/";
+  public static final String AGENT_URI = "ws/v1/slider/agents/";
 
   @Test
   public void testAgentAMManagementWS() throws Throwable {
@@ -57,12 +58,23 @@ class TestAgentAMManagementWS extends AgentTestBase {
         true,
         false)
     Map<String, Integer> roles = [:]
-    File hoya_core = new File(".").absoluteFile
+    File hoya_core = new File(new File(".").absoluteFile, "src/test/python");
+    String app_def = "appdef_1.tar"
+    File app_def_path = new File(hoya_core, app_def)
+    String agt_ver = "version"
+    File agt_ver_path = new File(hoya_core, agt_ver)
+    String agt_conf = "agent.ini"
+    File agt_conf_path = new File(hoya_core, agt_conf)
+    assert app_def_path.exists()
+    assert agt_ver_path.exists()
+    assert agt_conf_path.exists()
     ServiceLauncher<HoyaClient> launcher = buildAgentCluster(clustername,
         roles,
         [
-            ARG_OPTION, CONTROLLER_URL, "http://localhost",
             ARG_OPTION, PACKAGE_PATH, hoya_core.absolutePath,
+            ARG_OPTION, APP_DEF, "file://" + app_def_path.absolutePath,
+            ARG_OPTION, AGENT_CONF, "file://" + agt_conf_path.absolutePath,
+            ARG_OPTION, AGENT_VERSION, "file://" + agt_ver_path.absolutePath,
         ],
         true, true,
         true)
@@ -96,12 +108,14 @@ class TestAgentAMManagementWS extends AgentTestBase {
     Client client = createTestClient();
 
 
-    WebResource webResource = client.resource(agent_url + "register/test");
+    WebResource webResource = client.resource(agent_url + "test/register");
     RegistrationResponse response = webResource.type(MediaType.APPLICATION_JSON)
                           .post(
         RegistrationResponse.class,
         createDummyJSONRegister());
-    assert RegistrationStatus.OK == response.getResponseStatus();
+
+    //TODO: assert failure as actual agent is not started. This test only starts the AM.
+    assert RegistrationStatus.FAILED == response.getResponseStatus();
     
   }
 }

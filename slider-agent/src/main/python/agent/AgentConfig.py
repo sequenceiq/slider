@@ -29,9 +29,9 @@ content = """
 hostname=localhost
 port=8440
 secured_port=8441
-check_path=/cert/ca
-register_path=/agent/v1/register/{name}
-heartbeat_path=/agent/v1/heartbeat/{name}
+check_path=/ws/v1/slider/agents/
+register_path=/ws/v1/slider/agents/{name}/register
+heartbeat_path=/ws/v1/slider/agents/{name}/heartbeat
 
 [agent]
 app_pkg_dir=app/definition

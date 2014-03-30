@@ -118,7 +118,12 @@ class TestBuildBasicAgent extends AgentTestBase {
               "newnode"                 : 5
           ],
           [
+              ARG_COMP_OPT, AgentKeys.ROLE_NODE, AgentKeys.SERVICE_NAME, "HBASE",
+              ARG_COMP_OPT, "role3", AgentKeys.SERVICE_NAME, "HBASE",
+              ARG_COMP_OPT, "newnode", AgentKeys.SERVICE_NAME, "HBASE",
+              //ARG_RES_COMP_OPT, AgentKeys.ROLE_NODE, ResourceKeys.YARN_CORES, "1",
               ARG_RES_COMP_OPT, "role3", ResourceKeys.COMPONENT_PRIORITY, "2",
+              //ARG_RES_COMP_OPT, "newnode", ResourceKeys.YARN_CORES, "1",
           ],
           true, false,
           false)
@@ -158,8 +163,11 @@ class TestBuildBasicAgent extends AgentTestBase {
             (rs)                 : 5
         ],
         [
-            ARG_COMP_OPT, HoyaKeys.COMPONENT_AM, RoleKeys.JVM_OPTS,
-            jvmopts
+            ARG_COMP_OPT, HoyaKeys.COMPONENT_AM, RoleKeys.JVM_OPTS, jvmopts,
+            ARG_COMP_OPT, master, RoleKeys.JVM_OPTS, jvmopts,
+            ARG_COMP_OPT, rs, RoleKeys.JVM_OPTS, jvmopts,
+            ARG_RES_COMP_OPT, master, ResourceKeys.COMPONENT_PRIORITY, "2",
+            ARG_RES_COMP_OPT, rs, ResourceKeys.COMPONENT_PRIORITY, "3",
         ],
 
         true, false,
@@ -201,7 +209,6 @@ class TestBuildBasicAgent extends AgentTestBase {
     buildAgentCluster("test_build_template_args_good",
         [:],
         [
-
             ARG_OPTION, CONTROLLER_URL, "http://localhost",
             ARG_PACKAGE, ".",
             ARG_RESOURCES, TEST_FILES + "good/resources.json",

@@ -500,7 +500,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
       log.info("Error {} validating application instance definition ", e.toString());
       log.debug("Error {} validating application instance definition ", e);
       log.info(instanceDefinition.toString());
-      
+      throw e;
     }
     try {
       builder.persist(appconfdir);
