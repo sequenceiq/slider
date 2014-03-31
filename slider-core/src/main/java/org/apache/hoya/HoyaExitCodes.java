@@ -58,36 +58,36 @@ public interface HoyaExitCodes extends LauncherExitCodes {
   int EXIT_YARN_SERVICE_FINISHED_WITH_ERROR = 69;
 
   /**
-   * the cluster is unknown: {@value}
+   * the application instance is unknown: {@value}
    */
-  int EXIT_UNKNOWN_HOYA_CLUSTER = 70;
+  int EXIT_UNKNOWN_INSTANCE = 70;
 
   /**
-   * the cluster is in the wrong state for that operation: {@value}
+   * the application instance is in the wrong state for that operation: {@value}
    */
-  int EXIT_BAD_CLUSTER_STATE =    71;
+  int EXIT_BAD_STATE =    71;
 
   /**
    * A spawned master process failed 
    */
-  int EXIT_MASTER_PROCESS_FAILED = 72;
+  int EXIT_PROCESS_FAILED = 72;
 
   /**
    * The cluster failed -too many containers were
    * failing or some other threshold was reached
    */
-  int EXIT_CLUSTER_FAILED = 73;
+  int EXIT_DEPLOYMENT_FAILED = 73;
 
   /**
-   * The cluster is live -and the requested operation
+   * The application is live -and the requested operation
    * does not work if the cluster is running
    */
-  int EXIT_CLUSTER_IN_USE = 74;
+  int EXIT_APPLICATION_IN_USE = 74;
 
   /**
-   * There already is a cluster of that name
-   * when an attempt is made to create a new cluster
+   * There already is an application instance of that name
+   * when an attempt is made to create a new instance
    */
-  int EXIT_CLUSTER_EXISTS = 75;
+  int EXIT_INSTANCE_EXISTS = 75;
 
 }

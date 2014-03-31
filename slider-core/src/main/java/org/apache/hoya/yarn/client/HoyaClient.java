@@ -90,7 +90,6 @@ import org.apache.hoya.yarn.params.ClientArgs;
 import org.apache.hoya.yarn.params.HoyaAMArgs;
 import org.apache.hoya.yarn.params.LaunchArgsAccessor;
 import org.apache.hoya.yarn.service.CompoundLaunchedService;
-import org.codehaus.jackson.JsonProcessingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -281,7 +280,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     // detect any race leading to cluster creation during the check/destroy process
     // and report a problem.
     if (!instances.isEmpty()) {
-      throw new HoyaException(EXIT_CLUSTER_IN_USE,
+      throw new HoyaException(EXIT_APPLICATION_IN_USE,
                               clustername + ": "
                               + E_DESTROY_CREATE_RACE_CONDITION
                               + " :" +
@@ -1012,7 +1011,7 @@ public class HoyaClient extends CompoundLaunchedService implements RunService,
     List<ApplicationReport> existing = findAllLiveInstances(clustername);
 
     if (!existing.isEmpty()) {
-      throw new HoyaException(EXIT_CLUSTER_IN_USE,
+      throw new HoyaException(EXIT_APPLICATION_IN_USE,
                               clustername + ": " + E_CLUSTER_RUNNING + " :" +
                               existing.get(0));
     }

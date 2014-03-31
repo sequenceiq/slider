@@ -25,6 +25,7 @@ import org.apache.hadoop.fs.Path
 import org.apache.hadoop.util.ExitUtil
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.service.launcher.ServiceLauncher
+import org.apache.hoya.HoyaKeys
 import org.apache.hoya.api.ClusterDescription
 import org.apache.hoya.exceptions.HoyaException
 import org.apache.hoya.testtools.HoyaTestUtils
@@ -277,7 +278,7 @@ abstract class CommandTestBase extends HoyaTestUtils {
     def froze = freezeForce(name)
 
     def result = froze.ret
-    if (result != 0 && result != EXIT_UNKNOWN_HOYA_CLUSTER) {
+    if (result != 0 && result != EXIT_UNKNOWN_INSTANCE) {
       froze.assertExitCode(0)
     }
     destroy(0, name)
@@ -317,7 +318,7 @@ abstract class CommandTestBase extends HoyaTestUtils {
    * @param shell shell
    */
   public static void assertUnknownCluster(SliderShell shell) {
-    assertExitCode(shell, EXIT_UNKNOWN_HOYA_CLUSTER)
+    assertExitCode(shell, EXIT_UNKNOWN_INSTANCE)
   }
 
   /**
@@ -461,7 +462,7 @@ abstract class CommandTestBase extends HoyaTestUtils {
 
       status = hoyaClient.clusterDescription
     } catch (HoyaException e) {
-      if (e.exitCode == EXIT_BAD_CLUSTER_STATE) {
+      if (e.exitCode == EXIT_BAD_STATE) {
         log.error(
             "Property $YarnConfiguration.RM_AM_MAX_ATTEMPTS may be too low")
       }

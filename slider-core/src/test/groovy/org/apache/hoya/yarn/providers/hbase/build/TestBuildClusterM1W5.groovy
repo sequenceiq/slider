@@ -82,7 +82,7 @@ class TestBuildClusterM1W5 extends HBaseMiniClusterTestBase {
           false,
           [:])
     } catch (HoyaException e) {
-      assert e.exitCode == HoyaExitCodes.EXIT_CLUSTER_EXISTS
+      assert e.exitCode == HoyaExitCodes.EXIT_INSTANCE_EXISTS
     }
   }
 

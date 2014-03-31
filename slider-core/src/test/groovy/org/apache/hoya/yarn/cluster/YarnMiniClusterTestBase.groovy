@@ -750,7 +750,7 @@ public abstract class YarnMiniClusterTestBase extends ServiceLauncherBaseTest {
    */
   public static void assertFailureClusterInUse(HoyaException e) {
     assertExceptionDetails(e,
-        HoyaExitCodes.EXIT_CLUSTER_IN_USE,
+        HoyaExitCodes.EXIT_APPLICATION_IN_USE,
         ErrorStrings.E_CLUSTER_RUNNING)
   }
 

@@ -138,7 +138,9 @@ public class AgentClientProvider extends AbstractClientProvider
     Map<Integer, String> priorityMap = new HashMap<Integer, String>();
     for (String name : names) {
       MapOperations component = resources.getMandatoryComponent(name);
-      MapOperations appComponent = appConf.getMandatoryComponent(name);
+      
+      //look for the app configuration -optional- 
+      MapOperations appComponent = appConf.getComponent(name);
       int count = component.getMandatoryOptionInt(
           ResourceKeys.COMPONENT_INSTANCES);
       // Validate count against the metainfo.xml

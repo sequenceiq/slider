@@ -20,16 +20,16 @@ package org.apache.hoya.exceptions;
 
 public class UnknownClusterException extends HoyaException {
   public UnknownClusterException(String s) {
-    super(EXIT_UNKNOWN_HOYA_CLUSTER, s);
+    super(EXIT_UNKNOWN_INSTANCE, s);
   }
 
   public UnknownClusterException(String s, Throwable throwable) {
-    super(EXIT_UNKNOWN_HOYA_CLUSTER, throwable, s);
+    super(EXIT_UNKNOWN_INSTANCE, throwable, s);
   }
 
   public UnknownClusterException(String message,
                                  Object... args) {
-    super(EXIT_UNKNOWN_HOYA_CLUSTER, message, args);
+    super(EXIT_UNKNOWN_INSTANCE, message, args);
   }
 
   /**

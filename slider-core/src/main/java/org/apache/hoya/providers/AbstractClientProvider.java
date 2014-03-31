@@ -82,9 +82,8 @@ public abstract class AbstractClientProvider extends Configured {
         String instances = component.get(COMPONENT_INSTANCES);
         if (instances == null) {
           String message = "No instance count provided for " + name;
-          log.error("{} with \n{}", message,resources.toString());
-          throw new BadClusterStateException(
-            message);
+          log.error("{} with \n{}", message, resources.toString());
+          throw new BadClusterStateException(message);
         }
         String ram = component.get(YARN_MEMORY);
         String cores = component.get(YARN_CORES);

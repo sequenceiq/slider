@@ -85,7 +85,7 @@ class TestDestroyMasterlessAM extends HBaseMiniClusterTestBase {
       fail("expected a failure, got an AM")
     } catch (HoyaException e) {
       assertExceptionDetails(e,
-                             HoyaExitCodes.EXIT_CLUSTER_EXISTS,
+                             HoyaExitCodes.EXIT_INSTANCE_EXISTS,
                              ErrorStrings.E_ALREADY_EXISTS)
     }
 

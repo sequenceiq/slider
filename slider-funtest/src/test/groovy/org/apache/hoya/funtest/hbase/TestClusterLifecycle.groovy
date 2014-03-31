@@ -78,10 +78,10 @@ public class TestClusterLifecycle extends HBaseCommandTestBase
 
     //destroy will fail in use
 
-    destroy(EXIT_CLUSTER_IN_USE, CLUSTER)
+    destroy(EXIT_APPLICATION_IN_USE, CLUSTER)
 
     //thaw will fail as cluster is in use
-    thaw(EXIT_CLUSTER_IN_USE, CLUSTER)
+    thaw(EXIT_APPLICATION_IN_USE, CLUSTER)
 
     //it's still there
     exists(0, CLUSTER)
@@ -181,7 +181,7 @@ public class TestClusterLifecycle extends HBaseCommandTestBase
       destroy(0, CLUSTER)
 
       //cluster now missing
-      exists(EXIT_UNKNOWN_HOYA_CLUSTER, CLUSTER)
+      exists(EXIT_UNKNOWN_INSTANCE, CLUSTER)
 
     } finally {
       jsonStatus.delete()

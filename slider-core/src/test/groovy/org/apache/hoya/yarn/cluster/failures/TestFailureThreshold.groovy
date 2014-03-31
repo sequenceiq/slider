@@ -114,7 +114,7 @@ class TestFailureThreshold extends HBaseMiniClusterTestBase {
       }
     } catch (BadClusterStateException e) {
       assert e.toString().contains(ErrorStrings.E_APPLICATION_NOT_RUNNING)
-      assert e.exitCode == HoyaExitCodes.EXIT_BAD_CLUSTER_STATE
+      assert e.exitCode == HoyaExitCodes.EXIT_BAD_STATE
     }
     ApplicationReport report = hoyaClient.getApplicationReport()
     log.info(report.diagnostics)

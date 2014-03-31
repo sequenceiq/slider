@@ -70,7 +70,7 @@ class TestFreezeThawLiveRegionService extends HBaseMiniClusterTestBase {
       HoyaClient cluster3 = launcher3.service as HoyaClient
       fail("expected a failure, got ${cluster3}")
     } catch (HoyaException e) {
-      assert e.exitCode == HoyaExitCodes.EXIT_CLUSTER_IN_USE;
+      assert e.exitCode == HoyaExitCodes.EXIT_APPLICATION_IN_USE;
     }
     
     
@@ -92,7 +92,7 @@ class TestFreezeThawLiveRegionService extends HBaseMiniClusterTestBase {
       HoyaClient cluster3 = launcher3.service as HoyaClient
       fail("expected a failure, got ${cluster3}")
     } catch (HoyaException e) {
-      assert e.exitCode == HoyaExitCodes.EXIT_CLUSTER_IN_USE
+      assert e.exitCode == HoyaExitCodes.EXIT_APPLICATION_IN_USE
     }
   }
 

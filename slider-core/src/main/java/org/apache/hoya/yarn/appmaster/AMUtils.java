@@ -33,7 +33,7 @@ public class AMUtils {
         return LauncherExitCodes.EXIT_SUCCESS;
       //remap from a planned shutdown to a failure
       case LauncherExitCodes.EXIT_CLIENT_INITIATED_SHUTDOWN:
-        return HoyaExitCodes.EXIT_MASTER_PROCESS_FAILED;
+        return HoyaExitCodes.EXIT_PROCESS_FAILED;
       default:
         return exitCode;
     }

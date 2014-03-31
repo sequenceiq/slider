@@ -108,7 +108,7 @@ class TestHBaseMaster extends HBaseMiniClusterTestBase {
       }
       assert 0 == clustat.servers.size()
     } catch (ServiceLaunchException e) {
-      assertExceptionDetails(e, HoyaExitCodes.EXIT_CLUSTER_FAILED)
+      assertExceptionDetails(e, HoyaExitCodes.EXIT_DEPLOYMENT_FAILED)
     }
   }
 }

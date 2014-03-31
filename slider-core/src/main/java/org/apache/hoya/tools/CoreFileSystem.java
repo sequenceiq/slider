@@ -230,7 +230,7 @@ public class CoreFileSystem {
           IOException,
           HoyaException {
     if (fileSystem.exists(clusterDirectory)) {
-      throw new HoyaException(HoyaExitCodes.EXIT_CLUSTER_EXISTS,
+      throw new HoyaException(HoyaExitCodes.EXIT_INSTANCE_EXISTS,
               ErrorStrings.PRINTF_E_INSTANCE_ALREADY_EXISTS, clustername,
               clusterDirectory);
     }
@@ -250,7 +250,7 @@ public class CoreFileSystem {
       log.error("Dir {} exists: {}",
                 clusterDirectory,
                 listFSDir(clusterDirectory));
-      throw new HoyaException(HoyaExitCodes.EXIT_CLUSTER_EXISTS,
+      throw new HoyaException(HoyaExitCodes.EXIT_INSTANCE_EXISTS,
               ErrorStrings.PRINTF_E_INSTANCE_DIR_ALREADY_EXISTS,
               clusterDirectory);
     }

@@ -25,11 +25,11 @@ package org.apache.hoya.exceptions;
 public class BadClusterStateException extends HoyaException {
   public BadClusterStateException(String message,
                                   Object... args) {
-    super(EXIT_BAD_CLUSTER_STATE, message, args);
+    super(EXIT_BAD_STATE, message, args);
   }
 
   public BadClusterStateException(Throwable throwable,
                                   String message, Object... args) {
-    super(EXIT_BAD_CLUSTER_STATE, throwable, message, args);
+    super(EXIT_BAD_STATE, throwable, message, args);
   }
 }

@@ -1385,7 +1385,7 @@ public class AppState implements StateAccessForProviders {
 
     if (failures > failureThreshold) {
       throw new TriggerClusterTeardownException(
-        HoyaExitCodes.EXIT_CLUSTER_FAILED,
+        HoyaExitCodes.EXIT_DEPLOYMENT_FAILED,
         ErrorStrings.E_UNSTABLE_CLUSTER +
         " - failed with role %s failing %d times (%d in startup); threshold is %d - last failure: %s",
         role.getName(),
