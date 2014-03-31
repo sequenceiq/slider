@@ -3,7 +3,7 @@
   <groupId>org.apache.slider</groupId>
   <artifactId>slider</artifactId>
   <name>Slider</name>
-  <version>0.20.0</version>
+  <version>0.21.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <description>
