@@ -13,7 +13,7 @@
 -->
 
 
-# Releasing Hoya
+# Release Process
 
 Here is our release process.
 
@@ -27,7 +27,7 @@ modified version of your own, and that you haven't accidentally
 included passwords or other test run details into the build resource
 tree.
 
-The `hoya-funtest` functional test package is used to run functional
+The `slider-funtest` functional test package is used to run functional
 tests against a running Hadoop YARN cluster. It needs to be configured
 according to the instructions in [testing](testing.html) to
 create HBase and Accumulo clusters in the YARN cluster.
@@ -40,26 +40,26 @@ starting to make a release*
 **Step #1:** Create a JIRA for the release, estimate 3h
 (so you don't try to skip the tests)
 
-    export HOYA_RELEASE_JIRA=BUG-13927
+    export SLIDER_RELEASE_JIRA=BUG-13927
     
 **Step #2:** Check everything in. Git flow won't let you progress without this.
 
 **Step #3:** Git flow: create a release branch
 
-    export HOYA_RELEASE=0.5.2
+    export SLIDER_RELEASE=0.5.2
     
-    git flow release start hoya-$HOYA_RELEASE
+    git flow release start slider-$SLIDER_RELEASE
 
 **Step #4:** in the new branch, increment those version numbers using (the maven
 versions plugin)[http://mojo.codehaus.org/versions-maven-plugin/]
 
-    mvn versions:set -DnewVersion=$HOYA_RELEASE
+    mvn versions:set -DnewVersion=$SLIDER_RELEASE
 
 
 **Step #5:** commit the changed POM files
   
     git add <changed files>
-    git commit -m "$HOYA_RELEASE_JIRA updating release POMs for $HOYA_RELEASE"
+    git commit -m "$SLIDER_RELEASE_JIRA updating release POMs for $SLIDER_RELEASE"
 
   
 **Step #6:** Do a final test run to make sure nothing is broken
@@ -68,7 +68,7 @@ In the `hoya` directory, run:
 
     mvn clean test
 
-This will run the functional tests as well as the `hoya-core` tests.
+This will run the functional tests as well as the `slider-core` tests.
 
 It is wise to reset any VMs here, and on live clusters kill all running jobs.
 This stops functional tests failing because the job doesn't get started before
@@ -87,7 +87,7 @@ finalizing the release notes.
 
 **Step #8:** validate the Tar
 
-Look in `hoya-assembly/target` to find the `.tar.gz` file, and the
+Look in `slider-assembly/target` to find the `.tar.gz` file, and the
 expanded version of it. Inspect that expanded version to make sure that
 everything looks good -and that the versions of all the dependent artifacts
 look good too: there must be no `-SNAPSHOT` dependencies.
@@ -99,15 +99,15 @@ Create a a one-line plain text release note for commits and tags
 And a multi-line markdown release note, which will be used for artifacts.
 
 
-    Release of Hoya against hadoop 2.2.0 and 2.2.0, HBase-0.98.0 and Accumulo 1.5.0 artifacts. 
+    Release of Hoya against hadoop 2.3.0, HBase-0.98.0 and Accumulo 1.5.1 artifacts. 
 
-The multi-line release notes should go into `hoya/src/site/markdown/release_notes`.
+The multi-line release notes should go into `slider/src/site/markdown/release_notes`.
 
 
 These should be committed
 
     git add --all
-    git commit -m "$HOYA_RELEASE_JIRA updating release notes"
+    git commit -m "$SLIDER_RELEASE_JIRA updating release notes"
 
 **Step #10:** End the git flow
 
@@ -115,7 +115,7 @@ Finish the git flow release, either in the SourceTree GUI or
 the command line:
 
     
-    git flow release finish hoya-$HOYA_RELEASE
+    git flow release finish slider-$SLIDER_RELEASE
     
 
 On the command line you have to enter the one-line release description
@@ -129,9 +129,9 @@ Switch back to `develop` and update its version number past
 the release number
 
 
-    export HOYA_RELEASE=0.6.0-SNAPSHOT
-    mvn versions:set -DnewVersion=$HOYA_RELEASE
-    git commit -a -m "$HOYA_RELEASE_JIRA updating development POMs to $HOYA_RELEASE"
+    export SLIDER_RELEASE=0.6.0-SNAPSHOT
+    mvn versions:set -DnewVersion=$SLIDER_RELEASE
+    git commit -a -m "$SLIDER_RELEASE_JIRA updating development POMs to $SLIDER_RELEASE"
 
 **Step #12:** Push the release and develop branches to github 
 
@@ -141,7 +141,7 @@ the release number
  you can check this with `git remote -v`
 
 
-The `git-flow` program automatically pushes up the `release/hoya-X.Y` branch,
+The `git-flow` program automatically pushes up the `release/slider-X.Y` branch,
 before deleting it locally.
 
 If you are planning on any release work of more than a single test run,
@@ -150,7 +150,7 @@ consider having your local release branch track the master.
 
 **Step #13:** ### Release on github small artifacts
 
-Browse to https://github.com/hortonworks/hoya/releases/new
+Browse to https://github.com/hortonworks/slider/releases/new
 
 Create a new release on the site by following the instructions
 
@@ -165,12 +165,9 @@ After doing this, edit the release notes on github to point to the
 tar file's URL.
 
 Example: 
-    [Download hoya-0.10.1-all.tar.gz](http://dffeaef8882d088c28ff-185c1feb8a981dddd593a05bb55b67aa.r18.cf1.rackcdn.com/hoya-0.10.1-all.tar.gz)
+    [Download slider-0.10.1-all.tar.gz](http://dffeaef8882d088c28ff-185c1feb8a981dddd593a05bb55b67aa.r18.cf1.rackcdn.com/slider-0.10.1-all.tar.gz)
 
 **Step #15:** Announce the release 
-
-As well as email, we have a twitter handle `@hoyaproject` that can be used
-for these announcements
 
 **Step #16:** Finish the JIRA
 

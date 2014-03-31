@@ -12,7 +12,7 @@
   limitations under the License. See accompanying LICENSE file.
 -->
   
-# Hoya Security
+# Security
 
 This document discusses the design, implementation and use of Hoya
 to deploy secure applications on a secure Hadoop cluster.
@@ -42,7 +42,7 @@ Hoya runs in secure clusters, but with restrictions
   directories of that user, the principals representing all role instances
   in the clusters *MUST* have read/write access to these files. This can be
   done with a shortname that matches that of the user, or by requesting
-  that Hoya create a directory with group write permissions -and using LDAP
+  that Slider create a directory with group write permissions -and using LDAP
   to indentify the application principals as members of the same group
   as the user.
 
@@ -51,26 +51,26 @@ Hoya runs in secure clusters, but with restrictions
 
 
 ### Needs
-*  Hoya and HBase to work against secure HDFS
-*  Hoya to work with secure YARN.
-*  Hoya to start a secure HBase cluster
+*  Slider and HBase to work against secure HDFS
+*  Slider to work with secure YARN.
+*  Slider to start a secure HBase cluster
 *  Kerberos and ActiveDirectory to perform the authentication.
-*  Hoya to only allow cluster operations by authenticated users -command line and direct RPC. 
-*  Any Hoya Web UI and REST API for Ambari to only allow access to authenticated users.
-*  The Hoya database in ~/.hoya/clusters/$name/data to be writable by HBase
+*  Slider to only allow cluster operations by authenticated users -command line and direct RPC. 
+*  Any Slider Web UI and REST API for Ambari to only allow access to authenticated users.
+*  The Slider database in ~/.hoya/clusters/$name/data to be writable by HBase
 
 
 ### Short-lived Clusters
-*  Cluster to remain secure for the duration of the Kerberos tokens issued to Hoya.
+*  Cluster to remain secure for the duration of the Kerberos tokens issued to Slider.
 
 
 ### Long-lived Clusters
 
-*  Hoya cluster and HBase instance to remain functional and secure over an indefinite period of time.
+*  Slider application instance and HBase instance to remain functional and secure over an indefinite period of time.
 
 ### Initial Non-requirements
 *  secure audit trail of cluster operations.
-*  multiple authorized users being granted rights to a Hoya Cluster (YARN admins can always kill the Hoya cluster.
+*  multiple authorized users being granted rights to a Hoya Cluster (YARN admins can always kill the Slider application instance.
 *  More than one HBase cluster in the YARN cluster belonging to a single user (irrespective of how they are started).
 *  Any way to revoke certificates/rights of running containers.
 
@@ -87,44 +87,34 @@ Hoya runs in secure clusters, but with restrictions
 ## Design
 
 
-1. The Hoya user is expected to have their own Kerberos principal, and have used `kinit`
+1. The user is expected to have their own Kerberos principal, and have used `kinit`
   or equivalent to authenticate with Kerberos and gain a (time-bounded) TGT
-1. The Hoya user is expected to have their own principals for every host in the cluster of the form
+1. The user is expected to have their own principals for every host in the cluster of the form
   username/hostname@REALM
 1. A keytab must be generated which contains all these principals -and distributed
   to all the nodes in the cluster with read access permissions to the user.
 1. When the user creates a secure cluster, they provide the standard HBase kerberos options
   to identify the principals to use and the keytab location.
 
-The Hoya Client will talk to HDFS and YARN authenticating itself with the TGT,
+The Slider Client will talk to HDFS and YARN authenticating itself with the TGT,
 talking to the YARN and HDFS principals which it has been configured to expect.
 
-This can be done as described in [Hoya Client Configuration] (hoya-client-configuration.html) on the command line as
+This can be done as described in [Client Configuration] (client-configuration.html) on the command line as
 
      -D yarn.resourcemanager.principal=yarn/master@LOCAL 
      -D dfs.namenode.kerberos.principal=hdfs/master@LOCAL
 
-The Hoya Client will create the cluster data directory in HDFS with `rwx` permissions for  
+The Slider Client will create the cluster data directory in HDFS with `rwx` permissions for  
 user `r-x` for the group and `---` for others. (these can be configurable as part of the cluster options), 
 
 It will then deploy the AM, which will (somehow? for how long?) retain the access
 rights of the user that created the cluster.
 
-The Hoya AM will read in the JSON cluster specification file, and instantiate the
-relevant number of role instances. 
+The Application Master will read in the JSON cluster specification file, and instantiate the
+relevant number of componentss. 
 
-The HBase master is currentll in the same container as the AM. It
-must have the keytab and configuration details needed to access the data directory,
-and to be trusted by the region servers. It must (as will all the region servers)
-have been given the `dfs.namenode.kerberos.principal` configuration value. This is automatically
-set in the JSON cluster specificatin by the Hoya client if not explicitly done by the user
-as the cluster option `site.dfs.namenode.kerberos.principal` -which is then
-inserted into the `hbase-site.xml` file at the same time the Hadoop cluster
-filesystem binding is added. This does not need to be done for the 
-AM as the AM has the hadoop `core-site.xml` and `yarn-site.xml` configuration files
-added to its classpath.
 
-## Securing communications between the Hoya Client and the Hoya AM.
+## Securing communications between the Slider Client and the Slider AM.
 
 When the AM is deployed in a secure cluster,
 it automatically uses Kerberos-authorized RPC channels. The client must acquire a
@@ -135,16 +125,16 @@ wishes to talk with the HoyaAM -a token which is only provided after
 the caller authenticates itself as the user that has access rights
 to the cluster
 
-To allow the client to freeze a Hoya cluster while they are unable to acquire
+To allow the client to freeze a Slider application instance while they are unable to acquire
 a token to authenticate with the AM, the `emergency-force-kill <applicationId>` command
 requests YARN to trigger cluster shutdown, bypassing the AM. The
 `applicationId` can be retrieved from the YARN web UI or the `hoya list` command.
-The special application ID `all` will kill all Hoya clusters belonging to that user
+The special application ID `all` will kill all Slider application instances belonging to that user
 -so should only be used for testing or other emergencies.
 
-### How to enable a secure Hoya client
+### How to enable a secure Slider client
 
-Hoya can be placed into secure mode by setting the property `slider.security.enabled` to
+Slider can be placed into secure mode by setting the property `slider.security.enabled` to
 true. 
 
 This can be done in `hoya-client.xml`:
@@ -158,7 +148,7 @@ Or it can be done on the command line
 
     -D slider.security.enabled=true
 
-### Adding Kerberos binding properties to the Hoya Client JVM
+### Adding Kerberos binding properties to the Slider Client JVM
 
 The Java Kerberos library needs to know the Kerberos controller and
 realm to use. This should happen automatically if this is set up as the
@@ -173,7 +163,7 @@ The realm and controller can be defined in the Java system properties
 in the JVM options, as described in the [Client Configuration] (hoya-client-configuration.html)
 documentation.
 
-They can also be set on the Hoya command line itself, using the `-S` parameter.
+They can also be set on the Slider command line itself, using the `-S` parameter.
 
     -S java.security.krb5.realm=MINICLUSTER  -S java.security.krb5.kdc=hadoop-kdc
 
@@ -248,14 +238,14 @@ Here the krb5 configuration file is expected to be set up
 to define the realm and kerberos server to use, the JVM system
 properties can be omitted from the command line.
         
-    bin/hoya status cluster1 \
+    bin/slider status cluster1 \
     --manager master:8032 --filesystem hdfs://master:9090 \
      -D slider.security.enabled=true \
      -D yarn.resourcemanager.principal=yarn/master@MINICLUSTER \
      -D dfs.namenode.kerberos.principal=hdfs/master@MINICLUSTER 
 
-This command uses the Hoya Client to AM authentication process -if
-for any reason the client cannot authenticate with the Hoya AM, it
+This command uses the Slider Client to AM authentication process -if
+for any reason the client cannot authenticate with the Slider AM, it
 will fail.
 
 
@@ -266,7 +256,7 @@ Again the krb5 configuration file is expected to be set up
 to define the realm and kerberos server to use.
 
         
-    bin/hoya freeze cluster1 \
+    bin/slider freeze cluster1 \
     --manager master:8032 --filesystem hdfs://master:9090 \
      -D slider.security.enabled=true \
      -D yarn.resourcemanager.principal=yarn/master@MINICLUSTER \
@@ -279,7 +269,7 @@ does not succeed.
 
 Listing the clusters is a direct conversation with the YARN RM
 
-    bin/hoya list \
+    bin/slider list \
     --manager master:8032 \
      -D slider.security.enabled=true \
      -D yarn.resourcemanager.principal=yarn/master@MINICLUSTER \
@@ -328,21 +318,21 @@ command line
 
 With the `hoya-client.xml' file set up, configuration is much simpler:
 
-    bin/hoya  status cluster1 -D slider.security.enabled=true -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=master 
+    bin/slider  status cluster1 -D slider.security.enabled=true -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=master 
 
 ### Example: setting up the JVM options
 
 
-    export HOYA_JVM_OPTS="-Djava.security.krb5.realm=MINICLUSTER -Djava.security.krb5.kdc=master -Djava.net.preferIPv4Stack=true"
+    export SLIDER_JVM_OPTS="-Djava.security.krb5.realm=MINICLUSTER -Djava.security.krb5.kdc=master -Djava.net.preferIPv4Stack=true"
 
 
 ### Example: listing the cluster with hoya-client.xml and the JVM options set up
 
-    bin/hoya  status cluster1 -D slider.security.enabled=true
+    bin/slider  status cluster1 -D slider.security.enabled=true
 
 ### Example: destroying the cluster with hoya-client.xml and the JVM options set up
 
-    bin/hoya  destroy cluster1 -D slider.security.enabled=true
+    bin/slider  destroy cluster1 -D slider.security.enabled=true
 
 ## Useful Links
 

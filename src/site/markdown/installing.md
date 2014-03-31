@@ -12,12 +12,12 @@
   limitations under the License. See accompanying LICENSE file.
 -->
   
-# Installing and Running Hoya
+# Installing and Running Slider
 
 
 1. Unzip/Untar the archive
 1. Add `hoya/bin` to the path
 1. The logging settings are set in `conf/log4j.properties`
 1. Standard configuration options may be set as defined in
-[Hoya Client Configuration] (hoya-client-configuration.html)
+[Slider Client Configuration] (client-configuration.html)
 

@@ -15,174 +15,170 @@
 # Just some operations for manual runs against steve's secure VM
 
 
-    export HOYA_CONF_DIR=/Users/stevel/Projects/Hortonworks/Projects/hoya/hoya-core/src/test/configs/sandbox/hoya
+    export HOYA_CONF_DIR=/Users/stevel/Projects/Hortonworks/Projects/slider/slider-core/src/test/configs/sandbox/hoya
 
 ## Local manual tests
 
 
 
-    
-    hoya-assembly/target/hoya-assembly-0.5.1-SNAPSHOT-bin/bin/hoya \
-      --manager sandbox:8032 --filesystem hdfs://sandbox.hortonworks.com:8020 list -D slider.security.enabled=true
-      
-      hoya create cluster1 \
-         --role worker 4\
+    slider create cluster1 \
+         --component worker 4\
           --zkhosts sandbox \
+          --provider hbase \
           --image hdfs://sandbox.hortonworks.com:8020/user/hoya/hbase.tar.gz \
           --appconf file:////Users/hoya/Hadoop/configs/master/hbase \
-          --roleopt master app.infoport 8190 \
-          --roleopt master jvm.heap 128 \
-          --roleopt worker app.infoport 8191 \
-          --roleopt worker jvm.heap 128 
+          --compopt master jvm.heap 128 \
+          --compopt worker jvm.heap 128 
 
  
 ### bypassing /etc/krb.conf via the -S argument
 
-    bin/hoya create cl1 \
+    bin/slider create cl1 \
     --manager sandbox:8032 --filesystem hdfs://sandbox.hortonworks.com:8020 \
-            --role worker 1\
-            --role master 0\
+            --component worker 1\
+            --component master 0\
         --zkhosts sandbox  \
+        --provider hbase \
         --image hdfs://sandbox.hortonworks.com:8020/user/hoya/hbase.tar.gz \
-        --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/sandbox/hbase \
-        --roleopt master app.infoport 8180 \
-        --roleopt master jvm.heap 128 \
-        --roleopt master env.MALLOC_ARENA_MAX 4 \
-        --roleopt worker app.infoport 8181 \
-        --roleopt worker jvm.heap 128 
+        --appconf file:///Users/stevel/Projects/slider/slider-core/src/test/configs/sandbox/hbase \
+        --compopt master jvm.heap 128 \
+        --compopt master env.MALLOC_ARENA_MAX 4 \
+        --compopt worker jvm.heap 128 
         
 
 
-    bin/hoya create cl1 \
-        --role master 0 \
+    bin/slider create cl1 \
+        --component master 0 \
         --zkhosts sandbox  \
         --image hdfs://sandbox.hortonworks.com:8020/user/hoya/hbase.tar.gz \
-        --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/sandbox/hbase \
-        --roleopt master app.infoport 8180 \
-        --roleopt master jvm.heap 128 \
-        --roleopt master env.MALLOC_ARENA_MAX 4 
+        --appconf file:///Users/stevel/Projects/slider/slider-core/src/test/configs/sandbox/hbase \
+        --compopt master jvm.heap 128 \
+        --compopt master env.MALLOC_ARENA_MAX 4 
         
                 
         
-    bin/hoya status clu1 \
+    bin/slider status clu1 \
     --manager sandbox:8032 --filesystem hdfs://sandbox.hortonworks.com:8020 \
            
-    bin/hoya list \
+    bin/slider list \
     --manager sandbox:8032 \
                
 
                
 # single master & workre
      
-    bin/hoya create cluster3 \
+    bin/slider create cluster3 \
     --zkhosts sandbox  \
+    --provider hbase \
     --image hdfs://sandbox.hortonworks.com:8020/user/hoya/hbase.tar.gz \
-    --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/sandbox/hbase \
-    --roleopt master app.infoport 8180  \
-    --role master 1 \
-    --role worker 1 
+    --appconf file:///Users/stevel/Projects/slider/slider-core/src/test/configs/sandbox/hbase \
+    --component master 1 \
+    --component worker 1 
     
     
 # one master
      
-    bin/hoya create cl1 \
+    bin/slider create cl1 \
     --zkhosts sandbox   \
+    --provider hbase \
     --image hdfs://sandbox.hortonworks.com:8020/user/hoya/hbase.tar.gz \
-    --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/sandbox/hbase \
-    --role master 1 
+    --appconf file:///Users/stevel/Projects/slider/slider-core/src/test/configs/sandbox/hbase \
+    --component master 1 
 
 # one master env set up
       
-     bin/hoya create cl1 \
+     bin/slider create cl1 \
      --zkhosts sandbox   \
+     --provider hbase \
      --image hdfs://sandbox.hortonworks.com:8020/user/hoya/hbase.tar.gz \
-     --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/sandbox/hbase \
-     --role master 1  \
-     --role worker 1  
+     --appconf file:///Users/stevel/Projects/slider/slider-core/src/test/configs/sandbox/hbase \
+     --component master 1  \
+     --component worker 1  
     
 # build but don't deploy single master
      
-    bin/hoya build cl1 \
+    bin/slider build cl1 \
     --zkhosts sandbox \
-     \
+    --provider hbase \
     --image hdfs://sandbox.hortonworks.com:8020/user/hoya/hbase.tar.gz \
-    --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/sandbox/hbase \
-    --roleopt master app.infoport 8180  \
-    --role master 1 
+    --appconf file:///Users/stevel/Projects/slider/slider-core/src/test/configs/sandbox/hbase \
+    --component master 1 
          
 
                
-    bin/hoya  status cl1 
+    bin/slider  status cl1 
     
     
-    bin/hoya  status cl1 
+    bin/slider  status cl1 
      
    
      
      
                
-    bin/hoya  thaw cl1  
+    bin/slider  thaw cl1  
                    
-    bin/hoya  freeze cl1  
-    bin/hoya  freeze cluster3  
-    bin/hoya  destroy cl1  
+    bin/slider  freeze cl1  
+    bin/slider  freeze cluster3  
+    bin/slider  destroy cl1  
     
     
       
          
-    bin/hoya  emergency-force-kill all 
+    bin/slider  emergency-force-kill all 
      
      
 ## All configured 
      
      
-    bin/hoya create cl1 \
-      --role worker 1\
-      --role master 2\
+    bin/slider create cl1 \
+      --component worker 1\
+      --component master 2\
       --zkhosts sandbox \
+      --provider hbase \
       --image hdfs://sandbox.hortonworks.com:8020/user/hoya/hbase.tar.gz  \
-      --appconf file:///Users/stevel/Projects/hoya/hoya-core/src/test/configs/sandbox/hbase \
-      --roleopt master app.infoport 8180 \
-      --roleopt master env.MALLOC_ARENA_MAX 4 \
-      --roleopt worker app.infoport 0 \
+      --appconf file:///Users/stevel/Projects/slider/slider-core/src/test/configs/sandbox/hbase \
+      --compopt master env.MALLOC_ARENA_MAX 4 \
+      --compopt worker app.infoport 0 \
   
 ### flex the cluster
   
-   bin/hoya flex cl1 \
-    --role master 1 \
-    --role worker 2 
+     bin/slider flex cl1 \
+      --component master 1 \
+      --component worker 2 
     
 ### freeze
 
-    bin/hoya  freeze cl1 
+    bin/slider  freeze cl1 
     
-    bin/hoya  freeze cl1 --force 
+    bin/slider  freeze cl1 --force 
     
 ### thaw
 
-    bin/hoya  thaw cl1 -D slider.yarn.queue.priority=5 -D slider.yarn.queue=default
+    bin/slider  thaw cl1 -D slider.yarn.queue.priority=5 -D slider.yarn.queue=default
     
     
 ### thaw with bad queue: _MUST_ fail
     
-    bin/hoya  thaw cl1 -D slider.yarn.queue=unknown
+    bin/slider  thaw cl1 -D slider.yarn.queue=unknown
      
 ### monitor
 
-    bin/hoya  monitor cl1      
+    bin/slider  monitor cl1      
 
 ### list all
 
-    bin/hoya  list
+    bin/slider  list
      
 ### list
 
-    bin/hoya  list cl1 
+    bin/slider  list cl1 
     
 ### status
 
-    bin/hoya  status cl1 
+    bin/slider  status cl1 
     
 ### destroy
 
-    bin/hoya  destroy cl1 
+    bin/slider  destroy cl1 
+    
+    

@@ -14,7 +14,10 @@
   
 # Specification of the "Cluster Description"
 
-# Version 2.0.0
+* This is partially obsolete. Slider still returns the Hoya Cluster Description
+as changing it will break most of the unit tests -once these are updated
+this document will be completely obsolete and replaced with a new one.
+
 
 ### Notation: 
 
@@ -27,12 +30,8 @@ or `/roles/*/yarn.memory`
 
 ## Core Concepts
 
-A persistent cluster is defined in a "Cluster Description" JSON file,
-saved into HDFS as `cluster.json` in a standarized location for each
-cluster (by default, `${user.home}/.hoya/clusters/${clustername}/cluster.json`)
-
-An extended form of the same JSON specification is used to provide status
-information back from the Application Master, "AM", to client applications.
+The specificaton of an application instance is defined in an application instance
+directory, `${user.home}/.slidera/clusters/${clustername}/cluster.json`)
 
 
 ## Sections for specifying and describing cluster state

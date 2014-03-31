@@ -12,13 +12,13 @@
   limitations under the License. See accompanying LICENSE file.
 -->
   
-# Hoya's needs of an application
+# Slider's needs of an application
  
-Hoya installs and runs applications in a YARN cluster -applications that
+Slider installs and runs applications in a YARN cluster -applications that
 do not need to be written for YARN. 
 
-What they do need to be is deployable by Hoya, which means installable by YARN,
-configurable by Hoya, and, finally, executable by YARN. YARN will kill the
+What they do need to be is deployable by Slider, which means installable by YARN,
+configurable by Slider, and, finally, executable by YARN. YARN will kill the
 executed process when destroying a container, so the deployed application
 must expect this to happen and be able to start up from a kill-initiated
 shutdown without any manual recovery process.
@@ -58,7 +58,7 @@ libaries compatible with the version of Hadoop running on the cluster.
 
 * Store persistent data in HDFS (directly or indirectly) with the exact storage location
 configurable. Specifically: not to the local filesystem, and not in a hard coded location
-such as `hdfs://app/data`. Hoya creates per-Hoya application directories for
+such as `hdfs://app/data`. Slider creates per-instance directories for
 persistent data.
 
 * Be configurable as to where any configuration directory is (or simply relative
@@ -67,7 +67,7 @@ location such as `/etc`.
 
 * Not have a fixed location for log output -such as `/var/log/something`
 
-* Run until explicitly terminated. Hoya treats an application termination
+* Run until explicitly terminated. Slider treats an application termination
 (which triggers a container release) as a failure -and reacts to it by restarting
 the container.
 
@@ -93,9 +93,9 @@ If not, custom parsers/configuration generators will be required.
 
 * Be possible to exec without running a complex script, so that process inheritance works everywhere, including (for testing) OS/X
 
-* Provide a way for Hoya to get list of nodes in cluster and status. This will let Hoya detect failed worker nodes and react to it.
+* Provide a way for Slider to get list of nodes in cluster and status. This will let Slider detect failed worker nodes and react to it.
 
-* FUTURE: If a graceful decommissioning is preferred, have an RPC method that a Hoya provider can call to invoke this.
+* FUTURE: If a graceful decommissioning is preferred, have an RPC method that a Slider provider can call to invoke this.
 
 * Be location aware from startup. Example: worker nodes to be allocated tables to serve based on which tables are
 stored locally/in-rack, rather than just randomly. This will accelerate startup time.
@@ -109,16 +109,16 @@ stored locally/in-rack, rather than just randomly. This will accelerate startup 
 
 
 * Support a management platform such as Apache Ambari -so that the operational
-state of a Hoya application can be monitored.
+state of a Slider application can be monitored.
 
 ## MAY
 
 * Include a single process that will run at a fixed location and whose termination
 can trigger application termination. Such a process will be executed
-in the same container as the Hoya AM, and so known before all other containers
+in the same container as the Slider AM, and so known before all other containers
 are requested. If a live cluster is unable to handle restart/migration of 
-such a process, then the Hoya application will be unable to handle
-Hoya AM restarts.
+such a process, then the Slider application will be unable to handle
+Slider AM restarts.
 
 * Ideally: report on load/cost of decommissioning.
   E.g amount of data; app load. 

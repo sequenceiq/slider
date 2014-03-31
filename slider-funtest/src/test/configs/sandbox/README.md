@@ -29,12 +29,13 @@ from the hortonworks sandbox, *with a DNS entry "sandbox" to match*
          <name>fs.defaultFS</name>
          <value>hdfs://ubuntu:9090</value>
        </property>
-     </configuration>
-     <property>
-       <name>yarn.resourcemanager.address</name>
-       <value>ubuntu:8032</value>
-     </property>
+
+       <property>
+         <name>yarn.resourcemanager.address</name>
+         <value>ubuntu:8032</value>
+       </property>
  
+     </configuration>
  
  For the hoya command line
  

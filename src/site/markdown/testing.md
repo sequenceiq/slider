@@ -21,7 +21,7 @@
 
 ## Standalone Tests
 
-Hoya core contains a suite of tests that are designed to run on the local machine,
+Slider core contains a suite of tests that are designed to run on the local machine,
 using Hadoop's `MiniDFSCluster` and `MiniYARNCluster` classes to create small,
 one-node test clusters. All the YARN/HDFS code runs in the JUnit process; the
 AM and spawned HBase and Accumulo processes run independently.
@@ -34,7 +34,7 @@ Requirements
 * An expanded accumulo.tar.gz in the local filesystem, 
 * an expanded Zookeeper installation
 
-All of these need to be defined in the file `hoya-core/src/test/resources/hoya-test.xml`
+All of these need to be defined in the file `slider-core/src/test/resources/slider-test.xml`
 
 Here's
   
@@ -48,13 +48,13 @@ Here's
       
       <property>
         <name>slider.test.hbase.home</name>
-        <value>/home/hoya/hbase-0.96.0</value>
+        <value>/home/slider/hbase-0.96.0</value>
         <description>HBASE Home</description>
       </property>
     
       <property>
         <name>slider.test.hbase.tar</name>
-        <value>/home/hoya/Projects/hbase-0.96.0-bin.tar.gz</value>
+        <value>/home/slider/Projects/hbase-0.96.0-bin.tar.gz</value>
         <description>HBASE archive URI</description>
       </property>
     
@@ -67,13 +67,13 @@ Here's
       <property>
         <name>slider.test.accumulo.home</name>
         <value>
-          /home/hoya/accumulo-1.6.0-SNAPSHOT/</value>
+          /home/slider/accumulo-1.6.0-SNAPSHOT/</value>
         <description>Accumulo Home</description>
       </property>
     
       <property>
         <name>slider.test.accumulo.tar</name>
-        <value>/home/hoya/accumulo-1.6.0-SNAPSHOT-bin.tar</value>
+        <value>/home/slider/accumulo-1.6.0-SNAPSHOT-bin.tar</value>
         <description>Accumulo archive URI</description>
       </property>
 
@@ -85,13 +85,13 @@ Here's
 
       <property>
         <name>zk.home</name>
-        <value>/home/hoya/zookeeper</value>
+        <value>/home/slider/zookeeper</value>
         <description>Zookeeper home dir on target systems</description>
       </property>
     
       <property>
         <name>hadoop.home</name>
-        <value>/home/hoya/hadoop-2.2.0</value>
+        <value>/home/slider/hadoop-2.2.0</value>
         <description>Hadoop home dir on target systems</description>
       </property>
       
@@ -113,7 +113,7 @@ a live cluster.
 
 For these to work you need
 1. A YARN Cluster -secure or insecure
-1. A `hoya-client.xml` file configured to interact with the cluster
+1. A `slider-client.xml` file configured to interact with the cluster
 1. HBase .tar.gz uploaded to HDFS, and a local or remote accumulo conf 
 directory
 1. Accumulo .tar.gz uploaded to HDFS, and a local or remote accumulo conf 
@@ -123,49 +123,49 @@ directory
 
 Maven needs to be given 
 1. A path to the expanded test archive
-1. A path to a hoya configuration directory for the cluster
+1. A path to a slider configuration directory for the cluster
 
 The path for the expanded test is automatically calculated as being the directory under
-`..\hoya-assembly\target` where an untarred hoya distribution can be found.
+`..\slider-assembly\target` where an untarred slider distribution can be found.
 If it is not present, the tests will fail
 
 The path to the configuration directory must be supplied in the property
-`hoya.conf.dir` which can be set on the command line
+`slider.conf.dir` which can be set on the command line
 
-    mvn test -Dhoya.conf.dir=src/test/configs/sandbox/hoya
+    mvn test -Dhoya.conf.dir=src/test/configs/sandbox/slider
 
-It can also be set in the (optional) file `hoya-funtest/build.properties`:
+It can also be set in the (optional) file `slider-funtest/build.properties`:
 
-    hoya.conf.dir=src/test/configs/sandbox/hoya
+    slider.conf.dir=src/test/configs/sandbox/slider
 
-This file is loaded whenever a hoya build or test run takes place
+This file is loaded whenever a slider build or test run takes place
 
-## Configuration of `hoya-client.xml`
+## Configuration of `slider-client.xml`
 
-The `hoya-client.xml` must have extra configuration options for both the HBase and
+The `slider-client.xml` must have extra configuration options for both the HBase and
 Accumulo tests, as well as a common set for actually talking to a YARN cluster.
 
 ## Disabling the functional tests entirely
 
 All functional tests which require a live YARN cluster
-can be disabled through the property `hoya.funtest.enabled`
+can be disabled through the property `slider.funtest.enabled`
   
     <property>
-      <name>hoya.funtest.enabled</name>
+      <name>slider.funtest.enabled</name>
       <value>false</value>
     </property>
 
 There is a configuration do do exactly this in
-`src/test/configs/offline/hoya`:
+`src/test/configs/offline/slider`:
 
-    hoya.conf.dir=src/test/configs/offline/hoya
+    slider.conf.dir=src/test/configs/offline/slider
 
 Tests which do not require a live YARN cluster will still run;
-these verify that the `bin\hoya` script works.
+these verify that the `bin/slider` script works.
 
 ### Non-mandatory options
 
-The following test options may be added to `hoya-client.xml` if the defaults
+The following test options may be added to `slider-client.xml` if the defaults
 need to be changed
                    
     <property>
@@ -196,10 +196,10 @@ need to be changed
     
     
 Note that while the same properties need to be set in
-`hoya-core/src/test/resources/hoya-client.xml`, those tests take a file in the local
+`slider-core/src/test/resources/slider-client.xml`, those tests take a file in the local
 filesystem -here a URI to a path visible across all nodes in the cluster are required
 the tests do not copy the .tar/.tar.gz files over. The application configuration
-directories may be local or remote -they are copied into the `.hoya` directory
+directories may be local or remote -they are copied into the `.slider` directory
 during cluster creation.
 
 ### HBase Parameters
@@ -212,13 +212,13 @@ The HBase tests can be enabled or disabled
       <value>true</value>
     </property>
         
-Mandatory test parameters must be added to `hoya-client.xml`
+Mandatory test parameters must be added to `slider-client.xml`
 
   
     <property>
       <name>slider.test.hbase.tar</name>
       <description>Path to the HBase Tar file in HDFS</description>
-      <value>hdfs://sandbox.hortonworks.com:8020/user/hoya/hbase.tar.gz</value>
+      <value>hdfs://sandbox.hortonworks.com:8020/user/slider/hbase.tar.gz</value>
     </property>
     
     <property>
@@ -299,7 +299,7 @@ to keep the log files around after an application run.
 
 To test against a secure cluster
 
-1. `hoya-client.xml` must be configured as per [Security](security.html).
+1. `slider-client.xml` must be configured as per [Security](security.html).
 1. the client must have the kerberos tokens issued so that the user running
 the tests has access to HDFS and YARN.
 
@@ -308,7 +308,7 @@ the tests appear to hang
 
 ### Validating the configuration
 
-    mvn test  -Dtest=TestBuildSetup
+    mvn test -Dtest=TestBuildSetup
 
 
 ## Parallel execution
@@ -330,7 +330,7 @@ there are too many instances of a role on a same host, or if other tests are
 using the same port.
 * If a test does need to fix a port, it MUST be for a single instance of a role,
 and it must be different from all others. The assignment should be set in 
-`org.apache.hoya.funtest.itest.PortAssignments` so as to ensure uniqueness
+`org.apache.slider.funtest.itest.PortAssignments` so as to ensure uniqueness
 over time. Otherwise: use the value of `0` to allow the OS to assign free ports
 on demand.
 
@@ -338,7 +338,7 @@ on demand.
 
 
 1. Test cases should be written so that each class works with exactly one
-Hoya-deployed cluster
+Slider-deployed cluster
 1. Every test MUST have its own cluster name -preferably derived from the
 classname.
 1. This cluster should be deployed in an `@BeforeClass` method.
@@ -352,26 +352,26 @@ specific hbase or accumulo categories- are disabled.
 
 The functional tests all 
 
-1. In the root `hoya` directory, build a complete Hoya release
+1. In the root `slider` directory, build a complete Slider release
 
         mvn install -DskipTests
 1. Start the YARN cluster/set up proxies to connect to it, etc.
 
-1. In the `hoya-funtest` dir, run the test
+1. In the `slider-funtest` dir, run the test
 
         mvn test -Dtest=TestHBaseCreateCluster
         
-A common mistake during development is to rebuild the `hoya-core` JARs
-then the `hoya-funtest` tests without rebuilding the `hoya-assembly`.
+A common mistake during development is to rebuild the `slider-core` JARs
+then the `slider-funtest` tests without rebuilding the `slider-assembly`.
 In this situation, the tests are in sync with the latest build of the code
 -including any bug fixes- but the scripts executed by those tests are
-of a previous build of `hoya-core.jar`. As a result, the fixes are not picked
+of a previous build of `slider-core.jar`. As a result, the fixes are not picked
 up.
 
-#### To propagate changes in hoya-core through to the funtest classes for
-testing, you must build/install the hoya packages from the root assembly.
+#### To propagate changes in slider-core through to the funtest classes for
+testing, you must build/install the slider packages from the root assembly.
 
-## Limitations of hoya-funtest
+## Limitations of slider-funtest
 
 1. All tests run from a single client -workload can't scale
 1. Output from failed AM and containers aren't collected
@@ -392,7 +392,7 @@ the containers used -you may be able to track the logs
 down from the specific nodes.
 
 1. If you browse the filesystem, look for the specific test clusters
-in ~/.hoya/cluster/$testname
+in `~/.slider/cluster/$testname`
 
 1. If you are using a secure cluster, make sure that the clocks
 are synchronized, and that you have a current token -`klist` will

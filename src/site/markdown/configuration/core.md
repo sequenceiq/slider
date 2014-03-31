@@ -12,7 +12,7 @@
   limitations under the License. See accompanying LICENSE file.
 -->
   
-# Deployment Specification: resources, internal and deployment configuration files 
+# Core Configuration Specification
 
 
 ## Terminology

@@ -28,8 +28,8 @@ hosts the HDFS NameNode and the YARN Resource Manager
 
 # preamble
 
-    export HADOOP_CONF_DIR=/home/slider/conf
-    export PATH=/home/slider/hadoop/bin:/home/slider/hadoop/sbin:~/zookeeper-3.4.5/bin:$PATH
+    export HADOOP_CONF_DIR=~/conf
+    export PATH=~/hadoop/bin:/~/hadoop/sbin:~/zookeeper-3.4.5/bin:$PATH
     
     hdfs namenode -format master
   
@@ -82,11 +82,11 @@ to keep the log bloat under control.
 
 copy to local 
 
-    get hbase-0.97.0-SNAPSHOT-bin.tar on 
+    get hbase-0.98.0-bin.tar on 
 
 
     hdfs dfs -rm hdfs://master:9090/hbase.tar
-    hdfs dfs -copyFromLocal hbase-0.97.0-SNAPSHOT-bin.tar hdfs://master:9090/hbase.tar
+    hdfs dfs -copyFromLocal hbase-0.98.0-bin.tar hdfs://master:9090/hbase.tar
 
 or
     
@@ -108,22 +108,20 @@ This is for demos only, otherwise you lose the clusters and their databases.
  
  
     slider  create cl1 \
-    --role worker 1  --role master 1 \
+    --component worker 1  --component master 1 \
      --manager master:8032 --filesystem hdfs://master:9090 \
      --zkhosts localhost --image hdfs://master:9090/hbase.tar
     
     # create the cluster
     
     slider create cl1 \
-     --role worker 4 --role master 1 \
+     --component worker 4 --component master 1 \
       --manager master:8032 --filesystem hdfs://master:9090 --zkhosts localhost \
       --image hdfs://master:9090/hbase.tar \
       --appconf file:////Users/slider/Hadoop/configs/master/hbase \
-      --roleopt master app.infoport 8080 \
-      --roleopt master jvm.heap 128 \
-      --roleopt master env.MALLOC_ARENA_MAX 4 \
-      --roleopt worker app.infoport 8081 \
-      --roleopt worker jvm.heap 128 
+      --compopt master jvm.heap 128 \
+      --compopt master env.MALLOC_ARENA_MAX 4 \
+      --compopt worker jvm.heap 128 
 
     # freeze the cluster
     slider freeze cl1 \
@@ -141,14 +139,14 @@ This is for demos only, otherwise you lose the clusters and their databases.
     slider list cl1 \
     --manager master:8032 --filesystem hdfs://master:9090
     
-    slider flex cl1 --role worker 2
+    slider flex cl1 --component worker 2
     --manager master:8032 --filesystem hdfs://master:9090 \
-    --role worker 5
+    --component worker 5
     
 ## Create an Accumulo Cluster
 
     slider create accl1 --provider accumulo \
-    --role master 1 --role tserver 1 --role gc 1 --role monitor 1 --role tracer 1 \
+    --component master 1 --component tserver 1 --component gc 1 --component monitor 1 --component tracer 1 \
     --manager localhost:8032 --filesystem hdfs://localhost:9000 \
     --zkhosts localhost --zkpath /local/zookeeper \
     --image hdfs://localhost:9000/user/username/accumulo-1.6.0-SNAPSHOT-bin.tar \

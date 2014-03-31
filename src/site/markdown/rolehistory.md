@@ -12,9 +12,13 @@
   limitations under the License. See accompanying LICENSE file.
 -->
   
-# Role History: how Hoya brings back nodes in the same location
+# Role History: how Slider brings back nodes in the same location
 
 ### Last updated  2013-12-06
+
+* This document uses the pre-slider terminology of role/cluster and not
+component and application instance *
+
 
 ## Outstanding issues
 
@@ -26,7 +30,7 @@ per node (not persisted), but not using this in role placement requests yet.
 
 ## Introduction
 
-Hoya needs to bring up instances of a given role on the machine(s) on which
+Slider needs to bring up instances of a given role on the machine(s) on which
 they last ran -it should remember after shrinking or freezing a cluster  which
 servers were last used for a role -and use this (persisted) data to select
 clusters next time
@@ -38,7 +42,7 @@ without using the TCP stack. The HBase master persists to HDFS the tables
 assigned to specific Region Servers, and when HBase is restarted its master
 tries to reassign the same tables back to Region Servers on the same machine.
 
-For this to work in a dynamic cluster, Hoya needs to bring up Region Servers
+For this to work in a dynamic cluster, Slider needs to bring up Region Servers
 on the previously used hosts, so that the HBase Master can re-assign the same
 tables.
 
@@ -50,20 +54,20 @@ the key requirement.
 
 * **Role Instance** : a single instance of a role.
 * **Node** : A server in the YARN Physical (or potentially virtual) Cluster of servers.
-* **Hoya Cluster**: The set of role instances deployed by Hoya so as to 
+* **Slider Cluster**: The set of role instances deployed by Slider so as to 
  create a single aggregate application.
-* **Hoya AM**: The Application Master of Hoya: the program deployed by YARN to
-manage its Hoya Cluster.
+* **Slider AM**: The Application Master of Slider: the program deployed by YARN to
+manage its Slider Cluster.
 * **RM** YARN Resource Manager
 
 ### Assumptions
 
-Here are some assumptions in Hoya's design
+Here are some assumptions in Slider's design
 
 1. Instances of a specific role should preferably be deployed onto different
-servers. This enables Hoya to only remember the set of server nodes onto
+servers. This enables Slider to only remember the set of server nodes onto
 which instances were created, rather than more complex facts such as "two Region
-Servers were previously running on Node #17. On restart Hoya can simply request
+Servers were previously running on Node #17. On restart Slider can simply request
 one instance of a Region Server on a specific node, leaving the other instance
 to be arbitrarily deployed by YARN. This strategy should help reduce the *affinity*
 in the role deployment, so increase their resilience to failure.
@@ -75,18 +79,18 @@ only priority needed when asking for nodes is *ask for the most recently used*.
 
 1. Different roles are independent: it is not an issue if a role of one type
  (example, an Accumulo Monitor and an Accumulo Tablet Server) are on the same
- host. This assumption allows Hoya to only worry about affinity issues within
+ host. This assumption allows Slider to only worry about affinity issues within
  a specific role, rather than across all roles.
  
 1. After a cluster has been started, the rate of change of the cluster is
 low: both node failures and cluster flexing happen at the rate of every few
-hours, rather than every few seconds. This allows Hoya to avoid needing
+hours, rather than every few seconds. This allows Slider to avoid needing
 data structures and layout persistence code designed for regular and repeated changes.
 
 1. Instance placement is best-effort: if the previous placement cannot be satisfied,
 the application will still perform adequately with role instances deployed
 onto new servers. More specifically, if a previous server is unavailable
-for hosting a role instance due to lack of capacity or availability, Hoya
+for hosting a role instance due to lack of capacity or availability, Slider
 will not decrement the number of instances to deploy: instead it will rely
 on YARN to locate a new node -ideally on the same rack.
 
@@ -120,7 +124,7 @@ when thawing a cluster.
 * It must also remember when nodes were released -these are re-requested
 when returning the cluster size to a previous size during flex operations.
 
-* It has to track nodes for which Hoya has an outstanding container request
+* It has to track nodes for which Slider has an outstanding container request
 with YARN. This ensures that the same node is not requested more than once
 due to outstanding requests.
 
@@ -153,7 +157,7 @@ termination.
 
 As at startup, a large number of allocations may arrive in a short period of time,
 the Role History may be updated very rapidly -yet as the containers are
-only recently activated, it is not likely that an immediately restarted Hoya
+only recently activated, it is not likely that an immediately restarted Slider
 cluster would gain by re-requesting containers on them -their historical
 value is more important than their immediate past.
 
@@ -176,17 +180,17 @@ with the data saved in JSON or compressed format.
 **Blacklisting**: even if a node fails repeatedly, this design will still try to re-request
 instances on this node; there is no blacklisting. As a central blacklist
 for YARN has been proposed, it is hoped that this issue will be addressed centrally,
-without Hoya having to remember which nodes are unreliable *for that particular
-Hoya cluster*.
+without Slider having to remember which nodes are unreliable *for that particular
+Slider cluster*.
 
 **Anti-affinity**: If multiple role instances are assigned to the same node,
-Hoya has to choose on restart or flexing whether to ask for multiple
+Slider has to choose on restart or flexing whether to ask for multiple
 nodes on that node again, or to pick other nodes. The assumed policy is
 "only ask for one node"
 
 **Bias towards recent nodes over most-used**: re-requesting the most
 recent nodes, rather than those with the most history of use, may
-push Hoya to requesting nodes that were only briefly in use -and so have
+push Slider to requesting nodes that were only briefly in use -and so have
 on a small amount of local state, over nodes that have had long-lived instances.
 This is a problem that could perhaps be addressed by preserving more
 history of a node -maintaining some kind of moving average of
@@ -202,18 +206,18 @@ are no active instances, when it was last used. This history is used to
 choose where to request new containers. Because of the asynchronous
 allocation and release of containers, the Role History also needs to track
 outstanding release requests --and, more critically, outstanding allocation
-requests. If Hoya has already requested a container for a specific role
+requests. If Slider has already requested a container for a specific role
 on a host, then asking for another container of that role would break
 anti-affinity requirements. Note that not tracking outstanding requests would
 radically simplify some aspects of the design, especially the complexity
 of correlating allocation responses with the original requests -and so the
 actual hosts originally requested.
 
-1. Hoya builds up a map of which nodes have recently been used.
+1. Slider builds up a map of which nodes have recently been used.
 1. Every node counts the number. of active containers in each role.
 1. Nodes are only chosen for allocation requests when there are no
 active or requested containers on that node.
-1. When choosing which instances to release, Hoya could pick the node with the
+1. When choosing which instances to release, Slider could pick the node with the
 most containers on it. This would spread the load.
 1. When there are no empty nodes to request containers on, a request would
 let YARN choose.
@@ -240,7 +244,7 @@ of recently explicitly released nodes can be maintained.
 was satisfied on a different node, the original node's request count is
  decremented, *not that of the node actually allocated*. 
 * In a virtual cluster, may fill with node entries that are no longer in the cluster.
-Hoya should query the RM (or topology scripts?) to determine if nodes are still
+Slider should query the RM (or topology scripts?) to determine if nodes are still
 parts of the YARN cluster. 
 
 ## Data Structures
@@ -263,7 +267,7 @@ This is the aggregate data structure that is persisted to/from file
     clusterNodes(): Iterable<NodeInstance>
     getOrCreate(NodeId): NodeInstance
 
-  Maps a YARN NodeID record to a Hoya `NodeInstance` structure
+  Maps a YARN NodeID record to a Slider `NodeInstance` structure
 
 ### NodeInstance
 
@@ -310,7 +314,7 @@ This is the existing `org.apache.hoya.yarn.appmaster.state.RoleStatus` class
 ### RoleList
 
 A list mapping role to int enum is needed to index NodeEntry elements in
-the NodeInstance arrays. Although such an enum is already implemented in the Hoya
+the NodeInstance arrays. Although such an enum is already implemented in the Slider
 Providers, explicitly serializing and deserializing it would make
 the persistent structure easier to parse in other tools, and resilient
 to changes in the number or position of roles.
@@ -321,7 +325,7 @@ so that the selection of containers to request could shortcut a search
 
 ### ContainerPriority
 
-The container priority field (a 32 bit integer) is used by Hoya (0.5.x)
+The container priority field (a 32 bit integer) is used by Slider (0.5.x)
 to index the specific role in a container so as to determine which role
 has been offered in a container allocation message, and which role has
 been released on a release event.
@@ -332,12 +336,12 @@ Simply looking up the nodes on the provided container and decrementing
 its request counter is not going to work -the container may be allocated
 on a different node from that requested.
 
-**Proposal**: The priority field of a request is divided by Hoya into 8 bits for
+**Proposal**: The priority field of a request is divided by Slider into 8 bits for
 `roleID` and 24 bits for `requestID`. The request ID will be a simple
-rolling integer -Hoya will assume that after 2^24 requests per role, it can be rolled,
+rolling integer -Slider will assume that after 2^24 requests per role, it can be rolled,
 -though as we will be retaining a list of outstanding requests, a clash should not occur.
 The main requirement  is: not have > 2^24 outstanding requests for instances of a specific role,
-which places an upper bound on the size of a Hoya cluster.
+which places an upper bound on the size of a Slider cluster.
 
 The splitting and merging will be implemented in a ContainerPriority class,
 for uniform access.
@@ -395,7 +399,7 @@ list of all Nodes which are available for an instance of that role,
 using a comparator that places the most recently released node ahead of older
 nodes.
 
-This list is not persisted -when a Hoya Cluster is frozen it is moot, and when
+This list is not persisted -when a Slider Cluster is frozen it is moot, and when
 an AM is restarted this structure will be rebuilt.
 
 1. When a node is needed for a new request, this list is consulted first.
@@ -409,7 +413,7 @@ that the Role History does not know of any nodes
 in the cluster that have hosted instances of that role and which are not
 in use. There are then two possible strategies to select a role
 
-1. Ask for an instance anywhere in the cluster (policy in Hoya 0.5)
+1. Ask for an instance anywhere in the cluster (policy in Slider 0.5)
 1. Search the node map to identify other nodes which are (now) known about,
 but which are not hosting instances of a specific role -this can be used
 as the target for the next resource request.
@@ -442,10 +446,10 @@ then re-requesting containers on it will amplify the damage.
 
 ### Thaw
 
-When thawing, the Role History should be loaded -if it is missing Hoya
+When thawing, the Role History should be loaded -if it is missing Slider
 must revert to the bootstrap actions.
 
-If found, the Role History will contain Hoya's view of the Hoya Cluster's
+If found, the Role History will contain Slider's view of the Slider Cluster's
 state at the time the history was saved, explicitly recording the last-used
 time of all nodes no longer hosting a role's container. By noting which roles
 were actually being served, it implicitly notes which nodes have a `last_used`
@@ -528,7 +532,7 @@ This strategy is designed to eliminate the expectation that there will ever
 be a clean shutdown -and so that the startup-time code should expect
 the Role History to have been written during shutdown. Instead the code
 should assume that the history was saved to disk at some point during the life
-of the Hoya Cluster -ideally after the most recent change, and that the information
+of the Slider Cluster -ideally after the most recent change, and that the information
 in it is only an approximate about what the previous state of the cluster was.
 
 ### Flex: Requesting a container in role `role`
@@ -541,7 +545,7 @@ in it is only an approximate about what the previous state of the cluster was.
     request.node = node
     request.priority = outstanding.priority
       
-    //update existing Hoya role status
+    //update existing Slider role status
     roleStatus[roleId].incRequested();
       
 
@@ -611,7 +615,7 @@ from the last-used fields in the node entries.
 
 This is the callback received when containers have been allocated.
 Due to (apparently) race conditions, the AM may receive duplicate
-container allocations -Hoya already has to recognize this and 
+container allocations -Slider already has to recognize this and 
 currently simply discards any surplus.
 
 If the AM tracks outstanding requests made for specific hosts, it
@@ -751,7 +755,7 @@ has completed although it wasn't on the list of containers to release
         // handle container completion
         nodeentry.releasing --
          
-        // update existing Hoya role status
+        // update existing Slider role status
         roleStatus[roleId].decReleasing();
         containersBeingReleased.remove(containerId)
       else: 
@@ -909,7 +913,7 @@ will be considered unavailable for new location-specific requests.
 This may imply that new requests that could be explicity placed will now only
 be randomly placed -however, it is moot on the basis that if there are outstanding
 container requests it means the RM cannot grant resources: new requests at the
-same priority (i.e. same Hoya Role ID) will not be granted either.
+same priority (i.e. same Slider Role ID) will not be granted either.
 
 The only scenario where this would be different is if the resource requirements
 of instances of the target role were decreated during a cluster flex such that
@@ -942,7 +946,7 @@ Another entry is saved -presumably the second RS is now live, which triggered an
     {"entry":{"org.apache.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":1,"active":true,"last_used":0}}}
     {"entry":{"org.apache.hoya.avro.NodeEntryRecord":{"host":"192.168.1.85","role":2,"active":true,"last_used":0}}}
 
-At this point the cluster was frozen and thawed. Hoya does not save the cluster state
+At this point the cluster was frozen and thawed. Slider does not save the cluster state
 at freeze time, but does as it is rebuilt.
 
 When the cluster is restarted, every node that was active for a role at the time the file was saved `1384183476028`

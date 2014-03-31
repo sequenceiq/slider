@@ -12,16 +12,12 @@
   limitations under the License. See accompanying LICENSE file.
 -->
 
-# Hoya
+# Slider
 
 
-Hoya is a YARN application to deploy existing distributed applications on YARN, 
+Slider is a YARN application to deploy existing distributed applications on YARN, 
 monitor them and make them larger or smaller as desired -even while 
 the cluster is running.
-
-
-Hoya has a plug-in *provider* architecture to support different applications,
-and currently supports Apache HBase and Apache Accumulo.
 
 Clusters can be stopped, "frozen" and restarted, "thawed" later; the distribution
 of the deployed application across the YARN cluster is persisted -enabling
@@ -30,29 +26,13 @@ Applications which remember the previous placement of data (such as HBase)
 can exhibit fast start-up times from this feature.
 
 YARN itself monitors the health of 'YARN containers" hosting parts of 
-the deployed application -it notifies the Hoya manager application of container
-failure. Hoya then asks YARN for a new container, into which Hoya deploys
-a replacement for the failed component. As a result, Hoya can keep the
+the deployed application -it notifies the Slider manager application of container
+failure. Slider then asks YARN for a new container, into which Slider deploys
+a replacement for the failed component. As a result, Slider can keep the
 size of managed applications consistent with the specified configuration, even
 in the face of failures of servers in the cluster -as well as parts of the
 application itself
 
-## Using Hoya
-
-* [Announcement](src/site/markdown/announcement.md)
-* [Installing](src/site/markdown/installing.md)
-* [Man Page](src/site/markdown/manpage.md)
-* [Examples](src/site/markdown/examples.md)
-* [exitcodes](src/site/markdown/exitcodes.md)
-* [hoya_cluster_description](src/site/markdown/hoya_cluster_descriptions.md)
-
-## Developing Hoya
-
-* [Architecture](src/site/markdown/architecture.md)
-* [Application Needs](src/site/markdown/app_needs.md)
-* [Building](src/site/markdown/building.md)
-* [Testing](src/site/markdown/testing.md)
-* [Role history](src/site/markdown/rolehistory.md)
 
 # License
 

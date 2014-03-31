@@ -146,7 +146,7 @@ the HDFS replication factor to 2. (
 Increase the number of YARN containers which must fail before the Slider application instance
 itself fails.
     
-    -O hoya.container.failure.threshold 16
+    -O slider.container.failure.threshold 16
 
 ##### `--appconf dfspath`
 

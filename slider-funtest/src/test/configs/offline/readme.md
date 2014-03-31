@@ -15,8 +15,8 @@
 # Offline configuration
 
 This is a configuration for *not* running the functional tests, 
-apart from a few that work with the `bin/hoya`binary to verify
+apart from a few that work with the `bin/slider`binary to verify
 that the assembly and scripts are valid.
 
-Select this co
+
  

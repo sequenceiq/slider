@@ -14,16 +14,16 @@
   
 # Troubleshooting
 
-Hoya can be tricky to start using, because it combines the need to set
+Slider can be tricky to start using, because it combines the need to set
 up a YARN application, with the need to have an HBase configuration
 that works
 
 
 ### Common problems
 
-## Classpath for Hoya AM wrong
+## Classpath for Slider AM wrong
 
-The Hoya Application Master, the "Hoya AM" builds up its classpath from
+The Slider Application Master, the "Slider AM" builds up its classpath from
 those JARs it has locally, and the JARS pre-installed on the classpath
 
 This often surfaces in an exception that can be summarized as
@@ -52,9 +52,9 @@ For ambari-managed deployments, we recommend the following
 
 The `yarn-site.xml` file for the site will contain the relevant value.
 
-### Hoya application fails, "TriggerClusterTeardownException: Unstable Cluster" 
+### Application  Instantiation fails, "TriggerClusterTeardownException: Unstable Cluster" 
 
-Hoya gives up if it cannot keep enough instances of a role running -or more
+Slider gives up if it cannot keep enough instances of a role running -or more
 precisely, if they keep failing. 
 
 If this happens on cluster startup, it means that the application is not working
@@ -81,7 +81,7 @@ A quicker way is to browse to the URL on the next line.
 Note: the URL depends on yarn.log.server.url being properly configured.
 
 It is from those logs that the cause of the problem -because they are the actual
-output of the actual application which Hoya is trying to deploy.
+output of the actual application which Slider is trying to deploy.
 
 
 

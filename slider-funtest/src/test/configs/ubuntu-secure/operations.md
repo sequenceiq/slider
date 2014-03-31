@@ -26,6 +26,7 @@
       --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 list -D slider.security.enabled=true
       
       slider create cluster1 \
+          --provider hbase \
       --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
          --role workers 4\
           --zkhosts ubuntu --zkport 2121 \
@@ -33,16 +34,15 @@
           -S java.security.krb5.kdc=ubuntu \
           --image hdfs://ubuntu:9090/hbase.tar \
           --appconf file:////Users/slider/Hadoop/configs/master/hbase \
-          --roleopt master app.infoport 8080 \
           --roleopt master jvm.heap 128 \
           --roleopt master env.MALLOC_ARENA_MAX 4 \
-          --roleopt worker app.infoport 8081 \
           --roleopt worker jvm.heap 128 
 
  
 ### bypassing /etc/krb.conf via the -S argument
 
     bin/slider create cl1 \
+          --provider hbase \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
     -D slider.security.enabled=true -S java.security.krb5.realm=COTHAM \
     -S java.security.krb5.kdc=ubuntu \
@@ -52,15 +52,14 @@
         --zkhosts ubuntu --zkport 2121 \
         --image hdfs://ubuntu:9090/hbase.tar \
         --appconf file:///Users/stevel/Projects/Hortonworks/Projects/slider/slider-funtest/src/test/configs/ubuntu-secure/hbase \
-        --roleopt master app.infoport 8080 \
         --roleopt master jvm.heap 128 \
         --roleopt master env.MALLOC_ARENA_MAX 4 \
-        --roleopt worker app.infoport 8081 \
         --roleopt worker jvm.heap 128 
         
 
 
     bin/slider create cl1 \
+          --provider hbase \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
     -D slider.security.enabled=true -S java.security.krb5.realm=COTHAM \
     -S java.security.krb5.kdc=ubuntu \
@@ -70,7 +69,6 @@
         --zkhosts ubuntu --zkport 2121 \
         --image hdfs://ubuntu:9090/hbase.tar \
         --appconf file:///Users/stevel/Projects/Hortonworks/Projects/slider/slider-funtest/src/test/configs/ubuntu-secure/hbase \
-        --roleopt master app.infoport 8080 \
         --roleopt master jvm.heap 128 \
         --roleopt master env.MALLOC_ARENA_MAX 4 
         
@@ -95,6 +93,7 @@
 # single master & workre
      
     bin/slider create cluster3 \
+          --provider hbase \
     --zkhosts ubuntu --zkport 2121 \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
     -D slider.security.enabled=true -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
@@ -110,46 +109,48 @@
 # one master
      
     bin/slider create cl1 \
-    --zkhosts ubuntu  --zkport 2121 \
-    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
-    -D slider.security.enabled=true -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
-    -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
-    -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM \
-    --image hdfs://ubuntu:9090/hbase.tar \
-    --appconf file:///Users/stevel/Projects/Hortonworks/Projects/slider/slider-funtest/src/test/configs/ubuntu-secure/hbase \
-    --role master 1 
+      --provider hbase \
+      --zkhosts ubuntu  --zkport 2121 \
+      --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
+      -D slider.security.enabled=true -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
+      -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
+      -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM \
+      --image hdfs://ubuntu:9090/hbase.tar \
+      --appconf file:///Users/stevel/Projects/Hortonworks/Projects/slider/slider-funtest/src/test/configs/ubuntu-secure/hbase \
+      --role master 1 
 
 # one master env set up
       
      bin/slider create cl1 \
-     --zkhosts ubuntu  --zkport 2121 \
-     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
-     -D slider.security.enabled=true -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
-     -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
-     -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM \
-     --image hdfs://ubuntu:9090/hbase.tar \
-     --appconf file:///Users/stevel/Projects/Hortonworks/Projects/slider/slider-funtest/src/test/configs/ubuntu-secure/hbase \
-     --role master 1  \
-     --role worker 1  
+          --provider hbase \
+         --zkhosts ubuntu  --zkport 2121 \
+         --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
+         -D slider.security.enabled=true -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
+         -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
+         -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM \
+         --image hdfs://ubuntu:9090/hbase.tar \
+         --appconf file:///Users/stevel/Projects/Hortonworks/Projects/slider/slider-funtest/src/test/configs/ubuntu-secure/hbase \
+         --role master 1  \
+         --role worker 1  
     
 # build but don't deploy single master
      
     bin/slider build cl1 \
-    --zkhosts ubuntu \
-    --zkport 2121 \
-    --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
-    -D slider.security.enabled=true -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
-    -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
-    -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM \
-    --image hdfs://ubuntu:9090/hbase.tar \
-    --appconf file:///Users/stevel/Projects/Hortonworks/Projects/slider/slider-funtest/src/test/configs/ubuntu-secure/hbase \
-    --roleopt master app.infoport 8080  \
-    --role master 1 
+          --provider hbase \
+      --zkhosts ubuntu \
+      --zkport 2121 \
+      --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
+      -D slider.security.enabled=true -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
+      -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
+      -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM \
+      --image hdfs://ubuntu:9090/hbase.tar \
+      --appconf file:///Users/stevel/Projects/Hortonworks/Projects/slider/slider-funtest/src/test/configs/ubuntu-secure/hbase \
+      --role master 1 
          
                
     bin/slider  status cl1 \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
-    -D slider.security.enabled=true -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
+     -D slider.security.enabled=true -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
      -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
      -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM 
      
@@ -163,36 +164,36 @@
      -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
      -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM 
      
-         bin/slider  status cluster3 \
+   bin/slider  status cluster3 \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
-    -D slider.security.enabled=true \
+     -D slider.security.enabled=true \
      -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
      -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM 
      
      
                
-    bin/hoya  thaw cl1 \
+    bin/slider  thaw cl1 \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
     -D slider.security.enabled=true \
      -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
      -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
      -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM 
                    
-    bin/hoya  freeze cl1 \
+    bin/slider  freeze cl1 \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
     -D slider.security.enabled=true \
     -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
      -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
      -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM   
                       
-    bin/hoya  freeze cluster3 \
+    bin/slider  freeze cluster3 \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
     -D slider.security.enabled=true \
     -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
      -D yarn.resourcemanager.principal=yarn/ubuntu@COTHAM \
      -D dfs.namenode.kerberos.principal=hdfs/ubuntu@COTHAM 
     
-    bin/hoya  destroy cl1 \
+    bin/slider  destroy cl1 \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
     -D slider.security.enabled=true \
     -S java.security.krb5.realm=COTHAM -S java.security.krb5.kdc=ubuntu \
@@ -202,7 +203,7 @@
     
       
          
-    bin/hoya  emergency-force-kill all \
+    bin/slider  emergency-force-kill all \
     --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
     -D slider.security.enabled=true -S java.security.krb5.realm=COTHAM \
      -S java.security.krb5.kdc=ubuntu \
@@ -213,7 +214,7 @@
 ## All configured 
      
      
-    bin/hoya create cl1 \
+    bin/slider create cl1 \
       -S java.security.krb5.realm=COTHAM \
       -S java.security.krb5.kdc=ubuntu \
       --manager ubuntu:8032 --filesystem hdfs://ubuntu:9090 \
@@ -223,40 +224,40 @@
       --zkport 2121 \
       --image hdfs://ubuntu:9090/hbase.tar \
       --appconf file:///Users/stevel/Projects/Hortonworks/Projects/hoya/hoya-funtest/src/test/configs/ubuntu-secure/hbase \
-      --roleopt master app.infoport 8080 \
       --roleopt master env.MALLOC_ARENA_MAX 4 \
       --roleopt worker app.infoport 0 \
   
 # flex the cluster
   
-   bin/hoya flex cl1 \
-    --role master 1 \
-    --role worker 2 
+     bin/slider flex cl1 \
+      --role master 1 \
+      --role worker 2 
     
 # freeze
 
-    bin/hoya  freeze cl1 
+    bin/slider  freeze cl1 
     
 # thaw
 
-    bin/hoya  thaw cl1
+    bin/slider  thaw cl1
      
 # monitor
 
-    bin/hoya  monitor cl1      
+    bin/slider  monitor cl1      
 
 # list all
 
-    bin/hoya  list
+    bin/slider  list
      
 # list
 
-    bin/hoya  list cl1 
+    bin/slider  list cl1 
     
 # status
 
-    bin/hoya  status cl1 
+    bin/slider  status cl1 
     
 # destroy
 
-    bin/hoya  destroy cl1 
+    bin/slider  destroy cl1 
+    

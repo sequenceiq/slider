@@ -12,10 +12,8 @@
 ~~ limitations under the License. See accompanying LICENSE file.
 -->
 
-# Building Hoya
+# Building Slider
 
-Hoya is currently built with some unreleased Apache Artifacts, because it
-uses Hadoop 2.1 and needs a version of HBase built against that.
 
 Here's how to set this up.
 
@@ -49,13 +47,13 @@ This is absolutely critical to prevent JAR version problems.
 ## Building a compatible Hadoop version
 
 
-Hoya is built against Hadoop 2 -you can download and install
+Slider is built against Hadoop 2 -you can download and install
 a copy from the [Apache Hadoop Web Site](http://hadoop.apache.org).
 
 
 During development, its convenient (but not mandatory)
 to have a local version of Hadoop -so that we can find and fix bugs/add features in
-Hadoop as well in Hoya.
+Hadoop as well in Slider.
 
 
 To build and install locally, check out apache svn/github, branch `release-2.2.0`,
@@ -247,7 +245,7 @@ is ignored by git), declaring where HBase, accumulo, Hadoop and zookeeper are:
       <property>
         <name>hadoop.home</name>
         <value>
-          /home/hoya/hadoop-common/hadoop-dist/target/hadoop-2.2.0</value>
+          /home/hoya/hadoop-common/hadoop-dist/target/hadoop-2.3.0</value>
         <description>Hadoop home dir on target systems</description>
       </property>
       
@@ -267,7 +265,7 @@ every node manager creates its own logdir.
 
 1. Look for the `out.txt` and `err.txt` files for stdout and stderr log output.
 
-1. Hoya uses SLF4J to log to `out.txt`; remotely executed processes may use
+1. Slider uses SLF4J to log to `out.txt`; remotely executed processes may use
 either stream for logging
 
 Example:
@@ -346,7 +344,7 @@ Here is a handy bash command to do this
 
 ## Groovy 
 
-Hoya uses Groovy 2.x as its language for writing tests -for better assertions
+Slider uses Groovy 2.x as its language for writing tests -for better assertions
 and easier handling of lists and closures. Although the first prototype
 used Groovy on the production source, this was dropped in favor of
 a Java-only production codebase.
@@ -362,20 +360,4 @@ Here are some handy aliases to make maven easier
     alias mvnsite='mvn site:site -Dmaven.javadoc.skip=true'
     alias mvt='mvn test'
 
-
-### dumping the dependencies
-
-    mvn dependency:tree 
-    
-Have a look at this after adding an JAR to the classpath to look out
-for spurious dependency pickup. There's a lot of inconsistencies
-between Hadoop, HBase and Accumulo to watch out for
-
-## Debugging
-
-You can hook an IDE up to Hoya from the `hoya-core` package
-
-* target to run first `mvn package -DskipTests` in `hoya-core`
-* Main Class `org.apache.hoya.Hoya`
-* Recommended JVM Args `-Xmx256m -Dlog4j.configuration=org/apache/hoya/log4j.properties`
 
