@@ -64,7 +64,7 @@ versions plugin)[http://mojo.codehaus.org/versions-maven-plugin/]
   
 **Step #6:** Do a final test run to make sure nothing is broken
 
-In the `hoya` directory, run:
+In the `slider` directory, run:
 
     mvn clean test
 
