@@ -144,27 +144,21 @@ class TestMain(unittest.TestCase):
     self.assertFalse(read_mock.called)
 
 
+  @patch("os.remove")
   @patch("sys.exit")
   @patch("os.path.isfile")
   @patch("os.path.isdir")
   @patch("hostname.hostname")
   def test_perform_prestart_checks(self, hostname_mock, isdir_mock, isfile_mock,
-                                   exit_mock):
+                                   exit_mock, remove_mock):
     main.config = AgentConfig("", "")
-
-    # Check expected hostname test
-    hostname_mock.return_value = "test.hst"
-
-    main.perform_prestart_checks("another.hst")
-    self.assertTrue(exit_mock.called)
-
-    exit_mock.reset_mock()
 
     # Trying case if there is another instance running
     isfile_mock.return_value = True
     isdir_mock.return_value = True
     main.perform_prestart_checks(main.config)
-    self.assertTrue(exit_mock.called)
+    self.assertFalse(exit_mock.called)
+    self.assertTrue(remove_mock.called)
 
     isfile_mock.reset_mock()
     isdir_mock.reset_mock()

@@ -252,22 +252,16 @@ class TestController(unittest.TestCase):
     self.assertTrue(os_exit_mock.call_args[0][0] == AGENT_AUTO_RESTART_EXIT_CODE)
 
 
-  @patch("urllib2.Request")
-  @patch.object(Controller, "security")
-  def test_sendRequest(self, security_mock, requestMock):
+  @patch("urllib2.urlopen")
+  def test_sendRequest(self, requestMock):
 
     conMock = MagicMock()
-    conMock.request.return_value = "response"
-    security_mock.CachedHTTPSConnection.return_value = conMock
+    conMock.read.return_value = "response"
     url = "url"
     data = "data"
-    requestMock.return_value = "request"
-
-    self.controller.cachedconnect = None
+    requestMock.return_value = conMock
 
     self.assertEqual("response", self.controller.sendRequest(url, data))
-    security_mock.CachedHTTPSConnection.assert_called_once_with(
-      self.controller.config)
     requestMock.called_once_with(url, data,
       {'Content-Type': 'application/json'})
 
