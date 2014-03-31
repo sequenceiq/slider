@@ -12,10 +12,8 @@
 ~~ limitations under the License. See accompanying LICENSE file.
 -->
 
-# Building Hoya
+# Building Slider
 
-Hoya is currently built with some unreleased Apache Artifacts, because it
-uses Hadoop 2.1 and needs a version of HBase built against that.
 
 Here's how to set this up.
 
@@ -49,13 +47,13 @@ This is absolutely critical to prevent JAR version problems.
 ## Building a compatible Hadoop version
 
 
-Hoya is built against Hadoop 2 -you can download and install
+Slider is built against Hadoop 2 -you can download and install
 a copy from the [Apache Hadoop Web Site](http://hadoop.apache.org).
 
 
 During development, its convenient (but not mandatory)
 to have a local version of Hadoop -so that we can find and fix bugs/add features in
-Hadoop as well in Hoya.
+Hadoop as well in Slider.
 
 
 To build and install locally, check out apache svn/github, branch `release-2.2.0`,
@@ -150,7 +148,7 @@ tests just work directly with the untarred file as it saves time uploading
 and downloading then expanding the file.
 
 (and if you set `HBASE_VERSION` to something else, you can pick up that version
--making sure that hoya is in sync)
+-making sure that slider is in sync)
 
 For more information (including recommended Maven memory configuration options),
 see [HBase building](http://hbase.apache.org/book/build.html)
@@ -206,33 +204,33 @@ a path such as `target/accumulo-$ACCUMULO_VERSION-dev/accumulo-$ACCUMULO_VERSION
 
 ## Testing
 
-### Configuring Hoya to locate the relevant artifacts
+### Configuring Slider to locate the relevant artifacts
 
-You must have the file `src/test/resources/hoya-test.xml` (this
+You must have the file `src/test/resources/slider-test.xml` (this
 is ignored by git), declaring where HBase, accumulo, Hadoop and zookeeper are:
 
     <configuration>
     
       <property>
-        <name>hoya.test.hbase.home</name>
-        <value>/home/hoya/hbase/hbase-assembly/target/hbase-0.98.0-SNAPSHOT</value>
+        <name>slider.test.hbase.home</name>
+        <value>/home/slider/hbase/hbase-assembly/target/hbase-0.98.0-SNAPSHOT</value>
         <description>HBASE Home</description>
       </property>
     
       <property>
-        <name>hoya.test.hbase.tar</name>
+        <name>slider.test.hbase.tar</name>
         <value>/home/hoya/hbase/hbase-assembly/target/hbase-0.98.0-SNAPSHOT-bin.tar.gz</value>
         <description>HBASE archive URI</description>
       </property> 
          
       <property>
-        <name>hoya.test.accumulo.home</name>
+        <name>slider.test.accumulo.home</name>
         <value>/home/hoya/accumulo/assemble/target/accumulo-1.5.1-SNAPSHOT/</value>
         <description>Accumulo Home</description>
       </property>
     
       <property>
-        <name>hoya.test.accumulo.tar</name>
+        <name>slider.test.accumulo.tar</name>
         <value>/home/hoya/accumulo/assemble/target/accumulo-1.5.1-SNAPSHOT-bin.tar.gz</value>
         <description>Accumulo archive URI</description>
       </property>
@@ -247,7 +245,7 @@ is ignored by git), declaring where HBase, accumulo, Hadoop and zookeeper are:
       <property>
         <name>hadoop.home</name>
         <value>
-          /home/hoya/hadoop-common/hadoop-dist/target/hadoop-2.2.0</value>
+          /home/hoya/hadoop-common/hadoop-dist/target/hadoop-2.3.0</value>
         <description>Hadoop home dir on target systems</description>
       </property>
       
@@ -267,7 +265,7 @@ every node manager creates its own logdir.
 
 1. Look for the `out.txt` and `err.txt` files for stdout and stderr log output.
 
-1. Hoya uses SLF4J to log to `out.txt`; remotely executed processes may use
+1. Slider uses SLF4J to log to `out.txt`; remotely executed processes may use
 either stream for logging
 
 Example:
@@ -346,7 +344,7 @@ Here is a handy bash command to do this
 
 ## Groovy 
 
-Hoya uses Groovy 2.x as its language for writing tests -for better assertions
+Slider uses Groovy 2.x as its language for writing tests -for better assertions
 and easier handling of lists and closures. Although the first prototype
 used Groovy on the production source, this was dropped in favor of
 a Java-only production codebase.
@@ -362,20 +360,4 @@ Here are some handy aliases to make maven easier
     alias mvnsite='mvn site:site -Dmaven.javadoc.skip=true'
     alias mvt='mvn test'
 
-
-### dumping the dependencies
-
-    mvn dependency:tree 
-    
-Have a look at this after adding an JAR to the classpath to look out
-for spurious dependency pickup. There's a lot of inconsistencies
-between Hadoop, HBase and Accumulo to watch out for
-
-## Debugging
-
-You can hook an IDE up to Hoya from the `hoya-core` package
-
-* target to run first `mvn package -DskipTests` in `hoya-core`
-* Main Class `org.apache.hoya.Hoya`
-* Recommended JVM Args `-Xmx256m -Dlog4j.configuration=org/apache/hoya/log4j.properties`
 

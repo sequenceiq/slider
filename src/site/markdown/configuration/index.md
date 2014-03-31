@@ -12,7 +12,7 @@
   limitations under the License. See accompanying LICENSE file.
 -->
   
-# Specification of a deployed application, v2.0
+# Specification of an application instance, revision 2.0
 
 The specification of an applicaton, comprises
 1. The persistent description of an application's configuration
@@ -21,9 +21,15 @@ requirements.
 1. The dynamic description of the running application, including information
 on the location of components and aggregated statistics. 
 
+The specifics of this are covered in the [Core Configuration Specification](core.md)
 
-1. [Redesign](redesign.html)
+
+## Historical References
+
 1. [Specification](specification.html)
+1. [Redesign](redesign.html)
+
+
 1. [Example: current](original-hbase.json)
 1. [Example: proposed](proposed-hbase.json)
 

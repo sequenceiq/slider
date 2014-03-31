@@ -11,9 +11,14 @@
   See the License for the specific language governing permissions and
   limitations under the License. See accompanying LICENSE file.
 -->
-  
+# Specification of an application instance, revision 2.0
 
-# Specification of the Hoya Cluster Description
+The specification of an applicaton, comprises
+1. The persistent description of an application's configuration
+1. The persistent description of the desired topology and YARN resource
+requirements.
+1. The dynamic description of the running application, including information
+on the location of components and aggregated statistics. 
 
 
 1. [Redesign](redesign.md)

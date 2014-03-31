@@ -293,11 +293,11 @@ and the configurations of the deployed service components
       "site.fs.defaultFS": "hdfs://sandbox.hortonworks.com:8020",
       "hoya.container.failure.threshold": "5",
       "site.fs.default.name": "hdfs://sandbox.hortonworks.com:8020",
-      "hoya.cluster.directory.permissions": "0770",
+      "slider.cluster.directory.permissions": "0770",
       "hoya.am.monitoring.enabled": "false",
       "zookeeper.path": "/yarnapps_hoya_stevel_test_cluster_lifecycle",
       "hoya.tmp.dir": "hdfs://sandbox.hortonworks.com:8020/user/stevel/.hoya/cluster/test_cluster_lifecycle/tmp/am",
-      "hoya.data.directory.permissions": "0770",
+      "slider.data.directory.permissions": "0770",
       "zookeeper.hosts": "sandbox",
       "hoya.container.failure.shortlife": "60"
     },

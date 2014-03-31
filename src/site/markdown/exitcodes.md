@@ -12,9 +12,9 @@
 ~~ limitations under the License. See accompanying LICENSE file.
 -->
 
-# Hoya Client Exit Codes
+# Client Exit Codes
 
-Here are the exit codes returned by Hoya when it fails.
+Here are the exit codes returned 
 
 Exit code values 1 and 2 are interpreted by YARN -in particular converting the
 "1" value from an error into a successful shut down. Hoya
@@ -81,68 +81,67 @@ no. 72.
     int EXIT_CONNECTIVTY_PROBLEM        = 38;
     
     /**
-     * internal error:
+     * internal error: {@value}
      */
-    int EXIT_INTERNAL_ERROR =       64;
+    int EXIT_INTERNAL_ERROR = 64;
     
     /**
-     * Unimplemented feature:
+     * Unimplemented feature: {@value}
      */
     int EXIT_UNIMPLEMENTED =        65;
   
     /**
-     * service entered the failed state:
+     * service entered the failed state: {@value}
      */
     int EXIT_YARN_SERVICE_FAILED =  66;
   
     /**
-     * service was killed:
+     * service was killed: {@value}
      */
     int EXIT_YARN_SERVICE_KILLED =  67;
   
     /**
-     * timeout on monitoring client:
+     * timeout on monitoring client: {@value}
      */
     int EXIT_TIMED_OUT =            68;
   
     /**
-     * service finished with an error:
+     * service finished with an error: {@value}
      */
     int EXIT_YARN_SERVICE_FINISHED_WITH_ERROR = 69;
   
     /**
-     * the cluster is unknown:
+     * the application instance is unknown: {@value}
      */
-    int EXIT_UNKNOWN_HOYA_CLUSTER = 70;
+    int EXIT_UNKNOWN_INSTANCE = 70;
   
     /**
-     * the cluster is in the wrong state for that operation:
+     * the application instance is in the wrong state for that operation: {@value}
      */
-    int EXIT_BAD_CLUSTER_STATE =    71;
+    int EXIT_BAD_STATE =    71;
   
     /**
      * A spawned master process failed 
      */
-    int EXIT_MASTER_PROCESS_FAILED = 72;
-
+    int EXIT_PROCESS_FAILED = 72;
+  
     /**
      * The cluster failed -too many containers were
      * failing or some other threshold was reached
      */
-    int EXIT_CLUSTER_FAILED = 73;
-    
-    /**
-     * The cluster is live -and the requested operation
-     * does not work if the cluster is running
-     */
-    int EXIT_CLUSTER_IN_USE = 74;
+    int EXIT_DEPLOYMENT_FAILED = 73;
   
     /**
-     * There already is a cluster of that name
-     * when an attempt is made to create a new cluster
+     * The application is live -and the requested operation
+     * does not work if the cluster is running
      */
-    int EXIT_CLUSTER_EXISTS = 75;
-
+    int EXIT_APPLICATION_IN_USE = 74;
+  
+    /**
+     * There already is an application instance of that name
+     * when an attempt is made to create a new instance
+     */
+    int EXIT_INSTANCE_EXISTS = 75;
 
 ## Other exit codes
 

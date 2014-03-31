@@ -12,11 +12,11 @@
   limitations under the License. See accompanying LICENSE file.
 -->
   
-# Specification of Hoya behaviour
+# Specification of Slider behaviour
 
-This is a a "more rigorous" definition of the behavior of Hoya in terms
+This is a a "more rigorous" definition of the behavior of Slider in terms
 of its state and its command-line operations -by defining a 'formal' model
-of HDFS, YARN and Hoya's internal state, then describing the operations
+of HDFS, YARN and Slider's internal state, then describing the operations
 that can take place in terms of their preconditions and postconditions.
 
 This is to show what tests we can create to verify that an action
@@ -31,7 +31,7 @@ The specification depends on ongoing work in [HADOOP-9361](https://issues.apache
 to define the Hadoop Filesytem APIs --This specification uses [the same notation](https://github.com/steveloughran/hadoop-trunk/blob/stevel/HADOOP-9361-filesystem-contract/hadoop-common-project/hadoop-common/src/site/markdown/filesystem/notation.md)
 
  
-1. [Model: YARN And Hoya](hoya-model.html)
+1. [Model: YARN And Slider](slider-model.html)
 1. [CLI actions](cli-actions.html)
 
 Exceptions and operations may specify exit codes -these are listed in
