@@ -20,6 +20,7 @@ package org.apache.hoya.funtest.hbase
 
 import org.apache.hoya.funtest.framework.CommandTestBase
 import org.apache.hoya.funtest.framework.SliderShell
+import org.apache.hoya.providers.hbase.HBaseClientProvider
 import org.apache.hoya.providers.hbase.HBaseKeys
 import org.apache.hoya.yarn.Arguments
 import org.junit.Before
@@ -66,6 +67,8 @@ abstract class HBaseCommandTestBase extends CommandTestBase {
     argsList << Arguments.ARG_CONFDIR <<
     HOYA_CONFIG.getTrimmed(KEY_TEST_HBASE_APPCONF)
 
+    argsList << Arguments.ARG_PROVIDER << HBaseKeys.PROVIDER_HBASE
+    
     SliderShell shell = createHoyaCluster(
         name,
         roleMap,
