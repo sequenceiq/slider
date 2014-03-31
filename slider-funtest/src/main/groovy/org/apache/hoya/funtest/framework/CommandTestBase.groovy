@@ -432,7 +432,7 @@ abstract class CommandTestBase extends HoyaTestUtils {
   }
 
   public Path buildClusterPath(String clustername) {
-    return new Path(clusterFS.homeDirectory, ".hoya/cluster/${clustername}")
+    return new Path(clusterFS.homeDirectory, "${HoyaKeys.HOYA_BASE_DIRECTORY}/cluster/${clustername}")
   }
 
 

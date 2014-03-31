@@ -1,6 +1,7 @@
 package org.apache.hoya.funtest.framework
 
 import groovy.transform.CompileStatic
+import org.apache.hoya.HoyaKeys
 import org.apache.hoya.HoyaXMLConfKeysForTesting
 
 /*
@@ -30,12 +31,12 @@ public interface FuntestProperties extends HoyaXMLConfKeysForTesting {
   /**
    * Maven Property of location of hoya conf dir: {@value}
    */
-  String HOYA_CONF_DIR_PROP = "hoya.conf.dir"
+  String HOYA_CONF_DIR_PROP = "slider.conf.dir"
 
   /**
    * Maven Property of location of hoya binary image dir: {@value}
    */
-  String HOYA_BIN_DIR_PROP = "hoya.bin.dir"
+  String HOYA_BIN_DIR_PROP = "slider.bin.dir"
 
   String KEY_HOYA_TEST_NUM_WORKERS = "slider.test.cluster.size"
   int DEFAULT_HOYA_NUM_WORKERS = 1
@@ -51,7 +52,7 @@ public interface FuntestProperties extends HoyaXMLConfKeysForTesting {
 
   String KEY_HOYA_FUNTESTS_ENABLED = "hoya.funtest.enabled"
 
-  String CLIENT_CONFIG_FILENAME = "hoya-client.xml"
+  String CLIENT_CONFIG_FILENAME = HoyaKeys.CLIENT_RESOURCE
   
   String ENV_CONF_DIR = "SLIDER_CONF_DIR"
 

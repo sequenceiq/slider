@@ -37,7 +37,7 @@ public interface HoyaKeys extends HoyaXmlConfKeys {
    * The path under which cluster and temp data are stored
    * {@value}
    */
-  String HOYA_BASE_DIRECTORY = ".hoya";
+  String HOYA_BASE_DIRECTORY = ".slider";
 
   /**
    *  name of the relative path to expaned an image into:  {@value}.
@@ -127,13 +127,13 @@ public interface HoyaKeys extends HoyaXmlConfKeys {
    * name of the Hoya client resource
    * loaded when the service is loaded.
    */
-  String CLIENT_RESOURCE = "hoya-client.xml";
+  String CLIENT_RESOURCE = "slider-client.xml";
 
   /**
    * The name of the resource to put on the classpath
    * This only goes up on a real cluster, not a test run.
    */
-  String SERVER_RESOURCE = "hoya-server.xml";
+  String SERVER_RESOURCE = "slider-server.xml";
 
   String TMP_LOGDIR_PREFIX = "/tmp/slider-";
   String TMP_DIR_PREFIX = "tmp";
