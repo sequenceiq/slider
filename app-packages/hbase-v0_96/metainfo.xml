@@ -61,7 +61,7 @@
           <packages>
             <package>
               <type>tarball</type>
-              <name>files/hbase-0.96.1-hadoop2-bin.tar.tar.tar.gz</name>
+              <name>files/hbase-0.96.1-hadoop2-bin.tar</name>
             </package>
           </packages>
         </osSpecific>

@@ -97,6 +97,7 @@ import org.apache.hoya.yarn.appmaster.state.RMOperationHandler;
 import org.apache.hoya.yarn.appmaster.state.RoleInstance;
 import org.apache.hoya.yarn.appmaster.state.RoleStatus;
 import org.apache.hoya.yarn.appmaster.web.HoyaAMWebApp;
+import org.apache.hoya.yarn.appmaster.web.SliderAmIpFilter;
 import org.apache.hoya.yarn.appmaster.web.WebAppApi;
 import org.apache.hoya.yarn.appmaster.web.WebAppApiImpl;
 import org.apache.hoya.yarn.params.AbstractActionArgs;
@@ -402,7 +403,8 @@ public class HoyaAppMaster extends CompoundLaunchedService
     Configuration serviceConf = getConfig();
     // Try to get the proper filtering of static resources through the yarn proxy working
     serviceConf.set("hadoop.http.filter.initializers", 
-        "org.apache.hadoop.yarn.server.webproxy.amfilter.AmFilterInitializer");
+        "org.apache.hoya.yarn.appmaster.web.SliderAmFilterInitializer");
+    serviceConf.set(SliderAmIpFilter.WS_CONTEXT_ROOT, "/ws");
     
     conf = new YarnConfiguration(serviceConf);
     //get our provider

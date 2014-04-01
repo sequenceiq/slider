@@ -356,14 +356,14 @@ public class CoreFileSystem {
                                    Path imagePath) throws IOException {
     if (imagePath != null) {
       LocalResource resource = createAmResource(imagePath,
-              LocalResourceType.ARCHIVE);
+          LocalResourceType.ARCHIVE);
       localResources.put(HoyaKeys.LOCAL_TARBALL_INSTALL_SUBDIR, resource);
       return true;
     } else {
       return false;
     }
   }
-  
+
   public boolean maybeAddImagePath(Map<String, LocalResource> localResources,
                                    String imagePath) throws IOException {
     
